@@ -6,6 +6,7 @@ import { requireRoleAccess } from "@/lib/auth";
 import { getAppBaseUrl, getBlingCallbackUrl, getBlingWebhookUrl } from "@/lib/bling";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDateTimePtBr } from "@/lib/utils";
 import { disconnectBlingIntegrationAction } from "./actions";
 
 type ConfiguracoesIntegracoesPageProps = {
@@ -92,7 +93,8 @@ export default async function ConfiguracoesIntegracoesPage({
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Depositantes integráveis</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio mapeamento de empresa no Bling.
+                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio
+                mapeamento de empresa no Bling.
               </p>
             </div>
             <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
@@ -143,13 +145,13 @@ export default async function ConfiguracoesIntegracoesPage({
                             <p>
                               Último sincronismo:{" "}
                               {bling?.lastSyncAt
-                                ? new Date(bling.lastSyncAt).toLocaleString("pt-BR")
+                                ? formatDateTimePtBr(bling.lastSyncAt)
                                 : "Ainda não sincronizado"}
                             </p>
                             <p>
                               Último webhook:{" "}
                               {bling?.webhook?.lastEventAt
-                                ? new Date(bling.webhook.lastEventAt).toLocaleString("pt-BR")
+                                ? formatDateTimePtBr(bling.webhook.lastEventAt)
                                 : "Ainda não recebido"}
                             </p>
                           </div>
@@ -216,7 +218,10 @@ export default async function ConfiguracoesIntegracoesPage({
             "Endpoint de webhook validado com assinatura HMAC.",
             "Registro interno dos eventos de pedido para rastreabilidade operacional.",
           ].map((item) => (
-            <div key={item} className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+            <div
+              key={item}
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
+            >
               {item}
             </div>
           ))}
