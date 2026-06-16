@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ClipboardCheck, FileText, PackageCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ClipboardCheck,
+  FileText,
+  PackageCheck,
+} from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { getReceivingOrderById, listOperationalIssues } from "@/lib/wms-data";
+import { ReceivingConferencePanel } from "@/components/receiving/receiving-conference-panel";
+import { requireModuleAccess } from "@/lib/auth";
+import {
+  getReceivingOrderDetailFromDb,
+  listOperationalIssuesFromDb,
+  type ReceivingOrderDetail,
+} from "@/lib/receiving";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type RecebimentoDetalhePageProps = {
   params: Promise<{
@@ -14,15 +27,25 @@ type RecebimentoDetalhePageProps = {
 export default async function RecebimentoDetalhePage({
   params,
 }: RecebimentoDetalhePageProps) {
+  await requireModuleAccess("recebimento");
+
   const { id } = await params;
-  const order = getReceivingOrderById(id);
+  const order = await getReceivingOrderDetailFromDb(id);
 
   if (!order) {
     notFound();
   }
 
-  const relatedIssues = listOperationalIssues().filter(
-    (issue) => issue.depositante === order.depositante,
+  const supabase = await createSupabaseServerClient();
+  const { data: addresses } = await supabase
+    .from("enderecos")
+    .select("id, codigo, area")
+    .eq("ativo", true)
+    .neq("area", "BLOQUEADO")
+    .order("codigo");
+
+  const relatedIssues = (await listOperationalIssuesFromDb()).filter(
+    (issue) => issue.orderId === order.id,
   );
 
   return (
@@ -63,16 +86,62 @@ export default async function RecebimentoDetalhePage({
           help={`Protocolo ${order.protocol}`}
         />
         <StatCard
-          icon={ClipboardCheck}
-          label="Chegada prevista"
-          value={order.eta}
-          help={`Status atual: ${order.status}`}
+          icon={order.divergence.hasAny ? AlertTriangle : ClipboardCheck}
+          label={order.divergence.hasAny ? "Divergências" : "Chegada prevista"}
+          value={
+            order.divergence.hasAny
+              ? String(order.divergence.itemCount)
+              : order.eta
+          }
+          help={
+            order.divergence.hasAny
+              ? `${order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) com diferença`
+              : `Status atual: ${order.status}`
+          }
         />
       </section>
 
+      {order.divergence.hasAny ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-700" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Divergência encontrada entre a NF-e e a conferência física
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                {order.divergence.itemCount} item(ns) com diferença, somando{" "}
+                {order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) fora do
+                previsto. As ocorrências abaixo ficam vinculadas somente a este recebimento.
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <ReceivingConferencePanel
+        orderId={order.id}
+        initialItems={order.items}
+        addresses={addresses ?? []}
+      />
+
       <section className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Itens da conferência</h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold text-slate-950">Itens da conferência</h2>
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                order.divergence.hasAny
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-emerald-100 text-emerald-800"
+              }`}
+            >
+              {order.divergence.hasAny
+                ? `${order.divergence.itemCount} divergência(s)`
+                : "Conferência sem divergências"}
+            </span>
+          </div>
+
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-200 text-slate-500">
@@ -81,21 +150,43 @@ export default async function RecebimentoDetalhePage({
                   <th className="pb-3 font-medium">Descrição</th>
                   <th className="pb-3 font-medium">Previsto</th>
                   <th className="pb-3 font-medium">Recebido</th>
+                  <th className="pb-3 font-medium">Conferência</th>
                   <th className="pb-3 font-medium">Lote</th>
                   <th className="pb-3 font-medium">Validade</th>
                 </tr>
               </thead>
               <tbody>
-                {order.items.map((item) => (
-                  <tr key={`${order.code}-${item.sku}`} className="border-b border-slate-100 last:border-b-0">
+                {order.items.map((item: ReceivingOrderDetail["items"][number]) => (
+                  <tr
+                    key={`${order.id}-${item.id}`}
+                    className="border-b border-slate-100 last:border-b-0"
+                  >
                     <td className="py-3 font-medium text-slate-900">{item.sku}</td>
                     <td className="py-3 text-slate-600">{item.description}</td>
                     <td className="py-3 text-slate-600">{item.expected}</td>
                     <td className="py-3 text-slate-600">{item.received}</td>
+                    <td className="py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.divergenceQuantity === 0
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {item.divergenceLabel}
+                      </span>
+                    </td>
                     <td className="py-3 text-slate-600">{item.lot}</td>
                     <td className="py-3 text-slate-600">{item.expiry}</td>
                   </tr>
                 ))}
+                {!order.items.length ? (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-slate-500">
+                      Nenhum item cadastrado ainda para este recebimento.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -118,7 +209,7 @@ export default async function RecebimentoDetalhePage({
             <div className="mt-4 space-y-3">
               {relatedIssues.length ? (
                 relatedIssues.map((issue) => (
-                  <div key={issue.title} className="rounded-xl bg-rose-50 px-4 py-3">
+                  <div key={issue.id} className="rounded-xl bg-rose-50 px-4 py-3">
                     <p className="text-sm font-semibold text-rose-900">{issue.title}</p>
                     <p className="mt-1 text-xs text-rose-700">{issue.type}</p>
                     <p className="mt-2 text-sm text-rose-800">{issue.action}</p>

@@ -31,6 +31,8 @@ yarn-error.log*
 .pnpm-debug.log*
 dev.log
 dev.err.log
+.next-dev.log
+lt.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -41,3 +43,6 @@ dev.err.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test artifacts
+/test-results

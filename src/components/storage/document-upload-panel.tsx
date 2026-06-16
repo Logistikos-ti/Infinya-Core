@@ -11,6 +11,7 @@ type DepositanteOption = {
 type DocumentUploadPanelProps = {
   defaultDepositanteId: string | null;
   depositantes: DepositanteOption[];
+  lockDepositante?: boolean;
 };
 
 const documentTypes = [
@@ -26,9 +27,12 @@ const documentTypes = [
 export function DocumentUploadPanel({
   defaultDepositanteId,
   depositantes,
+  lockDepositante = false,
 }: DocumentUploadPanelProps) {
   const router = useRouter();
-  const [depositanteId, setDepositanteId] = useState(defaultDepositanteId ?? depositantes[0]?.id ?? "");
+  const [depositanteId, setDepositanteId] = useState(
+    defaultDepositanteId ?? depositantes[0]?.id ?? "",
+  );
   const [tipo, setTipo] = useState<(typeof documentTypes)[number]["value"]>("NF");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -101,7 +105,8 @@ export function DocumentUploadPanel({
           <select
             value={depositanteId}
             onChange={(event) => setDepositanteId(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            disabled={lockDepositante || depositantes.length <= 1}
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50"
           >
             {depositantes.map((depositante) => (
               <option key={depositante.id} value={depositante.id}>

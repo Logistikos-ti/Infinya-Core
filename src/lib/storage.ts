@@ -1,4 +1,5 @@
 export const documentsBucketName = "wms-documentos";
+export const depositantesLogosBucketName = "wms-depositantes-logos";
 
 export const allowedDocumentMimeTypes = [
   "application/pdf",
@@ -9,6 +10,13 @@ export const allowedDocumentMimeTypes = [
 ] as const;
 
 export const maxDocumentFileSizeBytes = 10 * 1024 * 1024;
+export const maxDepositanteLogoFileSizeBytes = 2 * 1024 * 1024;
+
+export const allowedDepositanteLogoMimeTypes = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
 
 export function sanitizeFileName(fileName: string) {
   return fileName

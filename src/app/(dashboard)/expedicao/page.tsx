@@ -1,16 +1,48 @@
 import { Activity, AlertTriangle, PackageCheck, Truck } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { requireModuleAccess } from "@/lib/auth";
+import { filterItemsByUserDepositante, isScopedDepositanteUser } from "@/lib/tenant-scope";
 import {
   listShippingFlow,
   listShippingQueues,
   listShippingStats,
 } from "@/lib/wms-data";
 
-export default function ExpedicaoPage() {
+export default async function ExpedicaoPage() {
+  const user = await requireModuleAccess("expedicao");
+
   const shippingStats = listShippingStats();
-  const shippingQueues = listShippingQueues();
+  const shippingQueues = filterItemsByUserDepositante(
+    user,
+    listShippingQueues(),
+    () => user.depositanteNome,
+  );
   const shippingFlow = listShippingFlow();
+  const shippingStatsCards = isScopedDepositanteUser(user)
+    ? [
+        {
+          label: "Filas visíveis",
+          value: String(shippingQueues.length),
+          help: "Filas acessíveis no escopo do seu depositante.",
+        },
+        {
+          label: "Pedidos nas filas",
+          value: String(shippingQueues.reduce((sum, item) => sum + item.orders, 0)),
+          help: "Pedidos mapeados nas filas do seu ambiente.",
+        },
+        {
+          label: "Integrações com atenção",
+          value: String(shippingQueues.length),
+          help: "Canais monitorados na sua operação.",
+        },
+        {
+          label: "Etapas do fluxo",
+          value: String(shippingFlow.length),
+          help: "Fluxo operacional obrigatório para expedição.",
+        },
+      ]
+    : shippingStats;
 
   return (
     <div className="space-y-6">
@@ -21,10 +53,10 @@ export default function ExpedicaoPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Truck} label={shippingStats[0].label} value={shippingStats[0].value} help={shippingStats[0].help} />
-        <StatCard icon={PackageCheck} label={shippingStats[1].label} value={shippingStats[1].value} help={shippingStats[1].help} />
-        <StatCard icon={AlertTriangle} label={shippingStats[2].label} value={shippingStats[2].value} help={shippingStats[2].help} />
-        <StatCard icon={Activity} label={shippingStats[3].label} value={shippingStats[3].value} help={shippingStats[3].help} />
+        <StatCard icon={Truck} label={shippingStatsCards[0].label} value={shippingStatsCards[0].value} help={shippingStatsCards[0].help} />
+        <StatCard icon={PackageCheck} label={shippingStatsCards[1].label} value={shippingStatsCards[1].value} help={shippingStatsCards[1].help} />
+        <StatCard icon={AlertTriangle} label={shippingStatsCards[2].label} value={shippingStatsCards[2].value} help={shippingStatsCards[2].help} />
+        <StatCard icon={Activity} label={shippingStatsCards[3].label} value={shippingStatsCards[3].value} help={shippingStatsCards[3].help} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -45,6 +77,11 @@ export default function ExpedicaoPage() {
                 <p className="mt-3 text-sm text-slate-500">{queue.action}</p>
               </div>
             ))}
+            {!shippingQueues.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                Nenhuma fila operacional disponível para o seu depositante.
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserContext } from "@/lib/auth";
+import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   allowedDocumentMimeTypes,
@@ -19,10 +20,19 @@ const tiposDocumentoPermitidos = new Set([
 ]);
 
 export async function POST(request: Request) {
-  const user = await getCurrentUserContext();
+  const auth = await requireApiModuleAccess("nfe");
 
-  if (!user) {
-    return NextResponse.json({ error: "Sessão expirada. Faça login novamente." }, { status: 401 });
+  if (auth.response) {
+    return auth.response;
+  }
+
+  if (!canUploadOperationalDocuments(auth.user)) {
+    return NextResponse.json(
+      {
+        error: "Seu perfil pode consultar documentos, mas não pode enviar novos arquivos.",
+      },
+      { status: 403 },
+    );
   }
 
   const formData = await request.formData();
@@ -51,10 +61,7 @@ export async function POST(request: Request) {
   }
 
   if (file.size > maxDocumentFileSizeBytes) {
-    return NextResponse.json(
-      { error: "O arquivo excede o limite de 10 MB." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "O arquivo excede o limite de 10 MB." }, { status: 400 });
   }
 
   if (!allowedDocumentMimeTypes.includes(file.type as (typeof allowedDocumentMimeTypes)[number])) {
@@ -62,6 +69,12 @@ export async function POST(request: Request) {
       { error: "Formato não suportado. Envie PDF, XML, PNG ou JPG." },
       { status: 400 },
     );
+  }
+
+  const scopeError = ensureUserCanAccessDepositante(auth.user, depositanteId);
+
+  if (scopeError) {
+    return scopeError;
   }
 
   const adminSupabase = createSupabaseAdminClient();
@@ -105,7 +118,7 @@ export async function POST(request: Request) {
       caminho_storage: storagePath,
       mime_type: file.type,
       tamanho_bytes: file.size,
-      enviado_por: user.id,
+      enviado_por: auth.user.id,
     })
     .select("id, nome_arquivo, tipo, created_at")
     .single();

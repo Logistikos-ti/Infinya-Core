@@ -1,49 +1,63 @@
 import { Activity, AlertTriangle, Boxes, FileClock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { statusPedidoExpedicaoFluxo } from "@/lib/constants";
 import { ModuleCard } from "@/components/dashboard/module-card";
 import { StatCard } from "@/components/dashboard/stat-card";
-import {
-  listReceivingOrders,
-  listReceivingStats,
-  listRoadmapMilestones,
-} from "@/lib/wms-data";
+import { requireModuleAccess } from "@/lib/auth";
+import { statusPedidoExpedicaoFluxo } from "@/lib/constants";
+import { canAccessModule, type AppModule } from "@/lib/permissions";
+import { listReceivingOrdersFromDb, listReceivingStatsFromDb } from "@/lib/receiving";
+import { listRoadmapMilestones } from "@/lib/wms-data";
+import { isScopedDepositanteUser } from "@/lib/tenant-scope";
 
-const focusModules = [
+const focusModules: ReadonlyArray<{
+  href: string;
+  title: string;
+  description: string;
+  status: string;
+  module: AppModule;
+}> = [
   {
     href: "/recebimento",
     title: "Recebimento",
     description: "Inbound, conferência e entrada em estoque com lote e validade.",
-    status: "Módulo em construção",
+    status: "Base operacional ligada ao banco",
+    module: "recebimento",
   },
   {
     href: "/expedicao",
     title: "Expedição",
     description: "Separação, conferência, etiquetas e integração com marketplaces.",
     status: "Próximo módulo crítico",
+    module: "expedicao",
   },
   {
     href: "/estoque",
     title: "Estoque",
     description: "Saldos, endereçamento, FEFO/FIFO, inventário e rastreabilidade.",
     status: "Estrutura inicial",
+    module: "estoque",
   },
   {
     href: "/configuracoes",
     title: "Configurações",
     description: "Depositantes, usuários, produtos, transportadoras e parâmetros.",
     status: "Cadastros base",
+    module: "configuracoes",
   },
 ] as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await requireModuleAccess("dashboard");
   const today = format(new Date(), "EEEE, dd 'de' MMMM", {
     locale: ptBR,
   });
-  const receivingOrders = listReceivingOrders();
-  const receivingStats = listReceivingStats();
+  const [receivingOrders, receivingStats] = await Promise.all([
+    listReceivingOrdersFromDb(),
+    listReceivingStatsFromDb(user),
+  ]);
   const roadmapMilestones = listRoadmapMilestones();
+  const visibleModules = focusModules.filter((module) => canAccessModule(user, module.module));
 
   return (
     <div className="space-y-8">
@@ -54,12 +68,14 @@ export default function DashboardPage() {
               Infinya Core
             </span>
             <h1 className="text-3xl font-semibold text-slate-950">
-              Base inicial do nosso produto WMS
+              {isScopedDepositanteUser(user)
+                ? `Operação de ${user.depositanteNome ?? "seu depositante"}`
+                : "Base inicial do nosso produto WMS"}
             </h1>
             <p className="max-w-3xl text-sm leading-6 text-slate-600">
-              A fundação técnica já está pronta para crescer em cima dos módulos
-              principais da operação: recebimento, expedição, estoque, NFe,
-              relatórios e configuração multi-depositante.
+              {isScopedDepositanteUser(user)
+                ? "Você está vendo apenas os pedidos, indicadores e documentos do seu depositante, já dentro da mesma base multi-tenant do WMS."
+                : "A fundação técnica já está pronta para crescer em cima dos módulos principais da operação: recebimento, expedição, estoque, NFe, relatórios e configuração multi-depositante."}
             </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
@@ -79,7 +95,9 @@ export default function DashboardPage() {
           <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
             Ritmo de construção
           </p>
-          <p className="mt-3 text-2xl font-semibold">Semana 1</p>
+          <p className="mt-3 text-2xl font-semibold">
+            {isScopedDepositanteUser(user) ? "Painel do depositante" : "Semana 2"}
+          </p>
           <p className="mt-1 text-sm text-slate-300">{today}</p>
           <div className="mt-6 space-y-3 text-sm text-slate-300">
             <div className="flex items-start gap-3">
@@ -88,11 +106,15 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-start gap-3">
               <Activity className="mt-0.5 h-4 w-4 text-sky-400" />
-              <span>Dashboard base pronto para conectar métricas reais.</span>
+              <span>Recebimento já usando pedidos reais do Supabase.</span>
             </div>
             <div className="flex items-start gap-3">
               <FileClock className="mt-0.5 h-4 w-4 text-sky-400" />
-              <span>Passo atual: Supabase, auth e primeira migration.</span>
+              <span>
+                {isScopedDepositanteUser(user)
+                  ? "Seu acesso está isolado para acompanhar somente a sua operação."
+                  : "Passo atual: consolidar recebimento real e depois puxar estoque."}
+              </span>
             </div>
           </div>
         </div>
@@ -101,9 +123,13 @@ export default function DashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={Boxes}
-          label="Depositantes ativos"
-          value="8"
-          help="Base prevista para isolamento por RLS."
+          label={isScopedDepositanteUser(user) ? "Escopo atual" : "Recebimentos abertos"}
+          value={isScopedDepositanteUser(user) ? (user.depositanteNome ?? "1") : String(receivingOrders.length)}
+          help={
+            isScopedDepositanteUser(user)
+              ? "Você está navegando apenas dentro do seu ambiente."
+              : "Pedidos reais já cadastrados no banco."
+          }
         />
         <StatCard
           icon={Activity}
@@ -120,24 +146,28 @@ export default function DashboardPage() {
         <StatCard
           icon={AlertTriangle}
           label="Dor prioritária"
-          value="Bling V3"
-          help="Fila travada e reprocessamento entrarão no módulo de expedição."
+          value="Recebimento real"
+          help="Agora estamos trocando mock por fluxo operacional persistido."
         />
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-xl font-semibold text-slate-950">
-            Módulos principais
-          </h2>
+          <h2 className="text-xl font-semibold text-slate-950">Módulos principais</h2>
           <p className="text-sm text-slate-600">
             O app já está organizado para crescer em cima da operação real.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {focusModules.map((module) => (
-            <ModuleCard key={module.href} {...module} />
+          {visibleModules.map((module) => (
+            <ModuleCard
+              key={module.href}
+              href={module.href}
+              title={module.title}
+              description={module.description}
+              status={module.status}
+            />
           ))}
         </div>
       </section>
@@ -185,7 +215,7 @@ export default function DashboardPage() {
 
           <div className="mt-6 space-y-4">
             {receivingOrders.slice(0, 3).map((order) => (
-              <div key={order.code} className="rounded-2xl bg-slate-50 p-4">
+              <div key={order.id} className="rounded-2xl bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">{order.code}</p>
@@ -204,6 +234,11 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
+            {!receivingOrders.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                Nenhum recebimento disponível ainda.
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

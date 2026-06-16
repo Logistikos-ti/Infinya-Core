@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { filterItemsByUserDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import {
   listReceivingOrders,
   listReceivingStats,
@@ -7,10 +7,24 @@ import {
 } from "@/lib/wms-data";
 
 export async function GET() {
-  return NextResponse.json({
+  const auth = await requireApiModuleAccess("dashboard");
+
+  if (auth.response) {
+    return auth.response;
+  }
+
+  return Response.json({
     receivingStats: listReceivingStats(),
-    receivingOrders: listReceivingOrders(),
+    receivingOrders: filterItemsByUserDepositante(
+      auth.user,
+      listReceivingOrders(),
+      (item) => item.depositante,
+    ),
     roadmap: listRoadmapMilestones(),
-    shippingQueues: listShippingQueues(),
+    shippingQueues: filterItemsByUserDepositante(
+      auth.user,
+      listShippingQueues(),
+      () => auth.user.depositanteNome,
+    ),
   });
 }

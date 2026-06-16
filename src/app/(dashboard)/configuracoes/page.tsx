@@ -1,25 +1,94 @@
 import Link from "next/link";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import {
-  listAddressBlueprint,
-  listConfigModules,
-  listDepositantesResumo,
-  listProductChecklist,
-} from "@/lib/wms-data";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function ConfiguracoesPage() {
-  const depositantesResumo = listDepositantesResumo();
-  const configModules = listConfigModules();
-  const addressBlueprint = listAddressBlueprint();
-  const productChecklist = listProductChecklist();
+const configModules = [
+  {
+    href: "/configuracoes/depositantes",
+    title: "Depositantes",
+    description: "Carteira ativa, contatos, regras operacionais e segregação por cliente.",
+  },
+  {
+    href: "/configuracoes/usuarios",
+    title: "Usuários",
+    description: "Papéis, acessos, vínculo por depositante e gestão de sessão operacional.",
+  },
+  {
+    href: "/configuracoes/produtos",
+    title: "Produtos",
+    description: "SKU, EAN/GTIN, categoria, FEFO/FIFO, unidade, lote e validade.",
+  },
+  {
+    href: "/configuracoes/enderecos",
+    title: "Endereços",
+    description: "Mapa físico de recebimento, pulmão, picking, bloqueado e expedição.",
+  },
+  {
+    href: "/configuracoes/integracoes",
+    title: "Integrações",
+    description: "Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.",
+  },
+] as const;
+
+export default async function ConfiguracoesPage() {
+  const supabase = await createSupabaseServerClient();
+
+  const [
+    { data: depositantes },
+    { data: produtos },
+    { data: usuarios },
+    { data: enderecos },
+  ] = await Promise.all([
+    supabase.from("depositantes").select("id, codigo, nome, ativo").order("nome"),
+    supabase.from("produtos").select("depositante_id, metodo_retirada, ativo"),
+    supabase.from("usuarios").select("depositante_id, ativo"),
+    supabase
+      .from("enderecos")
+      .select("id, codigo, area, capacidade_maxima, ativo")
+      .order("codigo")
+      .limit(20),
+  ]);
+
+  const depositanteCards = (depositantes ?? []).map((depositante) => {
+    const relatedProducts = (produtos ?? []).filter(
+      (item) => item.depositante_id === depositante.id,
+    );
+    const relatedUsers = (usuarios ?? []).filter(
+      (item) => item.depositante_id === depositante.id,
+    );
+    const preferredMethod = getPreferredMethod(
+      relatedProducts.map((item) => item.metodo_retirada),
+    );
+
+    return {
+      id: depositante.id,
+      nome: depositante.nome,
+      ativo: depositante.ativo,
+      skus: relatedProducts.length,
+      usuarios: relatedUsers.length,
+      metodo: preferredMethod,
+    };
+  });
+
+  const activeDepositantes = depositanteCards.filter((item) => item.ativo).length;
+  const activeProducts = (produtos ?? []).filter((item) => item.ativo).length;
+  const activeUsers = (usuarios ?? []).filter((item) => item.ativo).length;
+  const activeAddresses = (enderecos ?? []).filter((item) => item.ativo).length;
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="Configurações"
         description="Cadastros mestres do WMS: depositantes, usuários, produtos, endereços e parâmetros operacionais."
-        badge="Semana 1"
+        badge="Base operacional"
       />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Depositantes ativos" value={String(activeDepositantes)} />
+        <SummaryCard label="Produtos ativos" value={String(activeProducts)} />
+        <SummaryCard label="Usuários ativos" value={String(activeUsers)} />
+        <SummaryCard label="Endereços ativos" value={String(activeAddresses)} />
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -27,47 +96,61 @@ export default function ConfiguracoesPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Depositantes base</h2>
               <p className="text-sm text-slate-600">
-                Massa inicial para isolamento multi-tenant e políticas de acesso.
+                Dados reais do ambiente para isolamento multi-tenant e políticas de acesso.
               </p>
             </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              8 previstos
+              {activeDepositantes} ativos
             </span>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {depositantesResumo.map((item) => (
-              <div key={item.name} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                    {item.method}
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">SKUs</p>
-                    <p className="mt-1 font-medium text-slate-900">{item.skus}</p>
+            {depositanteCards.length ? (
+              depositanteCards.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-900">{item.nome}</p>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      {item.metodo}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">Endereços</p>
-                    <p className="mt-1 font-medium text-slate-900">{item.addresses}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">SKUs</p>
+                      <p className="mt-1 font-medium text-slate-900">{item.skus}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Usuários</p>
+                      <p className="mt-1 font-medium text-slate-900">{item.usuarios}</p>
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 md:col-span-2">
+                Nenhum depositante cadastrado ainda.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Checklist de produto</h2>
-          <ul className="mt-4 space-y-3 text-sm text-slate-600">
-            {productChecklist.map((item) => (
-              <li key={item} className="rounded-xl bg-slate-50 px-4 py-3">
+          <h2 className="text-lg font-semibold text-slate-950">Próximas ações</h2>
+          <div className="mt-4 grid gap-3">
+            {[
+              `Revisar ${activeProducts} produtos já importados no ambiente.`,
+              "Padronizar categorias e unidades comerciais por depositante.",
+              "Conectar importação em massa com planilhas operacionais reais.",
+              "Completar cadastros de usuários, endereços e regras por cliente.",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
+              >
                 {item}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
@@ -86,7 +169,7 @@ export default function ConfiguracoesPage() {
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Blueprint de endereços</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Endereços cadastrados</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-200 text-slate-500">
@@ -94,38 +177,99 @@ export default function ConfiguracoesPage() {
                   <th className="pb-3 font-medium">Código</th>
                   <th className="pb-3 font-medium">Área</th>
                   <th className="pb-3 font-medium">Capacidade</th>
+                  <th className="pb-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {addressBlueprint.map((address) => (
-                  <tr key={address.code} className="border-b border-slate-100 last:border-b-0">
-                    <td className="py-3 font-medium text-slate-900">{address.code}</td>
-                    <td className="py-3 text-slate-600">{address.area}</td>
-                    <td className="py-3 text-slate-600">{address.capacity}</td>
+                {enderecos?.length ? (
+                  enderecos.map((address) => (
+                    <tr key={address.id} className="border-b border-slate-100 last:border-b-0">
+                      <td className="py-3 font-medium text-slate-900">{address.codigo}</td>
+                      <td className="py-3 text-slate-600">{formatArea(address.area)}</td>
+                      <td className="py-3 text-slate-600">
+                        {address.capacidade_maxima ?? "-"}
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            address.ativo
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {address.ativo ? "Ativo" : "Inativo"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="py-6 text-center text-slate-500">
+                      Nenhum endereço cadastrado ainda.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Próximos cadastros</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Cobertura atual</h2>
           <div className="mt-4 grid gap-3">
-            {[
-              "Usuários com papel e depositante vinculado",
-              "Transportadoras e etiquetas",
-              "Parâmetros por depositante",
-              "Mapeamento de unidades e conversões",
-              "Modelos de importação de produto e recebimento",
-            ].map((item) => (
-              <div key={item} className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
-                {item}
-              </div>
-            ))}
+            <StatusRow label="Depositantes com SKU cadastrado" value={String(depositanteCards.filter((item) => item.skus > 0).length)} />
+            <StatusRow label="Depositantes sem SKU cadastrado" value={String(depositanteCards.filter((item) => item.skus === 0).length)} />
+            <StatusRow label="Usuários vinculados a depositantes" value={String((usuarios ?? []).filter((item) => item.depositante_id).length)} />
+            <StatusRow label="Método predominante no ambiente" value={getPreferredMethod((produtos ?? []).map((item) => item.metodo_retirada))} />
           </div>
         </div>
       </section>
     </div>
   );
+}
+
+function SummaryCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function StatusRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm">
+      <span className="text-slate-600">{label}</span>
+      <span className="font-semibold text-slate-950">{value}</span>
+    </div>
+  );
+}
+
+function getPreferredMethod(methods: Array<string | null | undefined>) {
+  const counter = new Map<string, number>();
+
+  methods
+    .filter(Boolean)
+    .forEach((method) => counter.set(method!, (counter.get(method!) ?? 0) + 1));
+
+  const mostFrequent = [...counter.entries()].sort((left, right) => right[1] - left[1])[0]?.[0];
+  return mostFrequent ?? "Sem produtos";
+}
+
+function formatArea(value: string) {
+  switch (value) {
+    case "RECEBIMENTO":
+      return "Recebimento";
+    case "PULMAO":
+      return "Pulmão";
+    case "PICKING":
+      return "Picking";
+    case "BLOQUEADO":
+      return "Bloqueado";
+    case "EXPEDICAO":
+      return "Expedição";
+    default:
+      return value;
+  }
 }

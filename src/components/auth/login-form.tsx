@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginActionState } from "@/app/(auth)/login/actions";
+import { Button } from "@/components/ui/button";
 
 const initialState: LoginActionState = {
   error: null,
@@ -46,13 +47,13 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-400"
+        className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700 disabled:bg-sky-400"
       >
         {isPending ? "Entrando..." : "Entrar no WMS"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -37,15 +37,21 @@ export async function loginAction(
 
   const { data: profile } = await adminSupabase
     .from("usuarios")
-    .select("id")
+    .select("id, ativo")
     .eq("id", user.id)
     .maybeSingle();
 
   if (!profile) {
     await supabase.auth.signOut();
     return {
-      error:
-        "Seu usuário existe no Auth, mas ainda não foi vinculado ao perfil operacional do WMS.",
+      error: "Seu usuário existe no Auth, mas ainda não foi vinculado ao perfil operacional do WMS.",
+    };
+  }
+
+  if (!profile.ativo) {
+    await supabase.auth.signOut();
+    return {
+      error: "Este usuário está inativo no WMS. Solicite liberação ao administrador.",
     };
   }
 

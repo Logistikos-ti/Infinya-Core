@@ -1,10 +1,31 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import { listDepositantesResumo } from "@/lib/wms-data";
+import { Button } from "@/components/ui/button";
+import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  deleteDepositanteAction,
+  toggleDepositanteStatusAction,
+} from "@/app/(dashboard)/configuracoes/depositantes/actions";
 
-export default function ConfiguracoesDepositantesPage() {
-  const depositantesResumo = listDepositantesResumo();
+type ConfiguracoesDepositantesPageProps = {
+  searchParams?: Promise<{
+    feedback?: string;
+  }>;
+};
+
+export default async function ConfiguracoesDepositantesPage({
+  searchParams,
+}: ConfiguracoesDepositantesPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const feedback = params?.feedback ?? null;
+  const supabase = await createSupabaseServerClient();
+
+  const { data: depositantes } = await supabase
+    .from("depositantes")
+    .select("id, codigo, nome, cnpj, ativo, logo_url, observacoes, configuracoes, created_at")
+    .order("nome");
 
   return (
     <div className="space-y-6">
@@ -18,38 +39,216 @@ export default function ConfiguracoesDepositantesPage() {
 
       <ModulePageHeader
         title="Depositantes"
-        description="Cadastro base dos clientes operados dentro do WMS próprio."
-        badge="Cadastro mestre"
+        description="Carteira ativa de clientes do WMS, com gestão de cadastro, status operacional e parâmetros por depositante."
+        badge="Semana 2"
       />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
-              <tr>
-                <th className="pb-3 font-medium">Nome</th>
-                <th className="pb-3 font-medium">SKUs</th>
-                <th className="pb-3 font-medium">Endereços</th>
-                <th className="pb-3 font-medium">Método padrão</th>
-              </tr>
-            </thead>
-            <tbody>
-              {depositantesResumo.map((item) => (
-                <tr key={item.name} className="border-b border-slate-100 last:border-b-0">
-                  <td className="py-3 font-medium text-slate-900">{item.name}</td>
-                  <td className="py-3 text-slate-600">{item.skus}</td>
-                  <td className="py-3 text-slate-600">{item.addresses}</td>
-                  <td className="py-3">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                      {item.method}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {feedback ? (
+        <div
+          className={`rounded-2xl px-4 py-3 text-sm ${
+            feedback === "criado" || feedback === "salvo" || feedback === "excluido"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          {feedback === "criado"
+            ? "Depositante criado com sucesso."
+            : feedback === "salvo"
+              ? "Depositante atualizado com sucesso."
+              : feedback === "excluido"
+                ? "Depositante excluído com sucesso."
+                : feedback === "vinculos"
+                  ? "Não foi possível excluir este depositante porque já existem vínculos operacionais. Nesse caso, use desativar."
+                  : "Não foi possível concluir a operação solicitada."}
         </div>
-      </div>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Depositantes cadastrados</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Base ativa para produtos, usuários vinculados e operação multi-tenant.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              {depositantes?.length ?? 0} registros
+            </span>
+            <Link href="/configuracoes/depositantes/novo">
+              <Button className="bg-slate-950 text-white hover:bg-slate-800">
+                <Plus className="h-4 w-4" />
+                Novo depositante
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {depositantes?.length ? (
+            depositantes.map((item) => {
+              const configuracoes = parseDepositanteConfiguracoes(
+                item.configuracoes ? JSON.stringify(item.configuracoes) : item.observacoes,
+              );
+              const razaoSocial = configuracoes.razaoSocial || item.nome;
+              const cidadeUf = [
+                configuracoes.enderecoFiscal.cidade,
+                configuracoes.enderecoFiscal.uf,
+              ]
+                .filter(Boolean)
+                .join(" / ");
+              const telefones = configuracoes.telefonesContato.slice(0, 2);
+              const emails = configuracoes.emailsContato.slice(0, 2);
+
+              return (
+                <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                          {item.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.logo_url}
+                              alt={`Logo ${item.nome}`}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              Sem logo
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-base font-semibold text-slate-950">{item.nome}</p>
+                          <p className="text-sm text-slate-500">{razaoSocial}</p>
+                          <p className="text-sm text-slate-500">
+                            {item.codigo} {" • "} {formatCnpj(item.cnpj)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {cidadeUf ? <p className="text-sm text-slate-600">Fiscal: {cidadeUf}</p> : null}
+
+                      {telefones.length ? (
+                        <div className="space-y-1 text-sm text-slate-600">
+                          {telefones.map((contato) => (
+                            <p key={`${contato.nome}-${contato.telefone}`}>
+                              {contato.nome}: {contato.telefone}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {emails.length ? (
+                        <div className="space-y-1 text-sm text-slate-600">
+                          {emails.map((contato) => (
+                            <p key={contato.email}>{contato.email}</p>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{configuracoes.metodoRetiradaPadrao}</Badge>
+                        <Badge>{configuracoes.exigeLotePadrao ? "Com lote" : "Sem lote"}</Badge>
+                        <Badge>
+                          {configuracoes.exigeValidadePadrao ? "Com validade" : "Sem validade"}
+                        </Badge>
+                        <Badge>
+                          {configuracoes.permiteFracionamento
+                            ? "Fracionamento ativo"
+                            : "Sem fracionamento"}
+                        </Badge>
+                        <Badge>
+                          Validade mínima: {configuracoes.diasMinimosValidade} dias
+                        </Badge>
+                        {configuracoes.prefixoRecebimento ? (
+                          <Badge>Prefixo: {configuracoes.prefixoRecebimento}</Badge>
+                        ) : null}
+                      </div>
+
+                      {configuracoes.observacoes ? (
+                        <p className="text-sm leading-6 text-slate-600">
+                          {configuracoes.observacoes}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-3 lg:text-right">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                          item.ativo
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {item.ativo ? "Ativo" : "Inativo"}
+                      </span>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                        Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <Link
+                          href={`/configuracoes/depositantes/${item.id}/editar`}
+                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          Editar
+                        </Link>
+                        <form action={toggleDepositanteStatusAction}>
+                          <input type="hidden" name="id" value={item.id} />
+                          <input
+                            type="hidden"
+                            name="nextActive"
+                            value={item.ativo ? "false" : "true"}
+                          />
+                          <Button type="submit" variant="outline" size="sm">
+                            {item.ativo ? "Desativar" : "Ativar"}
+                          </Button>
+                        </form>
+                        <form action={deleteDepositanteAction}>
+                          <input type="hidden" name="id" value={item.id} />
+                          <Button
+                            type="submit"
+                            variant="outline"
+                            size="sm"
+                            className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              Nenhum depositante cadastrado ainda.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+      {children}
+    </span>
+  );
+}
+
+function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length !== 14) {
+    return value;
+  }
+
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }

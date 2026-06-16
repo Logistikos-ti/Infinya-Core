@@ -1,14 +1,17 @@
 import { logoutAction } from "@/app/(auth)/login/actions";
+import { Button } from "@/components/ui/button";
 
 export function LogoutButton() {
   return (
     <form action={logoutAction}>
-      <button
+      <Button
         type="submit"
-        className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        variant="outline"
+        size="sm"
+        className="text-slate-700"
       >
         Sair
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,14 +1,18 @@
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { requireModuleAccess } from "@/lib/auth";
+import { filterItemsByUserDepositante } from "@/lib/tenant-scope";
 import { listRouteLoads } from "@/lib/wms-data";
 
-export default function RomaneioPage() {
-  const routeLoads = listRouteLoads();
+export default async function RomaneioPage() {
+  const user = await requireModuleAccess("romaneio");
+
+  const routeLoads = filterItemsByUserDepositante(user, listRouteLoads(), () => user.depositanteNome);
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="Romaneio"
-        description="Agrupamento por transportadora, roteirizacao operacional e despacho."
+        description="Agrupamento por transportadora, roteirização operacional e despacho."
         badge="MVP"
       />
 
@@ -25,6 +29,11 @@ export default function RomaneioPage() {
               </div>
             </div>
           ))}
+          {!routeLoads.length ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 md:col-span-3">
+              Nenhuma carga prevista para o seu depositante.
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,41 +1,41 @@
 export const roadmapMilestones = [
   {
-    title: "Semana 1 — Fundação",
+    title: "Semana 1 - Fundação",
     owner: "Produto + Tecnologia",
     status: "Em andamento",
     detail:
       "Repositório, Supabase, autenticação, RLS multi-tenant, schema base e estrutura do projeto.",
   },
   {
-    title: "Semana 2 — Cadastros",
+    title: "Semana 2 - Cadastros",
     owner: "Backoffice + Produto",
     status: "Na fila imediata",
     detail:
       "CRUD de depositantes, produtos, endereçamento, usuários e importação inicial de produtos.",
   },
   {
-    title: "Semana 3 — Recebimento",
+    title: "Semana 3 - Recebimento",
     owner: "Operação + Produto",
     status: "Prioridade máxima",
     detail:
       "Pedido de recebimento, importação NF-e XML, conferência, divergências, lote, validade e entrada em estoque.",
   },
   {
-    title: "Semana 4 — Estoque Base",
+    title: "Semana 4 - Estoque Base",
     owner: "Operação + Qualidade",
     status: "Mês 1",
     detail:
       "Consulta de estoque, alerta de vencimento, relatório de saldo, testes end-to-end e deploy de homologação.",
   },
   {
-    title: "Mês 2 — Expedição",
+    title: "Mês 2 - Expedição",
     owner: "Operação",
     status: "Planejado",
     detail:
       "Integração Bling V3, pedidos de expedição, separação, conferência, romaneio e transportadoras.",
   },
   {
-    title: "Mês 3 — Go-live",
+    title: "Mês 3 - Go-live",
     owner: "Operação + Gestão",
     status: "Planejado",
     detail:
@@ -127,9 +127,30 @@ export const receivingOrderDetails = {
       "Liberar conferência por lote e validade",
     ],
     items: [
-      { sku: "EVG-SERUM-30", description: "Sérum facial 30ml", expected: "80", received: "0", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "EVG-CREAM-50", description: "Creme hidratante 50g", expected: "40", received: "0", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "EVG-KIT-BOX", description: "Caixa kit promocional", expected: "26", received: "0", lot: "Não", expiry: "Não" },
+      {
+        sku: "EVG-SERUM-30",
+        description: "Sérum facial 30ml",
+        expected: "80",
+        received: "0",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "EVG-CREAM-50",
+        description: "Creme hidratante 50g",
+        expected: "40",
+        received: "0",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "EVG-KIT-BOX",
+        description: "Caixa kit promocional",
+        expected: "26",
+        received: "0",
+        lot: "Não",
+        expiry: "Não",
+      },
     ],
   },
   "rec-240610-002": {
@@ -149,9 +170,30 @@ export const receivingOrderDetails = {
       "Mover para pulmão após conferência",
     ],
     items: [
-      { sku: "FES-PAPER-09", description: "Papel decorativo premium", expected: "120", received: "96", lot: "Não", expiry: "Não" },
-      { sku: "FES-RIB-02", description: "Fita decorativa cetim", expected: "60", received: "60", lot: "Não", expiry: "Não" },
-      { sku: "FES-BOX-11", description: "Caixa presente média", expected: "40", received: "40", lot: "Não", expiry: "Não" },
+      {
+        sku: "FES-PAPER-09",
+        description: "Papel decorativo premium",
+        expected: "120",
+        received: "96",
+        lot: "Não",
+        expiry: "Não",
+      },
+      {
+        sku: "FES-RIB-02",
+        description: "Fita decorativa cetim",
+        expected: "60",
+        received: "60",
+        lot: "Não",
+        expiry: "Não",
+      },
+      {
+        sku: "FES-BOX-11",
+        description: "Caixa presente média",
+        expected: "40",
+        received: "40",
+        lot: "Não",
+        expiry: "Não",
+      },
     ],
   },
   "rec-240610-003": {
@@ -171,9 +213,30 @@ export const receivingOrderDetails = {
       "Aguardar devolutiva do depositante",
     ],
     items: [
-      { sku: "SUA-VIT-C", description: "Vitamina C 60 caps", expected: "24", received: "24", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "SUA-OMEGA-3", description: "Ômega 3 120 caps", expected: "18", received: "12", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "SUA-MELATONIN", description: "Melatonina 90 caps", expected: "12", received: "12", lot: "Obrigatório", expiry: "Obrigatória" },
+      {
+        sku: "SUA-VIT-C",
+        description: "Vitamina C 60 caps",
+        expected: "24",
+        received: "24",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "SUA-OMEGA-3",
+        description: "Ômega 3 120 caps",
+        expected: "18",
+        received: "12",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "SUA-MELATONIN",
+        description: "Melatonina 90 caps",
+        expected: "12",
+        received: "12",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
     ],
   },
   "rec-240610-004": {
@@ -193,9 +256,30 @@ export const receivingOrderDetails = {
       "Separar lote bloqueado se houver variação",
     ],
     items: [
-      { sku: "REN-COLAG-01", description: "Colágeno hidrolisado", expected: "52", received: "0", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "REN-SERUM-10", description: "Sérum renovador 10ml", expected: "32", received: "0", lot: "Obrigatório", expiry: "Obrigatória" },
-      { sku: "REN-MASK-05", description: "Máscara facial premium", expected: "20", received: "0", lot: "Obrigatório", expiry: "Obrigatória" },
+      {
+        sku: "REN-COLAG-01",
+        description: "Colágeno hidrolisado",
+        expected: "52",
+        received: "0",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "REN-SERUM-10",
+        description: "Sérum renovador 10ml",
+        expected: "32",
+        received: "0",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
+      {
+        sku: "REN-MASK-05",
+        description: "Máscara facial premium",
+        expected: "20",
+        received: "0",
+        lot: "Obrigatório",
+        expiry: "Obrigatória",
+      },
     ],
   },
 } as const;
@@ -269,10 +353,26 @@ export const addressBlueprint = [
 ] as const;
 
 export const stockStats = [
-  { label: "Posições ativas", value: "97", help: "Endereços hoje disponíveis na operação." },
-  { label: "Lotes bloqueados", value: "6", help: "Itens em tratativa de avaria, validade ou divergência." },
-  { label: "Produtos com FEFO", value: "143", help: "Cadastros que exigem controle por validade." },
-  { label: "Inventário pendente", value: "12 ruas", help: "Mapa inicial para o primeiro ciclo de contagem." },
+  {
+    label: "Posições ativas",
+    value: "97",
+    help: "Endereços hoje disponíveis na operação.",
+  },
+  {
+    label: "Lotes bloqueados",
+    value: "6",
+    help: "Itens em tratativa de avaria, validade ou divergência.",
+  },
+  {
+    label: "Produtos com FEFO",
+    value: "143",
+    help: "Cadastros que exigem controle por validade.",
+  },
+  {
+    label: "Inventário pendente",
+    value: "12 ruas",
+    help: "Mapa inicial para o primeiro ciclo de contagem.",
+  },
 ] as const;
 
 export const stockBalances = [
@@ -313,17 +413,53 @@ export const stockMovements = [
 ] as const;
 
 export const shippingStats = [
-  { label: "Pedidos na fila", value: "186", help: "Backlog operacional do turno para separação." },
-  { label: "Separações em andamento", value: "34", help: "Ordens atualmente em picking ou conferência." },
-  { label: "Integrações com erro", value: "9", help: "Pedidos travados entre ERP, Bling e canais." },
-  { label: "SLA do dia", value: "94,2%", help: "Percentual dos pedidos dentro do prazo de despacho." },
+  {
+    label: "Pedidos na fila",
+    value: "186",
+    help: "Backlog operacional do turno para separação.",
+  },
+  {
+    label: "Separações em andamento",
+    value: "34",
+    help: "Ordens atualmente em picking ou conferência.",
+  },
+  {
+    label: "Integrações com erro",
+    value: "9",
+    help: "Pedidos travados entre ERP, Bling e canais.",
+  },
+  {
+    label: "SLA do dia",
+    value: "94,2%",
+    help: "Percentual dos pedidos dentro do prazo de despacho.",
+  },
 ] as const;
 
 export const shippingQueues = [
-  { channel: "Bling V3", orders: 9, issue: "Fila de reprocessamento parada", action: "Retentativa automática e trilha de erro" },
-  { channel: "Mercado Livre", orders: 61, issue: "Separação multipedido", action: "Agrupar por onda e prioridade" },
-  { channel: "Shopee", orders: 37, issue: "Etiqueta pendente", action: "Gerar lote de impressão" },
-  { channel: "Manual / B2B", orders: 14, issue: "Conferência final", action: "Validar romaneio e nota" },
+  {
+    channel: "Bling V3",
+    orders: 9,
+    issue: "Fila de reprocessamento parada",
+    action: "Retentativa automática e trilha de erro",
+  },
+  {
+    channel: "Mercado Livre",
+    orders: 61,
+    issue: "Separação multipedido",
+    action: "Agrupar por onda e prioridade",
+  },
+  {
+    channel: "Shopee",
+    orders: 37,
+    issue: "Etiqueta pendente",
+    action: "Gerar lote de impressão",
+  },
+  {
+    channel: "Manual / B2B",
+    orders: 14,
+    issue: "Conferência final",
+    action: "Validar romaneio e nota",
+  },
 ] as const;
 
 export const shippingFlow = [
@@ -342,9 +478,24 @@ export const routeLoads = [
 ] as const;
 
 export const nfeInbox = [
-  { key: "35260600000000000000550010000081273123456789", type: "Entrada", linked: "REC-240610-001", status: "Importada" },
-  { key: "35260600000000000000550010000081274123456789", type: "Entrada", linked: "REC-240610-003", status: "Divergência" },
-  { key: "35260600000000000000550010000091273123456789", type: "Saída", linked: "PED-240610-119", status: "Aguardando vínculo" },
+  {
+    key: "35260600000000000000550010000081273123456789",
+    type: "Entrada",
+    linked: "REC-240610-001",
+    status: "Importada",
+  },
+  {
+    key: "35260600000000000000550010000081274123456789",
+    type: "Entrada",
+    linked: "REC-240610-003",
+    status: "Divergência",
+  },
+  {
+    key: "35260600000000000000550010000091273123456789",
+    type: "Saída",
+    linked: "PED-240610-119",
+    status: "Aguardando vínculo",
+  },
 ] as const;
 
 export const reportsCatalog = [
@@ -355,17 +506,69 @@ export const reportsCatalog = [
 ] as const;
 
 export const usersOverview = [
-  { name: "Vinícius Cruz", email: "ti@logistikos.com.br", role: "TI", depositante: "Global", status: "Ativo" },
-  { name: "Larissa Recebimento", email: "larissa@evolveg.com.br", role: "OPERADOR", depositante: "Evolveg", status: "Ativo" },
-  { name: "Carlos Estoque", email: "carlos@festcolor.com.br", role: "DEPOSITANTE", depositante: "Festcolor", status: "Ativo" },
-  { name: "Bianca Qualidade", email: "bianca@rennova.com.br", role: "OPERADOR", depositante: "Rennova", status: "Pendente" },
+  {
+    name: "Vinícius Cruz",
+    email: "ti@logistikos.com.br",
+    role: "TI",
+    depositante: "Global",
+    status: "Ativo",
+  },
+  {
+    name: "Larissa Recebimento",
+    email: "larissa@evolveg.com.br",
+    role: "OPERADOR",
+    depositante: "Evolveg",
+    status: "Ativo",
+  },
+  {
+    name: "Carlos Estoque",
+    email: "carlos@festcolor.com.br",
+    role: "DEPOSITANTE",
+    depositante: "Festcolor",
+    status: "Ativo",
+  },
+  {
+    name: "Bianca Qualidade",
+    email: "bianca@rennova.com.br",
+    role: "OPERADOR",
+    depositante: "Rennova",
+    status: "Pendente",
+  },
 ] as const;
 
 export const productOverview = [
-  { sku: "EVG-SERUM-30", depositante: "Evolveg", method: "FEFO", unit: "UNIDADE", lot: "Sim", expiry: "Sim" },
-  { sku: "FES-PAPER-09", depositante: "Festcolor", method: "FIFO", unit: "CAIXA", lot: "Não", expiry: "Não" },
-  { sku: "REN-COLAG-01", depositante: "Rennova", method: "FEFO", unit: "UNIDADE", lot: "Sim", expiry: "Sim" },
-  { sku: "SUA-VIT-C", depositante: "Sua Aliada", method: "FEFO", unit: "UNIDADE", lot: "Sim", expiry: "Sim" },
+  {
+    sku: "EVG-SERUM-30",
+    depositante: "Evolveg",
+    method: "FEFO",
+    unit: "UNIDADE",
+    lot: "Sim",
+    expiry: "Sim",
+  },
+  {
+    sku: "FES-PAPER-09",
+    depositante: "Festcolor",
+    method: "FIFO",
+    unit: "CAIXA",
+    lot: "Não",
+    expiry: "Não",
+  },
+  {
+    sku: "REN-COLAG-01",
+    depositante: "Rennova",
+    method: "FEFO",
+    unit: "UNIDADE",
+    lot: "Sim",
+    expiry: "Sim",
+  },
+  {
+    sku: "SUA-VIT-C",
+    depositante: "Sua Aliada",
+    method: "FEFO",
+    unit: "UNIDADE",
+    lot: "Sim",
+    expiry: "Sim",
+  },
 ] as const;
 
 export const configModules = [

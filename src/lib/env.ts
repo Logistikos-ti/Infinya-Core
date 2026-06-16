@@ -11,3 +11,16 @@ export function hasSupabaseEnv() {
 
   return Boolean(env.url && env.anonKey);
 }
+
+export function getAppEnv() {
+  return {
+    publicAppUrl: process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "",
+  };
+}
+
+export function getBlingEnv() {
+  return {
+    clientId: process.env.BLING_CLIENT_ID?.trim() ?? "",
+    clientSecret: process.env.BLING_CLIENT_SECRET?.trim() ?? "",
+  };
+}

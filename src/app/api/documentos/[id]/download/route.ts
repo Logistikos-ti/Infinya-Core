@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUserContext } from "@/lib/auth";
+import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { documentsBucketName } from "@/lib/storage";
@@ -11,10 +11,10 @@ type RouteProps = {
 };
 
 export async function GET(_request: Request, { params }: RouteProps) {
-  const user = await getCurrentUserContext();
+  const auth = await requireApiModuleAccess("nfe");
 
-  if (!user) {
-    return NextResponse.json({ error: "Sessão expirada. Faça login novamente." }, { status: 401 });
+  if (auth.response) {
+    return auth.response;
   }
 
   const { id } = await params;
@@ -22,12 +22,18 @@ export async function GET(_request: Request, { params }: RouteProps) {
 
   const { data: document } = await supabase
     .from("documentos_armazenados")
-    .select("id, nome_arquivo, caminho_storage")
+    .select("id, nome_arquivo, caminho_storage, depositante_id")
     .eq("id", id)
     .maybeSingle();
 
   if (!document) {
     return NextResponse.json({ error: "Documento não encontrado." }, { status: 404 });
+  }
+
+  const scopeError = ensureUserCanAccessDepositante(auth.user, document.depositante_id);
+
+  if (scopeError) {
+    return scopeError;
   }
 
   const adminSupabase = createSupabaseAdminClient();
