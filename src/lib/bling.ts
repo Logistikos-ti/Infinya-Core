@@ -29,6 +29,12 @@ export type BlingCompanyInfo = {
   nome: string | null;
 };
 
+export type BlingConnectionSyncResult = {
+  tokens: BlingOAuthTokens | null;
+  company: BlingCompanyInfo | null;
+  companyFetchError: string | null;
+};
+
 export function getAppBaseUrl(fallbackOrigin?: string) {
   const { publicAppUrl } = getAppEnv();
   return publicAppUrl || fallbackOrigin || "http://localhost:3000";
@@ -127,6 +133,51 @@ export async function fetchBlingCompanyInfo(accessToken: string): Promise<BlingC
     id: payload.data?.id != null ? String(payload.data.id) : null,
     nome: payload.data?.nome?.trim() || null,
   };
+}
+
+export async function syncBlingConnectionMetadata(
+  config: DepositanteBlingConfig,
+): Promise<BlingConnectionSyncResult> {
+  if (!config.refreshToken && !config.accessToken) {
+    throw new Error("A integração do Bling não possui tokens válidos para sincronização.");
+  }
+
+  let tokens: BlingOAuthTokens | null = null;
+  let accessToken = config.accessToken;
+
+  const expiresAt = config.expiresAt ? new Date(config.expiresAt).getTime() : Number.NaN;
+  const shouldRefreshToken =
+    !accessToken ||
+    Number.isNaN(expiresAt) ||
+    expiresAt <= Date.now() + 60_000;
+
+  if (shouldRefreshToken) {
+    if (!config.refreshToken) {
+      throw new Error("A integração do Bling não possui refresh token para renovar a sessão.");
+    }
+
+    tokens = await refreshBlingAccessToken(config.refreshToken);
+    accessToken = tokens.access_token;
+  }
+
+  if (!accessToken) {
+    throw new Error("Não foi possível obter um access token do Bling.");
+  }
+
+  try {
+    const company = await fetchBlingCompanyInfo(accessToken);
+    return {
+      tokens,
+      company,
+      companyFetchError: null,
+    };
+  } catch (error) {
+    return {
+      tokens,
+      company: null,
+      companyFetchError: error instanceof Error ? error.message : "Falha ao consultar a empresa no Bling.",
+    };
+  }
 }
 
 export function buildBlingConnectionConfig(

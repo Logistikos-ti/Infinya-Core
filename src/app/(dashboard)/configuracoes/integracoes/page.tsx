@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Link2, PlugZap, Unplug } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Link2, PlugZap, RefreshCw, Unplug } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
@@ -7,7 +7,10 @@ import { getAppBaseUrl, getBlingCallbackUrl, getBlingWebhookUrl } from "@/lib/bl
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTimePtBr } from "@/lib/utils";
-import { disconnectBlingIntegrationAction } from "./actions";
+import {
+  disconnectBlingIntegrationAction,
+  syncBlingIntegrationAction,
+} from "./actions";
 
 type ConfiguracoesIntegracoesPageProps = {
   searchParams?: Promise<{
@@ -63,6 +66,10 @@ export default async function ConfiguracoesIntegracoesPage({
             ? "Conexão com o Bling salva com sucesso para o depositante."
             : feedback === "bling-desconectado"
               ? "Integração do Bling removida com sucesso."
+              : feedback === "bling-sincronizado"
+                ? "Integração do Bling sincronizada com sucesso."
+                : feedback === "bling-identificacao-pendente"
+                  ? `A conexão está ativa, mas o nome da empresa ainda não pôde ser lido na API do Bling.${motivo ? ` Motivo: ${motivo}` : ""}`
               : `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`}
         </div>
       ) : null}
@@ -154,6 +161,12 @@ export default async function ConfiguracoesIntegracoesPage({
                                 ? formatDateTimePtBr(bling.webhook.lastEventAt)
                                 : "Ainda não recebido"}
                             </p>
+                            {bling?.companyId && !bling?.companyName ? (
+                              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                                O vínculo já foi confirmado pelo `companyId`, mas o app do Bling ainda
+                                não liberou escopo suficiente para lermos o nome da empresa pela API.
+                              </p>
+                            ) : null}
                           </div>
                         ) : (
                           <p className="text-sm text-slate-600">
@@ -178,6 +191,16 @@ export default async function ConfiguracoesIntegracoesPage({
                             {isConnected ? "Reconectar Bling" : "Conectar Bling"}
                           </Button>
                         </a>
+
+                        {isConnected ? (
+                          <form action={syncBlingIntegrationAction}>
+                            <input type="hidden" name="depositanteId" value={depositante.id} />
+                            <Button type="submit" variant="outline">
+                              <RefreshCw className="h-4 w-4" />
+                              Atualizar vínculo
+                            </Button>
+                          </form>
+                        ) : null}
 
                         {isConnected ? (
                           <form action={disconnectBlingIntegrationAction}>
