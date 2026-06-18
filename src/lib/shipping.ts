@@ -54,6 +54,7 @@ type RawShippingOrderDetailRow = {
   data_pedido: string | null;
   previsao_envio_em: string | null;
   sincronizado_em: string | null;
+  payload_origem: Record<string, unknown> | null;
   observacoes: string | null;
   depositante: RelationName;
   itens?: RawShippingOrderItemRow[] | null;
@@ -114,7 +115,13 @@ export type ShippingOrderDetail = {
   unitsRaw: number;
   orderDate: string;
   shipDate: string;
+  expectedDate: string;
   syncedAt: string;
+  marketplace: string;
+  invoice: string;
+  shippingLabel: string;
+  shippingService: string;
+  trackingCode: string;
   notes: string;
   items: Array<{
     id: string;
@@ -243,7 +250,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, observacoes, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -261,10 +268,17 @@ export async function getShippingOrderDetailFromDb(id: string) {
   }
 
   const order = data as RawShippingOrderDetailRow;
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const customer = order.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
+  const marketplace = extractMarketplace(payload, order.canal);
+  const invoice = extractInvoice(payload);
+  const shippingLabel = extractShippingLabel(payload);
+  const shippingService = extractShippingService(payload);
+  const trackingCode = extractTrackingCode(payload);
+  const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
     const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
@@ -303,9 +317,15 @@ export async function getShippingOrderDetailFromDb(id: string) {
     itemCount: Number(order.quantidade_itens ?? items.length),
     units: Number(order.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     unitsRaw: Number(order.quantidade_unidades ?? 0),
-    orderDate: formatDateTimeOrFallback(order.data_pedido, "Sem data"),
+    orderDate: formatBusinessDateTimeOrFallback(order.data_pedido, "Sem data"),
     shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsão"),
-    syncedAt: formatDateTimeOrFallback(order.sincronizado_em, "Ainda não sincronizado"),
+    expectedDate,
+    syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda não sincronizado"),
+    marketplace,
+    invoice,
+    shippingLabel,
+    shippingService,
+    trackingCode,
     notes: order.observacoes?.trim() || "Sem observações.",
     items,
   } satisfies ShippingOrderDetail;
@@ -322,9 +342,9 @@ export function listShippingFlowSteps() {
 
 function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummary {
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
-  const destination = [item.cliente_cidade?.trim(), item.cliente_uf?.trim()]
-    .filter(Boolean)
-    .join(" - ") || "Destino não informado";
+  const destination =
+    [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
+    "Destino não informado";
 
   return {
     id: item.id,
@@ -341,8 +361,8 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     total: formatCurrency(item.valor_total),
     units: Number(item.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     itemCount: Number(item.quantidade_itens ?? 0),
-    createdAt: formatDateTimeOrFallback(item.data_pedido, "Sem data"),
-    syncedAt: formatDateTimeOrFallback(item.sincronizado_em, "Ainda não sincronizado"),
+    createdAt: formatBusinessDateTimeOrFallback(item.data_pedido, "Sem data"),
+    syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
   };
 }
 
@@ -367,8 +387,33 @@ function formatCurrency(value: number | string | null | undefined) {
   });
 }
 
-function formatDateTimeOrFallback(value: string | null, fallback: string) {
-  return value ? new Date(value).toLocaleString("pt-BR") : fallback;
+function formatBusinessDateTimeOrFallback(value: string | null, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T00:00:00(\.000)?(\+00:00|Z)$/.test(value)) {
+    return formatDateOrFallback(value, fallback);
+  }
+
+  return formatDateTimeInSaoPaulo(value, fallback);
+}
+
+function formatDateTimeInSaoPaulo(value: string | null, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(date);
 }
 
 function formatDateOrFallback(value: string | null, fallback: string) {
@@ -378,6 +423,86 @@ function formatDateOrFallback(value: string | null, fallback: string) {
 
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
   return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString("pt-BR");
+}
+
+function extractMarketplace(payload: Record<string, unknown>, channelFallback: string) {
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
+  const loja = isRecord(payload.loja) ? payload.loja : null;
+
+  return (
+    readString(intermediador?.nomeUsuario) ??
+    readString(intermediador?.cnpj) ??
+    (loja ? `Loja ${readString(loja.id) ?? "Bling"}` : null) ??
+    channelFallback
+  );
+}
+
+function extractInvoice(payload: Record<string, unknown>) {
+  const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
+
+  return readString(notaFiscal?.numero) ?? readString(notaFiscal?.id) ?? "Ainda não vinculada";
+}
+
+function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: string | null) {
+  return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsão");
+}
+
+function extractShippingLabel(payload: Record<string, unknown>) {
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const etiqueta = transporte && isRecord(transporte.etiqueta) ? transporte.etiqueta : null;
+
+  if (!etiqueta) {
+    return "Etiqueta não informada";
+  }
+
+  const parts = [
+    readString(etiqueta.endereco),
+    readString(etiqueta.numero),
+    readString(etiqueta.complemento),
+    readString(etiqueta.bairro),
+    readString(etiqueta.municipio),
+    readString(etiqueta.uf),
+    readString(etiqueta.cep),
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(", ") : "Etiqueta não informada";
+}
+
+function extractShippingService(payload: Record<string, unknown>) {
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const volumes = Array.isArray(transporte?.volumes) ? transporte.volumes : [];
+  const firstVolume = volumes.find((item) => isRecord(item));
+
+  return firstVolume && isRecord(firstVolume)
+    ? readString(firstVolume.servico) ?? "Serviço não informado"
+    : "Serviço não informado";
+}
+
+function extractTrackingCode(payload: Record<string, unknown>) {
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const volumes = Array.isArray(transporte?.volumes) ? transporte.volumes : [];
+  const firstVolume = volumes.find((item) => isRecord(item));
+
+  return firstVolume && isRecord(firstVolume)
+    ? readString(firstVolume.codigoRastreamento) ?? "Rastreio não informado"
+    : "Rastreio não informado";
+}
+
+function readString(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 export function formatShippingStatusLabel(status: string) {

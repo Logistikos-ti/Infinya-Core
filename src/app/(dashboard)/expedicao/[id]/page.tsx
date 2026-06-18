@@ -42,7 +42,7 @@ export default async function ShippingOrderDetailPage({
 
       <ModulePageHeader
         title={`Pedido ${order.externalNumber}`}
-        description="Visualização completa do pedido de expedição, com dados do cliente, rastreabilidade e itens."
+        description="Visualização completa do pedido de expedição, com dados comerciais, logísticos e rastreabilidade."
         badge={order.statusLabel}
       />
 
@@ -79,12 +79,16 @@ export default async function ShippingOrderDetailPage({
               <InfoCard label="Número da loja" value={order.storeNumber} />
               <InfoCard label="Depositante" value={order.depositante} />
               <InfoCard label="Status de origem" value={order.sourceStatus || "-"} />
+              <InfoCard label="Marketplace" value={order.marketplace} />
+              <InfoCard label="Nota fiscal" value={order.invoice} />
               <InfoCard label="Data do pedido" value={order.orderDate} />
+              <InfoCard label="Data prevista" value={order.expectedDate} />
               <InfoCard label="Previsão de envio" value={order.shipDate} />
               <InfoCard label="Última sincronização" value={order.syncedAt} />
               <InfoCard label="Valor total" value={order.total} />
               <InfoCard label="Itens" value={String(order.itemCount)} />
               <InfoCard label="Unidades" value={order.units} />
+              <InfoCard label="Serviço de entrega" value={order.shippingService} />
             </div>
           </div>
 
@@ -138,6 +142,8 @@ export default async function ShippingOrderDetailPage({
               <InfoCard label="Cliente" value={order.customer} />
               <InfoCard label="Documento" value={order.customerDocument} />
               <InfoCard label="Destino" value={order.destination} />
+              <InfoCard label="Etiqueta" value={order.shippingLabel} />
+              <InfoCard label="Código de rastreio" value={order.trackingCode} />
             </div>
           </div>
 
