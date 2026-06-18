@@ -204,6 +204,14 @@ export async function fetchBlingSaleOrder(
     endereco.geral && typeof endereco.geral === "object" && !Array.isArray(endereco.geral)
       ? (endereco.geral as Record<string, unknown>)
       : {};
+  const transporte =
+    data.transporte && typeof data.transporte === "object" && !Array.isArray(data.transporte)
+      ? (data.transporte as Record<string, unknown>)
+      : {};
+  const etiqueta =
+    transporte.etiqueta && typeof transporte.etiqueta === "object" && !Array.isArray(transporte.etiqueta)
+      ? (transporte.etiqueta as Record<string, unknown>)
+      : {};
   const itens = Array.isArray(data.itens) ? data.itens : [];
   const normalizedItems = itens
     .map((item) => normalizeBlingSaleOrderItem(item))
@@ -214,17 +222,20 @@ export async function fetchBlingSaleOrder(
     numero: stringifyValue(data.numero),
     numeroLoja: stringifyValue(data.numeroLoja),
     data: stringifyValue(data.data),
-    dataSaida: stringifyValue(data.dataSaida),
+    dataSaida: stringifyValue(data.dataSaida) ?? stringifyValue(data.dataPrevista),
     total: parseNumericValue(data.total),
     situacao: extractSituacao(data.situacao),
     observacoes: stringifyValue(data.observacoes),
     contato: {
-      nome: stringifyValue(contato.nome),
+      nome: stringifyValue(contato.nome) ?? stringifyValue(etiqueta.nome),
       documento:
         stringifyValue(contato.numeroDocumento) ??
         stringifyValue(contato.documento),
-      cidade: stringifyValue(geral.municipio) ?? stringifyValue(geral.cidade),
-      uf: stringifyValue(geral.uf),
+      cidade:
+        stringifyValue(geral.municipio) ??
+        stringifyValue(geral.cidade) ??
+        stringifyValue(etiqueta.municipio),
+      uf: stringifyValue(geral.uf) ?? stringifyValue(etiqueta.uf),
     },
     itens: normalizedItems,
     payload: data,
