@@ -20,6 +20,14 @@ const tiposDocumentoPermitidos = new Set([
   "OUTRO",
 ]);
 
+type ShippingOrderCandidate = {
+  id: string;
+  codigo: string;
+  numero_pedido: string | null;
+  numero_loja: string | null;
+  payload_origem: Record<string, unknown> | null;
+};
+
 export async function POST(request: Request) {
   const auth = await requireApiModuleAccess("nfe");
 
@@ -38,7 +46,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
-  const pedidoExpedicaoId = String(formData.get("pedidoExpedicaoId") ?? "").trim() || null;
+  const explicitPedidoExpedicaoId = String(formData.get("pedidoExpedicaoId") ?? "").trim() || null;
   const tipo = String(formData.get("tipo") ?? "").trim().toUpperCase();
   const file = formData.get("arquivo");
 
@@ -91,34 +99,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Depositante não encontrado." }, { status: 404 });
   }
 
-  if (pedidoExpedicaoId) {
-    const { data: pedidoExpedicao, error: pedidoExpedicaoError } = await adminSupabase
-      .from("pedidos_expedicao")
-      .select("id, depositante_id")
-      .eq("id", pedidoExpedicaoId)
-      .maybeSingle();
+  const safeName = sanitizeFileName(file.name);
+  const linkedPedidoExpedicaoId =
+    explicitPedidoExpedicaoId ??
+    (await detectShippingOrderFromFileName(adminSupabase, {
+      depositanteId,
+      tipo,
+      fileName: safeName,
+    }));
 
-    if (pedidoExpedicaoError) {
-      return NextResponse.json(
-        {
-          error:
-            pedidoExpedicaoError.code === "42703"
-              ? "O banco ainda não recebeu a atualização de anexos da expedição. Rode a migration pendente antes de anexar arquivos ao pedido."
-              : `Não foi possível validar o pedido de expedição: ${pedidoExpedicaoError.message}`,
-        },
-        { status: pedidoExpedicaoError.code === "42703" ? 409 : 500 },
-      );
-    }
+  if (explicitPedidoExpedicaoId) {
+    const validationError = await validateExplicitShippingOrder(
+      adminSupabase,
+      explicitPedidoExpedicaoId,
+      depositanteId,
+    );
 
-    if (!pedidoExpedicao || pedidoExpedicao.depositante_id !== depositanteId) {
-      return NextResponse.json(
-        { error: "O pedido de expedição informado não pertence a este depositante." },
-        { status: 400 },
-      );
+    if (validationError) {
+      return validationError;
     }
   }
 
-  const safeName = sanitizeFileName(file.name);
   const extension = safeName.includes(".") ? safeName.split(".").pop() : "";
   const fileName = extension ? safeName : `${safeName}.bin`;
   const storagePath = `${depositanteId}/${new Date().getFullYear()}/${crypto.randomUUID()}-${fileName}`;
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
     .from("documentos_armazenados")
     .insert({
       depositante_id: depositanteId,
-      pedido_expedicao_id: pedidoExpedicaoId,
+      pedido_expedicao_id: linkedPedidoExpedicaoId,
       tipo,
       nome_arquivo: file.name,
       caminho_storage: storagePath,
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
       tamanho_bytes: file.size,
       enviado_por: auth.user.id,
     })
-    .select("id, nome_arquivo, tipo, created_at")
+    .select("id, nome_arquivo, tipo, created_at, pedido_expedicao_id")
     .single();
 
   if (insertError) {
@@ -172,8 +173,148 @@ export async function POST(request: Request) {
     );
   }
 
+  const wasAutoLinked = Boolean(!explicitPedidoExpedicaoId && insertedDocument.pedido_expedicao_id);
+  const message = wasAutoLinked
+    ? `Upload concluído para ${depositante.nome} e vinculado automaticamente a um pedido de expedição.`
+    : `Upload concluído para ${depositante.nome}.`;
+
   return NextResponse.json({
-    message: `Upload concluído para ${depositante.nome}.`,
+    message,
     document: insertedDocument,
   });
+}
+
+async function validateExplicitShippingOrder(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  pedidoExpedicaoId: string,
+  depositanteId: string,
+) {
+  const { data: pedidoExpedicao, error: pedidoExpedicaoError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, depositante_id")
+    .eq("id", pedidoExpedicaoId)
+    .maybeSingle();
+
+  if (pedidoExpedicaoError) {
+    return NextResponse.json(
+      {
+        error:
+          pedidoExpedicaoError.code === "42703"
+            ? "O banco ainda não recebeu a atualização de anexos da expedição. Rode a migration pendente antes de anexar arquivos ao pedido."
+            : `Não foi possível validar o pedido de expedição: ${pedidoExpedicaoError.message}`,
+      },
+      { status: pedidoExpedicaoError.code === "42703" ? 409 : 500 },
+    );
+  }
+
+  if (!pedidoExpedicao || pedidoExpedicao.depositante_id !== depositanteId) {
+    return NextResponse.json(
+      { error: "O pedido de expedição informado não pertence a este depositante." },
+      { status: 400 },
+    );
+  }
+
+  return null;
+}
+
+async function detectShippingOrderFromFileName(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  {
+    depositanteId,
+    tipo,
+    fileName,
+  }: {
+    depositanteId: string;
+    tipo: string;
+    fileName: string;
+  },
+) {
+  if (tipo !== "NF" && tipo !== "ETIQUETA") {
+    return null;
+  }
+
+  const { data, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, codigo, numero_pedido, numero_loja, payload_origem")
+    .eq("depositante_id", depositanteId)
+    .order("data_pedido", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  const normalizedFileName = normalizeForMatch(fileName);
+
+  for (const order of data as ShippingOrderCandidate[]) {
+    const matchTokens =
+      tipo === "NF" ? buildInvoiceMatchTokens(order) : buildLabelMatchTokens(order);
+
+    if (matchTokens.some((token) => normalizedFileName.includes(token))) {
+      return order.id;
+    }
+  }
+
+  return null;
+}
+
+function buildInvoiceMatchTokens(order: ShippingOrderCandidate) {
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
+
+  return uniqueMatchTokens([
+    order.codigo,
+    order.numero_pedido,
+    order.numero_loja,
+    readString(notaFiscal?.id),
+    readString(notaFiscal?.numero),
+  ]);
+}
+
+function buildLabelMatchTokens(order: ShippingOrderCandidate) {
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const volumes = Array.isArray(transporte?.volumes) ? transporte.volumes : [];
+
+  const trackingCodes = volumes
+    .filter((item): item is Record<string, unknown> => isRecord(item))
+    .map((item) => readString(item.codigoRastreamento))
+    .filter(Boolean);
+
+  return uniqueMatchTokens([
+    order.codigo,
+    order.numero_pedido,
+    order.numero_loja,
+    ...trackingCodes,
+  ]);
+}
+
+function uniqueMatchTokens(values: Array<string | null | undefined>) {
+  return [...new Set(values.map(normalizeForMatch).filter((value) => value.length >= 6))];
+}
+
+function normalizeForMatch(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+}
+
+function readString(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
