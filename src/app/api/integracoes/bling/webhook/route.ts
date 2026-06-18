@@ -212,12 +212,23 @@ async function syncShippingOrderFromBling({
       updatedBlingConfig: refreshedConfig,
     };
   } catch (error) {
+    const fallbackSynced = await upsertShippingOrderFromWebhookSummary({
+      adminSupabase,
+      depositanteId,
+      eventName,
+      eventData,
+    });
+
     return {
-      synced: false,
+      synced: fallbackSynced,
       syncMessage:
         error instanceof Error
-          ? `Falha ao sincronizar o pedido de expedição: ${error.message}`
-          : "Falha ao sincronizar o pedido de expedição.",
+          ? fallbackSynced
+            ? `Pedido resumido gravado via webhook, sem detalhamento completo da API do Bling. Motivo: ${error.message}`
+            : `Falha ao sincronizar o pedido de expedição: ${error.message}`
+          : fallbackSynced
+            ? "Pedido resumido gravado via webhook, sem detalhamento completo da API do Bling."
+            : "Falha ao sincronizar o pedido de expedição.",
       updatedBlingConfig: blingConfig,
     };
   }
@@ -444,6 +455,66 @@ function buildShippingOrderCode(reference: string) {
   return `BLG-${reference}`;
 }
 
+async function upsertShippingOrderFromWebhookSummary({
+  adminSupabase,
+  depositanteId,
+  eventName,
+  eventData,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  eventName: string;
+  eventData: Record<string, unknown>;
+}) {
+  const externalOrderId = stringifyValue(eventData.id);
+
+  if (!externalOrderId) {
+    return false;
+  }
+
+  const fallbackPayload = {
+    depositante_id: depositanteId,
+    codigo: buildShippingOrderCode(externalOrderId),
+    referencia_externa: externalOrderId,
+    origem: "BLING",
+    canal: "BLING",
+    status: resolveShippingStatus({
+      currentStatus: null,
+      eventName,
+      sourceStatus: stringifyValue(eventData.situacao),
+    }),
+    status_origem: extractSituacaoWebhook(eventData.situacao),
+    numero_pedido: stringifyValue(eventData.numero),
+    numero_loja: stringifyValue(eventData.numeroLoja),
+    cliente_nome: null,
+    cliente_documento: null,
+    cliente_cidade: null,
+    cliente_uf: null,
+    valor_total: parseNumericWebhook(eventData.total),
+    quantidade_itens: 0,
+    quantidade_unidades: 0,
+    data_pedido: normalizeIsoDateTime(stringifyValue(eventData.data)),
+    previsao_envio_em: null,
+    sincronizado_em: new Date().toISOString(),
+    payload_origem: eventData,
+    observacoes: "Pedido resumido criado a partir do webhook do Bling.",
+  };
+
+  const { error } = await adminSupabase.from("pedidos_expedicao").upsert(fallbackPayload, {
+    onConflict: "depositante_id,referencia_externa",
+  });
+
+  if (isMissingShippingSchemaError(error)) {
+    return false;
+  }
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
 function normalizeIsoDateTime(value: string | null) {
   if (!value) {
     return null;
@@ -490,6 +561,32 @@ function isMissingShippingSchemaError(error: { code?: string; message?: string }
   }
 
   return error.code === "42P01" || error.message?.includes("pedidos_expedicao") === true;
+}
+
+function parseNumericWebhook(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function extractSituacaoWebhook(value: unknown) {
+  if (typeof value === "string") {
+    return value.trim() || null;
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const raw = value as Record<string, unknown>;
+    return stringifyValue(raw.valor) ?? stringifyValue(raw.id) ?? null;
+  }
+
+  return null;
 }
 
 function buildBlingEventSummary(eventName: string, data: Record<string, unknown>) {
