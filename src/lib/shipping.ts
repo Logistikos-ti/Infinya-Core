@@ -60,6 +60,15 @@ type RawShippingOrderDetailRow = {
   itens?: RawShippingOrderItemRow[] | null;
 };
 
+type ShippingAttachment = {
+  id: string;
+  label: string;
+  kind: "XML_NF" | "ETIQUETA";
+  status: "DISPONIVEL" | "PENDENTE";
+  href: string | null;
+  help: string;
+};
+
 export type ShippingOrderSummary = {
   id: string;
   code: string;
@@ -108,6 +117,8 @@ export type ShippingOrderDetail = {
   destination: string;
   externalNumber: string;
   storeNumber: string;
+  storeDisplay: string;
+  orderType: string;
   total: string;
   totalRaw: number;
   itemCount: number;
@@ -119,10 +130,11 @@ export type ShippingOrderDetail = {
   syncedAt: string;
   marketplace: string;
   invoice: string;
-  shippingLabel: string;
+  carrierName: string;
   shippingService: string;
   trackingCode: string;
   notes: string;
+  attachments: ShippingAttachment[];
   items: Array<{
     id: string;
     externalReference: string;
@@ -275,10 +287,13 @@ export async function getShippingOrderDetailFromDb(id: string) {
     "Destino não informado";
   const marketplace = extractMarketplace(payload, order.canal);
   const invoice = extractInvoice(payload);
-  const shippingLabel = extractShippingLabel(payload);
+  const orderType = extractOrderType(payload, order.origem);
+  const storeDisplay = extractStore(payload, order.numero_loja);
+  const carrierName = extractCarrierName(payload);
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
   const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
+  const attachments = buildShippingAttachments(order.id, invoice);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
     const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
@@ -312,6 +327,8 @@ export async function getShippingOrderDetailFromDb(id: string) {
     destination,
     externalNumber: order.numero_pedido?.trim() || order.codigo,
     storeNumber: order.numero_loja?.trim() || "-",
+    storeDisplay,
+    orderType,
     total: formatCurrency(order.valor_total),
     totalRaw: Number(order.valor_total ?? 0),
     itemCount: Number(order.quantidade_itens ?? items.length),
@@ -323,10 +340,11 @@ export async function getShippingOrderDetailFromDb(id: string) {
     syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda não sincronizado"),
     marketplace,
     invoice,
-    shippingLabel,
+    carrierName,
     shippingService,
     trackingCode,
     notes: order.observacoes?.trim() || "Sem observações.",
+    attachments,
     items,
   } satisfies ShippingOrderDetail;
 }
@@ -364,6 +382,27 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     createdAt: formatBusinessDateTimeOrFallback(item.data_pedido, "Sem data"),
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
   };
+}
+
+function buildShippingAttachments(orderId: string, invoice: string): ShippingAttachment[] {
+  return [
+    {
+      id: `${orderId}-xml-nf`,
+      label: invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
+      kind: "XML_NF",
+      status: "PENDENTE",
+      href: null,
+      help: "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
+    },
+    {
+      id: `${orderId}-etiqueta`,
+      label: "Etiqueta do marketplace",
+      kind: "ETIQUETA",
+      status: "PENDENTE",
+      href: null,
+      help: "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
+    },
+  ];
 }
 
 function extractRelationName(value: RelationName) {
@@ -425,6 +464,21 @@ function formatDateOrFallback(value: string | null, fallback: string) {
   return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString("pt-BR");
 }
 
+function extractOrderType(payload: Record<string, unknown>, originFallback: string) {
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
+  const numeroPedidoCompra = readString(payload.numeroPedidoCompra);
+
+  if (numeroPedidoCompra) {
+    return "Pedido de compra";
+  }
+
+  if (intermediador) {
+    return "Pedido de marketplace";
+  }
+
+  return originFallback === "BLING" ? "Pedido integrado" : originFallback;
+}
+
 function extractMarketplace(payload: Record<string, unknown>, channelFallback: string) {
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
   const loja = isRecord(payload.loja) ? payload.loja : null;
@@ -434,6 +488,22 @@ function extractMarketplace(payload: Record<string, unknown>, channelFallback: s
     readString(intermediador?.cnpj) ??
     (loja ? `Loja ${readString(loja.id) ?? "Bling"}` : null) ??
     channelFallback
+  );
+}
+
+function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
+  const contato = isRecord(payload.contato) ? payload.contato : null;
+  const loja = isRecord(payload.loja) ? payload.loja : null;
+  const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
+
+  return (
+    readString(contato?.fantasia) ??
+    readString(contato?.nomeFantasia) ??
+    readString(contato?.nomeLoja) ??
+    readString(unidadeNegocio?.id) ??
+    readString(loja?.id) ??
+    storeNumberFallback ??
+    "-"
   );
 }
 
@@ -447,25 +517,11 @@ function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: str
   return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsão");
 }
 
-function extractShippingLabel(payload: Record<string, unknown>) {
+function extractCarrierName(payload: Record<string, unknown>) {
   const transporte = isRecord(payload.transporte) ? payload.transporte : null;
-  const etiqueta = transporte && isRecord(transporte.etiqueta) ? transporte.etiqueta : null;
+  const transportador = transporte && isRecord(transporte.contato) ? transporte.contato : null;
 
-  if (!etiqueta) {
-    return "Etiqueta não informada";
-  }
-
-  const parts = [
-    readString(etiqueta.endereco),
-    readString(etiqueta.numero),
-    readString(etiqueta.complemento),
-    readString(etiqueta.bairro),
-    readString(etiqueta.municipio),
-    readString(etiqueta.uf),
-    readString(etiqueta.cep),
-  ].filter(Boolean);
-
-  return parts.length ? parts.join(", ") : "Etiqueta não informada";
+  return readString(transportador?.nome) ?? "Transportadora não informada";
 }
 
 function extractShippingService(payload: Record<string, unknown>) {

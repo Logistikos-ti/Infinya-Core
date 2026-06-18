@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Eye, Paperclip, Pencil } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireModuleAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
@@ -76,10 +76,11 @@ export default async function ShippingOrderDetailPage({
               <InfoCard label="Código interno" value={order.code} />
               <InfoCard label="Referência externa" value={order.externalReference} />
               <InfoCard label="Número do pedido" value={order.externalNumber} />
-              <InfoCard label="Número da loja" value={order.storeNumber} />
+              <InfoCard label="Tipo de pedido" value={order.orderType} />
               <InfoCard label="Depositante" value={order.depositante} />
               <InfoCard label="Status de origem" value={order.sourceStatus || "-"} />
               <InfoCard label="Marketplace" value={order.marketplace} />
+              <InfoCard label="Loja" value={order.storeDisplay} />
               <InfoCard label="Nota fiscal" value={order.invoice} />
               <InfoCard label="Data do pedido" value={order.orderDate} />
               <InfoCard label="Data prevista" value={order.expectedDate} />
@@ -88,7 +89,6 @@ export default async function ShippingOrderDetailPage({
               <InfoCard label="Valor total" value={order.total} />
               <InfoCard label="Itens" value={String(order.itemCount)} />
               <InfoCard label="Unidades" value={order.units} />
-              <InfoCard label="Serviço de entrega" value={order.shippingService} />
             </div>
           </div>
 
@@ -142,8 +142,40 @@ export default async function ShippingOrderDetailPage({
               <InfoCard label="Cliente" value={order.customer} />
               <InfoCard label="Documento" value={order.customerDocument} />
               <InfoCard label="Destino" value={order.destination} />
-              <InfoCard label="Etiqueta" value={order.shippingLabel} />
+              <InfoCard label="Transportadora" value={order.carrierName} />
+              <InfoCard label="Serviço de entrega" value={order.shippingService} />
               <InfoCard label="Código de rastreio" value={order.trackingCode} />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-slate-500" />
+              <h2 className="text-lg font-semibold text-slate-950">Anexos</h2>
+            </div>
+            <div className="mt-4 space-y-3">
+              {order.attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{attachment.label}</p>
+                      <p className="mt-1 text-xs text-slate-500">{attachment.help}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        attachment.status === "DISPONIVEL"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      {attachment.status === "DISPONIVEL" ? "Disponível" : "Pendente"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
