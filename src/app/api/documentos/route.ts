@@ -16,6 +16,7 @@ const tiposDocumentoPermitidos = new Set([
   "CHECKLIST",
   "FOTO",
   "COMPROVANTE",
+  "ETIQUETA",
   "OUTRO",
 ]);
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+  const pedidoExpedicaoId = String(formData.get("pedidoExpedicaoId") ?? "").trim() || null;
   const tipo = String(formData.get("tipo") ?? "").trim().toUpperCase();
   const file = formData.get("arquivo");
 
@@ -89,6 +91,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Depositante não encontrado." }, { status: 404 });
   }
 
+  if (pedidoExpedicaoId) {
+    const { data: pedidoExpedicao, error: pedidoExpedicaoError } = await adminSupabase
+      .from("pedidos_expedicao")
+      .select("id, depositante_id")
+      .eq("id", pedidoExpedicaoId)
+      .maybeSingle();
+
+    if (pedidoExpedicaoError) {
+      return NextResponse.json(
+        {
+          error:
+            pedidoExpedicaoError.code === "42703"
+              ? "O banco ainda não recebeu a atualização de anexos da expedição. Rode a migration pendente antes de anexar arquivos ao pedido."
+              : `Não foi possível validar o pedido de expedição: ${pedidoExpedicaoError.message}`,
+        },
+        { status: pedidoExpedicaoError.code === "42703" ? 409 : 500 },
+      );
+    }
+
+    if (!pedidoExpedicao || pedidoExpedicao.depositante_id !== depositanteId) {
+      return NextResponse.json(
+        { error: "O pedido de expedição informado não pertence a este depositante." },
+        { status: 400 },
+      );
+    }
+  }
+
   const safeName = sanitizeFileName(file.name);
   const extension = safeName.includes(".") ? safeName.split(".").pop() : "";
   const fileName = extension ? safeName : `${safeName}.bin`;
@@ -113,6 +142,7 @@ export async function POST(request: Request) {
     .from("documentos_armazenados")
     .insert({
       depositante_id: depositanteId,
+      pedido_expedicao_id: pedidoExpedicaoId,
       tipo,
       nome_arquivo: file.name,
       caminho_storage: storagePath,
@@ -125,6 +155,16 @@ export async function POST(request: Request) {
 
   if (insertError) {
     await adminSupabase.storage.from(documentsBucketName).remove([storagePath]);
+
+    if (insertError.code === "42703") {
+      return NextResponse.json(
+        {
+          error:
+            "O banco ainda não recebeu a atualização de anexos da expedição. Rode a migration pendente antes de anexar arquivos ao pedido.",
+        },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json(
       { error: `Falha ao registrar documento no banco: ${insertError.message}` },

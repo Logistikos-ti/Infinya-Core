@@ -56,8 +56,17 @@ type RawShippingOrderDetailRow = {
   sincronizado_em: string | null;
   payload_origem: Record<string, unknown> | null;
   observacoes: string | null;
+  depositante_id: string;
   depositante: RelationName;
   itens?: RawShippingOrderItemRow[] | null;
+};
+
+type RawStoredDocumentRow = {
+  id: string;
+  tipo: string;
+  nome_arquivo: string;
+  mime_type: string | null;
+  created_at: string;
 };
 
 type ShippingAttachment = {
@@ -66,6 +75,8 @@ type ShippingAttachment = {
   kind: "XML_NF" | "ETIQUETA";
   status: "DISPONIVEL" | "PENDENTE";
   href: string | null;
+  fileName: string | null;
+  uploadedAt: string | null;
   help: string;
 };
 
@@ -105,6 +116,7 @@ export type ShippingQueueSummary = {
 export type ShippingOrderDetail = {
   id: string;
   code: string;
+  depositanteId: string;
   externalReference: string;
   origin: string;
   channel: string;
@@ -262,7 +274,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -293,7 +305,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
   const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
-  const attachments = buildShippingAttachments(order.id, invoice);
+  const attachments = await listShippingAttachments(order.id, invoice);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
     const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
@@ -315,6 +327,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   return {
     id: order.id,
     code: order.codigo,
+    depositanteId: order.depositante_id,
     externalReference: order.referencia_externa,
     origin: order.origem,
     channel: order.canal,
@@ -347,6 +360,78 @@ export async function getShippingOrderDetailFromDb(id: string) {
     attachments,
     items,
   } satisfies ShippingOrderDetail;
+}
+
+async function listShippingAttachments(orderId: string, invoice: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("documentos_armazenados")
+    .select("id, tipo, nome_arquivo, mime_type, created_at")
+    .eq("pedido_expedicao_id", orderId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isShippingDocumentLinkMissing(error)) {
+      return buildDefaultShippingAttachments([], invoice);
+    }
+
+    throw new Error(`Não foi possível carregar os anexos do pedido: ${error.message}`);
+  }
+
+  return buildDefaultShippingAttachments((data ?? []) as RawStoredDocumentRow[], invoice);
+}
+
+function buildDefaultShippingAttachments(documents: RawStoredDocumentRow[], invoice: string): ShippingAttachment[] {
+  const nfDocument =
+    documents.find((item) => item.tipo === "NF") ??
+    documents.find((item) => item.mime_type?.includes("xml"));
+  const labelDocument = documents.find((item) => item.tipo === "ETIQUETA");
+
+  return [
+    buildAttachment(
+      "XML_NF",
+      nfDocument,
+      invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
+      "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
+    ),
+    buildAttachment(
+      "ETIQUETA",
+      labelDocument,
+      "Etiqueta do marketplace",
+      "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
+    ),
+  ];
+}
+
+function buildAttachment(
+  kind: ShippingAttachment["kind"],
+  document: RawStoredDocumentRow | undefined,
+  pendingLabel: string,
+  help: string,
+): ShippingAttachment {
+  if (!document) {
+    return {
+      id: `${kind}-pendente`,
+      label: pendingLabel,
+      kind,
+      status: "PENDENTE",
+      href: null,
+      fileName: null,
+      uploadedAt: null,
+      help,
+    };
+  }
+
+  return {
+    id: document.id,
+    label: kind === "XML_NF" ? "XML da nota fiscal" : "Etiqueta do marketplace",
+    kind,
+    status: "DISPONIVEL",
+    href: `/api/documentos/${document.id}/download`,
+    fileName: document.nome_arquivo,
+    uploadedAt: formatDateTimeInSaoPaulo(document.created_at, "Sem data"),
+    help,
+  };
 }
 
 export function listShippingFlowSteps() {
@@ -382,27 +467,6 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     createdAt: formatBusinessDateTimeOrFallback(item.data_pedido, "Sem data"),
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
   };
-}
-
-function buildShippingAttachments(orderId: string, invoice: string): ShippingAttachment[] {
-  return [
-    {
-      id: `${orderId}-xml-nf`,
-      label: invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
-      kind: "XML_NF",
-      status: "PENDENTE",
-      href: null,
-      help: "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
-    },
-    {
-      id: `${orderId}-etiqueta`,
-      label: "Etiqueta do marketplace",
-      kind: "ETIQUETA",
-      status: "PENDENTE",
-      href: null,
-      help: "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
-    },
-  ];
 }
 
 function extractRelationName(value: RelationName) {
@@ -586,4 +650,8 @@ export function formatShippingStatusLabel(status: string) {
 
 function isShippingSchemaMissing(error: { code?: string; message?: string }) {
   return error.code === "42P01" || error.message?.includes("pedidos_expedicao") === true;
+}
+
+function isShippingDocumentLinkMissing(error: { code?: string; message?: string }) {
+  return error.code === "42703" || error.message?.includes("pedido_expedicao_id") === true;
 }
