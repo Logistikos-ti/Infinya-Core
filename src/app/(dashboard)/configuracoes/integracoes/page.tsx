@@ -57,7 +57,9 @@ export default async function ConfiguracoesIntegracoesPage({
       {feedback ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "bling-conectado" || feedback === "bling-desconectado"
+            feedback === "bling-conectado" ||
+            feedback === "bling-desconectado" ||
+            feedback === "bling-sincronizado"
               ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border border-amber-200 bg-amber-50 text-amber-800"
           }`}
@@ -70,7 +72,7 @@ export default async function ConfiguracoesIntegracoesPage({
                 ? "Integração do Bling sincronizada com sucesso."
                 : feedback === "bling-identificacao-pendente"
                   ? `A conexão está ativa, mas o nome da empresa ainda não pôde ser lido na API do Bling.${motivo ? ` Motivo: ${motivo}` : ""}`
-              : `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`}
+                  : `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`}
         </div>
       ) : null}
 
@@ -88,7 +90,7 @@ export default async function ConfiguracoesIntegracoesPage({
             <ul className="mt-3 space-y-2">
               <li>1. Criar o aplicativo no portal de developers do Bling.</li>
               <li>2. Configurar o callback exatamente como exibido acima.</li>
-              <li>3. Liberar o escopo <code>order</code> no aplicativo.</li>
+              <li>3. Liberar o escopo `order` no aplicativo.</li>
               <li>4. Registrar o webhook de pedido de venda apontando para a URL acima.</li>
               <li>5. Conectar o depositante correto nesta tela.</li>
             </ul>
@@ -119,6 +121,11 @@ export default async function ConfiguracoesIntegracoesPage({
                 );
                 const bling = configuracoes.bling;
                 const isConnected = Boolean(bling?.connected);
+                const empresaExibida =
+                  bling?.companyName ??
+                  (bling?.companyId
+                    ? configuracoes.razaoSocial || depositante.nome
+                    : "Aguardando identificação via API/webhook");
 
                 return (
                   <div key={depositante.id} className="rounded-2xl border border-slate-200 p-4">
@@ -144,9 +151,7 @@ export default async function ConfiguracoesIntegracoesPage({
                           <div className="space-y-1 text-sm text-slate-600">
                             <p>
                               Empresa conectada:{" "}
-                              <span className="font-medium text-slate-900">
-                                {bling?.companyName ?? "Aguardando identificação via API/webhook"}
-                              </span>
+                              <span className="font-medium text-slate-900">{empresaExibida}</span>
                             </p>
                             <p>Company ID: {bling?.companyId ?? "Ainda não identificado"}</p>
                             <p>
@@ -163,8 +168,9 @@ export default async function ConfiguracoesIntegracoesPage({
                             </p>
                             {bling?.companyId && !bling?.companyName ? (
                               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-                                O vínculo já foi confirmado pelo `companyId`, mas o app do Bling ainda
-                                não liberou escopo suficiente para lermos o nome da empresa pela API.
+                                O vínculo já foi confirmado pelo `companyId`. Como o usuário do Bling
+                                não possui permissão para ler os dados básicos da empresa, mostramos
+                                provisoriamente a razão social cadastrada no WMS.
                               </p>
                             ) : null}
                           </div>
