@@ -23,6 +23,42 @@ type RawShippingOrderRow = {
   depositante: RelationName;
 };
 
+type RawShippingOrderItemRow = {
+  id: string;
+  referencia_externa: string | null;
+  codigo_produto: string | null;
+  sku: string | null;
+  nome: string;
+  unidade: string | null;
+  quantidade: number | string | null;
+  quantidade_separada: number | string | null;
+};
+
+type RawShippingOrderDetailRow = {
+  id: string;
+  codigo: string;
+  referencia_externa: string;
+  origem: string;
+  canal: string;
+  status: string;
+  status_origem: string | null;
+  numero_pedido: string | null;
+  numero_loja: string | null;
+  cliente_nome: string | null;
+  cliente_documento: string | null;
+  cliente_cidade: string | null;
+  cliente_uf: string | null;
+  valor_total: number | string | null;
+  quantidade_itens: number | null;
+  quantidade_unidades: number | string | null;
+  data_pedido: string | null;
+  previsao_envio_em: string | null;
+  sincronizado_em: string | null;
+  observacoes: string | null;
+  depositante: RelationName;
+  itens?: RawShippingOrderItemRow[] | null;
+};
+
 export type ShippingOrderSummary = {
   id: string;
   code: string;
@@ -54,6 +90,44 @@ export type ShippingQueueSummary = {
   status: string;
   orders: number;
   help: string;
+};
+
+export type ShippingOrderDetail = {
+  id: string;
+  code: string;
+  externalReference: string;
+  origin: string;
+  channel: string;
+  status: string;
+  statusLabel: string;
+  sourceStatus: string | null;
+  depositante: string;
+  customer: string;
+  customerDocument: string;
+  destination: string;
+  externalNumber: string;
+  storeNumber: string;
+  total: string;
+  totalRaw: number;
+  itemCount: number;
+  units: string;
+  unitsRaw: number;
+  orderDate: string;
+  shipDate: string;
+  syncedAt: string;
+  notes: string;
+  items: Array<{
+    id: string;
+    externalReference: string;
+    code: string;
+    sku: string;
+    name: string;
+    unit: string;
+    quantity: string;
+    quantityRaw: number;
+    separatedQuantity: string;
+    separatedQuantityRaw: number;
+  }>;
 };
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
@@ -164,6 +238,79 @@ export async function listShippingQueuesFromDb() {
   }));
 }
 
+export async function getShippingOrderDetailFromDb(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("pedidos_expedicao")
+    .select(
+      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, observacoes, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    if (isShippingSchemaMissing(error)) {
+      return null;
+    }
+
+    throw new Error(`Não foi possível carregar o pedido de expedição: ${error.message}`);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const order = data as RawShippingOrderDetailRow;
+  const customer = order.cliente_nome?.trim() || "Cliente não informado";
+  const destination =
+    [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
+    "Destino não informado";
+  const items = (order.itens ?? []).map((item) => {
+    const quantityRaw = Number(item.quantidade ?? 0);
+    const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
+
+    return {
+      id: item.id,
+      externalReference: item.referencia_externa?.trim() || "-",
+      code: item.codigo_produto?.trim() || "-",
+      sku: item.sku?.trim() || "-",
+      name: item.nome,
+      unit: item.unidade?.trim() || "-",
+      quantity: quantityRaw.toLocaleString("pt-BR"),
+      quantityRaw,
+      separatedQuantity: separatedQuantityRaw.toLocaleString("pt-BR"),
+      separatedQuantityRaw,
+    };
+  });
+
+  return {
+    id: order.id,
+    code: order.codigo,
+    externalReference: order.referencia_externa,
+    origin: order.origem,
+    channel: order.canal,
+    status: order.status,
+    statusLabel: formatShippingStatusLabel(order.status),
+    sourceStatus: order.status_origem,
+    depositante: extractRelationName(order.depositante) ?? "Sem depositante",
+    customer,
+    customerDocument: order.cliente_documento?.trim() || "-",
+    destination,
+    externalNumber: order.numero_pedido?.trim() || order.codigo,
+    storeNumber: order.numero_loja?.trim() || "-",
+    total: formatCurrency(order.valor_total),
+    totalRaw: Number(order.valor_total ?? 0),
+    itemCount: Number(order.quantidade_itens ?? items.length),
+    units: Number(order.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
+    unitsRaw: Number(order.quantidade_unidades ?? 0),
+    orderDate: formatDateTimeOrFallback(order.data_pedido, "Sem data"),
+    shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsão"),
+    syncedAt: formatDateTimeOrFallback(order.sincronizado_em, "Ainda não sincronizado"),
+    notes: order.observacoes?.trim() || "Sem observações.",
+    items,
+  } satisfies ShippingOrderDetail;
+}
+
 export function listShippingFlowSteps() {
   return [
     "Receber pedido do canal integrado",
@@ -222,6 +369,15 @@ function formatCurrency(value: number | string | null | undefined) {
 
 function formatDateTimeOrFallback(value: string | null, fallback: string) {
   return value ? new Date(value).toLocaleString("pt-BR") : fallback;
+}
+
+function formatDateOrFallback(value: string | null, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+  return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString("pt-BR");
 }
 
 export function formatShippingStatusLabel(status: string) {

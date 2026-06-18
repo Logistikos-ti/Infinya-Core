@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
   Activity,
+  Eye,
   PackageCheck,
+  Pencil,
   Plus,
   Search,
   TimerReset,
@@ -11,7 +13,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
 import { requireModuleAccess } from "@/lib/auth";
-import { canManageMultipleTenants } from "@/lib/permissions";
+import { canManageMultipleTenants, isAdminUser } from "@/lib/permissions";
 import {
   formatShippingStatusLabel,
   listShippingFlowSteps,
@@ -220,6 +222,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                   <th className="pb-3 font-medium">Unidades</th>
                   <th className="pb-3 font-medium">Total</th>
                   <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,11 +245,31 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                         {formatShippingStatusLabel(order.status)}
                       </span>
                     </td>
+                    <td className="py-3">
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/expedicao/${order.id}`}
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Visualizar
+                        </Link>
+                        {isAdminUser(user) ? (
+                          <Link
+                            href={`/expedicao/${order.id}/editar`}
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar
+                          </Link>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {!shippingOrders.length ? (
                   <tr>
-                    <td colSpan={8} className="py-6 text-center text-slate-500">
+                    <td colSpan={9} className="py-6 text-center text-slate-500">
                       Nenhum pedido de expedição encontrado com os filtros atuais.
                     </td>
                   </tr>
