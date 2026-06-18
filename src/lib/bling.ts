@@ -6,6 +6,7 @@ const BLING_AUTHORIZE_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
 const BLING_TOKEN_URL = "https://api.bling.com.br/Api/v3/oauth/token";
 const BLING_REVOKE_URL = "https://api.bling.com.br/oauth/revoke";
 const BLING_COMPANY_URL = "https://api.bling.com.br/Api/v3/empresas/me/dados-basicos";
+const BLING_SALES_ORDERS_URL = "https://api.bling.com.br/Api/v3/pedidos/vendas";
 
 export type BlingOAuthTokens = {
   access_token: string;
@@ -27,6 +28,32 @@ export type BlingWebhookEvent = {
 export type BlingCompanyInfo = {
   id: string | null;
   nome: string | null;
+};
+
+export type BlingSaleOrderPayload = {
+  id: string;
+  numero: string | null;
+  numeroLoja: string | null;
+  data: string | null;
+  dataSaida: string | null;
+  total: number | null;
+  situacao: string | null;
+  observacoes: string | null;
+  contato: {
+    nome: string | null;
+    documento: string | null;
+    cidade: string | null;
+    uf: string | null;
+  };
+  itens: Array<{
+    id: string | null;
+    codigo: string | null;
+    descricao: string | null;
+    quantidade: number;
+    unidade: string | null;
+    payload: Record<string, unknown>;
+  }>;
+  payload: Record<string, unknown>;
 };
 
 export type BlingConnectionSyncResult = {
@@ -135,6 +162,75 @@ export async function fetchBlingCompanyInfo(accessToken: string): Promise<BlingC
   };
 }
 
+export async function fetchBlingSaleOrder(
+  accessToken: string,
+  orderId: string,
+): Promise<BlingSaleOrderPayload> {
+  const response = await fetch(`${BLING_SALES_ORDERS_URL}/${orderId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Falha ao consultar o pedido de venda no Bling.");
+  }
+
+  const payload = (await response.json()) as {
+    data?: Record<string, unknown>;
+  };
+
+  const data =
+    payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+      ? payload.data
+      : null;
+
+  if (!data) {
+    throw new Error("O Bling retornou um pedido de venda em formato inválido.");
+  }
+
+  const contato =
+    data.contato && typeof data.contato === "object" && !Array.isArray(data.contato)
+      ? (data.contato as Record<string, unknown>)
+      : {};
+  const endereco =
+    contato.endereco && typeof contato.endereco === "object" && !Array.isArray(contato.endereco)
+      ? (contato.endereco as Record<string, unknown>)
+      : {};
+  const geral =
+    endereco.geral && typeof endereco.geral === "object" && !Array.isArray(endereco.geral)
+      ? (endereco.geral as Record<string, unknown>)
+      : {};
+  const itens = Array.isArray(data.itens) ? data.itens : [];
+  const normalizedItems = itens
+    .map((item) => normalizeBlingSaleOrderItem(item))
+    .filter((item): item is NonNullable<ReturnType<typeof normalizeBlingSaleOrderItem>> => item !== null);
+
+  return {
+    id: stringifyValue(data.id) ?? orderId,
+    numero: stringifyValue(data.numero),
+    numeroLoja: stringifyValue(data.numeroLoja),
+    data: stringifyValue(data.data),
+    dataSaida: stringifyValue(data.dataSaida),
+    total: parseNumericValue(data.total),
+    situacao: extractSituacao(data.situacao),
+    observacoes: stringifyValue(data.observacoes),
+    contato: {
+      nome: stringifyValue(contato.nome),
+      documento:
+        stringifyValue(contato.numeroDocumento) ??
+        stringifyValue(contato.documento),
+      cidade: stringifyValue(geral.municipio) ?? stringifyValue(geral.cidade),
+      uf: stringifyValue(geral.uf),
+    },
+    itens: normalizedItems,
+    payload: data,
+  };
+}
+
 export async function syncBlingConnectionMetadata(
   config: DepositanteBlingConfig,
 ): Promise<BlingConnectionSyncResult> {
@@ -178,6 +274,35 @@ export async function syncBlingConnectionMetadata(
       companyFetchError: error instanceof Error ? error.message : "Falha ao consultar a empresa no Bling.",
     };
   }
+}
+
+export async function ensureValidBlingAccessToken(config: DepositanteBlingConfig) {
+  if (!config.refreshToken && !config.accessToken) {
+    throw new Error("A integração do Bling não possui tokens válidos.");
+  }
+
+  const expiresAt = config.expiresAt ? new Date(config.expiresAt).getTime() : Number.NaN;
+  const shouldRefreshToken =
+    !config.accessToken ||
+    Number.isNaN(expiresAt) ||
+    expiresAt <= Date.now() + 60_000;
+
+  if (!shouldRefreshToken && config.accessToken) {
+    return {
+      accessToken: config.accessToken,
+      tokens: null as BlingOAuthTokens | null,
+    };
+  }
+
+  if (!config.refreshToken) {
+    throw new Error("A integração do Bling não possui refresh token para renovar a sessão.");
+  }
+
+  const tokens = await refreshBlingAccessToken(config.refreshToken);
+  return {
+    accessToken: tokens.access_token,
+    tokens,
+  };
 }
 
 export function buildBlingConnectionConfig(
@@ -265,6 +390,77 @@ function isBlingOAuthTokenPayload(value: unknown): value is BlingOAuthTokens {
     typeof payload.expires_in === "number" &&
     typeof payload.scope === "string"
   );
+}
+
+function normalizeBlingSaleOrderItem(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const item = value as Record<string, unknown>;
+  const produto =
+    item.produto && typeof item.produto === "object" && !Array.isArray(item.produto)
+      ? (item.produto as Record<string, unknown>)
+      : {};
+
+  return {
+    id: stringifyValue(item.id),
+    codigo:
+      stringifyValue(item.codigo) ??
+      stringifyValue(produto.codigo) ??
+      stringifyValue(produto.id),
+    descricao:
+      stringifyValue(item.descricao) ??
+      stringifyValue(produto.nome) ??
+      "Item sem descrição",
+    quantidade: parseNumericValue(item.quantidade) ?? 0,
+    unidade: stringifyValue(item.unidade),
+    payload: item,
+  };
+}
+
+function stringifyValue(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function parseNumericValue(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = Number(value.replace(",", "."));
+    return Number.isFinite(normalized) ? normalized : null;
+  }
+
+  return null;
+}
+
+function extractSituacao(value: unknown) {
+  if (typeof value === "string") {
+    return value.trim() || null;
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const raw = value as Record<string, unknown>;
+    return (
+      stringifyValue(raw.valor) ??
+      stringifyValue(raw.nome) ??
+      stringifyValue(raw.descricao) ??
+      stringifyValue(raw.id)
+    );
+  }
+
+  return null;
 }
 
 async function requestBlingTokens({

@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { parseBlingWebhookPayload, validateBlingWebhookSignature } from "@/lib/bling";
+import {
+  ensureValidBlingAccessToken,
+  fetchBlingSaleOrder,
+  parseBlingWebhookPayload,
+  validateBlingWebhookSignature,
+  type BlingOAuthTokens,
+  type BlingSaleOrderPayload,
+} from "@/lib/bling";
 import {
   parseDepositanteConfiguracoes,
   updateDepositanteBlingConfig,
+  type DepositanteBlingConfig,
 } from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -11,6 +19,20 @@ type DepositanteWebhookRow = {
   nome: string;
   configuracoes: Record<string, unknown> | null;
   observacoes: string | null;
+};
+
+type ExistingShippingOrderRow = {
+  id: string;
+  codigo: string;
+  status: string;
+};
+
+type ProductLookupRow = {
+  id: string;
+  codigo_interno: string;
+  codigo_externo: string | null;
+  sku: string | null;
+  nome: string;
 };
 
 export async function POST(request: Request) {
@@ -78,21 +100,31 @@ export async function POST(request: Request) {
     .eq("titulo", occurrenceTitle)
     .maybeSingle();
 
+  const syncResult = await syncShippingOrderFromBling({
+    adminSupabase,
+    depositanteId: depositante.id,
+    blingConfig: config.bling,
+    eventName: event.event,
+    eventData: event.data,
+  });
+
   if (!existingOccurrence) {
     const eventSummary = buildBlingEventSummary(event.event, event.data);
+    const syncMessage = syncResult.syncMessage ? ` Integração: ${syncResult.syncMessage}` : "";
 
     await adminSupabase.from("ocorrencias_operacionais").insert({
       depositante_id: depositante.id,
       tipo: "OUTRO",
       status: "EM_ANALISE",
       titulo: occurrenceTitle,
-      descricao: `Evento ${event.event} recebido do Bling para ${depositante.nome}. Resumo: ${eventSummary}. EventId: ${event.eventId}. Payload: ${payload}`,
+      descricao: `Evento ${event.event} recebido do Bling para ${depositante.nome}. Resumo: ${eventSummary}. EventId: ${event.eventId}. Payload: ${payload}.${syncMessage}`,
     });
   }
 
   const nextBlingConfig = config.bling
     ? {
         ...config.bling,
+        ...syncResult.updatedBlingConfig,
         companyId: config.bling.companyId ?? event.companyId,
         lastSyncAt: new Date().toISOString(),
         webhook: {
@@ -115,7 +147,349 @@ export async function POST(request: Request) {
       .eq("id", depositante.id);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    syncedShippingOrder: syncResult.synced,
+    syncMessage: syncResult.syncMessage,
+  });
+}
+
+async function syncShippingOrderFromBling({
+  adminSupabase,
+  depositanteId,
+  blingConfig,
+  eventName,
+  eventData,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  blingConfig: DepositanteBlingConfig | null;
+  eventName: string;
+  eventData: Record<string, unknown>;
+}) {
+  if (!blingConfig?.connected) {
+    return {
+      synced: false,
+      syncMessage: "Depositante sem integração Bling ativa.",
+      updatedBlingConfig: null as DepositanteBlingConfig | null,
+    };
+  }
+
+  if (!eventName.startsWith("order.")) {
+    return {
+      synced: false,
+      syncMessage: "Evento fora do escopo de pedidos de venda.",
+      updatedBlingConfig: blingConfig,
+    };
+  }
+
+  const externalOrderId = stringifyValue(eventData.id);
+
+  if (!externalOrderId) {
+    return {
+      synced: false,
+      syncMessage: "Webhook sem id de pedido para sincronização.",
+      updatedBlingConfig: blingConfig,
+    };
+  }
+
+  try {
+    const tokenResult = await ensureValidBlingAccessToken(blingConfig);
+    const refreshedConfig = mergeBlingTokensIntoConfig(blingConfig, tokenResult.tokens);
+    const saleOrder = await fetchBlingSaleOrder(tokenResult.accessToken, externalOrderId);
+    const synced = await upsertShippingOrder({
+      adminSupabase,
+      depositanteId,
+      saleOrder,
+      eventName,
+    });
+
+    return {
+      synced,
+      syncMessage: synced
+        ? `Pedido ${saleOrder.numeroLoja ?? saleOrder.numero ?? saleOrder.id} sincronizado na expedição.`
+        : "Schema de expedição ainda não aplicado no banco.",
+      updatedBlingConfig: refreshedConfig,
+    };
+  } catch (error) {
+    return {
+      synced: false,
+      syncMessage:
+        error instanceof Error
+          ? `Falha ao sincronizar o pedido de expedição: ${error.message}`
+          : "Falha ao sincronizar o pedido de expedição.",
+      updatedBlingConfig: blingConfig,
+    };
+  }
+}
+
+async function upsertShippingOrder({
+  adminSupabase,
+  depositanteId,
+  saleOrder,
+  eventName,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  saleOrder: BlingSaleOrderPayload;
+  eventName: string;
+}) {
+  const { data: existingOrder, error: existingOrderError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, codigo, status")
+    .eq("depositante_id", depositanteId)
+    .eq("referencia_externa", saleOrder.id)
+    .maybeSingle();
+
+  if (isMissingShippingSchemaError(existingOrderError)) {
+    return false;
+  }
+
+  if (existingOrderError) {
+    throw new Error(existingOrderError.message);
+  }
+
+  const productsByCode = await loadProductsByCode(adminSupabase, depositanteId, saleOrder.itens);
+  const preservedStatus = resolveShippingStatus({
+    currentStatus: (existingOrder as ExistingShippingOrderRow | null)?.status ?? null,
+    eventName,
+    sourceStatus: saleOrder.situacao,
+  });
+  const headerPayload = {
+    depositante_id: depositanteId,
+    codigo: (existingOrder as ExistingShippingOrderRow | null)?.codigo ?? buildShippingOrderCode(saleOrder.id),
+    referencia_externa: saleOrder.id,
+    origem: "BLING",
+    canal: "BLING",
+    status: preservedStatus,
+    status_origem: saleOrder.situacao,
+    numero_pedido: saleOrder.numero,
+    numero_loja: saleOrder.numeroLoja,
+    cliente_nome: saleOrder.contato.nome,
+    cliente_documento: saleOrder.contato.documento,
+    cliente_cidade: saleOrder.contato.cidade,
+    cliente_uf: saleOrder.contato.uf,
+    valor_total: saleOrder.total,
+    quantidade_itens: saleOrder.itens.length,
+    quantidade_unidades: saleOrder.itens.reduce((sum, item) => sum + item.quantidade, 0),
+    data_pedido: normalizeIsoDateTime(saleOrder.data),
+    previsao_envio_em: normalizeIsoDate(saleOrder.dataSaida),
+    sincronizado_em: new Date().toISOString(),
+    payload_origem: saleOrder.payload,
+    observacoes: saleOrder.observacoes,
+  };
+
+  const { data: savedOrder, error: saveOrderError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .upsert(headerPayload, {
+      onConflict: "depositante_id,referencia_externa",
+    })
+    .select("id")
+    .single();
+
+  if (isMissingShippingSchemaError(saveOrderError)) {
+    return false;
+  }
+
+  if (saveOrderError || !savedOrder) {
+    throw new Error(saveOrderError?.message ?? "Não foi possível salvar o pedido de expedição.");
+  }
+
+  const { error: deleteItemsError } = await adminSupabase
+    .from("pedidos_expedicao_itens")
+    .delete()
+    .eq("pedido_expedicao_id", savedOrder.id);
+
+  if (isMissingShippingSchemaError(deleteItemsError)) {
+    return false;
+  }
+
+  if (deleteItemsError) {
+    throw new Error(deleteItemsError.message);
+  }
+
+  if (saleOrder.itens.length) {
+    const itemsPayload = saleOrder.itens.map((item, index) => {
+      const matchedProduct = matchProductByCode(productsByCode, item.codigo);
+
+      return {
+        pedido_expedicao_id: savedOrder.id,
+        depositante_id: depositanteId,
+        referencia_externa: item.id ?? `${saleOrder.id}-${index + 1}`,
+        produto_id: matchedProduct?.id ?? null,
+        codigo_produto: item.codigo,
+        sku: matchedProduct?.sku ?? item.codigo,
+        nome: matchedProduct?.nome ?? item.descricao ?? `Item ${index + 1}`,
+        unidade: item.unidade,
+        quantidade: item.quantidade,
+        quantidade_separada: 0,
+        payload_origem: item.payload,
+      };
+    });
+
+    const { error: insertItemsError } = await adminSupabase
+      .from("pedidos_expedicao_itens")
+      .insert(itemsPayload);
+
+    if (isMissingShippingSchemaError(insertItemsError)) {
+      return false;
+    }
+
+    if (insertItemsError) {
+      throw new Error(insertItemsError.message);
+    }
+  }
+
+  return true;
+}
+
+async function loadProductsByCode(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  depositanteId: string,
+  items: BlingSaleOrderPayload["itens"],
+) {
+  const candidateCodes = Array.from(
+    new Set(items.map((item) => item.codigo?.trim()).filter((item): item is string => Boolean(item))),
+  );
+
+  if (!candidateCodes.length) {
+    return [] as ProductLookupRow[];
+  }
+
+  const [internalCodes, externalCodes, skuCodes] = await Promise.all([
+    adminSupabase
+      .from("produtos")
+      .select("id, codigo_interno, codigo_externo, sku, nome")
+      .eq("depositante_id", depositanteId)
+      .in("codigo_interno", candidateCodes),
+    adminSupabase
+      .from("produtos")
+      .select("id, codigo_interno, codigo_externo, sku, nome")
+      .eq("depositante_id", depositanteId)
+      .in("codigo_externo", candidateCodes),
+    adminSupabase
+      .from("produtos")
+      .select("id, codigo_interno, codigo_externo, sku, nome")
+      .eq("depositante_id", depositanteId)
+      .in("sku", candidateCodes),
+  ]);
+
+  const merged = [
+    ...((internalCodes.data as ProductLookupRow[] | null) ?? []),
+    ...((externalCodes.data as ProductLookupRow[] | null) ?? []),
+    ...((skuCodes.data as ProductLookupRow[] | null) ?? []),
+  ];
+  const uniqueMap = new Map<string, ProductLookupRow>();
+
+  merged.forEach((item) => {
+    uniqueMap.set(item.id, item);
+  });
+
+  return Array.from(uniqueMap.values());
+}
+
+function matchProductByCode(products: ProductLookupRow[], code: string | null) {
+  if (!code) {
+    return null;
+  }
+
+  const normalizedCode = code.trim().toLocaleLowerCase("pt-BR");
+
+  return (
+    products.find((item) => item.codigo_interno.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
+    products.find((item) => item.codigo_externo?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
+    products.find((item) => item.sku?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
+    null
+  );
+}
+
+function mergeBlingTokensIntoConfig(
+  config: DepositanteBlingConfig,
+  tokens: BlingOAuthTokens | null,
+): DepositanteBlingConfig {
+  if (!tokens) {
+    return config;
+  }
+
+  return {
+    ...config,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    tokenType: tokens.token_type || config.tokenType,
+    expiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+    scopes: tokens.scope
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+  };
+}
+
+function resolveShippingStatus({
+  currentStatus,
+  eventName,
+  sourceStatus,
+}: {
+  currentStatus: string | null;
+  eventName: string;
+  sourceStatus: string | null;
+}) {
+  if (eventName.includes("delete") || sourceStatus?.toLocaleLowerCase("pt-BR").includes("cancel")) {
+    return "CANCELADO";
+  }
+
+  return currentStatus ?? "NOVO";
+}
+
+function buildShippingOrderCode(reference: string) {
+  return `BLG-${reference}`;
+}
+
+function normalizeIsoDateTime(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeIsoDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function stringifyValue(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function isMissingShippingSchemaError(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return error.code === "42P01" || error.message?.includes("pedidos_expedicao") === true;
 }
 
 function buildBlingEventSummary(eventName: string, data: Record<string, unknown>) {

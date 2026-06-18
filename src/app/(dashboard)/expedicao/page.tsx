@@ -1,98 +1,290 @@
-import { Activity, AlertTriangle, PackageCheck, Truck } from "lucide-react";
+import Link from "next/link";
+import {
+  Activity,
+  PackageCheck,
+  Plus,
+  Search,
+  TimerReset,
+  Truck,
+} from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { Button } from "@/components/ui/button";
 import { requireModuleAccess } from "@/lib/auth";
-import { filterItemsByUserDepositante, isScopedDepositanteUser } from "@/lib/tenant-scope";
+import { canManageMultipleTenants } from "@/lib/permissions";
 import {
-  listShippingFlow,
-  listShippingQueues,
-  listShippingStats,
-} from "@/lib/wms-data";
+  formatShippingStatusLabel,
+  listShippingFlowSteps,
+  listShippingOrdersFromDb,
+  listShippingQueuesFromDb,
+  listShippingStatsFromDb,
+} from "@/lib/shipping";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
-export default async function ExpedicaoPage() {
+type ExpedicaoPageProps = {
+  searchParams?: Promise<{
+    status?: string;
+    depositante?: string;
+    dataInicial?: string;
+    dataFinal?: string;
+  }>;
+};
+
+const statusOptions = [
+  { value: "", label: "Todos" },
+  { value: "NOVO", label: "Novo" },
+  { value: "EM_SEPARACAO", label: "Em separação" },
+  { value: "SEPARADO", label: "Separado" },
+  { value: "EM_CONFERENCIA", label: "Em conferência" },
+  { value: "CONFERIDO", label: "Conferido" },
+  { value: "PRONTO_ROMANEIO", label: "Pronto para romaneio" },
+  { value: "EXPEDIDO", label: "Expedido" },
+  { value: "CANCELADO", label: "Cancelado" },
+];
+
+export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps) {
   const user = await requireModuleAccess("expedicao");
+  const params = searchParams ? await searchParams : undefined;
+  const statusFilter = params?.status?.trim() ?? "";
+  const depositanteFilter = params?.depositante?.trim() ?? "";
+  const dateFrom = params?.dataInicial?.trim() ?? "";
+  const dateTo = params?.dataFinal?.trim() ?? "";
+  const supabase = await createSupabaseServerClient();
 
-  const shippingStats = listShippingStats();
-  const shippingQueues = filterItemsByUserDepositante(
-    user,
-    listShippingQueues(),
-    () => user.depositanteNome,
-  );
-  const shippingFlow = listShippingFlow();
-  const shippingStatsCards = isScopedDepositanteUser(user)
-    ? [
-        {
-          label: "Filas visíveis",
-          value: String(shippingQueues.length),
-          help: "Filas acessíveis no escopo do seu depositante.",
-        },
-        {
-          label: "Pedidos nas filas",
-          value: String(shippingQueues.reduce((sum, item) => sum + item.orders, 0)),
-          help: "Pedidos mapeados nas filas do seu ambiente.",
-        },
-        {
-          label: "Integrações com atenção",
-          value: String(shippingQueues.length),
-          help: "Canais monitorados na sua operação.",
-        },
-        {
-          label: "Etapas do fluxo",
-          value: String(shippingFlow.length),
-          help: "Fluxo operacional obrigatório para expedição.",
-        },
-      ]
-    : shippingStats;
+  const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
+  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const effectiveDepositanteFilter =
+    user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
+
+  const [shippingStats, shippingOrders, shippingQueues] = await Promise.all([
+    listShippingStatsFromDb(user),
+    listShippingOrdersFromDb({
+      status: statusFilter || undefined,
+      depositanteId: effectiveDepositanteFilter || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    }),
+    listShippingQueuesFromDb(),
+  ]);
+  const shippingFlow = listShippingFlowSteps();
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="Expedição"
-        description="Separação, conferência, romaneio, integração com Bling e marketplaces."
-        badge="Crítico"
+        description="Pedidos integrados do Bling, fila operacional de separação, conferência e preparação para romaneio."
+        badge="Banco operacional"
       />
 
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="border-slate-300 text-slate-600"
+          disabled
+          title="Próxima etapa: abertura manual e picking da expedição"
+        >
+          <Plus className="h-4 w-4" />
+          Novo pedido manual
+        </Button>
+      </div>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Truck} label={shippingStatsCards[0].label} value={shippingStatsCards[0].value} help={shippingStatsCards[0].help} />
-        <StatCard icon={PackageCheck} label={shippingStatsCards[1].label} value={shippingStatsCards[1].value} help={shippingStatsCards[1].help} />
-        <StatCard icon={AlertTriangle} label={shippingStatsCards[2].label} value={shippingStatsCards[2].value} help={shippingStatsCards[2].help} />
-        <StatCard icon={Activity} label={shippingStatsCards[3].label} value={shippingStatsCards[3].value} help={shippingStatsCards[3].help} />
+        <StatCard
+          icon={Truck}
+          label={shippingStats[0].label}
+          value={shippingStats[0].value}
+          help={shippingStats[0].help}
+        />
+        <StatCard
+          icon={PackageCheck}
+          label={shippingStats[1].label}
+          value={shippingStats[1].value}
+          help={shippingStats[1].help}
+        />
+        <StatCard
+          icon={Activity}
+          label={shippingStats[2].label}
+          value={shippingStats[2].value}
+          help={shippingStats[2].help}
+        />
+        <StatCard
+          icon={TimerReset}
+          label={shippingStats[3].label}
+          value={shippingStats[3].value}
+          help={shippingStats[3].help}
+        />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Filas e integrações</h2>
-          <div className="mt-5 space-y-4">
-            {shippingQueues.map((queue) => (
-              <div key={queue.channel} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">{queue.channel}</p>
-                    <p className="mt-1 text-sm text-slate-600">{queue.issue}</p>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                    {queue.orders} pedidos
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-slate-500">{queue.action}</p>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Pedidos de expedição</h2>
+              <p className="text-sm text-slate-600">
+                Fila real de pedidos integrados via Bling, com segregação por depositante.
+              </p>
+            </div>
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              {shippingOrders.length} pedidos
+            </span>
+          </div>
+
+          <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_0.9fr_0.9fr_auto]">
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Status
+                </span>
+                <select
+                  name="status"
+                  defaultValue={statusFilter}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value || "todos"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Depositante
+                </span>
+                <select
+                  name="depositante"
+                  defaultValue={effectiveDepositanteFilter}
+                  disabled={!canManageMultipleTenants(user)}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  <option value="">Todos</option>
+                  {depositanteOptions.map((depositante) => (
+                    <option key={depositante.id} value={depositante.id}>
+                      {depositante.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Data inicial
+                </span>
+                <input
+                  type="date"
+                  name="dataInicial"
+                  defaultValue={dateFrom}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Data final
+                </span>
+                <input
+                  type="date"
+                  name="dataFinal"
+                  defaultValue={dateTo}
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
+              </label>
+
+              <div className="flex items-end gap-2">
+                <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+                  <Search className="h-4 w-4" />
+                  Filtrar
+                </Button>
+                <Link
+                  href="/expedicao"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                >
+                  Limpar
+                </Link>
               </div>
-            ))}
-            {!shippingQueues.length ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
-                Nenhuma fila operacional disponível para o seu depositante.
-              </div>
-            ) : null}
+            </div>
+          </form>
+
+          <div className="mt-5 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-slate-500">
+                <tr>
+                  <th className="pb-3 font-medium">Pedido</th>
+                  <th className="pb-3 font-medium">Depositante</th>
+                  <th className="pb-3 font-medium">Cliente</th>
+                  <th className="pb-3 font-medium">Destino</th>
+                  <th className="pb-3 font-medium">Itens</th>
+                  <th className="pb-3 font-medium">Unidades</th>
+                  <th className="pb-3 font-medium">Total</th>
+                  <th className="pb-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shippingOrders.map((order) => (
+                  <tr key={order.id} className="border-b border-slate-100 last:border-b-0">
+                    <td className="py-3 text-slate-900">
+                      <div className="font-medium">{order.externalNumber}</div>
+                      <div className="text-xs text-slate-500">
+                        Loja {order.storeNumber} • {order.channel}
+                      </div>
+                    </td>
+                    <td className="py-3 text-slate-600">{order.depositante}</td>
+                    <td className="py-3 text-slate-600">{order.customer}</td>
+                    <td className="py-3 text-slate-600">{order.destination}</td>
+                    <td className="py-3 text-slate-600">{order.itemCount}</td>
+                    <td className="py-3 text-slate-600">{order.units}</td>
+                    <td className="py-3 text-slate-600">{order.total}</td>
+                    <td className="py-3">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        {formatShippingStatusLabel(order.status)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!shippingOrders.length ? (
+                  <tr>
+                    <td colSpan={8} className="py-6 text-center text-slate-500">
+                      Nenhum pedido de expedição encontrado com os filtros atuais.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Fluxo obrigatório</h2>
-          <div className="mt-4 space-y-3">
-            {shippingFlow.map((step, index) => (
-              <div key={step} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                {index + 1}. {step}
-              </div>
-            ))}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Filas operacionais</h2>
+            <div className="mt-4 space-y-4">
+              {shippingQueues.map((queue) => (
+                <div key={queue.status} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">{queue.label}</p>
+                      <p className="mt-1 text-sm text-slate-600">{queue.help}</p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      {queue.orders} pedidos
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Fluxo obrigatório</h2>
+            <div className="mt-4 space-y-3">
+              {shippingFlow.map((step, index) => (
+                <div key={step} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  {index + 1}. {step}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
