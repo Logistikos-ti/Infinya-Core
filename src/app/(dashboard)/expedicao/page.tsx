@@ -80,16 +80,13 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       />
 
       <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className="border-slate-300 text-slate-600"
-          disabled
-          title="Próxima etapa: abertura manual e picking da expedição"
+        <Link
+          href="/expedicao/novo"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
           <Plus className="h-4 w-4" />
           Novo pedido manual
-        </Button>
+        </Link>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,4 +1,10 @@
 import type { AppUserContext } from "@/lib/auth";
+import {
+  detectSalesChannelFromPayload,
+  readManualSalesChannelCode,
+  readMarketplaceDisplay,
+  readStoreDisplay,
+} from "@/lib/sales-channels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
@@ -132,6 +138,7 @@ export type ShippingOrderDetail = {
   storeNumber: string;
   storeDisplay: string;
   orderType: string;
+  salesChannelCode: string | null;
   total: string;
   totalRaw: number;
   itemCount: number;
@@ -302,6 +309,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const invoice = extractInvoice(payload);
   const orderType = extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
+  const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
   const carrierName = extractCarrierName(payload);
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
@@ -343,6 +351,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
     storeNumber: order.numero_loja?.trim() || "-",
     storeDisplay,
     orderType,
+    salesChannelCode,
     total: formatCurrency(order.valor_total),
     totalRaw: Number(order.valor_total ?? 0),
     itemCount: Number(order.quantidade_itens ?? items.length),
@@ -540,11 +549,16 @@ function formatDateOrFallback(value: string | null, fallback: string) {
 }
 
 function extractOrderType(payload: Record<string, unknown>, originFallback: string) {
+  const manualChannel = readManualSalesChannelCode(payload);
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
   const numeroPedidoCompra = readString(payload.numeroPedidoCompra);
 
   if (numeroPedidoCompra) {
     return "Pedido de compra";
+  }
+
+  if (originFallback === "MANUAL" || manualChannel) {
+    return readMarketplaceDisplay(payload) === "Sim" ? "Pedido de marketplace" : "Pedido manual";
   }
 
   if (intermediador) {
@@ -555,140 +569,11 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
 }
 
 function extractMarketplace(payload: Record<string, unknown>) {
-  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
-  const loja = isRecord(payload.loja) ? payload.loja : null;
-
-  if (resolveSalesChannelName(intermediador, loja)) {
-    return "Sim";
-  }
-
-  return "Não";
+  return readMarketplaceDisplay(payload);
 }
 
 function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
-  const contato = isRecord(payload.contato) ? payload.contato : null;
-  const loja = isRecord(payload.loja) ? payload.loja : null;
-  const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
-  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
-
-  return (
-    resolveSalesChannelName(intermediador, loja) ??
-    readHumanStoreName(contato?.fantasia) ??
-    readHumanStoreName(contato?.nomeFantasia) ??
-    readHumanStoreName(contato?.nomeLoja) ??
-    readString(contato?.fantasia) ??
-    readString(contato?.nomeFantasia) ??
-    readString(contato?.nomeLoja) ??
-    readHumanStoreName(unidadeNegocio?.id) ??
-    readHumanStoreName(loja?.id) ??
-    readHumanStoreName(storeNumberFallback) ??
-    "Loja não identificada"
-  );
-}
-
-function resolveSalesChannelName(
-  intermediador: Record<string, unknown> | null,
-  loja: Record<string, unknown> | null,
-) {
-  const cnpj = normalizeDigits(readString(intermediador?.cnpj));
-  const login = readString(intermediador?.nomeUsuario);
-  const lojaId = normalizeDigits(readString(loja?.id));
-  const unidadeNegocioId = normalizeDigits(
-    readString(isRecord(loja?.unidadeNegocio) ? loja.unidadeNegocio.id : null),
-  );
-
-  const knownByCnpj: Record<string, string> = {
-    "03007331000141": "Mercado Livre",
-    "35635824000112": "Shopee",
-    "15436940000103": "Amazon",
-    "47960950000121": "Magazine Luiza",
-  };
-
-  if (cnpj && knownByCnpj[cnpj]) {
-    return knownByCnpj[cnpj];
-  }
-
-  if (login && /evolveg/i.test(login)) {
-    return "Mercado Livre";
-  }
-
-  if (login && /amazon/i.test(login)) {
-    return "Amazon";
-  }
-
-  if (login && /shopee/i.test(login)) {
-    return "Shopee";
-  }
-
-  if (login && /magalu|magazine/i.test(login)) {
-    return "Magazine Luiza";
-  }
-
-  const knownByLojaId: Record<string, string> = {
-    "204422544": "Mercado Livre",
-    "204440093": "Shopee",
-    "204432941": "Amazon",
-    "204432814": "Magazine Luiza",
-  };
-
-  if (lojaId && knownByLojaId[lojaId]) {
-    return knownByLojaId[lojaId];
-  }
-
-  const knownByBusinessUnitId: Record<string, string> = {
-    "2536457": "Mercado Livre",
-    "1373757": "Shopee",
-    "1368174": "Amazon",
-    "1368060": "Magazine Luiza",
-  };
-
-  if (unidadeNegocioId && knownByBusinessUnitId[unidadeNegocioId]) {
-    return knownByBusinessUnitId[unidadeNegocioId];
-  }
-
-  if (login && !/^\d+$/.test(login)) {
-    const normalizedLogin = login.replace(/[_-]+/g, " ").trim();
-    if (!looksLikeTechnicalStoreName(normalizedLogin)) {
-      return normalizedLogin;
-    }
-  }
-
-  return null;
-}
-
-function readHumanStoreName(value: unknown) {
-  const normalized = readString(value);
-  if (!normalized || looksLikeTechnicalStoreName(normalized)) {
-    return null;
-  }
-
-  return normalized;
-}
-
-function looksLikeTechnicalStoreName(value: string) {
-  const compact = value.trim();
-
-  if (!compact) {
-    return true;
-  }
-
-  if (/^\d+$/.test(compact)) {
-    return true;
-  }
-
-  if (/^[\d-]{8,}$/.test(compact)) {
-    return true;
-  }
-
-  if (/^[A-Z0-9-]{10,}$/i.test(compact) && /\d/.test(compact)) {
-    return true;
-  }
-
-  return false;
-}
-
-function normalizeDigits(value: string | null) {
-  return value?.replace(/\D/g, "") ?? null;
+  return readStoreDisplay(payload, storeNumberFallback);
 }
 
 function extractInvoice(payload: Record<string, unknown>) {

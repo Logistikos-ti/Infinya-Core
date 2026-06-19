@@ -5,6 +5,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
+import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 import { getShippingOrderDetailFromDb } from "@/lib/shipping";
 import { updateShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 
@@ -41,6 +42,8 @@ export default async function EditarShippingOrderPage({
   if (!order) {
     notFound();
   }
+
+  const isManualOrder = order.origin === "MANUAL";
 
   return (
     <div className="space-y-6">
@@ -112,7 +115,39 @@ export default async function EditarShippingOrderPage({
               <input
                 name="numeroLoja"
                 defaultValue={order.storeNumber === "-" ? "" : order.storeNumber}
+                disabled={!isManualOrder}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
+            <Field label="Canal de venda">
+              <select
+                name="salesChannelCode"
+                defaultValue={order.salesChannelCode ?? ""}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              >
+                <option value="">Selecione</option>
+                {SALES_CHANNEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Nome da loja (se outro canal)">
+              <input
+                name="customStoreName"
+                defaultValue={
+                  isManualOrder &&
+                  order.salesChannelCode === "OUTRO" &&
+                  order.storeDisplay !== "Loja não identificada"
+                    ? order.storeDisplay
+                    : ""
+                }
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
               />
             </Field>
 
@@ -190,6 +225,12 @@ export default async function EditarShippingOrderPage({
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <p>
                 <span className="font-medium text-slate-900">Origem:</span> {order.origin}
+              </p>
+              <p>
+                <span className="font-medium text-slate-900">Loja comercial:</span> {order.storeDisplay}
+              </p>
+              <p>
+                <span className="font-medium text-slate-900">Marketplace:</span> {order.marketplace}
               </p>
               <p>
                 <span className="font-medium text-slate-900">Status atual:</span> {order.statusLabel}
