@@ -111,7 +111,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
       fileName: `danfe-${orderRef}-${invoice.numero ?? invoice.id}.pdf`,
     });
 
-    return new NextResponse(pdfDocument.bytes, {
+    return new NextResponse(new Uint8Array(pdfDocument.bytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
