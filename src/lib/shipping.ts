@@ -298,7 +298,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
-  const marketplace = extractMarketplace(payload, order.canal);
+  const marketplace = extractMarketplace(payload);
   const invoice = extractInvoice(payload);
   const orderType = extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
@@ -554,14 +554,15 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
   return originFallback === "BLING" ? "Pedido integrado" : originFallback;
 }
 
-function extractMarketplace(payload: Record<string, unknown>, channelFallback: string) {
+function extractMarketplace(payload: Record<string, unknown>) {
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
+  const loja = isRecord(payload.loja) ? payload.loja : null;
 
-  if (intermediador) {
+  if (resolveSalesChannelName(intermediador, loja)) {
     return "Sim";
   }
 
-  return channelFallback === "BLING" ? "Não" : channelFallback;
+  return "Não";
 }
 
 function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
@@ -572,13 +573,16 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
 
   return (
     resolveSalesChannelName(intermediador, loja) ??
+    readHumanStoreName(contato?.fantasia) ??
+    readHumanStoreName(contato?.nomeFantasia) ??
+    readHumanStoreName(contato?.nomeLoja) ??
     readString(contato?.fantasia) ??
     readString(contato?.nomeFantasia) ??
     readString(contato?.nomeLoja) ??
-    readString(unidadeNegocio?.id) ??
-    readString(loja?.id) ??
-    storeNumberFallback ??
-    "-"
+    readHumanStoreName(unidadeNegocio?.id) ??
+    readHumanStoreName(loja?.id) ??
+    readHumanStoreName(storeNumberFallback) ??
+    "Loja não identificada"
   );
 }
 
@@ -589,6 +593,9 @@ function resolveSalesChannelName(
   const cnpj = normalizeDigits(readString(intermediador?.cnpj));
   const login = readString(intermediador?.nomeUsuario);
   const lojaId = normalizeDigits(readString(loja?.id));
+  const unidadeNegocioId = normalizeDigits(
+    readString(isRecord(loja?.unidadeNegocio) ? loja.unidadeNegocio.id : null),
+  );
 
   const knownByCnpj: Record<string, string> = {
     "03007331000141": "Mercado Livre",
@@ -628,11 +635,56 @@ function resolveSalesChannelName(
     return knownByLojaId[lojaId];
   }
 
+  const knownByBusinessUnitId: Record<string, string> = {
+    "2536457": "Mercado Livre",
+    "1373757": "Shopee",
+    "1368174": "Amazon",
+    "1368060": "Magazine Luiza",
+  };
+
+  if (unidadeNegocioId && knownByBusinessUnitId[unidadeNegocioId]) {
+    return knownByBusinessUnitId[unidadeNegocioId];
+  }
+
   if (login && !/^\d+$/.test(login)) {
-    return login;
+    const normalizedLogin = login.replace(/[_-]+/g, " ").trim();
+    if (!looksLikeTechnicalStoreName(normalizedLogin)) {
+      return normalizedLogin;
+    }
   }
 
   return null;
+}
+
+function readHumanStoreName(value: unknown) {
+  const normalized = readString(value);
+  if (!normalized || looksLikeTechnicalStoreName(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function looksLikeTechnicalStoreName(value: string) {
+  const compact = value.trim();
+
+  if (!compact) {
+    return true;
+  }
+
+  if (/^\d+$/.test(compact)) {
+    return true;
+  }
+
+  if (/^[\d-]{8,}$/.test(compact)) {
+    return true;
+  }
+
+  if (/^[A-Z0-9-]{10,}$/i.test(compact) && /\d/.test(compact)) {
+    return true;
+  }
+
+  return false;
 }
 
 function normalizeDigits(value: string | null) {
