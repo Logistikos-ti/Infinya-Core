@@ -2,13 +2,16 @@ import { Activity, AlertTriangle, Boxes, FileClock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ModuleCard } from "@/components/dashboard/module-card";
+import { IntegrationAlertCenter } from "@/components/integrations/integration-alert-center";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
 import { statusPedidoExpedicaoFluxo } from "@/lib/constants";
+import { buildIntegrationAlerts } from "@/lib/integration-alerts";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { listReceivingOrdersFromDb, listReceivingStatsFromDb } from "@/lib/receiving";
 import { listRoadmapMilestones } from "@/lib/wms-data";
 import { isScopedDepositanteUser } from "@/lib/tenant-scope";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const focusModules: ReadonlyArray<{
   href: string;
@@ -52,12 +55,35 @@ export default async function DashboardPage() {
   const today = format(new Date(), "EEEE, dd 'de' MMMM", {
     locale: ptBR,
   });
-  const [receivingOrders, receivingStats] = await Promise.all([
+  const supabase = await createSupabaseServerClient();
+  const [receivingOrders, receivingStats, depositantes, shippingOrders, linkedDocuments] = await Promise.all([
     listReceivingOrdersFromDb(),
     listReceivingStatsFromDb(user),
+    supabase.from("depositantes").select("id, nome, configuracoes, observacoes").order("nome"),
+    supabase.from("pedidos_expedicao").select("id, depositante_id, origem"),
+    supabase.from("documentos_armazenados").select("pedido_expedicao_id, tipo"),
   ]);
   const roadmapMilestones = listRoadmapMilestones();
   const visibleModules = focusModules.filter((module) => canAccessModule(user, module.module));
+  const integrationAlerts = isScopedDepositanteUser(user)
+    ? []
+    : buildIntegrationAlerts({
+        depositantes: ((depositantes.data ?? []) as Array<{
+          id: string;
+          nome: string;
+          configuracoes: unknown;
+          observacoes: string | null;
+        }>),
+        shippingOrders: ((shippingOrders.data ?? []) as Array<{
+          id: string;
+          depositante_id: string;
+          origem: string;
+        }>),
+        linkedDocuments: ((linkedDocuments.data ?? []) as Array<{
+          pedido_expedicao_id: string | null;
+          tipo: string;
+        }>),
+      });
 
   return (
     <div className="space-y-8">
@@ -150,6 +176,10 @@ export default async function DashboardPage() {
           help="Agora estamos trocando mock por fluxo operacional persistido."
         />
       </section>
+
+      {!isScopedDepositanteUser(user) ? (
+        <IntegrationAlertCenter initialAlerts={integrationAlerts} compact />
+      ) : null}
 
       <section className="space-y-4">
         <div>

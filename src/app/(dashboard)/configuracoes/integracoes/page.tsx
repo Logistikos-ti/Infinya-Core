@@ -13,10 +13,12 @@ import {
   Wifi,
 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { IntegrationAlertCenter } from "@/components/integrations/integration-alert-center";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
 import { getAppBaseUrl, getBlingCallbackUrl, getBlingWebhookUrl } from "@/lib/bling";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
+import { buildIntegrationAlerts } from "@/lib/integration-alerts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTimePtBr } from "@/lib/utils";
 import {
@@ -62,6 +64,23 @@ export default async function ConfiguracoesIntegracoesPage({
   const appBaseUrl = getAppBaseUrl();
   const callbackUrl = getBlingCallbackUrl();
   const webhookUrl = getBlingWebhookUrl();
+  const integrationAlerts = buildIntegrationAlerts({
+    depositantes: (depositantes ?? []) as Array<{
+      id: string;
+      nome: string;
+      configuracoes: unknown;
+      observacoes: string | null;
+    }>,
+    shippingOrders: ((shippingOrders ?? []) as Array<{
+      id: string;
+      depositante_id: string;
+      origem: string;
+    }>),
+    linkedDocuments: ((linkedDocuments ?? []) as Array<{
+      pedido_expedicao_id: string | null;
+      tipo: string;
+    }>),
+  });
 
   return (
     <div className="space-y-6">
@@ -100,6 +119,8 @@ export default async function ConfiguracoesIntegracoesPage({
                   : `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`}
         </div>
       ) : null}
+
+      <IntegrationAlertCenter initialAlerts={integrationAlerts} />
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_1.3fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
