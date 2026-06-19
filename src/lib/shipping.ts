@@ -548,22 +548,22 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
 
 function extractMarketplace(payload: Record<string, unknown>, channelFallback: string) {
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
-  const loja = isRecord(payload.loja) ? payload.loja : null;
 
-  return (
-    readString(intermediador?.nomeUsuario) ??
-    readString(intermediador?.cnpj) ??
-    (loja ? `Loja ${readString(loja.id) ?? "Bling"}` : null) ??
-    channelFallback
-  );
+  if (intermediador) {
+    return "Sim";
+  }
+
+  return channelFallback === "BLING" ? "Não" : channelFallback;
 }
 
 function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
   const contato = isRecord(payload.contato) ? payload.contato : null;
   const loja = isRecord(payload.loja) ? payload.loja : null;
   const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
 
   return (
+    resolveSalesChannelName(intermediador, loja) ??
     readString(contato?.fantasia) ??
     readString(contato?.nomeFantasia) ??
     readString(contato?.nomeLoja) ??
@@ -572,6 +572,63 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
     storeNumberFallback ??
     "-"
   );
+}
+
+function resolveSalesChannelName(
+  intermediador: Record<string, unknown> | null,
+  loja: Record<string, unknown> | null,
+) {
+  const cnpj = normalizeDigits(readString(intermediador?.cnpj));
+  const login = readString(intermediador?.nomeUsuario);
+  const lojaId = normalizeDigits(readString(loja?.id));
+
+  const knownByCnpj: Record<string, string> = {
+    "03007331000141": "Mercado Livre",
+    "35635824000112": "Shopee",
+    "15436940000103": "Amazon",
+    "47960950000121": "Magazine Luiza",
+  };
+
+  if (cnpj && knownByCnpj[cnpj]) {
+    return knownByCnpj[cnpj];
+  }
+
+  if (login && /evolveg/i.test(login)) {
+    return "Mercado Livre";
+  }
+
+  if (login && /amazon/i.test(login)) {
+    return "Amazon";
+  }
+
+  if (login && /shopee/i.test(login)) {
+    return "Shopee";
+  }
+
+  if (login && /magalu|magazine/i.test(login)) {
+    return "Magazine Luiza";
+  }
+
+  const knownByLojaId: Record<string, string> = {
+    "204422544": "Mercado Livre",
+    "204440093": "Shopee",
+    "204432941": "Amazon",
+    "204432814": "Magazine Luiza",
+  };
+
+  if (lojaId && knownByLojaId[lojaId]) {
+    return knownByLojaId[lojaId];
+  }
+
+  if (login && !/^\d+$/.test(login)) {
+    return login;
+  }
+
+  return null;
+}
+
+function normalizeDigits(value: string | null) {
+  return value?.replace(/\D/g, "") ?? null;
 }
 
 function extractInvoice(payload: Record<string, unknown>) {

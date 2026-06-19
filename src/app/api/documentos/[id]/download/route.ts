@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { gunzipSync } from "node:zlib";
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -50,16 +51,32 @@ export async function GET(request: Request, { params }: RouteProps) {
     );
   }
 
-  const bytes = Buffer.from(await downloadResult.data.arrayBuffer());
+  let bytes = Buffer.from(await downloadResult.data.arrayBuffer());
+
+  if ((document.mime_type || "").includes("xml") && isGzipBuffer(bytes)) {
+    bytes = gunzipSync(bytes);
+  }
 
   return new NextResponse(bytes, {
     status: 200,
     headers: {
-      "Content-Type": document.mime_type || "application/octet-stream",
+      "Content-Type": resolveContentType(document.mime_type),
       "Content-Length": String(bytes.byteLength),
       "Content-Disposition": `${disposition}; filename="${encodeURIComponent(document.nome_arquivo)}"`,
       "Cache-Control": "private, max-age=60",
       "X-Content-Type-Options": "nosniff",
     },
   });
+}
+
+function resolveContentType(mimeType: string | null) {
+  if (mimeType?.includes("xml")) {
+    return "application/xml; charset=utf-8";
+  }
+
+  return mimeType || "application/octet-stream";
+}
+
+function isGzipBuffer(value: Buffer) {
+  return value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b;
 }

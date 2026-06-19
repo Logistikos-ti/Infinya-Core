@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { getAppEnv, getBlingEnv } from "@/lib/env";
 import type { DepositanteBlingConfig } from "@/lib/depositantes";
 
@@ -333,7 +334,7 @@ export async function downloadBlingInvoiceXml(
   const response = await fetch(documentUrl, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      Accept: "application/xml,text/xml,application/octet-stream",
+      Accept: "application/json",
     },
     cache: "no-store",
   });
@@ -345,12 +346,26 @@ export async function downloadBlingInvoiceXml(
     );
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const payload = (await response.json()) as {
+    data?: Array<{
+      nome?: string | null;
+      conteudo?: string | null;
+    }>;
+  };
+
+  const encodedContent = payload.data?.[0]?.conteudo?.trim();
+  const remoteFileName = payload.data?.[0]?.nome?.trim();
+
+  if (!encodedContent) {
+    throw new Error("O Bling retornou o XML sem conteúdo.");
+  }
+
+  const bytes = decodePossiblyCompressedBase64(encodedContent);
 
   return {
     bytes,
-    fileName,
-    mimeType: response.headers.get("content-type") || "application/xml",
+    fileName: remoteFileName || fileName,
+    mimeType: "application/xml",
   };
 }
 
@@ -748,4 +763,14 @@ async function buildBlingApiError(response: Response, fallbackMessage: string) {
     status: response.status,
     message: responseText || fallbackMessage,
   });
+}
+
+function decodePossiblyCompressedBase64(value: string) {
+  const rawBytes = Buffer.from(value, "base64");
+
+  return isGzipBuffer(rawBytes) ? gunzipSync(rawBytes) : rawBytes;
+}
+
+function isGzipBuffer(value: Buffer) {
+  return value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b;
 }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, Paperclip, Pencil } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import { canUploadOperationalDocuments, isAdminUser } from "@/lib/permissions";
 import { requireModuleAccess } from "@/lib/auth";
@@ -196,15 +197,12 @@ export default async function ShippingOrderDetailPage({
                       >
                         {attachment.status === "DISPONIVEL" ? "Disponível" : "Pendente"}
                       </span>
-                      {attachment.viewHref ? (
-                        <Link
-                          href={attachment.viewHref}
-                          target="_blank"
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Visualizar
-                        </Link>
+                      {attachment.viewHref && attachment.href ? (
+                        <ShippingAttachmentPreviewDialog
+                          label={attachment.label}
+                          viewHref={attachment.viewHref}
+                          downloadHref={attachment.href}
+                        />
                       ) : null}
                       {attachment.href ? (
                         <Link
