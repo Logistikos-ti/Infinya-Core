@@ -10,10 +10,17 @@ export type ImportedNfeItem = {
 export type ParsedNfe = {
   accessKey: string | null;
   noteNumber: string;
+  direction: "ENTRADA" | "SAIDA";
   supplierName: string;
   supplierDocument: string | null;
+  recipientName: string;
+  recipientDocument: string | null;
   issuedAt: string | null;
   volumeCount: number;
+  totalValue: number;
+  protocolNumber: string | null;
+  protocolStatusCode: string | null;
+  protocolStatusLabel: string | null;
   items: ImportedNfeItem[];
 };
 
@@ -38,7 +45,9 @@ export function parseNfeXml(xml: string): ParsedNfe {
 
   const ide = infNFe.ide ?? {};
   const emit = infNFe.emit ?? {};
+  const dest = infNFe.dest ?? {};
   const transp = infNFe.transp ?? {};
+  const total = infNFe.total?.ICMSTot ?? {};
   const det = ensureArray(infNFe.det);
 
   const items = det
@@ -63,11 +72,18 @@ export function parseNfeXml(xml: string): ParsedNfe {
 
   return {
     accessKey: cleanString(protNFe?.chNFe) ?? extractAccessKeyFromId(infNFe.Id),
+    direction: cleanString(ide.tpNF) === "1" ? "SAIDA" : "ENTRADA",
     noteNumber: cleanString(ide.nNF) ?? "Sem número",
     supplierName: cleanString(emit.xNome) ?? "Fornecedor não informado",
     supplierDocument: cleanString(emit.CNPJ) ?? cleanString(emit.CPF),
+    recipientName: cleanString(dest.xNome) ?? "Destinatário não informado",
+    recipientDocument: cleanString(dest.CNPJ) ?? cleanString(dest.CPF),
     issuedAt: normalizeDateTime(ide.dhEmi ?? ide.dEmi ?? null),
     volumeCount,
+    totalValue: toPositiveNumber(total.vNF ?? 0),
+    protocolNumber: cleanString(protNFe?.nProt),
+    protocolStatusCode: cleanString(protNFe?.cStat),
+    protocolStatusLabel: cleanString(protNFe?.xMotivo),
     items,
   };
 }
