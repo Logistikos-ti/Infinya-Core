@@ -12,6 +12,7 @@ type RelationName = { nome?: string } | { nome?: string }[] | null;
 type RawShippingOrderRow = {
   id: string;
   codigo: string;
+  origem: string;
   status: string;
   numero_pedido: string | null;
   numero_loja: string | null;
@@ -25,6 +26,7 @@ type RawShippingOrderRow = {
   cliente_nome: string | null;
   cliente_cidade: string | null;
   cliente_uf: string | null;
+  payload_origem: Record<string, unknown> | null;
   depositante_id?: string;
   depositante: RelationName;
 };
@@ -92,11 +94,15 @@ export type ShippingOrderSummary = {
   code: string;
   depositanteId?: string;
   depositante: string;
+  origin: string;
   externalNumber: string;
   storeNumber: string;
+  storeDisplay: string;
   customer: string;
   destination: string;
   channel: string;
+  marketplace: string;
+  carrierName: string;
   status: string;
   statusLabel: string;
   total: string;
@@ -111,6 +117,10 @@ type ShippingOrderFilters = {
   depositanteId?: string;
   dateFrom?: string;
   dateTo?: string;
+  carrier?: string;
+  customer?: string;
+  orderSearch?: string;
+  marketplace?: string;
 };
 
 export type ShippingQueueSummary = {
@@ -174,7 +184,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .order("data_pedido", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -205,7 +215,47 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
     throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
   }
 
-  return ((data ?? []) as RawShippingOrderRow[]).map(mapShippingOrderSummary);
+  const orders = ((data ?? []) as RawShippingOrderRow[]).map(mapShippingOrderSummary);
+
+  return orders.filter((order) => {
+    if (filters?.carrier) {
+      const carrierNeedle = filters.carrier.trim().toLocaleLowerCase("pt-BR");
+      if (!order.carrierName.toLocaleLowerCase("pt-BR").includes(carrierNeedle)) {
+        return false;
+      }
+    }
+
+    if (filters?.customer) {
+      const customerNeedle = filters.customer.trim().toLocaleLowerCase("pt-BR");
+      if (!order.customer.toLocaleLowerCase("pt-BR").includes(customerNeedle)) {
+        return false;
+      }
+    }
+
+    if (filters?.orderSearch) {
+      const orderNeedle = filters.orderSearch.trim().toLocaleLowerCase("pt-BR");
+      const haystack = [order.externalNumber, order.code, order.storeNumber, order.storeDisplay]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+
+      if (!haystack.includes(orderNeedle)) {
+        return false;
+      }
+    }
+
+    if (filters?.marketplace) {
+      const marketplaceNeedle = filters.marketplace.trim().toLocaleLowerCase("pt-BR");
+      const haystack = [order.marketplace, order.channel, order.storeDisplay]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+
+      if (!haystack.includes(marketplaceNeedle)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 export async function listShippingStatsFromDb(user: AppUserContext) {
@@ -464,6 +514,10 @@ export function listShippingFlowSteps() {
 }
 
 function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummary {
+  const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
+  const storeDisplay = extractStore(payload, item.numero_loja);
+  const marketplace = extractMarketplace(payload);
+  const carrierName = extractCarrierName(payload);
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
@@ -474,11 +528,15 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     code: item.codigo,
     depositanteId: item.depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
+    origin: item.origem,
     externalNumber: item.numero_pedido?.trim() || item.codigo,
     storeNumber: item.numero_loja?.trim() || "-",
+    storeDisplay,
     customer,
     destination,
     channel: item.canal?.trim() || "BLING",
+    marketplace,
+    carrierName,
     status: item.status,
     statusLabel: formatShippingStatusLabel(item.status),
     total: formatCurrency(item.valor_total),

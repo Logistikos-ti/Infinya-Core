@@ -30,6 +30,10 @@ type ExpedicaoPageProps = {
     depositante?: string;
     dataInicial?: string;
     dataFinal?: string;
+    transportadora?: string;
+    cliente?: string;
+    pedido?: string;
+    marketplace?: string;
   }>;
 };
 
@@ -52,6 +56,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const depositanteFilter = params?.depositante?.trim() ?? "";
   const dateFrom = params?.dataInicial?.trim() ?? "";
   const dateTo = params?.dataFinal?.trim() ?? "";
+  const carrierFilter = params?.transportadora?.trim() ?? "";
+  const customerFilter = params?.cliente?.trim() ?? "";
+  const orderSearchFilter = params?.pedido?.trim() ?? "";
+  const marketplaceFilter = params?.marketplace?.trim() ?? "";
   const supabase = await createSupabaseServerClient();
 
   const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
@@ -66,6 +74,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       depositanteId: effectiveDepositanteFilter || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
+      carrier: carrierFilter || undefined,
+      customer: customerFilter || undefined,
+      orderSearch: orderSearchFilter || undefined,
+      marketplace: marketplaceFilter || undefined,
     }),
     listShippingQueuesFromDb(),
   ]);
@@ -131,7 +143,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           </div>
 
           <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_0.9fr_0.9fr_auto]">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="space-y-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   Status
@@ -151,6 +163,19 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
 
               <label className="space-y-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Pedido ou código
+                </span>
+                <input
+                  type="text"
+                  name="pedido"
+                  defaultValue={orderSearchFilter}
+                  placeholder="Número, código ou loja"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   Depositante
                 </span>
                 <select
@@ -166,6 +191,45 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Cliente
+                </span>
+                <input
+                  type="text"
+                  name="cliente"
+                  defaultValue={customerFilter}
+                  placeholder="Nome do cliente"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Transportadora
+                </span>
+                <input
+                  type="text"
+                  name="transportadora"
+                  defaultValue={carrierFilter}
+                  placeholder="Nome da transportadora"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Loja ou marketplace
+                </span>
+                <input
+                  type="text"
+                  name="marketplace"
+                  defaultValue={marketplaceFilter}
+                  placeholder="Shopee, Magalu, site..."
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                />
               </label>
 
               <label className="space-y-1">
@@ -192,7 +256,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                 />
               </label>
 
-              <div className="flex items-end gap-2">
+              <div className="flex items-end gap-2 xl:col-span-2">
                 <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
                   <Search className="h-4 w-4" />
                   Filtrar
@@ -214,6 +278,8 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                   <th className="pb-3 font-medium">Pedido</th>
                   <th className="pb-3 font-medium">Depositante</th>
                   <th className="pb-3 font-medium">Cliente</th>
+                  <th className="pb-3 font-medium">Loja / canal</th>
+                  <th className="pb-3 font-medium">Transportadora</th>
                   <th className="pb-3 font-medium">Destino</th>
                   <th className="pb-3 font-medium">Itens</th>
                   <th className="pb-3 font-medium">Unidades</th>
@@ -228,11 +294,18 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                     <td className="py-3 text-slate-900">
                       <div className="font-medium">{order.externalNumber}</div>
                       <div className="text-xs text-slate-500">
-                        Loja {order.storeNumber} • {order.channel}
+                        {order.code} | {order.origin}
                       </div>
                     </td>
                     <td className="py-3 text-slate-600">{order.depositante}</td>
                     <td className="py-3 text-slate-600">{order.customer}</td>
+                    <td className="py-3 text-slate-600">
+                      <div>{order.storeDisplay}</div>
+                      <div className="text-xs text-slate-500">
+                        Marketplace: {order.marketplace} | Canal: {order.channel}
+                      </div>
+                    </td>
+                    <td className="py-3 text-slate-600">{order.carrierName}</td>
                     <td className="py-3 text-slate-600">{order.destination}</td>
                     <td className="py-3 text-slate-600">{order.itemCount}</td>
                     <td className="py-3 text-slate-600">{order.units}</td>
@@ -266,7 +339,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                 ))}
                 {!shippingOrders.length ? (
                   <tr>
-                    <td colSpan={9} className="py-6 text-center text-slate-500">
+                    <td colSpan={11} className="py-6 text-center text-slate-500">
                       Nenhum pedido de expedição encontrado com os filtros atuais.
                     </td>
                   </tr>

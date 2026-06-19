@@ -21,6 +21,10 @@ export async function GET(request: Request) {
       : url.searchParams.get("depositante")?.trim() ?? "";
   const dateFrom = url.searchParams.get("dataInicial")?.trim() ?? "";
   const dateTo = url.searchParams.get("dataFinal")?.trim() ?? "";
+  const carrier = url.searchParams.get("transportadora")?.trim() ?? "";
+  const customer = url.searchParams.get("cliente")?.trim() ?? "";
+  const orderSearch = url.searchParams.get("pedido")?.trim() ?? "";
+  const marketplace = url.searchParams.get("marketplace")?.trim() ?? "";
 
   const [stats, orders, queues] = await Promise.all([
     listShippingStatsFromDb(auth.user),
@@ -29,6 +33,10 @@ export async function GET(request: Request) {
       depositanteId: depositanteId || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
+      carrier: carrier || undefined,
+      customer: customer || undefined,
+      orderSearch: orderSearch || undefined,
+      marketplace: marketplace || undefined,
     }),
     listShippingQueuesFromDb(),
   ]);
