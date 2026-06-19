@@ -41,7 +41,7 @@ export function ShippingAttachmentPreviewDialog({
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Baixar
+                  Baixar .xml
                 </a>
                 <button
                   type="button"
