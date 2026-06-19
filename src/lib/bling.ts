@@ -562,6 +562,22 @@ export function buildBlingConnectionConfig(
       lastEventId: null,
       lastEventAt: null,
     },
+    monitoring: {
+      lastConnectionStatus: "SUCCESS",
+      lastConnectionMessage: company?.nome
+        ? `Empresa ${company.nome} vinculada com sucesso.`
+        : "OAuth concluído com sucesso.",
+      lastConnectionAt: now,
+      lastWebhookStatus: "PENDING",
+      lastWebhookMessage: "Aguardando primeiro webhook do Bling.",
+      lastWebhookAt: null,
+      lastReprocessStatus: null,
+      lastReprocessMessage: null,
+      lastReprocessAt: null,
+      lastXmlSyncStatus: null,
+      lastXmlSyncMessage: null,
+      lastXmlSyncAt: null,
+    },
   };
 }
 

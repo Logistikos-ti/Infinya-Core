@@ -1,5 +1,17 @@
+import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Link2, PlugZap, RefreshCw, Unplug } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock3,
+  Link2,
+  PlugZap,
+  RefreshCw,
+  RotateCcw,
+  Unplug,
+  Wifi,
+} from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
@@ -9,6 +21,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTimePtBr } from "@/lib/utils";
 import {
   disconnectBlingIntegrationAction,
+  reprocessBlingIntegrationAction,
   syncBlingIntegrationAction,
 } from "./actions";
 
@@ -33,6 +46,18 @@ export default async function ConfiguracoesIntegracoesPage({
     .from("depositantes")
     .select("id, nome, codigo, ativo, configuracoes, observacoes")
     .order("nome");
+  const { data: shippingOrders } = await supabase
+    .from("pedidos_expedicao")
+    .select("id, depositante_id, origem");
+  const { data: linkedDocuments } = await supabase
+    .from("documentos_armazenados")
+    .select("pedido_expedicao_id, tipo");
+  const { data: integrationOccurrences } = await supabase
+    .from("ocorrencias_operacionais")
+    .select("id, depositante_id, titulo, descricao, status, created_at")
+    .or("titulo.ilike.%Webhook Bling%,titulo.ilike.%Reprocessamento Bling%")
+    .order("created_at", { ascending: false })
+    .limit(50);
 
   const appBaseUrl = getAppBaseUrl();
   const callbackUrl = getBlingCallbackUrl();
@@ -121,11 +146,41 @@ export default async function ConfiguracoesIntegracoesPage({
                 );
                 const bling = configuracoes.bling;
                 const isConnected = Boolean(bling?.connected);
+                const monitoring = bling?.monitoring;
                 const empresaExibida =
                   bling?.companyName ??
                   (bling?.companyId
                     ? configuracoes.razaoSocial || depositante.nome
                     : "Aguardando identificação via API/webhook");
+                const orderRows =
+                  ((shippingOrders as Array<{ id: string; depositante_id: string; origem: string }> | null) ?? []).filter(
+                    (item) => item.depositante_id === depositante.id && item.origem === "BLING",
+                  );
+                const documentRows =
+                  ((linkedDocuments as Array<{ pedido_expedicao_id: string | null; tipo: string }> | null) ?? []).filter(
+                    (item) => item.pedido_expedicao_id && orderRows.some((order) => order.id === item.pedido_expedicao_id),
+                  );
+                const ordersWithXml = new Set(
+                  documentRows
+                    .filter((item) => item.tipo === "NF")
+                    .map((item) => item.pedido_expedicao_id as string),
+                );
+                const pendingXmlCount = orderRows.filter((order) => !ordersWithXml.has(order.id)).length;
+                const occurrenceRows =
+                  ((integrationOccurrences as Array<{
+                    id: string;
+                    depositante_id: string;
+                    titulo: string;
+                    descricao: string;
+                    status: string;
+                    created_at: string;
+                  }> | null) ?? []).filter((item) => item.depositante_id === depositante.id);
+                const latestEvents = occurrenceRows.slice(0, 3);
+                const overallStatus = getIntegrationHealthStatus({
+                  isConnected,
+                  monitoring,
+                  pendingXmlCount,
+                });
 
                 return (
                   <div key={depositante.id} className="rounded-2xl border border-slate-200 p-4">
@@ -187,6 +242,9 @@ export default async function ConfiguracoesIntegracoesPage({
                           <StatusBadge active={Boolean(bling?.webhook?.active)}>
                             {bling?.webhook?.active ? "Webhook habilitado" : "Webhook pendente"}
                           </StatusBadge>
+                          <StatusBadge active={overallStatus.tone !== "warning"}>
+                            {overallStatus.label}
+                          </StatusBadge>
                         </div>
                       </div>
 
@@ -209,6 +267,16 @@ export default async function ConfiguracoesIntegracoesPage({
                         ) : null}
 
                         {isConnected ? (
+                          <form action={reprocessBlingIntegrationAction}>
+                            <input type="hidden" name="depositanteId" value={depositante.id} />
+                            <Button type="submit" variant="outline">
+                              <RotateCcw className="h-4 w-4" />
+                              Reprocessar integração
+                            </Button>
+                          </form>
+                        ) : null}
+
+                        {isConnected ? (
                           <form action={disconnectBlingIntegrationAction}>
                             <input type="hidden" name="depositanteId" value={depositante.id} />
                             <Button
@@ -223,6 +291,96 @@ export default async function ConfiguracoesIntegracoesPage({
                         ) : null}
                       </div>
                     </div>
+
+                    {isConnected ? (
+                      <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-center gap-2">
+                            <Wifi className="h-4 w-4 text-slate-500" />
+                            <p className="text-sm font-semibold text-slate-950">
+                              Painel de monitoramento
+                            </p>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <MonitoringCard
+                              icon={PlugZap}
+                              label="Conexão"
+                              status={monitoring?.lastConnectionStatus}
+                              message={monitoring?.lastConnectionMessage}
+                              date={monitoring?.lastConnectionAt}
+                            />
+                            <MonitoringCard
+                              icon={Link2}
+                              label="Webhook"
+                              status={monitoring?.lastWebhookStatus}
+                              message={monitoring?.lastWebhookMessage}
+                              date={monitoring?.lastWebhookAt ?? bling?.webhook?.lastEventAt ?? null}
+                            />
+                            <MonitoringCard
+                              icon={RotateCcw}
+                              label="Reprocessamento"
+                              status={monitoring?.lastReprocessStatus}
+                              message={monitoring?.lastReprocessMessage}
+                              date={monitoring?.lastReprocessAt}
+                            />
+                            <MonitoringCard
+                              icon={Clock3}
+                              label="XML pendente"
+                              status={
+                                pendingXmlCount > 0
+                                  ? monitoring?.lastXmlSyncStatus ?? "PENDING"
+                                  : monitoring?.lastXmlSyncStatus ?? "SUCCESS"
+                              }
+                              message={
+                                pendingXmlCount > 0
+                                  ? `${pendingXmlCount} pedido(s) ainda sem XML anexado.`
+                                  : monitoring?.lastXmlSyncMessage ?? "Nenhum XML pendente."
+                              }
+                              date={monitoring?.lastXmlSyncAt}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-slate-500" />
+                            <p className="text-sm font-semibold text-slate-950">
+                              Eventos, erros e reprocessamentos
+                            </p>
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            {latestEvents.length ? (
+                              latestEvents.map((event) => (
+                                <div
+                                  key={event.id}
+                                  className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <p className="text-sm font-medium text-slate-900">
+                                        {event.titulo}
+                                      </p>
+                                      <p className="mt-1 line-clamp-3 text-xs text-slate-600">
+                                        {event.descricao}
+                                      </p>
+                                    </div>
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                                      {formatDateTimePtBr(event.created_at)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+                                Nenhum evento de integração registrado ainda para este depositante.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })
@@ -260,6 +418,83 @@ export default async function ConfiguracoesIntegracoesPage({
   );
 }
 
+function MonitoringCard({
+  icon: Icon,
+  label,
+  status,
+  message,
+  date,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  status: "SUCCESS" | "ERROR" | "PENDING" | null | undefined;
+  message: string | null | undefined;
+  date: string | null | undefined;
+}) {
+  const tone =
+    status === "SUCCESS"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : status === "ERROR"
+        ? "border-rose-200 bg-rose-50 text-rose-800"
+        : "border-amber-200 bg-amber-50 text-amber-800";
+
+  const badge =
+    status === "SUCCESS" ? "Ok" : status === "ERROR" ? "Erro" : "Pendente";
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${tone}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4" />
+          <p className="text-sm font-semibold">{label}</p>
+        </div>
+        <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold">
+          {badge}
+        </span>
+      </div>
+      <p className="mt-2 text-xs leading-5">{message ?? "Aguardando primeira execução."}</p>
+      <p className="mt-2 text-[11px] opacity-80">
+        {date ? formatDateTimePtBr(date) : "Sem data registrada"}
+      </p>
+    </div>
+  );
+}
+
+function getIntegrationHealthStatus({
+  isConnected,
+  monitoring,
+  pendingXmlCount,
+}: {
+  isConnected: boolean;
+  monitoring:
+    | {
+        lastConnectionStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastWebhookStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastReprocessStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+      }
+    | null
+    | undefined;
+  pendingXmlCount: number;
+}) {
+  if (!isConnected) {
+    return { label: "Integração pendente", tone: "warning" as const };
+  }
+
+  if (
+    monitoring?.lastConnectionStatus === "ERROR" ||
+    monitoring?.lastWebhookStatus === "ERROR" ||
+    monitoring?.lastReprocessStatus === "ERROR"
+  ) {
+    return { label: "Com erro", tone: "warning" as const };
+  }
+
+  if (pendingXmlCount > 0 || monitoring?.lastWebhookStatus === "PENDING") {
+    return { label: "Monitorando", tone: "warning" as const };
+  }
+
+  return { label: "Operacional", tone: "success" as const };
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-200 px-4 py-3">
@@ -274,7 +509,7 @@ function StatusBadge({
   children,
 }: {
   active: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <span

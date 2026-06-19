@@ -40,6 +40,22 @@ export type DepositanteBlingConfig = {
   connectedAt: string | null;
   lastSyncAt: string | null;
   webhook: DepositanteBlingWebhook | null;
+  monitoring: DepositanteBlingMonitoring | null;
+};
+
+export type DepositanteBlingMonitoring = {
+  lastConnectionStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastConnectionMessage: string | null;
+  lastConnectionAt: string | null;
+  lastWebhookStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastWebhookMessage: string | null;
+  lastWebhookAt: string | null;
+  lastReprocessStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastReprocessMessage: string | null;
+  lastReprocessAt: string | null;
+  lastXmlSyncStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastXmlSyncMessage: string | null;
+  lastXmlSyncAt: string | null;
 };
 
 export type DepositanteConfiguracoes = {
@@ -282,7 +298,39 @@ function normalizeBlingConfig(value: unknown): DepositanteBlingConfig | null {
           lastEventAt: getNullableString(webhookValue.lastEventAt),
         }
       : null,
+    monitoring: normalizeBlingMonitoring(raw.monitoring),
   };
+}
+
+function normalizeBlingMonitoring(value: unknown): DepositanteBlingMonitoring | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+
+  return {
+    lastConnectionStatus: normalizeMonitoringStatus(raw.lastConnectionStatus),
+    lastConnectionMessage: getNullableString(raw.lastConnectionMessage),
+    lastConnectionAt: getNullableString(raw.lastConnectionAt),
+    lastWebhookStatus: normalizeMonitoringStatus(raw.lastWebhookStatus),
+    lastWebhookMessage: getNullableString(raw.lastWebhookMessage),
+    lastWebhookAt: getNullableString(raw.lastWebhookAt),
+    lastReprocessStatus: normalizeMonitoringStatus(raw.lastReprocessStatus),
+    lastReprocessMessage: getNullableString(raw.lastReprocessMessage),
+    lastReprocessAt: getNullableString(raw.lastReprocessAt),
+    lastXmlSyncStatus: normalizeMonitoringStatus(raw.lastXmlSyncStatus),
+    lastXmlSyncMessage: getNullableString(raw.lastXmlSyncMessage),
+    lastXmlSyncAt: getNullableString(raw.lastXmlSyncAt),
+  };
+}
+
+function normalizeMonitoringStatus(value: unknown) {
+  if (value === "SUCCESS" || value === "ERROR" || value === "PENDING") {
+    return value;
+  }
+
+  return null;
 }
 
 function getOptionalString(value: unknown) {

@@ -194,13 +194,20 @@ export async function syncBlingInvoiceAttachmentForShippingOrder(
 export async function syncPendingBlingInvoiceAttachments(
   adminSupabase: SupabaseClient,
   limit = 25,
+  depositanteId?: string,
 ) {
-  const { data: orders, error } = await adminSupabase
+  let query = adminSupabase
     .from("pedidos_expedicao")
     .select("id")
     .eq("origem", "BLING")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (depositanteId) {
+    query = query.eq("depositante_id", depositanteId);
+  }
+
+  const { data: orders, error } = await query;
 
   if (error) {
     throw new Error(`Não foi possível listar os pedidos pendentes do Bling: ${error.message}`);

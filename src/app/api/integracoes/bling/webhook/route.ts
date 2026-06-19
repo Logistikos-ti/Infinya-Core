@@ -147,6 +147,14 @@ export async function POST(request: Request) {
           lastEventId: event.eventId,
           lastEventAt: event.date,
         },
+        monitoring: buildMonitoringState(config.bling.monitoring, {
+          lastWebhookStatus:
+            syncResult.synced || !syncResult.syncMessage?.toLowerCase().includes("falha")
+              ? ("SUCCESS" as const)
+              : ("ERROR" as const),
+          lastWebhookMessage: syncResult.syncMessage ?? "Webhook recebido e processado.",
+          lastWebhookAt: event.date,
+        }),
       }
     : null;
 
@@ -773,4 +781,54 @@ function buildBlingEventSummary(eventName: string, data: Record<string, unknown>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function buildMonitoringState(
+  current:
+    | {
+        lastConnectionStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastConnectionMessage: string | null;
+        lastConnectionAt: string | null;
+        lastWebhookStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastWebhookMessage: string | null;
+        lastWebhookAt: string | null;
+        lastReprocessStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastReprocessMessage: string | null;
+        lastReprocessAt: string | null;
+        lastXmlSyncStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+        lastXmlSyncMessage: string | null;
+        lastXmlSyncAt: string | null;
+      }
+    | null
+    | undefined,
+  patch: Partial<{
+    lastConnectionStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+    lastConnectionMessage: string | null;
+    lastConnectionAt: string | null;
+    lastWebhookStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+    lastWebhookMessage: string | null;
+    lastWebhookAt: string | null;
+    lastReprocessStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+    lastReprocessMessage: string | null;
+    lastReprocessAt: string | null;
+    lastXmlSyncStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+    lastXmlSyncMessage: string | null;
+    lastXmlSyncAt: string | null;
+  }>,
+) {
+  return {
+    lastConnectionStatus: current?.lastConnectionStatus ?? null,
+    lastConnectionMessage: current?.lastConnectionMessage ?? null,
+    lastConnectionAt: current?.lastConnectionAt ?? null,
+    lastWebhookStatus: current?.lastWebhookStatus ?? null,
+    lastWebhookMessage: current?.lastWebhookMessage ?? null,
+    lastWebhookAt: current?.lastWebhookAt ?? null,
+    lastReprocessStatus: current?.lastReprocessStatus ?? null,
+    lastReprocessMessage: current?.lastReprocessMessage ?? null,
+    lastReprocessAt: current?.lastReprocessAt ?? null,
+    lastXmlSyncStatus: current?.lastXmlSyncStatus ?? null,
+    lastXmlSyncMessage: current?.lastXmlSyncMessage ?? null,
+    lastXmlSyncAt: current?.lastXmlSyncAt ?? null,
+    ...patch,
+  };
 }
