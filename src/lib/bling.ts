@@ -369,6 +369,57 @@ export async function downloadBlingInvoiceXml(
   };
 }
 
+export async function downloadBlingInvoicePdf(
+  accessToken: string,
+  {
+    accessKey,
+    fileName,
+  }: {
+    accessKey: string;
+    fileName: string;
+  },
+): Promise<BlingRemoteDocument> {
+  const documentUrl = new URL(`${BLING_INVOICE_DOCUMENT_URL}/${encodeURIComponent(accessKey)}`);
+  documentUrl.searchParams.set("formato", "pdf");
+
+  const response = await fetch(documentUrl, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw await buildBlingApiError(
+      response,
+      "Falha ao baixar o DANFE em PDF no Bling.",
+    );
+  }
+
+  const payload = (await response.json()) as {
+    data?: Array<{
+      nome?: string | null;
+      conteudo?: string | null;
+    }>;
+  };
+
+  const encodedContent = payload.data?.[0]?.conteudo?.trim();
+  const remoteFileName = payload.data?.[0]?.nome?.trim();
+
+  if (!encodedContent) {
+    throw new Error("O Bling retornou o PDF sem conteúdo.");
+  }
+
+  const bytes = decodePossiblyCompressedBase64(encodedContent);
+
+  return {
+    bytes,
+    fileName: remoteFileName || fileName,
+    mimeType: "application/pdf",
+  };
+}
+
 export async function downloadBlingSaleOrderLabel(
   accessToken: string,
   {

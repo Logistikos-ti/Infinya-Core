@@ -306,7 +306,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
   const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
-  const attachments = await listShippingAttachments(order.id, invoice);
+  const attachments = await listShippingAttachments(order.id, invoice, order.origem);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
     const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
@@ -363,7 +363,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   } satisfies ShippingOrderDetail;
 }
 
-async function listShippingAttachments(orderId: string, invoice: string) {
+async function listShippingAttachments(orderId: string, invoice: string, origin: string) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("documentos_armazenados")
@@ -373,16 +373,21 @@ async function listShippingAttachments(orderId: string, invoice: string) {
 
   if (error) {
     if (isShippingDocumentLinkMissing(error)) {
-      return buildDefaultShippingAttachments([], invoice);
+      return buildDefaultShippingAttachments([], invoice, orderId, origin);
     }
 
     throw new Error(`Não foi possível carregar os anexos do pedido: ${error.message}`);
   }
 
-  return buildDefaultShippingAttachments((data ?? []) as RawStoredDocumentRow[], invoice);
+  return buildDefaultShippingAttachments((data ?? []) as RawStoredDocumentRow[], invoice, orderId, origin);
 }
 
-function buildDefaultShippingAttachments(documents: RawStoredDocumentRow[], invoice: string): ShippingAttachment[] {
+function buildDefaultShippingAttachments(
+  documents: RawStoredDocumentRow[],
+  invoice: string,
+  orderId: string,
+  origin: string,
+): ShippingAttachment[] {
   const nfDocument =
     documents.find((item) => item.tipo === "NF") ??
     documents.find((item) => item.mime_type?.includes("xml"));
@@ -394,12 +399,14 @@ function buildDefaultShippingAttachments(documents: RawStoredDocumentRow[], invo
       nfDocument,
       invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
       "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
+      origin === "BLING" ? `/api/expedicao/${orderId}/nota-fiscal-preview` : null,
     ),
     buildAttachment(
       "ETIQUETA",
       labelDocument,
       "Etiqueta do marketplace",
       "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
+      null,
     ),
   ];
 }
@@ -409,6 +416,7 @@ function buildAttachment(
   document: RawStoredDocumentRow | undefined,
   pendingLabel: string,
   help: string,
+  customViewHref: string | null,
 ): ShippingAttachment {
   if (!document) {
     return {
@@ -430,7 +438,7 @@ function buildAttachment(
     kind,
     status: "DISPONIVEL",
     href: `/api/documentos/${document.id}/download`,
-    viewHref: `/api/documentos/${document.id}/download?disposition=inline`,
+    viewHref: customViewHref ?? `/api/documentos/${document.id}/download?disposition=inline`,
     fileName: document.nome_arquivo,
     uploadedAt: formatDateTimeInSaoPaulo(document.created_at, "Sem data"),
     help,
