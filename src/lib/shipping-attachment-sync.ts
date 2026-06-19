@@ -191,6 +191,51 @@ export async function syncBlingInvoiceAttachmentForShippingOrder(
   }
 }
 
+export async function syncPendingBlingInvoiceAttachments(
+  adminSupabase: SupabaseClient,
+  limit = 25,
+) {
+  const { data: orders, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id")
+    .eq("origem", "BLING")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`Não foi possível listar os pedidos pendentes do Bling: ${error.message}`);
+  }
+
+  const results: Array<{
+    orderId: string;
+    ok: boolean;
+    status: string;
+    message: string;
+  }> = [];
+
+  for (const order of (orders ?? []) as Array<{ id: string }>) {
+    const result = await syncBlingInvoiceAttachmentForShippingOrder(adminSupabase, order.id);
+    results.push({
+      orderId: order.id,
+      ok: result.ok,
+      status: result.status,
+      message: result.message,
+    });
+  }
+
+  return {
+    total: results.length,
+    attached: results.filter((item) => item.status === "attached").length,
+    alreadyExists: results.filter((item) => item.status === "already_exists").length,
+    waitingInvoice: results.filter((item) => item.status === "waiting_invoice").length,
+    waitingAccessKey: results.filter((item) => item.status === "waiting_access_key").length,
+    notBling: results.filter((item) => item.status === "not_bling").length,
+    insufficientScope: results.filter((item) => item.status === "insufficient_scope").length,
+    failed: results.filter((item) => !item.ok && !["insufficient_scope", "missing_schema"].includes(item.status)).length,
+    results,
+  };
+}
+
 function readString(value: unknown) {
   if (typeof value === "string") {
     const normalized = value.trim();
