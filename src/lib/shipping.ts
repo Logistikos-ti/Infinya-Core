@@ -75,6 +75,7 @@ type ShippingAttachment = {
   kind: "XML_NF" | "ETIQUETA";
   status: "DISPONIVEL" | "PENDENTE";
   href: string | null;
+  viewHref: string | null;
   fileName: string | null;
   uploadedAt: string | null;
   help: string;
@@ -416,6 +417,7 @@ function buildAttachment(
       kind,
       status: "PENDENTE",
       href: null,
+      viewHref: null,
       fileName: null,
       uploadedAt: null,
       help,
@@ -428,6 +430,7 @@ function buildAttachment(
     kind,
     status: "DISPONIVEL",
     href: `/api/documentos/${document.id}/download`,
+    viewHref: `/api/documentos/${document.id}/download?disposition=inline`,
     fileName: document.nome_arquivo,
     uploadedAt: formatDateTimeInSaoPaulo(document.created_at, "Sem data"),
     help,

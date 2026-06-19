@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  downloadBlingInvoiceXml,
   ensureValidBlingAccessToken,
+  fetchBlingInvoice,
   fetchBlingSaleOrder,
+  isBlingInsufficientScopeError,
   parseBlingWebhookPayload,
   validateBlingWebhookSignature,
   type BlingOAuthTokens,
@@ -12,6 +15,10 @@ import {
   updateDepositanteBlingConfig,
   type DepositanteBlingConfig,
 } from "@/lib/depositantes";
+import {
+  listShippingOrderDocumentTypes,
+  storeOperationalDocumentFromBuffer,
+} from "@/lib/operational-documents";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type DepositanteWebhookRow = {
@@ -33,6 +40,11 @@ type ProductLookupRow = {
   codigo_externo: string | null;
   sku: string | null;
   nome: string;
+};
+
+type ShippingOrderUpsertResult = {
+  synced: boolean;
+  attachmentSummary: string | null;
 };
 
 export async function POST(request: Request) {
@@ -197,17 +209,23 @@ async function syncShippingOrderFromBling({
     const tokenResult = await ensureValidBlingAccessToken(blingConfig);
     const refreshedConfig = mergeBlingTokensIntoConfig(blingConfig, tokenResult.tokens);
     const saleOrder = await fetchBlingSaleOrder(tokenResult.accessToken, externalOrderId);
-    const synced = await upsertShippingOrder({
+    const upsertResult = await upsertShippingOrder({
       adminSupabase,
       depositanteId,
+      accessToken: tokenResult.accessToken,
       saleOrder,
       eventName,
     });
 
     return {
-      synced,
-      syncMessage: synced
-        ? `Pedido ${saleOrder.numeroLoja ?? saleOrder.numero ?? saleOrder.id} sincronizado na expedição.`
+      synced: upsertResult.synced,
+      syncMessage: upsertResult.synced
+        ? [
+            `Pedido ${saleOrder.numeroLoja ?? saleOrder.numero ?? saleOrder.id} sincronizado na expedição.`,
+            upsertResult.attachmentSummary,
+          ]
+            .filter(Boolean)
+            .join(" ")
         : "Schema de expedição ainda não aplicado no banco.",
       updatedBlingConfig: refreshedConfig,
     };
@@ -237,14 +255,16 @@ async function syncShippingOrderFromBling({
 async function upsertShippingOrder({
   adminSupabase,
   depositanteId,
+  accessToken,
   saleOrder,
   eventName,
 }: {
   adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
   depositanteId: string;
+  accessToken: string;
   saleOrder: BlingSaleOrderPayload;
   eventName: string;
-}) {
+}): Promise<ShippingOrderUpsertResult> {
   const { data: existingOrder, error: existingOrderError } = await adminSupabase
     .from("pedidos_expedicao")
     .select("id, codigo, status")
@@ -253,7 +273,10 @@ async function upsertShippingOrder({
     .maybeSingle();
 
   if (isMissingShippingSchemaError(existingOrderError)) {
-    return false;
+    return {
+      synced: false,
+      attachmentSummary: null,
+    };
   }
 
   if (existingOrderError) {
@@ -299,7 +322,10 @@ async function upsertShippingOrder({
     .single();
 
   if (isMissingShippingSchemaError(saveOrderError)) {
-    return false;
+    return {
+      synced: false,
+      attachmentSummary: null,
+    };
   }
 
   if (saveOrderError || !savedOrder) {
@@ -312,7 +338,10 @@ async function upsertShippingOrder({
     .eq("pedido_expedicao_id", savedOrder.id);
 
   if (isMissingShippingSchemaError(deleteItemsError)) {
-    return false;
+    return {
+      synced: false,
+      attachmentSummary: null,
+    };
   }
 
   if (deleteItemsError) {
@@ -343,7 +372,10 @@ async function upsertShippingOrder({
       .insert(itemsPayload);
 
     if (isMissingShippingSchemaError(insertItemsError)) {
-      return false;
+      return {
+        synced: false,
+        attachmentSummary: null,
+      };
     }
 
     if (insertItemsError) {
@@ -351,7 +383,135 @@ async function upsertShippingOrder({
     }
   }
 
-  return true;
+  const attachmentSummary = await syncShippingOrderAttachments({
+    adminSupabase,
+    depositanteId,
+    accessToken,
+    shippingOrderId: savedOrder.id,
+    saleOrder,
+  });
+
+  return {
+    synced: true,
+    attachmentSummary,
+  };
+}
+
+async function syncShippingOrderAttachments({
+  adminSupabase,
+  depositanteId,
+  accessToken,
+  shippingOrderId,
+  saleOrder,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  accessToken: string;
+  shippingOrderId: string;
+  saleOrder: BlingSaleOrderPayload;
+}) {
+  let existingTypes: Set<string>;
+
+  try {
+    existingTypes = await listShippingOrderDocumentTypes(adminSupabase, shippingOrderId);
+  } catch (error) {
+    const typedError =
+      error && typeof error === "object" && "code" in error
+        ? (error as { code?: string; message?: string })
+        : null;
+
+    if (typedError?.code === "42703") {
+      return "Anexos automáticos aguardando a migration de expedição no banco.";
+    }
+
+    return "Não foi possível verificar os anexos existentes do pedido.";
+  }
+
+  const messages: string[] = [];
+  const orderRef = saleOrder.numeroLoja ?? saleOrder.numero ?? saleOrder.id;
+
+  if (!existingTypes.has("NF")) {
+    const invoiceMessage = await syncInvoiceXmlAttachment({
+      adminSupabase,
+      depositanteId,
+      accessToken,
+      shippingOrderId,
+      saleOrder,
+      orderRef,
+    });
+
+    if (invoiceMessage) {
+      messages.push(invoiceMessage);
+    }
+  }
+
+  return messages.length ? messages.join(" ") : null;
+}
+
+async function syncInvoiceXmlAttachment({
+  adminSupabase,
+  depositanteId,
+  accessToken,
+  shippingOrderId,
+  saleOrder,
+  orderRef,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  accessToken: string;
+  shippingOrderId: string;
+  saleOrder: BlingSaleOrderPayload;
+  orderRef: string;
+}) {
+  const payload = isRecord(saleOrder.payload) ? saleOrder.payload : {};
+  const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
+  const invoiceId = stringifyValue(notaFiscal?.id);
+
+  if (!invoiceId || invoiceId === "0") {
+    return "XML da NF ainda não disponível neste pedido.";
+  }
+
+  try {
+    const invoice = await fetchBlingInvoice(accessToken, invoiceId);
+
+    if (!invoice.chaveAcesso) {
+      return "NF identificada, mas ainda sem chave de acesso liberada no Bling.";
+    }
+
+    const xmlDocument = await downloadBlingInvoiceXml(accessToken, {
+      accessKey: invoice.chaveAcesso,
+      fileName: `nf-${orderRef}-${invoice.numero ?? invoice.id}.xml`,
+    });
+
+    await storeOperationalDocumentFromBuffer({
+      adminSupabase,
+      depositanteId,
+      tipo: "NF",
+      fileName: xmlDocument.fileName,
+      mimeType: xmlDocument.mimeType,
+      bytes: xmlDocument.bytes,
+      pedidoExpedicaoId: shippingOrderId,
+    });
+
+    return "XML da NF anexado automaticamente.";
+  } catch (error) {
+    const typedError =
+      error && typeof error === "object" && "code" in error
+        ? (error as { code?: string; message?: string })
+        : null;
+
+    if (typedError?.code === "42703") {
+      return "XML automático pendente até aplicar a migration de anexos da expedição.";
+    }
+
+    if (isBlingInsufficientScopeError(error)) {
+      return "Bling conectado sem escopo suficiente para baixar XML da NF.";
+    }
+
+    return error instanceof Error
+      ? `Falha ao anexar o XML da NF: ${error.message}`
+      : "Falha ao anexar o XML da NF.";
+  }
 }
 
 async function loadProductsByCode(
@@ -609,4 +769,8 @@ function buildBlingEventSummary(eventName: string, data: Record<string, unknown>
       : "0";
 
   return `pedido ${numero} / loja ${numeroLoja} / id ${id} / total ${total}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }

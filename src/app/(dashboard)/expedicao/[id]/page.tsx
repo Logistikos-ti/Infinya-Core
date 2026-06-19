@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, Paperclip, Pencil } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import { canUploadOperationalDocuments, isAdminUser } from "@/lib/permissions";
 import { requireModuleAccess } from "@/lib/auth";
 import { getShippingOrderDetailFromDb } from "@/lib/shipping";
@@ -32,6 +33,9 @@ export default async function ShippingOrderDetailPage({
   }
 
   const canUploadAttachments = canUploadOperationalDocuments(user);
+  const xmlAttachment = order.attachments.find((attachment) => attachment.kind === "XML_NF");
+  const xmlPending = xmlAttachment?.status === "PENDENTE";
+  const isBlingOrder = order.origin === "BLING";
 
   return (
     <div className="space-y-6">
@@ -156,6 +160,15 @@ export default async function ShippingOrderDetailPage({
               <Paperclip className="h-4 w-4 text-slate-500" />
               <h2 className="text-lg font-semibold text-slate-950">Anexos</h2>
             </div>
+
+            <div className="mt-4">
+              <ShippingXmlSyncPanel
+                orderId={order.id}
+                xmlPending={Boolean(xmlPending)}
+                isBlingOrder={isBlingOrder}
+              />
+            </div>
+
             <div className="mt-4 space-y-3">
               {order.attachments.map((attachment) => (
                 <div
@@ -183,6 +196,16 @@ export default async function ShippingOrderDetailPage({
                       >
                         {attachment.status === "DISPONIVEL" ? "Disponível" : "Pendente"}
                       </span>
+                      {attachment.viewHref ? (
+                        <Link
+                          href={attachment.viewHref}
+                          target="_blank"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Visualizar
+                        </Link>
+                      ) : null}
                       {attachment.href ? (
                         <Link
                           href={attachment.href}

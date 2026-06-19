@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
 import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import {
-  allowedDocumentMimeTypes,
-  documentsBucketName,
-  maxDocumentFileSizeBytes,
-  sanitizeFileName,
-} from "@/lib/storage";
+import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes, sanitizeFileName } from "@/lib/storage";
 
 const tiposDocumentoPermitidos = new Set([
   "NF",
@@ -120,44 +116,36 @@ export async function POST(request: Request) {
     }
   }
 
-  const extension = safeName.includes(".") ? safeName.split(".").pop() : "";
-  const fileName = extension ? safeName : `${safeName}.bin`;
-  const storagePath = `${depositanteId}/${new Date().getFullYear()}/${crypto.randomUUID()}-${fileName}`;
   const bytes = Buffer.from(await file.arrayBuffer());
 
-  const uploadResult = await adminSupabase.storage
-    .from(documentsBucketName)
-    .upload(storagePath, bytes, {
-      contentType: file.type,
-      upsert: false,
+  try {
+    const insertedDocument = await storeOperationalDocumentFromBuffer({
+      adminSupabase,
+      depositanteId,
+      tipo,
+      fileName: file.name,
+      mimeType: file.type,
+      bytes,
+      pedidoExpedicaoId: linkedPedidoExpedicaoId,
+      enviadoPor: auth.user.id,
     });
 
-  if (uploadResult.error) {
-    return NextResponse.json(
-      { error: `Falha ao enviar arquivo para o Storage: ${uploadResult.error.message}` },
-      { status: 500 },
-    );
-  }
+    const wasAutoLinked = Boolean(!explicitPedidoExpedicaoId && insertedDocument.pedido_expedicao_id);
+    const message = wasAutoLinked
+      ? `Upload concluído para ${depositante.nome} e vinculado automaticamente a um pedido de expedição.`
+      : `Upload concluído para ${depositante.nome}.`;
 
-  const { data: insertedDocument, error: insertError } = await adminSupabase
-    .from("documentos_armazenados")
-    .insert({
-      depositante_id: depositanteId,
-      pedido_expedicao_id: linkedPedidoExpedicaoId,
-      tipo,
-      nome_arquivo: file.name,
-      caminho_storage: storagePath,
-      mime_type: file.type,
-      tamanho_bytes: file.size,
-      enviado_por: auth.user.id,
-    })
-    .select("id, nome_arquivo, tipo, created_at, pedido_expedicao_id")
-    .single();
+    return NextResponse.json({
+      message,
+      document: insertedDocument,
+    });
+  } catch (error) {
+    const typedError =
+      error && typeof error === "object" && "code" in error
+        ? (error as { code?: string; message?: string })
+        : null;
 
-  if (insertError) {
-    await adminSupabase.storage.from(documentsBucketName).remove([storagePath]);
-
-    if (insertError.code === "42703") {
+    if (typedError?.code === "42703") {
       return NextResponse.json(
         {
           error:
@@ -168,20 +156,14 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: `Falha ao registrar documento no banco: ${insertError.message}` },
+      {
+        error: `Falha ao registrar documento no banco: ${
+          typedError?.message ?? "erro desconhecido"
+        }`,
+      },
       { status: 500 },
     );
   }
-
-  const wasAutoLinked = Boolean(!explicitPedidoExpedicaoId && insertedDocument.pedido_expedicao_id);
-  const message = wasAutoLinked
-    ? `Upload concluído para ${depositante.nome} e vinculado automaticamente a um pedido de expedição.`
-    : `Upload concluído para ${depositante.nome}.`;
-
-  return NextResponse.json({
-    message,
-    document: insertedDocument,
-  });
 }
 
 async function validateExplicitShippingOrder(
@@ -248,8 +230,7 @@ async function detectShippingOrderFromFileName(
   const normalizedFileName = normalizeForMatch(fileName);
 
   for (const order of data as ShippingOrderCandidate[]) {
-    const matchTokens =
-      tipo === "NF" ? buildInvoiceMatchTokens(order) : buildLabelMatchTokens(order);
+    const matchTokens = tipo === "NF" ? buildInvoiceMatchTokens(order) : buildLabelMatchTokens(order);
 
     if (matchTokens.some((token) => normalizedFileName.includes(token))) {
       return order.id;

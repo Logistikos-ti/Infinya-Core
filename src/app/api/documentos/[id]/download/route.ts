@@ -10,7 +10,7 @@ type RouteProps = {
   }>;
 };
 
-export async function GET(_request: Request, { params }: RouteProps) {
+export async function GET(request: Request, { params }: RouteProps) {
   const auth = await requireApiModuleAccess("nfe");
 
   if (auth.response) {
@@ -18,11 +18,13 @@ export async function GET(_request: Request, { params }: RouteProps) {
   }
 
   const { id } = await params;
+  const disposition =
+    new URL(request.url).searchParams.get("disposition") === "inline" ? "inline" : "attachment";
   const supabase = await createSupabaseServerClient();
 
   const { data: document } = await supabase
     .from("documentos_armazenados")
-    .select("id, nome_arquivo, caminho_storage, depositante_id")
+    .select("id, nome_arquivo, caminho_storage, depositante_id, mime_type")
     .eq("id", id)
     .maybeSingle();
 
@@ -37,16 +39,27 @@ export async function GET(_request: Request, { params }: RouteProps) {
   }
 
   const adminSupabase = createSupabaseAdminClient();
-  const signedUrlResult = await adminSupabase.storage
+  const downloadResult = await adminSupabase.storage
     .from(documentsBucketName)
-    .createSignedUrl(document.caminho_storage, 60);
+    .download(document.caminho_storage);
 
-  if (signedUrlResult.error || !signedUrlResult.data?.signedUrl) {
+  if (downloadResult.error || !downloadResult.data) {
     return NextResponse.json(
-      { error: "Não foi possível gerar o link temporário do documento." },
+      { error: "Não foi possível carregar o documento armazenado." },
       { status: 500 },
     );
   }
 
-  return NextResponse.redirect(signedUrlResult.data.signedUrl, 302);
+  const bytes = Buffer.from(await downloadResult.data.arrayBuffer());
+
+  return new NextResponse(bytes, {
+    status: 200,
+    headers: {
+      "Content-Type": document.mime_type || "application/octet-stream",
+      "Content-Length": String(bytes.byteLength),
+      "Content-Disposition": `${disposition}; filename="${encodeURIComponent(document.nome_arquivo)}"`,
+      "Cache-Control": "private, max-age=60",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

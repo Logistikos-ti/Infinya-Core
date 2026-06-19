@@ -7,6 +7,9 @@ const BLING_TOKEN_URL = "https://api.bling.com.br/Api/v3/oauth/token";
 const BLING_REVOKE_URL = "https://api.bling.com.br/oauth/revoke";
 const BLING_COMPANY_URL = "https://api.bling.com.br/Api/v3/empresas/me/dados-basicos";
 const BLING_SALES_ORDERS_URL = "https://api.bling.com.br/Api/v3/pedidos/vendas";
+const BLING_INVOICES_URL = "https://api.bling.com.br/Api/v3/nfe";
+const BLING_INVOICE_DOCUMENT_URL = "https://api.bling.com.br/Api/v3/nfe/documento";
+const BLING_SHIPPING_LABELS_URL = "https://api.bling.com.br/Api/v3/logisticas/etiquetas";
 
 export type BlingOAuthTokens = {
   access_token: string;
@@ -61,6 +64,59 @@ export type BlingConnectionSyncResult = {
   company: BlingCompanyInfo | null;
   companyFetchError: string | null;
 };
+
+export type BlingInvoicePayload = {
+  id: string;
+  numero: string | null;
+  chaveAcesso: string | null;
+  linkDanfe: string | null;
+  linkPdf: string | null;
+  xml: string | null;
+  payload: Record<string, unknown>;
+};
+
+export type BlingRemoteDocument = {
+  bytes: Buffer;
+  fileName: string;
+  mimeType: string;
+};
+
+type BlingLabelLink = {
+  saleOrderId: string;
+  url: string;
+};
+
+type BlingApiErrorPayload = {
+  error?: {
+    type?: string;
+    message?: string;
+    description?: string;
+  };
+};
+
+export class BlingApiError extends Error {
+  status: number;
+  type: string | null;
+  description: string | null;
+
+  constructor({
+    status,
+    message,
+    type,
+    description,
+  }: {
+    status: number;
+    message: string;
+    type?: string | null;
+    description?: string | null;
+  }) {
+    super(message);
+    this.name = "BlingApiError";
+    this.status = status;
+    this.type = type ?? null;
+    this.description = description ?? null;
+  }
+}
 
 export function getAppBaseUrl(fallbackOrigin?: string) {
   const { publicAppUrl } = getAppEnv();
@@ -166,20 +222,9 @@ export async function fetchBlingSaleOrder(
   accessToken: string,
   orderId: string,
 ): Promise<BlingSaleOrderPayload> {
-  const response = await fetch(`${BLING_SALES_ORDERS_URL}/${orderId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "Falha ao consultar o pedido de venda no Bling.");
-  }
-
-  const payload = (await response.json()) as {
+  const payload = (await fetchBlingJson(`${BLING_SALES_ORDERS_URL}/${orderId}`, accessToken, {
+    fallbackErrorMessage: "Falha ao consultar o pedido de venda no Bling.",
+  })) as {
     data?: Record<string, unknown>;
   };
 
@@ -239,6 +284,111 @@ export async function fetchBlingSaleOrder(
     },
     itens: normalizedItems,
     payload: data,
+  };
+}
+
+export async function fetchBlingInvoice(
+  accessToken: string,
+  invoiceId: string,
+): Promise<BlingInvoicePayload> {
+  const payload = (await fetchBlingJson(`${BLING_INVOICES_URL}/${invoiceId}`, accessToken, {
+    fallbackErrorMessage: "Falha ao consultar a nota fiscal no Bling.",
+  })) as {
+    data?: Record<string, unknown>;
+  };
+
+  const data =
+    payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+      ? payload.data
+      : null;
+
+  if (!data) {
+    throw new Error("O Bling retornou uma nota fiscal em formato inválido.");
+  }
+
+  return {
+    id: stringifyValue(data.id) ?? invoiceId,
+    numero: stringifyValue(data.numero),
+    chaveAcesso: stringifyValue(data.chaveAcesso),
+    linkDanfe: stringifyValue(data.linkDanfe),
+    linkPdf: stringifyValue(data.linkPDF),
+    xml: stringifyValue(data.xml),
+    payload: data,
+  };
+}
+
+export async function downloadBlingInvoiceXml(
+  accessToken: string,
+  {
+    accessKey,
+    fileName,
+  }: {
+    accessKey: string;
+    fileName: string;
+  },
+): Promise<BlingRemoteDocument> {
+  const documentUrl = new URL(`${BLING_INVOICE_DOCUMENT_URL}/${encodeURIComponent(accessKey)}`);
+  documentUrl.searchParams.set("formato", "xml");
+
+  const response = await fetch(documentUrl, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/xml,text/xml,application/octet-stream",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw await buildBlingApiError(
+      response,
+      "Falha ao baixar o XML da nota fiscal no Bling.",
+    );
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+
+  return {
+    bytes,
+    fileName,
+    mimeType: response.headers.get("content-type") || "application/xml",
+  };
+}
+
+export async function downloadBlingSaleOrderLabel(
+  accessToken: string,
+  {
+    saleOrderId,
+    fileName,
+    format = "PDF",
+  }: {
+    saleOrderId: string;
+    fileName: string;
+    format?: "PDF" | "ZPL";
+  },
+): Promise<BlingRemoteDocument> {
+  const links = await fetchBlingSaleOrderLabelLinks(accessToken, saleOrderId, format);
+  const firstLink = links[0];
+
+  if (!firstLink?.url) {
+    throw new Error("O Bling ainda não disponibilizou uma etiqueta para este pedido.");
+  }
+
+  const response = await fetch(firstLink.url, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao baixar a etiqueta retornada pelo Bling.");
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+
+  return {
+    bytes,
+    fileName,
+    mimeType:
+      response.headers.get("content-type") ||
+      (format === "PDF" ? "application/pdf" : "text/plain"),
   };
 }
 
@@ -388,6 +538,13 @@ export function parseBlingWebhookPayload(payload: string): BlingWebhookEvent {
   return parsed as BlingWebhookEvent;
 }
 
+export function isBlingInsufficientScopeError(error: unknown) {
+  return (
+    error instanceof BlingApiError &&
+    (error.type === "insufficient_scope" || error.description?.includes("higher privileges") === true)
+  );
+}
+
 function isBlingOAuthTokenPayload(value: unknown): value is BlingOAuthTokens {
   if (!value || typeof value !== "object") {
     return false;
@@ -510,4 +667,85 @@ async function requestBlingTokens({
   }
 
   return payload;
+}
+
+async function fetchBlingSaleOrderLabelLinks(
+  accessToken: string,
+  saleOrderId: string,
+  format: "PDF" | "ZPL",
+) {
+  const endpoint = new URL(BLING_SHIPPING_LABELS_URL);
+  endpoint.searchParams.set("formato", format);
+  endpoint.searchParams.append("idsVendas[]", saleOrderId);
+
+  const payload = (await fetchBlingJson(endpoint.toString(), accessToken, {
+    fallbackErrorMessage: "Falha ao consultar a etiqueta do pedido no Bling.",
+  })) as {
+    data?: Array<{
+      id?: string | number | null;
+      link?: string | null;
+    }>;
+  };
+
+  const rows = Array.isArray(payload.data) ? payload.data : [];
+
+  return rows
+    .map((item) => ({
+      saleOrderId: stringifyValue(item.id) ?? saleOrderId,
+      url: stringifyValue(item.link) ?? "",
+    }))
+    .filter((item): item is BlingLabelLink => Boolean(item.url));
+}
+
+async function fetchBlingJson(
+  url: string,
+  accessToken: string,
+  {
+    fallbackErrorMessage,
+  }: {
+    fallbackErrorMessage: string;
+  },
+) {
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw await buildBlingApiError(response, fallbackErrorMessage);
+  }
+
+  return response.json();
+}
+
+async function buildBlingApiError(response: Response, fallbackMessage: string) {
+  const contentType = response.headers.get("content-type") || "";
+  const responseText = await response.text();
+
+  if (contentType.includes("application/json")) {
+    try {
+      const payload = JSON.parse(responseText) as BlingApiErrorPayload;
+      const error = payload.error;
+
+      return new BlingApiError({
+        status: response.status,
+        message: error?.message || fallbackMessage,
+        type: error?.type,
+        description: error?.description,
+      });
+    } catch {
+      return new BlingApiError({
+        status: response.status,
+        message: fallbackMessage,
+      });
+    }
+  }
+
+  return new BlingApiError({
+    status: response.status,
+    message: responseText || fallbackMessage,
+  });
 }
