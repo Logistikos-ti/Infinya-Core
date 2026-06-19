@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Save } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
@@ -200,6 +201,50 @@ export default async function EditarShippingOrderPage({
                 className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500 outline-none"
               />
             </Field>
+
+            <Field label="Marketplace">
+              <input
+                value={order.marketplace}
+                disabled
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500 outline-none"
+              />
+            </Field>
+
+            <Field label="Transportadora">
+              <input
+                name="carrierName"
+                defaultValue={order.carrierName === "Transportadora não informada" ? "" : order.carrierName}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
+
+            <Field label="Serviço de entrega">
+              <input
+                name="shippingService"
+                defaultValue={order.shippingService === "Serviço não informado" ? "" : order.shippingService}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
+
+            <Field label="Código de rastreio">
+              <input
+                name="trackingCode"
+                defaultValue={order.trackingCode === "Rastreio não informado" ? "" : order.trackingCode}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
+
+            <Field label="Número da nota fiscal">
+              <input
+                name="invoiceNumber"
+                defaultValue={order.invoice === "Ainda não vinculada" ? "" : order.invoice}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
           </div>
 
           <Field label="Observações" className="mt-4">
@@ -269,6 +314,17 @@ export default async function EditarShippingOrderPage({
                 <p className="text-sm text-slate-500">Nenhum item detalhado neste pedido.</p>
               ) : null}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Anexos do pedido</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Use esta área para anexar XML da nota fiscal e etiqueta, principalmente nos pedidos manuais.
+            </p>
+            <ShippingAttachmentUploadPanel
+              depositanteId={order.depositanteId}
+              pedidoExpedicaoId={order.id}
+            />
           </div>
         </div>
       </section>

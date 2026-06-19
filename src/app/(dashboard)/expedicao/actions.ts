@@ -4,12 +4,14 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
+import { storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
 import {
   buildManualCommercialPayload,
   getSalesChannelLabel,
   type SalesChannelCode,
 } from "@/lib/sales-channels";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 
 export async function updateShippingOrderAction(formData: FormData) {
   await requireRoleAccess(["ADMIN", "TI"]);
@@ -34,6 +36,10 @@ export async function updateShippingOrderAction(formData: FormData) {
   const observacoes = String(formData.get("observacoes") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
+  const invoiceNumber = String(formData.get("invoiceNumber") ?? "").trim();
+  const carrierName = String(formData.get("carrierName") ?? "").trim();
+  const shippingService = String(formData.get("shippingService") ?? "").trim();
+  const trackingCode = String(formData.get("trackingCode") ?? "").trim();
 
   const allowedStatuses = new Set([
     "NOVO",
@@ -69,6 +75,22 @@ export async function updateShippingOrderAction(formData: FormData) {
           salesChannelCode: salesChannelCode || "VENDA_DIRETA",
           customStoreName,
         }),
+        notaFiscal: {
+          ...(isRecord(currentPayload.notaFiscal) ? currentPayload.notaFiscal : {}),
+          numero: invoiceNumber || null,
+        },
+        transporte: {
+          ...(isRecord(currentPayload.transporte) ? currentPayload.transporte : {}),
+          contato: {
+            nome: carrierName || null,
+          },
+          volumes: [
+            {
+              servico: shippingService || null,
+              codigoRastreamento: trackingCode || null,
+            },
+          ],
+        },
       }
     : currentPayload;
 
@@ -120,9 +142,15 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const observacoes = String(formData.get("observacoes") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
+  const invoiceNumber = String(formData.get("invoiceNumber") ?? "").trim();
+  const carrierName = String(formData.get("carrierName") ?? "").trim();
+  const shippingService = String(formData.get("shippingService") ?? "").trim();
+  const trackingCode = String(formData.get("trackingCode") ?? "").trim();
   const total = Number(String(formData.get("valorTotal") ?? "0").replace(",", "."));
   const itemCount = Number(String(formData.get("quantidadeItens") ?? "0").replace(",", "."));
   const unitCount = Number(String(formData.get("quantidadeUnidades") ?? "0").replace(",", "."));
+  const xmlFile = formData.get("invoiceXml");
+  const labelFile = formData.get("shippingLabel");
 
   if (!depositanteId || !numeroPedido || !clienteNome || !salesChannelCode) {
     redirect("/expedicao/novo?feedback=erro");
@@ -143,6 +171,20 @@ export async function createManualShippingOrderAction(formData: FormData) {
       em: new Date().toISOString(),
     },
     comercial,
+    notaFiscal: {
+      numero: invoiceNumber || null,
+    },
+    transporte: {
+      contato: {
+        nome: carrierName || null,
+      },
+      volumes: [
+        {
+          servico: shippingService || null,
+          codigoRastreamento: trackingCode || null,
+        },
+      ],
+    },
   };
 
   const headerPayload = {
@@ -170,19 +212,52 @@ export async function createManualShippingOrderAction(formData: FormData) {
     observacoes: observacoes || null,
   };
 
-  const { data: createdOrder, error } = await adminSupabase
-    .from("pedidos_expedicao")
-    .insert(headerPayload)
-    .select("id")
-    .single();
+  try {
+    const { data: createdOrder, error } = await adminSupabase
+      .from("pedidos_expedicao")
+      .insert(headerPayload)
+      .select("id")
+      .single();
 
-  if (error || !createdOrder) {
+    if (error || !createdOrder) {
+      redirect("/expedicao/novo?feedback=erro");
+    }
+
+    const parsedXmlFile = readOptionalUpload(xmlFile);
+    const parsedLabelFile = readOptionalUpload(labelFile);
+
+    if (parsedXmlFile) {
+      await storeOperationalDocumentFromBuffer({
+        adminSupabase,
+        depositanteId,
+        tipo: "NF",
+        fileName: parsedXmlFile.name,
+        mimeType: parsedXmlFile.type,
+        bytes: Buffer.from(await parsedXmlFile.arrayBuffer()),
+        pedidoExpedicaoId: createdOrder.id,
+        enviadoPor: user.id,
+      });
+    }
+
+    if (parsedLabelFile) {
+      await storeOperationalDocumentFromBuffer({
+        adminSupabase,
+        depositanteId,
+        tipo: "ETIQUETA",
+        fileName: parsedLabelFile.name,
+        mimeType: parsedLabelFile.type,
+        bytes: Buffer.from(await parsedLabelFile.arrayBuffer()),
+        pedidoExpedicaoId: createdOrder.id,
+        enviadoPor: user.id,
+      });
+    }
+
+    revalidatePath("/expedicao");
+    revalidatePath(`/expedicao/${createdOrder.id}`);
+    redirect(`/expedicao/${createdOrder.id}?feedback=salvo`);
+  } catch {
     redirect("/expedicao/novo?feedback=erro");
   }
-
-  revalidatePath("/expedicao");
-  revalidatePath(`/expedicao/${createdOrder.id}`);
-  redirect(`/expedicao/${createdOrder.id}?feedback=salvo`);
 }
 
 function buildManualShippingOrderCode() {
@@ -190,4 +265,24 @@ function buildManualShippingOrderCode() {
     .toISOString()
     .replace(/\D/g, "")
     .slice(0, 14)}`;
+}
+
+function readOptionalUpload(value: FormDataEntryValue | null) {
+  if (typeof File === "undefined" || !(value instanceof File) || !value.name || value.size <= 0) {
+    return null;
+  }
+
+  if (value.size > maxDocumentFileSizeBytes) {
+    throw new Error("O arquivo excede o limite de 10 MB.");
+  }
+
+  if (!allowedDocumentMimeTypes.includes(value.type as (typeof allowedDocumentMimeTypes)[number])) {
+    throw new Error("Formato de arquivo não suportado.");
+  }
+
+  return value;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }

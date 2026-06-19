@@ -113,6 +113,14 @@ export default async function NovoPedidoManualPage({
               />
             </Field>
 
+            <Field label="Marketplace">
+              <input
+                value="Derivado automaticamente a partir do canal"
+                disabled
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500 outline-none"
+              />
+            </Field>
+
             <Field label="Data do pedido">
               <input
                 type="date"
@@ -159,6 +167,35 @@ export default async function NovoPedidoManualPage({
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
+
+            <Field label="Transportadora">
+              <input
+                name="carrierName"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
+            <Field label="Serviço de entrega">
+              <input
+                name="shippingService"
+                placeholder="Ex.: SEDEX, Jadlog Package, coleta local"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
+            <Field label="Código de rastreio">
+              <input
+                name="trackingCode"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
+            <Field label="Número da nota fiscal">
+              <input
+                name="invoiceNumber"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
           </div>
 
           <Field label="Observações" className="mt-4">
@@ -201,11 +238,35 @@ export default async function NovoPedidoManualPage({
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Anexos iniciais</h2>
+            <div className="mt-4 grid gap-4">
+              <Field label="XML da nota fiscal">
+                <input
+                  type="file"
+                  name="invoiceXml"
+                  accept=".xml,application/xml,text/xml"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                />
+              </Field>
+
+              <Field label="Etiqueta">
+                <input
+                  type="file"
+                  name="shippingLabel"
+                  accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Como isso será salvo</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>Marketplace será derivado automaticamente a partir do canal escolhido.</p>
               <p>Loja ficará com o nome comercial do canal, evitando IDs técnicos na expedição.</p>
-              <p>Esse pedido entrará como origem manual, sem depender do Bling.</p>
+              <p>Transportadora, serviço, rastreio e nota fiscal já entram no mesmo formato operacional do pedido integrado.</p>
+              <p>XML e etiqueta podem ser anexados já na criação ou depois na tela do pedido.</p>
             </div>
           </div>
 
