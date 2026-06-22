@@ -169,7 +169,9 @@ export async function fetchMercadoLivreShipment(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Falha ao consultar o envio no Mercado Livre.");
+    throw new Error(
+      buildMercadoLivreApiErrorMessage(errorText, "Falha ao consultar o envio no Mercado Livre."),
+    );
   }
 
   const payload = (await response.json()) as Record<string, unknown>;
@@ -200,7 +202,9 @@ export async function fetchMercadoLivreOrder(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Falha ao consultar o pedido no Mercado Livre.");
+    throw new Error(
+      buildMercadoLivreApiErrorMessage(errorText, "Falha ao consultar o pedido no Mercado Livre."),
+    );
   }
 
   const payload = (await response.json()) as Record<string, unknown>;
@@ -232,7 +236,12 @@ export async function downloadMercadoLivreShipmentLabel(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || "Falha ao baixar a etiqueta do Mercado Livre.");
+    throw new Error(
+      buildMercadoLivreApiErrorMessage(
+        errorText,
+        "Falha ao baixar a etiqueta do Mercado Livre.",
+      ),
+    );
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -377,4 +386,35 @@ function stringifyValue(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function buildMercadoLivreApiErrorMessage(rawText: string, fallback: string) {
+  if (!rawText) {
+    return fallback;
+  }
+
+  try {
+    const payload = JSON.parse(rawText) as Record<string, unknown>;
+    const errorCode = stringifyValue(payload.error_code) ?? stringifyValue(payload.error);
+    const message = stringifyValue(payload.message) ?? stringifyValue(payload.error_message);
+    const causes = Array.isArray(payload.causes)
+      ? payload.causes.filter((item): item is string => typeof item === "string")
+      : [];
+
+    if (
+      errorCode === "SHPLAB0200" ||
+      causes.includes("NOT_PRINTABLE_STATUS") ||
+      message?.includes("status is dropped_off")
+    ) {
+      return "O envio foi localizado com sucesso, mas a etiqueta não está mais disponível para impressão porque o pacote já foi postado no fluxo do Mercado Livre.";
+    }
+
+    if (errorCode === "COH-SSA-not_found_shipping_id" || errorCode === "not_found_shipping_id") {
+      return "O Mercado Livre não encontrou o envio informado. Revise o vínculo da venda ou aguarde a geração do envio na plataforma.";
+    }
+
+    return message ?? fallback;
+  } catch {
+    return rawText || fallback;
+  }
 }
