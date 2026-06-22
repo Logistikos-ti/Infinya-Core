@@ -74,7 +74,7 @@ export async function syncMercadoLivreAssetsForShippingOrder(
   try {
     const tokenResult = await ensureValidMercadoLivreAccessToken(config.mercadoLivre);
 
-    if (!shipmentId && mercadoLivreData.orderId) {
+    if (mercadoLivreData.orderId && (!shipmentId || shipmentId === mercadoLivreData.orderId)) {
       const orderInfo = await fetchMercadoLivreOrder(
         tokenResult.accessToken,
         mercadoLivreData.orderId,
