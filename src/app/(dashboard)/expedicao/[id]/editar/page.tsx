@@ -116,7 +116,6 @@ export default async function EditarShippingOrderPage({
               <input
                 name="numeroLoja"
                 defaultValue={order.storeNumber === "-" ? "" : order.storeNumber}
-                disabled={!isManualOrder}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
@@ -125,8 +124,7 @@ export default async function EditarShippingOrderPage({
               <select
                 name="salesChannelCode"
                 defaultValue={order.salesChannelCode ?? ""}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               >
                 <option value="">Selecione</option>
                 {SALES_CHANNEL_OPTIONS.map((option) => (
@@ -147,8 +145,7 @@ export default async function EditarShippingOrderPage({
                     ? order.storeDisplay
                     : ""
                 }
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -156,8 +153,7 @@ export default async function EditarShippingOrderPage({
               <input
                 name="mercadoLivreOrderId"
                 defaultValue={order.mercadoLivreOrderId ?? ""}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -165,8 +161,7 @@ export default async function EditarShippingOrderPage({
               <input
                 name="mercadoLivreShipmentId"
                 defaultValue={order.mercadoLivreShipmentId ?? ""}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -232,8 +227,7 @@ export default async function EditarShippingOrderPage({
               <input
                 name="carrierName"
                 defaultValue={order.carrierName === "Transportadora não informada" ? "" : order.carrierName}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -241,8 +235,7 @@ export default async function EditarShippingOrderPage({
               <input
                 name="shippingService"
                 defaultValue={order.shippingService === "Serviço não informado" ? "" : order.shippingService}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -250,8 +243,7 @@ export default async function EditarShippingOrderPage({
               <input
                 name="trackingCode"
                 defaultValue={order.trackingCode === "Rastreio não informado" ? "" : order.trackingCode}
-                disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
 
@@ -260,10 +252,16 @@ export default async function EditarShippingOrderPage({
                 name="invoiceNumber"
                 defaultValue={order.invoice === "Ainda não vinculada" ? "" : order.invoice}
                 disabled={!isManualOrder}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               />
             </Field>
           </div>
+
+          {!isManualOrder ? (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              Este pedido veio de integração. Aqui você pode complementar dados necessários para a operação, como canal de venda, `orderId`, `shipment_id`, transportadora, serviço, rastreio e número da nota fiscal.
+            </div>
+          ) : null}
 
           <Field label="Observações" className="mt-4">
             <textarea

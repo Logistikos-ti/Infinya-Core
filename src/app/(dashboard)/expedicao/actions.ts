@@ -70,36 +70,41 @@ export async function updateShippingOrderAction(formData: FormData) {
       ? (currentOrder.payload_origem as Record<string, unknown>)
       : {};
   const isManualOrder = currentOrder?.origem === "MANUAL";
-  const nextPayload = isManualOrder
-    ? {
-        ...currentPayload,
-        comercial: buildManualCommercialPayload({
-          salesChannelCode: salesChannelCode || "VENDA_DIRETA",
-          customStoreName,
-        }),
-        mercadoLivre: {
-          ...(isRecord(currentPayload.mercadoLivre) ? currentPayload.mercadoLivre : {}),
-          orderId: mercadoLivreOrderId || null,
-          shipmentId: mercadoLivreShipmentId || null,
+  const currentComercial = isRecord(currentPayload.comercial) ? currentPayload.comercial : {};
+  const currentTransporte = isRecord(currentPayload.transporte) ? currentPayload.transporte : {};
+  const currentContato = isRecord(currentTransporte.contato) ? currentTransporte.contato : {};
+  const nextPayload = {
+    ...currentPayload,
+    comercial:
+      isManualOrder || salesChannelCode
+        ? buildManualCommercialPayload({
+            salesChannelCode: salesChannelCode || "VENDA_DIRETA",
+            customStoreName,
+          })
+        : currentComercial,
+    mercadoLivre: {
+      ...(isRecord(currentPayload.mercadoLivre) ? currentPayload.mercadoLivre : {}),
+      orderId: mercadoLivreOrderId || null,
+      shipmentId: mercadoLivreShipmentId || null,
+    },
+    notaFiscal: {
+      ...(isRecord(currentPayload.notaFiscal) ? currentPayload.notaFiscal : {}),
+      numero: invoiceNumber || null,
+    },
+    transporte: {
+      ...currentTransporte,
+      contato: {
+        ...currentContato,
+        nome: carrierName || null,
+      },
+      volumes: [
+        {
+          servico: shippingService || null,
+          codigoRastreamento: trackingCode || null,
         },
-        notaFiscal: {
-          ...(isRecord(currentPayload.notaFiscal) ? currentPayload.notaFiscal : {}),
-          numero: invoiceNumber || null,
-        },
-        transporte: {
-          ...(isRecord(currentPayload.transporte) ? currentPayload.transporte : {}),
-          contato: {
-            nome: carrierName || null,
-          },
-          volumes: [
-            {
-              servico: shippingService || null,
-              codigoRastreamento: trackingCode || null,
-            },
-          ],
-        },
-      }
-    : currentPayload;
+      ],
+    },
+  };
 
   const { error } = await adminSupabase
     .from("pedidos_expedicao")
@@ -110,14 +115,17 @@ export async function updateShippingOrderAction(formData: FormData) {
         isManualOrder && salesChannelCode === "OUTRO" && customStoreName
           ? customStoreName
           : numeroLoja || null,
-      canal: isManualOrder ? getSalesChannelLabel(salesChannelCode || "VENDA_DIRETA") ?? "Venda direta" : undefined,
+      canal:
+        isManualOrder || salesChannelCode
+          ? getSalesChannelLabel(salesChannelCode || "VENDA_DIRETA") ?? "Venda direta"
+          : undefined,
       cliente_nome: clienteNome || null,
       cliente_documento: clienteDocumento || null,
       cliente_cidade: clienteCidade || null,
       cliente_uf: clienteUf || null,
       previsao_envio_em: previsaoEnvioEm || null,
       observacoes: observacoes || null,
-      payload_origem: isManualOrder ? nextPayload : undefined,
+      payload_origem: nextPayload,
     })
     .eq("id", id);
 
