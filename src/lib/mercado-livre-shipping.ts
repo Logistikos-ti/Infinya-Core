@@ -3,6 +3,7 @@ import {
   parseDepositanteConfiguracoes,
   updateDepositanteMercadoLivreConfig,
 } from "@/lib/depositantes";
+import { detectSalesChannelFromPayload } from "@/lib/sales-channels";
 import {
   downloadMercadoLivreShipmentLabel,
   ensureValidMercadoLivreAccessToken,
@@ -360,7 +361,13 @@ function readMercadoLivreOrderIdFromPayload(payload: Record<string, unknown>) {
 
 function readSalesChannelCode(payload: Record<string, unknown>) {
   const comercial = isRecord(payload.comercial) ? payload.comercial : null;
-  return readString(comercial?.salesChannelCode);
+  const explicitCode = readString(comercial?.salesChannelCode);
+
+  if (explicitCode) {
+    return explicitCode;
+  }
+
+  return detectSalesChannelFromPayload(payload)?.value ?? null;
 }
 
 function readString(value: unknown) {
