@@ -1,8 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseDepositanteConfiguracoes, updateDepositanteMercadoLivreConfig } from "@/lib/depositantes";
+import {
+  parseDepositanteConfiguracoes,
+  updateDepositanteMercadoLivreConfig,
+} from "@/lib/depositantes";
 import {
   downloadMercadoLivreShipmentLabel,
   ensureValidMercadoLivreAccessToken,
+  fetchMercadoLivreOrder,
   fetchMercadoLivreShipment,
   type MercadoLivreShipmentInfo,
 } from "@/lib/mercado-livre";
@@ -52,15 +56,7 @@ export async function syncMercadoLivreAssetsForShippingOrder(
   }
 
   const mercadoLivreData = getMercadoLivrePayload(payload);
-  const shipmentId = mercadoLivreData.shipmentId;
-
-  if (!shipmentId) {
-    return {
-      ok: false,
-      status: "missing_shipment" as const,
-      message: "O pedido ainda não possui shipment_id do Mercado Livre para sincronizar.",
-    };
-  }
+  let shipmentId = mercadoLivreData.shipmentId;
 
   const rawConfig = order.depositante?.configuracoes
     ? JSON.stringify(order.depositante.configuracoes)
@@ -77,6 +73,25 @@ export async function syncMercadoLivreAssetsForShippingOrder(
 
   try {
     const tokenResult = await ensureValidMercadoLivreAccessToken(config.mercadoLivre);
+
+    if (!shipmentId && mercadoLivreData.orderId) {
+      const orderInfo = await fetchMercadoLivreOrder(
+        tokenResult.accessToken,
+        mercadoLivreData.orderId,
+      );
+      shipmentId = orderInfo.shippingId;
+    }
+
+    if (!shipmentId) {
+      return {
+        ok: false,
+        status: "missing_shipment" as const,
+        message: mercadoLivreData.orderId
+          ? "O pedido foi localizado no Mercado Livre, mas ainda não há envio vinculado disponível na API."
+          : "O pedido ainda não possui shipment_id do Mercado Livre para sincronizar.",
+      };
+    }
+
     const shipment = await fetchMercadoLivreShipment(tokenResult.accessToken, shipmentId);
 
     const existingLabel = await findExistingLabel(adminSupabase, shippingOrderId);
@@ -101,8 +116,14 @@ export async function syncMercadoLivreAssetsForShippingOrder(
       labelStored = true;
     }
 
-    await updateShippingOrderPayload(adminSupabase, order, shipment);
-    await persistMercadoLivreTokenRefresh(adminSupabase, order.depositante_id, rawConfig, config.mercadoLivre, tokenResult.tokens);
+    await updateShippingOrderPayload(adminSupabase, order, shipment, shipmentId);
+    await persistMercadoLivreTokenRefresh(
+      adminSupabase,
+      order.depositante_id,
+      rawConfig,
+      config.mercadoLivre,
+      tokenResult.tokens,
+    );
     await persistMonitoring(adminSupabase, order.depositante_id, rawConfig, config.mercadoLivre, {
       lastTrackingSyncStatus: "SUCCESS",
       lastTrackingSyncMessage: shipment.trackingNumber
@@ -127,11 +148,15 @@ export async function syncMercadoLivreAssetsForShippingOrder(
     await persistMonitoring(adminSupabase, order.depositante_id, rawConfig, config.mercadoLivre, {
       lastTrackingSyncStatus: "ERROR",
       lastTrackingSyncMessage:
-        error instanceof Error ? error.message : "Falha ao sincronizar rastreamento do Mercado Livre.",
+        error instanceof Error
+          ? error.message
+          : "Falha ao sincronizar rastreamento do Mercado Livre.",
       lastTrackingSyncAt: new Date().toISOString(),
       lastLabelSyncStatus: "ERROR",
       lastLabelSyncMessage:
-        error instanceof Error ? error.message : "Falha ao sincronizar etiqueta do Mercado Livre.",
+        error instanceof Error
+          ? error.message
+          : "Falha ao sincronizar etiqueta do Mercado Livre.",
       lastLabelSyncAt: new Date().toISOString(),
     });
 
@@ -160,6 +185,7 @@ async function updateShippingOrderPayload(
   adminSupabase: SupabaseClient,
   order: RawShippingOrder,
   shipment: MercadoLivreShipmentInfo,
+  shipmentId: string,
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const currentTransporte = isRecord(payload.transporte) ? payload.transporte : {};
@@ -169,7 +195,7 @@ async function updateShippingOrderPayload(
     ...payload,
     mercadoLivre: {
       ...getMercadoLivrePayload(payload),
-      shipmentId: shipment.id,
+      shipmentId,
       trackingNumber: shipment.trackingNumber,
       trackingMethod: shipment.trackingMethod,
       status: shipment.status,
@@ -206,7 +232,13 @@ async function persistMercadoLivreTokenRefresh(
   depositanteId: string,
   rawConfig: string | null,
   currentConfig: NonNullable<ReturnType<typeof parseDepositanteConfiguracoes>["mercadoLivre"]>,
-  tokens: { access_token: string; refresh_token?: string; token_type: string; expires_in: number; scope?: string } | null,
+  tokens: {
+    access_token: string;
+    refresh_token?: string;
+    token_type: string;
+    expires_in: number;
+    scope?: string;
+  } | null,
 ) {
   if (!tokens) {
     return;
@@ -240,7 +272,11 @@ async function persistMonitoring(
   depositanteId: string,
   rawConfig: string | null,
   currentConfig: NonNullable<ReturnType<typeof parseDepositanteConfiguracoes>["mercadoLivre"]> | null,
-  patch: Partial<NonNullable<NonNullable<ReturnType<typeof parseDepositanteConfiguracoes>["mercadoLivre"]>["monitoring"]>>,
+  patch: Partial<
+    NonNullable<
+      NonNullable<ReturnType<typeof parseDepositanteConfiguracoes>["mercadoLivre"]>["monitoring"]
+    >
+  >,
 ) {
   if (!currentConfig) {
     return;

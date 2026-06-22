@@ -32,6 +32,12 @@ export type MercadoLivreShipmentInfo = {
   receiverId: string | null;
 };
 
+export type MercadoLivreOrderInfo = {
+  id: string;
+  shippingId: string | null;
+  status: string | null;
+};
+
 export type MercadoLivreRemoteDocument = {
   fileName: string;
   mimeType: string;
@@ -177,6 +183,33 @@ export async function fetchMercadoLivreShipment(
     logisticType: stringifyValue(payload.logistic_type),
     senderId: stringifyValue(payload.sender_id),
     receiverId: stringifyValue(payload.receiver_id),
+  };
+}
+
+export async function fetchMercadoLivreOrder(
+  accessToken: string,
+  orderId: string,
+): Promise<MercadoLivreOrderInfo> {
+  const response = await fetch(`https://api.mercadolibre.com/orders/${orderId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Falha ao consultar o pedido no Mercado Livre.");
+  }
+
+  const payload = (await response.json()) as Record<string, unknown>;
+  const shipping = isRecord(payload.shipping) ? payload.shipping : null;
+
+  return {
+    id: stringifyValue(payload.id) ?? orderId,
+    shippingId: stringifyValue(shipping?.id),
+    status: stringifyValue(payload.status),
   };
 }
 
@@ -340,4 +373,8 @@ function stringifyValue(value: unknown) {
   }
 
   return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
