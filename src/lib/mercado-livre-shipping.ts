@@ -309,9 +309,10 @@ async function persistMonitoring(
 
 function getMercadoLivrePayload(payload: Record<string, unknown>) {
   const ml = isRecord(payload.mercadoLivre) ? payload.mercadoLivre : {};
+  const fallbackOrderId = readMercadoLivreOrderIdFromPayload(payload);
 
   return {
-    orderId: readString(ml.orderId),
+    orderId: readString(ml.orderId) ?? fallbackOrderId,
     shipmentId: readString(ml.shipmentId),
     trackingNumber: readString(ml.trackingNumber),
     trackingMethod: readString(ml.trackingMethod),
@@ -320,6 +321,41 @@ function getMercadoLivrePayload(payload: Record<string, unknown>) {
     logisticType: readString(ml.logisticType),
     lastSyncAt: readString(ml.lastSyncAt),
   };
+}
+
+function readMercadoLivreOrderIdFromPayload(payload: Record<string, unknown>) {
+  const numeroLoja = readString(payload.numeroLoja);
+  if (numeroLoja) {
+    return numeroLoja;
+  }
+
+  const parcelas = Array.isArray(payload.parcelas) ? payload.parcelas : [];
+  for (const parcela of parcelas) {
+    if (!isRecord(parcela)) {
+      continue;
+    }
+
+    const observacoes = readString(parcela.observacoes);
+    if (!observacoes) {
+      continue;
+    }
+
+    const match = observacoes.match(/Pedidos Vinculados:\s*([0-9,]+)/i);
+    if (!match?.[1]) {
+      continue;
+    }
+
+    const firstOrderId = match[1]
+      .split(",")
+      .map((item) => item.trim())
+      .find(Boolean);
+
+    if (firstOrderId) {
+      return firstOrderId;
+    }
+  }
+
+  return null;
 }
 
 function readSalesChannelCode(payload: Record<string, unknown>) {
