@@ -149,6 +149,8 @@ export type ShippingOrderDetail = {
   storeDisplay: string;
   orderType: string;
   salesChannelCode: string | null;
+  mercadoLivreOrderId: string | null;
+  mercadoLivreShipmentId: string | null;
   total: string;
   totalRaw: number;
   itemCount: number;
@@ -360,6 +362,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const orderType = extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
   const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
+  const mercadoLivre = extractMercadoLivrePayload(payload);
   const carrierName = extractCarrierName(payload);
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
@@ -402,6 +405,8 @@ export async function getShippingOrderDetailFromDb(id: string) {
     storeDisplay,
     orderType,
     salesChannelCode,
+    mercadoLivreOrderId: mercadoLivre.orderId,
+    mercadoLivreShipmentId: mercadoLivre.shipmentId,
     total: formatCurrency(order.valor_total),
     totalRaw: Number(order.valor_total ?? 0),
     itemCount: Number(order.quantidade_itens ?? items.length),
@@ -669,6 +674,15 @@ function extractTrackingCode(payload: Record<string, unknown>) {
   return firstVolume && isRecord(firstVolume)
     ? readString(firstVolume.codigoRastreamento) ?? "Rastreio não informado"
     : "Rastreio não informado";
+}
+
+function extractMercadoLivrePayload(payload: Record<string, unknown>) {
+  const mercadoLivre = isRecord(payload.mercadoLivre) ? payload.mercadoLivre : null;
+
+  return {
+    orderId: readString(mercadoLivre?.orderId),
+    shipmentId: readString(mercadoLivre?.shipmentId),
+  };
 }
 
 function readString(value: unknown) {

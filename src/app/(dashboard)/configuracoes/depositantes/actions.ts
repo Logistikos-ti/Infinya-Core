@@ -237,6 +237,7 @@ export async function saveDepositanteAction(
     emailsContato,
     telefonesContato,
     bling: currentConfiguracoes.bling,
+    mercadoLivre: currentConfiguracoes.mercadoLivre,
   });
 
   const payload = {

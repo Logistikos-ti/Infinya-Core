@@ -113,6 +113,22 @@ export default async function NovoPedidoManualPage({
               />
             </Field>
 
+            <Field label="Pedido Mercado Livre">
+              <input
+                name="mercadoLivreOrderId"
+                placeholder="Opcional para pedidos ML"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
+            <Field label="Envio Mercado Livre">
+              <input
+                name="mercadoLivreShipmentId"
+                placeholder="shipment_id para etiqueta e rastreio"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              />
+            </Field>
+
             <Field label="Marketplace">
               <input
                 value="Derivado automaticamente a partir do canal"

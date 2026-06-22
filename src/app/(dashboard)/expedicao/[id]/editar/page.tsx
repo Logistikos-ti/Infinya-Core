@@ -152,6 +152,24 @@ export default async function EditarShippingOrderPage({
               />
             </Field>
 
+            <Field label="Pedido Mercado Livre">
+              <input
+                name="mercadoLivreOrderId"
+                defaultValue={order.mercadoLivreOrderId ?? ""}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
+
+            <Field label="Envio Mercado Livre">
+              <input
+                name="mercadoLivreShipmentId"
+                defaultValue={order.mercadoLivreShipmentId ?? ""}
+                disabled={!isManualOrder}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </Field>
+
             <Field label="Cliente">
               <input
                 name="clienteNome"

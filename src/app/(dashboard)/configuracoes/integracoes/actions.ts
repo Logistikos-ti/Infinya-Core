@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { reprocessRecentBlingOrdersForDepositante } from "@/lib/bling-reprocessing";
-import { parseDepositanteConfiguracoes, updateDepositanteBlingConfig } from "@/lib/depositantes";
+import {
+  parseDepositanteConfiguracoes,
+  updateDepositanteBlingConfig,
+  updateDepositanteMercadoLivreConfig,
+} from "@/lib/depositantes";
 import { revokeBlingToken, syncBlingConnectionMetadata } from "@/lib/bling";
 import { syncPendingBlingInvoiceAttachments } from "@/lib/shipping-attachment-sync";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -14,7 +18,9 @@ function buildRedirectUrl(
     | "erro"
     | "bling-desconectado"
     | "bling-sincronizado"
-    | "bling-identificacao-pendente",
+    | "bling-identificacao-pendente"
+    | "mercado-livre-conectado"
+    | "mercado-livre-desconectado",
   motivo?: string,
 ) {
   const search = new URLSearchParams({ feedback });
@@ -302,6 +308,47 @@ export async function reprocessBlingIntegrationAction(formData: FormData) {
       ),
     );
   }
+}
+
+export async function disconnectMercadoLivreIntegrationAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI"]);
+
+  const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+
+  if (!depositanteId) {
+    redirect(buildRedirectUrl("erro"));
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: depositante, error } = await adminSupabase
+    .from("depositantes")
+    .select("id, configuracoes, observacoes")
+    .eq("id", depositanteId)
+    .maybeSingle();
+
+  if (error || !depositante) {
+    redirect(buildRedirectUrl("erro"));
+  }
+
+  const rawConfig = depositante.configuracoes
+    ? JSON.stringify(depositante.configuracoes)
+    : depositante.observacoes;
+
+  const { error: updateError } = await adminSupabase
+    .from("depositantes")
+    .update({
+      configuracoes: updateDepositanteMercadoLivreConfig(rawConfig, null),
+    })
+    .eq("id", depositanteId);
+
+  if (updateError) {
+    redirect(buildRedirectUrl("erro", updateError.message));
+  }
+
+  revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/integracoes");
+  revalidatePath("/configuracoes/depositantes");
+  redirect(buildRedirectUrl("mercado-livre-desconectado"));
 }
 
 function buildMonitoringState(

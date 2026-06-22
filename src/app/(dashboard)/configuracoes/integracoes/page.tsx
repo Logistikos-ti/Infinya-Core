@@ -19,10 +19,12 @@ import { requireRoleAccess } from "@/lib/auth";
 import { getAppBaseUrl, getBlingCallbackUrl, getBlingWebhookUrl } from "@/lib/bling";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { buildIntegrationAlerts } from "@/lib/integration-alerts";
+import { getMercadoLivreCallbackUrl } from "@/lib/mercado-livre";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatDateTimePtBr } from "@/lib/utils";
 import {
   disconnectBlingIntegrationAction,
+  disconnectMercadoLivreIntegrationAction,
   reprocessBlingIntegrationAction,
   syncBlingIntegrationAction,
 } from "./actions";
@@ -32,6 +34,35 @@ type ConfiguracoesIntegracoesPageProps = {
     feedback?: string;
     motivo?: string;
   }>;
+};
+
+type DepositanteRow = {
+  id: string;
+  nome: string;
+  codigo: string;
+  ativo: boolean;
+  configuracoes: unknown;
+  observacoes: string | null;
+};
+
+type ShippingOrderRow = {
+  id: string;
+  depositante_id: string;
+  origem: string;
+};
+
+type LinkedDocumentRow = {
+  pedido_expedicao_id: string | null;
+  tipo: string;
+};
+
+type IntegrationOccurrenceRow = {
+  id: string;
+  depositante_id: string;
+  titulo: string;
+  descricao: string;
+  status: string;
+  created_at: string;
 };
 
 export default async function ConfiguracoesIntegracoesPage({
@@ -61,25 +92,25 @@ export default async function ConfiguracoesIntegracoesPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
+  const depositanteRows = (depositantes ?? []) as DepositanteRow[];
+  const shippingRows = (shippingOrders ?? []) as ShippingOrderRow[];
+  const linkedDocumentRows = (linkedDocuments ?? []) as LinkedDocumentRow[];
+  const occurrenceRows = (integrationOccurrences ?? []) as IntegrationOccurrenceRow[];
+
   const appBaseUrl = getAppBaseUrl();
-  const callbackUrl = getBlingCallbackUrl();
-  const webhookUrl = getBlingWebhookUrl();
+  const blingCallbackUrl = getBlingCallbackUrl();
+  const blingWebhookUrl = getBlingWebhookUrl();
+  const mercadoLivreCallbackUrl = getMercadoLivreCallbackUrl();
+
   const integrationAlerts = buildIntegrationAlerts({
-    depositantes: (depositantes ?? []) as Array<{
-      id: string;
-      nome: string;
-      configuracoes: unknown;
-      observacoes: string | null;
-    }>,
-    shippingOrders: ((shippingOrders ?? []) as Array<{
-      id: string;
-      depositante_id: string;
-      origem: string;
-    }>),
-    linkedDocuments: ((linkedDocuments ?? []) as Array<{
-      pedido_expedicao_id: string | null;
-      tipo: string;
-    }>),
+    depositantes: depositanteRows.map((depositante) => ({
+      id: depositante.id,
+      nome: depositante.nome,
+      configuracoes: depositante.configuracoes,
+      observacoes: depositante.observacoes,
+    })),
+    shippingOrders: shippingRows,
+    linkedDocuments: linkedDocumentRows,
   });
 
   return (
@@ -94,29 +125,19 @@ export default async function ConfiguracoesIntegracoesPage({
 
       <ModulePageHeader
         title="Integrações"
-        description="Conexões externas do WMS. Nesta etapa, iniciamos a base do Bling V3 com OAuth2 por depositante e recebimento seguro de webhooks de pedidos."
-        badge="Semana 5"
+        description="Conexões externas do WMS. Aqui concentramos OAuth, webhooks e monitoramento operacional por depositante."
+        badge="Semana 5-6"
       />
 
       {feedback ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "bling-conectado" ||
-            feedback === "bling-desconectado" ||
-            feedback === "bling-sincronizado"
+            isSuccessFeedback(feedback)
               ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border border-amber-200 bg-amber-50 text-amber-800"
           }`}
         >
-          {feedback === "bling-conectado"
-            ? "Conexão com o Bling salva com sucesso para o depositante."
-            : feedback === "bling-desconectado"
-              ? "Integração do Bling removida com sucesso."
-              : feedback === "bling-sincronizado"
-                ? "Integração do Bling sincronizada com sucesso."
-                : feedback === "bling-identificacao-pendente"
-                  ? `A conexão está ativa, mas o nome da empresa ainda não pôde ser lido na API do Bling.${motivo ? ` Motivo: ${motivo}` : ""}`
-                  : `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`}
+          {getFeedbackMessage(feedback, motivo)}
         </div>
       ) : null}
 
@@ -124,11 +145,11 @@ export default async function ConfiguracoesIntegracoesPage({
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_1.3fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Parâmetros do aplicativo</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Bling V3</h2>
           <div className="mt-4 space-y-4 text-sm text-slate-600">
             <InfoRow label="Base da aplicação" value={appBaseUrl} />
-            <InfoRow label="Callback OAuth2" value={callbackUrl} />
-            <InfoRow label="Webhook de pedidos" value={webhookUrl} />
+            <InfoRow label="Callback OAuth2" value={blingCallbackUrl} />
+            <InfoRow label="Webhook de pedidos" value={blingWebhookUrl} />
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
@@ -148,18 +169,17 @@ export default async function ConfiguracoesIntegracoesPage({
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Depositantes integráveis</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio
-                mapeamento de empresa no Bling.
+                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio mapeamento de empresa no Bling.
               </p>
             </div>
             <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              {depositantes?.length ?? 0} depositantes
+              {depositanteRows.length} depositantes
             </span>
           </div>
 
           <div className="mt-5 space-y-4">
-            {depositantes?.length ? (
-              depositantes.map((depositante) => {
+            {depositanteRows.length ? (
+              depositanteRows.map((depositante) => {
                 const configuracoes = parseDepositanteConfiguracoes(
                   depositante.configuracoes
                     ? JSON.stringify(depositante.configuracoes)
@@ -173,31 +193,26 @@ export default async function ConfiguracoesIntegracoesPage({
                   (bling?.companyId
                     ? configuracoes.razaoSocial || depositante.nome
                     : "Aguardando identificação via API/webhook");
-                const orderRows =
-                  ((shippingOrders as Array<{ id: string; depositante_id: string; origem: string }> | null) ?? []).filter(
-                    (item) => item.depositante_id === depositante.id && item.origem === "BLING",
-                  );
-                const documentRows =
-                  ((linkedDocuments as Array<{ pedido_expedicao_id: string | null; tipo: string }> | null) ?? []).filter(
-                    (item) => item.pedido_expedicao_id && orderRows.some((order) => order.id === item.pedido_expedicao_id),
-                  );
+                const blingOrders = shippingRows.filter(
+                  (item) => item.depositante_id === depositante.id && item.origem === "BLING",
+                );
+                const documents = linkedDocumentRows.filter(
+                  (item) =>
+                    item.pedido_expedicao_id &&
+                    blingOrders.some((order) => order.id === item.pedido_expedicao_id),
+                );
                 const ordersWithXml = new Set(
-                  documentRows
+                  documents
                     .filter((item) => item.tipo === "NF")
                     .map((item) => item.pedido_expedicao_id as string),
                 );
-                const pendingXmlCount = orderRows.filter((order) => !ordersWithXml.has(order.id)).length;
-                const occurrenceRows =
-                  ((integrationOccurrences as Array<{
-                    id: string;
-                    depositante_id: string;
-                    titulo: string;
-                    descricao: string;
-                    status: string;
-                    created_at: string;
-                  }> | null) ?? []).filter((item) => item.depositante_id === depositante.id);
-                const latestEvents = occurrenceRows.slice(0, 3);
-                const overallStatus = getIntegrationHealthStatus({
+                const pendingXmlCount = blingOrders.filter(
+                  (order) => !ordersWithXml.has(order.id),
+                ).length;
+                const latestEvents = occurrenceRows
+                  .filter((item) => item.depositante_id === depositante.id)
+                  .slice(0, 3);
+                const overallStatus = getBlingIntegrationHealthStatus({
                   isConnected,
                   monitoring,
                   pendingXmlCount,
@@ -244,9 +259,7 @@ export default async function ConfiguracoesIntegracoesPage({
                             </p>
                             {bling?.companyId && !bling?.companyName ? (
                               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-                                O vínculo já foi confirmado pelo `companyId`. Como o usuário do Bling
-                                não possui permissão para ler os dados básicos da empresa, mostramos
-                                provisoriamente a razão social cadastrada no WMS.
+                                O vínculo já foi confirmado pelo `companyId`. Como o usuário do Bling não possui permissão para ler os dados básicos da empresa, mostramos provisoriamente a razão social cadastrada no WMS.
                               </p>
                             ) : null}
                           </div>
@@ -314,7 +327,7 @@ export default async function ConfiguracoesIntegracoesPage({
                     </div>
 
                     {isConnected ? (
-                      <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                      <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(360px,0.95fr)_minmax(420px,1.05fr)]">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <div className="flex items-center gap-2">
                             <Wifi className="h-4 w-4 text-slate-500" />
@@ -323,7 +336,7 @@ export default async function ConfiguracoesIntegracoesPage({
                             </p>
                           </div>
 
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="mt-4 grid gap-3 md:grid-cols-2">
                             <MonitoringCard
                               icon={PlugZap}
                               label="Conexão"
@@ -414,6 +427,183 @@ export default async function ConfiguracoesIntegracoesPage({
         </div>
       </section>
 
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_1.3fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Mercado Livre</h2>
+          <div className="mt-4 space-y-4 text-sm text-slate-600">
+            <InfoRow label="Base da aplicação" value={appBaseUrl} />
+            <InfoRow label="Callback OAuth2" value={mercadoLivreCallbackUrl} />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p className="font-medium text-slate-950">Checklist Mercado Livre</p>
+            <ul className="mt-3 space-y-2">
+              <li>1. Criar o aplicativo no Mercado Livre Developers.</li>
+              <li>2. Configurar o callback exatamente como exibido acima.</li>
+              <li>3. Autorizar a conta correta do seller por depositante.</li>
+              <li>4. Informar o `shipment_id` do pedido quando a venda for Mercado Livre.</li>
+              <li>5. O WMS passa a buscar etiqueta e rastreamento automaticamente.</li>
+            </ul>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+            Nesta etapa, o foco é a operação de expedição: etiquetas de envio e código de rastreio.
+            Isso funciona tanto para pedidos integrados quanto para pedidos cadastrados manualmente,
+            desde que o `shipment_id` esteja informado.
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Depositantes com Mercado Livre</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Cada depositante conecta seu próprio seller e mantém etiqueta e rastreio isolados por operação.
+              </p>
+            </div>
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              {depositanteRows.length} depositantes
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {depositanteRows.length ? (
+              depositanteRows.map((depositante) => {
+                const configuracoes = parseDepositanteConfiguracoes(
+                  depositante.configuracoes
+                    ? JSON.stringify(depositante.configuracoes)
+                    : depositante.observacoes,
+                );
+                const mercadoLivre = configuracoes.mercadoLivre;
+                const isConnected = Boolean(mercadoLivre?.connected);
+                const monitoring = mercadoLivre?.monitoring;
+                const relatedOrders = shippingRows.filter(
+                  (item) => item.depositante_id === depositante.id,
+                );
+
+                return (
+                  <div key={`mercado-livre-${depositante.id}`} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <p className="text-base font-semibold text-slate-950">{depositante.nome}</p>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                              depositante.ativo
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {depositante.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-500">{depositante.codigo}</p>
+
+                        {isConnected ? (
+                          <div className="space-y-1 text-sm text-slate-600">
+                            <p>
+                              Conta conectada:{" "}
+                              <span className="font-medium text-slate-900">
+                                {mercadoLivre?.nickname ?? "Seller não identificado"}
+                              </span>
+                            </p>
+                            <p>User ID: {mercadoLivre?.userId ?? "Ainda não identificado"}</p>
+                            <p>
+                              Último sincronismo:{" "}
+                              {mercadoLivre?.lastSyncAt
+                                ? formatDateTimePtBr(mercadoLivre.lastSyncAt)
+                                : "Ainda não sincronizado"}
+                            </p>
+                            <p>Pedidos elegíveis no fluxo: {relatedOrders.length}</p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-600">
+                            Este depositante ainda não possui autorização OAuth2 ativa no Mercado Livre.
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap gap-2">
+                          <StatusBadge active={isConnected}>
+                            {isConnected ? "OAuth conectado" : "OAuth pendente"}
+                          </StatusBadge>
+                          <StatusBadge active={monitoring?.lastTrackingSyncStatus !== "ERROR"}>
+                            {monitoring?.lastTrackingSyncStatus === "SUCCESS"
+                              ? "Rastreio sincronizado"
+                              : monitoring?.lastTrackingSyncStatus === "ERROR"
+                                ? "Falha no rastreio"
+                                : "Rastreio pendente"}
+                          </StatusBadge>
+                          <StatusBadge active={monitoring?.lastLabelSyncStatus !== "ERROR"}>
+                            {monitoring?.lastLabelSyncStatus === "SUCCESS"
+                              ? "Etiqueta sincronizada"
+                              : monitoring?.lastLabelSyncStatus === "ERROR"
+                                ? "Falha na etiqueta"
+                                : "Etiqueta pendente"}
+                          </StatusBadge>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <a href={`/api/integracoes/mercado-livre/oauth/start?depositanteId=${depositante.id}`}>
+                          <Button className="bg-slate-950 text-white hover:bg-slate-800">
+                            <PlugZap className="h-4 w-4" />
+                            {isConnected ? "Reconectar Mercado Livre" : "Conectar Mercado Livre"}
+                          </Button>
+                        </a>
+
+                        {isConnected ? (
+                          <form action={disconnectMercadoLivreIntegrationAction}>
+                            <input type="hidden" name="depositanteId" value={depositante.id} />
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                            >
+                              <Unplug className="h-4 w-4" />
+                              Desconectar
+                            </Button>
+                          </form>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {isConnected ? (
+                      <div className="mt-4 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+                        <MonitoringCard
+                          icon={PlugZap}
+                          label="Conexão"
+                          status={monitoring?.lastConnectionStatus}
+                          message={monitoring?.lastConnectionMessage}
+                          date={monitoring?.lastConnectionAt}
+                        />
+                        <MonitoringCard
+                          icon={RefreshCw}
+                          label="Rastreio"
+                          status={monitoring?.lastTrackingSyncStatus}
+                          message={monitoring?.lastTrackingSyncMessage}
+                          date={monitoring?.lastTrackingSyncAt}
+                        />
+                        <MonitoringCard
+                          icon={Link2}
+                          label="Etiqueta"
+                          status={monitoring?.lastLabelSyncStatus}
+                          message={monitoring?.lastLabelSyncMessage}
+                          date={monitoring?.lastLabelSyncAt}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                Nenhum depositante cadastrado ainda.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -425,6 +615,8 @@ export default async function ConfiguracoesIntegracoesPage({
             "Persistência segura do vínculo com a empresa do Bling.",
             "Endpoint de webhook validado com assinatura HMAC.",
             "Registro interno dos eventos de pedido para rastreabilidade operacional.",
+            "Conexão OAuth do Mercado Livre por depositante.",
+            "Base pronta para puxar etiqueta e rastreamento a partir do shipment_id.",
           ].map((item) => (
             <div
               key={item}
@@ -459,8 +651,7 @@ function MonitoringCard({
         ? "border-rose-200 bg-rose-50 text-rose-800"
         : "border-amber-200 bg-amber-50 text-amber-800";
 
-  const badge =
-    status === "SUCCESS" ? "Ok" : status === "ERROR" ? "Erro" : "Pendente";
+  const badge = status === "SUCCESS" ? "Ok" : status === "ERROR" ? "Erro" : "Pendente";
 
   return (
     <div className={`rounded-xl border px-4 py-3 ${tone}`}>
@@ -481,7 +672,7 @@ function MonitoringCard({
   );
 }
 
-function getIntegrationHealthStatus({
+function getBlingIntegrationHealthStatus({
   isConnected,
   monitoring,
   pendingXmlCount,
@@ -542,4 +733,33 @@ function StatusBadge({
       {children}
     </span>
   );
+}
+
+function isSuccessFeedback(feedback: string) {
+  return [
+    "bling-conectado",
+    "bling-desconectado",
+    "bling-sincronizado",
+    "mercado-livre-conectado",
+    "mercado-livre-desconectado",
+  ].includes(feedback);
+}
+
+function getFeedbackMessage(feedback: string, motivo: string | null) {
+  switch (feedback) {
+    case "bling-conectado":
+      return "Conexão com o Bling salva com sucesso para o depositante.";
+    case "bling-desconectado":
+      return "Integração do Bling removida com sucesso.";
+    case "bling-sincronizado":
+      return "Integração do Bling sincronizada com sucesso.";
+    case "mercado-livre-conectado":
+      return "Conexão com o Mercado Livre salva com sucesso para o depositante.";
+    case "mercado-livre-desconectado":
+      return "Integração do Mercado Livre removida com sucesso.";
+    case "bling-identificacao-pendente":
+      return `A conexão está ativa, mas o nome da empresa ainda não pôde ser lido na API do Bling.${motivo ? ` Motivo: ${motivo}` : ""}`;
+    default:
+      return `Não foi possível concluir a operação da integração.${motivo ? ` Motivo: ${motivo}` : ""}`;
+  }
 }

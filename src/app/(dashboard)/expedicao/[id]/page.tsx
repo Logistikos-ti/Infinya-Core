@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, Paperclip, Pencil } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { ShippingMercadoLivreSyncPanel } from "@/components/shipping/shipping-mercado-livre-sync-panel";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import { canUploadOperationalDocuments, isAdminUser } from "@/lib/permissions";
@@ -35,8 +36,12 @@ export default async function ShippingOrderDetailPage({
 
   const canUploadAttachments = canUploadOperationalDocuments(user);
   const xmlAttachment = order.attachments.find((attachment) => attachment.kind === "XML_NF");
+  const labelAttachment = order.attachments.find((attachment) => attachment.kind === "ETIQUETA");
   const xmlPending = xmlAttachment?.status === "PENDENTE";
   const isBlingOrder = order.origin === "BLING";
+  const isMercadoLivreOrder = order.salesChannelCode === "MERCADO_LIVRE";
+  const labelPending = labelAttachment?.status === "PENDENTE";
+  const hasTrackingCode = order.trackingCode !== "Rastreio não informado";
 
   return (
     <div className="space-y-6">
@@ -167,6 +172,15 @@ export default async function ShippingOrderDetailPage({
                 orderId={order.id}
                 xmlPending={Boolean(xmlPending)}
                 isBlingOrder={isBlingOrder}
+              />
+            </div>
+
+            <div className="mt-4">
+              <ShippingMercadoLivreSyncPanel
+                orderId={order.id}
+                isMercadoLivreOrder={isMercadoLivreOrder}
+                hasPendingLabel={Boolean(labelPending)}
+                hasTrackingCode={hasTrackingCode}
               />
             </div>
 

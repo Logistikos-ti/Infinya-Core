@@ -36,6 +36,8 @@ export async function updateShippingOrderAction(formData: FormData) {
   const observacoes = String(formData.get("observacoes") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
+  const mercadoLivreOrderId = String(formData.get("mercadoLivreOrderId") ?? "").trim();
+  const mercadoLivreShipmentId = String(formData.get("mercadoLivreShipmentId") ?? "").trim();
   const invoiceNumber = String(formData.get("invoiceNumber") ?? "").trim();
   const carrierName = String(formData.get("carrierName") ?? "").trim();
   const shippingService = String(formData.get("shippingService") ?? "").trim();
@@ -75,6 +77,11 @@ export async function updateShippingOrderAction(formData: FormData) {
           salesChannelCode: salesChannelCode || "VENDA_DIRETA",
           customStoreName,
         }),
+        mercadoLivre: {
+          ...(isRecord(currentPayload.mercadoLivre) ? currentPayload.mercadoLivre : {}),
+          orderId: mercadoLivreOrderId || null,
+          shipmentId: mercadoLivreShipmentId || null,
+        },
         notaFiscal: {
           ...(isRecord(currentPayload.notaFiscal) ? currentPayload.notaFiscal : {}),
           numero: invoiceNumber || null,
@@ -142,6 +149,8 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const observacoes = String(formData.get("observacoes") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
+  const mercadoLivreOrderId = String(formData.get("mercadoLivreOrderId") ?? "").trim();
+  const mercadoLivreShipmentId = String(formData.get("mercadoLivreShipmentId") ?? "").trim();
   const invoiceNumber = String(formData.get("invoiceNumber") ?? "").trim();
   const carrierName = String(formData.get("carrierName") ?? "").trim();
   const shippingService = String(formData.get("shippingService") ?? "").trim();
@@ -171,6 +180,10 @@ export async function createManualShippingOrderAction(formData: FormData) {
       em: new Date().toISOString(),
     },
     comercial,
+    mercadoLivre: {
+      orderId: mercadoLivreOrderId || null,
+      shipmentId: mercadoLivreShipmentId || null,
+    },
     notaFiscal: {
       numero: invoiceNumber || null,
     },

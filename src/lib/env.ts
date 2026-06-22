@@ -24,3 +24,10 @@ export function getBlingEnv() {
     clientSecret: process.env.BLING_CLIENT_SECRET?.trim() ?? "",
   };
 }
+
+export function getMercadoLivreEnv() {
+  return {
+    clientId: process.env.MERCADO_LIVRE_CLIENT_ID?.trim() ?? "",
+    clientSecret: process.env.MERCADO_LIVRE_CLIENT_SECRET?.trim() ?? "",
+  };
+}

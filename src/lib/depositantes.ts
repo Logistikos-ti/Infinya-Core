@@ -58,6 +58,32 @@ export type DepositanteBlingMonitoring = {
   lastXmlSyncAt: string | null;
 };
 
+export type DepositanteMercadoLivreMonitoring = {
+  lastConnectionStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastConnectionMessage: string | null;
+  lastConnectionAt: string | null;
+  lastTrackingSyncStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastTrackingSyncMessage: string | null;
+  lastTrackingSyncAt: string | null;
+  lastLabelSyncStatus: "SUCCESS" | "ERROR" | "PENDING" | null;
+  lastLabelSyncMessage: string | null;
+  lastLabelSyncAt: string | null;
+};
+
+export type DepositanteMercadoLivreConfig = {
+  connected: boolean;
+  userId: string | null;
+  nickname: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenType: string | null;
+  expiresAt: string | null;
+  scopes: string[];
+  connectedAt: string | null;
+  lastSyncAt: string | null;
+  monitoring: DepositanteMercadoLivreMonitoring | null;
+};
+
 export type DepositanteConfiguracoes = {
   razaoSocial: string;
   observacoes: string;
@@ -72,6 +98,7 @@ export type DepositanteConfiguracoes = {
   emailsContato: EmailContato[];
   telefonesContato: TelefoneContato[];
   bling: DepositanteBlingConfig | null;
+  mercadoLivre: DepositanteMercadoLivreConfig | null;
 };
 
 export const defaultEnderecoFiscal: EnderecoFiscal = {
@@ -98,6 +125,7 @@ export const defaultDepositanteConfiguracoes: DepositanteConfiguracoes = {
   emailsContato: [],
   telefonesContato: [],
   bling: null,
+  mercadoLivre: null,
 };
 
 export function parseDepositanteConfiguracoes(rawValue: string | null) {
@@ -121,6 +149,7 @@ export function parseDepositanteConfiguracoes(rawValue: string | null) {
     emailsContato: normalizeEmailContacts(rawObject.emailsContato),
     telefonesContato: normalizePhoneContacts(rawObject.telefonesContato),
     bling: normalizeBlingConfig(rawObject.bling),
+    mercadoLivre: normalizeMercadoLivreConfig(rawObject.mercadoLivre),
   };
 }
 
@@ -149,6 +178,12 @@ export function buildStoredDepositanteConfiguracoes(
             : null,
         }
       : null,
+    mercadoLivre: configuracoes.mercadoLivre
+      ? {
+          ...configuracoes.mercadoLivre,
+          scopes: [...configuracoes.mercadoLivre.scopes],
+        }
+      : null,
   };
 }
 
@@ -161,6 +196,18 @@ export function updateDepositanteBlingConfig(
   return buildStoredDepositanteConfiguracoes(rawValue, {
     ...current,
     bling,
+  });
+}
+
+export function updateDepositanteMercadoLivreConfig(
+  rawValue: string | null,
+  mercadoLivre: DepositanteMercadoLivreConfig | null,
+) {
+  const current = parseDepositanteConfiguracoes(rawValue);
+
+  return buildStoredDepositanteConfiguracoes(rawValue, {
+    ...current,
+    mercadoLivre,
   });
 }
 
@@ -322,6 +369,52 @@ function normalizeBlingMonitoring(value: unknown): DepositanteBlingMonitoring | 
     lastXmlSyncStatus: normalizeMonitoringStatus(raw.lastXmlSyncStatus),
     lastXmlSyncMessage: getNullableString(raw.lastXmlSyncMessage),
     lastXmlSyncAt: getNullableString(raw.lastXmlSyncAt),
+  };
+}
+
+function normalizeMercadoLivreConfig(value: unknown): DepositanteMercadoLivreConfig | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+
+  return {
+    connected: getOptionalBoolean(raw.connected, false),
+    userId: getNullableString(raw.userId),
+    nickname: getNullableString(raw.nickname),
+    accessToken: getNullableString(raw.accessToken),
+    refreshToken: getNullableString(raw.refreshToken),
+    tokenType: getNullableString(raw.tokenType),
+    expiresAt: getNullableString(raw.expiresAt),
+    scopes: Array.isArray(raw.scopes)
+      ? raw.scopes.filter((item): item is string => typeof item === "string")
+      : [],
+    connectedAt: getNullableString(raw.connectedAt),
+    lastSyncAt: getNullableString(raw.lastSyncAt),
+    monitoring: normalizeMercadoLivreMonitoring(raw.monitoring),
+  };
+}
+
+function normalizeMercadoLivreMonitoring(
+  value: unknown,
+): DepositanteMercadoLivreMonitoring | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+
+  return {
+    lastConnectionStatus: normalizeMonitoringStatus(raw.lastConnectionStatus),
+    lastConnectionMessage: getNullableString(raw.lastConnectionMessage),
+    lastConnectionAt: getNullableString(raw.lastConnectionAt),
+    lastTrackingSyncStatus: normalizeMonitoringStatus(raw.lastTrackingSyncStatus),
+    lastTrackingSyncMessage: getNullableString(raw.lastTrackingSyncMessage),
+    lastTrackingSyncAt: getNullableString(raw.lastTrackingSyncAt),
+    lastLabelSyncStatus: normalizeMonitoringStatus(raw.lastLabelSyncStatus),
+    lastLabelSyncMessage: getNullableString(raw.lastLabelSyncMessage),
+    lastLabelSyncAt: getNullableString(raw.lastLabelSyncAt),
   };
 }
 
