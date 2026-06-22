@@ -400,7 +400,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
     customer,
     customerDocument: order.cliente_documento?.trim() || "-",
     destination,
-    externalNumber: order.numero_pedido?.trim() || order.codigo,
+    externalNumber: extractPlatformOrderNumber(payload, order.numero_pedido, order.numero_loja, order.codigo),
     storeNumber: order.numero_loja?.trim() || "-",
     storeDisplay,
     orderType,
@@ -534,7 +534,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     depositanteId: item.depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
     origin: item.origem,
-    externalNumber: item.numero_pedido?.trim() || item.codigo,
+    externalNumber: extractPlatformOrderNumber(payload, item.numero_pedido, item.numero_loja, item.codigo),
     storeNumber: item.numero_loja?.trim() || "-",
     storeDisplay,
     customer,
@@ -642,7 +642,25 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
 function extractInvoice(payload: Record<string, unknown>) {
   const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
 
-  return readString(notaFiscal?.numero) ?? readString(notaFiscal?.id) ?? "Ainda não vinculada";
+  return readString(notaFiscal?.numero) ?? "Ainda não vinculada";
+}
+
+function extractPlatformOrderNumber(
+  payload: Record<string, unknown>,
+  numeroPedido: string | null,
+  numeroLoja: string | null,
+  fallbackCode: string,
+) {
+  const salesChannelCode =
+    readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
+  const orderNumber = readString(numeroPedido);
+  const storeNumber = readString(numeroLoja);
+
+  if (salesChannelCode === "MERCADO_LIVRE" && storeNumber) {
+    return storeNumber;
+  }
+
+  return orderNumber ?? storeNumber ?? fallbackCode;
 }
 
 function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: string | null) {

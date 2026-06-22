@@ -87,7 +87,6 @@ export default async function ShippingOrderDetailPage({
             <h2 className="text-lg font-semibold text-slate-950">Resumo operacional</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <InfoCard label="Código interno" value={order.code} />
-              <InfoCard label="Referência externa" value={order.externalReference} />
               <InfoCard label="Número do pedido" value={order.externalNumber} />
               <InfoCard label="Tipo de pedido" value={order.orderType} />
               <InfoCard label="Depositante" value={order.depositante} />

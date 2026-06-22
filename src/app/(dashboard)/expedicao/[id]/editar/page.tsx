@@ -104,7 +104,7 @@ export default async function EditarShippingOrderPage({
               />
             </Field>
 
-            <Field label="Número do pedido">
+            <Field label="Número do pedido na plataforma">
               <input
                 name="numeroPedido"
                 defaultValue={order.externalNumber === order.code ? "" : order.externalNumber}
@@ -112,7 +112,7 @@ export default async function EditarShippingOrderPage({
               />
             </Field>
 
-            <Field label="Número da loja">
+            <Field label="Identificador auxiliar da loja/canal">
               <input
                 name="numeroLoja"
                 defaultValue={order.storeNumber === "-" ? "" : order.storeNumber}
