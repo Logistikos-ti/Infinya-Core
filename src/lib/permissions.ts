@@ -113,7 +113,7 @@ export function getModuleLabel(module: AppModule) {
     case "estoque":
       return "Estoque";
     case "nfe":
-      return "NFe";
+      return "NF-e";
     case "relatorios":
       return "Relatórios";
     case "configuracoes":

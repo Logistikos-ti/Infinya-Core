@@ -1,12 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ClipboardCheck,
-  FileText,
-  PackageCheck,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, ClipboardCheck, FileText, PackageCheck } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ReceivingConferencePanel } from "@/components/receiving/receiving-conference-panel";
@@ -16,6 +10,7 @@ import {
   listOperationalIssuesFromDb,
   type ReceivingOrderDetail,
 } from "@/lib/receiving";
+import { listDepositProtocolsByReceivingOrderId } from "@/lib/stock";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type RecebimentoDetalhePageProps = {
@@ -44,9 +39,10 @@ export default async function RecebimentoDetalhePage({
     .neq("area", "BLOQUEADO")
     .order("codigo");
 
-  const relatedIssues = (await listOperationalIssuesFromDb()).filter(
-    (issue) => issue.orderId === order.id,
-  );
+  const [relatedIssues, generatedProtocols] = await Promise.all([
+    listOperationalIssuesFromDb().then((issues) => issues.filter((issue) => issue.orderId === order.id)),
+    listDepositProtocolsByReceivingOrderId(order.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -88,11 +84,7 @@ export default async function RecebimentoDetalhePage({
         <StatCard
           icon={order.divergence.hasAny ? AlertTriangle : ClipboardCheck}
           label={order.divergence.hasAny ? "Divergências" : "Chegada prevista"}
-          value={
-            order.divergence.hasAny
-              ? String(order.divergence.itemCount)
-              : order.eta
-          }
+          value={order.divergence.hasAny ? String(order.divergence.itemCount) : order.eta}
           help={
             order.divergence.hasAny
               ? `${order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) com diferença`
@@ -157,10 +149,7 @@ export default async function RecebimentoDetalhePage({
               </thead>
               <tbody>
                 {order.items.map((item: ReceivingOrderDetail["items"][number]) => (
-                  <tr
-                    key={`${order.id}-${item.id}`}
-                    className="border-b border-slate-100 last:border-b-0"
-                  >
+                  <tr key={`${order.id}-${item.id}`} className="border-b border-slate-100 last:border-b-0">
                     <td className="py-3 font-medium text-slate-900">{item.sku}</td>
                     <td className="py-3 text-slate-600">{item.description}</td>
                     <td className="py-3 text-slate-600">{item.expected}</td>
@@ -193,6 +182,64 @@ export default async function RecebimentoDetalhePage({
         </div>
 
         <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">Protocolos de depósito gerados</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Saldos lançados a partir deste recebimento, já com rastreabilidade por lote,
+                  validade e endereço.
+                </p>
+              </div>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                {generatedProtocols.length} protocolo(s)
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {generatedProtocols.length ? (
+                generatedProtocols.map((protocol) => (
+                  <div key={protocol.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">{protocol.protocol}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {protocol.sku} • {protocol.productName} • {protocol.endereco} • {protocol.area}
+                        </p>
+                        <div className="mt-2 grid gap-1 text-sm text-slate-600">
+                          <p>Lote: {protocol.lote}</p>
+                          <p>Validade: {protocol.validade}</p>
+                          <p>Saldo: {protocol.saldo}</p>
+                          <p>{protocol.withdrawalLabel}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/estoque/protocolos/${protocol.id}`}
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+                        >
+                          Abrir protocolo
+                        </Link>
+                        <Link
+                          href={`/api/estoque/protocolos/${protocol.id}/pdf`}
+                          target="_blank"
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+                        >
+                          Emitir PDF
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  Os protocolos aparecem aqui assim que a conferência conclui a entrada em estoque.
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Checklist operacional</h2>
             <ul className="mt-4 space-y-3 text-sm text-slate-600">

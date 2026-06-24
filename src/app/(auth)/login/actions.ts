@@ -14,6 +14,7 @@ export async function loginAction(
 ): Promise<LoginActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "").trim();
+  const redirectTo = String(formData.get("redirectTo") ?? "/dashboard").trim() || "/dashboard";
 
   if (!email || !password) {
     return { error: "Preencha e-mail e senha para entrar." };
@@ -62,7 +63,7 @@ export async function loginAction(
     })
     .eq("id", user.id);
 
-  redirect("/dashboard");
+  redirect(redirectTo.startsWith("/") ? redirectTo : "/dashboard");
 }
 
 export async function logoutAction() {

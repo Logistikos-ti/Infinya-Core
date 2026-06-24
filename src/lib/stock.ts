@@ -133,6 +133,21 @@ export type StockTraceabilityProtocol = {
   withdrawalLabel: string;
 };
 
+export type ReceivingDepositProtocolSummary = {
+  id: string;
+  protocol: string;
+  sku: string;
+  productName: string;
+  endereco: string;
+  area: string;
+  lote: string;
+  validade: string;
+  saldo: string;
+  status: string;
+  createdAt: string;
+  withdrawalLabel: string;
+};
+
 export type StockTraceabilityDetail = {
   id: string;
   protocol: string;
@@ -249,6 +264,57 @@ export async function listStockTraceabilityProtocolsFromDb(filters?: StockFilter
         withdrawalLabel: item.withdrawalLabel,
       }) satisfies StockTraceabilityProtocol,
   );
+}
+
+export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: movementRows, error } = await supabase
+    .from("movimentacoes_estoque")
+    .select("estoque_id")
+    .eq("tipo", "ENTRADA")
+    .eq("referencia_tipo", "PEDIDO_RECEBIMENTO")
+    .eq("referencia_id", receivingOrderId);
+
+  if (error) {
+    throw new Error(`Não foi possível localizar os protocolos deste recebimento: ${error.message}`);
+  }
+
+  const stockIds = [...new Set((movementRows ?? []).map((item) => item.estoque_id).filter(Boolean))] as string[];
+
+  if (!stockIds.length) {
+    return [] satisfies ReceivingDepositProtocolSummary[];
+  }
+
+  const { data: stockRows, error: stockError } = await supabase
+    .from("estoque")
+    .select(
+      "id, depositante_id, quantidade, bloqueado, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+    )
+    .in("id", stockIds)
+    .order("created_at", { ascending: false });
+
+  if (stockError) {
+    throw new Error(`Não foi possível carregar os saldos gerados por este recebimento: ${stockError.message}`);
+  }
+
+  return ((stockRows ?? []) as RawStockRow[]).map((item) => {
+    const balance = mapStockBalance(item);
+
+    return {
+      id: balance.id,
+      protocol: balance.protocol,
+      sku: balance.sku,
+      productName: balance.productName,
+      endereco: balance.endereco,
+      area: balance.area,
+      lote: balance.lote,
+      validade: balance.validade,
+      saldo: balance.saldo,
+      status: balance.status,
+      createdAt: balance.createdAt,
+      withdrawalLabel: balance.withdrawalLabel,
+    } satisfies ReceivingDepositProtocolSummary;
+  });
 }
 
 export async function listStockExpiryAlertsFromDb(filters?: StockFilters, daysAhead = 30) {

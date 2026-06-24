@@ -1,8 +1,10 @@
 import { requireApiModuleAccess } from "@/lib/api-auth";
+import type { AppUserContext } from "@/lib/auth";
+import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { listReportsCatalog } from "@/lib/wms-data";
 
-type ExportRow = {
+type StockExportRow = {
   Protocolo: string;
   Depositante: string;
   SKU: string;
@@ -18,6 +20,23 @@ type ExportRow = {
   Entrada: string;
 };
 
+type FiscalExportRow = {
+  Depositante: string;
+  Fluxo: string;
+  Emitente: string;
+  Destinatario: string;
+  NFEntrada: string;
+  NFSaida: string;
+  TotalNFe: string;
+  ValorEntrada: string;
+  ValorSaida: string;
+  ValorTotal: string;
+  Itens: string;
+  Volumes: string;
+  PrimeiraEmissao: string;
+  UltimaEmissao: string;
+};
+
 export async function GET(request: Request) {
   const auth = await requireApiModuleAccess("relatorios");
 
@@ -29,15 +48,34 @@ export async function GET(request: Request) {
   const report = searchParams.get("report");
   const format = searchParams.get("format");
 
-  if (report !== "saldo-estoque" || !format) {
+  if (!report || !format) {
     return Response.json({
       reports: listReportsCatalog(),
     });
   }
 
+  if (report === "saldo-estoque") {
+    return exportStockBalanceReport(auth.user, searchParams, format);
+  }
+
+  if (report === "nfe-resumo") {
+    return exportFiscalSummaryReport(auth.user, searchParams, format);
+  }
+
+  return Response.json(
+    { error: "Relatório inválido. Use saldo-estoque ou nfe-resumo." },
+    { status: 400 },
+  );
+}
+
+async function exportStockBalanceReport(
+  user: AppUserContext,
+  searchParams: URLSearchParams,
+  format: string,
+) {
   const depositanteId =
-    auth.user.papel === "DEPOSITANTE"
-      ? auth.user.depositanteId ?? undefined
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
       : searchParams.get("depositante")?.trim() || undefined;
 
   const balances = await listStockBalancesFromDb({
@@ -47,7 +85,7 @@ export async function GET(request: Request) {
     lot: searchParams.get("lote")?.trim() || undefined,
   });
 
-  const rows: ExportRow[] = balances.map((item) => ({
+  const rows: StockExportRow[] = balances.map((item) => ({
     Protocolo: item.protocol,
     Depositante: item.depositante,
     SKU: item.sku,
@@ -63,26 +101,84 @@ export async function GET(request: Request) {
     Entrada: item.createdAt,
   }));
 
-  const fileBaseName = `relatorio-saldo-estoque-${new Date().toISOString().slice(0, 10)}`;
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-saldo-estoque-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "Saldo Estoque",
+  });
+}
 
+async function exportFiscalSummaryReport(
+  user: AppUserContext,
+  searchParams: URLSearchParams,
+  format: string,
+) {
+  const depositanteId =
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
+  const flow = searchParams.get("fluxoFiscal")?.trim() || undefined;
+  const issuerTerm = searchParams.get("emitente")?.trim() || undefined;
+  const recipientTerm = searchParams.get("destinatario")?.trim() || undefined;
+
+  const summary = await listFiscalSummaryRows(user, {
+    depositanteId,
+    dateFrom: searchParams.get("dataInicio")?.trim() || undefined,
+    dateTo: searchParams.get("dataFim")?.trim() || undefined,
+    flow: flow === "ENTRADA" || flow === "SAIDA" ? flow : undefined,
+    issuerTerm,
+    recipientTerm,
+  });
+
+  const rows: FiscalExportRow[] = summary.map((item) => ({
+    Depositante: item.depositante,
+    Fluxo:
+      flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "Saída" : "Todos",
+    Emitente: issuerTerm || "Todos",
+    Destinatario: recipientTerm || "Todos",
+    NFEntrada: String(item.entradaDocuments),
+    NFSaida: String(item.saidaDocuments),
+    TotalNFe: String(item.totalDocuments),
+    ValorEntrada: formatCurrency(item.entradaValue),
+    ValorSaida: formatCurrency(item.saidaValue),
+    ValorTotal: formatCurrency(item.totalValue),
+    Itens: String(item.totalItems),
+    Volumes: String(item.totalVolumes),
+    PrimeiraEmissao: item.firstIssuedAtLabel,
+    UltimaEmissao: item.lastIssuedAtLabel,
+  }));
+
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-nfe-resumo-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "Resumo NFe",
+  });
+}
+
+function exportRows<T extends Record<string, string>>(
+  rows: T[],
+  format: string,
+  options: {
+    fileBaseName: string;
+    worksheetName: string;
+  },
+) {
   if (format === "csv") {
     const csvContent = buildCsv(rows);
 
     return new Response(`\uFEFF${csvContent}`, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileBaseName}.csv"`,
+        "Content-Disposition": `attachment; filename="${options.fileBaseName}.csv"`,
       },
     });
   }
 
   if (format === "excel") {
-    const workbook = buildExcelXml(rows, "Saldo Estoque");
+    const workbook = buildExcelXml(rows, options.worksheetName);
 
     return new Response(workbook, {
       headers: {
         "Content-Type": "application/vnd.ms-excel; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileBaseName}.xls"`,
+        "Content-Disposition": `attachment; filename="${options.fileBaseName}.xls"`,
       },
     });
   }
@@ -93,24 +189,28 @@ export async function GET(request: Request) {
   );
 }
 
-function buildCsv(rows: ExportRow[]) {
-  const headers = Object.keys(rows[0] ?? getEmptyExportRow()) as Array<keyof ExportRow>;
+function buildCsv<T extends Record<string, string>>(rows: T[]) {
+  const headers = Object.keys(rows[0] ?? {}) as Array<keyof T>;
+
+  if (!headers.length) {
+    return "";
+  }
+
   const lines = [
     headers.join(";"),
-    ...rows.map((row) =>
-      headers
-        .map((header) => escapeCsvValue(row[header]))
-        .join(";"),
-    ),
+    ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header] ?? "")).join(";")),
   ];
 
   return lines.join("\r\n");
 }
 
-function buildExcelXml(rows: ExportRow[], worksheetName: string) {
-  const headers = Object.keys(rows[0] ?? getEmptyExportRow()) as Array<keyof ExportRow>;
+function buildExcelXml<T extends Record<string, string>>(rows: T[], worksheetName: string) {
+  const headers = Object.keys(rows[0] ?? {}) as Array<keyof T>;
   const headerCells = headers
-    .map((header) => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(header)}</Data></Cell>`)
+    .map(
+      (header) =>
+        `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(String(header))}</Data></Cell>`,
+    )
     .join("");
 
   const bodyRows = rows
@@ -147,24 +247,6 @@ function buildExcelXml(rows: ExportRow[], worksheetName: string) {
 </Workbook>`;
 }
 
-function getEmptyExportRow(): ExportRow {
-  return {
-    Protocolo: "",
-    Depositante: "",
-    SKU: "",
-    Produto: "",
-    CodigoInterno: "",
-    Area: "",
-    Endereco: "",
-    Lote: "",
-    Saldo: "",
-    Metodo: "",
-    Validade: "",
-    Status: "",
-    Entrada: "",
-  };
-}
-
 function escapeCsvValue(value: string) {
   const normalized = String(value ?? "");
   const escaped = normalized.replaceAll('"', '""');
@@ -195,4 +277,11 @@ function formatAreaLabel(value: string) {
     default:
       return value;
   }
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }

@@ -165,8 +165,22 @@ export type ShippingOrderDetail = {
   carrierName: string;
   shippingService: string;
   trackingCode: string;
+  suppliesTotalCost: string;
+  suppliesTotalCostRaw: number;
   notes: string;
   attachments: ShippingAttachment[];
+  supplies: Array<{
+    id: string;
+    kind: string;
+    label: string;
+    description: string;
+    quantity: string;
+    quantityRaw: number;
+    unitCost: string;
+    unitCostRaw: number;
+    totalCost: string;
+    totalCostRaw: number;
+  }>;
   items: Array<{
     id: string;
     externalReference: string;
@@ -367,6 +381,8 @@ export async function getShippingOrderDetailFromDb(id: string) {
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
   const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
+  const supplies = extractSupplies(payload);
+  const suppliesTotalCostRaw = supplies.reduce((accumulator, item) => accumulator + item.totalCostRaw, 0);
   const attachments = await listShippingAttachments(order.id, invoice, order.origem);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
@@ -421,8 +437,11 @@ export async function getShippingOrderDetailFromDb(id: string) {
     carrierName,
     shippingService,
     trackingCode,
+    suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
+    suppliesTotalCostRaw,
     notes: order.observacoes?.trim() || "Sem observações.",
     attachments,
+    supplies,
     items,
   } satisfies ShippingOrderDetail;
 }
@@ -692,6 +711,32 @@ function extractTrackingCode(payload: Record<string, unknown>) {
   return firstVolume && isRecord(firstVolume)
     ? readString(firstVolume.codigoRastreamento) ?? "Rastreio não informado"
     : "Rastreio não informado";
+}
+
+function extractSupplies(payload: Record<string, unknown>) {
+  const suppliesRoot = isRecord(payload.insumos) ? payload.insumos : null;
+  const items = Array.isArray(suppliesRoot?.itens) ? suppliesRoot.itens : [];
+
+  return items
+    .filter((item) => isRecord(item))
+    .map((item, index) => {
+      const quantityRaw = Number(item.quantidade ?? 0);
+      const unitCostRaw = Number(item.custoUnitario ?? 0);
+      const totalCostRaw = Number(item.custoTotal ?? quantityRaw * unitCostRaw);
+
+      return {
+        id: readString(item.id) ?? `supply-${index}`,
+        kind: readString(item.kind) ?? "OUTRO",
+        label: readString(item.label) ?? "Outro",
+        description: readString(item.descricao) ?? "",
+        quantity: quantityRaw.toLocaleString("pt-BR"),
+        quantityRaw,
+        unitCost: formatCurrency(unitCostRaw),
+        unitCostRaw,
+        totalCost: formatCurrency(totalCostRaw),
+        totalCostRaw,
+      };
+    });
 }
 
 function extractMercadoLivrePayload(payload: Record<string, unknown>) {

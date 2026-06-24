@@ -1,12 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Boxes,
-  CalendarClock,
-  FileSearch,
-  Route,
-} from "lucide-react";
+import { ArrowLeft, Boxes, CalendarClock, Download, FileSearch, Route } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
@@ -47,6 +41,17 @@ export default async function ProtocoloEstoquePage({
         description={`Rastreabilidade completa do SKU ${detail.sku} em ${detail.endereco}.`}
         badge={detail.status}
       />
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/api/estoque/protocolos/${detail.id}/pdf`}
+          target="_blank"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white"
+        >
+          <Download className="h-4 w-4" />
+          Emitir protocolo em PDF
+        </Link>
+      </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -119,9 +124,7 @@ export default async function ProtocoloEstoquePage({
                 <p className="mt-2 font-semibold text-slate-950">{detail.source.receivingCode}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  NF-e
-                </p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">NF-e</p>
                 <p className="mt-2 font-semibold text-slate-950">{detail.source.noteNumber}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
@@ -142,6 +145,27 @@ export default async function ProtocoloEstoquePage({
               Não foi encontrada uma origem formal de recebimento para este saldo.
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Assinatura operacional</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          O PDF do protocolo já sai com campo para assinatura do operador e registro manual de data
+          e hora da conferência.
+        </p>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Assinatura do operador
+            </p>
+          </div>
+          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Data e hora da assinatura
+            </p>
+          </div>
         </div>
       </section>
 

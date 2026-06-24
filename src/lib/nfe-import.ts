@@ -5,6 +5,13 @@ export type ImportedNfeItem = {
   ean: string | null;
   descricao: string;
   quantidade: number;
+  ncm: string | null;
+  cfop: string | null;
+  cstCsosn: string | null;
+  icmsValue: number;
+  ipiValue: number;
+  pisValue: number;
+  cofinsValue: number;
 };
 
 export type ParsedNfe = {
@@ -40,7 +47,7 @@ export function parseNfeXml(xml: string): ParsedNfe {
   const protNFe = envelope.protNFe?.infProt ?? parsed.protNFe?.infProt ?? null;
 
   if (!infNFe) {
-    throw new Error("Não foi possível localizar o conteúdo da NF-e no XML enviado.");
+    throw new Error("Nao foi possivel localizar o conteudo da NF-e no XML enviado.");
   }
 
   const ide = infNFe.ide ?? {};
@@ -51,18 +58,12 @@ export function parseNfeXml(xml: string): ParsedNfe {
   const det = ensureArray(infNFe.det);
 
   const items = det
-    .map((item) => item?.prod ?? null)
-    .filter(Boolean)
-    .map((prod) => ({
-      codigo: cleanString(prod.cProd),
-      ean: cleanString(prod.cEANTrib) ?? cleanString(prod.cEAN),
-      descricao: cleanString(prod.xProd) ?? "Produto sem descrição",
-      quantidade: toPositiveNumber(prod.qCom ?? prod.qTrib ?? 0),
-    }))
+    .map((item) => mapNfeItem(item))
+    .filter((item): item is ImportedNfeItem => Boolean(item))
     .filter((item) => item.quantidade > 0);
 
   if (!items.length) {
-    throw new Error("O XML da NF-e não possui itens válidos para importar.");
+    throw new Error("O XML da NF-e nao possui itens validos para importar.");
   }
 
   const volumeCount = ensureArray(transp.vol).reduce(
@@ -73,10 +74,10 @@ export function parseNfeXml(xml: string): ParsedNfe {
   return {
     accessKey: cleanString(protNFe?.chNFe) ?? extractAccessKeyFromId(infNFe.Id),
     direction: cleanString(ide.tpNF) === "1" ? "SAIDA" : "ENTRADA",
-    noteNumber: cleanString(ide.nNF) ?? "Sem número",
-    supplierName: cleanString(emit.xNome) ?? "Fornecedor não informado",
+    noteNumber: cleanString(ide.nNF) ?? "Sem numero",
+    supplierName: cleanString(emit.xNome) ?? "Fornecedor nao informado",
     supplierDocument: cleanString(emit.CNPJ) ?? cleanString(emit.CPF),
-    recipientName: cleanString(dest.xNome) ?? "Destinatário não informado",
+    recipientName: cleanString(dest.xNome) ?? "Destinatario nao informado",
     recipientDocument: cleanString(dest.CNPJ) ?? cleanString(dest.CPF),
     issuedAt: normalizeDateTime(ide.dhEmi ?? ide.dEmi ?? null),
     volumeCount,
@@ -164,9 +165,75 @@ export function matchNfeProductsToCatalog(
   return { matched, unmatched };
 }
 
+function mapNfeItem(item: Record<string, unknown> | null | undefined) {
+  const prod = (item?.prod ?? null) as Record<string, unknown> | null;
+  const imposto = (item?.imposto ?? {}) as Record<string, unknown>;
+  const icmsNode = extractFirstTaxNode(imposto.ICMS);
+  const ipiContainer = extractFirstTaxNode(imposto.IPI);
+  const ipiNode = extractNestedTaxNode(ipiContainer, ["IPITrib", "IPINT"]);
+  const pisNode = extractFirstTaxNode(imposto.PIS);
+  const cofinsNode = extractFirstTaxNode(imposto.COFINS);
+
+  if (!prod) {
+    return null;
+  }
+
+  return {
+    codigo: cleanString(prod.cProd),
+    ean: cleanString(prod.cEANTrib) ?? cleanString(prod.cEAN),
+    descricao: cleanString(prod.xProd) ?? "Produto sem descricao",
+    quantidade: toPositiveNumber(prod.qCom ?? prod.qTrib ?? 0),
+    ncm: cleanString(prod.NCM),
+    cfop: cleanString(prod.CFOP),
+    cstCsosn: cleanString(icmsNode?.CST) ?? cleanString(icmsNode?.CSOSN),
+    icmsValue: toPositiveNumber(icmsNode?.vICMS ?? 0),
+    ipiValue: toPositiveNumber(ipiNode?.vIPI ?? 0),
+    pisValue: toPositiveNumber(pisNode?.vPIS ?? 0),
+    cofinsValue: toPositiveNumber(cofinsNode?.vCOFINS ?? 0),
+  };
+}
+
 function ensureArray<T>(value: T | T[] | null | undefined): T[] {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+function extractFirstTaxNode(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  for (const [key, node] of Object.entries(record)) {
+    if (key.startsWith("@")) {
+      continue;
+    }
+
+    if (node && typeof node === "object") {
+      return node as Record<string, unknown>;
+    }
+  }
+
+  return record;
+}
+
+function extractNestedTaxNode(
+  value: Record<string, unknown> | null,
+  candidates: string[],
+) {
+  if (!value) {
+    return null;
+  }
+
+  for (const key of candidates) {
+    const node = value[key];
+    if (node && typeof node === "object") {
+      return node as Record<string, unknown>;
+    }
+  }
+
+  return value;
 }
 
 function cleanString(value: unknown) {
@@ -174,10 +241,26 @@ function cleanString(value: unknown) {
 }
 
 function toPositiveNumber(value: unknown) {
-  const normalized =
-    typeof value === "string" ? Number(value.replace(/\./g, "").replace(",", ".")) : Number(value);
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
 
-  return Number.isFinite(normalized) && normalized > 0 ? normalized : 0;
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return 0;
+  }
+
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : trimmed;
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 function extractAccessKeyFromId(value: unknown) {
@@ -187,7 +270,9 @@ function extractAccessKeyFromId(value: unknown) {
 }
 
 function normalizeDateTime(value: string | null) {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
 
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
     return value;

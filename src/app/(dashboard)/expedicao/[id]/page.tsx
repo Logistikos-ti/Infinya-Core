@@ -6,6 +6,8 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingMercadoLivreSyncPanel } from "@/components/shipping/shipping-mercado-livre-sync-panel";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
+import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
+import { ShippingGeneratedLabelPanel } from "@/components/shipping/shipping-generated-label-panel";
 import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import { canUploadOperationalDocuments, isAdminUser } from "@/lib/permissions";
 import { requireModuleAccess } from "@/lib/auth";
@@ -161,6 +163,43 @@ export default async function ShippingOrderDetailPage({
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Insumos do pedido</h2>
+            <div className="mt-4 space-y-3">
+              <InfoCard label="Custo total dos insumos" value={order.suppliesTotalCost} />
+
+              {order.supplies.length ? (
+                <div className="space-y-3">
+                  {order.supplies.map((supply) => (
+                    <div
+                      key={supply.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{supply.label}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {supply.description || "Sem descrição complementar"}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-600">
+                            Quantidade: {supply.quantity} • Custo unitário: {supply.unitCost}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          {supply.totalCost}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Nenhum insumo foi lançado neste pedido até o momento.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-slate-500" />
               <h2 className="text-lg font-semibold text-slate-950">Anexos</h2>
@@ -181,6 +220,14 @@ export default async function ShippingOrderDetailPage({
                 hasPendingLabel={Boolean(labelPending)}
                 hasTrackingCode={hasTrackingCode}
               />
+            </div>
+
+            <div className="mt-4">
+              <ShippingGeneratedLabelPanel orderId={order.id} />
+            </div>
+
+            <div className="mt-4">
+              <ShippingDanfePanel orderId={order.id} />
             </div>
 
             <div className="mt-4 space-y-3">

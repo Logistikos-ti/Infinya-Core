@@ -1,0 +1,109 @@
+{
+  "depositantes": [
+    {
+      "id": "8731c632-d2d6-4c9a-9f82-61e5db9ca341",
+      "codigo": "EVOLVEG",
+      "nome": "Evolveg",
+      "cnpj": "23.430.909/0001-10",
+      "ativo": true,
+      "logo_url": null,
+      "observacoes": "Operacao principal de fulfillment.",
+      "created_at": "2026-06-12T11:33:35.500778+00:00",
+      "updated_at": "2026-06-13T11:44:03.082888+00:00",
+      "configuracoes": {
+        "observacoes": "Operacao principal de fulfillment."
+      }
+    },
+    {
+      "id": "eb1dc60a-21e1-402f-b6da-5ff3c5f6af28",
+      "codigo": "FESTCOLOR",
+      "nome": "Festcolor",
+      "cnpj": "10.111.111/0001-03",
+      "ativo": true,
+      "logo_url": null,
+      "observacoes": "Seed inicial para ambiente de desenvolvimento.",
+      "created_at": "2026-06-12T11:33:35.500778+00:00",
+      "updated_at": "2026-06-13T11:44:03.082888+00:00",
+      "configuracoes": {
+        "observacoes": "Seed inicial para ambiente de desenvolvimento."
+      }
+    },
+    {
+      "id": "404faf71-4a92-4b6a-81b1-f21ec8063902",
+      "codigo": "RENNOVA",
+      "nome": "Rennova",
+      "cnpj": "10.111.111/0001-06",
+      "ativo": true,
+      "logo_url": null,
+      "observacoes": "Seed inicial para ambiente de desenvolvimento.",
+      "created_at": "2026-06-12T11:33:35.500778+00:00",
+      "updated_at": "2026-06-13T11:44:03.082888+00:00",
+      "configuracoes": {
+        "observacoes": "Seed inicial para ambiente de desenvolvimento."
+      }
+    },
+    {
+      "id": "009c1b4d-5664-4562-9ace-acbb33186d41",
+      "codigo": "SUAALIADA",
+      "nome": "Sua Aliada",
+      "cnpj": "10.111.111/0001-07",
+      "ativo": false,
+      "logo_url": null,
+      "observacoes": "Seed inicial para ambiente de desenvolvimento.",
+      "created_at": "2026-06-12T11:33:35.500778+00:00",
+      "updated_at": "2026-06-13T11:44:03.082888+00:00",
+      "configuracoes": {
+        "observacoes": "Seed inicial para ambiente de desenvolvimento."
+      }
+    }
+  ],
+  "usuarios": [
+    {
+      "id": "69e15b7a-b0fa-4dcd-a884-e5823cab44c1",
+      "email": "ti@logistikos.com.br",
+      "nome": "Vinícius Cruz",
+      "papel": "TI",
+      "depositante_id": null,
+      "ativo": true,
+      "ultimo_acesso_em": "2026-06-13T11:20:24.745+00:00",
+      "created_at": "2026-06-12T11:33:35.944371+00:00",
+      "updated_at": "2026-06-13T11:20:25.516165+00:00"
+    }
+  ],
+  "buckets": [
+    {
+      "id": "wms-documentos",
+      "name": "wms-documentos",
+      "owner": "",
+      "public": false,
+      "type": "STANDARD",
+      "file_size_limit": 10485760,
+      "allowed_mime_types": [
+        "application/pdf",
+        "application/xml",
+        "text/xml",
+        "image/png",
+        "image/jpeg"
+      ],
+      "created_at": "2026-06-12T17:28:46.993Z",
+      "updated_at": "2026-06-12T17:28:46.993Z"
+    },
+    {
+      "id": "wms-depositantes-logos",
+      "name": "wms-depositantes-logos",
+      "owner": "",
+      "public": true,
+      "type": "STANDARD",
+      "file_size_limit": 2097152,
+      "allowed_mime_types": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "created_at": "2026-06-13T11:40:15.096Z",
+      "updated_at": "2026-06-13T11:40:15.096Z"
+    }
+  ],
+  "documentos_root": [],
+  "logos_root": []
+}

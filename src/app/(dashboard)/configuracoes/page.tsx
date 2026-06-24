@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { isTransportadorasSchemaMissing } from "@/lib/transportadoras";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const configModules = [
@@ -24,6 +25,11 @@ const configModules = [
     description: "Mapa físico de recebimento, pulmão, picking, bloqueado e expedição.",
   },
   {
+    href: "/configuracoes/transportadoras",
+    title: "Transportadoras",
+    description: "CNPJ, modalidades, contato principal e base logística para expedição e romaneio.",
+  },
+  {
     href: "/configuracoes/integracoes",
     title: "Integrações",
     description: "Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.",
@@ -38,6 +44,7 @@ export default async function ConfiguracoesPage() {
     { data: produtos },
     { data: usuarios },
     { data: enderecos },
+    transportadorasResult,
   ] = await Promise.all([
     supabase.from("depositantes").select("id, codigo, nome, ativo").order("nome"),
     supabase.from("produtos").select("depositante_id, metodo_retirada, ativo"),
@@ -47,18 +54,13 @@ export default async function ConfiguracoesPage() {
       .select("id, codigo, area, capacidade_maxima, ativo")
       .order("codigo")
       .limit(20),
+    supabase.from("transportadoras").select("id, ativo"),
   ]);
 
   const depositanteCards = (depositantes ?? []).map((depositante) => {
-    const relatedProducts = (produtos ?? []).filter(
-      (item) => item.depositante_id === depositante.id,
-    );
-    const relatedUsers = (usuarios ?? []).filter(
-      (item) => item.depositante_id === depositante.id,
-    );
-    const preferredMethod = getPreferredMethod(
-      relatedProducts.map((item) => item.metodo_retirada),
-    );
+    const relatedProducts = (produtos ?? []).filter((item) => item.depositante_id === depositante.id);
+    const relatedUsers = (usuarios ?? []).filter((item) => item.depositante_id === depositante.id);
+    const preferredMethod = getPreferredMethod(relatedProducts.map((item) => item.metodo_retirada));
 
     return {
       id: depositante.id,
@@ -74,20 +76,26 @@ export default async function ConfiguracoesPage() {
   const activeProducts = (produtos ?? []).filter((item) => item.ativo).length;
   const activeUsers = (usuarios ?? []).filter((item) => item.ativo).length;
   const activeAddresses = (enderecos ?? []).filter((item) => item.ativo).length;
+  const transportadoras =
+    transportadorasResult.error && isTransportadorasSchemaMissing(transportadorasResult.error)
+      ? []
+      : (transportadorasResult.data ?? []);
+  const activeCarriers = transportadoras.filter((item) => item.ativo).length;
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="Configurações"
-        description="Cadastros mestres do WMS: depositantes, usuários, produtos, endereços e parâmetros operacionais."
+        description="Cadastros mestres do WMS: depositantes, usuários, produtos, endereços, transportadoras e parâmetros operacionais."
         badge="Base operacional"
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard label="Depositantes ativos" value={String(activeDepositantes)} />
         <SummaryCard label="Produtos ativos" value={String(activeProducts)} />
         <SummaryCard label="Usuários ativos" value={String(activeUsers)} />
         <SummaryCard label="Endereços ativos" value={String(activeAddresses)} />
+        <SummaryCard label="Transportadoras ativas" value={String(activeCarriers)} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
@@ -141,7 +149,7 @@ export default async function ConfiguracoesPage() {
               `Revisar ${activeProducts} produtos já importados no ambiente.`,
               "Padronizar categorias e unidades comerciais por depositante.",
               "Conectar importação em massa com planilhas operacionais reais.",
-              "Completar cadastros de usuários, endereços e regras por cliente.",
+              "Completar cadastros de usuários, endereços, transportadoras e regras por cliente.",
             ].map((item) => (
               <div
                 key={item}
@@ -154,7 +162,7 @@ export default async function ConfiguracoesPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {configModules.map((module) => (
           <Link
             key={module.href}
@@ -186,9 +194,7 @@ export default async function ConfiguracoesPage() {
                     <tr key={address.id} className="border-b border-slate-100 last:border-b-0">
                       <td className="py-3 font-medium text-slate-900">{address.codigo}</td>
                       <td className="py-3 text-slate-600">{formatArea(address.area)}</td>
-                      <td className="py-3 text-slate-600">
-                        {address.capacidade_maxima ?? "-"}
-                      </td>
+                      <td className="py-3 text-slate-600">{address.capacidade_maxima ?? "-"}</td>
                       <td className="py-3">
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -217,10 +223,22 @@ export default async function ConfiguracoesPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Cobertura atual</h2>
           <div className="mt-4 grid gap-3">
-            <StatusRow label="Depositantes com SKU cadastrado" value={String(depositanteCards.filter((item) => item.skus > 0).length)} />
-            <StatusRow label="Depositantes sem SKU cadastrado" value={String(depositanteCards.filter((item) => item.skus === 0).length)} />
-            <StatusRow label="Usuários vinculados a depositantes" value={String((usuarios ?? []).filter((item) => item.depositante_id).length)} />
-            <StatusRow label="Método predominante no ambiente" value={getPreferredMethod((produtos ?? []).map((item) => item.metodo_retirada))} />
+            <StatusRow
+              label="Depositantes com SKU cadastrado"
+              value={String(depositanteCards.filter((item) => item.skus > 0).length)}
+            />
+            <StatusRow
+              label="Depositantes sem SKU cadastrado"
+              value={String(depositanteCards.filter((item) => item.skus === 0).length)}
+            />
+            <StatusRow
+              label="Usuários vinculados a depositantes"
+              value={String((usuarios ?? []).filter((item) => item.depositante_id).length)}
+            />
+            <StatusRow
+              label="Método predominante no ambiente"
+              value={getPreferredMethod((produtos ?? []).map((item) => item.metodo_retirada))}
+            />
           </div>
         </div>
       </section>
@@ -249,9 +267,7 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 function getPreferredMethod(methods: Array<string | null | undefined>) {
   const counter = new Map<string, number>();
 
-  methods
-    .filter(Boolean)
-    .forEach((method) => counter.set(method!, (counter.get(method!) ?? 0) + 1));
+  methods.filter(Boolean).forEach((method) => counter.set(method!, (counter.get(method!) ?? 0) + 1));
 
   const mostFrequent = [...counter.entries()].sort((left, right) => right[1] - left[1])[0]?.[0];
   return mostFrequent ?? "Sem produtos";

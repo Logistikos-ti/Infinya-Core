@@ -1,56 +1,46 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Download, Lock, Search } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { NfeOutgoingImportPanel } from "@/components/nfe/nfe-outgoing-import-panel";
+import { Button } from "@/components/ui/button";
 import { DocumentUploadPanel } from "@/components/storage/document-upload-panel";
 import { requireModuleAccess } from "@/lib/auth";
+import { listFiscalDocumentsWithDetails } from "@/lib/fiscal-documents";
 import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
-type RelatedShippingOrder = {
-  id?: string;
-  codigo?: string | null;
-  numero_pedido?: string | null;
-  status?: string | null;
-  payload_origem?: Record<string, unknown> | null;
-} | null;
-
-type RelatedReceivingOrder = {
-  id?: string;
-  codigo?: string | null;
-  nota_fiscal_numero?: string | null;
-  status?: string | null;
-} | null;
-
-type FiscalDocumentRow = {
-  id: string;
-  nome_arquivo: string;
-  tipo: string;
-  created_at: string;
-  depositante_id: string;
-  pedido_expedicao_id?: string | null;
-  pedido_recebimento_id?: string | null;
-  depositante: { nome?: string } | null;
-  pedido_expedicao?: RelatedShippingOrder;
-  pedido_recebimento?: RelatedReceivingOrder;
+type NfePageProps = {
+  searchParams?: Promise<{
+    q?: string;
+    fluxo?: string;
+    depositante?: string;
+    emitente?: string;
+    destinatario?: string;
+  }>;
 };
 
-export default async function NfePage() {
+export default async function NfePage({ searchParams }: NfePageProps) {
   const user = await requireModuleAccess("nfe");
+  const params = searchParams ? await searchParams : undefined;
   const uploadEnabled = canUploadOperationalDocuments(user);
+  const q = params?.q?.trim() ?? "";
+  const fluxo = params?.fluxo?.trim() ?? "";
+  const issuerTerm = params?.emitente?.trim() ?? "";
+  const recipientTerm = params?.destinatario?.trim() ?? "";
+  const depositanteFilter =
+    user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: depositantes }, { data: documentos }] = await Promise.all([
+  const [{ data: depositantes }, documentos] = await Promise.all([
     supabase.from("depositantes").select("id, nome").order("nome"),
-    supabase
-      .from("documentos_armazenados")
-      .select(
-        "id, nome_arquivo, tipo, created_at, depositante_id, pedido_expedicao_id, pedido_recebimento_id, depositante:depositantes(nome), pedido_expedicao:pedidos_expedicao(id, codigo, numero_pedido, status, payload_origem), pedido_recebimento:pedidos_recebimento(id, codigo, nota_fiscal_numero, status)",
-      )
-      .eq("tipo", "NF")
-      .order("created_at", { ascending: false })
-      .limit(20),
+    listFiscalDocumentsWithDetails(user, {
+      q: q || undefined,
+      fluxo: fluxo || undefined,
+      depositanteId: depositanteFilter || undefined,
+      issuerTerm: issuerTerm || undefined,
+      recipientTerm: recipientTerm || undefined,
+    }),
   ]);
 
   const depositanteOptions = filterDepositanteOptionsByUser(
@@ -61,89 +51,251 @@ export default async function NfePage() {
     })),
   );
 
-  const visibleDocuments =
-    user.depositanteId && user.papel === "DEPOSITANTE"
-      ? ((documentos ?? []) as FiscalDocumentRow[]).filter(
-          (item) => item.depositante_id === user.depositanteId,
-        )
-      : (((documentos ?? []) as FiscalDocumentRow[]) ?? []);
+  const totalEntrada = documentos.filter((item) => item.flow === "ENTRADA").length;
+  const totalSaida = documentos.filter((item) => item.flow === "SAIDA").length;
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="NF-e"
-        description="Caixa fiscal operacional para XMLs de entrada e saída, com storage, vínculo com pedidos e rastreabilidade por depositante."
+        description="Consulta fiscal completa de NF-e de entrada e saída, com XML armazenado, vínculo operacional e campos tributários por item."
         badge="Fiscal operacional"
       />
 
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Inbox fiscal real</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            XMLs já armazenados no WMS, com vínculo ao recebimento ou à expedição conforme a operação.
-          </p>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Documentos fiscais" value={String(documentos.length)} />
+        <StatCard label="NF-e de entrada" value={String(totalEntrada)} />
+        <StatCard label="NF-e de saída" value={String(totalSaida)} />
+        <StatCard
+          label="Com vínculo operacional"
+          value={String(documentos.filter((item) => item.linkedOrderHref).length)}
+        />
+      </section>
 
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-slate-500">
-                <tr>
-                  <th className="pb-3 font-medium">Arquivo</th>
-                  <th className="pb-3 font-medium">Fluxo</th>
-                  <th className="pb-3 font-medium">Vínculo</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleDocuments.length ? (
-                  visibleDocuments.map((item) => {
-                    const shippingPayload = isRecord(item.pedido_expedicao?.payload_origem)
-                      ? item.pedido_expedicao?.payload_origem
-                      : {};
-                    const accessKey = readInvoiceAccessKey(shippingPayload);
-
-                    return (
-                      <tr key={item.id} className="border-b border-slate-100 last:border-b-0">
-                        <td className="py-3 text-slate-900">
-                          <div className="font-medium">{item.nome_arquivo}</div>
-                          <div className="text-xs text-slate-500">
-                            {item.depositante?.nome ?? "-"} • {formatDateTime(item.created_at)}
-                          </div>
-                          {accessKey ? (
-                            <div className="mt-1 text-xs text-slate-500">Chave: {accessKey}</div>
-                          ) : null}
-                        </td>
-                        <td className="py-3 text-slate-600">{resolveFlowLabel(item)}</td>
-                        <td className="py-3 text-slate-600">{resolveLinkLabel(item)}</td>
-                        <td className="py-3">
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                            {resolveStatusLabel(item)}
-                          </span>
-                        </td>
-                        <td className="py-3">
-                          <Link
-                            href={`/api/documentos/${item.id}/download`}
-                            className="text-sm font-medium text-sky-700 transition hover:text-sky-900"
-                            target="_blank"
-                          >
-                            Baixar
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-500">
-                      Nenhum XML fiscal disponível para o seu depositante.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">Consulta fiscal</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Pesquise por nota, chave, emitente, destinatário, depositante ou vínculo operacional.
+            </p>
           </div>
+          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            {documentos.length} registros
+          </span>
         </div>
 
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_0.85fr_1fr_1fr_1fr_auto]">
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Busca
+              </span>
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
+                <Search className="h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={q}
+                  placeholder="Número, chave, pedido..."
+                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Fluxo
+              </span>
+              <select
+                name="fluxo"
+                defaultValue={fluxo}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              >
+                <option value="">Todos</option>
+                <option value="ENTRADA">Entrada</option>
+                <option value="SAIDA">Saída</option>
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Depositante
+              </span>
+              <select
+                name="depositante"
+                defaultValue={depositanteFilter}
+                disabled={user.papel === "DEPOSITANTE"}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              >
+                <option value="">Todos</option>
+                {depositanteOptions.map((depositante) => (
+                  <option key={depositante.id} value={depositante.id}>
+                    {depositante.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Emitente
+              </span>
+              <input
+                type="text"
+                name="emitente"
+                defaultValue={issuerTerm}
+                placeholder="Razão social ou documento"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Destinatário
+              </span>
+              <input
+                type="text"
+                name="destinatario"
+                defaultValue={recipientTerm}
+                placeholder="Razão social ou documento"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </label>
+
+            <div className="flex items-end gap-2">
+              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+                Filtrar
+              </Button>
+              <Link
+                href="/nfe"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+              >
+                Limpar
+              </Link>
+            </div>
+          </div>
+        </form>
+
+        <div className="mt-5 space-y-4">
+          {documentos.length ? (
+            documentos.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-slate-200 p-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-slate-950">NF-e {item.noteNumber}</p>
+                        <Badge>{item.flowLabel}</Badge>
+                        <Badge>{item.linkedOrderStatus}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {item.fileName} • {item.depositante} • {item.createdAtLabel}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <InfoCard label="Chave de acesso" value={item.accessKey ?? "-"} />
+                      <InfoCard label="Emissão" value={item.issuedAtLabel} />
+                      <InfoCard label="Valor total" value={item.totalValueLabel} />
+                      <InfoCard label="Volumes" value={String(item.volumeCount)} />
+                      <InfoCard label="Emitente" value={item.issuerName} />
+                      <InfoCard label="Documento emitente" value={item.issuerDocument ?? "-"} />
+                      <InfoCard label="Destinatário" value={item.recipientName} />
+                      <InfoCard label="Documento destinatário" value={item.recipientDocument ?? "-"} />
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <InfoMini label="Protocolo" value={item.protocolNumber ?? "-"} />
+                        <InfoMini
+                          label="Status SEFAZ"
+                          value={
+                            [item.protocolStatusCode, item.protocolStatusLabel]
+                              .filter(Boolean)
+                              .join(" - ") || "-"
+                          }
+                        />
+                        <InfoMini label="Vínculo operacional" value={item.linkedOrderLabel} />
+                        <InfoMini label="Itens no XML" value={String(item.itemCount)} />
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white">
+                      <div className="border-b border-slate-200 px-4 py-3">
+                        <p className="text-sm font-medium text-slate-900">Itens fiscais</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="border-b border-slate-200 text-slate-500">
+                            <tr>
+                              <th className="px-4 py-3 font-medium">Descrição</th>
+                              <th className="px-4 py-3 font-medium">Código</th>
+                              <th className="px-4 py-3 font-medium">EAN</th>
+                              <th className="px-4 py-3 font-medium">NCM</th>
+                              <th className="px-4 py-3 font-medium">CFOP</th>
+                              <th className="px-4 py-3 font-medium">CST/CSOSN</th>
+                              <th className="px-4 py-3 font-medium">Quantidade</th>
+                              <th className="px-4 py-3 font-medium">ICMS</th>
+                              <th className="px-4 py-3 font-medium">IPI</th>
+                              <th className="px-4 py-3 font-medium">PIS</th>
+                              <th className="px-4 py-3 font-medium">COFINS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {item.itemsPreview.map((product, index) => (
+                              <tr key={`${item.id}-${index}`} className="border-b border-slate-100 last:border-b-0">
+                                <td className="px-4 py-3 text-slate-900">{product.descricao}</td>
+                                <td className="px-4 py-3 text-slate-600">{product.codigo ?? "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">{product.ean ?? "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">{product.ncm ?? "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">{product.cfop ?? "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">{product.cstCsosn ?? "-"}</td>
+                                <td className="px-4 py-3 text-slate-600">
+                                  {product.quantidade.toLocaleString("pt-BR")}
+                                </td>
+                                <td className="px-4 py-3 text-slate-600">{formatCurrency(product.icmsValue)}</td>
+                                <td className="px-4 py-3 text-slate-600">{formatCurrency(product.ipiValue)}</td>
+                                <td className="px-4 py-3 text-slate-600">{formatCurrency(product.pisValue)}</td>
+                                <td className="px-4 py-3 text-slate-600">{formatCurrency(product.cofinsValue)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 xl:w-44 xl:flex-col">
+                    {item.linkedOrderHref ? (
+                      <Link
+                        href={item.linkedOrderHref}
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Abrir vínculo
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={item.downloadHref}
+                      target="_blank"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      Baixar XML
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              Nenhum documento fiscal encontrado com os filtros atuais.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
         {uploadEnabled ? (
           <NfeOutgoingImportPanel
             defaultDepositanteId={depositanteOptions[0]?.id ?? null}
@@ -157,23 +309,11 @@ export default async function NfePage() {
               <h2 className="text-lg font-semibold">Importação restrita</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-amber-900">
-              Seu perfil atual é <strong>{user.papel}</strong>. A importação de XML
-              fiscal de saída está liberada apenas para Admin, TI e Operador.
+              Seu perfil atual é <strong>{user.papel}</strong>. A importação de XML fiscal
+              de saída está liberada apenas para Admin, TI e Operador.
             </p>
           </div>
         )}
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Como funciona agora</h2>
-          <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <li>O XML de saída é validado antes do armazenamento operacional.</li>
-            <li>O WMS confere se a NF-e é de saída e tenta vincular ao pedido certo.</li>
-            <li>Quando encontra o pedido, atualiza número da nota e chave de acesso no fluxo da expedição.</li>
-            <li>Pedidos manuais e integrados seguem o mesmo padrão de anexo fiscal.</li>
-          </ul>
-        </div>
 
         {uploadEnabled ? (
           <DocumentUploadPanel
@@ -187,65 +327,44 @@ export default async function NfePage() {
   );
 }
 
-function resolveFlowLabel(item: FiscalDocumentRow) {
-  if (item.pedido_expedicao_id) {
-    return "Saída";
-  }
-
-  if (item.pedido_recebimento_id) {
-    return "Entrada";
-  }
-
-  return "Documento fiscal";
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
 }
 
-function resolveLinkLabel(item: FiscalDocumentRow) {
-  if (item.pedido_expedicao) {
-    return item.pedido_expedicao.numero_pedido || item.pedido_expedicao.codigo || "Pedido de expedição";
-  }
-
-  if (item.pedido_recebimento) {
-    return item.pedido_recebimento.codigo || item.pedido_recebimento.nota_fiscal_numero || "Pedido de recebimento";
-  }
-
-  return "Sem vínculo automático";
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+      {children}
+    </span>
+  );
 }
 
-function resolveStatusLabel(item: FiscalDocumentRow) {
-  if (item.pedido_expedicao?.status) {
-    return item.pedido_expedicao.status;
-  }
-
-  if (item.pedido_recebimento?.status) {
-    return item.pedido_recebimento.status;
-  }
-
-  return "Armazenado";
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
 }
 
-function readInvoiceAccessKey(payload: Record<string, unknown>) {
-  const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
-  return readString(notaFiscal?.chaveAcesso);
+function InfoMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
 }
 
-function readString(value: unknown) {
-  if (typeof value === "string") {
-    const normalized = value.trim();
-    return normalized || null;
-  }
-
-  if (typeof value === "number") {
-    return String(value);
-  }
-
-  return null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : date.toLocaleString("pt-BR");
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }

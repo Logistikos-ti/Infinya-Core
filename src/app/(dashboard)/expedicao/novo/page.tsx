@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { ShippingSuppliesFields } from "@/components/shipping/shipping-supplies-fields";
 import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
@@ -221,6 +222,10 @@ export default async function NovoPedidoManualPage({
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none"
             />
           </Field>
+
+          <div className="mt-6">
+            <ShippingSuppliesFields />
+          </div>
         </section>
 
         <section className="space-y-6">

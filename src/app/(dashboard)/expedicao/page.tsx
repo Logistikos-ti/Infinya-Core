@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
   Activity,
+  ClipboardCheck,
   Eye,
+  ListChecks,
   PackageCheck,
   Pencil,
   Plus,
@@ -91,7 +93,21 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         badge="Banco operacional"
       />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-3">
+        <Link
+          href="/expedicao/separacao"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+        >
+          <ListChecks className="h-4 w-4" />
+          Tela de separação
+        </Link>
+        <Link
+          href="/expedicao/conferencia"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          Tela de conferência
+        </Link>
         <Link
           href="/expedicao/novo"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
@@ -102,30 +118,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Truck}
-          label={shippingStats[0].label}
-          value={shippingStats[0].value}
-          help={shippingStats[0].help}
-        />
-        <StatCard
-          icon={PackageCheck}
-          label={shippingStats[1].label}
-          value={shippingStats[1].value}
-          help={shippingStats[1].help}
-        />
-        <StatCard
-          icon={Activity}
-          label={shippingStats[2].label}
-          value={shippingStats[2].value}
-          help={shippingStats[2].help}
-        />
-        <StatCard
-          icon={TimerReset}
-          label={shippingStats[3].label}
-          value={shippingStats[3].value}
-          help={shippingStats[3].help}
-        />
+        <StatCard icon={Truck} label={shippingStats[0].label} value={shippingStats[0].value} help={shippingStats[0].help} />
+        <StatCard icon={PackageCheck} label={shippingStats[1].label} value={shippingStats[1].value} help={shippingStats[1].help} />
+        <StatCard icon={Activity} label={shippingStats[2].label} value={shippingStats[2].value} help={shippingStats[2].help} />
+        <StatCard icon={TimerReset} label={shippingStats[3].label} value={shippingStats[3].value} help={shippingStats[3].help} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
@@ -145,9 +141,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Status
-                </span>
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
                 <select
                   name="status"
                   defaultValue={statusFilter}
@@ -194,9 +188,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
               </label>
 
               <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Cliente
-                </span>
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Cliente</span>
                 <input
                   type="text"
                   name="cliente"

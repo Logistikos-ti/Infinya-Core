@@ -13,6 +13,16 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 
+type ShippingSupplyPayloadItem = {
+  id: string;
+  kind: string;
+  label: string;
+  description: string | null;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+};
+
 export async function updateShippingOrderAction(formData: FormData) {
   await requireRoleAccess(["ADMIN", "TI"]);
 
@@ -73,6 +83,7 @@ export async function updateShippingOrderAction(formData: FormData) {
   const currentComercial = isRecord(currentPayload.comercial) ? currentPayload.comercial : {};
   const currentTransporte = isRecord(currentPayload.transporte) ? currentPayload.transporte : {};
   const currentContato = isRecord(currentTransporte.contato) ? currentTransporte.contato : {};
+  const supplies = extractShippingSupplies(formData);
   const nextPayload = {
     ...currentPayload,
     comercial:
@@ -103,6 +114,10 @@ export async function updateShippingOrderAction(formData: FormData) {
           codigoRastreamento: trackingCode || null,
         },
       ],
+    },
+    insumos: {
+      itens: supplies,
+      custoTotal: supplies.reduce((accumulator, item) => accumulator + item.totalCost, 0),
     },
   };
 
@@ -166,6 +181,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const total = Number(String(formData.get("valorTotal") ?? "0").replace(",", "."));
   const itemCount = Number(String(formData.get("quantidadeItens") ?? "0").replace(",", "."));
   const unitCount = Number(String(formData.get("quantidadeUnidades") ?? "0").replace(",", "."));
+  const supplies = extractShippingSupplies(formData);
   const xmlFile = formData.get("invoiceXml");
   const labelFile = formData.get("shippingLabel");
 
@@ -205,6 +221,10 @@ export async function createManualShippingOrderAction(formData: FormData) {
           codigoRastreamento: trackingCode || null,
         },
       ],
+    },
+    insumos: {
+      itens: supplies,
+      custoTotal: supplies.reduce((accumulator, item) => accumulator + item.totalCost, 0),
     },
   };
 
@@ -306,4 +326,63 @@ function readOptionalUpload(value: FormDataEntryValue | null) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function extractShippingSupplies(formData: FormData): ShippingSupplyPayloadItem[] {
+  const kinds = formData.getAll("supplyKind[]").map((item) => String(item ?? "").trim().toUpperCase());
+  const descriptions = formData.getAll("supplyDescription[]").map((item) => String(item ?? "").trim());
+  const quantities = formData.getAll("supplyQuantity[]").map((item) => normalizeDecimalInput(String(item ?? "")));
+  const unitCosts = formData.getAll("supplyUnitCost[]").map((item) => normalizeDecimalInput(String(item ?? "")));
+  const parsedItems: Array<ShippingSupplyPayloadItem | null> = [];
+
+  for (const [index, kind] of kinds.entries()) {
+    const quantity = quantities[index] ?? 0;
+    const unitCost = unitCosts[index] ?? 0;
+    const description = descriptions[index] ?? "";
+    const totalCost = quantity * unitCost;
+
+    if (!kind || quantity <= 0 || unitCost < 0) {
+      parsedItems.push(null);
+      continue;
+    }
+
+    if (!description && unitCost === 0) {
+      parsedItems.push(null);
+      continue;
+    }
+
+    parsedItems.push({
+      id: randomUUID(),
+      kind,
+      label: mapSupplyKindLabel(kind),
+      description: description || null,
+      quantity,
+      unitCost,
+      totalCost,
+    });
+  }
+
+  return parsedItems.filter((item): item is ShippingSupplyPayloadItem => item !== null);
+}
+
+function normalizeDecimalInput(value: string) {
+  const normalized = Number(value.replace(",", "."));
+  return Number.isFinite(normalized) ? normalized : 0;
+}
+
+function mapSupplyKindLabel(kind: string) {
+  switch (kind) {
+    case "CAIXA":
+      return "Caixa";
+    case "ENVELOPE":
+      return "Envelope";
+    case "SACO":
+      return "Saco";
+    case "PLASTICO_BOLHA":
+      return "Plástico bolha";
+    case "FITA":
+      return "Fita";
+    default:
+      return "Outro";
+  }
 }

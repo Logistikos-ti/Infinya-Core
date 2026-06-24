@@ -8,11 +8,21 @@ const initialState: LoginActionState = {
   error: null,
 };
 
-export function LoginForm() {
+type LoginFormProps = {
+  redirectTo?: string;
+  submitLabel?: string;
+};
+
+export function LoginForm({
+  redirectTo = "/dashboard",
+  submitLabel = "Entrar no WMS",
+}: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
   return (
     <form action={formAction} className="mt-6 space-y-4">
+      <input type="hidden" name="redirectTo" value={redirectTo} />
+
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium text-slate-700">
           E-mail
@@ -52,7 +62,7 @@ export function LoginForm() {
         disabled={isPending}
         className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700 disabled:bg-sky-400"
       >
-        {isPending ? "Entrando..." : "Entrar no WMS"}
+        {isPending ? "Entrando..." : submitLabel}
       </Button>
     </form>
   );

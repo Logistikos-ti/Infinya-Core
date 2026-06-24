@@ -46,3 +46,5 @@ next-env.d.ts
 
 # test artifacts
 /test-results
+
+.vercel
