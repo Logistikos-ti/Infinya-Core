@@ -134,7 +134,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           </div>
           <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[1].value}</h3>
           <p className="mt-2 flex items-center gap-2 text-xs text-amber-500">
-            <Loader className="w-3 h-3 animate-spin mr-1" /> {shippingStats[1].help}
+            {shippingStats[1].help}
           </p>
         </div>
 
@@ -147,7 +147,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             </span>
           </div>
           <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[2].value}</h3>
-          <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">{shippingStats[2].help}</p>
+          <p className="mt-2 flex items-center gap-2 text-xs text-purple-500">
+            <Loader className="w-3 h-3 animate-spin mr-1" /> {shippingStats[2].help}
+          </p>
         </div>
 
         {/* KPI 4 */}

@@ -92,26 +92,20 @@ export function MobilePickingPanel({
   );
 
   const orderedItems = useMemo(() => {
-    return [...items].sort((left, right) => {
+    return [...items]
+      .filter((item) => !nextItem || item.id !== nextItem.id)
+      .sort((left, right) => {
       const leftSeparated = normalizeQuantity(left.separatedQuantityValue);
       const rightSeparated = normalizeQuantity(right.separatedQuantityValue);
       const leftPending = leftSeparated < left.requestedQuantity;
       const rightPending = rightSeparated < right.requestedQuantity;
-
-      if (nextItem && left.id === nextItem.id) {
-        return -1;
-      }
-
-      if (nextItem && right.id === nextItem.id) {
-        return 1;
-      }
 
       if (leftPending !== rightPending) {
         return leftPending ? -1 : 1;
       }
 
       return left.sku.localeCompare(right.sku, "pt-BR");
-    });
+      });
   }, [items, nextItem]);
 
   useEffect(() => {

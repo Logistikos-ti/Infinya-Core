@@ -46,7 +46,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
           </div>
           
           <div className="flex items-center gap-4 ml-4">
-            <ThemeToggle />
+            {/* O ThemeToggle ficava aqui e foi movido para o fixed bottom */}
           </div>
         </header>
 
@@ -58,6 +58,13 @@ export function AppChrome({ children, user }: AppChromeProps) {
       {/* Mobile Navigation */}
       <div className="lg:hidden">
          <AppMobileNav currentPath={currentPath} user={user} />
+      </div>
+
+      {/* Floating Theme Toggle no canto inferior esquerdo */}
+      <div className="fixed bottom-6 left-6 z-[100]">
+        <div className="glass-card rounded-full shadow-lg border border-slate-200/50 dark:border-zinc-700/50">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );
