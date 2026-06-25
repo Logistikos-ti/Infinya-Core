@@ -31,7 +31,7 @@ export default function DashboardPage() {
       {/* KPIs Principais */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* KPI 1 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-primary-500 hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/10 relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-primary-500/40 dark:border-primary-500/30 border-l-4 border-l-primary-500 hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/20 relative overflow-hidden group transition-all">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Entradas no Mês</p>
             <span className="p-2 bg-primary-500/10 text-primary-500 rounded-lg">
@@ -48,7 +48,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 2 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-accent-500 hover:border-accent-500/50 hover:shadow-lg hover:shadow-accent-500/10 relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-accent-500/40 dark:border-accent-500/30 border-l-4 border-l-accent-500 hover:border-accent-500 hover:shadow-lg hover:shadow-accent-500/20 relative overflow-hidden group transition-all">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Saídas no Mês</p>
             <span className="p-2 bg-accent-500/10 text-accent-500 rounded-lg">
@@ -65,7 +65,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 3 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-emerald-500 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-emerald-500/40 dark:border-emerald-500/30 border-l-4 border-l-emerald-500 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20 relative overflow-hidden group transition-all">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Acuracidade</p>
             <span className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
@@ -82,7 +82,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 4 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-rose-500 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/10 relative overflow-hidden group">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-rose-500/40 dark:border-rose-500/30 border-l-4 border-l-rose-500 hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/20 relative overflow-hidden group transition-all">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Pedidos Atrasados</p>
             <span className="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
