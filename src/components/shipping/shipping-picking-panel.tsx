@@ -216,6 +216,7 @@ export function ShippingPickingPanel({
         countdownSeconds={countdownSeconds}
         title="Separação pausada por inatividade"
         description="O operador ficou sem interação nesta separação. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
+        mobileDescription="Sem interação na separação. Retome agora ou o pedido volta para a fila."
       />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">

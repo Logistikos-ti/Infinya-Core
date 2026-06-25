@@ -172,6 +172,7 @@ export function MobilePickingPanel({
         countdownSeconds={countdownSeconds}
         title="Separação pausada por inatividade"
         description="O operador ficou sem interação nesta separação. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
+        mobileDescription="Sem interação na separação. Retome agora ou o pedido volta para a fila."
       />
 
       <input type="hidden" name="orderId" value={order.id} />

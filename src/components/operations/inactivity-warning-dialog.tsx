@@ -5,6 +5,7 @@ type InactivityWarningDialogProps = {
   isVisible: boolean;
   title: string;
   description: string;
+  mobileDescription?: string;
 };
 
 export function InactivityWarningDialog({
@@ -12,6 +13,7 @@ export function InactivityWarningDialog({
   isVisible,
   title,
   description,
+  mobileDescription,
 }: InactivityWarningDialogProps) {
   if (!isVisible) {
     return null;
@@ -36,12 +38,18 @@ export function InactivityWarningDialog({
               Aviso de inatividade
             </p>
             <h3 className="mt-3 text-2xl font-semibold text-slate-950 md:text-3xl">{title}</h3>
-            <p className="mt-3 text-base leading-7 text-slate-600 md:text-lg">{description}</p>
+            <p className="mt-3 text-base leading-7 text-slate-600 md:hidden">
+              {mobileDescription ?? description}
+            </p>
+            <p className="mt-3 hidden text-lg leading-7 text-slate-600 md:block">{description}</p>
           </div>
         </div>
 
         <div className="mt-6 rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-base text-amber-900 md:text-lg">
-          Retome a operação imediatamente para evitar que o pedido volte para a fila.
+          <span className="md:hidden">Retome agora para não devolver o pedido à fila.</span>
+          <span className="hidden md:inline">
+            Retome a operação imediatamente para evitar que o pedido volte para a fila.
+          </span>
         </div>
       </div>
     </div>
