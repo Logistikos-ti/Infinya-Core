@@ -525,24 +525,26 @@ export function MobileConferencePanel({
               ref={(element) => {
                 itemRefs.current[item.id] = element;
               }}
-              className={`rounded-[24px] border p-4 ${
+              className={`border ${
                 isCurrentItem
-                  ? "border-amber-400/40 bg-gradient-to-br from-amber-500/18 via-amber-500/8 to-slate-950 shadow-lg shadow-amber-950/20"
+                  ? "rounded-[24px] border-amber-400/40 bg-gradient-to-br from-amber-500/18 via-amber-500/8 to-slate-950 p-4 shadow-lg shadow-amber-950/20"
                   : isCompleted
-                    ? "border-emerald-400/25 bg-emerald-500/10"
+                    ? "rounded-[20px] border-emerald-400/25 bg-emerald-500/10 p-3.5"
                     : isActiveItem
-                      ? "border-amber-300/30 bg-amber-500/10"
-                      : "border-white/10 bg-white/5"
+                      ? "rounded-[20px] border-amber-300/30 bg-amber-500/10 p-3.5"
+                      : "rounded-[20px] border-white/10 bg-white/5 p-3.5"
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-amber" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
-              <div className="flex items-start justify-between gap-3">
+              <div className={`flex items-start justify-between ${isCurrentItem ? "gap-3" : "gap-2.5"}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{item.sku}</p>
+                    <p className={`${isCurrentItem ? "text-sm" : "text-[13px]"} font-semibold text-white`}>
+                      {item.sku}
+                    </p>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                      className={`rounded-full ${isCurrentItem ? "px-2.5 py-1" : "px-2 py-0.5"} text-[11px] font-semibold uppercase tracking-[0.14em] ${
                         isCurrentItem
                           ? "bg-amber-400/15 text-amber-100"
                           : isCompleted
@@ -559,15 +561,27 @@ export function MobileConferencePanel({
                             : "Conferir"}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-300">{item.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">Código {item.code}</p>
+                  <p className={`mt-1 ${isCurrentItem ? "text-sm" : "line-clamp-2 text-[13px]"} text-slate-300`}>
+                    {item.name}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                    <span>Cod. {item.code}</span>
+                    {!isCurrentItem ? <span>/</span> : null}
+                    {!isCurrentItem ? (
+                      <span>
+                        {item.requestedQuantity} {item.unit}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                <span
+                  className={`rounded-full bg-white/10 ${isCurrentItem ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-[11px]"} font-medium text-slate-200`}
+                >
                   {item.requestedQuantity} {item.unit}
                 </span>
               </div>
 
-              <div className="mt-3 space-y-2">
+              <div className={`${isCurrentItem ? "mt-3" : "mt-2"} space-y-2`}>
                 <div className="flex items-center justify-between text-xs text-slate-300">
                   <span>Progresso do item</span>
                   <span>
@@ -589,14 +603,20 @@ export function MobileConferencePanel({
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl border border-amber-400/20 bg-slate-950/40 px-3 py-3">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  EAN/GTIN esperado
-                </p>
-                <p className="mt-1 text-sm font-semibold text-white">{item.barcode || "-"}</p>
+              <div
+                className={`rounded-2xl border border-amber-400/20 bg-slate-950/40 ${isCurrentItem ? "mt-3 px-3 py-3" : "mt-2 px-3 py-2.5"}`}
+              >
+                <div className={`flex ${isCurrentItem ? "flex-col" : "items-center justify-between gap-3"}`}>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                    EAN/GTIN esperado
+                  </p>
+                  <p className={`${isCurrentItem ? "mt-1 text-sm" : "text-[13px]"} font-semibold text-white`}>
+                    {item.barcode || "-"}
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-3 gap-2`}>
                 <InfoBadge label="Pedido" value={`${item.requestedQuantity}`} />
                 <InfoBadge label="Separado" value={`${item.separatedQuantity}`} />
                 <label className="space-y-1">
@@ -620,8 +640,10 @@ export function MobileConferencePanel({
                 </label>
               </div>
 
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-400">Ref. externa: {item.externalReference}</p>
+              <div className={`${isCurrentItem ? "mt-3" : "mt-2.5"} flex items-center justify-between gap-3`}>
+                <p className={`text-slate-400 ${isCurrentItem ? "text-xs" : "text-[11px]"}`}>
+                  Ref. externa: {item.externalReference}
+                </p>
                 {hasDivergence ? (
                   <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
                     Divergência
@@ -633,7 +655,9 @@ export function MobileConferencePanel({
                 )}
               </div>
 
-              <p className={`mt-3 text-sm ${missing > 0 ? "text-amber-200" : "text-emerald-300"}`}>
+              <p
+                className={`${isCurrentItem ? "mt-3 text-sm" : "mt-2 text-[13px]"} ${missing > 0 ? "text-amber-200" : "text-emerald-300"}`}
+              >
                 {missing > 0 ? `Faltam ${missing} ${item.unit}.` : "Item conferido."}
               </p>
             </div>

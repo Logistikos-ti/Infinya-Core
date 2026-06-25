@@ -461,24 +461,26 @@ export function MobilePickingPanel({
           return (
             <div
               key={item.id}
-              className={`rounded-[24px] border p-4 ${
+              className={`border ${
                 isCurrentItem
-                  ? "border-sky-400/40 bg-gradient-to-br from-sky-500/18 via-sky-500/8 to-slate-950 shadow-lg shadow-sky-950/20"
+                  ? "rounded-[24px] border-sky-400/40 bg-gradient-to-br from-sky-500/18 via-sky-500/8 to-slate-950 p-4 shadow-lg shadow-sky-950/20"
                   : isCompleted
-                    ? "border-emerald-400/25 bg-emerald-500/10"
+                    ? "rounded-[20px] border-emerald-400/25 bg-emerald-500/10 p-3.5"
                     : isActiveItem
-                      ? "border-sky-300/30 bg-sky-500/10"
-                      : "border-white/10 bg-white/5"
+                      ? "rounded-[20px] border-sky-300/30 bg-sky-500/10 p-3.5"
+                      : "rounded-[20px] border-white/10 bg-white/5 p-3.5"
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
-              <div className="flex items-start justify-between gap-3">
+              <div className={`flex items-start justify-between ${isCurrentItem ? "gap-3" : "gap-2.5"}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{item.sku}</p>
+                    <p className={`${isCurrentItem ? "text-sm" : "text-[13px]"} font-semibold text-white`}>
+                      {item.sku}
+                    </p>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                      className={`rounded-full ${isCurrentItem ? "px-2.5 py-1" : "px-2 py-0.5"} text-[11px] font-semibold uppercase tracking-[0.14em] ${
                         isCurrentItem
                           ? "bg-sky-400/15 text-sky-100"
                           : isCompleted
@@ -495,15 +497,27 @@ export function MobilePickingPanel({
                             : "Pendente"}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-300">{item.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">Código {item.code}</p>
+                  <p className={`mt-1 ${isCurrentItem ? "text-sm" : "line-clamp-2 text-[13px]"} text-slate-300`}>
+                    {item.name}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                    <span>Cod. {item.code}</span>
+                    {!isCurrentItem ? <span>/</span> : null}
+                    {!isCurrentItem ? (
+                      <span>
+                        {item.requestedQuantity} {item.unit}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                <span
+                  className={`rounded-full bg-white/10 ${isCurrentItem ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-[11px]"} font-medium text-slate-200`}
+                >
                   {item.requestedQuantity} {item.unit}
                 </span>
               </div>
 
-              <div className="mt-3 space-y-2">
+              <div className={`${isCurrentItem ? "mt-3" : "mt-2"} space-y-2`}>
                 <div className="flex items-center justify-between text-xs text-slate-300">
                   <span>Progresso do item</span>
                   <span>
@@ -525,14 +539,20 @@ export function MobilePickingPanel({
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl border border-sky-400/20 bg-slate-950/40 px-3 py-3">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  EAN/GTIN esperado
-                </p>
-                <p className="mt-1 text-sm font-semibold text-white">{item.barcode || "-"}</p>
+              <div
+                className={`rounded-2xl border border-sky-400/20 bg-slate-950/40 ${isCurrentItem ? "mt-3 px-3 py-3" : "mt-2 px-3 py-2.5"}`}
+              >
+                <div className={`flex ${isCurrentItem ? "flex-col" : "items-center justify-between gap-3"}`}>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                    EAN/GTIN esperado
+                  </p>
+                  <p className={`${isCurrentItem ? "mt-1 text-sm" : "text-[13px]"} font-semibold text-white`}>
+                    {item.barcode || "-"}
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-2 gap-2`}>
                 <label className="space-y-1">
                   <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
                     Separado
@@ -561,7 +581,7 @@ export function MobilePickingPanel({
                 </div>
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} space-y-2`}>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Endereços sugeridos
                 </p>
@@ -569,7 +589,7 @@ export function MobilePickingPanel({
                   item.routeLines.map((line) => (
                     <div
                       key={`${item.id}-${line.stockId}`}
-                      className="rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3"
+                      className={`rounded-2xl border border-white/10 bg-slate-900/80 ${isCurrentItem ? "px-3 py-3" : "px-3 py-2.5"}`}
                     >
                       <div className="flex items-center gap-2 text-slate-200">
                         <MapPinned className="h-4 w-4 text-sky-300" />
