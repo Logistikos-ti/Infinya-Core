@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Barcode, Focus, MapPinned, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -166,6 +167,13 @@ export function MobilePickingPanel({
 
   return (
     <form action={savePickingProgressAction} className="space-y-4">
+      <InactivityWarningDialog
+        isVisible={isWarningVisible}
+        countdownSeconds={countdownSeconds}
+        title="Separação pausada por inatividade"
+        description="O operador ficou sem interação nesta separação. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
+      />
+
       <input type="hidden" name="orderId" value={order.id} />
       <input type="hidden" name="operatorId" value={selectedOperatorId} />
       <input type="hidden" name="redirectBase" value="/m/separacao" />

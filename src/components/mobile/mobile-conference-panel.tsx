@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Focus, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -205,6 +206,13 @@ export function MobileConferencePanel({
 
   return (
     <form action={saveShippingConferenceAction} className="space-y-4">
+      <InactivityWarningDialog
+        isVisible={isWarningVisible}
+        countdownSeconds={countdownSeconds}
+        title="Conferência pausada por inatividade"
+        description="O operador ficou sem interação nesta conferência. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
+      />
+
       <input type="hidden" name="orderId" value={order.id} />
       <input type="hidden" name="operatorId" value={selectedOperatorId} />
       <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
