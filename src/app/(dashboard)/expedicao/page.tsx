@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   Eye,
   ListChecks,
@@ -36,17 +36,6 @@ type ExpedicaoPageProps = {
   }>;
 };
 
-const statusOptions = [
-  { value: "", label: "Todos" },
-  { value: "NOVO", label: "Novo" },
-  { value: "EM_SEPARACAO", label: "Em separação" },
-  { value: "SEPARADO", label: "Separado" },
-  { value: "EM_CONFERENCIA", label: "Em conferência" },
-  { value: "CONFERIDO", label: "Conferido" },
-  { value: "PRONTO_ROMANEIO", label: "Pronto para romaneio" },
-  { value: "EXPEDIDO", label: "Expedido" },
-  { value: "CANCELADO", label: "Cancelado" },
-];
 
 export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps) {
   const user = await requireModuleAccess("expedicao");
@@ -89,10 +78,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-            ExpediÃ§Ã£o (Outbound)
+            ExpediÃƒÂ§ÃƒÂ£o (Outbound)
           </h1>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-            GestÃ£o de separaÃ§Ã£o (picking), conferÃªncia de saÃ­da e carregamento.
+            GestÃƒÂ£o de separaÃƒÂ§ÃƒÂ£o (picking), conferÃƒÂªncia de saÃƒÂ­da e carregamento.
           </p>
         </div>
         
@@ -102,7 +91,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 text-sm font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
           >
             <ListChecks className="w-4 h-4" />
-            Tela SeparaÃ§Ã£o
+            Tela SeparaÃƒÂ§ÃƒÂ£o
           </Link>
           <Link
             href="/expedicao/conferencia"
@@ -181,10 +170,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             Todos Pedidos
           </Link>
           <Link href="/expedicao?status=NOVO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'NOVO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            SeparaÃ§Ã£o (Picking)
+            SeparaÃƒÂ§ÃƒÂ£o (Picking)
           </Link>
           <Link href="/expedicao?status=EM_CONFERENCIA" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'EM_CONFERENCIA' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            ConferÃªncia
+            ConferÃƒÂªncia
           </Link>
           <Link href="/expedicao?status=PRONTO_ROMANEIO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'PRONTO_ROMANEIO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
             Embarque / Doca
@@ -208,7 +197,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             type="text"
             name="pedido"
             defaultValue={orderSearchFilter}
-            placeholder="NÂº Pedido"
+            placeholder="NÃ‚Âº Pedido"
             className="w-24 sm:w-32 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50"
           />
           <input
@@ -247,7 +236,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                 <th className="px-6 py-4 font-medium">Cliente Final</th>
                 <th className="px-6 py-4 font-medium">Volumes (Prev.)</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">AÃ§Ã£o</th>
+                <th className="px-6 py-4 font-medium text-right">AÃƒÂ§ÃƒÂ£o</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
@@ -307,7 +296,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
       </section>
 
-      {/* Grid SecundÃ¡rio: Filas Operacionais e Fluxo */}
+      {/* Grid SecundÃƒÂ¡rio: Filas Operacionais e Fluxo */}
       <section className="grid gap-6 xl:grid-cols-2">
         
         {/* Filas Operacionais */}
@@ -332,10 +321,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           </div>
         </div>
 
-        {/* Fluxo ObrigatÃ³rio */}
+        {/* Fluxo ObrigatÃƒÂ³rio */}
         <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-primary-500/30 transition-all">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-primary-500" /> Fluxo ObrigatÃ³rio
+            <ListChecks className="w-5 h-5 text-primary-500" /> Fluxo ObrigatÃƒÂ³rio
           </h2>
           <div className="mt-4 space-y-3">
             {shippingFlow.map((step, index) => (
@@ -355,13 +344,13 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "NOVO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando SeparaÃ§Ã£o</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando SeparaÃƒÂ§ÃƒÂ£o</span>;
   }
   if (status === "EM_SEPARACAO" || status === "SEPARADO") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{status === "SEPARADO" ? "Separado" : "Separando"}</span>;
   }
   if (status === "EM_CONFERENCIA" || status === "CONFERIDO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">{status === "CONFERIDO" ? "Conferido" : "Em ConferÃªncia"}</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">{status === "CONFERIDO" ? "Conferido" : "Em ConferÃƒÂªncia"}</span>;
   }
   if (status === "PRONTO_ROMANEIO") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">Pronto p/ Romaneio</span>;
