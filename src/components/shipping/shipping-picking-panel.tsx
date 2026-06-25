@@ -410,7 +410,14 @@ export function ShippingPickingPanel({
                       <p className="mt-1 text-xs text-slate-500">
                         Código {item.code} • Ref. {item.externalReference || "-"}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">EAN/GTIN: {item.barcode || "-"}</p>
+                      <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">
+                          EAN/GTIN esperado
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-950">
+                          {item.barcode || "-"}
+                        </p>
+                      </div>
                     </div>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                       {item.requestedQuantity} {item.unit}
@@ -509,7 +516,14 @@ export function ShippingPickingPanel({
                       <div className="text-xs text-slate-500">
                         Cod. {item.code} • Ref. {item.externalReference || "-"}
                       </div>
-                      <div className="mt-2 text-xs text-slate-500">EAN/GTIN: {item.barcode || "-"}</div>
+                      <div className="mt-3 inline-block rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-sky-700">
+                          EAN/GTIN esperado
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-950">
+                          {item.barcode || "-"}
+                        </p>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-slate-700">
                       {item.requestedQuantity} {item.unit}

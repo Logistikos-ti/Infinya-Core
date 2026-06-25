@@ -196,6 +196,12 @@ export function MobilePickingPanel({
             )}{" "}
             {nextItem.unit}
           </p>
+          <div className="mt-3 rounded-2xl border border-sky-400/30 bg-slate-950/40 px-3 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+              EAN/GTIN esperado
+            </p>
+            <p className="mt-1 text-sm font-semibold text-white">{nextItem.barcode || "-"}</p>
+          </div>
           <p className="mt-1 text-xs text-slate-400">
             {nextItem.routeLines[0]
               ? `${nextItem.routeLines[0].addressCode} • ${nextItem.routeLines[0].routeLabel}`
@@ -290,13 +296,18 @@ export function MobilePickingPanel({
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{item.sku}</p>
                   <p className="mt-1 text-sm text-slate-300">{item.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Código {item.code} • EAN {item.barcode || "-"}
-                  </p>
+                  <p className="mt-1 text-xs text-slate-500">Código {item.code}</p>
                 </div>
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
                   {item.requestedQuantity} {item.unit}
                 </span>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-sky-400/20 bg-slate-950/40 px-3 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  EAN/GTIN esperado
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">{item.barcode || "-"}</p>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
