@@ -27,6 +27,7 @@ export function useInactivityTimeout({
   const lastActivityRef = useRef(0);
   const hasExpiredRef = useRef(false);
   const onExpireRef = useRef(onExpire);
+  const warningVisibleRef = useRef(false);
 
   useEffect(() => {
     onExpireRef.current = onExpire;
@@ -35,6 +36,7 @@ export function useInactivityTimeout({
   const resetTimer = useCallback(() => {
     lastActivityRef.current = Date.now();
     hasExpiredRef.current = false;
+    warningVisibleRef.current = false;
     setIsWarningVisible(false);
     setCountdownSeconds(warningWindowSeconds);
   }, [warningWindowSeconds]);
@@ -42,11 +44,13 @@ export function useInactivityTimeout({
   useEffect(() => {
     if (disabled) {
       hasExpiredRef.current = false;
+      warningVisibleRef.current = false;
       return;
     }
 
     lastActivityRef.current = Date.now();
     hasExpiredRef.current = false;
+    warningVisibleRef.current = false;
 
     const syncState = () => {
       const elapsedMs = Date.now() - lastActivityRef.current;
@@ -60,14 +64,20 @@ export function useInactivityTimeout({
       }
 
       if (elapsedMs >= warningAfterMs) {
-        setIsWarningVisible(true);
+        if (!warningVisibleRef.current) {
+          warningVisibleRef.current = true;
+          setIsWarningVisible(true);
+        }
         setCountdownSeconds(
           Math.max(0, Math.ceil((expireAfterMs - elapsedMs) / 1000)),
         );
         return;
       }
 
-      setIsWarningVisible(false);
+      if (warningVisibleRef.current) {
+        warningVisibleRef.current = false;
+        setIsWarningVisible(false);
+      }
       setCountdownSeconds(warningWindowSeconds);
     };
 
@@ -77,7 +87,8 @@ export function useInactivityTimeout({
       }
 
       lastActivityRef.current = Date.now();
-      if (isWarningVisible) {
+      if (warningVisibleRef.current) {
+        warningVisibleRef.current = false;
         setIsWarningVisible(false);
       }
       setCountdownSeconds(warningWindowSeconds);
@@ -106,8 +117,6 @@ export function useInactivityTimeout({
   }, [
     disabled,
     expireAfterMs,
-    isWarningVisible,
-    resetTimer,
     warningAfterMs,
     warningWindowSeconds,
   ]);
