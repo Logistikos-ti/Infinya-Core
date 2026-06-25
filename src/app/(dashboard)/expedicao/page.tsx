@@ -298,7 +298,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
       </section>
 
-      {/* Grid Secundí¡rio: Filas Operacionais e Fluxo */}
+      {/* Grid Secundário: Filas Operacionais e Fluxo */}
       <section className="grid gap-6 xl:grid-cols-2">
         
         {/* Filas Operacionais */}
@@ -323,10 +323,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           </div>
         </div>
 
-        {/* Fluxo Obrigatí³rio */}
+        {/* Fluxo Obrigatório */}
         <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-primary-500/30 transition-all">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-primary-500" /> Fluxo Obrigatí³rio
+            <ListChecks className="w-5 h-5 text-primary-500" /> Fluxo Obrigatório
           </h2>
           <div className="mt-4 space-y-3">
             {shippingFlow.map((step, index) => (
