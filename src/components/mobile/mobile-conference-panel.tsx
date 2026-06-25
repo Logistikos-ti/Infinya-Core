@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Focus, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { Button } from "@/components/ui/button";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
 
@@ -26,6 +28,7 @@ export function MobileConferencePanel({
   currentUserId,
   feedback,
 }: MobileConferencePanelProps) {
+  const router = useRouter();
   const [selectedOperatorId, setSelectedOperatorId] = useState(
     order.assignedOperatorId ?? currentUserId,
   );
@@ -41,8 +44,15 @@ export function MobileConferencePanel({
   const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    disabled: isSubmitting,
+    onExpire: () => {
+      router.replace("/m/conferencia?feedback=inatividade");
+    },
+  });
 
   const completionPercent = useMemo(() => {
     const requested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -129,6 +139,7 @@ export function MobileConferencePanel({
   }
 
   function updateQuantity(itemId: string, value: string) {
+    resetTimer();
     setItems((current) =>
       current.map((item) =>
         item.id === itemId ? { ...item, confirmedQuantityValue: value } : item,
@@ -188,6 +199,7 @@ export function MobileConferencePanel({
       `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`,
       "success",
     );
+    resetTimer();
     focusScanInput();
   }
 
@@ -202,17 +214,17 @@ export function MobileConferencePanel({
       {feedback ? (
         <section
           className={`rounded-[24px] border p-4 text-sm ${
-            feedback === "salvo" || feedback === "concluido"
+            feedback === "concluido"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-amber-400/30 bg-amber-500/10 text-amber-100"
           }`}
         >
-          {feedback === "salvo"
-            ? "Andamento da conferência salvo com sucesso."
-            : feedback === "concluido"
-              ? "Conferência concluída com sucesso."
-              : feedback === "incompleto"
-                ? "Ainda existem itens pendentes. O andamento foi salvo."
+          {feedback === "concluido"
+            ? "Conferência concluída com sucesso."
+            : feedback === "incompleto"
+              ? "Ainda existem itens pendentes. O pedido voltou para a fila."
+              : feedback === "inatividade"
+                ? "Pedido devolvido para a fila por inatividade do operador."
                 : "Não foi possível concluir a operação solicitada."}
         </section>
       ) : null}
@@ -295,7 +307,10 @@ export function MobileConferencePanel({
           </span>
           <select
             value={selectedOperatorId}
-            onChange={(event) => setSelectedOperatorId(event.target.value)}
+            onChange={(event) => {
+              resetTimer();
+              setSelectedOperatorId(event.target.value);
+            }}
             className="h-12 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
           >
             <option value="">Selecionar operador</option>
@@ -316,7 +331,10 @@ export function MobileConferencePanel({
             <input
               ref={scanInputRef}
               value={scanValue}
-              onChange={(event) => setScanValue(event.target.value)}
+              onChange={(event) => {
+                resetTimer();
+                setScanValue(event.target.value);
+              }}
               onBlur={() => {
                 window.setTimeout(() => {
                   scanInputRef.current?.focus();
@@ -444,6 +462,13 @@ export function MobileConferencePanel({
       </section>
 
       <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        {isWarningVisible ? (
+          <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Sem atividade nesta conferência. O pedido volta para a fila em{" "}
+            <span className="font-semibold">{countdownSeconds}s</span>.
+          </div>
+        ) : null}
+
         <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
           <span>{completionPercent}% concluído</span>
           <span>{pendingUnits} un pendente(s)</span>
@@ -453,16 +478,9 @@ export function MobileConferencePanel({
           <Button
             type="submit"
             name="intent"
-            value="save"
-            className="h-11 bg-slate-100 text-slate-950 hover:bg-white"
-          >
-            Salvar andamento
-          </Button>
-          <Button
-            type="submit"
-            name="intent"
             value="complete"
             className="h-11 bg-amber-500 text-slate-950 hover:bg-amber-400"
+            onClick={() => setIsSubmitting(true)}
           >
             Concluir conferência
           </Button>

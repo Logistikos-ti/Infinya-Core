@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Focus, ScanSearch, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { Button } from "@/components/ui/button";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
 
@@ -31,6 +33,7 @@ export function ShippingConferencePanel({
   redirectBase = "/expedicao/conferencia",
   orderBasePath = "/expedicao",
 }: ShippingConferencePanelProps) {
+  const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
   const [selectedOperatorId, setSelectedOperatorId] = useState(defaultOperatorId);
   const [items, setItems] = useState<ConferenceItemState[]>(
@@ -46,8 +49,15 @@ export function ShippingConferencePanel({
   const [operatorMode, setOperatorMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    disabled: isSubmitting,
+    onExpire: () => {
+      router.replace(`${redirectBase}?feedback=inatividade`);
+    },
+  });
 
   const completionPercent = useMemo(() => {
     const requested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -128,6 +138,7 @@ export function ShippingConferencePanel({
   }
 
   function updateItemQuantity(itemId: string, value: string) {
+    resetTimer();
     setItems((current) =>
       current.map((item) =>
         item.id === itemId
@@ -187,6 +198,7 @@ export function ShippingConferencePanel({
       "success",
     );
     setScanValue("");
+    resetTimer();
 
     requestAnimationFrame(() => {
       quantityInputRefs.current[matchedItem.id]?.focus();
@@ -210,17 +222,17 @@ export function ShippingConferencePanel({
       {feedback ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "salvo" || feedback === "concluido"
+            feedback === "concluido"
               ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border border-amber-200 bg-amber-50 text-amber-800"
           }`}
         >
-          {feedback === "salvo"
-            ? "Andamento da conferência salvo com sucesso."
-            : feedback === "concluido"
-              ? "Conferência concluída e pedido movido para o próximo passo."
-              : feedback === "incompleto"
-                ? "Ainda existem itens pendentes. Salvei o andamento, mas o pedido não foi concluído."
+          {feedback === "concluido"
+            ? "Conferência concluída e pedido movido para o próximo passo."
+            : feedback === "incompleto"
+              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
+              : feedback === "inatividade"
+                ? "Pedido devolvido para a fila por inatividade do operador."
                 : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
@@ -292,7 +304,10 @@ export function ShippingConferencePanel({
                 </span>
                 <select
                   value={selectedOperatorId}
-                  onChange={(event) => setSelectedOperatorId(event.target.value)}
+                  onChange={(event) => {
+                    resetTimer();
+                    setSelectedOperatorId(event.target.value);
+                  }}
                   className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
                 >
                   <option value="">Selecionar operador</option>
@@ -323,7 +338,10 @@ export function ShippingConferencePanel({
                   <input
                     ref={scanInputRef}
                     value={scanValue}
-                    onChange={(event) => setScanValue(event.target.value)}
+                    onChange={(event) => {
+                      resetTimer();
+                      setScanValue(event.target.value);
+                    }}
                     onBlur={() => {
                       if (operatorMode) {
                         window.setTimeout(() => {
@@ -472,30 +490,33 @@ export function ShippingConferencePanel({
               </table>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="submit"
-                name="intent"
-                value="save"
-                className="bg-slate-950 text-white hover:bg-slate-800"
-              >
-                Salvar andamento
-              </Button>
-              <Button
-                type="submit"
-                name="intent"
-                value="complete"
-                variant="outline"
-                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-              >
-                Concluir conferência
-              </Button>
-              <Link
-                href={`${orderBasePath}/${order.id}`}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Ver pedido
-              </Link>
+            <div className="space-y-3">
+              {isWarningVisible ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Sem atividade nesta conferência. O pedido volta para a fila em{" "}
+                  <span className="font-semibold">{countdownSeconds}s</span> se não houver nova
+                  interação.
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="submit"
+                  name="intent"
+                  value="complete"
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => setIsSubmitting(true)}
+                >
+                  Concluir conferência
+                </Button>
+                <Link
+                  href={`${orderBasePath}/${order.id}`}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Ver pedido
+                </Link>
+              </div>
             </div>
           </form>
         </div>

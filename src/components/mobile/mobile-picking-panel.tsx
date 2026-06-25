@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Barcode, Focus, MapPinned, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { Button } from "@/components/ui/button";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
 
 type MobilePickingPanelProps = {
@@ -21,6 +23,7 @@ export function MobilePickingPanel({
   operators,
   currentUserId,
 }: MobilePickingPanelProps) {
+  const router = useRouter();
   const [selectedOperatorId, setSelectedOperatorId] = useState(
     order.assignedOperatorId ?? currentUserId,
   );
@@ -34,7 +37,14 @@ export function MobilePickingPanel({
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
+  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    disabled: isSubmitting,
+    onExpire: () => {
+      router.replace("/m/separacao?feedback=inatividade");
+    },
+  });
 
   const completionPercent = useMemo(() => {
     const requested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -105,6 +115,7 @@ export function MobilePickingPanel({
   }
 
   function updateQuantity(itemId: string, value: string) {
+    resetTimer();
     setItems((current) =>
       current.map((item) =>
         item.id === itemId ? { ...item, separatedQuantityValue: value } : item,
@@ -149,6 +160,7 @@ export function MobilePickingPanel({
       `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`,
       "success",
     );
+    resetTimer();
     requestAnimationFrame(() => scanInputRef.current?.focus());
   }
 
@@ -217,7 +229,10 @@ export function MobilePickingPanel({
           </span>
           <select
             value={selectedOperatorId}
-            onChange={(event) => setSelectedOperatorId(event.target.value)}
+            onChange={(event) => {
+              resetTimer();
+              setSelectedOperatorId(event.target.value);
+            }}
             className="h-12 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
           >
             <option value="">Selecionar operador</option>
@@ -238,7 +253,10 @@ export function MobilePickingPanel({
             <input
               ref={scanInputRef}
               value={scanValue}
-              onChange={(event) => setScanValue(event.target.value)}
+              onChange={(event) => {
+                resetTimer();
+                setScanValue(event.target.value);
+              }}
               placeholder="Leia EAN, SKU ou código"
               className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
             />
@@ -371,6 +389,13 @@ export function MobilePickingPanel({
       </section>
 
       <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        {isWarningVisible ? (
+          <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Sem atividade nesta separação. O pedido volta para a fila em{" "}
+            <span className="font-semibold">{countdownSeconds}s</span>.
+          </div>
+        ) : null}
+
         <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
           <span>{completionPercent}% concluído</span>
           <span>{pendingUnits} un pendente(s)</span>
@@ -380,16 +405,9 @@ export function MobilePickingPanel({
           <Button
             type="submit"
             name="intent"
-            value="save"
-            className="h-11 bg-slate-100 text-slate-950 hover:bg-white"
-          >
-            Salvar andamento
-          </Button>
-          <Button
-            type="submit"
-            name="intent"
             value="complete"
             className="h-11 bg-sky-500 text-white hover:bg-sky-400"
+            onClick={() => setIsSubmitting(true)}
           >
             Concluir separação
           </Button>

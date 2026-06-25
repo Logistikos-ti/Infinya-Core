@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Barcode, Focus, Map, ScanSearch, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { Button } from "@/components/ui/button";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
 
 type ShippingPickingPanelProps = {
@@ -28,6 +30,7 @@ export function ShippingPickingPanel({
   redirectBase = "/expedicao/separacao",
   orderBasePath = "/expedicao",
 }: ShippingPickingPanelProps) {
+  const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
   const [selectedOperatorId, setSelectedOperatorId] = useState(defaultOperatorId);
   const [items, setItems] = useState<PickingItemState[]>(
@@ -42,8 +45,15 @@ export function ShippingPickingPanel({
   const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
   const [operatorMode, setOperatorMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    disabled: isSubmitting,
+    onExpire: () => {
+      router.replace(`${redirectBase}?feedback=inatividade`);
+    },
+  });
 
   const completionPercent = useMemo(() => {
     const requested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -120,6 +130,7 @@ export function ShippingPickingPanel({
   }
 
   function updateItemQuantity(itemId: string, value: string) {
+    resetTimer();
     setItems((current) =>
       current.map((item) =>
         item.id === itemId
@@ -178,6 +189,7 @@ export function ShippingPickingPanel({
       "success",
     );
     setScanValue("");
+    resetTimer();
 
     requestAnimationFrame(() => {
       quantityInputRefs.current[matchedItem.id]?.focus();
@@ -250,7 +262,10 @@ export function ShippingPickingPanel({
               </span>
               <select
                 value={selectedOperatorId}
-                onChange={(event) => setSelectedOperatorId(event.target.value)}
+                onChange={(event) => {
+                  resetTimer();
+                  setSelectedOperatorId(event.target.value);
+                }}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               >
                 <option value="">Selecionar operador</option>
@@ -281,7 +296,10 @@ export function ShippingPickingPanel({
                 <input
                   ref={scanInputRef}
                   value={scanValue}
-                  onChange={(event) => setScanValue(event.target.value)}
+                  onChange={(event) => {
+                    resetTimer();
+                    setScanValue(event.target.value);
+                  }}
                   onBlur={() => {
                     if (operatorMode) {
                       window.setTimeout(() => {
@@ -581,6 +599,14 @@ export function ShippingPickingPanel({
           </div>
 
           <div className="sticky bottom-20 z-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg lg:bottom-4">
+            {isWarningVisible ? (
+              <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Sem atividade nesta separação. O pedido volta para a fila em{" "}
+                <span className="font-semibold">{countdownSeconds}s</span> se não houver nova
+                interação.
+              </div>
+            ) : null}
+
             <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
               <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
                 {completionPercent}% concluído
@@ -594,17 +620,10 @@ export function ShippingPickingPanel({
               <Button
                 type="submit"
                 name="intent"
-                value="save"
-                className="bg-slate-950 text-white hover:bg-slate-800"
-              >
-                Salvar andamento
-              </Button>
-              <Button
-                type="submit"
-                name="intent"
                 value="complete"
                 variant="outline"
                 className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => setIsSubmitting(true)}
               >
                 Concluir separação
               </Button>

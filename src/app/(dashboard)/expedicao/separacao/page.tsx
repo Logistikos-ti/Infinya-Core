@@ -70,17 +70,17 @@ export default async function ExpedicaoSeparacaoPage({
       {feedback ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "salvo" || feedback === "concluido"
+            feedback === "concluido"
               ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border border-amber-200 bg-amber-50 text-amber-800"
           }`}
         >
-          {feedback === "salvo"
-            ? "Andamento da separação salvo com sucesso."
-            : feedback === "concluido"
-              ? "Separação concluída e pedido movido para o próximo passo."
-              : feedback === "incompleto"
-                ? "Ainda existem itens pendentes. Salvei o andamento, mas o pedido não foi concluído."
+          {feedback === "concluido"
+            ? "Separação concluída e pedido movido para o próximo passo."
+            : feedback === "incompleto"
+              ? "Ainda existem itens pendentes. O pedido voltou para a fila para nova separação."
+              : feedback === "inatividade"
+                ? "Pedido devolvido para a fila por inatividade do operador."
                 : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}

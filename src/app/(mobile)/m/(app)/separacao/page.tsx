@@ -3,14 +3,38 @@ import { ArrowRight, Package2, ScanLine } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 
-export default async function MobilePickingQueuePage() {
+type MobilePickingQueuePageProps = {
+  searchParams?: Promise<{
+    feedback?: string;
+  }>;
+};
+
+export default async function MobilePickingQueuePage({
+  searchParams,
+}: MobilePickingQueuePageProps) {
   const user = await requireModuleAccess("expedicao");
+  const params = searchParams ? await searchParams : undefined;
+  const feedback = params?.feedback?.trim() ?? "";
   const orders = await listShippingPickingOrdersFromDb(user);
 
   const pendingUnits = orders.reduce((sum, order) => sum + order.totalUnits, 0);
 
   return (
     <div className="space-y-4">
+      {feedback === "inatividade" ? (
+        <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          Pedido devolvido para a fila por inatividade do operador.
+        </section>
+      ) : feedback === "incompleto" ? (
+        <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          Ainda existem itens pendentes. O pedido voltou para a fila para nova separação.
+        </section>
+      ) : feedback === "concluido" ? (
+        <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+          Separação concluída com sucesso.
+        </section>
+      ) : null}
+
       <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
           Separação

@@ -13,6 +13,7 @@ type ShippingConferencePageProps = {
     status?: string;
     depositante?: string;
     operador?: string;
+    feedback?: string;
   }>;
 };
 
@@ -29,6 +30,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
   const operatorFilter = params?.operador?.trim() ?? "";
   const depositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
+  const feedback = params?.feedback?.trim() ?? "";
 
   const supabase = await createSupabaseServerClient();
   const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
@@ -62,6 +64,24 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
         description="Validação item a item contra o pedido separado, com leitura de código de barras e conclusão operacional antes do despacho."
         badge="Semana 6"
       />
+
+      {feedback ? (
+        <div
+          className={`rounded-2xl px-4 py-3 text-sm ${
+            feedback === "concluido"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border border-amber-200 bg-amber-50 text-amber-800"
+          }`}
+        >
+          {feedback === "concluido"
+            ? "Conferência concluída e pedido movido para o próximo passo."
+            : feedback === "incompleto"
+              ? "Ainda existem itens pendentes. O pedido voltou para a fila para nova conferência."
+              : feedback === "inatividade"
+                ? "Pedido devolvido para a fila por inatividade do operador."
+                : "Não foi possível concluir a operação solicitada."}
+        </div>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatTile icon={PackageCheck} label="Pedidos na fila" value={String(orders.length)} />
