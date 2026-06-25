@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Infinya Core",
-  description: "WMS proprietário da Infinya para operações logísticas multi-depositante.",
+  title: "Infinya \u2022 Log",
+  description: "WMS propriet\u00E1rio da Infinya para opera\u00E7\u00F5es log\u00EDsticas multi-tenant.",
 };
 
 export default function RootLayout({

@@ -4,7 +4,7 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const parsed = parseNfeXml(xml);
   const firstItems = parsed.items.slice(0, 8);
   const contentLines = [
-    "INFINYA CORE - DANFE SIMPLIFICADA",
+    "INFINYA LOG - DANFE SIMPLIFICADA",
     "",
     `NF-e: ${parsed.noteNumber}`,
     `Chave de acesso: ${parsed.accessKey ?? "Não informada"}`,

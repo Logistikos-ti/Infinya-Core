@@ -10,11 +10,11 @@ import {
   Receipt,
   Settings2,
   Truck,
-  Infinity as InfinityIcon
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { AppUserContext } from "@/lib/auth";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { InfinyaBrand } from "@/components/branding/infinya-brand";
+import type { AppUserContext } from "@/lib/auth";
 import { canAccessModule, getRoleLabel, type AppModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -26,12 +26,12 @@ const navigation: ReadonlyArray<{
 }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   { href: "/recebimento", label: "Recebimento", icon: PackageCheck, module: "recebimento" },
-  { href: "/expedicao", label: "Expedição", icon: Truck, module: "expedicao" },
+  { href: "/expedicao", label: "Expedi\u00E7\u00E3o", icon: Truck, module: "expedicao" },
   { href: "/estoque", label: "Estoque", icon: Boxes, module: "estoque" },
   { href: "/romaneio", label: "Romaneio", icon: FileText, module: "romaneio" },
   { href: "/nfe", label: "NF-e", icon: Receipt, module: "nfe" },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
-  { href: "/configuracoes", label: "Configurações", icon: Settings2, module: "configuracoes" },
+  { href: "/relatorios", label: "Relat\u00F3rios", icon: BarChart3, module: "relatorios" },
+  { href: "/configuracoes", label: "Configura\u00E7\u00F5es", icon: Settings2, module: "configuracoes" },
 ] as const;
 
 type AppSidebarProps = {
@@ -43,18 +43,16 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
   const visibleNavigation = navigation.filter((item) => canAccessModule(user, item.module));
 
   return (
-    <aside className="sticky top-0 z-10 flex min-h-screen w-64 flex-shrink-0 flex-col justify-between p-4 theme-transition glass-card m-3 rounded-2xl shadow-xl">
+    <aside className="glass-card infinya-border-glow sticky top-0 z-10 m-3 flex min-h-screen w-72 flex-shrink-0 flex-col justify-between rounded-[28px] p-4 theme-transition shadow-xl">
       <div>
-        <div className="flex items-center gap-3 px-2 py-4 mb-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-infinya-gradient text-sm font-bold text-white shadow-lg shadow-primary-500/30">
-            <InfinityIcon className="w-5 h-5" />
-          </div>
-          <p className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100 uppercase tracking-widest">
-            INFINYA
-          </p>
+        <div className="bg-infinya-panel mb-6 rounded-[24px] border border-white/10 px-3 py-4">
+          <InfinyaBrand
+            subtitle={"Opera\u00E7\u00E3o log\u00EDstica multi-tenant"}
+            subtitleClassName="text-slate-300/80"
+          />
         </div>
 
-        <nav className="space-y-1">
+        <nav className="space-y-1.5">
           {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath.startsWith(item.href);
@@ -64,10 +62,10 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium transition-colors",
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-colors",
                   isActive
-                    ? "bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20"
-                    : "text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/50"
+                    ? "border border-cyan-300/25 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300"
+                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -78,14 +76,14 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
         </nav>
       </div>
 
-      <div className="px-2 py-3 border-t border-slate-200 dark:border-zinc-800 mt-4 pt-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-zinc-500">
-          Usuário
+      <div className="mt-4 border-t border-slate-200/80 px-2 py-3 pt-4 dark:border-white/10">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {"Sess\u00E3o ativa"}
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="overflow-hidden">
-            <p className="truncate text-sm font-bold text-slate-900 dark:text-zinc-100">{user.nome}</p>
-            <p className="text-xs text-slate-500">{getRoleLabel(user.papel)}</p>
+            <p className="truncate text-sm font-bold text-slate-950 dark:text-white">{user.nome}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{getRoleLabel(user.papel)}</p>
           </div>
           <LogoutButton />
         </div>

@@ -54,7 +54,7 @@ function buildProtocolPageContent(detail: StockTraceabilityDetail): ProtocolPage
   lines.push("Recebido e conferido conforme protocolo impresso.");
 
   return {
-    title: "INFINYA CORE - PROTOCOLO DE DEPÓSITO",
+    title: "INFINYA LOG - PROTOCOLO DE DEP\u00D3SITO",
     lines,
   };
 }

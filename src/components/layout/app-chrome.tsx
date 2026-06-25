@@ -7,6 +7,7 @@ import type { AppUserContext } from "@/lib/auth";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { InfinyaBrand } from "@/components/branding/infinya-brand";
 
 type AppChromeProps = {
   children: ReactNode;
@@ -18,12 +19,12 @@ export function AppChrome({ children, user }: AppChromeProps) {
   const currentPath = pathname || "/dashboard";
 
   return (
-    <div className="theme-transition bg-lightBg text-slate-900 dark:bg-darkBg dark:text-zinc-100 flex min-h-screen w-full overflow-hidden">
+    <div className="theme-transition flex min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,#eef4ff_0%,#f7fbff_55%,#ffffff_100%)] text-slate-900 dark:bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] dark:text-zinc-100">
       
       {/* Background Decoration */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary-500/10 blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-accent-500/10 blur-[100px]"></div>
+        <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-primary-500/14 blur-[140px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] h-[30%] w-[30%] rounded-full bg-accent-500/14 blur-[120px]"></div>
       </div>
 
       {/* Sidebar - Hidden on mobile, block on lg */}
@@ -33,14 +34,17 @@ export function AppChrome({ children, user }: AppChromeProps) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 z-10 border-b lg:border-none border-slate-200 dark:border-zinc-800">
-          <div className="flex items-center gap-4 w-full max-w-md">
+        <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-slate-200/80 px-4 dark:border-white/10 sm:px-8 lg:border-none">
+          <div className="flex w-full max-w-3xl items-center gap-4">
+            <div className="hidden xl:block">
+              <InfinyaBrand compact subtitle="WMS de execução logística" subtitleClassName="text-slate-500 dark:text-slate-400" />
+            </div>
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
                 placeholder="Buscar pedidos, produtos..." 
-                className="w-full pl-10 pr-4 py-2 rounded-full bg-white/50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm transition-colors"
+                className="w-full rounded-full border border-slate-200/80 bg-white/70 py-2 pl-10 pr-4 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 dark:border-white/10 dark:bg-[#071120]/70"
               />
             </div>
           </div>

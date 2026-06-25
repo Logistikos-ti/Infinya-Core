@@ -55,7 +55,7 @@ export function InfinyaBrand({
             nameClassName,
           )}
         >
-          Infinya • Log
+          {"Infinya \u2022 Log"}
         </p>
         {subtitle ? (
           <p

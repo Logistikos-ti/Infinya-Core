@@ -15,7 +15,7 @@ type LoginFormProps = {
 
 export function LoginForm({
   redirectTo = "/dashboard",
-  submitLabel = "Entrar no WMS",
+  submitLabel = "Entrar no Infinya \u2022 Log",
 }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
@@ -33,7 +33,7 @@ export function LoginForm({
           type="email"
           autoComplete="email"
           placeholder="voce@empresa.com.br"
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-slate-300/90 bg-white/95 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white dark:text-slate-950"
         />
       </div>
 
@@ -47,7 +47,7 @@ export function LoginForm({
           type="password"
           autoComplete="current-password"
           placeholder="Digite sua senha"
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className="w-full rounded-xl border border-slate-300/90 bg-white/95 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white dark:text-slate-950"
         />
       </div>
 
@@ -60,7 +60,7 @@ export function LoginForm({
       <Button
         type="submit"
         disabled={isPending}
-        className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700 disabled:bg-sky-400"
+        className="h-11 w-full bg-infinya-gradient text-slate-950 hover:opacity-95 disabled:opacity-70"
       >
         {isPending ? "Entrando..." : submitLabel}
       </Button>

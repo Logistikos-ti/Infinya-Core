@@ -1,6 +1,6 @@
 # Deploy Vercel + Hostinger
 
-Guia de publicação do Infinya Core usando:
+Guia de publicação do Infinya ? Log usando:
 
 - GitHub para versionamento
 - Vercel para execução do Next.js

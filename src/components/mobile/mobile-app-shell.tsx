@@ -7,6 +7,7 @@ import { ClipboardCheck, House, PackageCheck, ScanLine } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ const navItems: Array<{
   icon: LucideIcon;
   module: AppModule;
 }> = [
-  { href: "/m/inicio", label: "Início", icon: House, module: "dashboard" },
+  { href: "/m/inicio", label: "In\u00EDcio", icon: House, module: "dashboard" },
   { href: "/m/recebimento", label: "Receb.", icon: PackageCheck, module: "recebimento" },
   { href: "/m/separacao", label: "Separ.", icon: ScanLine, module: "expedicao" },
   { href: "/m/conferencia", label: "Conf.", icon: ClipboardCheck, module: "expedicao" },
@@ -32,15 +33,15 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
   const visibleItems = navItems.filter((item) => canAccessModule(user, item.module));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 backdrop-blur">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.1),transparent_28%),radial-gradient(circle_at_bottom,rgba(192,132,252,0.12),transparent_24%),#040816] text-white">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#040816]/95 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-              Infinya Core Mobile
-            </p>
-            <p className="truncate text-sm text-slate-300">{user.nome}</p>
-          </div>
+          <InfinyaBrand
+            compact
+            className="min-w-0 flex-1"
+            subtitle={user.nome}
+            subtitleClassName="truncate"
+          />
           <div className="shrink-0 [&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-white [&_button:hover]:bg-white/10">
             <LogoutButton />
           </div>
@@ -51,7 +52,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#040816]/95 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 backdrop-blur">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-2 px-3">
           {visibleItems.map((item) => {
             const Icon = item.icon;
@@ -64,7 +65,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
                 className={cn(
                   "flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition-colors",
                   active
-                    ? "bg-sky-500 text-white"
+                    ? "bg-infinya-gradient text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.2)]"
                     : "text-slate-400 hover:bg-white/5 hover:text-white",
                 )}
               >

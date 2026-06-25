@@ -42,7 +42,7 @@ function buildRomaneioPage(
   ];
 
   return {
-    title: "INFINYA CORE - ROMANEIO DE EXPEDIÇÃO",
+    title: "INFINYA LOG - ROMANEIO DE EXPEDI\u00C7\u00C3O",
     lines,
   };
 }

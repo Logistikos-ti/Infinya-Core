@@ -1,4 +1,4 @@
-# Infinya Core
+# Infinya ? Log
 
 Base inicial do WMS proprietário da Infinya para operações logísticas multi-depositante.
 

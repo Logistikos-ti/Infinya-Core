@@ -72,7 +72,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
       <ModulePageHeader
         title="Estoque"
         description="Consulta operacional de saldos por depositante, produto, área, lote e rastreabilidade."
-        badge="Core"
+        badge="Log"
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

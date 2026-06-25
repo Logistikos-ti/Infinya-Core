@@ -28,7 +28,7 @@ function buildShippingLabelZpl(order: ShippingOrderDetail) {
     "^PW812",
     "^LL1218",
     "^LH0,0",
-    "^FO40,30^A0N,34,34^FDINFINYA CORE - ETIQUETA DE TRANSPORTE^FS",
+    "^FO40,30^A0N,34,34^FDINFINYA LOG - ETIQUETA DE TRANSPORTE^FS",
     "^FO40,80^GB730,2,2^FS",
     `^FO40,110^A0N,28,28^FDPedido interno: ${sanitizeZpl(order.code)}^FS`,
     `^FO40,150^A0N,28,28^FDPedido da plataforma: ${sanitizeZpl(order.externalNumber)}^FS`,
@@ -49,7 +49,7 @@ function buildShippingLabelZpl(order: ShippingOrderDetail) {
     `^FO40,795^A0N,28,28^FDValor total: ${sanitizeZpl(order.total)}^FS`,
     `^FO40,835^A0N,28,28^FDPrevisao de envio: ${sanitizeZpl(order.shipDate)}^FS`,
     "^FO40,890^GB730,2,2^FS",
-    `^FO40,920^A0N,24,24^FDGerado por Infinya Core em ${sanitizeZpl(order.syncedAt)}^FS`,
+    `^FO40,920^A0N,24,24^FDGerado por Infinya Log em ${sanitizeZpl(order.syncedAt)}^FS`,
     `^FO40,970^BY3,3,90^BCN,90,Y,N,N^FD${sanitizeBarcode(order.code)}^FS`,
     "^XZ",
   ];
@@ -59,7 +59,7 @@ function buildShippingLabelZpl(order: ShippingOrderDetail) {
 
 function buildShippingLabelPdf(order: ShippingOrderDetail) {
   const contentLines = [
-    "INFINYA CORE - ETIQUETA DE TRANSPORTE",
+    "INFINYA LOG - ETIQUETA DE TRANSPORTE",
     "",
     `Pedido interno: ${order.code}`,
     `Pedido da plataforma: ${order.externalNumber}`,
@@ -83,7 +83,7 @@ function buildShippingLabelPdf(order: ShippingOrderDetail) {
     `Valor total: ${order.total}`,
     `Previsao de envio: ${order.shipDate}`,
     "",
-    `Gerado por Infinya Core em ${order.syncedAt}`,
+    `Gerado por Infinya Log em ${order.syncedAt}`,
   ];
 
   const operators: string[] = [];
@@ -164,5 +164,5 @@ function sanitizeZpl(value: string) {
 }
 
 function sanitizeBarcode(value: string) {
-  return value.replace(/[^A-Za-z0-9\-]/g, "").slice(0, 32) || "INFINYACORE";
+  return value.replace(/[^A-Za-z0-9\-]/g, "").slice(0, 32) || "INFINYALOG";
 }

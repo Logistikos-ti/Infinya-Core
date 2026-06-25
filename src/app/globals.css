@@ -20,14 +20,14 @@
   --color-sidebar: var(--sidebar);
   
   /* Infinya Cyan Palette */
-  --color-primary-400: #22d3ee;
-  --color-primary-500: #06b6d4;
-  --color-primary-600: #0891b2;
+  --color-primary-400: #6ee7ff;
+  --color-primary-500: #22d3ee;
+  --color-primary-600: #00b8ff;
 
   /* Infinya Purple Palette */
-  --color-accent-400: #c084fc;
-  --color-accent-500: #a855f7;
-  --color-accent-600: #9333ea;
+  --color-accent-400: #d8b4fe;
+  --color-accent-500: #c084fc;
+  --color-accent-600: #a855f7;
 
   --color-ring: var(--ring);
   --color-input: var(--input);
@@ -71,84 +71,84 @@ a {
 
 :root {
   /* LIGHT MODE - Infinya Palette */
-  --background: #f4f4f5;
-  --foreground: #0f172a;
+  --background: #eef4ff;
+  --foreground: #08111f;
   
-  --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.92);
+  --card-foreground: #08111f;
   
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover: rgba(255, 255, 255, 0.97);
+  --popover-foreground: #08111f;
   
-  --primary: #06b6d4;
+  --primary: #00cfff;
   --primary-foreground: #ffffff;
   
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary: #eef2ff;
+  --secondary-foreground: #08111f;
   
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: #eef2ff;
+  --muted-foreground: #5a6a85;
   
-  --accent: #a855f7;
+  --accent: #bf7bff;
   --accent-foreground: #ffffff;
   
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #06b6d4;
+  --border: #d8e2f2;
+  --input: #d8e2f2;
+  --ring: #00cfff;
   
   --radius: 0.75rem;
   
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #06b6d4;
+  --sidebar: rgba(255, 255, 255, 0.92);
+  --sidebar-foreground: #08111f;
+  --sidebar-primary: #00cfff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e4e4e7;
-  --sidebar-ring: #06b6d4;
+  --sidebar-accent: #eef2ff;
+  --sidebar-accent-foreground: #08111f;
+  --sidebar-border: #d8e2f2;
+  --sidebar-ring: #00cfff;
 }
 
 .dark {
   /* DARK MODE - Infinya Premium Dark */
-  --background: #09090b;
-  --foreground: #f8fafc;
+  --background: #040816;
+  --foreground: #f4f8ff;
   
-  --card: #18181b;
-  --card-foreground: #f8fafc;
+  --card: rgba(8, 17, 34, 0.84);
+  --card-foreground: #f4f8ff;
   
-  --popover: #18181b;
-  --popover-foreground: #f8fafc;
+  --popover: rgba(6, 12, 28, 0.96);
+  --popover-foreground: #f4f8ff;
   
-  --primary: #06b6d4;
+  --primary: #22d3ee;
   --primary-foreground: #ffffff;
   
-  --secondary: #27272a;
-  --secondary-foreground: #f8fafc;
+  --secondary: #0d1830;
+  --secondary-foreground: #f4f8ff;
   
-  --muted: #27272a;
-  --muted-foreground: #94a3b8;
+  --muted: #0d1830;
+  --muted-foreground: #93a6c7;
   
-  --accent: #a855f7;
+  --accent: #c084fc;
   --accent-foreground: #ffffff;
   
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #06b6d4;
+  --border: #152342;
+  --input: #152342;
+  --ring: #22d3ee;
   
-  --sidebar: #18181b;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #06b6d4;
+  --sidebar: rgba(5, 11, 25, 0.92);
+  --sidebar-foreground: #f4f8ff;
+  --sidebar-primary: #22d3ee;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #27272a;
-  --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #27272a;
-  --sidebar-ring: #06b6d4;
+  --sidebar-accent: #0d1830;
+  --sidebar-accent-foreground: #f4f8ff;
+  --sidebar-border: #152342;
+  --sidebar-ring: #22d3ee;
 }
 
 @layer base {
@@ -180,17 +180,17 @@ a {
   }
   
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(243, 248, 255, 0.9) 100%);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    @apply border border-zinc-200/80 shadow-sm transition-colors;
+    @apply border border-sky-100/80 shadow-sm transition-colors;
   }
   
   .dark .glass-card {
-    background: rgba(24, 24, 27, 0.65);
+    background: linear-gradient(180deg, rgba(7, 14, 31, 0.84) 0%, rgba(8, 17, 34, 0.92) 100%);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    @apply border-zinc-800/80;
+    @apply border-sky-400/10;
   }
 
   .theme-transition {
@@ -198,8 +198,13 @@ a {
   }
 
   /* Infinya Special Gradients */
-  .bg-infinya-gradient { background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%); }
-  .text-infinya-gradient { background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .bg-infinya-gradient { background: linear-gradient(135deg, #6ee7ff 0%, #22d3ee 38%, #8b5cf6 70%, #d946ef 100%); }
+  .text-infinya-gradient,
+  .text-infinya-brand { background: linear-gradient(135deg, #dff8ff 0%, #7ee8ff 32%, #b388ff 68%, #f0abfc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .bg-infinya-panel { background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 32%), radial-gradient(circle at bottom right, rgba(192, 132, 252, 0.16), transparent 28%), linear-gradient(180deg, rgba(7, 14, 31, 0.95), rgba(5, 11, 25, 0.95)); }
+  .infinya-border-glow { box-shadow: 0 0 0 1px rgba(126, 232, 255, 0.1), 0 0 40px rgba(34, 211, 238, 0.12), 0 0 60px rgba(192, 132, 252, 0.08); }
+  .infinya-mark-image { animation: infinya-mark-pulse 4.6s ease-in-out infinite; }
+  .infinya-mark-float { animation: infinya-mark-float 5.2s ease-in-out infinite; }
   
   .stripes {
     background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px);
@@ -241,6 +246,26 @@ a {
   100% {
     transform: scale(1);
     filter: brightness(1);
+  }
+}
+
+@keyframes infinya-mark-float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes infinya-mark-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.24)) drop-shadow(0 0 16px rgba(217, 70, 239, 0.18)) saturate(1.05);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.34)) drop-shadow(0 0 24px rgba(217, 70, 239, 0.24)) saturate(1.18);
   }
 }
 
