@@ -20,7 +20,7 @@ const CONFERENCE_CARD_TONES = [
   {
     wrapper:
       "border-amber-400/25 bg-gradient-to-br from-amber-500/16 via-slate-900/92 to-slate-950",
-    badge: "bg-amber-400/15 text-amber-200 border border-amber-300/30",
+    badge: "border border-amber-300/30 bg-amber-400/15 text-amber-200",
     accent: "bg-amber-300",
     stat: "border-amber-400/15 bg-amber-500/10",
     cta: "text-amber-100",
@@ -28,7 +28,7 @@ const CONFERENCE_CARD_TONES = [
   {
     wrapper:
       "border-orange-400/25 bg-gradient-to-br from-orange-500/14 via-slate-900/92 to-slate-950",
-    badge: "bg-orange-400/15 text-orange-200 border border-orange-300/30",
+    badge: "border border-orange-300/30 bg-orange-400/15 text-orange-200",
     accent: "bg-orange-300",
     stat: "border-orange-400/15 bg-orange-500/10",
     cta: "text-orange-100",
@@ -36,7 +36,7 @@ const CONFERENCE_CARD_TONES = [
   {
     wrapper:
       "border-rose-400/25 bg-gradient-to-br from-rose-500/14 via-slate-900/92 to-slate-950",
-    badge: "bg-rose-400/15 text-rose-200 border border-rose-300/30",
+    badge: "border border-rose-300/30 bg-rose-400/15 text-rose-200",
     accent: "bg-rose-300",
     stat: "border-rose-400/15 bg-rose-500/10",
     cta: "text-rose-100",
@@ -152,17 +152,30 @@ export default async function MobileConferenceQueuePage({
                   />
                 </div>
 
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                      Código interno
-                    </p>
-                    <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                        Código interno
+                      </p>
+                      <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
+                      Ordem {index + 1}
+                    </span>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold ${tone.cta}`}>
-                    Iniciar
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-300">
+                      Toque para abrir a validação do pedido e conferir item por item.
+                    </p>
+                    <span
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold ${tone.cta}`}
+                    >
+                      Iniciar
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
                 </div>
               </Link>
             );

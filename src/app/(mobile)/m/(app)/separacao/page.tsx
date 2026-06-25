@@ -13,7 +13,7 @@ const PICKING_CARD_TONES = [
   {
     wrapper:
       "border-sky-400/25 bg-gradient-to-br from-sky-500/16 via-slate-900/92 to-slate-950",
-    badge: "bg-sky-400/15 text-sky-200 border border-sky-300/30",
+    badge: "border border-sky-300/30 bg-sky-400/15 text-sky-200",
     accent: "bg-sky-300",
     stat: "border-sky-400/15 bg-sky-500/10",
     cta: "text-sky-100",
@@ -21,7 +21,7 @@ const PICKING_CARD_TONES = [
   {
     wrapper:
       "border-cyan-400/25 bg-gradient-to-br from-cyan-500/14 via-slate-900/92 to-slate-950",
-    badge: "bg-cyan-400/15 text-cyan-200 border border-cyan-300/30",
+    badge: "border border-cyan-300/30 bg-cyan-400/15 text-cyan-200",
     accent: "bg-cyan-300",
     stat: "border-cyan-400/15 bg-cyan-500/10",
     cta: "text-cyan-100",
@@ -29,7 +29,7 @@ const PICKING_CARD_TONES = [
   {
     wrapper:
       "border-violet-400/25 bg-gradient-to-br from-violet-500/14 via-slate-900/92 to-slate-950",
-    badge: "bg-violet-400/15 text-violet-200 border border-violet-300/30",
+    badge: "border border-violet-300/30 bg-violet-400/15 text-violet-200",
     accent: "bg-violet-300",
     stat: "border-violet-400/15 bg-violet-500/10",
     cta: "text-violet-100",
@@ -120,17 +120,30 @@ export default async function MobilePickingQueuePage({
                   <QueueInfo label="Concluído" value={`${order.completionPercent}%`} tone={tone.stat} />
                 </div>
 
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                      Código interno
-                    </p>
-                    <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                        Código interno
+                      </p>
+                      <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
+                      Ordem {index + 1}
+                    </span>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold ${tone.cta}`}>
-                    Iniciar
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-300">
+                      Toque para abrir a rota e iniciar a leitura dos itens.
+                    </p>
+                    <span
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold ${tone.cta}`}
+                    >
+                      Iniciar
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
                 </div>
               </Link>
             );
