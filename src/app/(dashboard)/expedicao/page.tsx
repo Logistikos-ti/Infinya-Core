@@ -199,7 +199,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             type="text"
             name="pedido"
             defaultValue={orderSearchFilter}
-            placeholder="NÃ‚Âº Pedido"
+            placeholder="Nº Pedido"
             className="w-24 sm:w-32 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50"
           />
           <input
@@ -276,9 +276,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                       {isAdminUser(user) ? (
                         <Link
                           href={`/expedicao/${order.id}/editar`}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 dark:bg-zinc-800 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 dark:bg-zinc-800 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800 dark:hover:bg-zinc-700"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-3.5 w-3.5 text-white" />
                           Editar
                         </Link>
                       ) : null}
