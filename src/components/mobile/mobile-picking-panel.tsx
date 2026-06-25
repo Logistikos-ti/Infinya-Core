@@ -324,14 +324,21 @@ export function MobilePickingPanel({
                 }}
               />
             </div>
-            <p className="text-sm text-slate-100">
-              {nextItem.routeLines[0]
-                ? `Coleta sugerida em ${nextItem.routeLines[0].addressCode}`
-                : "Sem endereço sugerido para este item."}
-            </p>
-            {nextItem.routeLines[0] ? (
-              <p className="text-xs text-slate-400">{nextItem.routeLines[0].routeLabel}</p>
-            ) : null}
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-slate-100">
+                {nextItem.routeLines[0]
+                  ? `Coleta sugerida em ${nextItem.routeLines[0].addressCode}`
+                  : "Sem endereço sugerido."}
+              </p>
+              {nextItem.routeLines[0] ? (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                  <span className="rounded-full bg-white/8 px-2 py-1 text-[11px] font-medium text-slate-200">
+                    {nextItem.routeLines[0].area}
+                  </span>
+                  <span>{nextItem.routeLines[0].routeLabel}</span>
+                </div>
+              ) : null}
+            </div>
           </div>
         </section>
       ) : null}
@@ -510,11 +517,11 @@ export function MobilePickingPanel({
                     ) : null}
                   </div>
                 </div>
-                <span
-                  className={`rounded-full bg-white/10 ${isCurrentItem ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-[11px]"} font-medium text-slate-200`}
-                >
-                  {item.requestedQuantity} {item.unit}
-                </span>
+                {isCurrentItem ? (
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                    {item.requestedQuantity} {item.unit}
+                  </span>
+                ) : null}
               </div>
 
               <div className={`${isCurrentItem ? "mt-3" : "mt-2"} space-y-2`}>
@@ -591,16 +598,44 @@ export function MobilePickingPanel({
                       key={`${item.id}-${line.stockId}`}
                       className={`rounded-2xl border border-white/10 bg-slate-900/80 ${isCurrentItem ? "px-3 py-3" : "px-3 py-2.5"}`}
                     >
-                      <div className="flex items-center gap-2 text-slate-200">
-                        <MapPinned className="h-4 w-4 text-sky-300" />
-                        <span className="font-medium">{line.addressCode}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-slate-100">
+                            <MapPinned className="h-4 w-4 shrink-0 text-sky-300" />
+                            <span className={`${isCurrentItem ? "text-sm" : "text-[13px]"} font-semibold`}>
+                              {line.addressCode}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                            <span className="rounded-full bg-sky-400/10 px-2 py-1 font-medium text-sky-100">
+                              {line.area}
+                            </span>
+                            <span>{line.routeLabel}</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-2.5 py-2 text-right">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-100/80">
+                            Coletar
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-sky-100">
+                            {line.quantity} {item.unit}
+                          </p>
+                        </div>
                       </div>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {line.area} • {line.routeLabel}
-                      </p>
-                      <p className="mt-2 text-sm text-white">
-                        Coletar {line.quantity} {item.unit} • lote {line.lot}
-                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-white/5 px-2.5 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Lote
+                          </p>
+                          <p className="mt-1 text-[13px] font-medium text-white">{line.lot}</p>
+                        </div>
+                        <div className="rounded-xl bg-white/5 px-2.5 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            Validade
+                          </p>
+                          <p className="mt-1 text-[13px] font-medium text-white">{line.expiry}</p>
+                        </div>
+                      </div>
                     </div>
                   ))
                 ) : (

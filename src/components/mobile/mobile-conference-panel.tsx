@@ -574,11 +574,11 @@ export function MobileConferencePanel({
                     ) : null}
                   </div>
                 </div>
-                <span
-                  className={`rounded-full bg-white/10 ${isCurrentItem ? "px-2.5 py-1 text-xs" : "px-2 py-0.5 text-[11px]"} font-medium text-slate-200`}
-                >
-                  {item.requestedQuantity} {item.unit}
-                </span>
+                {isCurrentItem ? (
+                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                    {item.requestedQuantity} {item.unit}
+                  </span>
+                ) : null}
               </div>
 
               <div className={`${isCurrentItem ? "mt-3" : "mt-2"} space-y-2`}>
