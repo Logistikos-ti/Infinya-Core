@@ -60,10 +60,12 @@ export function AppChrome({ children, user }: AppChromeProps) {
          <AppMobileNav currentPath={currentPath} user={user} />
       </div>
 
-      {/* Floating Theme Toggle no canto inferior esquerdo */}
-      <div className="fixed bottom-6 left-6 z-[100]">
-        <div className="glass-card rounded-full shadow-lg border border-slate-200/50 dark:border-zinc-700/50">
-          <ThemeToggle />
+      {/* Floating Theme Toggle no canto inferior direito */}
+      <div className="fixed bottom-6 right-6 z-[100]">
+        <div className="rounded-full bg-infinya-gradient p-[2px] shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 transition-all hover:-translate-y-1">
+          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-full overflow-hidden">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </div>
