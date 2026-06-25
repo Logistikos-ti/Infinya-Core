@@ -276,10 +276,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                       {isAdminUser(user) ? (
                         <Link
                           href={`/expedicao/${order.id}/editar`}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 dark:bg-zinc-800 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800 dark:hover:bg-zinc-700"
+                          className="inline-flex items-center gap-2 rounded-lg border border-primary-500 bg-primary-500 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-primary-500/20 transition hover:bg-primary-600 hover:-translate-y-0.5"
                         >
-                          <Pencil className="h-3.5 w-3.5 text-white" />
-                          Editar
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span>Editar</span>
                         </Link>
                       ) : null}
                     </div>
