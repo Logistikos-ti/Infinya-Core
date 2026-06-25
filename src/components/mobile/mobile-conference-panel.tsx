@@ -90,6 +90,29 @@ export function MobileConferencePanel({
     [items],
   );
 
+  const orderedItems = useMemo(() => {
+    return [...items].sort((left, right) => {
+      const leftConfirmed = normalizeQuantity(left.confirmedQuantityValue);
+      const rightConfirmed = normalizeQuantity(right.confirmedQuantityValue);
+      const leftPending = leftConfirmed < left.requestedQuantity;
+      const rightPending = rightConfirmed < right.requestedQuantity;
+
+      if (nextItem && left.id === nextItem.id) {
+        return -1;
+      }
+
+      if (nextItem && right.id === nextItem.id) {
+        return 1;
+      }
+
+      if (leftPending !== rightPending) {
+        return leftPending ? -1 : 1;
+      }
+
+      return left.sku.localeCompare(right.sku, "pt-BR");
+    });
+  }, [items, nextItem]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
     return () => window.clearTimeout(timer);
@@ -278,33 +301,55 @@ export function MobileConferencePanel({
       </section>
 
       {nextItem ? (
-        <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4">
+        <section className="rounded-[28px] border border-amber-400/35 bg-gradient-to-br from-amber-500/18 via-amber-500/10 to-slate-950 p-4 shadow-lg shadow-amber-950/20">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-            Próximo item sugerido
+            Item em foco
           </p>
-          <p className="mt-2 text-base font-semibold text-white">{nextItem.sku}</p>
-          <p className="mt-1 text-sm text-slate-300">{nextItem.name}</p>
-          <p className="mt-2 text-sm text-slate-200">
-            Falta{" "}
-            {Math.max(
-              nextItem.requestedQuantity - normalizeQuantity(nextItem.confirmedQuantityValue),
-              0,
-            )}{" "}
-            {nextItem.unit}
-          </p>
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-lg font-semibold text-white">{nextItem.sku}</p>
+              <p className="mt-1 text-sm text-slate-200">{nextItem.name}</p>
+            </div>
+            <span className="rounded-full border border-amber-300/25 bg-amber-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-100">
+              Prioridade
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <InfoBadge label="Pedido" value={`${nextItem.requestedQuantity}`} />
+            <InfoBadge label="Separado" value={`${nextItem.separatedQuantity}`} />
+            <InfoBadge
+              label="Falta"
+              value={`${Math.max(
+                nextItem.requestedQuantity - normalizeQuantity(nextItem.confirmedQuantityValue),
+                0,
+              )}`}
+            />
+          </div>
           <div className="mt-3 rounded-2xl border border-amber-400/30 bg-slate-950/40 px-3 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
               EAN/GTIN esperado
             </p>
             <p className="mt-1 text-sm font-semibold text-white">{nextItem.barcode || "-"}</p>
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <InfoBadge label="Pedido" value={`${nextItem.requestedQuantity}`} />
-            <InfoBadge label="Separado" value={`${nextItem.separatedQuantity}`} />
-            <InfoBadge
-              label="Conferido"
-              value={`${normalizeQuantity(nextItem.confirmedQuantityValue)}`}
-            />
+          <div className="mt-3 space-y-2">
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-amber-300 transition-all"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      (normalizeQuantity(nextItem.confirmedQuantityValue) /
+                        Math.max(nextItem.requestedQuantity, 1)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
+            <p className="text-sm text-slate-100">
+              Confira este item antes de seguir para os demais.
+            </p>
           </div>
         </section>
       ) : null}
@@ -389,13 +434,13 @@ export function MobileConferencePanel({
       </section>
 
       <section className="space-y-3">
-        {items.map((item) => {
-          const missing = Math.max(
-            item.requestedQuantity - normalizeQuantity(item.confirmedQuantityValue),
-            0,
-          );
-          const hasDivergence =
-            normalizeQuantity(item.confirmedQuantityValue) !== item.requestedQuantity;
+        {orderedItems.map((item) => {
+          const confirmedQuantity = normalizeQuantity(item.confirmedQuantityValue);
+          const missing = Math.max(item.requestedQuantity - confirmedQuantity, 0);
+          const hasDivergence = confirmedQuantity !== item.requestedQuantity;
+          const isCurrentItem = nextItem?.id === item.id;
+          const isCompleted = !hasDivergence && missing === 0;
+          const isActiveItem = activeItemId === item.id;
 
           return (
             <div
@@ -404,22 +449,61 @@ export function MobileConferencePanel({
                 itemRefs.current[item.id] = element;
               }}
               className={`rounded-[24px] border p-4 ${
-                activeItemId === item.id
-                  ? "border-amber-400 bg-amber-500/10"
-                  : "border-white/10 bg-white/5"
+                isCurrentItem
+                  ? "border-amber-400/40 bg-gradient-to-br from-amber-500/18 via-amber-500/8 to-slate-950 shadow-lg shadow-amber-950/20"
+                  : isCompleted
+                    ? "border-emerald-400/25 bg-emerald-500/10"
+                    : isActiveItem
+                      ? "border-amber-300/30 bg-amber-500/10"
+                      : "border-white/10 bg-white/5"
               }`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{item.sku}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{item.sku}</p>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                        isCurrentItem
+                          ? "bg-amber-400/15 text-amber-100"
+                          : isCompleted
+                            ? "bg-emerald-400/15 text-emerald-100"
+                            : "bg-rose-400/15 text-rose-100"
+                      }`}
+                    >
+                      {isCurrentItem ? "Em foco" : isCompleted ? "Completo" : "Conferir"}
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm text-slate-300">{item.name}</p>
                   <p className="mt-1 text-xs text-slate-500">Código {item.code}</p>
                 </div>
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
                   {item.requestedQuantity} {item.unit}
                 </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>Progresso do item</span>
+                  <span>
+                    {confirmedQuantity}/{item.requestedQuantity} {item.unit}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      isCompleted ? "bg-emerald-300" : isCurrentItem ? "bg-amber-300" : "bg-rose-300"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((confirmedQuantity / Math.max(item.requestedQuantity, 1)) * 100),
+                      )}%`,
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="mt-3 rounded-2xl border border-amber-400/20 bg-slate-950/40 px-3 py-3">
@@ -444,7 +528,11 @@ export function MobileConferencePanel({
                     step={1}
                     value={item.confirmedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+                    className={`h-11 w-full rounded-2xl border px-3 text-sm text-white outline-none ${
+                      isCurrentItem
+                        ? "border-amber-300/40 bg-amber-950/30"
+                        : "border-white/10 bg-slate-900"
+                    }`}
                   />
                 </label>
               </div>
@@ -486,6 +574,13 @@ export function MobileConferencePanel({
         <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
           <span>{completionPercent}% concluído</span>
           <span>{pendingUnits} un pendente(s)</span>
+        </div>
+
+        <div className="mb-3 h-2 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-amber-300 transition-all"
+            style={{ width: `${completionPercent}%` }}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-2">

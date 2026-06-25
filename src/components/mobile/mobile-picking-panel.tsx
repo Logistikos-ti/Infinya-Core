@@ -81,6 +81,29 @@ export function MobilePickingPanel({
     [items],
   );
 
+  const orderedItems = useMemo(() => {
+    return [...items].sort((left, right) => {
+      const leftSeparated = normalizeQuantity(left.separatedQuantityValue);
+      const rightSeparated = normalizeQuantity(right.separatedQuantityValue);
+      const leftPending = leftSeparated < left.requestedQuantity;
+      const rightPending = rightSeparated < right.requestedQuantity;
+
+      if (nextItem && left.id === nextItem.id) {
+        return -1;
+      }
+
+      if (nextItem && right.id === nextItem.id) {
+        return 1;
+      }
+
+      if (leftPending !== rightPending) {
+        return leftPending ? -1 : 1;
+      }
+
+      return left.sku.localeCompare(right.sku, "pt-BR");
+    });
+  }, [items, nextItem]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
     return () => window.clearTimeout(timer);
@@ -198,36 +221,69 @@ export function MobilePickingPanel({
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <MiniInfo label="Pendentes" value={`${pendingUnits} un`} />
-          <MiniInfo label="Paradas" value={String(order.routeStopCount)} />
+          <MiniInfo label="Operador" value={selectedOperatorId ? "Definido" : "Pendente"} />
         </div>
       </section>
 
       {nextItem ? (
-        <section className="rounded-[24px] border border-sky-400/30 bg-sky-500/10 p-4">
+        <section className="rounded-[28px] border border-sky-400/35 bg-gradient-to-br from-sky-500/18 via-sky-500/10 to-slate-950 p-4 shadow-lg shadow-sky-950/20">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-            Próximo item sugerido
+            Item em foco
           </p>
-          <p className="mt-2 text-base font-semibold text-white">{nextItem.sku}</p>
-          <p className="mt-1 text-sm text-slate-300">{nextItem.name}</p>
-          <p className="mt-2 text-sm text-slate-200">
-            Falta{" "}
-            {Math.max(
-              nextItem.requestedQuantity - normalizeQuantity(nextItem.separatedQuantityValue),
-              0,
-            )}{" "}
-            {nextItem.unit}
-          </p>
-          <div className="mt-3 rounded-2xl border border-sky-400/30 bg-slate-950/40 px-3 py-3">
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-lg font-semibold text-white">{nextItem.sku}</p>
+              <p className="mt-1 text-sm text-slate-200">{nextItem.name}</p>
+            </div>
+            <span className="rounded-full border border-sky-300/25 bg-sky-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-100">
+              Prioridade
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <InfoPill label="Pedido" value={`${nextItem.requestedQuantity} ${nextItem.unit}`} />
+            <InfoPill
+              label="Separado"
+              value={`${normalizeQuantity(nextItem.separatedQuantityValue)} ${nextItem.unit}`}
+            />
+            <InfoPill
+              label="Falta"
+              value={`${Math.max(
+                nextItem.requestedQuantity - normalizeQuantity(nextItem.separatedQuantityValue),
+                0,
+              )} ${nextItem.unit}`}
+            />
+          </div>
+          <div className="mt-3 rounded-2xl border border-sky-400/30 bg-slate-950/50 px-3 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
               EAN/GTIN esperado
             </p>
             <p className="mt-1 text-sm font-semibold text-white">{nextItem.barcode || "-"}</p>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
-            {nextItem.routeLines[0]
-              ? `${nextItem.routeLines[0].addressCode} • ${nextItem.routeLines[0].routeLabel}`
-              : "Sem endereço sugerido."}
-          </p>
+          <div className="mt-3 space-y-2">
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-sky-300 transition-all"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.round(
+                      (normalizeQuantity(nextItem.separatedQuantityValue) /
+                        Math.max(nextItem.requestedQuantity, 1)) *
+                        100,
+                    ),
+                  )}%`,
+                }}
+              />
+            </div>
+            <p className="text-sm text-slate-100">
+              {nextItem.routeLines[0]
+                ? `Coleta sugerida em ${nextItem.routeLines[0].addressCode}`
+                : "Sem endereço sugerido para este item."}
+            </p>
+            {nextItem.routeLines[0] ? (
+              <p className="text-xs text-slate-400">{nextItem.routeLines[0].routeLabel}</p>
+            ) : null}
+          </div>
         </section>
       ) : null}
 
@@ -302,32 +358,72 @@ export function MobilePickingPanel({
       </section>
 
       <section className="space-y-3">
-        {items.map((item) => {
-          const missing = Math.max(
-            item.requestedQuantity - normalizeQuantity(item.separatedQuantityValue),
-            0,
-          );
+        {orderedItems.map((item) => {
+          const separatedQuantity = normalizeQuantity(item.separatedQuantityValue);
+          const missing = Math.max(item.requestedQuantity - separatedQuantity, 0);
+          const isCurrentItem = nextItem?.id === item.id;
+          const isCompleted = missing === 0;
+          const isActiveItem = activeItemId === item.id;
 
           return (
             <div
               key={item.id}
               className={`rounded-[24px] border p-4 ${
-                activeItemId === item.id
-                  ? "border-sky-400 bg-sky-500/10"
-                  : "border-white/10 bg-white/5"
+                isCurrentItem
+                  ? "border-sky-400/40 bg-gradient-to-br from-sky-500/18 via-sky-500/8 to-slate-950 shadow-lg shadow-sky-950/20"
+                  : isCompleted
+                    ? "border-emerald-400/25 bg-emerald-500/10"
+                    : isActiveItem
+                      ? "border-sky-300/30 bg-sky-500/10"
+                      : "border-white/10 bg-white/5"
               }`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{item.sku}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-white">{item.sku}</p>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                        isCurrentItem
+                          ? "bg-sky-400/15 text-sky-100"
+                          : isCompleted
+                            ? "bg-emerald-400/15 text-emerald-100"
+                            : "bg-amber-400/15 text-amber-100"
+                      }`}
+                    >
+                      {isCurrentItem ? "Em foco" : isCompleted ? "Completo" : "Pendente"}
+                    </span>
+                  </div>
                   <p className="mt-1 text-sm text-slate-300">{item.name}</p>
                   <p className="mt-1 text-xs text-slate-500">Código {item.code}</p>
                 </div>
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
                   {item.requestedQuantity} {item.unit}
                 </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>Progresso do item</span>
+                  <span>
+                    {separatedQuantity}/{item.requestedQuantity} {item.unit}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      isCompleted ? "bg-emerald-300" : isCurrentItem ? "bg-sky-300" : "bg-amber-300"
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((separatedQuantity / Math.max(item.requestedQuantity, 1)) * 100),
+                      )}%`,
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="mt-3 rounded-2xl border border-sky-400/20 bg-slate-950/40 px-3 py-3">
@@ -350,7 +446,9 @@ export function MobilePickingPanel({
                     step={1}
                     value={item.separatedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+                    className={`h-11 w-full rounded-2xl border px-3 text-sm text-white outline-none ${
+                      isCurrentItem ? "border-sky-300/40 bg-sky-950/30" : "border-white/10 bg-slate-900"
+                    }`}
                   />
                 </label>
 
@@ -415,6 +513,13 @@ export function MobilePickingPanel({
           <span>{pendingUnits} un pendente(s)</span>
         </div>
 
+        <div className="mb-3 h-2 overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-sky-300 transition-all"
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
+
         <div className="grid grid-cols-1 gap-2">
           <Button
             type="submit"
@@ -436,6 +541,15 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-2">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>
   );
 }

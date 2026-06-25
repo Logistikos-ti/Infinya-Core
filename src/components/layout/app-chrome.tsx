@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
-import { LogoutButton } from "@/components/auth/logout-button";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -48,9 +47,6 @@ export function AppChrome({ children, user }: AppChromeProps) {
           
           <div className="flex items-center gap-4 ml-4">
             <ThemeToggle />
-            <div className="hidden sm:block">
-              <LogoutButton />
-            </div>
           </div>
         </header>
 
