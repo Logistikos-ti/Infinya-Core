@@ -390,9 +390,14 @@ export function MobilePickingPanel({
 
       <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
         {isWarningVisible ? (
-          <div className="mb-3 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Sem atividade nesta separação. O pedido volta para a fila em{" "}
-            <span className="font-semibold">{countdownSeconds}s</span>.
+          <div className="mb-3 rounded-2xl border border-rose-400/30 bg-gradient-to-r from-rose-500/15 to-amber-500/10 px-4 py-3 text-sm text-rose-50">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rose-200">
+              Atenção operacional
+            </p>
+            <p className="mt-1 font-semibold">Pedido em risco de voltar para a fila.</p>
+            <p className="mt-1 text-rose-100/90">
+              Retome a separação em até <span className="font-bold">{countdownSeconds}s</span>.
+            </p>
           </div>
         ) : null}
 

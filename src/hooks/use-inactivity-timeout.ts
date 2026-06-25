@@ -9,8 +9,8 @@ type UseInactivityTimeoutOptions = {
   onExpire: () => void;
 };
 
-const DEFAULT_WARNING_AFTER_MS = 30_000;
-const DEFAULT_EXPIRE_AFTER_MS = 60_000;
+const DEFAULT_WARNING_AFTER_MS = 15_000;
+const DEFAULT_EXPIRE_AFTER_MS = 45_000;
 
 export function useInactivityTimeout({
   warningAfterMs = DEFAULT_WARNING_AFTER_MS,
