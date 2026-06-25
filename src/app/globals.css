@@ -207,6 +207,41 @@ a {
   .dark .stripes {
     background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px);
   }
+
+  .mobile-scan-flash {
+    animation: mobile-scan-flash 1.2s ease-out;
+  }
+
+  .mobile-scan-flash-sky {
+    box-shadow:
+      0 0 0 1px rgba(125, 211, 252, 0.3),
+      0 0 0 6px rgba(14, 165, 233, 0.12),
+      0 0 32px rgba(56, 189, 248, 0.18);
+  }
+
+  .mobile-scan-flash-amber {
+    box-shadow:
+      0 0 0 1px rgba(252, 211, 77, 0.32),
+      0 0 0 6px rgba(245, 158, 11, 0.12),
+      0 0 32px rgba(251, 191, 36, 0.18);
+  }
+}
+
+@keyframes mobile-scan-flash {
+  0% {
+    transform: scale(0.985);
+    filter: brightness(1.08);
+  }
+
+  45% {
+    transform: scale(1.01);
+    filter: brightness(1.18);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
 }
 
 /* Custom Scrollbar */

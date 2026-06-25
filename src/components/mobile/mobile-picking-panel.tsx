@@ -36,10 +36,13 @@ export function MobilePickingPanel({
   );
   const [scanValue, setScanValue] = useState("");
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [scanTone, setScanTone] = useState<"success" | "error">("success");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
+  const recentScanTimerRef = useRef<number | null>(null);
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
     disabled: isSubmitting,
     onExpire: () => {
@@ -109,8 +112,17 @@ export function MobilePickingPanel({
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (recentScanTimerRef.current) {
+        window.clearTimeout(recentScanTimerRef.current);
+      }
+    };
+  }, []);
+
   function setFeedback(message: string, tone: "success" | "error") {
     setScanMessage(message);
+    setScanTone(tone);
 
     if (!soundEnabled || typeof window === "undefined") {
       return;
@@ -147,6 +159,18 @@ export function MobilePickingPanel({
     );
   }
 
+  function highlightScannedItem(itemId: string) {
+    setRecentScannedItemId(itemId);
+
+    if (recentScanTimerRef.current) {
+      window.clearTimeout(recentScanTimerRef.current);
+    }
+
+    recentScanTimerRef.current = window.setTimeout(() => {
+      setRecentScannedItemId((current) => (current === itemId ? null : current));
+    }, 1200);
+  }
+
   function applyScan(rawValue: string) {
     const normalizedScan = normalizeScan(rawValue);
 
@@ -179,6 +203,7 @@ export function MobilePickingPanel({
     );
 
     setActiveItemId(matchedItem.id);
+    highlightScannedItem(matchedItem.id);
     setScanValue("");
     setFeedback(
       `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`,
@@ -334,7 +359,17 @@ export function MobilePickingPanel({
             </button>
           </div>
 
-          {scanMessage ? <p className="text-sm text-slate-300">{scanMessage}</p> : null}
+          {scanMessage ? (
+            <div
+              className={`rounded-2xl border px-3 py-3 text-sm ${
+                scanTone === "success"
+                  ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                  : "border-rose-400/25 bg-rose-500/10 text-rose-200"
+              }`}
+            >
+              {scanMessage}
+            </div>
+          ) : null}
 
           <div className="flex gap-2">
             <button
@@ -364,6 +399,7 @@ export function MobilePickingPanel({
           const isCurrentItem = nextItem?.id === item.id;
           const isCompleted = missing === 0;
           const isActiveItem = activeItemId === item.id;
+          const isRecentlyScanned = recentScannedItemId === item.id;
 
           return (
             <div
@@ -376,7 +412,7 @@ export function MobilePickingPanel({
                     : isActiveItem
                       ? "border-sky-300/30 bg-sky-500/10"
                       : "border-white/10 bg-white/5"
-              }`}
+              } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
@@ -393,7 +429,13 @@ export function MobilePickingPanel({
                             : "bg-amber-400/15 text-amber-100"
                       }`}
                     >
-                      {isCurrentItem ? "Em foco" : isCompleted ? "Completo" : "Pendente"}
+                      {isRecentlyScanned
+                        ? "Lido agora"
+                        : isCurrentItem
+                          ? "Em foco"
+                          : isCompleted
+                            ? "Completo"
+                            : "Pendente"}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-300">{item.name}</p>

@@ -45,9 +45,11 @@ export function MobileConferencePanel({
   const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
+  const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const recentScanTimerRef = useRef<number | null>(null);
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
     disabled: isSubmitting,
     onExpire: () => {
@@ -119,6 +121,14 @@ export function MobileConferencePanel({
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (recentScanTimerRef.current) {
+        window.clearTimeout(recentScanTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeItemId) {
       return;
     }
@@ -178,6 +188,18 @@ export function MobileConferencePanel({
     });
   }
 
+  function highlightScannedItem(itemId: string) {
+    setRecentScannedItemId(itemId);
+
+    if (recentScanTimerRef.current) {
+      window.clearTimeout(recentScanTimerRef.current);
+    }
+
+    recentScanTimerRef.current = window.setTimeout(() => {
+      setRecentScannedItemId((current) => (current === itemId ? null : current));
+    }, 1200);
+  }
+
   function applyScan(rawValue: string) {
     const normalizedScan = normalizeScan(rawValue);
 
@@ -218,6 +240,7 @@ export function MobileConferencePanel({
     );
 
     setActiveItemId(matchedItem.id);
+    highlightScannedItem(matchedItem.id);
     setScanValue("");
     setFeedback(
       `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`,
@@ -441,6 +464,7 @@ export function MobileConferencePanel({
           const isCurrentItem = nextItem?.id === item.id;
           const isCompleted = !hasDivergence && missing === 0;
           const isActiveItem = activeItemId === item.id;
+          const isRecentlyScanned = recentScannedItemId === item.id;
 
           return (
             <div
@@ -456,7 +480,7 @@ export function MobileConferencePanel({
                     : isActiveItem
                       ? "border-amber-300/30 bg-amber-500/10"
                       : "border-white/10 bg-white/5"
-              }`}
+              } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-amber" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
@@ -473,7 +497,13 @@ export function MobileConferencePanel({
                             : "bg-rose-400/15 text-rose-100"
                       }`}
                     >
-                      {isCurrentItem ? "Em foco" : isCompleted ? "Completo" : "Conferir"}
+                      {isRecentlyScanned
+                        ? "Lido agora"
+                        : isCurrentItem
+                          ? "Em foco"
+                          : isCompleted
+                            ? "Completo"
+                            : "Conferir"}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-300">{item.name}</p>
