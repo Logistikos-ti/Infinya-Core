@@ -238,7 +238,7 @@ export function MobilePickingPanel({
   }
 
   return (
-    <form action={savePickingProgressAction} className="space-y-4">
+    <form action={savePickingProgressAction} className="space-y-4 max-w-2xl mx-auto w-full">
       <InactivityWarningDialog
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
@@ -252,43 +252,43 @@ export function MobilePickingPanel({
       <input type="hidden" name="redirectBase" value="/m/separacao" />
       <input type="hidden" name="completeRedirectTo" value={`/m/conferencia/${order.id}`} />
 
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+      {/* Hero Header Card */}
+      <section className="glass-card rounded-3xl p-5 border border-slate-200/60 dark:border-zinc-800/60 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-infinya-gradient"></div>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary-500">
               Separação em andamento
             </p>
-            <h1 className="mt-2 text-xl font-semibold text-white">{order.externalNumber}</h1>
-            <p className="mt-1 text-sm text-slate-300">
+            <h1 className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{order.externalNumber}</h1>
+            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-zinc-400">
               {order.customer} • {order.destination}
             </p>
           </div>
-          <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300">
+          <span className="rounded-xl bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 text-sm font-bold text-primary-600 dark:text-primary-400">
             {completionPercent}%
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <MiniInfo label="Pendentes" value={`${pendingUnits} un`} />
           <MiniInfo label="Operador" value={selectedOperatorId ? "Definido" : "Pendente"} />
         </div>
       </section>
 
+      {/* Item em Foco */}
       {nextItem ? (
-        <section className="rounded-[28px] border border-sky-400/35 bg-gradient-to-br from-sky-500/18 via-sky-500/10 to-slate-950 p-4 shadow-lg shadow-sky-950/20">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-            Item em foco
+        <section className="rounded-3xl border border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-accent-500/5 dark:from-primary-500/15 dark:to-accent-500/10 p-5 shadow-lg shadow-primary-500/10 transition-all">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary-600 dark:text-primary-400">
+            Item em foco (Próxima Coleta)
           </p>
-          <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="mt-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-lg font-semibold text-white">{nextItem.sku}</p>
-              <p className="mt-1 text-sm text-slate-200">{nextItem.name}</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white">{nextItem.sku}</p>
+              <p className="mt-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">{nextItem.name}</p>
             </div>
-            <span className="rounded-full border border-sky-300/25 bg-sky-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-100">
-              Prioridade
-            </span>
           </div>
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-3 gap-3">
             <InfoPill label="Pedido" value={`${nextItem.requestedQuantity} ${nextItem.unit}`} />
             <InfoPill
               label="Separado"
@@ -302,16 +302,16 @@ export function MobilePickingPanel({
               )} ${nextItem.unit}`}
             />
           </div>
-          <div className="mt-3 rounded-2xl border border-sky-400/30 bg-slate-950/50 px-3 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+          <div className="mt-4 rounded-2xl border border-primary-500/20 bg-white/60 dark:bg-zinc-950/40 px-4 py-3 backdrop-blur-sm">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               EAN/GTIN esperado
             </p>
-            <p className="mt-1 text-sm font-semibold text-white">{nextItem.barcode || "-"}</p>
+            <p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">{nextItem.barcode || "-"}</p>
           </div>
-          <div className="mt-3 space-y-2">
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-4 space-y-3">
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
               <div
-                className="h-full rounded-full bg-sky-300 transition-all"
+                className="h-full rounded-full bg-infinya-gradient transition-all"
                 style={{
                   width: `${Math.min(
                     100,
@@ -324,15 +324,15 @@ export function MobilePickingPanel({
                 }}
               />
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-100">
+            <div className="space-y-1.5">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
                 {nextItem.routeLines[0]
                   ? `Coleta sugerida em ${nextItem.routeLines[0].addressCode}`
                   : "Sem endereço sugerido."}
               </p>
               {nextItem.routeLines[0] ? (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <span className="rounded-full bg-white/8 px-2 py-1 text-[11px] font-medium text-slate-200">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="rounded-full border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1 text-[11px]">
                     {nextItem.routeLines[0].area}
                   </span>
                   <span>{nextItem.routeLines[0].routeLabel}</span>
@@ -343,9 +343,10 @@ export function MobilePickingPanel({
         </section>
       ) : null}
 
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      {/* Área de Scaneamento e Filtros */}
+      <section className="glass-card rounded-3xl border border-slate-200/60 dark:border-zinc-800/60 p-5 shadow-sm">
+        <label className="space-y-2 block">
+          <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-zinc-400">
             Operador
           </span>
           <select
@@ -354,7 +355,7 @@ export function MobilePickingPanel({
               resetTimer();
               setSelectedOperatorId(event.target.value);
             }}
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+            className="h-12 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
           >
             <option value="">Selecionar operador</option>
             {operators.map((operator) => (
@@ -365,12 +366,12 @@ export function MobilePickingPanel({
           </select>
         </label>
 
-        <div className="mt-4 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Leitura
+        <div className="mt-5 space-y-3">
+          <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-zinc-400">
+            Leitura de Código
           </span>
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900 p-2">
-            <Barcode className="h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2 rounded-2xl border-2 border-primary-500/30 bg-white dark:bg-zinc-900 p-2 shadow-sm focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
+            <Barcode className="h-5 w-5 ml-2 text-primary-500" />
             <input
               ref={scanInputRef}
               value={scanValue}
@@ -390,12 +391,12 @@ export function MobilePickingPanel({
                 }, 40);
               }}
               placeholder="Leia EAN, SKU ou código"
-              className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              className="h-11 w-full bg-transparent px-2 text-base font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
             />
             <button
               type="button"
               onClick={() => applyScan(scanValue)}
-              className="rounded-xl bg-sky-500 px-3 py-2 text-sm font-semibold text-white"
+              className="rounded-xl bg-primary-500 hover:bg-primary-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-primary-500/20 transition-all"
             >
               Ler
             </button>
@@ -403,10 +404,10 @@ export function MobilePickingPanel({
 
           {scanMessage ? (
             <div
-              className={`rounded-2xl border px-3 py-3 text-sm ${
+              className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
                 scanTone === "success"
-                  ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
-                  : "border-rose-400/25 bg-rose-500/10 text-rose-200"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
               }`}
             >
               {scanMessage}
@@ -414,18 +415,18 @@ export function MobilePickingPanel({
           ) : null}
 
           {scanHistory.length ? (
-            <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/40 px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Últimos scans
               </p>
-              <div className="mt-2 space-y-2">
+              <div className="mt-2.5 space-y-2">
                 {scanHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className={`rounded-xl px-3 py-2 text-xs ${
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${
                       entry.tone === "success"
-                        ? "bg-emerald-500/10 text-emerald-200"
-                        : "bg-rose-500/10 text-rose-200"
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
                     }`}
                   >
                     {entry.text}
@@ -435,11 +436,11 @@ export function MobilePickingPanel({
             </div>
           ) : null}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <button
               type="button"
               onClick={focusScanInput}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
+              className="inline-flex items-center justify-center gap-2 flex-1 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors"
             >
               <Focus className="h-4 w-4" />
               Focar
@@ -447,16 +448,17 @@ export function MobilePickingPanel({
             <button
               type="button"
               onClick={() => setSoundEnabled((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
+              className="inline-flex items-center justify-center gap-2 flex-1 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors"
             >
               <Volume2 className="h-4 w-4" />
-              {soundEnabled ? "Som ativo" : "Som desligado"}
+              {soundEnabled ? "Som ativo" : "Sem som"}
             </button>
           </div>
         </div>
       </section>
 
-      <section className="space-y-3">
+      {/* Lista de Itens Restantes */}
+      <section className="space-y-4">
         {orderedItems.map((item) => {
           const separatedQuantity = normalizeQuantity(item.separatedQuantityValue);
           const missing = Math.max(item.requestedQuantity - separatedQuantity, 0);
@@ -468,31 +470,31 @@ export function MobilePickingPanel({
           return (
             <div
               key={item.id}
-              className={`border ${
+              className={`border transition-all ${
                 isCurrentItem
-                  ? "rounded-[24px] border-sky-400/40 bg-gradient-to-br from-sky-500/18 via-sky-500/8 to-slate-950 p-4 shadow-lg shadow-sky-950/20"
+                  ? "rounded-3xl border-primary-500/40 bg-gradient-to-br from-primary-500/10 to-transparent p-5 shadow-lg shadow-primary-500/10"
                   : isCompleted
-                    ? "rounded-[20px] border-emerald-400/25 bg-emerald-500/10 p-3.5"
+                    ? "rounded-[24px] border-emerald-500/30 bg-emerald-500/5 p-4"
                     : isActiveItem
-                      ? "rounded-[20px] border-sky-300/30 bg-sky-500/10 p-3.5"
-                      : "rounded-[20px] border-white/10 bg-white/5 p-3.5"
+                      ? "rounded-[24px] border-primary-500/30 bg-primary-500/5 p-4"
+                      : "rounded-[24px] border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
 
-              <div className={`flex items-start justify-between ${isCurrentItem ? "gap-3" : "gap-2.5"}`}>
+              <div className={`flex items-start justify-between ${isCurrentItem ? "gap-4" : "gap-3"}`}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className={`${isCurrentItem ? "text-sm" : "text-[13px]"} font-semibold text-white`}>
+                    <p className={`${isCurrentItem ? "text-base" : "text-sm"} font-bold text-slate-900 dark:text-white`}>
                       {item.sku}
                     </p>
                     <span
-                      className={`rounded-full ${isCurrentItem ? "px-2.5 py-1" : "px-2 py-0.5"} text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                      className={`rounded-full ${isCurrentItem ? "px-3 py-1" : "px-2 py-0.5"} text-[10px] font-bold uppercase tracking-wider ${
                         isCurrentItem
-                          ? "bg-sky-400/15 text-sky-100"
+                          ? "bg-primary-500/15 text-primary-600 dark:text-primary-400"
                           : isCompleted
-                            ? "bg-emerald-400/15 text-emerald-100"
-                            : "bg-amber-400/15 text-amber-100"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                       }`}
                     >
                       {isRecentlyScanned
@@ -504,37 +506,36 @@ export function MobilePickingPanel({
                             : "Pendente"}
                     </span>
                   </div>
-                  <p className={`mt-1 ${isCurrentItem ? "text-sm" : "line-clamp-2 text-[13px]"} text-slate-300`}>
+                  <p className={`mt-1.5 ${isCurrentItem ? "text-sm" : "line-clamp-2 text-xs"} font-medium text-slate-600 dark:text-slate-400`}>
                     {item.name}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
-                    <span>Cod. {item.code}</span>
-                    {!isCurrentItem ? <span>/</span> : null}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-slate-500">
+                    <span className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">Cod. {item.code}</span>
                     {!isCurrentItem ? (
-                      <span>
+                      <span className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
                         {item.requestedQuantity} {item.unit}
                       </span>
                     ) : null}
                   </div>
                 </div>
                 {isCurrentItem ? (
-                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                  <span className="shrink-0 rounded-xl bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
                     {item.requestedQuantity} {item.unit}
                   </span>
                 ) : null}
               </div>
 
-              <div className={`${isCurrentItem ? "mt-3" : "mt-2"} space-y-2`}>
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span>Progresso do item</span>
+              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} space-y-2`}>
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <span>Progresso</span>
                   <span>
-                    {separatedQuantity}/{item.requestedQuantity} {item.unit}
+                    {separatedQuantity} / {item.requestedQuantity} {item.unit}
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      isCompleted ? "bg-emerald-300" : isCurrentItem ? "bg-sky-300" : "bg-amber-300"
+                      isCompleted ? "bg-emerald-500" : isCurrentItem ? "bg-primary-500" : "bg-amber-500"
                     }`}
                     style={{
                       width: `${Math.min(
@@ -547,22 +548,22 @@ export function MobilePickingPanel({
               </div>
 
               <div
-                className={`rounded-2xl border border-sky-400/20 bg-slate-950/40 ${isCurrentItem ? "mt-3 px-3 py-3" : "mt-2 px-3 py-2.5"}`}
+                className={`rounded-2xl border border-slate-200/50 dark:border-zinc-700/50 bg-slate-50 dark:bg-zinc-950/40 ${isCurrentItem ? "mt-4 px-4 py-3" : "mt-3 px-3 py-2.5"}`}
               >
                 <div className={`flex ${isCurrentItem ? "flex-col" : "items-center justify-between gap-3"}`}>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     EAN/GTIN esperado
                   </p>
-                  <p className={`${isCurrentItem ? "mt-1 text-sm" : "text-[13px]"} font-semibold text-white`}>
+                  <p className={`${isCurrentItem ? "mt-1 text-sm" : "text-sm"} font-bold text-slate-800 dark:text-white`}>
                     {item.barcode || "-"}
                   </p>
                 </div>
               </div>
 
-              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-2 gap-2`}>
-                <label className="space-y-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Separado
+              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-2 gap-3`}>
+                <label className="space-y-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Qtd Separada
                   </span>
                   <input
                     type="number"
@@ -572,74 +573,76 @@ export function MobilePickingPanel({
                     step={1}
                     value={item.separatedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
-                    className={`h-11 w-full rounded-2xl border px-3 text-sm text-white outline-none ${
-                      isCurrentItem ? "border-sky-300/40 bg-sky-950/30" : "border-white/10 bg-slate-900"
+                    className={`h-11 w-full rounded-xl border px-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-colors ${
+                      isCurrentItem ? "border-primary-500/40 bg-white dark:bg-zinc-900" : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
                     }`}
                   />
                 </label>
 
-                <div className="space-y-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Status
                   </span>
-                  <div className="flex h-11 items-center rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white">
+                  <div className={`flex h-11 items-center rounded-xl border px-3 text-sm font-bold transition-colors ${
+                    missing > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  }`}>
                     {missing > 0 ? `Faltam ${missing}` : "Completo"}
                   </div>
                 </div>
               </div>
 
-              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} space-y-2`}>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <div className={`${isCurrentItem ? "mt-5" : "mt-4"} space-y-3`}>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Endereços sugeridos
                 </p>
                 {item.routeLines.length ? (
                   item.routeLines.map((line) => (
                     <div
                       key={`${item.id}-${line.stockId}`}
-                      className={`rounded-2xl border border-white/10 bg-slate-900/80 ${isCurrentItem ? "px-3 py-3" : "px-3 py-2.5"}`}
+                      className={`rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 ${isCurrentItem ? "px-4 py-3.5 shadow-sm" : "px-3 py-3"}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 text-slate-100">
-                            <MapPinned className="h-4 w-4 shrink-0 text-sky-300" />
-                            <span className={`${isCurrentItem ? "text-sm" : "text-[13px]"} font-semibold`}>
+                          <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                            <MapPinned className="h-4 w-4 shrink-0 text-primary-500" />
+                            <span className={`${isCurrentItem ? "text-sm" : "text-sm"} font-bold`}>
                               {line.addressCode}
                             </span>
                           </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                            <span className="rounded-full bg-sky-400/10 px-2 py-1 font-medium text-sky-100">
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            <span className="rounded-full bg-primary-500/10 px-2 py-0.5 text-primary-600 dark:text-primary-400 border border-primary-500/20">
                               {line.area}
                             </span>
                             <span>{line.routeLabel}</span>
                           </div>
                         </div>
-                        <div className="shrink-0 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-2.5 py-2 text-right">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-100/80">
+                        <div className="shrink-0 rounded-xl border border-primary-500/20 bg-primary-500/10 px-3 py-2 text-right">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary-600 dark:text-primary-400">
                             Coletar
                           </p>
-                          <p className="mt-1 text-sm font-semibold text-sky-100">
+                          <p className="mt-0.5 text-sm font-bold text-primary-700 dark:text-primary-300">
                             {line.quantity} {item.unit}
                           </p>
                         </div>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-white/5 px-2.5 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-3 py-2 border border-slate-100 dark:border-zinc-800">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
                             Lote
                           </p>
-                          <p className="mt-1 text-[13px] font-medium text-white">{line.lot}</p>
+                          <p className="mt-1 text-xs font-bold text-slate-800 dark:text-white">{line.lot}</p>
                         </div>
-                        <div className="rounded-xl bg-white/5 px-2.5 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        <div className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-3 py-2 border border-slate-100 dark:border-zinc-800">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
                             Validade
                           </p>
-                          <p className="mt-1 text-[13px] font-medium text-white">{line.expiry}</p>
+                          <p className="mt-1 text-xs font-bold text-slate-800 dark:text-white">{line.expiry}</p>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-amber-400/40 bg-amber-500/10 px-3 py-3 text-sm text-amber-200">
+                  <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-4 text-sm font-medium text-amber-700 dark:text-amber-400 text-center">
                     Sem endereço sugerido.
                   </div>
                 )}
@@ -649,40 +652,41 @@ export function MobilePickingPanel({
         })}
       </section>
 
-      <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+      {/* Floating Action Bar */}
+      <div className="sticky bottom-4 z-40 mt-8 rounded-[28px] border border-slate-200/50 dark:border-zinc-700/50 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-2xl backdrop-blur-xl max-w-2xl mx-auto w-full">
         {isWarningVisible ? (
-          <div className="mb-3 rounded-2xl border border-rose-400/30 bg-gradient-to-r from-rose-500/15 to-amber-500/10 px-4 py-3 text-sm text-rose-50">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rose-200">
+          <div className="mb-4 rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-amber-500/5 px-4 py-3 text-sm">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-rose-600 dark:text-rose-400">
               Atenção operacional
             </p>
-            <p className="mt-1 font-semibold">Pedido em risco de voltar para a fila.</p>
-            <p className="mt-1 text-rose-100/90">
-              Retome a separação em até <span className="font-bold">{countdownSeconds}s</span>.
+            <p className="mt-1 font-bold text-slate-800 dark:text-white">Pedido em risco de voltar para a fila.</p>
+            <p className="mt-1 font-medium text-slate-600 dark:text-slate-300">
+              Retome a separação em até <span className="font-bold text-rose-600 dark:text-rose-400">{countdownSeconds}s</span>.
             </p>
           </div>
         ) : null}
 
-        <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
+        <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
           <span>{completionPercent}% concluído</span>
           <span>{pendingUnits} un pendente(s)</span>
         </div>
 
-        <div className="mb-3 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="mb-5 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
           <div
-            className="h-full rounded-full bg-sky-300 transition-all"
+            className="h-full rounded-full bg-infinya-gradient transition-all"
             style={{ width: `${completionPercent}%` }}
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1">
           <Button
             type="submit"
             name="intent"
             value="complete"
-            className="h-11 bg-sky-500 text-white hover:bg-sky-400"
+            className="h-14 rounded-2xl bg-infinya-gradient text-white hover:opacity-90 shadow-lg shadow-primary-500/25 transition-all text-base font-bold"
             onClick={() => setIsSubmitting(true)}
           >
-            Concluir separação
+            Concluir Separação
           </Button>
         </div>
       </div>
@@ -692,18 +696,18 @@ export function MobilePickingPanel({
 
 function MiniInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+    <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1.5 text-base font-bold text-slate-900 dark:text-white">{value}</p>
     </div>
   );
 }
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-2">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-2xl border border-slate-200/50 dark:border-zinc-800/50 bg-white/60 dark:bg-zinc-950/40 px-3 py-2.5">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">{value}</p>
     </div>
   );
 }

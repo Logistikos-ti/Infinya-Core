@@ -52,27 +52,27 @@ export default async function ExpedicaoSeparacaoPage({
   const shortageOrders = orders.filter((order) => order.shortageUnits > 0).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative opacity-95">
       <Link
         href="/expedicao"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-zinc-400 transition hover:text-primary-600 dark:hover:text-primary-400"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para expedição
       </Link>
 
       <ModulePageHeader
-        title="Tela de separação"
-        description="Picking list por operador, com rota sugerida no armazém, leitura de código de barras e apontamento das quantidades separadas."
-        badge="Semana 6"
+        title="Fila de Separação (Picking)"
+        description="Fila de pedidos por operador, com rota sugerida no armazém, leitura de código de barras e apontamento das quantidades separadas."
+        badge="Em Foco"
       />
 
       {feedback ? (
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "concluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              : "border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400"
           }`}
         >
           {feedback === "concluido"
@@ -86,27 +86,27 @@ export default async function ExpedicaoSeparacaoPage({
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatTile icon={PackageCheck} label="Pedidos na fila" value={String(orders.length)} />
-        <StatTile icon={ScanSearch} label="Aguardando início" value={String(pendingOrders)} />
-        <StatTile icon={UserRound} label="Em separação" value={String(runningOrders)} />
-        <StatTile icon={TriangleAlert} label="Com falta de saldo" value={String(shortageOrders)} />
+        <StatTile icon={PackageCheck} label="Pedidos na fila" value={String(orders.length)} colorClass="text-sky-600 dark:text-sky-400 bg-sky-500/10" borderClass="hover:border-sky-500/30 border-l-4 border-l-sky-500" />
+        <StatTile icon={ScanSearch} label="Aguardando início" value={String(pendingOrders)} colorClass="text-amber-600 dark:text-amber-400 bg-amber-500/10" borderClass="hover:border-amber-500/30 border-l-4 border-l-amber-500" />
+        <StatTile icon={UserRound} label="Em separação" value={String(runningOrders)} colorClass="text-primary-600 dark:text-primary-400 bg-primary-500/10" borderClass="hover:border-primary-500/30 border-l-4 border-l-primary-500" />
+        <StatTile icon={TriangleAlert} label="Falta de saldo" value={String(shortageOrders)} colorClass="text-rose-600 dark:text-rose-400 bg-rose-500/10" borderClass="hover:border-rose-500/30 border-l-4 border-l-rose-500" />
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md p-6 shadow-sm transition-all hover:border-primary-500/30">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Filtro operacional</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Filtro operacional</h2>
+          <p className="text-sm text-slate-500 dark:text-zinc-400">
             Use operador, depositante e status para montar a fila de picking do turno.
           </p>
         </div>
 
-        <form className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
+        <form className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4 items-end">
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Status</span>
             <select
               name="status"
               defaultValue={statusFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
             >
               {statusOptions.map((option) => (
                 <option key={option.value || "todos"} value={option.value}>
@@ -116,12 +116,12 @@ export default async function ExpedicaoSeparacaoPage({
             </select>
           </label>
 
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Operador</span>
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Operador</span>
             <select
               name="operador"
               defaultValue={operatorFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
             >
               <option value="">Todos</option>
               {operators.map((operator) => (
@@ -132,13 +132,13 @@ export default async function ExpedicaoSeparacaoPage({
             </select>
           </label>
 
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Depositante</span>
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Depositante</span>
             <select
               name="depositante"
               defaultValue={depositanteFilter}
               disabled={user.papel === "DEPOSITANTE"}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all disabled:bg-slate-50 disabled:dark:bg-zinc-900/50 disabled:opacity-50"
             >
               <option value="">Todos</option>
               {depositanteOptions.map((depositante) => (
@@ -149,13 +149,13 @@ export default async function ExpedicaoSeparacaoPage({
             </select>
           </label>
 
-          <div className="flex items-end gap-2">
-            <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
-              Aplicar
+          <div className="flex items-center gap-2">
+            <Button type="submit" className="h-11 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-white transition-all font-semibold rounded-xl flex-1">
+              Aplicar Filtros
             </Button>
             <Link
               href="/expedicao/separacao"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 px-4 text-sm font-semibold text-slate-700 dark:text-zinc-300 transition hover:bg-slate-100 dark:hover:bg-zinc-800"
             >
               Limpar
             </Link>
@@ -163,51 +163,57 @@ export default async function ExpedicaoSeparacaoPage({
         </form>
       </section>
 
-      <section className="space-y-6">
+      <section className="space-y-4">
         {orders.length ? (
           orders.map((order) => (
-            <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={order.id} className="glass-card rounded-2xl p-5 transition-all hover:border-primary-500/30 group">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide border ${
+                      order.status === 'NOVO' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20' : 
+                      order.status === 'EM_SEPARACAO' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
+                      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    }`}>
                       {order.statusLabel}
                     </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                    <span className="rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300">
                       {order.depositante}
                     </span>
                     {order.shortageUnits > 0 ? (
-                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                      <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
                         Pendentes: {order.shortageUnits} un
                       </span>
                     ) : null}
                   </div>
 
-                  <h2 className="mt-3 text-lg font-semibold text-slate-950">{order.externalNumber}</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {order.customer} • {order.destination}
+                  <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    {order.externalNumber}
+                  </h2>
+                  <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
+                    {order.customer} <span className="text-slate-300 dark:text-zinc-600 px-1">•</span> {order.destination}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                    <span>Código interno {order.code}</span>
-                    <span>{order.totalItems} item(ns)</span>
-                    <span>{order.totalUnits} unidade(s)</span>
-                    <span>{order.routeStopCount} parada(s)</span>
-                    <span>{order.completionPercent}% concluído</span>
-                    <span>Operador: {order.assignedOperatorName ?? "Não atribuído"}</span>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
+                    <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Código int: {order.code}</span>
+                    <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalItems} item(ns)</span>
+                    <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalUnits} unidade(s)</span>
+                    <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.routeStopCount} parada(s)</span>
+                    <span className="bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 px-2 py-1 rounded-md">{order.completionPercent}% concluído</span>
+                    <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Operador: {order.assignedOperatorName ?? "Não atribuído"}</span>
                   </div>
                 </div>
 
                 <Link
                   href={`/expedicao/separacao/${order.id}`}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:bg-primary-600 hover:-translate-y-0.5 whitespace-nowrap"
                 >
-                  Iniciar separação
+                  Iniciar Separação
                 </Link>
               </div>
             </article>
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 p-10 text-center text-sm font-medium text-slate-500 dark:text-zinc-400 shadow-sm backdrop-blur-sm">
             Nenhum pedido disponível para separação com os filtros atuais.
           </div>
         )}
@@ -220,20 +226,24 @@ function StatTile({
   icon: Icon,
   label,
   value,
+  colorClass,
+  borderClass
 }: {
   icon: typeof PackageCheck;
   label: string;
   value: string;
+  colorClass: string;
+  borderClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className={`glass-card rounded-2xl p-5 transition-all ${borderClass}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{label}</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
         </div>
-        <div className="rounded-full bg-sky-50 p-3 text-sky-700">
-          <Icon className="h-5 w-5" />
+        <div className={`rounded-xl p-3 ${colorClass}`}>
+          <Icon className="h-6 w-6" />
         </div>
       </div>
     </div>
