@@ -10,14 +10,18 @@ import {
   Search,
   TimerReset,
   Truck,
+  Box,
+  ScanBarcode,
+  Filter,
+  Loader,
+  Clock,
+  ClipboardList,
+  Boxes,
+  FileText
 } from "lucide-react";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
-import { Button } from "@/components/ui/button";
 import { requireModuleAccess } from "@/lib/auth";
 import { canManageMultipleTenants, isAdminUser } from "@/lib/permissions";
 import {
-  formatShippingStatusLabel,
   listShippingFlowSteps,
   listShippingOrdersFromDb,
   listShippingQueuesFromDb,
@@ -86,293 +90,294 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const shippingFlow = listShippingFlowSteps();
 
   return (
-    <div className="space-y-6">
-      <ModulePageHeader
-        title="Expedição"
-        description="Pedidos integrados do Bling, fila operacional de separação, conferência e preparação para romaneio."
-        badge="Banco operacional"
-      />
-
-      <div className="flex flex-wrap justify-end gap-3">
-        <Link
-          href="/expedicao/separacao"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          <ListChecks className="h-4 w-4" />
-          Tela de separação
-        </Link>
-        <Link
-          href="/expedicao/conferencia"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          <ClipboardCheck className="h-4 w-4" />
-          Tela de conferência
-        </Link>
-        <Link
-          href="/expedicao/novo"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          <Plus className="h-4 w-4" />
-          Novo pedido manual
-        </Link>
+    <div className="space-y-8 relative opacity-95">
+      
+      {/* Header with Title and Quick Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+            Expedição (Outbound)
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
+            Gestão de separação (picking), conferência de saída e carregamento.
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/expedicao/separacao"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 text-sm font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+          >
+            <ListChecks className="w-4 h-4" />
+            Tela Separação
+          </Link>
+          <Link
+            href="/expedicao/conferencia"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 text-sm font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+          >
+            <ScanBarcode className="w-4 h-4" />
+            Conferir Volume
+          </Link>
+          <Link
+            href="/expedicao/novo"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-infinya-gradient text-white text-sm font-medium shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 transition-all hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Pedido
+          </Link>
+        </div>
       </div>
 
+      {/* KPIs Principais */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Truck} label={shippingStats[0].label} value={shippingStats[0].value} help={shippingStats[0].help} />
-        <StatCard icon={PackageCheck} label={shippingStats[1].label} value={shippingStats[1].value} help={shippingStats[1].help} />
-        <StatCard icon={Activity} label={shippingStats[2].label} value={shippingStats[2].value} help={shippingStats[2].help} />
-        <StatCard icon={TimerReset} label={shippingStats[3].label} value={shippingStats[3].value} help={shippingStats[3].help} />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1.7fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950">Pedidos de expedição</h2>
-              <p className="text-sm text-slate-600">
-                Fila real de pedidos integrados via Bling, com segregação por depositante.
-              </p>
-            </div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              {shippingOrders.length} pedidos
+        {/* KPI 1 */}
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-primary-500/40 dark:border-primary-500/30 border-l-4 border-l-primary-500 hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/20 transition-all group">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[0].label}</p>
+            <span className="p-2 bg-primary-500/10 text-primary-500 rounded-lg">
+              <ClipboardList className="w-4 h-4" />
             </span>
           </div>
-
-          <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
-                <select
-                  name="status"
-                  defaultValue={statusFilter}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                >
-                  {statusOptions.map((option) => (
-                    <option key={option.value || "todos"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Pedido ou código
-                </span>
-                <input
-                  type="text"
-                  name="pedido"
-                  defaultValue={orderSearchFilter}
-                  placeholder="Número, código ou loja"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Depositante
-                </span>
-                <select
-                  name="depositante"
-                  defaultValue={effectiveDepositanteFilter}
-                  disabled={!canManageMultipleTenants(user)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
-                >
-                  <option value="">Todos</option>
-                  {depositanteOptions.map((depositante) => (
-                    <option key={depositante.id} value={depositante.id}>
-                      {depositante.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Cliente</span>
-                <input
-                  type="text"
-                  name="cliente"
-                  defaultValue={customerFilter}
-                  placeholder="Nome do cliente"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Transportadora
-                </span>
-                <input
-                  type="text"
-                  name="transportadora"
-                  defaultValue={carrierFilter}
-                  placeholder="Nome da transportadora"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Loja ou marketplace
-                </span>
-                <input
-                  type="text"
-                  name="marketplace"
-                  defaultValue={marketplaceFilter}
-                  placeholder="Shopee, Magalu, site..."
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Data inicial
-                </span>
-                <input
-                  type="date"
-                  name="dataInicial"
-                  defaultValue={dateFrom}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <label className="space-y-1">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Data final
-                </span>
-                <input
-                  type="date"
-                  name="dataFinal"
-                  defaultValue={dateTo}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
-                />
-              </label>
-
-              <div className="flex items-end gap-2 xl:col-span-2">
-                <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
-                  <Search className="h-4 w-4" />
-                  Filtrar
-                </Button>
-                <Link
-                  href="/expedicao"
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
-                >
-                  Limpar
-                </Link>
-              </div>
-            </div>
-          </form>
-
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-slate-500">
-                <tr>
-                  <th className="pb-3 font-medium">Pedido</th>
-                  <th className="pb-3 font-medium">Depositante</th>
-                  <th className="pb-3 font-medium">Cliente</th>
-                  <th className="pb-3 font-medium">Loja / canal</th>
-                  <th className="pb-3 font-medium">Transportadora</th>
-                  <th className="pb-3 font-medium">Destino</th>
-                  <th className="pb-3 font-medium">Itens</th>
-                  <th className="pb-3 font-medium">Unidades</th>
-                  <th className="pb-3 font-medium">Total</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 text-right font-medium">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shippingOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-slate-100 last:border-b-0">
-                    <td className="py-3 text-slate-900">
-                      <div className="font-medium">{order.externalNumber}</div>
-                      <div className="text-xs text-slate-500">
-                        {order.code} | {order.origin}
-                      </div>
-                    </td>
-                    <td className="py-3 text-slate-600">{order.depositante}</td>
-                    <td className="py-3 text-slate-600">{order.customer}</td>
-                    <td className="py-3 text-slate-600">
-                      <div>{order.storeDisplay}</div>
-                      <div className="text-xs text-slate-500">
-                        Marketplace: {order.marketplace} | Canal: {order.channel}
-                      </div>
-                    </td>
-                    <td className="py-3 text-slate-600">{order.carrierName}</td>
-                    <td className="py-3 text-slate-600">{order.destination}</td>
-                    <td className="py-3 text-slate-600">{order.itemCount}</td>
-                    <td className="py-3 text-slate-600">{order.units}</td>
-                    <td className="py-3 text-slate-600">{order.total}</td>
-                    <td className="py-3">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                        {formatShippingStatusLabel(order.status)}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/expedicao/${order.id}`}
-                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Visualizar
-                        </Link>
-                        {isAdminUser(user) ? (
-                          <Link
-                            href={`/expedicao/${order.id}/editar`}
-                            className="inline-flex items-center gap-2 rounded-lg border border-slate-950 bg-slate-950 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Editar
-                          </Link>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {!shippingOrders.length ? (
-                  <tr>
-                    <td colSpan={11} className="py-6 text-center text-slate-500">
-                      Nenhum pedido de expedição encontrado com os filtros atuais.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[0].value}</h3>
+          <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">{shippingStats[0].help}</p>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Filas operacionais</h2>
-            <div className="mt-4 space-y-4">
-              {shippingQueues.map((queue) => (
-                <div key={queue.status} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">{queue.label}</p>
-                      <p className="mt-1 text-sm text-slate-600">{queue.help}</p>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                      {queue.orders} pedidos
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* KPI 2 */}
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-amber-500/40 dark:border-amber-500/30 border-l-4 border-l-amber-500 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20 transition-all group">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[1].label}</p>
+            <span className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+              <Boxes className="w-4 h-4" />
+            </span>
           </div>
+          <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[1].value}</h3>
+          <p className="mt-2 flex items-center gap-2 text-xs text-amber-500">
+            <Loader className="w-3 h-3 animate-spin mr-1" /> {shippingStats[1].help}
+          </p>
+        </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Fluxo obrigatório</h2>
-            <div className="mt-4 space-y-3">
-              {shippingFlow.map((step, index) => (
-                <div key={step} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  {index + 1}. {step}
-                </div>
-              ))}
-            </div>
+        {/* KPI 3 */}
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-purple-500/40 dark:border-purple-500/30 border-l-4 border-l-purple-500 hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/20 transition-all group">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[2].label}</p>
+            <span className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
+              <FileText className="w-4 h-4" />
+            </span>
           </div>
+          <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[2].value}</h3>
+          <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">{shippingStats[2].help}</p>
+        </div>
+
+        {/* KPI 4 */}
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-rose-500/40 dark:border-rose-500/30 border-l-4 border-l-rose-500 hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/20 transition-all group">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[3].label}</p>
+            <span className="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
+              <Clock className="w-4 h-4" />
+            </span>
+          </div>
+          <h3 className="text-3xl font-bold text-slate-800 dark:text-zinc-100 mt-2">{shippingStats[3].value}</h3>
+          <p className="mt-2 flex items-center gap-2 text-xs text-rose-500">{shippingStats[3].help}</p>
         </div>
       </section>
+
+      {/* Abas e Filtros */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-200 dark:border-zinc-800 pb-2">
+        <div className="flex overflow-x-auto no-scrollbar gap-2">
+          <Link href="/expedicao" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${!statusFilter ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
+            Todos Pedidos
+          </Link>
+          <Link href="/expedicao?status=NOVO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'NOVO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
+            Separação (Picking)
+          </Link>
+          <Link href="/expedicao?status=EM_CONFERENCIA" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'EM_CONFERENCIA' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
+            Conferência
+          </Link>
+          <Link href="/expedicao?status=PRONTO_ROMANEIO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'PRONTO_ROMANEIO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
+            Embarque / Doca
+          </Link>
+        </div>
+
+        <form className="flex items-center gap-2 flex-wrap">
+          {canManageMultipleTenants(user) && (
+            <select
+              name="depositante"
+              defaultValue={effectiveDepositanteFilter}
+              className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50"
+            >
+              <option value="">Todos Depositantes</option>
+              {depositanteOptions.map(dep => (
+                <option key={dep.id} value={dep.id}>{dep.nome}</option>
+              ))}
+            </select>
+          )}
+          <input
+            type="text"
+            name="pedido"
+            defaultValue={orderSearchFilter}
+            placeholder="Nº Pedido"
+            className="w-24 sm:w-32 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50"
+          />
+          <input
+            type="text"
+            name="cliente"
+            defaultValue={customerFilter}
+            placeholder="Cliente"
+            className="w-32 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50 hidden sm:block"
+          />
+          <button type="submit" className="p-2 bg-slate-900 dark:bg-zinc-800 text-white border border-slate-900 dark:border-zinc-700 rounded-lg hover:bg-slate-800 transition flex items-center justify-center">
+            <Filter className="w-4 h-4" />
+          </button>
+          {(statusFilter || depositanteFilter || dateFrom || dateTo || carrierFilter || customerFilter || orderSearchFilter || marketplaceFilter) && (
+            <Link href="/expedicao" className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-zinc-300 underline underline-offset-2">
+              Limpar
+            </Link>
+          )}
+        </form>
+      </div>
+
+      {/* Main Table section */}
+      <section className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden hover:border-primary-500/30 transition-all">
+        <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pedidos e Rotas</h3>
+          <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
+            {shippingOrders.length} registros
+          </span>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-slate-50/50 dark:bg-zinc-900/50 text-slate-500 dark:text-zinc-400 border-b border-slate-200 dark:border-zinc-800/50">
+              <tr>
+                <th className="px-6 py-4 font-medium">Pedido / Rota</th>
+                <th className="px-6 py-4 font-medium">Depositante</th>
+                <th className="px-6 py-4 font-medium">Cliente Final</th>
+                <th className="px-6 py-4 font-medium">Volumes (Prev.)</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
+              {shippingOrders.map((order) => (
+                <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition group">
+                  <td className="px-6 py-4">
+                    <Link href={`/expedicao/${order.id}`} className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+                      {order.code}
+                    </Link>
+                    <div className="text-xs text-slate-500 mt-0.5">Ref: {order.externalNumber || '-'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium">{order.depositante}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium">{order.customer}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{order.destination}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium">{order.volumeCount} volumes</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{order.itemCount} Itens</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={order.status} />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/expedicao/${order.id}`}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-zinc-700 px-3 py-2 text-xs font-medium text-slate-700 dark:text-zinc-300 transition hover:bg-slate-50 dark:hover:bg-zinc-800"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Ver
+                      </Link>
+                      {isAdminUser(user) ? (
+                        <Link
+                          href={`/expedicao/${order.id}/editar`}
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 dark:bg-zinc-800 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Editar
+                        </Link>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!shippingOrders.length && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    Nenhum pedido encontrado com os filtros atuais.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Grid Secundário: Filas Operacionais e Fluxo */}
+      <section className="grid gap-6 xl:grid-cols-2">
+        
+        {/* Filas Operacionais */}
+        <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-amber-500/30 transition-all">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-amber-500" /> Filas Operacionais
+          </h2>
+          <div className="mt-4 space-y-3">
+            {shippingQueues.map((queue) => (
+              <div key={queue.status} className="rounded-xl border border-slate-200 dark:border-zinc-800 p-4 hover:border-slate-300 dark:hover:border-zinc-700 transition">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{queue.label}</p>
+                    <p className="mt-1 text-xs text-slate-500">{queue.help}</p>
+                  </div>
+                  <span className="rounded-md bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    {queue.orders} pedidos
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fluxo Obrigatório */}
+        <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-primary-500/30 transition-all">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+            <ListChecks className="w-5 h-5 text-primary-500" /> Fluxo Obrigatório
+          </h2>
+          <div className="mt-4 space-y-3">
+            {shippingFlow.map((step, index) => (
+              <div key={step} className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-4 py-3 text-sm text-slate-700 dark:text-zinc-300 border border-slate-100 dark:border-zinc-800 flex items-center gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary-500/20 text-primary-600 dark:text-primary-400 text-xs font-bold">{index + 1}</span>
+                {step}
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </section>
+
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "NOVO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando Separação</span>;
+  }
+  if (status === "EM_SEPARACAO" || status === "SEPARADO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{status === "SEPARADO" ? "Separado" : "Separando"}</span>;
+  }
+  if (status === "EM_CONFERENCIA" || status === "CONFERIDO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">{status === "CONFERIDO" ? "Conferido" : "Em Conferência"}</span>;
+  }
+  if (status === "PRONTO_ROMANEIO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">Pronto p/ Romaneio</span>;
+  }
+  if (status === "EXPEDIDO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Expedido</span>;
+  }
+  if (status === "CANCELADO") {
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">Cancelado</span>;
+  }
+  return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700">{status}</span>;
 }

@@ -19,6 +19,12 @@ type MobilePickingItem = ShippingPickingOrder["items"][number] & {
   separatedQuantityValue: string;
 };
 
+type ScanHistoryEntry = {
+  id: string;
+  text: string;
+  tone: "success" | "error";
+};
+
 export function MobilePickingPanel({
   order,
   operators,
@@ -37,6 +43,7 @@ export function MobilePickingPanel({
   const [scanValue, setScanValue] = useState("");
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [scanTone, setScanTone] = useState<"success" | "error">("success");
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
@@ -150,6 +157,24 @@ export function MobilePickingPanel({
     oscillator.onended = () => void context.close();
   }
 
+  function focusScanInput() {
+    requestAnimationFrame(() => {
+      scanInputRef.current?.focus();
+      scanInputRef.current?.select();
+    });
+  }
+
+  function pushScanHistory(text: string, tone: "success" | "error") {
+    setScanHistory((current) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        text,
+        tone,
+      },
+      ...current,
+    ].slice(0, 3));
+  }
+
   function updateQuantity(itemId: string, value: string) {
     resetTimer();
     setItems((current) =>
@@ -175,7 +200,10 @@ export function MobilePickingPanel({
     const normalizedScan = normalizeScan(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Leia ou digite um código para localizar o item.", "error");
+      const message = "Leia ou digite um código para localizar o item.";
+      setFeedback(message, "error");
+      pushScanHistory(message, "error");
+      focusScanInput();
       return;
     }
 
@@ -187,7 +215,10 @@ export function MobilePickingPanel({
 
     if (!matchedItem) {
       setActiveItemId(null);
-      setFeedback("Código não encontrado nesta separação.", "error");
+      const message = "Código não encontrado nesta separação.";
+      setFeedback(message, "error");
+      pushScanHistory(message, "error");
+      focusScanInput();
       return;
     }
 
@@ -205,12 +236,11 @@ export function MobilePickingPanel({
     setActiveItemId(matchedItem.id);
     highlightScannedItem(matchedItem.id);
     setScanValue("");
-    setFeedback(
-      `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`,
-      "success",
-    );
+    const message = `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`;
+    setFeedback(message, "success");
+    pushScanHistory(message, "success");
     resetTimer();
-    requestAnimationFrame(() => scanInputRef.current?.focus());
+    focusScanInput();
   }
 
   return (
@@ -347,6 +377,17 @@ export function MobilePickingPanel({
                 resetTimer();
                 setScanValue(event.target.value);
               }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyScan(scanValue);
+                }
+              }}
+              onBlur={() => {
+                window.setTimeout(() => {
+                  scanInputRef.current?.focus();
+                }, 40);
+              }}
               placeholder="Leia EAN, SKU ou código"
               className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
             />
@@ -371,10 +412,32 @@ export function MobilePickingPanel({
             </div>
           ) : null}
 
+          {scanHistory.length ? (
+            <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                Últimos scans
+              </p>
+              <div className="mt-2 space-y-2">
+                {scanHistory.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className={`rounded-xl px-3 py-2 text-xs ${
+                      entry.tone === "success"
+                        ? "bg-emerald-500/10 text-emerald-200"
+                        : "bg-rose-500/10 text-rose-200"
+                    }`}
+                  >
+                    {entry.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => scanInputRef.current?.focus()}
+              onClick={focusScanInput}
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
             >
               <Focus className="h-4 w-4" />

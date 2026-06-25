@@ -23,6 +23,12 @@ type ConferenceItemState = ShippingConferenceOrder["items"][number] & {
 
 type ScanFeedbackTone = "success" | "error";
 
+type ScanHistoryEntry = {
+  id: string;
+  text: string;
+  tone: ScanFeedbackTone;
+};
+
 export function MobileConferencePanel({
   order,
   operators,
@@ -43,6 +49,7 @@ export function MobileConferencePanel({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
@@ -172,6 +179,17 @@ export function MobileConferencePanel({
     playFeedbackTone(tone);
   }
 
+  function pushScanHistory(text: string, tone: ScanFeedbackTone) {
+    setScanHistory((current) => [
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        text,
+        tone,
+      },
+      ...current,
+    ].slice(0, 3));
+  }
+
   function updateQuantity(itemId: string, value: string) {
     resetTimer();
     setItems((current) =>
@@ -204,7 +222,10 @@ export function MobileConferencePanel({
     const normalizedScan = normalizeScan(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Leia ou digite um código para localizar o item.", "error");
+      const message = "Leia ou digite um código para localizar o item.";
+      setFeedback(message, "error");
+      pushScanHistory(message, "error");
+      focusScanInput();
       return;
     }
 
@@ -217,14 +238,19 @@ export function MobileConferencePanel({
     if (!matchedItem) {
       setActiveItemId(null);
       setWrongProductScans((current) => current + 1);
-      setFeedback("Código não encontrado neste pedido.", "error");
+      const message = "Código não encontrado neste pedido.";
+      setFeedback(message, "error");
+      pushScanHistory(message, "error");
+      focusScanInput();
       return;
     }
 
     const currentConfirmed = normalizeQuantity(matchedItem.confirmedQuantityValue);
     if (currentConfirmed >= matchedItem.requestedQuantity) {
       setActiveItemId(matchedItem.id);
-      setFeedback(`O item ${matchedItem.sku} já foi totalmente conferido.`, "error");
+      const message = `O item ${matchedItem.sku} já foi totalmente conferido.`;
+      setFeedback(message, "error");
+      pushScanHistory(message, "error");
       focusScanInput();
       return;
     }
@@ -242,10 +268,9 @@ export function MobileConferencePanel({
     setActiveItemId(matchedItem.id);
     highlightScannedItem(matchedItem.id);
     setScanValue("");
-    setFeedback(
-      `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`,
-      "success",
-    );
+    const message = `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`;
+    setFeedback(message, "success");
+    pushScanHistory(message, "success");
     resetTimer();
     focusScanInput();
   }
@@ -412,6 +437,12 @@ export function MobileConferencePanel({
                 resetTimer();
                 setScanValue(event.target.value);
               }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyScan(scanValue);
+                }
+              }}
               onBlur={() => {
                 window.setTimeout(() => {
                   scanInputRef.current?.focus();
@@ -430,9 +461,37 @@ export function MobileConferencePanel({
           </div>
 
           {scanMessage ? (
-            <p className={`text-sm ${scanTone === "success" ? "text-emerald-300" : "text-rose-300"}`}>
+            <div
+              className={`rounded-2xl border px-3 py-3 text-sm ${
+                scanTone === "success"
+                  ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                  : "border-rose-400/25 bg-rose-500/10 text-rose-200"
+              }`}
+            >
               {scanMessage}
-            </p>
+            </div>
+          ) : null}
+
+          {scanHistory.length ? (
+            <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                Últimos scans
+              </p>
+              <div className="mt-2 space-y-2">
+                {scanHistory.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className={`rounded-xl px-3 py-2 text-xs ${
+                      entry.tone === "success"
+                        ? "bg-emerald-500/10 text-emerald-200"
+                        : "bg-rose-500/10 text-rose-200"
+                    }`}
+                  >
+                    {entry.text}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           <div className="flex gap-2">
