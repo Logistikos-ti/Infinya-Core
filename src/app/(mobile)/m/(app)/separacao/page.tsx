@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, MapPinned, Package2, ScanLine, UserRound } from "lucide-react";
+import { ArrowRight, Package2, ScanLine, UserRound } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 
@@ -68,7 +68,7 @@ export default async function MobilePickingQueuePage({
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Fila de picking</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Abra um pedido, siga a rota sugerida e conclua a coleta no app.
+          Abra um pedido e conclua a coleta diretamente no app.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -110,13 +110,11 @@ export default async function MobilePickingQueuePage({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <InlineChip icon={UserRound} text={order.assignedOperatorName ?? "Sem operador"} />
                   <InlineChip icon={Package2} text={order.depositante} />
-                  <InlineChip icon={MapPinned} text={`${order.routeStopCount} parada(s)`} />
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 grid grid-cols-3 gap-2">
                   <QueueInfo label="Itens" value={`${order.totalItems}`} tone={tone.stat} />
                   <QueueInfo label="Unidades" value={`${order.totalUnits}`} tone={tone.stat} />
-                  <QueueInfo label="Paradas" value={`${order.routeStopCount}`} tone={tone.stat} />
                   <QueueInfo label="Concluído" value={`${order.completionPercent}%`} tone={tone.stat} />
                 </div>
 
@@ -135,7 +133,7 @@ export default async function MobilePickingQueuePage({
 
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-300">
-                      Toque para abrir a rota e iniciar a leitura dos itens.
+                      Toque para abrir o pedido e iniciar a leitura dos itens.
                     </p>
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold ${tone.cta}`}

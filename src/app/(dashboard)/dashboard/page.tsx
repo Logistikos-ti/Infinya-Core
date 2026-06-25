@@ -31,7 +31,7 @@ export default function DashboardPage() {
       {/* KPIs Principais */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* KPI 1 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-primary-500 relative overflow-hidden">
+        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-primary-500 hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/10 relative overflow-hidden group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Entradas no Mês</p>
             <span className="p-2 bg-primary-500/10 text-primary-500 rounded-lg">
@@ -48,7 +48,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 2 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-accent-500 relative overflow-hidden">
+        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-accent-500 hover:border-accent-500/50 hover:shadow-lg hover:shadow-accent-500/10 relative overflow-hidden group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Saídas no Mês</p>
             <span className="p-2 bg-accent-500/10 text-accent-500 rounded-lg">
@@ -65,7 +65,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 3 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-emerald-500 relative overflow-hidden">
+        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-emerald-500 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10 relative overflow-hidden group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Acuracidade</p>
             <span className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
@@ -82,7 +82,7 @@ export default function DashboardPage() {
         </div>
 
         {/* KPI 4 */}
-        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-rose-500 relative overflow-hidden">
+        <div className="p-5 rounded-2xl glass-card border-l-4 border-l-rose-500 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/10 relative overflow-hidden group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">Pedidos Atrasados</p>
             <span className="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
@@ -103,7 +103,7 @@ export default function DashboardPage() {
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         
         {/* Gráfico Exemplo: Movimentação */}
-        <div className="rounded-2xl glass-card p-6">
+        <div className="rounded-2xl glass-card p-6 hover:border-primary-500/30 transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Volume de Movimentação</h3>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
 
         <div className="flex flex-col gap-6">
           {/* Ocupação do Armazém */}
-          <div className="rounded-2xl glass-card p-6">
+          <div className="rounded-2xl glass-card p-6 hover:border-accent-500/30 transition-all">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Ocupação do Armazém</h3>
             <p className="text-xs text-slate-500 mb-6">Capacidade total utilizada</p>
             
@@ -172,7 +172,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Top Depositantes */}
-          <div className="rounded-2xl glass-card p-6 flex-1">
+          <div className="rounded-2xl glass-card p-6 flex-1 hover:border-primary-500/30 transition-all">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Volume por Depositante</h3>
             <div className="space-y-4">
               <div>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Tabela de Últimas Movimentações */}
-      <section className="rounded-2xl glass-card overflow-hidden">
+      <section className="rounded-2xl glass-card overflow-hidden hover:border-primary-500/30 transition-all">
         <div className="p-6 border-b border-slate-200 dark:border-zinc-800/50 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Últimas Movimentações</h3>
