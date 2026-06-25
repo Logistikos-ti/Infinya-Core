@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Package2, ScanLine } from "lucide-react";
+import { ArrowRight, MapPinned, Package2, ScanLine, UserRound } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 
@@ -8,6 +8,33 @@ type MobilePickingQueuePageProps = {
     feedback?: string;
   }>;
 };
+
+const PICKING_CARD_TONES = [
+  {
+    wrapper:
+      "border-sky-400/25 bg-gradient-to-br from-sky-500/16 via-slate-900/92 to-slate-950",
+    badge: "bg-sky-400/15 text-sky-200 border border-sky-300/30",
+    accent: "bg-sky-300",
+    stat: "border-sky-400/15 bg-sky-500/10",
+    cta: "text-sky-100",
+  },
+  {
+    wrapper:
+      "border-cyan-400/25 bg-gradient-to-br from-cyan-500/14 via-slate-900/92 to-slate-950",
+    badge: "bg-cyan-400/15 text-cyan-200 border border-cyan-300/30",
+    accent: "bg-cyan-300",
+    stat: "border-cyan-400/15 bg-cyan-500/10",
+    cta: "text-cyan-100",
+  },
+  {
+    wrapper:
+      "border-violet-400/25 bg-gradient-to-br from-violet-500/14 via-slate-900/92 to-slate-950",
+    badge: "bg-violet-400/15 text-violet-200 border border-violet-300/30",
+    accent: "bg-violet-300",
+    stat: "border-violet-400/15 bg-violet-500/10",
+    cta: "text-violet-100",
+  },
+] as const;
 
 export default async function MobilePickingQueuePage({
   searchParams,
@@ -52,43 +79,62 @@ export default async function MobilePickingQueuePage({
 
       <section className="space-y-3">
         {orders.length ? (
-          orders.map((order) => (
-            <Link
-              key={order.id}
-              href={`/m/separacao/${order.id}`}
-              className="block rounded-[24px] border border-white/10 bg-white/5 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-white">{order.externalNumber}</p>
-                  <p className="mt-1 truncate text-sm text-slate-300">
+          orders.map((order, index) => {
+            const tone = PICKING_CARD_TONES[index % PICKING_CARD_TONES.length];
+
+            return (
+              <Link
+                key={order.id}
+                href={`/m/separacao/${order.id}`}
+                className={`block overflow-hidden rounded-[26px] border p-4 shadow-lg backdrop-blur transition active:scale-[0.99] ${tone.wrapper}`}
+              >
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${tone.accent}`} />
+                    <span className="rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-200">
+                      Pedido {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.badge}`}>
+                    {order.statusLabel}
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold text-white">{order.externalNumber}</p>
+                  <p className="line-clamp-2 text-sm leading-6 text-slate-200">
                     {order.customer} • {order.destination}
                   </p>
                 </div>
-                <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300">
-                  {order.statusLabel}
-                </span>
-              </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <QueueInfo label="Itens" value={`${order.totalItems}`} />
-                <QueueInfo label="Unidades" value={`${order.totalUnits}`} />
-                <QueueInfo label="Paradas" value={`${order.routeStopCount}`} />
-                <QueueInfo label="Concluído" value={`${order.completionPercent}%`} />
-              </div>
-
-              <div className="mt-4 flex items-center justify-between text-sm text-slate-300">
-                <div className="space-y-1">
-                  <p>Operador: {order.assignedOperatorName ?? "Não atribuído"}</p>
-                  <p className="text-xs text-slate-400">Depositante: {order.depositante}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <InlineChip icon={UserRound} text={order.assignedOperatorName ?? "Sem operador"} />
+                  <InlineChip icon={Package2} text={order.depositante} />
+                  <InlineChip icon={MapPinned} text={`${order.routeStopCount} parada(s)`} />
                 </div>
-                <span className="inline-flex items-center gap-1 font-medium text-white">
-                  Iniciar
-                  <ArrowRight className="h-4 w-4" />
-                </span>
-              </div>
-            </Link>
-          ))
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <QueueInfo label="Itens" value={`${order.totalItems}`} tone={tone.stat} />
+                  <QueueInfo label="Unidades" value={`${order.totalUnits}`} tone={tone.stat} />
+                  <QueueInfo label="Paradas" value={`${order.routeStopCount}`} tone={tone.stat} />
+                  <QueueInfo label="Concluído" value={`${order.completionPercent}%`} tone={tone.stat} />
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      Código interno
+                    </p>
+                    <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                  </div>
+                  <span className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold ${tone.cta}`}>
+                    Iniciar
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })
         ) : (
           <div className="rounded-[24px] border border-dashed border-white/15 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
             Nenhum pedido disponível para separação no momento.
@@ -119,11 +165,34 @@ function MiniStat({
   );
 }
 
-function QueueInfo({ label, value }: { label: string; value: string }) {
+function QueueInfo({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-3 py-2">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+    <div className={`rounded-2xl border px-3 py-2 ${tone}`}>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-300">{label}</p>
       <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function InlineChip({
+  icon: Icon,
+  text,
+}: {
+  icon: typeof UserRound;
+  text: string;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs text-slate-200">
+      <Icon className="h-3.5 w-3.5 text-slate-400" />
+      <span className="truncate">{text}</span>
     </div>
   );
 }
