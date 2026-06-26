@@ -33,6 +33,8 @@ type ExpedicaoPageProps = {
     cliente?: string;
     pedido?: string;
     marketplace?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
 
@@ -48,6 +50,8 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const customerFilter = params?.cliente?.trim() ?? "";
   const orderSearchFilter = params?.pedido?.trim() ?? "";
   const marketplaceFilter = params?.marketplace?.trim() ?? "";
+  const page = normalizePositiveNumber(params?.page, 1);
+  const perPage = normalizePerPage(params?.perPage);
   const supabase = await createSupabaseServerClient();
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
@@ -74,6 +78,24 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     listShippingQueuesFromDb(shippingOverviewOrders),
   ]);
   const shippingFlow = listShippingFlowSteps();
+  const totalOrders = shippingOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedOrders = shippingOrders.slice(startIndex, startIndex + perPage);
+  const visibleStart = totalOrders ? startIndex + 1 : 0;
+  const visibleEnd = Math.min(startIndex + perPage, totalOrders);
+  const baseQuery = {
+    status: statusFilter,
+    depositante: effectiveDepositanteFilter,
+    dataInicial: dateFrom,
+    dataFinal: dateTo,
+    transportadora: carrierFilter,
+    cliente: customerFilter,
+    pedido: orderSearchFilter,
+    marketplace: marketplaceFilter,
+    perPage: String(perPage),
+  };
 
   return (
     <div className="space-y-8 relative opacity-95">
@@ -227,10 +249,44 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       {/* Main Table section */}
       <section className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden hover:border-primary-500/30 transition-all">
         <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pedidos e Rotas</h3>
-          <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
-            {shippingOrders.length} registros
-          </span>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pedidos e Rotas</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Exibindo {visibleStart}-{visibleEnd} de {totalOrders} pedido(s)
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <form className="flex items-center gap-2">
+              <input type="hidden" name="status" value={statusFilter} />
+              <input type="hidden" name="depositante" value={effectiveDepositanteFilter} />
+              <input type="hidden" name="dataInicial" value={dateFrom} />
+              <input type="hidden" name="dataFinal" value={dateTo} />
+              <input type="hidden" name="transportadora" value={carrierFilter} />
+              <input type="hidden" name="cliente" value={customerFilter} />
+              <input type="hidden" name="pedido" value={orderSearchFilter} />
+              <input type="hidden" name="marketplace" value={marketplaceFilter} />
+              <input type="hidden" name="page" value="1" />
+              <label className="text-xs font-medium text-slate-500">Por página</label>
+              <select
+                name="perPage"
+                defaultValue={String(perPage)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+              <button
+                type="submit"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                Aplicar
+              </button>
+            </form>
+            <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
+              {totalOrders} registros
+            </span>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -246,7 +302,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
-              {shippingOrders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition group">
                   <td className="px-6 py-4">
                     <Link href={`/expedicao/${order.id}`} className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
@@ -290,7 +346,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                   </td>
                 </tr>
               ))}
-              {!shippingOrders.length && (
+              {!paginatedOrders.length && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500">
                     Nenhum pedido encontrado com os filtros atuais.
@@ -300,6 +356,44 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
             </tbody>
           </table>
         </div>
+
+        {totalOrders > perPage ? (
+          <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 dark:border-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-slate-500">
+              Página {currentPage} de {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/expedicao?${buildQueryString({
+                  ...baseQuery,
+                  page: String(Math.max(1, currentPage - 1)),
+                })}`}
+                aria-disabled={currentPage <= 1}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  currentPage <= 1
+                    ? "pointer-events-none border-slate-200 text-slate-300 dark:border-zinc-800 dark:text-zinc-600"
+                    : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Anterior
+              </Link>
+              <Link
+                href={`/expedicao?${buildQueryString({
+                  ...baseQuery,
+                  page: String(Math.min(totalPages, currentPage + 1)),
+                })}`}
+                aria-disabled={currentPage >= totalPages}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  currentPage >= totalPages
+                    ? "pointer-events-none border-slate-200 text-slate-300 dark:border-zinc-800 dark:text-zinc-600"
+                    : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Próxima
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {/* Grid Secundário: Filas Operacionais e Fluxo */}
@@ -346,6 +440,36 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
 
     </div>
   );
+}
+
+function normalizePositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
+
+function normalizePerPage(value: string | undefined) {
+  const parsed = normalizePositiveNumber(value, 10);
+  if ([10, 20, 50].includes(parsed)) {
+    return parsed;
+  }
+
+  return 10;
+}
+
+function buildQueryString(query: Record<string, string>) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+
+  return params.toString();
 }
 
 function StatusBadge({ status }: { status: string }) {
