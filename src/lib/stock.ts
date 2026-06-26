@@ -243,8 +243,11 @@ export async function listStockMovementsFromDb(filters?: StockFilters) {
     .map(mapMovementSummary);
 }
 
-export async function listStockTraceabilityProtocolsFromDb(filters?: StockFilters) {
-  const balances = await listStockBalancesFromDb(filters);
+export async function listStockTraceabilityProtocolsFromDb(
+  filters?: StockFilters,
+  sourceBalances?: StockBalance[],
+) {
+  const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
   return balances.slice(0, 8).map(
     (item) =>
       ({
@@ -317,8 +320,12 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
   });
 }
 
-export async function listStockExpiryAlertsFromDb(filters?: StockFilters, daysAhead = 30) {
-  const balances = await listStockBalancesFromDb(filters);
+export async function listStockExpiryAlertsFromDb(
+  filters?: StockFilters,
+  daysAhead = 30,
+  sourceBalances?: StockBalance[],
+) {
+  const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
   const today = startOfToday();
 
   return balances
@@ -448,9 +455,14 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
   } satisfies StockTraceabilityDetail;
 }
 
-export async function listStockStatsFromDb(user: AppUserContext, filters?: StockFilters) {
-  const balances = await listStockBalancesFromDb(filters);
-  const expiryAlerts = await listStockExpiryAlertsFromDb(filters);
+export async function listStockStatsFromDb(
+  user: AppUserContext,
+  filters?: StockFilters,
+  sourceBalances?: StockBalance[],
+  sourceExpiryAlerts?: StockExpiryAlert[],
+) {
+  const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
+  const expiryAlerts = sourceExpiryAlerts ?? (await listStockExpiryAlertsFromDb(filters, 30, balances));
 
   return [
     {

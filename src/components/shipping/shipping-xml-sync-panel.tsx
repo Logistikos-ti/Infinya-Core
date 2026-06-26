@@ -54,6 +54,10 @@ export function ShippingXmlSyncPanel({
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
       void syncNow("auto");
     }, autoRefreshIntervalMs);
 

@@ -59,6 +59,10 @@ export function ShippingMercadoLivreSyncPanel({
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
       void syncNow("auto");
     }, autoRefreshIntervalMs);
 

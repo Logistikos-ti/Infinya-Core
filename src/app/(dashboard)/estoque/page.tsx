@@ -58,14 +58,15 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     lot: lotFilter || undefined,
   };
 
-  const [stockStatsCards, stockBalances, stockExpiryAlerts, stockMovements, traceabilityProtocols] =
-    await Promise.all([
-      listStockStatsFromDb(user, filters),
-      listStockBalancesFromDb(filters),
-      listStockExpiryAlertsFromDb(filters),
-      listStockMovementsFromDb(filters),
-      listStockTraceabilityProtocolsFromDb(filters),
-    ]);
+  const [stockBalances, stockMovements] = await Promise.all([
+    listStockBalancesFromDb(filters),
+    listStockMovementsFromDb(filters),
+  ]);
+  const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards] = await Promise.all([
+    listStockExpiryAlertsFromDb(filters, 30, stockBalances),
+    listStockTraceabilityProtocolsFromDb(filters, stockBalances),
+    listStockStatsFromDb(user, filters, stockBalances),
+  ]);
 
   return (
     <div className="space-y-6">
