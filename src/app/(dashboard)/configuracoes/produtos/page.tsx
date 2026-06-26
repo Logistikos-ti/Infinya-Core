@@ -34,14 +34,17 @@ export default async function ConfiguracoesProdutosPage({
   const unidadeFiltro = params?.unidade?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
+  const startIndex = (page - 1) * perPage;
   const supabase = await createSupabaseServerClient();
 
   let productsQuery = supabase
     .from("produtos")
     .select(
       "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",
+      { count: "exact" },
     )
-    .order("nome");
+    .order("nome")
+    .range(startIndex, startIndex + perPage - 1);
 
   if (searchTerm) {
     const escapedSearch = escapeSupabaseLike(searchTerm);
@@ -73,17 +76,17 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery = productsQuery.eq("unidade_estocagem", unidadeFiltro);
   }
 
-  const [{ data: products }, { data: depositantes }] = await Promise.all([
+  const [{ data: products, count }, { data: depositantes }] = await Promise.all([
     productsQuery,
     supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
   ]);
-  const totalProducts = products?.length ?? 0;
+  const totalProducts = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
   const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * perPage;
-  const paginatedProducts = (products ?? []).slice(startIndex, startIndex + perPage);
-  const visibleStart = totalProducts ? startIndex + 1 : 0;
-  const visibleEnd = Math.min(startIndex + perPage, totalProducts);
+  const paginatedProducts = products ?? [];
+  const currentStartIndex = (currentPage - 1) * perPage;
+  const visibleStart = totalProducts ? currentStartIndex + 1 : 0;
+  const visibleEnd = Math.min(currentStartIndex + paginatedProducts.length, totalProducts);
   const baseQuery = {
     q: searchTerm,
     depositante: depositanteFiltro,
