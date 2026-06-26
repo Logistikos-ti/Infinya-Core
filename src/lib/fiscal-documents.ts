@@ -40,6 +40,8 @@ type FiscalDocumentFilters = {
   depositanteId?: string;
   issuerTerm?: string;
   recipientTerm?: string;
+  page?: number;
+  perPage?: number;
 };
 
 export type FiscalSummaryFilters = {
@@ -104,16 +106,52 @@ type ParsedFiscalDocument = {
   parsed: ParsedNfe;
 };
 
+export type FiscalDocumentsPage = {
+  items: FiscalDocumentDetail[];
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+};
+
 export async function listFiscalDocumentsWithDetails(
   user: AppUserContext,
   filters?: FiscalDocumentFilters,
-) {
+) : Promise<FiscalDocumentsPage> {
+  const page = Math.max(1, filters?.page ?? 1);
+  const perPage = normalizePerPage(filters?.perPage);
+  const hasDeepFilters = Boolean(
+    filters?.q?.trim() ||
+      filters?.issuerTerm?.trim() ||
+      filters?.recipientTerm?.trim() ||
+      filters?.fluxo?.trim(),
+  );
+
+  if (!hasDeepFilters) {
+    const offset = (page - 1) * perPage;
+    const { rows, total } = await fetchFiscalDocumentRows(user, {
+      depositanteId: filters?.depositanteId,
+      limit: perPage,
+      offset,
+      count: true,
+    });
+    const parsedDocuments = await loadParsedFiscalDocumentsFromRows(rows);
+
+    return {
+      items: parsedDocuments.map(({ row, parsed }) => mapFiscalDetail(row, parsed)),
+      total,
+      page,
+      perPage,
+      totalPages: Math.max(1, Math.ceil(total / perPage)),
+    };
+  }
+
   const parsedDocuments = await loadParsedFiscalDocuments(user, {
     depositanteId: filters?.depositanteId,
-    limit: 50,
+    limit: 150,
   });
 
-  return parsedDocuments
+  const filtered = parsedDocuments
     .map(({ row, parsed }) => mapFiscalDetail(row, parsed))
     .filter((item) => {
       if (filters?.fluxo && item.flow !== filters.fluxo) {
@@ -165,6 +203,19 @@ export async function listFiscalDocumentsWithDetails(
 
       return true;
     });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const normalizedPage = Math.min(page, totalPages);
+  const startIndex = (normalizedPage - 1) * perPage;
+
+  return {
+    items: filtered.slice(startIndex, startIndex + perPage),
+    total,
+    page: normalizedPage,
+    perPage,
+    totalPages,
+  };
 }
 
 export async function listFiscalSummaryRows(
@@ -243,7 +294,11 @@ async function loadParsedFiscalDocuments(
     limit?: number;
   },
 ) {
-  const rows = await fetchFiscalDocumentRows(user, options);
+  const { rows } = await fetchFiscalDocumentRows(user, options);
+  return loadParsedFiscalDocumentsFromRows(rows);
+}
+
+async function loadParsedFiscalDocumentsFromRows(rows: FiscalDocumentRow[]) {
   const adminSupabase = createSupabaseAdminClient();
 
   return Promise.all(
@@ -260,6 +315,8 @@ async function fetchFiscalDocumentRows(
   options?: {
     depositanteId?: string;
     limit?: number;
+    offset?: number;
+    count?: boolean;
   },
 ) {
   const adminSupabase = createSupabaseAdminClient();
@@ -267,6 +324,7 @@ async function fetchFiscalDocumentRows(
     .from("documentos_armazenados")
     .select(
       "id, nome_arquivo, tipo, created_at, depositante_id, mime_type, caminho_storage, pedido_expedicao_id, pedido_recebimento_id, depositante:depositantes(nome), pedido_expedicao:pedidos_expedicao(id, codigo, numero_pedido, status, payload_origem), pedido_recebimento:pedidos_recebimento(id, codigo, nota_fiscal_numero, status)",
+      options?.count ? { count: "exact" } : undefined,
     )
     .eq("tipo", "NF")
     .order("created_at", { ascending: false });
@@ -279,7 +337,11 @@ async function fetchFiscalDocumentRows(
     query = query.limit(options.limit);
   }
 
-  const { data, error } = await query;
+  if (typeof options?.offset === "number" && options.limit) {
+    query = query.range(options.offset, options.offset + options.limit - 1);
+  }
+
+  const { data, error, count } = await query;
 
   if (error) {
     throw new Error(`Não foi possível carregar os documentos fiscais: ${error.message}`);
@@ -288,10 +350,16 @@ async function fetchFiscalDocumentRows(
   const rows = (data ?? []) as FiscalDocumentRow[];
 
   if (user.depositanteId && user.papel === "DEPOSITANTE") {
-    return rows.filter((item) => item.depositante_id === user.depositanteId);
+    return {
+      rows: rows.filter((item) => item.depositante_id === user.depositanteId),
+      total: count ?? rows.length,
+    };
   }
 
-  return rows;
+  return {
+    rows,
+    total: count ?? rows.length,
+  };
 }
 
 async function downloadXml(
@@ -499,4 +567,12 @@ function formatCurrency(value: number) {
 
 function isGzipBuffer(value: Buffer) {
   return value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b;
+}
+
+function normalizePerPage(value?: number) {
+  if (!value) {
+    return 10;
+  }
+
+  return [10, 20, 50].includes(value) ? value : 10;
 }
