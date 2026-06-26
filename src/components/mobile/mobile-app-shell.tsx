@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
+import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,9 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
       </header>
 
       <main className="mx-auto min-h-[calc(100vh-144px)] max-w-md px-4 py-4 pb-24">
+        <div className="mb-4">
+          <MobileInstallCard />
+        </div>
         {children}
       </main>
 

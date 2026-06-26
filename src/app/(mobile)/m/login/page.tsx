@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Smartphone } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
+import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getDefaultMobileRoute } from "@/lib/mobile";
 
@@ -28,6 +29,10 @@ export default async function MobileLoginPage() {
           <p className="text-sm leading-6 text-slate-300">
             Acesso rápido para recebimento, separação e conferência direto no celular.
           </p>
+        </div>
+
+        <div className="mt-5">
+          <MobileInstallCard />
         </div>
 
         <div className="[&_label]:text-slate-200 [&_input]:border-white/10 [&_input]:bg-white [&_input]:text-slate-950 [&_p]:text-slate-200">
