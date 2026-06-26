@@ -17,16 +17,16 @@ export function ModuleCard({
   return (
     <Link
       href={href}
-      className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+      className="glass-card infinya-border-glow group rounded-[24px] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold text-slate-950">{title}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+          <p className="text-lg font-semibold text-slate-950 dark:text-white">{title}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{description}</p>
         </div>
-        <ArrowRight className="mt-1 h-4 w-4 text-slate-400 transition group-hover:text-sky-700" />
+        <ArrowRight className="mt-1 h-4 w-4 text-slate-400 transition group-hover:text-cyan-500" />
       </div>
-      <span className="mt-5 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+      <span className="mt-5 inline-flex rounded-full bg-infinya-gradient px-3 py-1 text-xs font-semibold text-slate-950">
         {status}
       </span>
     </Link>

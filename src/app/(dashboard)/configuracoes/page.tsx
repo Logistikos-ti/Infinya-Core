@@ -99,7 +99,7 @@ export default async function ConfiguracoesPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Depositantes base</h2>
@@ -107,7 +107,7 @@ export default async function ConfiguracoesPage() {
                 Dados reais do ambiente para isolamento multi-tenant e políticas de acesso.
               </p>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span className="rounded-full bg-infinya-gradient px-3 py-1 text-xs font-semibold text-slate-950">
               {activeDepositantes} ativos
             </span>
           </div>
@@ -115,10 +115,10 @@ export default async function ConfiguracoesPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {depositanteCards.length ? (
               depositanteCards.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+                <div key={item.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-slate-900">{item.nome}</p>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                    <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
                       {item.metodo}
                     </span>
                   </div>
@@ -142,7 +142,7 @@ export default async function ConfiguracoesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Próximas ações</h2>
           <div className="mt-4 grid gap-3">
             {[
@@ -153,7 +153,7 @@ export default async function ConfiguracoesPage() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
+                className="rounded-xl border border-slate-200/80 bg-white/60 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
               >
                 {item}
               </div>
@@ -167,7 +167,7 @@ export default async function ConfiguracoesPage() {
           <Link
             key={module.href}
             href={module.href}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+            className="glass-card infinya-border-glow rounded-[24px] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]"
           >
             <p className="text-base font-semibold text-slate-950">{module.title}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{module.description}</p>
@@ -176,7 +176,7 @@ export default async function ConfiguracoesPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Endereços cadastrados</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
@@ -220,7 +220,7 @@ export default async function ConfiguracoesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Cobertura atual</h2>
           <div className="mt-4 grid gap-3">
             <StatusRow
