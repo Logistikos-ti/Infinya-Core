@@ -25,20 +25,21 @@ export async function GET(request: Request) {
   const customer = url.searchParams.get("cliente")?.trim() ?? "";
   const orderSearch = url.searchParams.get("pedido")?.trim() ?? "";
   const marketplace = url.searchParams.get("marketplace")?.trim() ?? "";
+  const filters = {
+    status: status || undefined,
+    depositanteId: depositanteId || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    carrier: carrier || undefined,
+    customer: customer || undefined,
+    orderSearch: orderSearch || undefined,
+    marketplace: marketplace || undefined,
+  };
+  const orders = await listShippingOrdersFromDb(filters);
 
-  const [stats, orders, queues] = await Promise.all([
-    listShippingStatsFromDb(auth.user),
-    listShippingOrdersFromDb({
-      status: status || undefined,
-      depositanteId: depositanteId || undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      carrier: carrier || undefined,
-      customer: customer || undefined,
-      orderSearch: orderSearch || undefined,
-      marketplace: marketplace || undefined,
-    }),
-    listShippingQueuesFromDb(),
+  const [stats, queues] = await Promise.all([
+    listShippingStatsFromDb(auth.user, orders),
+    listShippingQueuesFromDb(orders),
   ]);
 
   return Response.json({

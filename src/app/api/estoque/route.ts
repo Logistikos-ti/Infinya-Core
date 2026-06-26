@@ -9,19 +9,16 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const filters = {
+    depositanteId: searchParams.get("depositante")?.trim() || undefined,
+    productTerm: searchParams.get("produto")?.trim() || undefined,
+    area: searchParams.get("area")?.trim() || undefined,
+    lot: searchParams.get("lote")?.trim() || undefined,
+  };
+  const balances = await listStockBalancesFromDb(filters);
 
   return Response.json({
-    balances: await listStockBalancesFromDb({
-      depositanteId: searchParams.get("depositante")?.trim() || undefined,
-      productTerm: searchParams.get("produto")?.trim() || undefined,
-      area: searchParams.get("area")?.trim() || undefined,
-      lot: searchParams.get("lote")?.trim() || undefined,
-    }),
-    expiryAlerts: await listStockExpiryAlertsFromDb({
-      depositanteId: searchParams.get("depositante")?.trim() || undefined,
-      productTerm: searchParams.get("produto")?.trim() || undefined,
-      area: searchParams.get("area")?.trim() || undefined,
-      lot: searchParams.get("lote")?.trim() || undefined,
-    }),
+    balances,
+    expiryAlerts: await listStockExpiryAlertsFromDb(filters, 30, balances),
   });
 }
