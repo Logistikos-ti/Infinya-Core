@@ -49,14 +49,14 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const orderSearchFilter = params?.pedido?.trim() ?? "";
   const marketplaceFilter = params?.marketplace?.trim() ?? "";
   const supabase = await createSupabaseServerClient();
-
-  const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
-  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
-  const [shippingStats, shippingOrders, shippingQueues] = await Promise.all([
-    listShippingStatsFromDb(user),
+  const [{ data: depositantes }, shippingOverviewOrders, shippingOrders] = await Promise.all([
+    supabase.from("depositantes").select("id, nome").order("nome"),
+    listShippingOrdersFromDb({
+      depositanteId: effectiveDepositanteFilter || undefined,
+    }),
     listShippingOrdersFromDb({
       status: statusFilter || undefined,
       depositanteId: effectiveDepositanteFilter || undefined,
@@ -67,7 +67,11 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       orderSearch: orderSearchFilter || undefined,
       marketplace: marketplaceFilter || undefined,
     }),
-    listShippingQueuesFromDb(),
+  ]);
+  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const [shippingStats, shippingQueues] = await Promise.all([
+    listShippingStatsFromDb(user, shippingOverviewOrders),
+    listShippingQueuesFromDb(shippingOverviewOrders),
   ]);
   const shippingFlow = listShippingFlowSteps();
 

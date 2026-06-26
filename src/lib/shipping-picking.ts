@@ -34,7 +34,7 @@ type RawPickingOrderRow = {
   payload_origem: Record<string, unknown> | null;
   depositante_id: string;
   depositante: RelationName;
-  itens: RawPickingOrderItemRow[] | null;
+  itens?: RawPickingOrderItemRow[] | null;
 };
 
 type RawPickingStockRow = {
@@ -162,6 +162,10 @@ export type ShippingPickingFilters = {
   operatorId?: string;
 };
 
+type ShippingPickingQueryOptions = {
+  includeRouteData?: boolean;
+};
+
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 const activePickingStatuses = ["NOVO", "EM_SEPARACAO", "SEPARADO"] as const;
 
@@ -207,16 +211,14 @@ export async function listPickingOperatorsFromDb(
 export async function listShippingPickingOrdersFromDb(
   user: AppUserContext,
   filters?: ShippingPickingFilters,
+  options?: ShippingPickingQueryOptions,
 ) {
   const supabase = await createSupabaseServerClient();
   const effectiveDepositanteId =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : filters?.depositanteId;
+  const includeRouteData = options?.includeRouteData ?? false;
 
-  let ordersQuery = supabase
-    .from("pedidos_expedicao")
-    .select(
-      "id, codigo, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
-    )
+  let ordersQuery = buildPickingOrdersQuery(supabase)
     .in("status", [...activePickingStatuses])
     .order("created_at", { ascending: false });
 
@@ -235,24 +237,7 @@ export async function listShippingPickingOrdersFromDb(
   }
 
   const rawOrders = (ordersData ?? []) as RawPickingOrderRow[];
-  const depositanteIds = [...new Set(rawOrders.map((item) => item.depositante_id).filter(Boolean))];
-
-  let stockRows: RawPickingStockRow[] = [];
-  if (depositanteIds.length) {
-    const { data: stockData, error: stockError } = await supabase
-      .from("estoque")
-      .select(
-        "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, metodo_retirada)",
-      )
-      .in("depositante_id", depositanteIds)
-      .eq("bloqueado", false);
-
-    if (stockError) {
-      throw new Error(`Não foi possível montar a rota de picking: ${stockError.message}`);
-    }
-
-    stockRows = (stockData ?? []) as RawPickingStockRow[];
-  }
+  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
 
   const stockByDepositante = new Map<string, RawPickingStockRow[]>();
   for (const row of stockRows) {
@@ -262,7 +247,9 @@ export async function listShippingPickingOrdersFromDb(
   }
 
   const orders = rawOrders
-    .map((order) => mapPickingOrder(order, stockByDepositante.get(order.depositante_id) ?? []))
+    .map((order) =>
+      mapPickingOrder(order, stockByDepositante.get(order.depositante_id) ?? [], includeRouteData),
+    )
     .filter((order) => {
       if (!filters?.operatorId) {
         return true;
@@ -275,15 +262,41 @@ export async function listShippingPickingOrdersFromDb(
 }
 
 export async function getShippingPickingOrderFromDb(user: AppUserContext, id: string) {
-  const orders = await listShippingPickingOrdersFromDb(user);
-  return orders.find((order) => order.id === id) ?? null;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await buildPickingOrdersQuery(supabase).eq("id", id).maybeSingle();
+
+  if (error) {
+    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido de separaÃ§Ã£o: ${error.message}`);
+  }
+
+  const rawOrder = (data as RawPickingOrderRow | null) ?? null;
+  if (!rawOrder) {
+    return null;
+  }
+
+  if (
+    user.papel === "DEPOSITANTE" &&
+    user.depositanteId &&
+    rawOrder.depositante_id !== user.depositanteId
+  ) {
+    return null;
+  }
+
+  const stockRows = await loadPickingStockRows(supabase, [rawOrder]);
+  return mapPickingOrder(rawOrder, stockRows, true);
 }
 
-function mapPickingOrder(order: RawPickingOrderRow, stockRows: RawPickingStockRow[]) {
+function mapPickingOrder(
+  order: RawPickingOrderRow,
+  stockRows: RawPickingStockRow[],
+  includeRouteData: boolean,
+) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
-  const items = (order.itens ?? []).map((item) => mapPickingItem(order.depositante_id, item, stockRows));
-  const routeStops = buildRouteStops(items);
+  const items = (order.itens ?? []).map((item) =>
+    mapPickingItem(order.depositante_id, item, stockRows, includeRouteData),
+  );
+  const routeStops = includeRouteData ? buildRouteStops(items) : [];
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
   const totalSeparated = items.reduce((sum, item) => sum + item.separatedQuantity, 0);
   const shortageUnits = items.reduce((sum, item) => sum + item.shortageQuantity, 0);
@@ -325,14 +338,17 @@ function mapPickingItem(
   depositanteId: string,
   item: RawPickingOrderItemRow,
   stockRows: RawPickingStockRow[],
+  includeRouteData: boolean,
 ) {
   const requestedQuantity = Number(item.quantidade ?? 0);
   const separatedQuantity = Number(item.quantidade_separada ?? 0);
-  const matchedStocks = stockRows
-    .filter((row) => row.depositante_id === depositanteId)
-    .filter((row) => matchesStockToItem(row, item))
-    .filter((row) => getAvailableQuantity(row) > 0)
-    .sort(compareStocksForPicking);
+  const matchedStocks = includeRouteData
+    ? stockRows
+        .filter((row) => row.depositante_id === depositanteId)
+        .filter((row) => matchesStockToItem(row, item))
+        .filter((row) => getAvailableQuantity(row) > 0)
+        .sort(compareStocksForPicking)
+    : [];
 
   let remaining = Math.max(requestedQuantity - separatedQuantity, 0);
   const routeLines: ShippingPickingRouteLine[] = [];
@@ -376,6 +392,51 @@ function mapPickingItem(
     shortageQuantity: remaining,
     routeLines,
   } satisfies ShippingPickingItem;
+}
+
+function buildPickingOrdersQuery(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  return supabase.from("pedidos_expedicao").select(
+    "id, codigo, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
+  );
+}
+
+async function loadPickingStockRows(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  orders: RawPickingOrderRow[],
+) {
+  const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
+  const productIds = [
+    ...new Set(
+      orders
+        .flatMap((order) => order.itens ?? [])
+        .map((item) => item.produto_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  if (!depositanteIds.length) {
+    return [] as RawPickingStockRow[];
+  }
+
+  let stockQuery = supabase
+    .from("estoque")
+    .select(
+      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, metodo_retirada)",
+    )
+    .in("depositante_id", depositanteIds)
+    .eq("bloqueado", false);
+
+  if (productIds.length) {
+    stockQuery = stockQuery.in("produto_id", productIds);
+  }
+
+  const { data: stockData, error: stockError } = await stockQuery;
+
+  if (stockError) {
+    throw new Error(`NÃ£o foi possÃ­vel montar a rota de picking: ${stockError.message}`);
+  }
+
+  return (stockData ?? []) as RawPickingStockRow[];
 }
 
 function buildRouteStops(items: ShippingPickingItem[]) {
@@ -676,3 +737,4 @@ function readString(value: unknown) {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
+

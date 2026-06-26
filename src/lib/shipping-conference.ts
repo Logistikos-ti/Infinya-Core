@@ -135,8 +135,30 @@ export async function listShippingConferenceOrdersFromDb(
 }
 
 export async function getShippingConferenceOrderFromDb(user: AppUserContext, id: string) {
-  const orders = await listShippingConferenceOrdersFromDb(user);
-  return orders.find((order) => order.id === id) ?? null;
+  const supabase = await createSupabaseServerClient();
+  const effectiveDepositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
+
+  let query = supabase
+    .from("pedidos_expedicao")
+    .select(
+      "id, codigo, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    )
+    .eq("id", id);
+
+  if (effectiveDepositanteId) {
+    query = query.eq("depositante_id", effectiveDepositanteId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido em conferÃªncia: ${error.message}`);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return mapConferenceOrder(data as RawConferenceOrderRow);
 }
 
 function mapConferenceOrder(order: RawConferenceOrderRow) {

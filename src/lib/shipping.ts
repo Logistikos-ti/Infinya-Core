@@ -274,8 +274,11 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   });
 }
 
-export async function listShippingStatsFromDb(user: AppUserContext) {
-  const orders = await listShippingOrdersFromDb();
+export async function listShippingStatsFromDb(
+  user: AppUserContext,
+  sourceOrders?: ShippingOrderSummary[],
+) {
+  const orders = sourceOrders ?? (await listShippingOrdersFromDb());
   const aguardando = orders.filter((item) => item.status === "NOVO").length;
   const emSeparacao = orders.filter((item) =>
     ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA", "CONFERIDO"].includes(item.status),
@@ -312,8 +315,8 @@ export async function listShippingStatsFromDb(user: AppUserContext) {
   ] as const;
 }
 
-export async function listShippingQueuesFromDb() {
-  const orders = await listShippingOrdersFromDb();
+export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSummary[]) {
+  const orders = sourceOrders ?? (await listShippingOrdersFromDb());
   const queueDefinitions = [
     {
       status: "NOVO",
