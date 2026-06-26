@@ -235,11 +235,8 @@ export function MobileReceivingPanel({
 
       if (finalizar) {
         router.push("/m/recebimento?feedback=concluido");
-        router.refresh();
         return;
       }
-
-      router.refresh();
     } catch {
       setError("Falha de comunicação com a API do recebimento.");
       playFeedbackTone("error");

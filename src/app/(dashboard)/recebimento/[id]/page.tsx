@@ -25,22 +25,23 @@ export default async function RecebimentoDetalhePage({
   await requireModuleAccess("recebimento");
 
   const { id } = await params;
-  const order = await getReceivingOrderDetailFromDb(id);
+  const supabase = await createSupabaseServerClient();
+  const [order, addresses] = await Promise.all([
+    getReceivingOrderDetailFromDb(id),
+    supabase
+      .from("enderecos")
+      .select("id, codigo, area")
+      .eq("ativo", true)
+      .neq("area", "BLOQUEADO")
+      .order("codigo"),
+  ]);
 
   if (!order) {
     notFound();
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: addresses } = await supabase
-    .from("enderecos")
-    .select("id, codigo, area")
-    .eq("ativo", true)
-    .neq("area", "BLOQUEADO")
-    .order("codigo");
-
   const [relatedIssues, generatedProtocols] = await Promise.all([
-    listOperationalIssuesFromDb().then((issues) => issues.filter((issue) => issue.orderId === order.id)),
+    listOperationalIssuesFromDb({ orderId: order.id, limit: 12 }),
     listDepositProtocolsByReceivingOrderId(order.id),
   ]);
 
@@ -114,7 +115,7 @@ export default async function RecebimentoDetalhePage({
       <ReceivingConferencePanel
         orderId={order.id}
         initialItems={order.items}
-        addresses={addresses ?? []}
+        addresses={addresses.data ?? []}
       />
 
       <section className="grid gap-6 xl:grid-cols-[1.65fr_1fr]">

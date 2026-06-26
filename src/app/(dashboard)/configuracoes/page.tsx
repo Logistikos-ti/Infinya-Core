@@ -57,17 +57,45 @@ export default async function ConfiguracoesPage() {
     supabase.from("transportadoras").select("id, ativo"),
   ]);
 
+  const productCountByDepositante = new Map<string, number>();
+  const userCountByDepositante = new Map<string, number>();
+  const methodCountByDepositante = new Map<string, Array<string | null | undefined>>();
+
+  for (const product of produtos ?? []) {
+    if (!product.depositante_id) {
+      continue;
+    }
+
+    productCountByDepositante.set(
+      product.depositante_id,
+      (productCountByDepositante.get(product.depositante_id) ?? 0) + 1,
+    );
+
+    const currentMethods = methodCountByDepositante.get(product.depositante_id) ?? [];
+    currentMethods.push(product.metodo_retirada);
+    methodCountByDepositante.set(product.depositante_id, currentMethods);
+  }
+
+  for (const user of usuarios ?? []) {
+    if (!user.depositante_id) {
+      continue;
+    }
+
+    userCountByDepositante.set(
+      user.depositante_id,
+      (userCountByDepositante.get(user.depositante_id) ?? 0) + 1,
+    );
+  }
+
   const depositanteCards = (depositantes ?? []).map((depositante) => {
-    const relatedProducts = (produtos ?? []).filter((item) => item.depositante_id === depositante.id);
-    const relatedUsers = (usuarios ?? []).filter((item) => item.depositante_id === depositante.id);
-    const preferredMethod = getPreferredMethod(relatedProducts.map((item) => item.metodo_retirada));
+    const preferredMethod = getPreferredMethod(methodCountByDepositante.get(depositante.id) ?? []);
 
     return {
       id: depositante.id,
       nome: depositante.nome,
       ativo: depositante.ativo,
-      skus: relatedProducts.length,
-      usuarios: relatedUsers.length,
+      skus: productCountByDepositante.get(depositante.id) ?? 0,
+      usuarios: userCountByDepositante.get(depositante.id) ?? 0,
       metodo: preferredMethod,
     };
   });

@@ -15,19 +15,20 @@ export default async function MobileReceivingDetailPage({
 }: MobileReceivingDetailPageProps) {
   await requireModuleAccess("recebimento");
   const { id } = await params;
-  const order = await getReceivingOrderDetailFromDb(id);
+  const supabase = await createSupabaseServerClient();
+  const [order, addresses] = await Promise.all([
+    getReceivingOrderDetailFromDb(id),
+    supabase
+      .from("enderecos")
+      .select("id, codigo, area")
+      .eq("ativo", true)
+      .neq("area", "BLOQUEADO")
+      .order("codigo"),
+  ]);
 
   if (!order) {
     notFound();
   }
-
-  const supabase = await createSupabaseServerClient();
-  const { data: addresses } = await supabase
-    .from("enderecos")
-    .select("id, codigo, area")
-    .eq("ativo", true)
-    .neq("area", "BLOQUEADO")
-    .order("codigo");
 
   return (
     <div className="space-y-4">
@@ -65,7 +66,7 @@ export default async function MobileReceivingDetailPage({
       <MobileReceivingPanel
         orderId={order.id}
         initialItems={order.items}
-        addresses={addresses ?? []}
+        addresses={addresses.data ?? []}
       />
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, Search, Volume2 } from "lucide-react";
 import type { ReceivingOrderDetail } from "@/lib/receiving";
 
@@ -49,7 +48,6 @@ export function ReceivingConferencePanel({
   initialItems,
   addresses,
 }: ReceivingConferencePanelProps) {
-  const router = useRouter();
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -393,7 +391,6 @@ export function ReceivingConferencePanel({
 
       setMessage(result.message ?? "Conferência atualizada com sucesso.");
       playFeedbackTone("success");
-      router.refresh();
     } catch {
       setError("Falha de comunicação com a API da conferência.");
       playFeedbackTone("error");

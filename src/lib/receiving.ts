@@ -117,6 +117,12 @@ export type OperationalIssueSummary = {
   itemId: string | null;
 };
 
+type OperationalIssueFilters = {
+  orderId?: string;
+  depositanteId?: string;
+  limit?: number;
+};
+
 export type ReceivingOrderDetail = {
   id: string;
   code: string;
@@ -207,15 +213,26 @@ export async function listReceivingTasksFromDb() {
   }));
 }
 
-export async function listOperationalIssuesFromDb() {
+export async function listOperationalIssuesFromDb(filters?: OperationalIssueFilters) {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
+  let query = supabase
     .from("ocorrencias_operacionais")
     .select(
       "id, titulo, tipo, descricao, pedido_recebimento_id, item_recebimento_id, depositante:depositantes(nome), created_at",
     )
-    .order("created_at", { ascending: false })
-    .limit(12);
+    .order("created_at", { ascending: false });
+
+  if (filters?.orderId) {
+    query = query.eq("pedido_recebimento_id", filters.orderId);
+  }
+
+  if (filters?.depositanteId) {
+    query = query.eq("depositante_id", filters.depositanteId);
+  }
+
+  query = query.limit(filters?.limit ?? 12);
+
+  const { data } = await query;
 
   return ((data ?? []) as RawIssueRow[]).map((item) => ({
     id: item.id,
