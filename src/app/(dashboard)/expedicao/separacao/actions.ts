@@ -47,20 +47,25 @@ export async function savePickingProgressAction(formData: FormData) {
     ]),
   );
 
-  for (let index = 0; index < itemIds.length; index += 1) {
-    const itemId = itemIds[index];
-    const maxQuantity = itemMap.get(itemId);
+  const itemUpdates = itemIds
+    .map((itemId, index) => {
+      const maxQuantity = itemMap.get(itemId);
 
-    if (typeof maxQuantity !== "number") {
-      continue;
-    }
+      if (typeof maxQuantity !== "number") {
+        return null;
+      }
 
-    const sanitizedQuantity = Math.max(0, Math.min(quantityValues[index], maxQuantity));
-    await adminSupabase
-      .from("pedidos_expedicao_itens")
-      .update({ quantidade_separada: sanitizedQuantity })
-      .eq("id", itemId)
-      .eq("pedido_expedicao_id", orderId);
+      const sanitizedQuantity = Math.max(0, Math.min(quantityValues[index], maxQuantity));
+      return adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({ quantidade_separada: sanitizedQuantity })
+        .eq("id", itemId)
+        .eq("pedido_expedicao_id", orderId);
+    })
+    .filter(Boolean);
+
+  if (itemUpdates.length) {
+    await Promise.all(itemUpdates);
   }
 
   const operatorName = operatorId

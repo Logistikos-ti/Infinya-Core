@@ -36,6 +36,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+export const preferredRegion = "gru1";
+
 export default function RootLayout({
   children,
 }: Readonly<{

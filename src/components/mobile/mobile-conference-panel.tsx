@@ -270,7 +270,7 @@ export function MobileConferencePanel({
   }
 
   return (
-    <form action={saveShippingConferenceAction} className="space-y-4">
+    <form action={saveShippingConferenceAction} className="space-y-4" aria-busy={isSubmitting}>
       <InactivityWarningDialog
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
@@ -696,9 +696,10 @@ export function MobileConferencePanel({
             name="intent"
             value="complete"
             className="h-11 bg-amber-500 text-slate-950 hover:bg-amber-400"
+            disabled={isSubmitting}
             onClick={() => setIsSubmitting(true)}
           >
-            Concluir conferência
+            {isSubmitting ? "Processando conferência..." : "Concluir conferência"}
           </Button>
         </div>
       </div>

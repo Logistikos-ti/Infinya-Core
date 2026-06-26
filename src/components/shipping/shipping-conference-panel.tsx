@@ -417,7 +417,7 @@ export function ShippingConferencePanel({
             </div>
           </div>
 
-          <form action={saveShippingConferenceAction} className="space-y-5">
+          <form action={saveShippingConferenceAction} className="space-y-5" aria-busy={isSubmitting}>
             <input type="hidden" name="orderId" value={order.id} />
             <input type="hidden" name="operatorId" value={selectedOperatorId} />
             <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
@@ -507,13 +507,14 @@ export function ShippingConferencePanel({
                   value="complete"
                   variant="outline"
                   className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  disabled={isSubmitting}
                   onClick={() => setIsSubmitting(true)}
                 >
-                  Concluir conferência
+                  {isSubmitting ? "Processando conferência..." : "Concluir conferência"}
                 </Button>
                 <Link
                   href={`${orderBasePath}/${order.id}`}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className={`inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
                 >
                   Ver pedido
                 </Link>

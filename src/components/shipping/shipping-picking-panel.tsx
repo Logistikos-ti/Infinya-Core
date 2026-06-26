@@ -417,7 +417,7 @@ export function ShippingPickingPanel({
           </div>
         </div>
 
-        <form action={savePickingProgressAction} className="space-y-5">
+        <form action={savePickingProgressAction} className="space-y-5" aria-busy={isSubmitting}>
           <input type="hidden" name="orderId" value={order.id} />
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
@@ -652,13 +652,14 @@ export function ShippingPickingPanel({
                 name="intent"
                 value="complete"
                 className="h-12 rounded-xl bg-infinya-gradient text-white hover:opacity-90 shadow-md shadow-primary-500/20 transition-all font-bold px-6"
+                disabled={isSubmitting}
                 onClick={() => setIsSubmitting(true)}
               >
-                Concluir Separação
+                {isSubmitting ? "Processando separação..." : "Concluir Separação"}
               </Button>
               <Link
                 href={`${orderBasePath}/${order.id}`}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 text-sm font-bold text-slate-700 dark:text-zinc-300 transition-all hover:bg-slate-50 dark:hover:bg-zinc-800"
+                className={`inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 text-sm font-bold text-slate-700 dark:text-zinc-300 transition-all hover:bg-slate-50 dark:hover:bg-zinc-800 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
               >
                 Ver pedido completo
               </Link>

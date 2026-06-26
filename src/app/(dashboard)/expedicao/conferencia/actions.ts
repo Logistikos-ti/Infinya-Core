@@ -46,32 +46,37 @@ export async function saveShippingConferenceAction(formData: FormData) {
     }>).map((item) => [item.id, item]),
   );
 
-  for (let index = 0; index < itemIds.length; index += 1) {
-    const itemId = itemIds[index];
-    const itemRecord = itemMap.get(itemId);
+  const itemUpdates = itemIds
+    .map((itemId, index) => {
+      const itemRecord = itemMap.get(itemId);
 
-    if (!itemRecord) {
-      continue;
-    }
+      if (!itemRecord) {
+        return null;
+      }
 
-    const requested = Number(itemRecord.quantidade ?? 0);
-    const confirmed = Math.max(0, Math.min(quantityValues[index], requested));
-    const payload = isRecord(itemRecord.payload_origem) ? itemRecord.payload_origem : {};
-    const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+      const requested = Number(itemRecord.quantidade ?? 0);
+      const confirmed = Math.max(0, Math.min(quantityValues[index], requested));
+      const payload = isRecord(itemRecord.payload_origem) ? itemRecord.payload_origem : {};
+      const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
 
-    await adminSupabase
-      .from("pedidos_expedicao_itens")
-      .update({
-        payload_origem: {
-          ...payload,
-          conferencia: {
-            ...currentConference,
-            quantidadeConferida: confirmed,
+      return adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({
+          payload_origem: {
+            ...payload,
+            conferencia: {
+              ...currentConference,
+              quantidadeConferida: confirmed,
+            },
           },
-        },
-      })
-      .eq("id", itemId)
-      .eq("pedido_expedicao_id", orderId);
+        })
+        .eq("id", itemId)
+        .eq("pedido_expedicao_id", orderId);
+    })
+    .filter(Boolean);
+
+  if (itemUpdates.length) {
+    await Promise.all(itemUpdates);
   }
 
   const operatorName = operatorId ? await resolveOperatorName(adminSupabase, operatorId) : user.nome;
