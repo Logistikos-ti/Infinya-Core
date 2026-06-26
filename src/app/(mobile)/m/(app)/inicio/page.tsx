@@ -9,89 +9,86 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { requireUserContext } from "@/lib/auth";
+import { getMobileOperationsSnapshot } from "@/lib/mobile-home";
 import { getMobileWelcomeLabel } from "@/lib/mobile";
 import { canAccessModule } from "@/lib/permissions";
-import { listReceivingOrdersFromDb } from "@/lib/receiving";
-import { listShippingConferenceOrdersFromDb } from "@/lib/shipping-conference";
-import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 
 export default async function MobileHomePage() {
   const user = await requireUserContext();
+  const canAccessReceiving = canAccessModule(user, "recebimento");
+  const canAccessShipping = canAccessModule(user, "expedicao");
 
-  const [receivingOrders, pickingOrders, conferenceOrders] = await Promise.all([
-    listReceivingOrdersFromDb({
-      depositanteId: user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined,
-    }),
-    listShippingPickingOrdersFromDb(user),
-    listShippingConferenceOrdersFromDb(user),
-  ]);
+  const snapshot = await getMobileOperationsSnapshot(user, {
+    includeReceiving: canAccessReceiving,
+    includeShipping: canAccessShipping,
+  });
 
   const cards = [
     {
       href: "/m/recebimento",
       title: "Recebimento",
-      value: receivingOrders.length,
+      value: snapshot.receiving.count,
       help: "Fila inbound do turno",
-      detail: receivingOrders[0]?.code ?? "Sem recebimentos em aberto",
+      detail: snapshot.receiving.first?.code ?? "Sem recebimentos em aberto",
       icon: PackageCheck,
       tone: "bg-emerald-500/15 text-emerald-300",
-      visible: canAccessModule(user, "recebimento"),
+      visible: canAccessReceiving,
     },
     {
       href: "/m/separacao",
       title: "Separação",
-      value: pickingOrders.length,
+      value: snapshot.picking.count,
       help: "Pedidos aguardando coleta",
-      detail: pickingOrders[0]?.externalNumber ?? "Sem picking pendente",
+      detail: snapshot.picking.first?.externalNumber ?? "Sem picking pendente",
       icon: ScanLine,
       tone: "bg-sky-500/15 text-sky-300",
-      visible: canAccessModule(user, "expedicao"),
+      visible: canAccessShipping,
     },
     {
       href: "/m/conferencia",
       title: "Conferência",
-      value: conferenceOrders.length,
+      value: snapshot.conference.count,
       help: "Pedidos para validar",
-      detail: conferenceOrders[0]?.externalNumber ?? "Sem conferência pendente",
+      detail: snapshot.conference.first?.externalNumber ?? "Sem conferência pendente",
       icon: ClipboardCheck,
       tone: "bg-amber-500/15 text-amber-300",
-      visible: canAccessModule(user, "expedicao"),
+      visible: canAccessShipping,
     },
   ].filter((card) => card.visible);
 
   const totalPendencias =
-    receivingOrders.length + pickingOrders.length + conferenceOrders.length;
+    snapshot.receiving.count + snapshot.picking.count + snapshot.conference.count;
 
   const nextAction =
-    (pickingOrders[0] && {
-      href: `/m/separacao/${pickingOrders[0].id}`,
+    (snapshot.picking.first && {
+      href: `/m/separacao/${snapshot.picking.first.id}`,
       title: "Iniciar separação",
-      description: `${pickingOrders[0].externalNumber} • ${pickingOrders[0].customer}`,
+      description: `${snapshot.picking.first.externalNumber} • ${snapshot.picking.first.customer}`,
       tone: "text-sky-300",
     }) ||
-    (conferenceOrders[0] && {
-      href: `/m/conferencia/${conferenceOrders[0].id}`,
+    (snapshot.conference.first && {
+      href: `/m/conferencia/${snapshot.conference.first.id}`,
       title: "Continuar conferência",
-      description: `${conferenceOrders[0].externalNumber} • ${conferenceOrders[0].customer}`,
+      description: `${snapshot.conference.first.externalNumber} • ${snapshot.conference.first.customer}`,
       tone: "text-amber-300",
     }) ||
-    (receivingOrders[0] && {
-      href: `/m/recebimento/${receivingOrders[0].id}`,
+    (snapshot.receiving.first && {
+      href: `/m/recebimento/${snapshot.receiving.first.id}`,
       title: "Abrir recebimento",
-      description: `${receivingOrders[0].code} • ${receivingOrders[0].depositante}`,
+      description: `${snapshot.receiving.first.code} • ${snapshot.receiving.first.depositante}`,
       tone: "text-emerald-300",
     }) ||
     null;
 
   const alertItems = [
-    pickingOrders.length > 0
-      ? `${pickingOrders.length} pedido(s) aguardando separação`
+    snapshot.picking.count > 0
+      ? `${snapshot.picking.count} pedido(s) aguardando separação`
       : null,
-    conferenceOrders.some((order) => order.quantityDivergentItems > 0)
-      ? `${conferenceOrders.reduce((sum, order) => sum + order.quantityDivergentItems, 0)} divergência(s) em conferência`
+    snapshot.conference.divergentItems > 0
+      ? `${snapshot.conference.divergentItems} divergência(s) em conferência`
       : null,
-    receivingOrders.length > 0
-      ? `${receivingOrders.length} recebimento(s) aguardando avanço`
+    snapshot.receiving.count > 0
+      ? `${snapshot.receiving.count} recebimento(s) aguardando avanço`
       : null,
   ].filter(Boolean) as string[];
 
@@ -117,8 +114,8 @@ export default async function MobileHomePage() {
 
         <div className="mt-5 grid grid-cols-3 gap-2">
           <SummaryChip icon={CalendarDays} label="Pendências" value={String(totalPendencias)} />
-          <SummaryChip icon={ScanLine} label="Picking" value={String(pickingOrders.length)} />
-          <SummaryChip icon={CheckCircle2} label="Conf." value={String(conferenceOrders.length)} />
+          <SummaryChip icon={ScanLine} label="Picking" value={String(snapshot.picking.count)} />
+          <SummaryChip icon={CheckCircle2} label="Conf." value={String(snapshot.conference.count)} />
         </div>
       </section>
 
