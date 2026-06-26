@@ -301,11 +301,16 @@ export async function getReceivingOrderDetailFromDb(id: string) {
   } satisfies ReceivingOrderDetail;
 }
 
-export async function listReceivingStatsFromDb(user: AppUserContext) {
+export async function listReceivingStatsFromDb(
+  user: AppUserContext,
+  sourceOrders?: ReceivingOrderSummary[],
+  sourceIssues?: OperationalIssueSummary[],
+  sourceTasks?: ReceivingTaskSummary[],
+) {
   const [orders, issues, tasks] = await Promise.all([
-    listReceivingOrdersFromDb(),
-    listOperationalIssuesFromDb(),
-    listReceivingTasksFromDb(),
+    sourceOrders ? Promise.resolve(sourceOrders) : listReceivingOrdersFromDb(),
+    sourceIssues ? Promise.resolve(sourceIssues) : listOperationalIssuesFromDb(),
+    sourceTasks ? Promise.resolve(sourceTasks) : listReceivingTasksFromDb(),
   ]);
 
   const volumes = orders.reduce((sum, order) => sum + order.volumeCount, 0);

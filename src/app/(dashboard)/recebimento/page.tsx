@@ -28,6 +28,8 @@ type RecebimentoPageProps = {
     depositante?: string;
     dataInicial?: string;
     dataFinal?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
 
@@ -39,15 +41,19 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
   const depositanteFilter = params?.depositante?.trim() ?? "";
   const dateFrom = params?.dataInicial?.trim() ?? "";
   const dateTo = params?.dataFinal?.trim() ?? "";
+  const page = normalizePositiveNumber(params?.page, 1);
+  const perPage = normalizePerPage(params?.perPage);
   const supabase = await createSupabaseServerClient();
-
-  const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
-  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
-  const [receivingStats, receivingOrders, receivingTasks, operationalIssues] = await Promise.all([
-    listReceivingStatsFromDb(user),
+  const [{ data: depositantes }, receivingOverviewOrders, receivingOrders, receivingTasks, operationalIssues] = await Promise.all([
+    supabase.from("depositantes").select("id, nome").order("nome"),
+    listReceivingOrdersFromDb({
+      depositanteId: effectiveDepositanteFilter || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    }),
     listReceivingOrdersFromDb({
       status: statusFilter || undefined,
       depositanteId: effectiveDepositanteFilter || undefined,
@@ -57,6 +63,27 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
     listReceivingTasksFromDb(),
     listOperationalIssuesFromDb(),
   ]);
+  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const receivingStats = await listReceivingStatsFromDb(
+    user,
+    receivingOverviewOrders,
+    operationalIssues,
+    receivingTasks,
+  );
+  const totalOrders = receivingOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedOrders = receivingOrders.slice(startIndex, startIndex + perPage);
+  const visibleStart = totalOrders ? startIndex + 1 : 0;
+  const visibleEnd = Math.min(startIndex + perPage, totalOrders);
+  const baseQuery = {
+    status: statusFilter,
+    depositante: effectiveDepositanteFilter,
+    dataInicial: dateFrom,
+    dataFinal: dateTo,
+    perPage: String(perPage),
+  };
 
   return (
     <div className="space-y-8 relative opacity-95">
@@ -190,10 +217,40 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
       {/* Main Table section */}
       <section className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden hover:border-primary-500/30 transition-all">
         <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Lista de Recebimentos</h3>
-          <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
-            {receivingOrders.length} registros
-          </span>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Lista de Recebimentos</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Exibindo {visibleStart}-{visibleEnd} de {totalOrders} recebimento(s)
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <form className="flex items-center gap-2">
+              <input type="hidden" name="status" value={statusFilter} />
+              <input type="hidden" name="depositante" value={effectiveDepositanteFilter} />
+              <input type="hidden" name="dataInicial" value={dateFrom} />
+              <input type="hidden" name="dataFinal" value={dateTo} />
+              <input type="hidden" name="page" value="1" />
+              <label className="text-xs font-medium text-slate-500">Por página</label>
+              <select
+                name="perPage"
+                defaultValue={String(perPage)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+              <button
+                type="submit"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                Aplicar
+              </button>
+            </form>
+            <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
+              {totalOrders} registros
+            </span>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -209,7 +266,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
-              {receivingOrders.map((order) => (
+              {paginatedOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition group">
                   <td className="px-6 py-4">
                     <Link href={`/recebimento/${order.id}`} className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
@@ -243,7 +300,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                   </td>
                 </tr>
               ))}
-              {!receivingOrders.length && (
+              {!paginatedOrders.length && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500">
                     Nenhum pedido encontrado com os filtros atuais.
@@ -253,6 +310,43 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
             </tbody>
           </table>
         </div>
+        {totalOrders > perPage ? (
+          <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 dark:border-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-slate-500">
+              Página {currentPage} de {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/recebimento?${buildQueryString({
+                  ...baseQuery,
+                  page: String(Math.max(1, currentPage - 1)),
+                })}`}
+                aria-disabled={currentPage <= 1}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  currentPage <= 1
+                    ? "pointer-events-none border-slate-200 text-slate-300 dark:border-zinc-800 dark:text-zinc-600"
+                    : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Anterior
+              </Link>
+              <Link
+                href={`/recebimento?${buildQueryString({
+                  ...baseQuery,
+                  page: String(Math.min(totalPages, currentPage + 1)),
+                })}`}
+                aria-disabled={currentPage >= totalPages}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  currentPage >= totalPages
+                    ? "pointer-events-none border-slate-200 text-slate-300 dark:border-zinc-800 dark:text-zinc-600"
+                    : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                }`}
+              >
+                Próxima
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {/* Grid SecundÃ¡rio: Ocorrências e Tarefas */}
@@ -320,6 +414,36 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
 
     </div>
   );
+}
+
+function normalizePositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
+
+function normalizePerPage(value: string | undefined) {
+  const parsed = normalizePositiveNumber(value, 10);
+  if ([10, 20, 50].includes(parsed)) {
+    return parsed;
+  }
+
+  return 10;
+}
+
+function buildQueryString(query: Record<string, string>) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+
+  return params.toString();
 }
 
 function StatusBadge({ status }: { status: string }) {
