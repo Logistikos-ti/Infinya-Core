@@ -17,6 +17,8 @@ type ConfiguracoesProdutosPageProps = {
     status?: string;
     metodo?: string;
     unidade?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
 
@@ -30,6 +32,8 @@ export default async function ConfiguracoesProdutosPage({
   const statusFiltro = params?.status?.trim() ?? "ativos";
   const metodoFiltro = params?.metodo?.trim() ?? "";
   const unidadeFiltro = params?.unidade?.trim() ?? "";
+  const page = normalizePositiveNumber(params?.page, 1);
+  const perPage = normalizePerPage(params?.perPage);
   const supabase = await createSupabaseServerClient();
 
   let productsQuery = supabase
@@ -73,6 +77,21 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery,
     supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
   ]);
+  const totalProducts = products?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedProducts = (products ?? []).slice(startIndex, startIndex + perPage);
+  const visibleStart = totalProducts ? startIndex + 1 : 0;
+  const visibleEnd = Math.min(startIndex + perPage, totalProducts);
+  const baseQuery = {
+    q: searchTerm,
+    depositante: depositanteFiltro,
+    status: statusFiltro,
+    metodo: metodoFiltro,
+    unidade: unidadeFiltro,
+    perPage: String(perPage),
+  };
 
   return (
     <div className="space-y-6">
@@ -142,7 +161,7 @@ export default async function ConfiguracoesProdutosPage({
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              {products?.length ?? 0} registros
+              {totalProducts} registros
             </span>
             <Link href="/configuracoes/produtos/novo">
               <Button className="bg-slate-950 text-white hover:bg-slate-800">
@@ -240,6 +259,15 @@ export default async function ConfiguracoesProdutosPage({
               <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
                 Filtrar
               </Button>
+              <select
+                name="perPage"
+                defaultValue={String(perPage)}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              >
+                <option value="10">10 / página</option>
+                <option value="20">20 / página</option>
+                <option value="50">50 / página</option>
+              </select>
               <Link
                 href="/configuracoes/produtos"
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
@@ -251,8 +279,38 @@ export default async function ConfiguracoesProdutosPage({
         </form>
 
         <div className="mt-5 space-y-4">
-          {products?.length ? (
-            products.map((item) => (
+          {paginatedProducts.length ? (
+            <>
+              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+                <span>
+                  Exibindo {visibleStart}-{visibleEnd} de {totalProducts} produto(s)
+                </span>
+                <div className="flex items-center gap-2">
+                  <PageLink
+                    disabled={currentPage <= 1}
+                    href={`/configuracoes/produtos?${buildQueryString({
+                      ...baseQuery,
+                      page: String(currentPage - 1),
+                    })}`}
+                  >
+                    Anterior
+                  </PageLink>
+                  <span className="text-xs font-medium text-slate-500">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <PageLink
+                    disabled={currentPage >= totalPages}
+                    href={`/configuracoes/produtos?${buildQueryString({
+                      ...baseQuery,
+                      page: String(currentPage + 1),
+                    })}`}
+                  >
+                    Próxima
+                  </PageLink>
+                </div>
+              </div>
+
+            {paginatedProducts.map((item) => (
               <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-3">
@@ -328,7 +386,8 @@ export default async function ConfiguracoesProdutosPage({
                   </div>
                 </div>
               </div>
-            ))
+            ))}
+            </>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
               Nenhum produto encontrado com os filtros atuais.
@@ -363,4 +422,53 @@ function getUnidadeLabel(value: string) {
 
 function escapeSupabaseLike(value: string) {
   return value.replaceAll("%", "\\%").replaceAll(",", "\\,");
+}
+
+function normalizePositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizePerPage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return [10, 20, 50].includes(parsed) ? parsed : 10;
+}
+
+function buildQueryString(values: Record<string, string>) {
+  const params = new URLSearchParams();
+
+  Object.entries(values).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  return params.toString();
+}
+
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  if (disabled) {
+    return (
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+    >
+      {children}
+    </Link>
+  );
 }

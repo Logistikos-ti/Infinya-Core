@@ -26,6 +26,8 @@ type ConfiguracoesUsuariosPageProps = {
     editar?: string;
     depositante?: string;
     papel?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
 
@@ -50,6 +52,8 @@ export default async function ConfiguracoesUsuariosPage({
   const editingId = params?.editar ?? null;
   const depositanteFilter = params?.depositante ?? "";
   const papelFilter = params?.papel ?? "";
+  const page = normalizePositiveNumber(params?.page, 1);
+  const perPage = normalizePerPage(params?.perPage);
 
   const currentUser = await requireRoleAccess(["ADMIN", "TI"]);
   const supabase = await createSupabaseServerClient();
@@ -84,6 +88,18 @@ export default async function ConfiguracoesUsuariosPage({
     papel: item.papel as AppRole,
     modulePermissions: authPermissionsById.get(item.id) ?? null,
   }));
+  const totalUsers = usuarios.length;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedUsers = usuarios.slice(startIndex, startIndex + perPage);
+  const visibleStart = totalUsers ? startIndex + 1 : 0;
+  const visibleEnd = Math.min(startIndex + perPage, totalUsers);
+  const baseQuery = {
+    depositante: depositanteFilter,
+    papel: papelFilter,
+    perPage: String(perPage),
+  };
 
   const currentEditUser = editingId ? usuarios.find((item) => item.id === editingId) ?? null : null;
   const currentEditModules = getEffectiveModulesForForm(
@@ -262,7 +278,7 @@ export default async function ConfiguracoesUsuariosPage({
               </p>
             </div>
             <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
-              {usuarios.length} registros
+              {totalUsers} registros
             </span>
           </div>
 
@@ -293,6 +309,15 @@ export default async function ConfiguracoesUsuariosPage({
             <Button type="submit" variant="outline" size="sm">
               Filtrar
             </Button>
+            <select
+              name="perPage"
+              defaultValue={String(perPage)}
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+            >
+              <option value="10">10 / página</option>
+              <option value="20">20 / página</option>
+              <option value="50">50 / página</option>
+            </select>
             {(depositanteFilter || papelFilter) && (
               <Link
                 href="/configuracoes/usuarios"
@@ -304,8 +329,38 @@ export default async function ConfiguracoesUsuariosPage({
           </form>
 
           <div className="mt-5 space-y-4">
-            {usuarios.length ? (
-              usuarios.map((item) => {
+            {paginatedUsers.length ? (
+              <>
+                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+                  <span>
+                    Exibindo {visibleStart}-{visibleEnd} de {totalUsers} usuário(s)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <PageLink
+                      disabled={currentPage <= 1}
+                      href={`/configuracoes/usuarios?${buildQueryString({
+                        ...baseQuery,
+                        page: String(currentPage - 1),
+                      })}`}
+                    >
+                      Anterior
+                    </PageLink>
+                    <span className="text-xs font-medium text-slate-500">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <PageLink
+                      disabled={currentPage >= totalPages}
+                      href={`/configuracoes/usuarios?${buildQueryString({
+                        ...baseQuery,
+                        page: String(currentPage + 1),
+                      })}`}
+                    >
+                      Próxima
+                    </PageLink>
+                  </div>
+                </div>
+
+                {paginatedUsers.map((item) => {
                 const isCurrentUser = currentUser.id === item.id;
                 const effectiveModules = getEffectiveModulesForForm(item.papel, item.modulePermissions);
 
@@ -390,7 +445,8 @@ export default async function ConfiguracoesUsuariosPage({
                     </div>
                   </div>
                 );
-              })
+              })}
+              </>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
                 Nenhum usuário cadastrado com os filtros atuais.
@@ -542,4 +598,53 @@ async function listAllAuthUsers() {
   }
 
   return allUsers;
+}
+
+function normalizePositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizePerPage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return [10, 20, 50].includes(parsed) ? parsed : 10;
+}
+
+function buildQueryString(values: Record<string, string>) {
+  const params = new URLSearchParams();
+
+  Object.entries(values).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  return params.toString();
+}
+
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  if (disabled) {
+    return (
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+    >
+      {children}
+    </Link>
+  );
 }
