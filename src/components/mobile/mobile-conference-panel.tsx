@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Barcode, Focus, Volume2 } from "lucide-react";
+import { AlertTriangle, Barcode, Camera, CameraOff, Focus, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
@@ -57,6 +58,19 @@ export function MobileConferencePanel({
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const recentScanTimerRef = useRef<number | null>(null);
+  const {
+    videoRef,
+    cameraSupported,
+    cameraEnabled,
+    cameraStarting,
+    cameraMessage,
+    toggleCamera,
+  } = useCameraBarcodeScanner({
+    onDetected: (code) => {
+      applyScan(code);
+      resetTimer();
+    },
+  });
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
     disabled: isSubmitting,
     onExpire: () => {
@@ -117,9 +131,13 @@ export function MobileConferencePanel({
   }, [items, nextItem]);
 
   useEffect(() => {
+    if (cameraEnabled) {
+      return;
+    }
+
     const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [cameraEnabled]);
 
   useEffect(() => {
     return () => {
@@ -219,7 +237,9 @@ export function MobileConferencePanel({
       const message = "Leia ou digite um código para localizar o item.";
       setFeedback(message, "error");
       pushScanHistory(message, "error");
-      focusScanInput();
+      if (!cameraEnabled) {
+        focusScanInput();
+      }
       return;
     }
 
@@ -235,7 +255,9 @@ export function MobileConferencePanel({
       const message = "Código não encontrado neste pedido.";
       setFeedback(message, "error");
       pushScanHistory(message, "error");
-      focusScanInput();
+      if (!cameraEnabled) {
+        focusScanInput();
+      }
       return;
     }
 
@@ -245,7 +267,9 @@ export function MobileConferencePanel({
       const message = `O item ${matchedItem.sku} já foi totalmente conferido.`;
       setFeedback(message, "error");
       pushScanHistory(message, "error");
-      focusScanInput();
+      if (!cameraEnabled) {
+        focusScanInput();
+      }
       return;
     }
 
@@ -266,7 +290,9 @@ export function MobileConferencePanel({
     setFeedback(message, "success");
     pushScanHistory(message, "success");
     resetTimer();
-    focusScanInput();
+    if (!cameraEnabled) {
+      focusScanInput();
+    }
   }
 
   return (
@@ -491,6 +517,24 @@ export function MobileConferencePanel({
           <div className="flex gap-2">
             <button
               type="button"
+              onClick={toggleCamera}
+              disabled={!cameraSupported}
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${
+                cameraEnabled
+                  ? "bg-rose-500 text-white"
+                  : "bg-amber-500 text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-200"
+              }`}
+            >
+              {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+              {cameraStarting
+                ? "Abrindo câmera..."
+                : cameraEnabled
+                  ? "Desligar câmera"
+                  : "Ler pela câmera"}
+            </button>
+
+            <button
+              type="button"
               onClick={focusScanInput}
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
             >
@@ -506,6 +550,24 @@ export function MobileConferencePanel({
               {soundEnabled ? "Som ativo" : "Som desligado"}
             </button>
           </div>
+
+          <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className={`aspect-video w-full object-cover transition ${
+                cameraEnabled || cameraStarting ? "opacity-100" : "opacity-35"
+              }`}
+            />
+          </div>
+
+          <p className="text-xs text-slate-400">
+            {cameraMessage ??
+              (cameraSupported
+                ? "Abra a câmera para conferir pelo celular ou notebook sem depender do teclado."
+                : "Seu navegador atual não liberou leitura por câmera. O leitor USB e o campo manual continuam disponíveis.")}
+          </p>
         </div>
       </section>
 

@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Barcode, Focus, Map, ScanSearch, Volume2 } from "lucide-react";
+import { Barcode, Camera, CameraOff, Focus, Map, ScanSearch, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
 
@@ -49,6 +50,19 @@ export function ShippingPickingPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const {
+    videoRef,
+    cameraSupported,
+    cameraEnabled,
+    cameraStarting,
+    cameraMessage,
+    toggleCamera,
+  } = useCameraBarcodeScanner({
+    onDetected: (code) => {
+      applyScannedCode(code);
+      resetTimer();
+    },
+  });
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
     disabled: isSubmitting,
     onExpire: () => {
@@ -76,7 +90,7 @@ export function ShippingPickingPanel({
   );
 
   useEffect(() => {
-    if (!operatorMode) {
+    if (!operatorMode || cameraEnabled) {
       return;
     }
 
@@ -85,7 +99,7 @@ export function ShippingPickingPanel({
     }, 120);
 
     return () => window.clearTimeout(focusTimer);
-  }, [operatorMode]);
+  }, [cameraEnabled, operatorMode]);
 
   function focusScanInput() {
     requestAnimationFrame(() => {
@@ -196,7 +210,7 @@ export function ShippingPickingPanel({
       quantityInputRefs.current[matchedItem.id]?.focus();
       quantityInputRefs.current[matchedItem.id]?.select();
 
-      if (operatorMode) {
+      if (operatorMode && !cameraEnabled) {
         focusScanInput();
       }
     });
@@ -317,7 +331,7 @@ export function ShippingPickingPanel({
                     setScanValue(event.target.value);
                   }}
                   onBlur={() => {
-                    if (operatorMode) {
+                    if (operatorMode && !cameraEnabled) {
                       window.setTimeout(() => {
                         scanInputRef.current?.focus();
                       }, 40);
@@ -349,6 +363,24 @@ export function ShippingPickingPanel({
             </form>
 
             <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={toggleCamera}
+                disabled={!cameraSupported}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all flex-1 ${
+                  cameraEnabled
+                    ? "bg-rose-500 text-white shadow-md shadow-rose-500/20 hover:bg-rose-600"
+                    : "bg-primary-500 text-white shadow-md shadow-primary-500/20 hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                }`}
+              >
+                {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                {cameraStarting
+                  ? "Abrindo câmera..."
+                  : cameraEnabled
+                    ? "Desligar câmera"
+                    : "Ler pela câmera"}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setOperatorMode((current) => !current)}
@@ -383,6 +415,24 @@ export function ShippingPickingPanel({
                 Focar leitura
               </button>
             </div>
+
+            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-950">
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className={`aspect-video w-full object-cover transition ${
+                  cameraEnabled || cameraStarting ? "opacity-100" : "opacity-35"
+                }`}
+              />
+            </div>
+
+            <p className="mt-3 text-xs font-medium text-slate-500 dark:text-zinc-500 leading-relaxed">
+              {cameraMessage ??
+                (cameraSupported
+                  ? "Compatível com celular e notebook. Abra a câmera e aponte para o EAN/GTIN do produto."
+                  : "Seu navegador atual não liberou leitura por câmera. O leitor USB e o campo manual continuam disponíveis.")}
+            </p>
           </div>
 
           <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
