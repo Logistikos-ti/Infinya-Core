@@ -6,6 +6,8 @@ import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 type MobilePickingQueuePageProps = {
   searchParams?: Promise<{
     feedback?: string;
+    page?: string;
+    perPage?: string;
   }>;
 };
 
@@ -42,9 +44,17 @@ export default async function MobilePickingQueuePage({
   const user = await requireModuleAccess("expedicao");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback?.trim() ?? "";
+  const page = normalizePositiveNumber(params?.page, 1);
+  const perPage = normalizePerPage(params?.perPage);
   const orders = await listShippingPickingOrdersFromDb(user);
-
   const pendingUnits = orders.reduce((sum, order) => sum + order.totalUnits, 0);
+  const totalOrders = orders.length;
+  const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedOrders = orders.slice(startIndex, startIndex + perPage);
+  const visibleStart = totalOrders ? startIndex + 1 : 0;
+  const visibleEnd = Math.min(startIndex + perPage, totalOrders);
 
   return (
     <div className="space-y-4">
@@ -72,15 +82,69 @@ export default async function MobilePickingQueuePage({
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <MiniStat label="Pedidos" value={String(orders.length)} icon={ScanLine} />
+          <MiniStat label="Pedidos" value={String(totalOrders)} icon={ScanLine} />
           <MiniStat label="Unidades" value={String(pendingUnits)} icon={Package2} />
         </div>
       </section>
 
+      {paginatedOrders.length ? (
+        <section className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+          <div className="flex flex-col gap-3">
+            <span>
+              Exibindo {visibleStart}-{visibleEnd} de {totalOrders} pedido(s)
+            </span>
+            <div className="flex items-center justify-between gap-2">
+              <PageLink
+                disabled={currentPage <= 1}
+                href={`/m/separacao?${buildQueryString({
+                  feedback,
+                  perPage: String(perPage),
+                  page: String(currentPage - 1),
+                })}`}
+              >
+                Anterior
+              </PageLink>
+              <span className="text-xs font-medium text-slate-400">
+                Página {currentPage} de {totalPages}
+              </span>
+              <PageLink
+                disabled={currentPage >= totalPages}
+                href={`/m/separacao?${buildQueryString({
+                  feedback,
+                  perPage: String(perPage),
+                  page: String(currentPage + 1),
+                })}`}
+              >
+                Próxima
+              </PageLink>
+            </div>
+            <div className="flex gap-2">
+              {[10, 20, 50].map((value) => (
+                <Link
+                  key={value}
+                  href={`/m/separacao?${buildQueryString({
+                    feedback,
+                    perPage: String(value),
+                    page: "1",
+                  })}`}
+                  className={`inline-flex h-9 items-center rounded-full border px-3 text-xs font-semibold ${
+                    perPage === value
+                      ? "border-sky-400/40 bg-sky-400/15 text-sky-100"
+                      : "border-white/10 bg-white/5 text-slate-300"
+                  }`}
+                >
+                  {value}/página
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="space-y-3">
-        {orders.length ? (
-          orders.map((order, index) => {
-            const tone = PICKING_CARD_TONES[index % PICKING_CARD_TONES.length];
+        {paginatedOrders.length ? (
+          paginatedOrders.map((order, index) => {
+            const tone = PICKING_CARD_TONES[(startIndex + index) % PICKING_CARD_TONES.length];
 
             return (
               <Link
@@ -92,7 +156,7 @@ export default async function MobilePickingQueuePage({
                   <div className="flex items-center gap-2">
                     <span className={`h-2.5 w-2.5 rounded-full ${tone.accent}`} />
                     <span className="rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-200">
-                      Pedido {String(index + 1).padStart(2, "0")}
+                      Pedido {String(startIndex + index + 1).padStart(2, "0")}
                     </span>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${tone.badge}`}>
@@ -127,7 +191,7 @@ export default async function MobilePickingQueuePage({
                       <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
-                      Ordem {index + 1}
+                      Ordem {startIndex + index + 1}
                     </span>
                   </div>
 
@@ -205,5 +269,54 @@ function InlineChip({
       <Icon className="h-3.5 w-3.5 text-slate-400" />
       <span className="truncate">{text}</span>
     </div>
+  );
+}
+
+function normalizePositiveNumber(value: string | undefined, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizePerPage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return [10, 20, 50].includes(parsed) ? parsed : 10;
+}
+
+function buildQueryString(values: Record<string, string>) {
+  const params = new URLSearchParams();
+
+  Object.entries(values).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  return params.toString();
+}
+
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  if (disabled) {
+    return (
+      <span className="inline-flex h-9 items-center rounded-full border border-white/10 px-3 text-sm font-medium text-slate-500">
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-9 items-center rounded-full border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200"
+    >
+      {children}
+    </Link>
   );
 }
