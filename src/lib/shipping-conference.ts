@@ -126,7 +126,7 @@ export async function listShippingConferenceOrdersFromDb(
 
   const { data, error } = await query;
   if (error) {
-    throw new Error(`Não foi possível listar os pedidos em conferência: ${error.message}`);
+    throw new Error(`N?o foi poss?vel listar os pedidos em confer?ncia: ${error.message}`);
   }
 
   const orders = ((data ?? []) as RawConferenceOrderRow[]).map(mapConferenceOrder);
@@ -157,7 +157,7 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
 
   const { data, error } = await query.maybeSingle();
   if (error) {
-    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido em conferÃªncia: ${error.message}`);
+    throw new Error(`N?o foi poss?vel carregar o pedido em confer?ncia: ${error.message}`);
   }
 
   if (!data) {
@@ -185,10 +185,10 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
     externalNumber: extractPlatformOrderNumber(payload, order.numero_pedido, order.numero_loja, order.codigo),
-    customer: order.cliente_nome?.trim() || "Cliente não informado",
+    customer: order.cliente_nome?.trim() || "Cliente nï¿½o informado",
     destination:
       [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-      "Destino não informado",
+      "Destino nï¿½o informado",
     status: order.status,
     statusLabel: formatShippingStatusLabel(order.status),
     depositanteId: order.depositante_id,

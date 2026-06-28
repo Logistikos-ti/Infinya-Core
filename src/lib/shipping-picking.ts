@@ -187,7 +187,7 @@ export async function listPickingOperatorsFromDb(
     .order("nome");
 
   if (error) {
-    throw new Error(`Não foi possível listar os operadores: ${error.message}`);
+    throw new Error(`Nï¿½o foi possï¿½vel listar os operadores: ${error.message}`);
   }
 
   return ((data ?? []) as RawOperatorRow[])
@@ -239,7 +239,7 @@ export async function listShippingPickingOrdersFromDb(
   const { data: ordersData, error: ordersError } = await ordersQuery;
 
   if (ordersError) {
-    throw new Error(`Não foi possível listar os pedidos de separação: ${ordersError.message}`);
+    throw new Error(`Nï¿½o foi possï¿½vel listar os pedidos de separaï¿½ï¿½o: ${ordersError.message}`);
   }
 
   const rawOrders = (ordersData ?? []) as RawPickingOrderRow[];
@@ -272,7 +272,7 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
   const { data, error } = await buildPickingOrdersQuery(supabase).eq("id", id).maybeSingle();
 
   if (error) {
-    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido de separaÃ§Ã£o: ${error.message}`);
+    throw new Error(`N?o foi poss?vel carregar o pedido de separa??o: ${error.message}`);
   }
 
   const rawOrder = (data as RawPickingOrderRow | null) ?? null;
@@ -321,10 +321,10 @@ function mapPickingOrder(
       order.numero_loja,
       order.codigo,
     ),
-    customer: order.cliente_nome?.trim() || "Cliente não informado",
+    customer: order.cliente_nome?.trim() || "Cliente nï¿½o informado",
     destination:
       [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-      "Destino não informado",
+      "Destino nï¿½o informado",
     status: order.status,
     statusLabel: formatShippingStatusLabel(order.status),
     depositanteId: order.depositante_id,
@@ -378,7 +378,7 @@ function mapPickingItem(
     remaining -= quantity;
     routeLines.push({
       stockId: stock.id,
-      addressCode: stock.endereco?.codigo?.trim() || "Sem endereço",
+      addressCode: stock.endereco?.codigo?.trim() || "Sem endereï¿½o",
       area: normalizeArea(stock.endereco?.area),
       routeLabel: buildRouteLabel(stock.endereco),
       lot: stock.lote?.trim() || "-",
@@ -444,7 +444,7 @@ async function loadPickingStockRows(
   const { data: stockData, error: stockError } = await stockQuery;
 
   if (stockError) {
-    throw new Error(`NÃ£o foi possÃ­vel montar a rota de picking: ${stockError.message}`);
+    throw new Error(`N?o foi poss?vel montar a rota de picking: ${stockError.message}`);
   }
 
   return (stockData ?? []) as RawPickingStockRow[];
@@ -644,12 +644,12 @@ function buildRouteLabel(
 ) {
   const parts = [
     endereco?.rua ? `Rua ${endereco.rua}` : null,
-    endereco?.modulo ? `Módulo ${endereco.modulo}` : null,
-    endereco?.nivel ? `Nível ${endereco.nivel}` : null,
-    endereco?.posicao ? `Posição ${endereco.posicao}` : null,
+    endereco?.modulo ? `M?dulo ${endereco.modulo}` : null,
+    endereco?.nivel ? `N?vel ${endereco.nivel}` : null,
+    endereco?.posicao ? `Posi??o ${endereco.posicao}` : null,
   ].filter(Boolean);
 
-  return parts.join(" • ") || "Sequência não informada";
+  return parts.join(" ? ") || "Sequ?ncia n?o informada";
 }
 
 function compareNullableDates(a: string | null | undefined, b: string | null | undefined) {
