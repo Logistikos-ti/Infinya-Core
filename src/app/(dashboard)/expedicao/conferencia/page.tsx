@@ -235,6 +235,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                         {order.depositante}
                       </span>
+                      <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>
                       {order.pendingUnits > 0 ? (
                         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                           Pendentes: {order.pendingUnits} un
@@ -274,6 +275,18 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
       </section>
     </div>
   );
+}
+
+function buildAgeBadgeClass(tone: "fresh" | "warning" | "critical") {
+  if (tone === "critical") {
+    return "rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700";
+  }
+
+  if (tone === "warning") {
+    return "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700";
+  }
+
+  return "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700";
 }
 
 function StatTile({

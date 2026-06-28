@@ -1,4 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
+import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -136,7 +137,10 @@ export type ShippingPickingRouteStop = {
 export type ShippingPickingOrder = {
   id: string;
   code: string;
+  createdAtIso: string | null;
   createdAt: string;
+  ageLabel: string;
+  ageTone: OperationalSlaTone;
   externalNumber: string;
   customer: string;
   destination: string;
@@ -302,11 +306,15 @@ function mapPickingOrder(
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
   const totalSeparated = items.reduce((sum, item) => sum + item.separatedQuantity, 0);
   const shortageUnits = items.reduce((sum, item) => sum + item.shortageQuantity, 0);
+  const ageMeta = buildOperationalSlaMeta(order.created_at);
 
   return {
     id: order.id,
     code: order.codigo,
-    createdAt: formatDateTime(order.created_at),
+    createdAtIso: ageMeta.createdAtIso,
+    createdAt: ageMeta.createdAtLabel,
+    ageLabel: ageMeta.ageLabel,
+    ageTone: ageMeta.tone,
     externalNumber: extractPlatformOrderNumber(
       payload,
       order.numero_pedido,
@@ -688,22 +696,6 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString("pt-BR");
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "Sem data";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function extractRelationName(value: RelationName) {
   if (Array.isArray(value)) {

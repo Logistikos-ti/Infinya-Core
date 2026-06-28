@@ -310,6 +310,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                     </Link>
                     <div className="text-xs text-slate-500 mt-0.5">Ref: {order.externalNumber || '-'}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Criado em: {order.createdAt}</div>
+                    <div className="mt-1">
+                      <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium">{order.depositante}</div>
@@ -441,6 +444,18 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
 
     </div>
   );
+}
+
+function buildAgeBadgeClass(tone: "fresh" | "warning" | "critical") {
+  if (tone === "critical") {
+    return "inline-flex rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400";
+  }
+
+  if (tone === "warning") {
+    return "inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400";
+  }
+
+  return "inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
 }
 
 function normalizePositiveNumber(value: string | undefined, fallback: number) {

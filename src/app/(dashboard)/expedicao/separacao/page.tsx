@@ -269,6 +269,9 @@ export default async function ExpedicaoSeparacaoPage({
                       <span className="rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300">
                         {order.depositante}
                       </span>
+                      <span className={buildAgeBadgeClass(order.ageTone)}>
+                        {order.ageLabel}
+                      </span>
                       {order.shortageUnits > 0 ? (
                         <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
                           Pendentes: {order.shortageUnits} un
@@ -311,6 +314,18 @@ export default async function ExpedicaoSeparacaoPage({
       </section>
     </div>
   );
+}
+
+function buildAgeBadgeClass(tone: "fresh" | "warning" | "critical") {
+  if (tone === "critical") {
+    return "rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400";
+  }
+
+  if (tone === "warning") {
+    return "rounded-full bg-amber-500/10 border border-amber-500/20 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400";
+  }
+
+  return "rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400";
 }
 
 function StatTile({

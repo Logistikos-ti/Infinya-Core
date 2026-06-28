@@ -1,4 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
+import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import {
   detectSalesChannelFromPayload,
   readManualSalesChannelCode,
@@ -108,7 +109,10 @@ export type ShippingOrderSummary = {
   total: string;
   units: string;
   itemCount: number;
+  createdAtIso: string | null;
   createdAt: string;
+  ageLabel: string;
+  ageTone: OperationalSlaTone;
   syncedAt: string;
 };
 
@@ -549,6 +553,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
+  const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
 
   return {
     id: item.id,
@@ -569,7 +574,10 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     total: formatCurrency(item.valor_total),
     units: Number(item.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     itemCount: Number(item.quantidade_itens ?? 0),
-    createdAt: formatBusinessDateTimeOrFallback(item.data_pedido, "Sem data"),
+    createdAtIso: ageMeta.createdAtIso,
+    createdAt: ageMeta.createdAtLabel,
+    ageLabel: ageMeta.ageLabel,
+    ageTone: ageMeta.tone,
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
   };
 }

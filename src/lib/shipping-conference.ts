@@ -1,4 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
+import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -66,7 +67,10 @@ export type ShippingConferenceItem = {
 export type ShippingConferenceOrder = {
   id: string;
   code: string;
+  createdAtIso: string | null;
   createdAt: string;
+  ageLabel: string;
+  ageTone: OperationalSlaTone;
   externalNumber: string;
   customer: string;
   destination: string;
@@ -171,11 +175,15 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
   const totalConfirmed = items.reduce((sum, item) => sum + item.confirmedQuantity, 0);
   const pendingUnits = items.reduce((sum, item) => sum + item.pendingQuantity, 0);
   const quantityDivergentItems = items.filter((item) => item.hasQuantityDivergence).length;
+  const ageMeta = buildOperationalSlaMeta(order.created_at);
 
   return {
     id: order.id,
     code: order.codigo,
-    createdAt: formatDateTime(order.created_at),
+    createdAtIso: ageMeta.createdAtIso,
+    createdAt: ageMeta.createdAtLabel,
+    ageLabel: ageMeta.ageLabel,
+    ageTone: ageMeta.tone,
     externalNumber: extractPlatformOrderNumber(payload, order.numero_pedido, order.numero_loja, order.codigo),
     customer: order.cliente_nome?.trim() || "Cliente não informado",
     destination:
@@ -284,21 +292,4 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "Sem data";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
 }

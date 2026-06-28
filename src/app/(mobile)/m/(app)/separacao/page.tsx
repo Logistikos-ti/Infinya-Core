@@ -174,6 +174,7 @@ export default async function MobilePickingQueuePage({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <InlineChip icon={UserRound} text={order.assignedOperatorName ?? "Sem operador"} />
                   <InlineChip icon={Package2} text={order.depositante} />
+                  <AgeChip text={order.ageLabel} tone={order.ageTone} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
@@ -219,6 +220,23 @@ export default async function MobilePickingQueuePage({
       </section>
     </div>
   );
+}
+
+function AgeChip({
+  text,
+  tone,
+}: {
+  text: string;
+  tone: "fresh" | "warning" | "critical";
+}) {
+  const className =
+    tone === "critical"
+      ? "border-rose-300/25 bg-rose-500/12 text-rose-100"
+      : tone === "warning"
+        ? "border-amber-300/25 bg-amber-500/12 text-amber-100"
+        : "border-emerald-300/25 bg-emerald-500/12 text-emerald-100";
+
+  return <div className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs ${className}`}>{text}</div>;
 }
 
 function MiniStat({
