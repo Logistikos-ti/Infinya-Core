@@ -309,6 +309,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                       {order.code}
                     </Link>
                     <div className="text-xs text-slate-500 mt-0.5">Ref: {order.externalNumber || '-'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Criado em: {order.createdAt}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium">{order.depositante}</div>

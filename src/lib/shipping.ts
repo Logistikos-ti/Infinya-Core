@@ -202,8 +202,8 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
     .select(
       "id, codigo, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
-    .order("data_pedido", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("data_pedido", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
 
   if (filters?.status) {
     query = query.eq("status", filters.status);

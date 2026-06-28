@@ -23,6 +23,7 @@ type RawConferenceItemRow = {
 type RawConferenceOrderRow = {
   id: string;
   codigo: string;
+  created_at: string;
   status: string;
   numero_pedido: string | null;
   numero_loja: string | null;
@@ -65,6 +66,7 @@ export type ShippingConferenceItem = {
 export type ShippingConferenceOrder = {
   id: string;
   code: string;
+  createdAt: string;
   externalNumber: string;
   customer: string;
   destination: string;
@@ -105,10 +107,10 @@ export async function listShippingConferenceOrdersFromDb(
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+      "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
     )
     .in("status", [...activeConferenceStatuses])
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   if (filters?.status) {
     query = query.eq("status", filters.status);
@@ -141,7 +143,7 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+      "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
     )
     .eq("id", id);
 
@@ -173,6 +175,7 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
   return {
     id: order.id,
     code: order.codigo,
+    createdAt: formatDateTime(order.created_at),
     externalNumber: extractPlatformOrderNumber(payload, order.numero_pedido, order.numero_loja, order.codigo),
     customer: order.cliente_nome?.trim() || "Cliente não informado",
     destination:
@@ -281,4 +284,21 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "Sem data";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Sem data";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }

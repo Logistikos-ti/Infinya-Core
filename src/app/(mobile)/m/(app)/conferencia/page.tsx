@@ -223,6 +223,7 @@ export default async function MobileConferenceQueuePage({
                         Código interno
                       </p>
                       <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">Criado em {order.createdAt}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
                       Ordem {startIndex + index + 1}

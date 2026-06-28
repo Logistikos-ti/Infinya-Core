@@ -248,6 +248,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
                     </p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                       <span>Código interno {order.code}</span>
+                      <span>Criado em {order.createdAt}</span>
                       <span>{order.totalItems} item(ns)</span>
                       <span>{order.totalUnits} unidade(s)</span>
                       <span>{order.completionPercent}% conferido</span>

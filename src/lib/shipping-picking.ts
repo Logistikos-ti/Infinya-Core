@@ -22,6 +22,7 @@ type RawPickingOrderItemRow = {
 type RawPickingOrderRow = {
   id: string;
   codigo: string;
+  created_at: string;
   origem: string;
   status: string;
   numero_pedido: string | null;
@@ -135,6 +136,7 @@ export type ShippingPickingRouteStop = {
 export type ShippingPickingOrder = {
   id: string;
   code: string;
+  createdAt: string;
   externalNumber: string;
   customer: string;
   destination: string;
@@ -220,7 +222,7 @@ export async function listShippingPickingOrdersFromDb(
 
   let ordersQuery = buildPickingOrdersQuery(supabase)
     .in("status", [...activePickingStatuses])
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   if (filters?.status) {
     ordersQuery = ordersQuery.eq("status", filters.status);
@@ -304,6 +306,7 @@ function mapPickingOrder(
   return {
     id: order.id,
     code: order.codigo,
+    createdAt: formatDateTime(order.created_at),
     externalNumber: extractPlatformOrderNumber(
       payload,
       order.numero_pedido,
@@ -396,7 +399,7 @@ function mapPickingItem(
 
 function buildPickingOrdersQuery(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
+    "id, codigo, created_at, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
   );
 }
 
@@ -683,6 +686,23 @@ function formatDate(value: string | null | undefined) {
   }
 
   return date.toLocaleDateString("pt-BR");
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "Sem data";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Sem data";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function extractRelationName(value: RelationName) {
