@@ -78,16 +78,16 @@ export default async function NfePage({ searchParams }: NfePageProps) {
     <div className="space-y-6">
       <ModulePageHeader
         title="NF-e"
-        description="Consulta fiscal completa de NF-e de entrada e saÃ­da, com XML armazenado, vÃ­nculo operacional e campos tributÃ¡rios por item."
+        description="Consulta fiscal completa de NF-e de entrada e saída, com XML armazenado, vínculo operacional e campos tributários por item."
         badge="Fiscal operacional"
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Documentos fiscais" value={String(documentosPage.total)} />
         <StatCard label="NF-e de entrada" value={String(totalEntrada)} />
-        <StatCard label="NF-e de saÃ­da" value={String(totalSaida)} />
+        <StatCard label="NF-e de saída" value={String(totalSaida)} />
         <StatCard
-          label="Com vÃ­nculo operacional"
+          label="Com vínculo operacional"
           value={String(documentos.filter((item) => item.linkedOrderHref).length)}
         />
       </section>
@@ -97,7 +97,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
           <div>
             <h2 className="text-lg font-semibold text-slate-950">Consulta fiscal</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Pesquise por nota, chave, emitente, destinatÃ¡rio, depositante ou vÃ­nculo operacional.
+              Pesquise por nota, chave, emitente, destinatário, depositante ou vínculo operacional.
             </p>
           </div>
           <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
@@ -117,7 +117,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                   type="text"
                   name="q"
                   defaultValue={q}
-                  placeholder="NÃºmero, chave, pedido..."
+                  placeholder="Número, chave, pedido..."
                   className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
                 />
               </div>
@@ -134,7 +134,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
               >
                 <option value="">Todos</option>
                 <option value="ENTRADA">Entrada</option>
-                <option value="SAIDA">SaÃ­da</option>
+                <option value="SAIDA">Saída</option>
               </select>
             </label>
 
@@ -165,36 +165,36 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                 type="text"
                 name="emitente"
                 defaultValue={issuerTerm}
-                placeholder="RazÃ£o social ou documento"
+                placeholder="Razão social ou documento"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
               />
             </label>
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                DestinatÃ¡rio
+                Destinatário
               </span>
               <input
                 type="text"
                 name="destinatario"
                 defaultValue={recipientTerm}
-                placeholder="RazÃ£o social ou documento"
+                placeholder="Razão social ou documento"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
               />
             </label>
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                PÃ¡gina
+                Página
               </span>
               <select
                 name="perPage"
                 defaultValue={String(documentosPage.perPage)}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
               >
-                <option value="10">10 / pÃ¡gina</option>
-                <option value="20">20 / pÃ¡gina</option>
-                <option value="50">50 / pÃ¡gina</option>
+                <option value="10">10 / página</option>
+                <option value="20">20 / página</option>
+                <option value="50">50 / página</option>
               </select>
             </label>
 
@@ -230,7 +230,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                     Anterior
                   </PageLink>
                   <span className="text-xs font-medium text-slate-500">
-                    PÃ¡gina {documentosPage.page} de {documentosPage.totalPages}
+                    Página {documentosPage.page} de {documentosPage.totalPages}
                   </span>
                   <PageLink
                     disabled={documentosPage.page >= documentosPage.totalPages}
@@ -239,7 +239,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                       page: String(documentosPage.page + 1),
                     })}`}
                   >
-                    PrÃ³xima
+                    Próxima
                   </PageLink>
                 </div>
               </div>
@@ -255,19 +255,19 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                           <Badge>{item.linkedOrderStatus}</Badge>
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
-                          {item.fileName} â€¢ {item.depositante} â€¢ {item.createdAtLabel}
+                          {item.fileName} • {item.depositante} • {item.createdAtLabel}
                         </p>
                       </div>
 
                       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <InfoCard label="Chave de acesso" value={item.accessKey ?? "-"} />
-                        <InfoCard label="EmissÃ£o" value={item.issuedAtLabel} />
+                        <InfoCard label="Emissão" value={item.issuedAtLabel} />
                         <InfoCard label="Valor total" value={item.totalValueLabel} />
                         <InfoCard label="Volumes" value={String(item.volumeCount)} />
                         <InfoCard label="Emitente" value={item.issuerName} />
                         <InfoCard label="Documento emitente" value={item.issuerDocument ?? "-"} />
-                        <InfoCard label="DestinatÃ¡rio" value={item.recipientName} />
-                        <InfoCard label="Documento destinatÃ¡rio" value={item.recipientDocument ?? "-"} />
+                        <InfoCard label="Destinatário" value={item.recipientName} />
+                        <InfoCard label="Documento destinatário" value={item.recipientDocument ?? "-"} />
                       </div>
 
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -281,7 +281,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                                 .join(" - ") || "-"
                             }
                           />
-                          <InfoMini label="VÃ­nculo operacional" value={item.linkedOrderLabel} />
+                          <InfoMini label="Vínculo operacional" value={item.linkedOrderLabel} />
                           <InfoMini label="Itens no XML" value={String(item.itemCount)} />
                         </div>
                       </div>
@@ -294,8 +294,8 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                           <table className="min-w-full text-left text-sm">
                             <thead className="border-b border-slate-200 text-slate-500">
                               <tr>
-                                <th className="px-4 py-3 font-medium">DescriÃ§Ã£o</th>
-                                <th className="px-4 py-3 font-medium">CÃ³digo</th>
+                                <th className="px-4 py-3 font-medium">Descrição</th>
+                                <th className="px-4 py-3 font-medium">Código</th>
                                 <th className="px-4 py-3 font-medium">EAN</th>
                                 <th className="px-4 py-3 font-medium">NCM</th>
                                 <th className="px-4 py-3 font-medium">CFOP</th>
@@ -337,7 +337,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                           href={item.linkedOrderHref}
                           className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                         >
-                          Abrir vÃ­nculo
+                          Abrir vínculo
                         </Link>
                       ) : null}
                       <Link
@@ -372,11 +372,11 @@ export default async function NfePage({ searchParams }: NfePageProps) {
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
             <div className="flex items-center gap-3 text-amber-800">
               <Lock className="h-5 w-5" />
-              <h2 className="text-lg font-semibold">ImportaÃ§Ã£o restrita</h2>
+              <h2 className="text-lg font-semibold">Importação restrita</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-amber-900">
-              Seu perfil atual Ã© <strong>{user.papel}</strong>. A importaÃ§Ã£o de XML fiscal
-              de saÃ­da estÃ¡ liberada apenas para Admin, TI e Operador.
+              Seu perfil atual é <strong>{user.papel}</strong>. A importação de XML fiscal
+              de saída está liberada apenas para Admin, TI e Operador.
             </p>
           </div>
         )}
