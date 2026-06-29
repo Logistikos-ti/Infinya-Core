@@ -95,7 +95,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
             Recebimento (Inbound)
           </h1>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-            Gestï¿½o de entrada de notas fiscais, conferï¿½ncia de doca e paletizaï¿½ï¿½o.
+            Gestão de entrada de notas fiscais, conferência de doca e paletização.
           </p>
         </div>
         
@@ -177,10 +177,10 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
             Aguardando Doca
           </Link>
           <Link href="/recebimento?status=EM_RECEBIMENTO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'EM_RECEBIMENTO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Em Conferï¿½ncia
+            Em Conferência
           </Link>
           <Link href="/recebimento?status=DIVERGENCIA" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'DIVERGENCIA' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Com Divergï¿½ncia
+            Com Divergência
           </Link>
         </div>
 
@@ -230,7 +230,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               <input type="hidden" name="dataInicial" value={dateFrom} />
               <input type="hidden" name="dataFinal" value={dateTo} />
               <input type="hidden" name="page" value="1" />
-              <label className="text-xs font-medium text-slate-500">Por pï¿½gina</label>
+              <label className="text-xs font-medium text-slate-500">Por página</label>
               <select
                 name="perPage"
                 defaultValue={String(perPage)}
@@ -260,9 +260,9 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                 <th className="px-6 py-4 font-medium">NF-e / Carga</th>
                 <th className="px-6 py-4 font-medium">Depositante / Fornecedor</th>
                 <th className="px-6 py-4 font-medium">SKUs / Volumes</th>
-                <th className="px-6 py-4 font-medium">Previsï¿½o Doca</th>
+                <th className="px-6 py-4 font-medium">Previsão Doca</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Aï¿½ï¿½o</th>
+                <th className="px-6 py-4 font-medium text-right">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
@@ -313,7 +313,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
         {totalOrders > perPage ? (
           <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 dark:border-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">
-              Pï¿½gina {currentPage} de {totalPages}
+              Página {currentPage} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <Link
@@ -342,20 +342,20 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                     : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 }`}
               >
-                Prï¿½xima
+                Próxima
               </Link>
             </div>
           </div>
         ) : null}
       </section>
 
-      {/* Grid Secund?rio: Ocorr?ncias e Tarefas */}
+      {/* Grid Secundário: Ocorrências e Tarefas */}
       <section className="grid gap-6 xl:grid-cols-2">
         
-        {/* Ocorr?ncias */}
+        {/* Ocorrências */}
         <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-rose-500/30 transition-all">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-rose-500" /> Ocorr?ncias abertas
+            <AlertTriangle className="w-5 h-5 text-rose-500" /> Ocorrências abertas
           </h2>
           <div className="mt-4 space-y-3">
             {operationalIssues.length ? (
@@ -373,7 +373,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               ))
             ) : (
               <div className="rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 px-4 py-8 text-center text-sm text-slate-500">
-                Nenhuma ocorrï¿½ncia aberta no momento.
+                Nenhuma ocorrência aberta no momento.
               </div>
             )}
           </div>
@@ -397,7 +397,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
-                  <span>Responsï¿½vel: {task.assignee}</span>
+                  <span>Responsável: {task.assignee}</span>
                   <span>Prazo: {task.due}</span>
                 </div>
               </div>
@@ -451,10 +451,10 @@ function StatusBadge({ status }: { status: string }) {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando Doca</span>;
   }
   if (status === "EM_RECEBIMENTO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Em Conferï¿½ncia</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Em Conferência</span>;
   }
   if (status === "DIVERGENCIA") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Com Divergï¿½ncia</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Com Divergência</span>;
   }
   if (status === "RECEBIDO" || status === "RECEBIDO_PARCIAL") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">{status === "RECEBIDO" ? "Finalizado" : "Rec. Parcial"}</span>;

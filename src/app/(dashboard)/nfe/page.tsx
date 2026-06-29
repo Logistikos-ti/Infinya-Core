@@ -255,7 +255,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                           <Badge>{item.linkedOrderStatus}</Badge>
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
-                          {item.fileName} • {item.depositante} • {item.createdAtLabel}
+                          {item.fileName} | {item.depositante} | {item.createdAtLabel}
                         </p>
                       </div>
 
