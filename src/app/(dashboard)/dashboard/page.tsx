@@ -1,276 +1,378 @@
-"use client";
-
+import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
-  Hammer,
-  PackagePlus,
+  ArrowRight,
+  Boxes,
+  ClipboardList,
   Truck,
 } from "lucide-react";
+import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { requireModuleAccess } from "@/lib/auth";
+import {
+  listOperationalIssuesFromDb,
+  listReceivingOrdersFromDb,
+  listReceivingStatsFromDb,
+  listReceivingTasksFromDb,
+} from "@/lib/receiving";
+import {
+  listShippingOrdersFromDb,
+  listShippingQueuesFromDb,
+  listShippingStatsFromDb,
+} from "@/lib/shipping";
+import {
+  listStockExpiryAlertsFromDb,
+  listStockMovementsFromDb,
+  listStockBalancesFromDb,
+  listStockStatsFromDb,
+} from "@/lib/stock";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await requireModuleAccess("dashboard");
+  const depositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
+  const stockFilters = depositanteId ? { depositanteId } : undefined;
+  const shippingFilters = depositanteId ? { depositanteId } : undefined;
+  const receivingFilters = depositanteId ? { depositanteId } : undefined;
+
+  const [
+    receivingOrders,
+    receivingTasks,
+    operationalIssues,
+    shippingOrders,
+    stockBalances,
+    stockMovements,
+  ] = await Promise.all([
+    listReceivingOrdersFromDb(receivingFilters),
+    listReceivingTasksFromDb(),
+    listOperationalIssuesFromDb(depositanteId ? { depositanteId } : undefined),
+    listShippingOrdersFromDb(shippingFilters),
+    listStockBalancesFromDb(stockFilters),
+    listStockMovementsFromDb(stockFilters),
+  ]);
+
+  const [stockExpiryAlerts, receivingStats, shippingStats, shippingQueues, stockStats] =
+    await Promise.all([
+      listStockExpiryAlertsFromDb(stockFilters, 30, stockBalances),
+      listReceivingStatsFromDb(user, receivingOrders, operationalIssues, receivingTasks),
+      listShippingStatsFromDb(user, shippingOrders),
+      listShippingQueuesFromDb(shippingOrders),
+      listStockStatsFromDb(user, stockFilters, stockBalances),
+    ]);
+
+  const oldestReceiving = receivingOrders.slice(0, 5);
+  const oldestShipping = shippingOrders.slice(0, 5);
+  const topTasks = receivingTasks.slice(0, 4);
+  const attentionItems = [
+    ...operationalIssues.slice(0, 3).map((issue) => ({
+      id: issue.id,
+      title: issue.title,
+      label: issue.type,
+      help: `${issue.depositante} • ${issue.action}`,
+      tone: "rose" as const,
+      href: issue.orderId ? `/recebimento/${issue.orderId}` : "/recebimento",
+    })),
+    ...stockExpiryAlerts.slice(0, 3).map((alert) => ({
+      id: alert.id,
+      title: `${alert.protocol} • ${alert.productName}`,
+      label: alert.severityLabel,
+      help: `${alert.depositante} • ${alert.endereco} • validade ${alert.expiryDate}`,
+      tone: alert.severity === "critico" ? ("rose" as const) : ("amber" as const),
+      href: `/estoque/protocolos/${alert.id}`,
+    })),
+  ].slice(0, 6);
+
   return (
-    <div className="relative space-y-8 opacity-95">
-      <div className="glass-card infinya-border-glow relative overflow-hidden rounded-[28px] p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_38%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_32%)]" />
-        <div className="absolute inset-0 stripes pointer-events-none opacity-20" />
-        <div className="relative z-10 flex items-start gap-4">
-          <div className="rounded-2xl bg-infinya-gradient p-3 text-slate-950 shadow-[0_0_26px_rgba(34,211,238,0.22)]">
-            <Hammer className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-950 dark:text-white">
-              Painel Analítico em Desenvolvimento
-            </h2>
-            <p className="mt-1 max-w-4xl text-sm text-slate-600 dark:text-slate-300">
-              Esta é uma prévia de como ficarão os indicadores de performance (KPIs)
-              quando a operação começar a gerar volume de dados suficientes. Os
-              números abaixo são exemplos estruturais.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <ModulePageHeader
+        title="Dashboard"
+        description="Resumo operacional real do WMS para acompanhamento do piloto: recebimento, expedição, estoque e pontos de atenção do turno."
+        badge="Operação ao vivo"
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="glass-card infinya-border-glow group relative overflow-hidden rounded-[24px] border-l-4 border-l-cyan-400 p-5 shadow-sm transition-all hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]">
-          <div className="mb-2 flex items-start justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-              Entradas no Mês
-            </p>
-            <span className="rounded-lg bg-infinya-gradient p-2 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.18)]">
-              <PackagePlus className="h-4 w-4" />
+        <StatCard
+          icon={Truck}
+          label={receivingStats[0].label}
+          value={receivingStats[0].value}
+          help={receivingStats[0].help}
+        />
+        <StatCard
+          icon={ClipboardList}
+          label={shippingStats[0].label}
+          value={shippingStats[0].value}
+          help={shippingStats[0].help}
+        />
+        <StatCard
+          icon={Boxes}
+          label={stockStats[0].label}
+          value={stockStats[0].value}
+          help={stockStats[0].help}
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label={stockStats[3].label}
+          value={stockStats[3].value}
+          help={stockStats[3].help}
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Pontos de atenção</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Ocorrências e saldos sensíveis que merecem prioridade antes do piloto.
+              </p>
+            </div>
+            <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+              {attentionItems.length} item(ns)
             </span>
           </div>
-          <h3 className="mt-2 text-3xl font-bold text-slate-800 dark:text-zinc-100">
-            1.240
-          </h3>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="flex items-center text-emerald-500 dark:text-emerald-400">
-              <ArrowUpRight className="mr-1 h-3 w-3" /> +12.5%
-            </span>
-            <span className="text-slate-400">vs mês anterior</span>
+
+          <div className="mt-5 space-y-3">
+            {attentionItems.length ? (
+              attentionItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={`flex items-start justify-between gap-4 rounded-2xl border px-4 py-4 transition hover:shadow-sm ${
+                    item.tone === "rose"
+                      ? "border-rose-200 bg-rose-50"
+                      : "border-amber-200 bg-amber-50"
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">{item.title}</p>
+                    <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">{item.label}</p>
+                    <p className="mt-2 text-sm text-slate-700">{item.help}</p>
+                  </div>
+                  <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-400" />
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+                Nenhum alerta crítico no escopo atual.
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="glass-card infinya-border-glow group relative overflow-hidden rounded-[24px] border-l-4 border-l-fuchsia-400 p-5 shadow-sm transition-all hover:border-fuchsia-300/30 hover:shadow-[0_18px_50px_rgba(217,70,239,0.10)]">
-          <div className="mb-2 flex items-start justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-              Saídas no Mês
-            </p>
-            <span className="rounded-lg bg-fuchsia-500/12 p-2 text-fuchsia-500 dark:text-fuchsia-300">
-              <Truck className="h-4 w-4" />
-            </span>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Filas de expedição</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Quantidade atual por etapa para guiar a distribuição do time.
+              </p>
+            </div>
+            <Link
+              href="/expedicao"
+              className="text-sm font-medium text-sky-700 transition hover:text-sky-900"
+            >
+              Abrir módulo
+            </Link>
           </div>
-          <h3 className="mt-2 text-3xl font-bold text-slate-800 dark:text-zinc-100">
-            3.850
-          </h3>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="flex items-center text-emerald-500 dark:text-emerald-400">
-              <ArrowUpRight className="mr-1 h-3 w-3" /> +8.2%
-            </span>
-            <span className="text-slate-400">vs mês anterior</span>
-          </div>
-        </div>
 
-        <div className="glass-card infinya-border-glow group relative overflow-hidden rounded-[24px] border-l-4 border-l-emerald-400 p-5 shadow-sm transition-all hover:border-emerald-300/30 hover:shadow-[0_18px_50px_rgba(16,185,129,0.10)]">
-          <div className="mb-2 flex items-start justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-              Acuracidade
-            </p>
-            <span className="rounded-lg bg-emerald-500/12 p-2 text-emerald-500 dark:text-emerald-300">
-              <CheckCircle2 className="h-4 w-4" />
-            </span>
-          </div>
-          <h3 className="mt-2 text-3xl font-bold text-slate-800 dark:text-zinc-100">
-            99.8%
-          </h3>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="flex items-center text-emerald-500 dark:text-emerald-400">
-              <ArrowUpRight className="mr-1 h-3 w-3" /> +0.1%
-            </span>
-            <span className="text-slate-400">Padrão Ouro</span>
-          </div>
-        </div>
-
-        <div className="glass-card infinya-border-glow group relative overflow-hidden rounded-[24px] border-l-4 border-l-rose-400 p-5 shadow-sm transition-all hover:border-rose-300/30 hover:shadow-[0_18px_50px_rgba(244,63,94,0.10)]">
-          <div className="mb-2 flex items-start justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-              Pedidos Atrasados
-            </p>
-            <span className="rounded-lg bg-rose-500/12 p-2 text-rose-500 dark:text-rose-300">
-              <AlertTriangle className="h-4 w-4" />
-            </span>
-          </div>
-          <h3 className="mt-2 text-3xl font-bold text-slate-800 dark:text-zinc-100">
-            14
-          </h3>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="flex items-center text-rose-500">
-              <ArrowUpRight className="mr-1 h-3 w-3" /> +2
-            </span>
-            <span className="text-slate-400">Atenção requerida</span>
+          <div className="mt-5 space-y-3">
+            {shippingQueues.map((queue) => (
+              <div
+                key={queue.status}
+                className="rounded-2xl border border-slate-200 px-4 py-4"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-slate-950">{queue.label}</p>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {queue.orders}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-slate-600">{queue.help}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="glass-card infinya-border-glow rounded-[28px] p-6 transition-all hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]">
-          <div className="mb-6 flex items-center justify-between">
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Volume de Movimentação
-              </h3>
-              <p className="text-xs text-slate-500">
-                Inbound vs Outbound nos últimos 7 dias
+              <h2 className="text-lg font-semibold text-slate-950">Recebimentos mais antigos</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Use esta fila para atacar primeiro os pedidos inbound mais antigos.
+              </p>
+            </div>
+            <Link
+              href="/recebimento"
+              className="text-sm font-medium text-sky-700 transition hover:text-sky-900"
+            >
+              Ver todos
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {oldestReceiving.length ? (
+              oldestReceiving.map((order) => (
+                <Link
+                  key={order.id}
+                  href={`/recebimento/${order.id}`}
+                  className="block rounded-2xl border border-slate-200 px-4 py-4 transition hover:bg-slate-50"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">{order.code}</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {order.depositante} • {order.supplier}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-3">
+                    <p>Previsão: {order.eta}</p>
+                    <p>SKUs: {order.skuCount}</p>
+                    <p>Volumes: {order.volumeCount}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <EmptyBox message="Nenhum pedido de recebimento visível no momento." />
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Expedições prioritárias</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Pedidos mais antigos ainda em aberto para orientar o picking e a conferência.
+              </p>
+            </div>
+            <Link
+              href="/expedicao"
+              className="text-sm font-medium text-sky-700 transition hover:text-sky-900"
+            >
+              Ver todos
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {oldestShipping.length ? (
+              oldestShipping.map((order) => (
+                <Link
+                  key={order.id}
+                  href={`/expedicao/${order.id}`}
+                  className="block rounded-2xl border border-slate-200 px-4 py-4 transition hover:bg-slate-50"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">{order.externalNumber}</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {order.depositante} • {order.customer}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {order.statusLabel}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-3">
+                    <p>Criação: {order.createdAt}</p>
+                    <p>SLA: {order.ageLabel}</p>
+                    <p>Unidades: {order.units}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <EmptyBox message="Nenhum pedido de expedição visível no momento." />
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Tarefas em foco</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Pendências imediatas para o time de recebimento.
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex h-64 items-end justify-between gap-2 px-2">
-            {[
-              ["40%", "60%"],
-              ["35%", "75%"],
-              ["50%", "45%"],
-              ["65%", "80%"],
-              ["80%", "90%"],
-              ["30%", "40%"],
-              ["25%", "35%"],
-            ].map(([inbound, outbound], index) => (
-              <div key={`${inbound}-${outbound}-${index}`} className="relative flex h-full w-[14%] items-end gap-1">
-                <div className="w-full rounded-t-sm bg-cyan-400/80" style={{ height: inbound }} />
-                <div className="w-full rounded-t-sm bg-fuchsia-400/80" style={{ height: outbound }} />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 flex justify-center gap-6">
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-400">
-              <div className="h-3 w-3 rounded-full bg-cyan-400" /> Recebimento
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-zinc-400">
-              <div className="h-3 w-3 rounded-full bg-fuchsia-400" /> Expedição
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="glass-card infinya-border-glow rounded-[28px] p-6 transition-all hover:border-fuchsia-300/30 hover:shadow-[0_18px_50px_rgba(217,70,239,0.08)]">
-            <h3 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">
-              Ocupação do Armazém
-            </h3>
-            <p className="mb-6 text-xs text-slate-500">Capacidade total utilizada</p>
-
-            <div className="relative h-4 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
-              <div className="absolute inset-y-0 left-0 rounded-full bg-infinya-gradient" style={{ width: "78%" }} />
-            </div>
-
-            <div className="mt-3 flex justify-between">
-              <span className="text-2xl font-bold text-slate-800 dark:text-zinc-100">78%</span>
-              <div className="text-right">
-                <span className="block text-xs text-slate-500">Posições Livres</span>
-                <span className="text-sm font-semibold text-emerald-500">1.245</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card infinya-border-glow flex-1 rounded-[28px] p-6 transition-all hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]">
-            <h3 className="mb-4 text-sm font-bold text-slate-900 dark:text-white">
-              Volume por Depositante
-            </h3>
-            <div className="space-y-4">
-              {[
-                ["Acme Corp", "45%", "bg-cyan-400", "45%"],
-                ["Tech Solutions", "30%", "bg-fuchsia-400", "30%"],
-                ["Global Imports", "25%", "bg-emerald-500", "25%"],
-              ].map(([name, percent, color, width]) => (
-                <div key={name}>
-                  <div className="mb-1 flex justify-between text-xs">
-                    <span className="font-medium text-slate-800 dark:text-zinc-200">{name}</span>
-                    <span className="text-slate-500 dark:text-zinc-400">{percent}</span>
+          <div className="mt-5 space-y-3">
+            {topTasks.length ? (
+              topTasks.map((task) => (
+                <div key={task.id} className="rounded-2xl border border-slate-200 px-4 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-semibold text-slate-950">{task.title}</p>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {task.priority}
+                    </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-zinc-800">
-                    <div className={`h-full rounded-full ${color}`} style={{ width }} />
+                  <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                    <p>Responsável: {task.assignee}</p>
+                    <p>Prazo: {task.due}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <EmptyBox message="Nenhuma tarefa operacional em aberto." />
+            )}
           </div>
         </div>
-      </section>
 
-      <section className="glass-card infinya-border-glow overflow-hidden rounded-[28px] transition-all hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]">
-        <div className="flex items-center justify-between border-b border-slate-200/70 p-6 dark:border-zinc-800/50">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              Últimas Movimentações
-            </h3>
-            <p className="text-xs text-slate-500">
-              Monitoramento em tempo real do armazém
-            </p>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Últimas movimentações de estoque</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Rastros mais recentes do estoque para auditoria rápida durante o piloto.
+              </p>
+            </div>
+            <Link
+              href="/estoque"
+              className="text-sm font-medium text-sky-700 transition hover:text-sky-900"
+            >
+              Abrir estoque
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {stockMovements.length ? (
+              stockMovements.map((movement) => (
+                <div key={movement.id} className="rounded-2xl border border-slate-200 px-4 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                      {movement.protocol}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      {movement.reference}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-700">{movement.label}</p>
+                  <div className="mt-2 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                    <p>Lote: {movement.lot}</p>
+                    <p>Validade: {movement.expiry}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyBox message="Nenhuma movimentação de estoque encontrada no escopo atual." />
+            )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/50 text-slate-500 dark:bg-zinc-900/50 dark:text-zinc-400">
-              <tr>
-                <th className="px-6 py-4 font-medium">ID da Transação</th>
-                <th className="px-6 py-4 font-medium">Tipo</th>
-                <th className="px-6 py-4 font-medium">Depositante</th>
-                <th className="px-6 py-4 font-medium">Volumes</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700 dark:divide-zinc-800/50 dark:text-zinc-300">
-              <tr className="cursor-pointer transition hover:bg-slate-50/50 dark:hover:bg-zinc-800/20">
-                <td className="px-6 py-4 font-medium">TRX-8892</td>
-                <td className="px-6 py-4">
-                  <span className="rounded bg-fuchsia-500/10 px-2 py-1 text-xs font-bold text-fuchsia-500 dark:text-fuchsia-300">
-                    Saída
-                  </span>
-                </td>
-                <td className="px-6 py-4">Acme Corp</td>
-                <td className="px-6 py-4">45 Caixas</td>
-                <td className="px-6 py-4">
-                  <span className="text-xs font-medium text-emerald-500 dark:text-emerald-400">
-                    Concluído
-                  </span>
-                </td>
-              </tr>
-              <tr className="cursor-pointer transition hover:bg-slate-50/50 dark:hover:bg-zinc-800/20">
-                <td className="px-6 py-4 font-medium">TRX-8891</td>
-                <td className="px-6 py-4">
-                  <span className="rounded bg-cyan-500/10 px-2 py-1 text-xs font-bold text-cyan-600 dark:text-cyan-300">
-                    Entrada
-                  </span>
-                </td>
-                <td className="px-6 py-4">Tech Solutions</td>
-                <td className="px-6 py-4">12 Paletes</td>
-                <td className="px-6 py-4">
-                  <span className="text-xs font-medium text-amber-500 dark:text-amber-400">
-                    Em Conferência
-                  </span>
-                </td>
-              </tr>
-              <tr className="cursor-pointer transition hover:bg-slate-50/50 dark:hover:bg-zinc-800/20">
-                <td className="px-6 py-4 font-medium">TRX-8890</td>
-                <td className="px-6 py-4">
-                  <span className="rounded bg-slate-500/10 px-2 py-1 text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Transferência
-                  </span>
-                </td>
-                <td className="px-6 py-4">Global Imports</td>
-                <td className="px-6 py-4">2 Paletes</td>
-                <td className="px-6 py-4">
-                  <span className="text-xs font-medium text-emerald-500 dark:text-emerald-400">
-                    Concluído
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </section>
+    </div>
+  );
+}
+
+function EmptyBox({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+      {message}
     </div>
   );
 }

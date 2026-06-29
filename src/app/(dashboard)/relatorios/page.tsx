@@ -7,7 +7,6 @@ import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
 import { canManageMultipleTenants } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { listReportsCatalog } from "@/lib/wms-data";
 
 type RelatoriosPageProps = {
   searchParams?: Promise<{
@@ -64,17 +63,13 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
       depositanteId: effectiveNfeDepositanteFilter || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
-      flow:
-        fiscalFlow === "ENTRADA" || fiscalFlow === "SAIDA"
-          ? fiscalFlow
-          : undefined,
+      flow: fiscalFlow === "ENTRADA" || fiscalFlow === "SAIDA" ? fiscalFlow : undefined,
       issuerTerm: issuerTerm || undefined,
       recipientTerm: recipientTerm || undefined,
     }),
   ]);
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
-  const reportsCatalog = listReportsCatalog();
 
   const stockExportQuery = new URLSearchParams({
     report: "saldo-estoque",
@@ -407,24 +402,6 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           </table>
         </div>
       </section>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">Catálogo inicial</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Aqui vamos consolidar métricas operacionais e relatórios exportáveis por módulo.
-        </p>
-
-        <div className="mt-5 grid gap-3">
-          {reportsCatalog.map((item) => (
-            <div
-              key={item}
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
-            >
-              {item}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

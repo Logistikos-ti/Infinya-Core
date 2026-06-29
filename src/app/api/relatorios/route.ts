@@ -2,7 +2,6 @@ import { requireApiModuleAccess } from "@/lib/api-auth";
 import type { AppUserContext } from "@/lib/auth";
 import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
 import { listStockBalancesFromDb } from "@/lib/stock";
-import { listReportsCatalog } from "@/lib/wms-data";
 
 type StockExportRow = {
   Protocolo: string;
@@ -50,7 +49,10 @@ export async function GET(request: Request) {
 
   if (!report || !format) {
     return Response.json({
-      reports: listReportsCatalog(),
+      reports: [
+        "saldo-estoque",
+        "nfe-resumo",
+      ],
     });
   }
 
@@ -131,8 +133,7 @@ async function exportFiscalSummaryReport(
 
   const rows: FiscalExportRow[] = summary.map((item) => ({
     Depositante: item.depositante,
-    Fluxo:
-      flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "Saída" : "Todos",
+    Fluxo: flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "Saída" : "Todos",
     Emitente: issuerTerm || "Todos",
     Destinatario: recipientTerm || "Todos",
     NFEntrada: String(item.entradaDocuments),
