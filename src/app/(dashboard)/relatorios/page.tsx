@@ -113,24 +113,26 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         badge="Operacional"
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Relatório de saldo exportável</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Relatório de saldo exportável
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Exporte o saldo filtrado do estoque em Excel ou CSV, pronto para análise, envio ao
               cliente e conferência externa.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/api/relatorios?${stockExportQuery.toString()}&format=csv`}>
-              <Button className="bg-slate-950 text-white hover:bg-slate-800">
+              <Button className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
                 <FileText className="h-4 w-4" />
                 Exportar CSV
               </Button>
             </Link>
             <Link href={`/api/relatorios?${stockExportQuery.toString()}&format=excel`}>
-              <Button variant="outline">
+              <Button variant="outline" className="dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                 <FileSpreadsheet className="h-4 w-4" />
                 Exportar Excel
               </Button>
@@ -138,17 +140,17 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           </div>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.3fr_0.9fr_1fr_auto]">
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Depositante
               </span>
               <select
                 name="depositante"
                 defaultValue={effectiveDepositanteFilter}
                 disabled={!canManageMultipleTenants(user)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
               >
                 <option value="">Todos</option>
                 {depositanteOptions.map((depositante) => (
@@ -160,29 +162,29 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Produto
               </span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
-                <Search className="h-4 w-4 text-slate-400" />
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   name="produto"
                   defaultValue={productFilter}
                   placeholder="SKU, nome ou código interno"
-                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Área
               </span>
               <select
                 name="area"
                 defaultValue={areaFilter}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 {areaOptions.map((option) => (
                   <option key={option.value || "todas"} value={option.value}>
@@ -193,7 +195,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Lote
               </span>
               <input
@@ -201,18 +203,21 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
                 name="lote"
                 defaultValue={lotFilter}
                 placeholder="Ex.: LOT-2026-001"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <div className="flex items-end gap-2">
-              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+              <Button
+                type="submit"
+                className="h-11 bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+              >
                 <Download className="h-4 w-4" />
                 Aplicar
               </Button>
               <Link
                 href="/relatorios"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Limpar
               </Link>
@@ -221,26 +226,26 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
               Relatório resumido de NF-e por depositante e período
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Consolida entradas, saídas, valor total movimentado, volumes e itens fiscais por
               depositante no período selecionado.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/api/relatorios?${fiscalExportQuery.toString()}&format=csv`}>
-              <Button className="bg-slate-950 text-white hover:bg-slate-800">
+              <Button className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
                 <FileText className="h-4 w-4" />
                 Exportar CSV
               </Button>
             </Link>
             <Link href={`/api/relatorios?${fiscalExportQuery.toString()}&format=excel`}>
-              <Button variant="outline">
+              <Button variant="outline" className="dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                 <FileSpreadsheet className="h-4 w-4" />
                 Exportar Excel
               </Button>
@@ -248,17 +253,17 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
           </div>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.9fr_1.1fr_1.1fr_auto]">
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Depositante
               </span>
               <select
                 name="nfeDepositante"
                 defaultValue={effectiveNfeDepositanteFilter}
                 disabled={!canManageMultipleTenants(user)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
               >
                 <option value="">Todos</option>
                 {depositanteOptions.map((depositante) => (
@@ -270,37 +275,37 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Data inicial
               </span>
               <input
                 type="date"
                 name="dataInicio"
                 defaultValue={dateFrom}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Data final
               </span>
               <input
                 type="date"
                 name="dataFim"
                 defaultValue={dateTo}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Fluxo
               </span>
               <select
                 name="fluxoFiscal"
                 defaultValue={fiscalFlow}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 {fiscalFlowOptions.map((option) => (
                   <option key={option.value || "todos"} value={option.value}>
@@ -311,7 +316,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Emitente
               </span>
               <input
@@ -319,12 +324,12 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
                 name="emitente"
                 defaultValue={issuerTerm}
                 placeholder="Razão social ou documento"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Destinatário
               </span>
               <input
@@ -332,18 +337,21 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
                 name="destinatario"
                 defaultValue={recipientTerm}
                 placeholder="Razão social ou documento"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <div className="flex items-end gap-2">
-              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+              <Button
+                type="submit"
+                className="h-11 bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+              >
                 <Download className="h-4 w-4" />
                 Aplicar
               </Button>
               <Link
                 href="/relatorios"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Limpar
               </Link>
@@ -360,7 +368,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
 
         <div className="mt-5 overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-slate-500">
+            <thead className="border-b border-slate-200 text-slate-500 dark:border-zinc-800 dark:text-slate-400">
               <tr>
                 <th className="pb-3 font-medium">Depositante</th>
                 <th className="pb-3 font-medium">Entrada</th>
@@ -377,23 +385,44 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </thead>
             <tbody>
               {fiscalSummary.map((row) => (
-                <tr key={row.depositanteId} className="border-b border-slate-100 last:border-b-0">
-                  <td className="py-3 font-medium text-slate-900">{row.depositante}</td>
-                  <td className="py-3 text-slate-600">{row.entradaDocuments}</td>
-                  <td className="py-3 text-slate-600">{row.saidaDocuments}</td>
-                  <td className="py-3 text-slate-600">{row.totalDocuments}</td>
-                  <td className="py-3 text-slate-600">{formatCurrency(row.entradaValue)}</td>
-                  <td className="py-3 text-slate-600">{formatCurrency(row.saidaValue)}</td>
-                  <td className="py-3 text-slate-600">{formatCurrency(row.totalValue)}</td>
-                  <td className="py-3 text-slate-600">{row.totalItems}</td>
-                  <td className="py-3 text-slate-600">{row.totalVolumes}</td>
-                  <td className="py-3 text-slate-600">{row.firstIssuedAtLabel}</td>
-                  <td className="py-3 text-slate-600">{row.lastIssuedAtLabel}</td>
+                <tr
+                  key={row.depositanteId}
+                  className="border-b border-slate-100 last:border-b-0 dark:border-zinc-800"
+                >
+                  <td className="py-3 font-medium text-slate-900 dark:text-white">
+                    {row.depositante}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {row.entradaDocuments}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {row.saidaDocuments}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {row.totalDocuments}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {formatCurrency(row.entradaValue)}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {formatCurrency(row.saidaValue)}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {formatCurrency(row.totalValue)}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">{row.totalItems}</td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">{row.totalVolumes}</td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {row.firstIssuedAtLabel}
+                  </td>
+                  <td className="py-3 text-slate-600 dark:text-slate-300">
+                    {row.lastIssuedAtLabel}
+                  </td>
                 </tr>
               ))}
               {!fiscalSummary.length ? (
                 <tr>
-                  <td colSpan={11} className="py-6 text-center text-slate-500">
+                  <td colSpan={11} className="py-6 text-center text-slate-500 dark:text-slate-400">
                     Nenhum documento fiscal encontrado para os filtros atuais.
                   </td>
                 </tr>
@@ -408,9 +437,11 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-slate-950">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }

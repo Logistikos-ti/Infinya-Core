@@ -60,7 +60,9 @@ export default async function NfePage({ searchParams }: NfePageProps) {
 
   const totalEntrada = documentos.filter((item) => item.flow === "ENTRADA").length;
   const totalSaida = documentos.filter((item) => item.flow === "SAIDA").length;
-  const visibleStart = documentosPage.total ? (documentosPage.page - 1) * documentosPage.perPage + 1 : 0;
+  const visibleStart = documentosPage.total
+    ? (documentosPage.page - 1) * documentosPage.perPage + 1
+    : 0;
   const visibleEnd = Math.min(
     (documentosPage.page - 1) * documentosPage.perPage + documentos.length,
     documentosPage.total,
@@ -83,54 +85,57 @@ export default async function NfePage({ searchParams }: NfePageProps) {
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Documentos fiscais" value={String(documentosPage.total)} />
-        <StatCard label="NF-e de entrada" value={String(totalEntrada)} />
-        <StatCard label="NF-e de saída" value={String(totalSaida)} />
-        <StatCard
+        <LocalStatCard label="Documentos fiscais" value={String(documentosPage.total)} />
+        <LocalStatCard label="NF-e de entrada" value={String(totalEntrada)} />
+        <LocalStatCard label="NF-e de saída" value={String(totalSaida)} />
+        <LocalStatCard
           label="Com vínculo operacional"
           value={String(documentos.filter((item) => item.linkedOrderHref).length)}
         />
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Consulta fiscal</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Pesquise por nota, chave, emitente, destinatário, depositante ou vínculo operacional.
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Consulta fiscal
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              Pesquise por nota, chave, emitente, destinatário, depositante ou vínculo
+              operacional.
             </p>
           </div>
-          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
             {documentosPage.total} registros
           </span>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_0.85fr_1fr_1fr_1fr_auto_auto]">
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Busca
               </span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
-                <Search className="h-4 w-4 text-slate-400" />
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   name="q"
                   defaultValue={q}
                   placeholder="Número, chave, pedido..."
-                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Fluxo
               </span>
               <select
                 name="fluxo"
                 defaultValue={fluxo}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 <option value="">Todos</option>
                 <option value="ENTRADA">Entrada</option>
@@ -139,14 +144,14 @@ export default async function NfePage({ searchParams }: NfePageProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Depositante
               </span>
               <select
                 name="depositante"
                 defaultValue={depositanteFilter}
                 disabled={user.papel === "DEPOSITANTE"}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
               >
                 <option value="">Todos</option>
                 {depositanteOptions.map((depositante) => (
@@ -158,7 +163,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Emitente
               </span>
               <input
@@ -166,12 +171,12 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                 name="emitente"
                 defaultValue={issuerTerm}
                 placeholder="Razão social ou documento"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Destinatário
               </span>
               <input
@@ -179,18 +184,18 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                 name="destinatario"
                 defaultValue={recipientTerm}
                 placeholder="Razão social ou documento"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Página
               </span>
               <select
                 name="perPage"
                 defaultValue={String(documentosPage.perPage)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 <option value="10">10 / página</option>
                 <option value="20">20 / página</option>
@@ -199,12 +204,15 @@ export default async function NfePage({ searchParams }: NfePageProps) {
             </label>
 
             <div className="flex items-end gap-2">
-              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+              <Button
+                type="submit"
+                className="h-11 bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+              >
                 Filtrar
               </Button>
               <Link
                 href="/nfe"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Limpar
               </Link>
@@ -215,7 +223,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
         <div className="mt-5 space-y-4">
           {documentos.length ? (
             <>
-              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-slate-300">
                 <span>
                   Exibindo {visibleStart}-{visibleEnd} de {documentosPage.total} documento(s)
                 </span>
@@ -229,7 +237,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                   >
                     Anterior
                   </PageLink>
-                  <span className="text-xs font-medium text-slate-500">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     Página {documentosPage.page} de {documentosPage.totalPages}
                   </span>
                   <PageLink
@@ -245,16 +253,21 @@ export default async function NfePage({ searchParams }: NfePageProps) {
               </div>
 
               {documentos.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 p-5">
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200 p-5 dark:border-zinc-800 dark:bg-zinc-950/30"
+                >
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="space-y-4">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-base font-semibold text-slate-950">NF-e {item.noteNumber}</p>
+                          <p className="text-base font-semibold text-slate-950 dark:text-white">
+                            NF-e {item.noteNumber}
+                          </p>
                           <Badge>{item.flowLabel}</Badge>
                           <Badge>{item.linkedOrderStatus}</Badge>
                         </div>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                           {item.fileName} | {item.depositante} | {item.createdAtLabel}
                         </p>
                       </div>
@@ -265,12 +278,18 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                         <InfoCard label="Valor total" value={item.totalValueLabel} />
                         <InfoCard label="Volumes" value={String(item.volumeCount)} />
                         <InfoCard label="Emitente" value={item.issuerName} />
-                        <InfoCard label="Documento emitente" value={item.issuerDocument ?? "-"} />
+                        <InfoCard
+                          label="Documento emitente"
+                          value={item.issuerDocument ?? "-"}
+                        />
                         <InfoCard label="Destinatário" value={item.recipientName} />
-                        <InfoCard label="Documento destinatário" value={item.recipientDocument ?? "-"} />
+                        <InfoCard
+                          label="Documento destinatário"
+                          value={item.recipientDocument ?? "-"}
+                        />
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
                         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                           <InfoMini label="Protocolo" value={item.protocolNumber ?? "-"} />
                           <InfoMini
@@ -281,18 +300,23 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                                 .join(" - ") || "-"
                             }
                           />
-                          <InfoMini label="Vínculo operacional" value={item.linkedOrderLabel} />
+                          <InfoMini
+                            label="Vínculo operacional"
+                            value={item.linkedOrderLabel}
+                          />
                           <InfoMini label="Itens no XML" value={String(item.itemCount)} />
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 bg-white">
-                        <div className="border-b border-slate-200 px-4 py-3">
-                          <p className="text-sm font-medium text-slate-900">Itens fiscais</p>
+                      <div className="rounded-2xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/50">
+                        <div className="border-b border-slate-200 px-4 py-3 dark:border-zinc-800">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            Itens fiscais
+                          </p>
                         </div>
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-left text-sm">
-                            <thead className="border-b border-slate-200 text-slate-500">
+                            <thead className="border-b border-slate-200 text-slate-500 dark:border-zinc-800 dark:text-slate-400">
                               <tr>
                                 <th className="px-4 py-3 font-medium">Descrição</th>
                                 <th className="px-4 py-3 font-medium">Código</th>
@@ -309,20 +333,43 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                             </thead>
                             <tbody>
                               {item.itemsPreview.map((product, index) => (
-                                <tr key={`${item.id}-${index}`} className="border-b border-slate-100 last:border-b-0">
-                                  <td className="px-4 py-3 text-slate-900">{product.descricao}</td>
-                                  <td className="px-4 py-3 text-slate-600">{product.codigo ?? "-"}</td>
-                                  <td className="px-4 py-3 text-slate-600">{product.ean ?? "-"}</td>
-                                  <td className="px-4 py-3 text-slate-600">{product.ncm ?? "-"}</td>
-                                  <td className="px-4 py-3 text-slate-600">{product.cfop ?? "-"}</td>
-                                  <td className="px-4 py-3 text-slate-600">{product.cstCsosn ?? "-"}</td>
-                                  <td className="px-4 py-3 text-slate-600">
+                                <tr
+                                  key={`${item.id}-${index}`}
+                                  className="border-b border-slate-100 last:border-b-0 dark:border-zinc-800"
+                                >
+                                  <td className="px-4 py-3 text-slate-900 dark:text-white">
+                                    {product.descricao}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {product.codigo ?? "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {product.ean ?? "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {product.ncm ?? "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {product.cfop ?? "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {product.cstCsosn ?? "-"}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                                     {product.quantidade.toLocaleString("pt-BR")}
                                   </td>
-                                  <td className="px-4 py-3 text-slate-600">{formatCurrency(product.icmsValue)}</td>
-                                  <td className="px-4 py-3 text-slate-600">{formatCurrency(product.ipiValue)}</td>
-                                  <td className="px-4 py-3 text-slate-600">{formatCurrency(product.pisValue)}</td>
-                                  <td className="px-4 py-3 text-slate-600">{formatCurrency(product.cofinsValue)}</td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {formatCurrency(product.icmsValue)}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {formatCurrency(product.ipiValue)}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {formatCurrency(product.pisValue)}
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                                    {formatCurrency(product.cofinsValue)}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -335,7 +382,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                       {item.linkedOrderHref ? (
                         <Link
                           href={item.linkedOrderHref}
-                          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                          className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
                           Abrir vínculo
                         </Link>
@@ -343,7 +390,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
                       <Link
                         href={item.downloadHref}
                         target="_blank"
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                       >
                         <Download className="h-4 w-4" />
                         Baixar XML
@@ -354,7 +401,7 @@ export default async function NfePage({ searchParams }: NfePageProps) {
               ))}
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
               Nenhum documento fiscal encontrado com os filtros atuais.
             </div>
           )}
@@ -369,14 +416,14 @@ export default async function NfePage({ searchParams }: NfePageProps) {
             lockDepositante={user.papel === "DEPOSITANTE"}
           />
         ) : (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <div className="flex items-center gap-3 text-amber-800">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/10">
+            <div className="flex items-center gap-3 text-amber-800 dark:text-amber-200">
               <Lock className="h-5 w-5" />
               <h2 className="text-lg font-semibold">Importação restrita</h2>
             </div>
-            <p className="mt-3 text-sm leading-6 text-amber-900">
-              Seu perfil atual é <strong>{user.papel}</strong>. A importação de XML fiscal
-              de saída está liberada apenas para Admin, TI e Operador.
+            <p className="mt-3 text-sm leading-6 text-amber-900 dark:text-amber-100">
+              Seu perfil atual é <strong>{user.papel}</strong>. A importação de XML fiscal de
+              saída está liberada apenas para Admin, TI e Operador.
             </p>
           </div>
         )}
@@ -393,18 +440,18 @@ export default async function NfePage({ searchParams }: NfePageProps) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function LocalStatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
       {children}
     </span>
   );
@@ -412,18 +459,26 @@ function Badge({ children }: { children: React.ReactNode }) {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-medium text-slate-900">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">
+        {value}
+      </p>
     </div>
   );
 }
 
 function InfoMini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-medium text-slate-900">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/60">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-medium text-slate-900 dark:text-white">
+        {value}
+      </p>
     </div>
   );
 }
@@ -439,7 +494,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+      <span className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-zinc-800 dark:text-zinc-600">
         {children}
       </span>
     );
@@ -448,7 +503,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+      className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
     >
       {children}
     </Link>

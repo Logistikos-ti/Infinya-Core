@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { AlertTriangle, Archive, Boxes, Download, Search, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  Archive,
+  Boxes,
+  Download,
+  Search,
+  ShieldAlert,
+} from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
@@ -103,16 +110,18 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         />
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Alertas de vencimento</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Alertas de vencimento
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               O sistema destaca lotes vencidos ou com vencimento em até 30 dias para ação
               operacional imediata.
             </p>
           </div>
-          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
             {stockExpiryAlerts.filter((item) => item.severity === "critico").length} crítico(s)
           </span>
         </div>
@@ -125,29 +134,31 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 href={`/estoque/protocolos/${item.id}`}
                 className={`rounded-2xl border p-4 transition hover:shadow-sm ${
                   item.severity === "critico"
-                    ? "border-rose-200 bg-rose-50"
-                    : "border-amber-200 bg-amber-50"
+                    ? "border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10"
+                    : "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-950">{item.protocol}</p>
-                    <p className="mt-1 text-xs text-slate-600">
+                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                      {item.protocol}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
                       {item.depositante} • {item.sku} • {item.productName}
                     </p>
                   </div>
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       item.severity === "critico"
-                        ? "bg-white text-rose-700"
-                        : "bg-white text-amber-700"
+                        ? "bg-white text-rose-700 dark:bg-zinc-900 dark:text-rose-300"
+                        : "bg-white text-amber-700 dark:bg-zinc-900 dark:text-amber-300"
                     }`}
                   >
                     {item.severityLabel}
                   </span>
                 </div>
 
-                <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                <div className="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
                   <p>Área: {formatAreaLabel(item.area)}</p>
                   <p>Endereço: {item.endereco}</p>
                   <p>Lote: {item.lote}</p>
@@ -157,38 +168,40 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               </Link>
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 lg:col-span-2">
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
               Nenhum lote próximo ao vencimento dentro do filtro atual.
             </div>
           )}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Consulta de estoque</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Consulta de estoque
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Filtre os saldos por depositante, produto, área e lote para localizar rapidamente a
               posição certa.
             </p>
           </div>
-          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+          <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
             {stockBalances.length} saldo(s)
           </span>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.3fr_0.9fr_1fr_auto]">
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Depositante
               </span>
               <select
                 name="depositante"
                 defaultValue={effectiveDepositanteFilter}
                 disabled={!canManageMultipleTenants(user)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
               >
                 <option value="">Todos</option>
                 {depositanteOptions.map((depositante) => (
@@ -200,29 +213,29 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Produto
               </span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
-                <Search className="h-4 w-4 text-slate-400" />
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   name="produto"
                   defaultValue={productFilter}
                   placeholder="SKU, nome ou código interno"
-                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Área
               </span>
               <select
                 name="area"
                 defaultValue={areaFilter}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 {areaOptions.map((option) => (
                   <option key={option.value || "todas"} value={option.value}>
@@ -233,7 +246,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Lote
               </span>
               <input
@@ -241,17 +254,20 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 name="lote"
                 defaultValue={lotFilter}
                 placeholder="Ex.: LOT-2026-001"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <div className="flex items-end gap-2">
-              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+              <Button
+                type="submit"
+                className="h-11 bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+              >
                 Filtrar
               </Button>
               <Link
                 href="/estoque"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Limpar
               </Link>
@@ -261,15 +277,17 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Saldos monitorados</h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Saldos monitorados
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Estoque real lançado a partir do fluxo de recebimento e das próximas movimentações.
           </p>
 
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-slate-500">
+              <thead className="border-b border-slate-200 text-slate-500 dark:border-zinc-800 dark:text-slate-400">
                 <tr>
                   <th className="pb-3 font-medium">Protocolo</th>
                   <th className="pb-3 font-medium">SKU</th>
@@ -288,31 +306,43 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 {stockBalances.map((item) => (
                   <tr
                     key={`${item.id}-${item.sku}-${item.lote}`}
-                    className="border-b border-slate-100 last:border-b-0"
+                    className="border-b border-slate-100 last:border-b-0 dark:border-zinc-800"
                   >
                     <td className="py-3">
                       <Link
                         href={`/estoque/protocolos/${item.id}`}
-                        className="inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"
+                        className="inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:bg-sky-500/20"
                       >
                         {item.protocol}
                       </Link>
                     </td>
-                    <td className="py-3 font-medium text-slate-900">{item.sku}</td>
-                    <td className="py-3 text-slate-600">{item.productName}</td>
-                    <td className="py-3 text-slate-600">{item.depositante}</td>
-                    <td className="py-3 text-slate-600">{formatAreaLabel(item.area)}</td>
-                    <td className="py-3 text-slate-600">{item.endereco}</td>
-                    <td className="py-3 text-slate-600">{item.lote}</td>
-                    <td className="py-3 text-slate-600">{item.saldo}</td>
+                    <td className="py-3 font-medium text-slate-900 dark:text-white">
+                      {item.sku}
+                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">
+                      {item.productName}
+                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">
+                      {item.depositante}
+                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">
+                      {formatAreaLabel(item.area)}
+                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">
+                      {item.endereco}
+                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.lote}</td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.saldo}</td>
                     <td className="py-3">
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                         {item.withdrawalLabel}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600">{item.validade}</td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">
+                      {item.validade}
+                    </td>
                     <td className="py-3">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                         {item.status}
                       </span>
                     </td>
@@ -320,7 +350,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 ))}
                 {!stockBalances.length ? (
                   <tr>
-                    <td colSpan={11} className="py-6 text-center text-slate-500">
+                    <td colSpan={11} className="py-6 text-center text-slate-500 dark:text-slate-400">
                       Nenhum saldo encontrado com os filtros atuais.
                     </td>
                   </tr>
@@ -330,11 +360,13 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Protocolos de depósito</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Protocolos de depósito
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Rastreabilidade por lote, validade, área, endereço e data de entrada.
               </p>
             </div>
@@ -342,7 +374,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               type="submit"
               form="protocolos-lote-form"
               formTarget="_blank"
-              className="bg-slate-950 text-white hover:bg-slate-800"
+              className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
             >
               <Download className="h-4 w-4" />
               Emitir lote em PDF
@@ -360,7 +392,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               traceabilityProtocols.map((item) => (
                 <label
                   key={item.id}
-                  className="flex gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-slate-300"
+                  className="flex gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-slate-300 dark:border-zinc-800 dark:hover:border-zinc-700"
                 >
                   <input
                     type="checkbox"
@@ -374,22 +406,23 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                       <div>
                         <Link
                           href={`/estoque/protocolos/${item.id}`}
-                          className="text-sm font-semibold text-slate-950 transition hover:text-sky-700"
+                          className="text-sm font-semibold text-slate-950 transition hover:text-sky-700 dark:text-white dark:hover:text-sky-300"
                         >
                           {item.protocol}
                         </Link>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.depositante} • {item.sku} • {formatAreaLabel(item.area)} • {item.endereco}
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {item.depositante} • {item.sku} • {formatAreaLabel(item.area)} •{" "}
+                          {item.endereco}
                         </p>
-                        <p className="mt-2 text-xs font-medium text-amber-700">
+                        <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
                           {item.withdrawalLabel}
                         </p>
                       </div>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                         {item.status}
                       </span>
                     </div>
-                    <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
                       <p>Lote: {item.lote}</p>
                       <p>Validade: {item.validade}</p>
                       <p>Saldo: {item.saldo}</p>
@@ -399,7 +432,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 </label>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
                 Nenhum protocolo encontrado dentro do filtro atual.
               </div>
             )}
@@ -407,33 +440,39 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">Últimos movimentos rastreáveis</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Cada movimentação mantém o vínculo com protocolo, lote, validade e referência de origem.
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+          Últimos movimentos rastreáveis
+        </h2>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          Cada movimentação mantém o vínculo com protocolo, lote, validade e referência de
+          origem.
         </p>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {stockMovements.length ? (
             stockMovements.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+              <div
+                key={item.id}
+                className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/30"
+              >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+                  <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                     {item.protocol}
                   </span>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                     {item.reference}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-slate-700">{item.label}</p>
-                <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
+                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{item.label}</p>
+                <div className="mt-3 grid gap-2 text-xs text-slate-500 dark:text-slate-400 sm:grid-cols-2">
                   <p>Lote: {item.lot}</p>
                   <p>Validade: {item.expiry}</p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 lg:col-span-2">
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
               Nenhuma movimentação encontrada dentro do filtro atual.
             </div>
           )}
