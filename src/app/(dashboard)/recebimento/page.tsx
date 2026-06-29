@@ -95,7 +95,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
             Recebimento (Inbound)
           </h1>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-            Gestão de entrada de notas fiscais, conferência de doca e paletização.
+            {"Gest\u00e3o de entrada de notas fiscais, confer\u00eancia de doca e paletiza\u00e7\u00e3o."}
           </p>
         </div>
         
@@ -167,20 +167,20 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
         </div>
       </section>
 
-      {/* Abas e Filtros */}
+      {/* Abas e filtros */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-200 dark:border-zinc-800 pb-2">
         <div className="flex overflow-x-auto no-scrollbar gap-2">
           <Link href="/recebimento" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${!statusFilter ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Todas Entradas
+            Todas as entradas
           </Link>
           <Link href="/recebimento?status=AGUARDANDO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'AGUARDANDO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Aguardando Doca
+            Aguardando doca
           </Link>
           <Link href="/recebimento?status=EM_RECEBIMENTO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'EM_RECEBIMENTO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Em Conferência
+            {"Em Confer\u00eancia"}
           </Link>
           <Link href="/recebimento?status=DIVERGENCIA" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'DIVERGENCIA' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
-            Com Divergência
+            {"Com Diverg\u00eancia"}
           </Link>
         </div>
 
@@ -230,7 +230,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               <input type="hidden" name="dataInicial" value={dateFrom} />
               <input type="hidden" name="dataFinal" value={dateTo} />
               <input type="hidden" name="page" value="1" />
-              <label className="text-xs font-medium text-slate-500">Por página</label>
+              <label className="text-xs font-medium text-slate-500">{"Por p\u00e1gina"}</label>
               <select
                 name="perPage"
                 defaultValue={String(perPage)}
@@ -260,9 +260,9 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                 <th className="px-6 py-4 font-medium">NF-e / Carga</th>
                 <th className="px-6 py-4 font-medium">Depositante / Fornecedor</th>
                 <th className="px-6 py-4 font-medium">SKUs / Volumes</th>
-                <th className="px-6 py-4 font-medium">Previsão Doca</th>
+                <th className="px-6 py-4 font-medium">{"Previs\u00e3o Doca"}</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Ação</th>
+                <th className="px-6 py-4 font-medium text-right">{"A\u00e7\u00e3o"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-zinc-800/50 text-slate-700 dark:text-zinc-300">
@@ -276,6 +276,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                   <td className="px-6 py-4">
                     <div className="font-medium">{order.depositante}</div>
                     <div className="text-xs text-slate-500 mt-0.5">{order.supplier}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Criado em: {order.createdAt}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-medium">{order.volumeCount} volumes</div>
@@ -313,7 +314,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
         {totalOrders > perPage ? (
           <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 dark:border-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">
-              Página {currentPage} de {totalPages}
+              {"P\u00e1gina"} {currentPage} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <Link
@@ -342,20 +343,20 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                     : "border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 }`}
               >
-                Próxima
+                {"Pr\u00f3xima"}
               </Link>
             </div>
           </div>
         ) : null}
       </section>
 
-      {/* Grid Secundário: Ocorrências e Tarefas */}
+      {/* Grid secundário: ocorrências e tarefas */}
       <section className="grid gap-6 xl:grid-cols-2">
         
         {/* Ocorrências */}
         <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-rose-500/30 transition-all">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-rose-500" /> Ocorrências abertas
+            <AlertTriangle className="w-5 h-5 text-rose-500" /> {"Ocorr\u00eancias abertas"}
           </h2>
           <div className="mt-4 space-y-3">
             {operationalIssues.length ? (
@@ -373,7 +374,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               ))
             ) : (
               <div className="rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 px-4 py-8 text-center text-sm text-slate-500">
-                Nenhuma ocorrência aberta no momento.
+                {"Nenhuma ocorr\u00eancia aberta no momento."}
               </div>
             )}
           </div>
@@ -397,7 +398,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400">
-                  <span>Responsável: {task.assignee}</span>
+                  <span>{"Respons\u00e1vel: "} {task.assignee}</span>
                   <span>Prazo: {task.due}</span>
                 </div>
               </div>
@@ -448,13 +449,13 @@ function buildQueryString(query: Record<string, string>) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "AGUARDANDO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando Doca</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando doca</span>;
   }
   if (status === "EM_RECEBIMENTO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Em Conferência</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Em conferência</span>;
   }
   if (status === "DIVERGENCIA") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Com Divergência</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Com divergência</span>;
   }
   if (status === "RECEBIDO" || status === "RECEBIDO_PARCIAL") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">{status === "RECEBIDO" ? "Finalizado" : "Rec. Parcial"}</span>;
@@ -464,4 +465,3 @@ function StatusBadge({ status }: { status: string }) {
   }
   return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700">{status}</span>;
 }
-

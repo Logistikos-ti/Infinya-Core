@@ -84,6 +84,7 @@ export type ReceivingOrderSummary = {
   depositanteId?: string;
   depositante: string;
   supplier: string;
+  createdAt: string;
   eta: string;
   etaRaw?: string | null;
   status: string;
@@ -371,6 +372,7 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
     depositanteId: (item as RawOrderRow & { depositante_id?: string }).depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
     supplier: item.fornecedor_nome ?? "Fornecedor não informado",
+    createdAt: formatDateTimeOrFallback(item.created_at, "Sem data"),
     eta: item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão",
     etaRaw: item.previsto_para,
     status: item.status,
