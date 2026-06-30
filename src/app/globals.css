@@ -214,10 +214,10 @@ a {
   .infinya-symbol-image {
     animation:
       infinya-mark-breathe 5.4s ease-in-out infinite,
-      infinya-symbol-image 4.8s ease-in-out infinite;
+      infinya-symbol-image 4s ease-in-out infinite;
     filter:
-      drop-shadow(0 0 10px rgba(92, 237, 255, 0.16))
-      drop-shadow(0 0 16px rgba(214, 115, 255, 0.14));
+      drop-shadow(0 0 12px rgba(92, 237, 255, 0.2))
+      drop-shadow(0 0 20px rgba(214, 115, 255, 0.18));
   }
   .infinya-symbol-lux {
     background:
@@ -232,7 +232,7 @@ a {
         rgba(255, 255, 255, 0) 100%
       );
     background-size: 210% 210%;
-    animation: infinya-symbol-lux 3.2s linear infinite;
+    animation: infinya-symbol-lux 2.6s linear infinite;
   }
   .infinya-symbol-lux-ribbon {
     background:
@@ -245,7 +245,7 @@ a {
         rgba(255, 255, 255, 0) 100%
       );
     background-size: 165% 100%;
-    animation: infinya-symbol-lux-ribbon 2.2s linear infinite;
+    animation: infinya-symbol-lux-ribbon 1.7s linear infinite;
   }
   .infinya-symbol-aura {
     background:
@@ -253,7 +253,23 @@ a {
       radial-gradient(circle at 52% 34%, rgba(109, 142, 255, 0.32), transparent 20%),
       radial-gradient(circle at 82% 58%, rgba(234, 112, 255, 0.34), transparent 24%);
     background-size: 180% 180%;
-    animation: infinya-symbol-aura 4.8s ease-in-out infinite;
+    animation: infinya-symbol-aura 3.8s ease-in-out infinite;
+  }
+  .infinya-symbol-orbit {
+    background:
+      conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0) 0deg,
+        rgba(126, 242, 255, 0.14) 44deg,
+        rgba(255, 255, 255, 0.92) 70deg,
+        rgba(110, 224, 255, 0.62) 96deg,
+        rgba(126, 132, 255, 0.34) 138deg,
+        rgba(230, 116, 255, 0.62) 208deg,
+        rgba(255, 255, 255, 0.88) 238deg,
+        rgba(255, 255, 255, 0) 290deg,
+        rgba(255, 255, 255, 0) 360deg
+      );
+    animation: infinya-symbol-orbit 2.9s linear infinite;
   }
   .infinya-mark-base-motion {
     animation:
@@ -503,50 +519,50 @@ a {
 @keyframes infinya-symbol-image {
   0%, 100% {
     filter:
-      brightness(0.98)
-      saturate(1)
-      drop-shadow(0 0 10px rgba(92, 237, 255, 0.14))
-      drop-shadow(0 0 16px rgba(214, 115, 255, 0.12));
+        brightness(0.98)
+        saturate(1)
+      drop-shadow(0 0 10px rgba(92, 237, 255, 0.16))
+      drop-shadow(0 0 16px rgba(214, 115, 255, 0.14));
   }
 
   50% {
     filter:
       brightness(1.04)
-      saturate(1.08)
-      drop-shadow(0 0 14px rgba(92, 237, 255, 0.22))
-      drop-shadow(0 0 20px rgba(214, 115, 255, 0.18));
+      saturate(1.14)
+      drop-shadow(0 0 18px rgba(92, 237, 255, 0.3))
+      drop-shadow(0 0 24px rgba(214, 115, 255, 0.24));
   }
 }
 
 @keyframes infinya-symbol-lux {
   0% {
     background-position: 0% 50%;
-    opacity: 0.4;
+    opacity: 0.5;
   }
 
   50% {
-    opacity: 0.72;
+    opacity: 0.9;
   }
 
   100% {
     background-position: 180% 50%;
-    opacity: 0.4;
+    opacity: 0.5;
   }
 }
 
 @keyframes infinya-symbol-lux-ribbon {
   0% {
     background-position: -10% 50%;
-    opacity: 0.14;
+    opacity: 0.18;
   }
 
   40% {
-    opacity: 0.6;
+    opacity: 0.82;
   }
 
   100% {
     background-position: 145% 50%;
-    opacity: 0.16;
+    opacity: 0.2;
   }
 }
 
@@ -558,12 +574,28 @@ a {
 
   50% {
     background-position: 100% 58%;
-    transform: translate3d(1%, -1%, 0) scale(1.03);
+    transform: translate3d(1%, -1%, 0) scale(1.05);
   }
 
   100% {
     background-position: 0% 42%;
     transform: translate3d(-1%, 0, 0) scale(1);
+  }
+}
+
+@keyframes infinya-symbol-orbit {
+  0% {
+    transform: rotate(0deg) scale(1.02);
+    opacity: 0.28;
+  }
+
+  35% {
+    opacity: 0.72;
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1.06);
+    opacity: 0.28;
   }
 }
 

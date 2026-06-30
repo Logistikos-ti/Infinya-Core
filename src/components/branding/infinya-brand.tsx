@@ -66,6 +66,13 @@ export function InfinyaBrand({
             )}
             style={symbolMaskStyle}
           />
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-[-10%] opacity-[0.56] mix-blend-screen blur-[3px]",
+              animated && "infinya-symbol-orbit",
+            )}
+            style={symbolMaskStyle}
+          />
 
           <Image
             src="/branding/infinya-mark-symbol.png"
