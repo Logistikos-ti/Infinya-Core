@@ -217,6 +217,12 @@ a {
   .infinya-loop-inner-pulse {
     animation: infinya-loop-inner-pulse 2.8s ease-in-out infinite;
   }
+  .infinya-loop-edge {
+    animation: infinya-loop-edge 4s ease-in-out infinite;
+    filter:
+      drop-shadow(0 0 6px rgba(176, 247, 255, 0.54))
+      drop-shadow(0 0 12px rgba(210, 143, 255, 0.28));
+  }
   .infinya-loop-trail-a {
     animation: infinya-loop-trail-a 2.2s linear infinite;
     filter:
@@ -232,6 +238,10 @@ a {
   .infinya-loop-sheen {
     animation: infinya-loop-sheen 1.9s linear infinite;
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.65));
+  }
+  .infinya-loop-facets {
+    animation: infinya-loop-facets 5.2s ease-in-out infinite;
+    mix-blend-mode: screen;
   }
   .infinya-mark-breathe {
     animation: infinya-mark-breathe 5.6s ease-in-out infinite;
@@ -407,6 +417,16 @@ a {
   }
 }
 
+@keyframes infinya-loop-edge {
+  0%, 100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes infinya-loop-trail-a {
   from {
     stroke-dashoffset: 0;
@@ -440,6 +460,16 @@ a {
   to {
     stroke-dashoffset: -272;
     opacity: 0.38;
+  }
+}
+
+@keyframes infinya-loop-facets {
+  0%, 100% {
+    opacity: 0.44;
+  }
+
+  50% {
+    opacity: 0.82;
   }
 }
 

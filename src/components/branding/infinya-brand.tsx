@@ -27,6 +27,9 @@ export function InfinyaBrand({
   const coreGradientId = `infinya-core-${id}`;
   const trailGradientAId = `infinya-trail-a-${id}`;
   const trailGradientBId = `infinya-trail-b-${id}`;
+  const edgeGradientId = `infinya-edge-${id}`;
+  const facetGradientId = `infinya-facet-${id}`;
+  const clipPathId = `infinya-clip-${id}`;
   const glowFilterId = `infinya-glow-${id}`;
 
   const infinityPath =
@@ -50,18 +53,32 @@ export function InfinyaBrand({
           >
             <defs>
               <linearGradient id={tubeGradientId} x1="16" y1="16" x2="224" y2="124" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#091326" />
-                <stop offset="24%" stopColor="#102445" />
-                <stop offset="52%" stopColor="#342872" />
-                <stop offset="76%" stopColor="#4e2a88" />
-                <stop offset="100%" stopColor="#1a113b" />
+                <stop offset="0%" stopColor="#07101f" />
+                <stop offset="16%" stopColor="#0c2242" />
+                <stop offset="38%" stopColor="#1e2f6b" />
+                <stop offset="58%" stopColor="#352a82" />
+                <stop offset="82%" stopColor="#5b2f92" />
+                <stop offset="100%" stopColor="#160f37" />
               </linearGradient>
               <linearGradient id={coreGradientId} x1="22" y1="18" x2="220" y2="122" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#8ef8ff" />
-                <stop offset="22%" stopColor="#45dfff" />
-                <stop offset="48%" stopColor="#5da8ff" />
-                <stop offset="72%" stopColor="#8d74ff" />
-                <stop offset="100%" stopColor="#f487ff" />
+                <stop offset="0%" stopColor="#aefbff" />
+                <stop offset="18%" stopColor="#5ceaff" />
+                <stop offset="40%" stopColor="#2ad1ff" />
+                <stop offset="58%" stopColor="#6184ff" />
+                <stop offset="78%" stopColor="#9d6dff" />
+                <stop offset="100%" stopColor="#f0a0ff" />
+              </linearGradient>
+              <linearGradient id={edgeGradientId} x1="18" y1="20" x2="222" y2="118" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="rgba(226,253,255,0.95)" />
+                <stop offset="28%" stopColor="rgba(103,235,255,0.9)" />
+                <stop offset="56%" stopColor="rgba(143,123,255,0.72)" />
+                <stop offset="100%" stopColor="rgba(255,168,246,0.9)" />
+              </linearGradient>
+              <linearGradient id={facetGradientId} x1="40" y1="22" x2="206" y2="116" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.42)" />
+                <stop offset="35%" stopColor="rgba(157,241,255,0.18)" />
+                <stop offset="68%" stopColor="rgba(194,143,255,0.14)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.2)" />
               </linearGradient>
               <linearGradient id={trailGradientAId} x1="0" y1="70" x2="240" y2="70" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="#d9fbff" />
@@ -86,6 +103,16 @@ export function InfinyaBrand({
                           0 0 0 1.2 0"
                 />
               </filter>
+              <clipPath id={clipPathId}>
+                <path
+                  d={infinityPath}
+                  fill="none"
+                  stroke="#fff"
+                  strokeWidth="36"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </clipPath>
             </defs>
 
             <path
@@ -126,6 +153,15 @@ export function InfinyaBrand({
             <path
               d={infinityPath}
               fill="none"
+              stroke={`url(#${edgeGradientId})`}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={cn(animated && "infinya-loop-edge")}
+            />
+            <path
+              d={infinityPath}
+              fill="none"
               stroke={`url(#${trailGradientAId})`}
               strokeWidth="12"
               strokeLinecap="round"
@@ -153,6 +189,14 @@ export function InfinyaBrand({
               strokeDasharray="24 248"
               className={cn(animated && "infinya-loop-sheen")}
             />
+            <g clipPath={`url(#${clipPathId})`} className={cn(animated && "infinya-loop-facets")}>
+              <path d="M50 28 L84 60" stroke={`url(#${facetGradientId})`} strokeWidth="4" strokeLinecap="round" />
+              <path d="M82 24 L114 58" stroke={`url(#${facetGradientId})`} strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M126 80 L156 112" stroke={`url(#${facetGradientId})`} strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M156 26 L190 58" stroke={`url(#${facetGradientId})`} strokeWidth="4" strokeLinecap="round" />
+              <path d="M92 82 L118 108" stroke={`url(#${facetGradientId})`} strokeWidth="3" strokeLinecap="round" />
+              <path d="M118 32 L144 58" stroke={`url(#${facetGradientId})`} strokeWidth="3" strokeLinecap="round" />
+            </g>
           </svg>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_36%,rgba(4,8,22,0.08)_74%,rgba(4,8,22,0.24)_100%)]" />
         </div>
