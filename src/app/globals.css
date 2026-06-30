@@ -214,15 +214,31 @@ a {
   .infinya-mark-breathe {
     animation: infinya-mark-breathe 5.6s ease-in-out infinite;
   }
-  .infinya-symbol-shimmer {
-    animation: infinya-symbol-shimmer 5.8s ease-in-out infinite;
+  .infinya-mark-spectrum {
+    animation:
+      infinya-mark-breathe 5.6s ease-in-out infinite,
+      infinya-mark-spectrum 8.4s ease-in-out infinite;
   }
-  .infinya-symbol-trail {
-    animation: infinya-symbol-trail 5.8s linear infinite;
+  .infinya-symbol-aurora {
+    background:
+      linear-gradient(115deg,
+        rgba(34, 211, 238, 0) 8%,
+        rgba(34, 211, 238, 0.26) 22%,
+        rgba(126, 232, 255, 0.6) 34%,
+        rgba(139, 92, 246, 0.28) 52%,
+        rgba(217, 70, 239, 0.55) 68%,
+        rgba(217, 70, 239, 0.12) 82%,
+        rgba(217, 70, 239, 0) 100%);
+    background-size: 220% 220%;
+    animation: infinya-symbol-aurora 7.2s ease-in-out infinite;
   }
-  .infinya-orbit-runner {
-    animation: infinya-orbit-runner 2.6s ease-in-out infinite;
-    transform-origin: center;
+  .infinya-symbol-wave {
+    background:
+      radial-gradient(circle at 16% 50%, rgba(34, 211, 238, 0.58), transparent 22%),
+      radial-gradient(circle at 48% 34%, rgba(96, 165, 250, 0.48), transparent 18%),
+      radial-gradient(circle at 80% 56%, rgba(217, 70, 239, 0.5), transparent 24%);
+    background-size: 170% 170%;
+    animation: infinya-symbol-wave 8.2s ease-in-out infinite;
   }
   
   .stripes {
@@ -300,37 +316,72 @@ a {
   }
 }
 
-@keyframes infinya-symbol-shimmer {
+@keyframes infinya-mark-spectrum {
   0%, 100% {
-    opacity: 0.92;
-    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.22));
+    filter:
+      saturate(1.02)
+      brightness(1)
+      hue-rotate(0deg)
+      drop-shadow(0 0 12px rgba(34, 211, 238, 0.18))
+      drop-shadow(0 0 18px rgba(217, 70, 239, 0.12));
   }
 
-  50% {
-    opacity: 1;
-    filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.36));
+  35% {
+    filter:
+      saturate(1.12)
+      brightness(1.04)
+      hue-rotate(-5deg)
+      drop-shadow(0 0 14px rgba(34, 211, 238, 0.26))
+      drop-shadow(0 0 24px rgba(217, 70, 239, 0.16));
+  }
+
+  65% {
+    filter:
+      saturate(1.18)
+      brightness(1.06)
+      hue-rotate(6deg)
+      drop-shadow(0 0 16px rgba(34, 211, 238, 0.32))
+      drop-shadow(0 0 28px rgba(217, 70, 239, 0.2));
   }
 }
 
-@keyframes infinya-symbol-trail {
+@keyframes infinya-symbol-aurora {
   0% {
-    stroke-dashoffset: 0;
+    background-position: 0% 50%;
+    transform: translate3d(-6%, 0, 0) scale(1.02);
+    opacity: 0.58;
+  }
+
+  50% {
+    background-position: 100% 50%;
+    transform: translate3d(5%, -1%, 0) scale(1.08);
+    opacity: 0.9;
   }
 
   100% {
-    stroke-dashoffset: -258;
+    background-position: 0% 50%;
+    transform: translate3d(-6%, 0, 0) scale(1.02);
+    opacity: 0.58;
   }
 }
 
-@keyframes infinya-orbit-runner {
-  0%, 100% {
-    opacity: 0.72;
-    filter: saturate(1) brightness(1);
+@keyframes infinya-symbol-wave {
+  0% {
+    background-position: 0% 40%;
+    transform: translate3d(-4%, 1%, 0) scale(1);
+    opacity: 0.32;
   }
 
   50% {
-    opacity: 1;
-    filter: saturate(1.18) brightness(1.06);
+    background-position: 100% 60%;
+    transform: translate3d(4%, -2%, 0) scale(1.12);
+    opacity: 0.74;
+  }
+
+  100% {
+    background-position: 0% 40%;
+    transform: translate3d(-4%, 1%, 0) scale(1);
+    opacity: 0.32;
   }
 }
 

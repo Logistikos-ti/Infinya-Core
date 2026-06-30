@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type InfinyaBrandProps = {
@@ -22,13 +22,6 @@ export function InfinyaBrand({
   compact = false,
   animated = true,
 }: InfinyaBrandProps) {
-  const gradientId = useId();
-  const glowId = useId();
-  const orbitId = useId();
-  const trailId = useId();
-  const infinityPath =
-    "M 10 30 C 18 10, 34 10, 50 30 C 66 50, 82 50, 90 30 C 82 10, 66 10, 50 30 C 34 50, 18 50, 10 30 Z";
-
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div
@@ -39,113 +32,32 @@ export function InfinyaBrand({
         )}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_24%,rgba(34,211,238,0.2),transparent_46%),radial-gradient(circle_at_76%_70%,rgba(217,70,239,0.18),transparent_38%)]" />
-
-        <svg
-          viewBox="0 0 100 60"
-          aria-hidden="true"
-          className={cn(
-            "absolute inset-[14%] overflow-visible",
-            animated && "infinya-mark-breathe",
-          )}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#4ee6ff" />
-              <stop offset="34%" stopColor="#7fe8ff" />
-              <stop offset="67%" stopColor="#8f6bff" />
-              <stop offset="100%" stopColor="#ea7cff" />
-            </linearGradient>
-
-            <linearGradient id={trailId} x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="rgba(78,230,255,0)" />
-              <stop offset="50%" stopColor="rgba(126,232,255,0.95)" />
-              <stop offset="100%" stopColor="rgba(234,124,255,0)" />
-            </linearGradient>
-
-            <filter id={glowId} x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="2.6" result="blur" />
-              <feColorMatrix
-                in="blur"
-                type="matrix"
-                values="1 0 0 0 0
-                        0 1 0 0 0
-                        0 0 1 0 0
-                        0 0 0 17 -7"
-              />
-            </filter>
-
-            <filter id={orbitId} x="-90%" y="-90%" width="280%" height="280%">
-              <feGaussianBlur stdDeviation="1.8" result="blur" />
-              <feColorMatrix
-                in="blur"
-                type="matrix"
-                values="1 0 0 0 0
-                        0 1 0 0 0
-                        0 0 1 0 0
-                        0 0 0 20 -8"
-              />
-            </filter>
-          </defs>
-
-          <path
-            d={infinityPath}
-            fill="none"
-            stroke="rgba(7,17,32,0.72)"
-            strokeWidth="15"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="absolute inset-[10%] overflow-hidden rounded-[16px]">
+          <Image
+            src="/branding/infinya-mark-512.png"
+            alt="Infinya"
+            fill
+            sizes={compact ? "44px" : "56px"}
+            className={cn(
+              "object-cover scale-[1.12]",
+              animated && "infinya-mark-breathe infinya-mark-spectrum",
+            )}
+            priority
           />
-
-          <path
-            d={infinityPath}
-            fill="none"
-            stroke={`url(#${gradientId})`}
-            strokeWidth="11.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter={`url(#${glowId})`}
-            className={cn(animated && "infinya-symbol-shimmer")}
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 mix-blend-screen opacity-75",
+              animated && "infinya-symbol-aurora",
+            )}
           />
-
-          <path
-            d={infinityPath}
-            fill="none"
-            stroke="rgba(255,255,255,0.18)"
-            strokeWidth="4.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-[-18%] mix-blend-color-dodge opacity-55 blur-[10px]",
+              animated && "infinya-symbol-wave",
+            )}
           />
-
-          <path
-            d={infinityPath}
-            fill="none"
-            stroke={`url(#${trailId})`}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="18 240"
-            className={cn(animated && "infinya-symbol-trail")}
-          />
-
-          <g filter={`url(#${orbitId})`} className={cn(animated && "infinya-orbit-runner")}>
-            <circle r="3.1" fill="#8ff1ff">
-              <animateMotion
-                dur={compact ? "5s" : "5.8s"}
-                repeatCount="indefinite"
-                rotate="auto"
-                path={infinityPath}
-              />
-            </circle>
-            <circle r="1.4" fill="#f4c2ff">
-              <animateMotion
-                dur={compact ? "5s" : "5.8s"}
-                repeatCount="indefinite"
-                rotate="auto"
-                path={infinityPath}
-              />
-            </circle>
-          </g>
-        </svg>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_38%,rgba(4,8,22,0.06)_75%,rgba(4,8,22,0.18)_100%)]" />
+        </div>
       </div>
 
       <div className="min-w-0">
