@@ -36,7 +36,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     <div className="space-y-6">
       <Link
         href="/configuracoes/produtos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para produtos
@@ -67,9 +67,9 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
           }}
         />
 
-        <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Zona de exclusão</h2>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             A exclusão é permitida apenas quando o produto ainda não possui vínculos com estoque
             ou itens de recebimento.
           </p>
@@ -78,7 +78,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             <Button
               type="submit"
               variant="outline"
-              className="border-rose-200 text-rose-700 hover:bg-rose-50"
+              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
             >
               <Trash2 className="h-4 w-4" />
               Excluir produto

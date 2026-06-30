@@ -100,7 +100,7 @@ export default async function ConfiguracoesProdutosPage({
     <div className="space-y-6">
       <Link
         href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para configurações
@@ -116,8 +116,8 @@ export default async function ConfiguracoesProdutosPage({
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {feedback === "criado"
@@ -135,18 +135,20 @@ export default async function ConfiguracoesProdutosPage({
       <section className="grid gap-6 xl:grid-cols-[1.05fr_1.3fr]">
         <ProductImportPanel depositantes={depositantes ?? []} />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Padrão de importação</h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
-            <div className="rounded-xl border border-slate-200 px-4 py-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Padrão de importação
+          </h2>
+          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
               O sistema usa o <strong>código interno</strong> como chave principal do upsert por
               depositante.
             </div>
-            <div className="rounded-xl border border-slate-200 px-4 py-3">
+            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
               Quando a planilha não traz SKU separado, o sistema usa o próprio código interno como
               SKU operacional.
             </div>
-            <div className="rounded-xl border border-slate-200 px-4 py-3">
+            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
               EAN/GTIN é salvo no campo externo do produto, pronto para refinarmos depois com
               modelagem dedicada.
             </div>
@@ -154,16 +156,18 @@ export default async function ConfiguracoesProdutosPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">Produtos cadastrados</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Produtos cadastrados
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Base ativa para recebimento, estoque, expedição e rastreabilidade por depositante.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               {totalProducts} registros
             </span>
             <Link href="/configuracoes/produtos/novo">
@@ -175,32 +179,32 @@ export default async function ConfiguracoesProdutosPage({
           </div>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_0.9fr_auto]">
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Busca
               </span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
-                <Search className="h-4 w-4 text-slate-400" />
+              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950">
+                <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   name="q"
                   defaultValue={searchTerm}
                   placeholder="Nome, SKU, código interno ou EAN"
-                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Depositante
               </span>
               <select
                 name="depositante"
                 defaultValue={depositanteFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Todos</option>
                 {(depositantes ?? []).map((depositante) => (
@@ -212,13 +216,13 @@ export default async function ConfiguracoesProdutosPage({
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Status
               </span>
               <select
                 name="status"
                 defaultValue={statusFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="ativos">Ativos</option>
                 <option value="inativos">Inativos</option>
@@ -227,13 +231,13 @@ export default async function ConfiguracoesProdutosPage({
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Método
               </span>
               <select
                 name="metodo"
                 defaultValue={metodoFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Todos</option>
                 <option value="FEFO">FEFO</option>
@@ -243,13 +247,13 @@ export default async function ConfiguracoesProdutosPage({
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Unidade
               </span>
               <select
                 name="unidade"
                 defaultValue={unidadeFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Todas</option>
                 <option value="UNIDADE">Unidade</option>
@@ -265,7 +269,7 @@ export default async function ConfiguracoesProdutosPage({
               <select
                 name="perPage"
                 defaultValue={String(perPage)}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="10">10 / página</option>
                 <option value="20">20 / página</option>
@@ -273,7 +277,7 @@ export default async function ConfiguracoesProdutosPage({
               </select>
               <Link
                 href="/configuracoes/produtos"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
               >
                 Limpar
               </Link>
@@ -284,7 +288,7 @@ export default async function ConfiguracoesProdutosPage({
         <div className="mt-5 space-y-4">
           {paginatedProducts.length ? (
             <>
-              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
                 <span>
                   Exibindo {visibleStart}-{visibleEnd} de {totalProducts} produto(s)
                 </span>
@@ -298,7 +302,7 @@ export default async function ConfiguracoesProdutosPage({
                   >
                     Anterior
                   </PageLink>
-                  <span className="text-xs font-medium text-slate-500">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     Página {currentPage} de {totalPages}
                   </span>
                   <PageLink
@@ -313,86 +317,91 @@ export default async function ConfiguracoesProdutosPage({
                 </div>
               </div>
 
-            {paginatedProducts.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-base font-semibold text-slate-950">{item.nome}</p>
-                      <p className="text-sm text-slate-500">
-                        {item.sku} • {item.codigo_interno}
-                      </p>
+              {paginatedProducts.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-base font-semibold text-slate-950 dark:text-white">
+                          {item.nome}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {item.sku} • {item.codigo_interno}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                        <p>
+                          Depositante:{" "}
+                          {((item.depositante as { nome?: string } | null) ?? null)?.nome ?? "-"}
+                        </p>
+                        <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
+                        <p>Categoria: {item.categoria || "-"}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{item.metodo_retirada}</Badge>
+                        <Badge>{getUnidadeLabel(item.unidade_estocagem)}</Badge>
+                        <Badge>{item.exige_lote ? "Com lote" : "Sem lote"}</Badge>
+                        <Badge>{item.exige_validade ? "Com validade" : "Sem validade"}</Badge>
+                      </div>
                     </div>
 
-                    <div className="space-y-1 text-sm text-slate-600">
-                      <p>
-                        Depositante:{" "}
-                        {((item.depositante as { nome?: string } | null) ?? null)?.nome ?? "-"}
-                      </p>
-                      <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
-                      <p>Categoria: {item.categoria || "-"}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Badge>{item.metodo_retirada}</Badge>
-                      <Badge>{getUnidadeLabel(item.unidade_estocagem)}</Badge>
-                      <Badge>{item.exige_lote ? "Com lote" : "Sem lote"}</Badge>
-                      <Badge>{item.exige_validade ? "Com validade" : "Sem validade"}</Badge>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 lg:text-right">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                        item.ativo
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {item.ativo ? "Ativo" : "Inativo"}
-                    </span>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">
-                      Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
-                    </p>
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <Link
-                        href={`/configuracoes/produtos/${item.id}/editar`}
-                        className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50"
+                    <div className="space-y-3 lg:text-right">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                          item.ativo
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        }`}
                       >
-                        <PencilLine className="h-4 w-4" />
-                        Editar
-                      </Link>
-                      <form action={toggleProdutoStatusAction}>
-                        <input type="hidden" name="id" value={item.id} />
-                        <input
-                          type="hidden"
-                          name="nextActive"
-                          value={item.ativo ? "false" : "true"}
-                        />
-                        <Button type="submit" variant="outline" size="sm">
-                          {item.ativo ? "Desativar" : "Ativar"}
-                        </Button>
-                      </form>
-                      <form action={deleteProdutoAction}>
-                        <input type="hidden" name="id" value={item.id} />
-                        <Button
-                          type="submit"
-                          variant="outline"
-                          size="sm"
-                          className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                        {item.ativo ? "Ativo" : "Inativo"}
+                      </span>
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                        Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <Link
+                          href={`/configuracoes/produtos/${item.id}/editar`}
+                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                         >
-                          <Trash2 className="h-4 w-4" />
-                          Excluir
-                        </Button>
-                      </form>
+                          <PencilLine className="h-4 w-4" />
+                          Editar
+                        </Link>
+                        <form action={toggleProdutoStatusAction}>
+                          <input type="hidden" name="id" value={item.id} />
+                          <input
+                            type="hidden"
+                            name="nextActive"
+                            value={item.ativo ? "false" : "true"}
+                          />
+                          <Button type="submit" variant="outline" size="sm">
+                            {item.ativo ? "Desativar" : "Ativar"}
+                          </Button>
+                        </form>
+                        <form action={deleteProdutoAction}>
+                          <input type="hidden" name="id" value={item.id} />
+                          <Button
+                            type="submit"
+                            variant="outline"
+                            size="sm"
+                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
               Nenhum produto encontrado com os filtros atuais.
             </div>
           )}
@@ -404,7 +413,7 @@ export default async function ConfiguracoesProdutosPage({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
       {children}
     </span>
   );
@@ -460,7 +469,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-slate-800 dark:text-slate-600">
         {children}
       </span>
     );
@@ -469,7 +478,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
     >
       {children}
     </Link>
