@@ -26,20 +26,20 @@ export function InfinyaBrand({
     <div className={cn("flex items-center gap-3", className)}>
       <div
         className={cn(
-          "infinya-mark-shell relative overflow-hidden rounded-[22px] border border-white/12 bg-[#071120]/85 shadow-[0_0_30px_rgba(34,211,238,0.12)]",
-          compact ? "h-12 w-12" : "h-14 w-14",
+          "infinya-mark-shell relative overflow-hidden rounded-[22px] border border-white/12 bg-[#071120]/90 shadow-[0_0_30px_rgba(34,211,238,0.12)]",
+          compact ? "h-11 w-[3.55rem]" : "h-14 w-[4.6rem]",
           animated && "infinya-mark-float",
           markClassName,
         )}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.2),transparent_45%),radial-gradient(circle_at_72%_68%,rgba(192,132,252,0.26),transparent_42%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_24%,rgba(34,211,238,0.22),transparent_46%),radial-gradient(circle_at_74%_70%,rgba(192,132,252,0.28),transparent_42%)]" />
         <Image
-          src="/branding/infinya-final.png"
+          src="/branding/infinya-mark-512.png"
           alt="Infinya"
           fill
-          sizes={compact ? "48px" : "56px"}
+          sizes={compact ? "57px" : "74px"}
           className={cn(
-            "object-cover object-top scale-[1.42] saturate-125",
+            "object-contain px-1 py-1 saturate-125",
             animated && "infinya-mark-image",
           )}
           priority
@@ -49,13 +49,15 @@ export function InfinyaBrand({
       <div className="min-w-0">
         <p
           className={cn(
-            "truncate font-semibold tracking-[0.18em] text-white",
-            compact ? "text-sm" : "text-lg",
-            "text-infinya-brand",
+            "truncate font-semibold text-white",
+            compact ? "text-base tracking-[0.08em]" : "text-[1.4rem] tracking-[0.06em]",
             nameClassName,
           )}
         >
-          {"Infinya \u2022 Log"}
+          <span className="text-infinya-brand">Infinya</span>
+          <span className="ml-2 align-middle text-[0.68em] font-medium uppercase tracking-[0.22em] text-slate-400 dark:text-slate-300">
+            {"• Log"}
+          </span>
         </p>
         {subtitle ? (
           <p

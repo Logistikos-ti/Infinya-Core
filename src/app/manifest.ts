@@ -5,7 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/m",
     name: "Infinya • Log",
     short_name: "Infinya Log",
-    description: "Webapp operacional da Infinya para recebimento, separação e conferência logística.",
+    description:
+      "Webapp operacional da Infinya para recebimento, separação e conferência logística.",
     start_url: "/m/login",
     scope: "/",
     display: "standalone",
@@ -16,8 +17,18 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "pt-BR",
     icons: [
       {
-        src: "/branding/infinya-final.png",
-        sizes: "1024x1024",
+        src: "/branding/infinya-mark-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/branding/infinya-mark-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      {
+        src: "/branding/infinya-mark-maskable-512.png",
+        sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
       },

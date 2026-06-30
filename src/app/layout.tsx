@@ -24,8 +24,12 @@ export const metadata: Metadata = {
     title: "Infinya Log",
   },
   icons: {
-    apple: "/branding/infinya-final.png",
-    icon: "/branding/infinya-final.png",
+    apple: [{ url: "/branding/infinya-mark-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/branding/infinya-mark-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/branding/infinya-mark-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: ["/branding/infinya-mark-192.png"],
   },
 };
 

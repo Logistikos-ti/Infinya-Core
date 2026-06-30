@@ -1,7 +1,9 @@
-const CACHE_NAME = "infinya-log-pwa-v1";
+const CACHE_NAME = "infinya-log-pwa-v2";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
-  "/branding/infinya-final.png",
+  "/branding/infinya-mark-192.png",
+  "/branding/infinya-mark-512.png",
+  "/branding/infinya-mark-maskable-512.png",
   "/m",
   "/m/login",
 ];
