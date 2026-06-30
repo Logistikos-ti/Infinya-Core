@@ -219,6 +219,25 @@ a {
       infinya-mark-breathe 5.6s ease-in-out infinite,
       infinya-mark-spectrum 8.4s ease-in-out infinite;
   }
+  .infinya-symbol-flow {
+    background:
+      linear-gradient(
+        115deg,
+        #59e7ff 0%,
+        #8ef0ff 18%,
+        #74d8ff 33%,
+        #8d78ff 52%,
+        #d96fff 76%,
+        #8ef0ff 100%
+      );
+    background-size: 240% 240%;
+    animation: infinya-symbol-flow 7.6s linear infinite;
+    filter:
+      saturate(1.12)
+      brightness(1.06)
+      drop-shadow(0 0 10px rgba(34, 211, 238, 0.2))
+      drop-shadow(0 0 16px rgba(217, 70, 239, 0.14));
+  }
   .infinya-symbol-aurora {
     background:
       linear-gradient(115deg,
@@ -342,6 +361,16 @@ a {
       hue-rotate(6deg)
       drop-shadow(0 0 16px rgba(34, 211, 238, 0.32))
       drop-shadow(0 0 28px rgba(217, 70, 239, 0.2));
+  }
+}
+
+@keyframes infinya-symbol-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 180% 50%;
   }
 }
 

@@ -22,6 +22,17 @@ export function InfinyaBrand({
   compact = false,
   animated = true,
 }: InfinyaBrandProps) {
+  const symbolMaskStyle = {
+    WebkitMaskImage: "url('/branding/infinya-mark-overlay.png')",
+    maskImage: "url('/branding/infinya-mark-overlay.png')",
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+  } as const;
+
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div
@@ -33,28 +44,34 @@ export function InfinyaBrand({
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_24%,rgba(34,211,238,0.2),transparent_46%),radial-gradient(circle_at_76%_70%,rgba(217,70,239,0.18),transparent_38%)]" />
         <div className="absolute inset-[10%] overflow-hidden rounded-[16px]">
+          <div
+            className={cn(
+              "absolute inset-0 opacity-95",
+              animated && "infinya-mark-breathe infinya-symbol-flow",
+            )}
+            style={symbolMaskStyle}
+          />
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 mix-blend-screen opacity-85",
+              animated && "infinya-symbol-aurora",
+            )}
+            style={symbolMaskStyle}
+          />
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-[-18%] mix-blend-color-dodge opacity-65 blur-[10px]",
+              animated && "infinya-symbol-wave",
+            )}
+            style={symbolMaskStyle}
+          />
           <Image
-            src="/branding/infinya-mark-512.png"
+            src="/branding/infinya-mark-overlay.png"
             alt="Infinya"
             fill
             sizes={compact ? "44px" : "56px"}
-            className={cn(
-              "object-cover scale-[1.12]",
-              animated && "infinya-mark-breathe infinya-mark-spectrum",
-            )}
+            className="pointer-events-none object-cover scale-[1.12] opacity-[0.94]"
             priority
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-0 mix-blend-screen opacity-75",
-              animated && "infinya-symbol-aurora",
-            )}
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-[-18%] mix-blend-color-dodge opacity-55 blur-[10px]",
-              animated && "infinya-symbol-wave",
-            )}
           />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_38%,rgba(4,8,22,0.06)_75%,rgba(4,8,22,0.18)_100%)]" />
         </div>
