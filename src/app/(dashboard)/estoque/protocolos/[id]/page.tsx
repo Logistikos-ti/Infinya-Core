@@ -53,7 +53,7 @@ export default async function ProtocoloEstoquePage({
         <Link
           href={`/api/estoque/protocolos/${detail.id}/pdf`}
           target="_blank"
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
           <Download className="h-4 w-4" />
           Emitir protocolo em PDF
@@ -117,7 +117,7 @@ export default async function ProtocoloEstoquePage({
               <PanelInfo label="Lançado em" value={detail.source.launchedAt} />
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 dark:bg-zinc-950/40 dark:text-slate-300">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
               Não foi encontrada uma origem formal de recebimento para este saldo.
             </div>
           )}
