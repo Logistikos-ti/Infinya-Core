@@ -35,7 +35,7 @@ export default async function NovoPedidoManualPage({
     <div className="space-y-6">
       <Link
         href="/expedicao"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para expedição
@@ -48,7 +48,7 @@ export default async function NovoPedidoManualPage({
       />
 
       {feedback === "erro" ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
           Não foi possível criar o pedido manual. Revise os campos obrigatórios.
         </div>
       ) : null}
@@ -57,15 +57,15 @@ export default async function NovoPedidoManualPage({
         action={createManualShippingOrderAction}
         className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]"
       >
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Dados principais</h2>
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Dados principais</h2>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Depositante">
               <select
                 name="depositanteId"
                 required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 <option value="">Selecione</option>
                 {depositanteOptions.map((depositante) => (
@@ -80,7 +80,7 @@ export default async function NovoPedidoManualPage({
               <input
                 name="numeroPedido"
                 required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -88,7 +88,7 @@ export default async function NovoPedidoManualPage({
               <select
                 name="salesChannelCode"
                 required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               >
                 <option value="">Selecione</option>
                 {SALES_CHANNEL_OPTIONS.map((option) => (
@@ -102,7 +102,7 @@ export default async function NovoPedidoManualPage({
             <Field label="Número da loja / pedido externo">
               <input
                 name="numeroLoja"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -110,7 +110,7 @@ export default async function NovoPedidoManualPage({
               <input
                 name="customStoreName"
                 placeholder="Ex.: WhatsApp, televendas, parceiro local"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -118,7 +118,7 @@ export default async function NovoPedidoManualPage({
               <input
                 name="mercadoLivreOrderId"
                 placeholder="Opcional para pedidos ML"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -126,7 +126,7 @@ export default async function NovoPedidoManualPage({
               <input
                 name="mercadoLivreShipmentId"
                 placeholder="shipment_id para etiqueta e rastreio"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -134,7 +134,7 @@ export default async function NovoPedidoManualPage({
               <input
                 value="Derivado automaticamente a partir do canal"
                 disabled
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
               />
             </Field>
 
@@ -143,7 +143,7 @@ export default async function NovoPedidoManualPage({
                 type="date"
                 name="dataPedido"
                 required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -151,21 +151,21 @@ export default async function NovoPedidoManualPage({
               <input
                 name="clienteNome"
                 required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
             <Field label="Documento">
               <input
                 name="clienteDocumento"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
             <Field label="Cidade">
               <input
                 name="clienteCidade"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -173,7 +173,7 @@ export default async function NovoPedidoManualPage({
               <input
                 name="clienteUf"
                 maxLength={2}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -181,14 +181,14 @@ export default async function NovoPedidoManualPage({
               <input
                 type="date"
                 name="previsaoEnvioEm"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
             <Field label="Transportadora">
               <input
                 name="carrierName"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
@@ -196,21 +196,21 @@ export default async function NovoPedidoManualPage({
               <input
                 name="shippingService"
                 placeholder="Ex.: SEDEX, Jadlog Package, coleta local"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
             <Field label="Código de rastreio">
               <input
                 name="trackingCode"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
 
             <Field label="Número da nota fiscal">
               <input
                 name="invoiceNumber"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               />
             </Field>
           </div>
@@ -219,7 +219,7 @@ export default async function NovoPedidoManualPage({
             <textarea
               name="observacoes"
               rows={5}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             />
           </Field>
 
@@ -229,14 +229,14 @@ export default async function NovoPedidoManualPage({
         </section>
 
         <section className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Resumo operacional</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Resumo operacional</h2>
             <div className="mt-4 grid gap-4">
               <Field label="Valor total (R$)">
                 <input
                   name="valorTotal"
                   defaultValue="0"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
                 />
               </Field>
 
@@ -244,7 +244,7 @@ export default async function NovoPedidoManualPage({
                 <input
                   name="quantidadeItens"
                   defaultValue="0"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
                 />
               </Field>
 
@@ -252,21 +252,21 @@ export default async function NovoPedidoManualPage({
                 <input
                   name="quantidadeUnidades"
                   defaultValue="0"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
                 />
               </Field>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Anexos iniciais</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Anexos iniciais</h2>
             <div className="mt-4 grid gap-4">
               <Field label="XML da nota fiscal">
                 <input
                   type="file"
                   name="invoiceXml"
                   accept=".xml,application/xml,text/xml"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:file:bg-zinc-800"
                 />
               </Field>
 
@@ -275,15 +275,15 @@ export default async function NovoPedidoManualPage({
                   type="file"
                   name="shippingLabel"
                   accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:file:bg-zinc-800"
                 />
               </Field>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Como isso será salvo</h2>
-            <div className="mt-4 space-y-2 text-sm text-slate-600">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Como isso será salvo</h2>
+            <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
               <p>Marketplace será derivado automaticamente a partir do canal escolhido.</p>
               <p>Loja ficará com o nome comercial do canal, evitando IDs técnicos na expedição.</p>
               <p>Transportadora, serviço, rastreio e nota fiscal já entram no mesmo formato operacional do pedido integrado.</p>
@@ -292,7 +292,7 @@ export default async function NovoPedidoManualPage({
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
+            <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
               <Save className="h-4 w-4" />
               Criar pedido manual
             </Button>
@@ -314,7 +314,7 @@ function Field({
 }) {
   return (
     <label className={`block space-y-1 ${className}`}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
       {children}
     </label>
   );

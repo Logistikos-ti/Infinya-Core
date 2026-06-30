@@ -71,7 +71,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
     <div className="space-y-6">
       <Link
         href="/expedicao"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para expedição
@@ -87,8 +87,8 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "concluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {feedback === "concluido"
@@ -108,21 +108,21 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
         <StatTile icon={TriangleAlert} label="Unidades pendentes" value={String(pendingUnits)} />
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Filtro operacional</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Filtro operacional</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Use operador, depositante e status para montar a fila de conferência do turno.
           </p>
         </div>
 
         <form className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</span>
             <select
               name="status"
               defaultValue={statusFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               {statusOptions.map((option) => (
                 <option key={option.value || "todos"} value={option.value}>
@@ -133,11 +133,11 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Operador</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Operador</span>
             <select
               name="operador"
               defaultValue={operatorFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               <option value="">Todos</option>
               {operators.map((operator) => (
@@ -149,12 +149,12 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Depositante</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Depositante</span>
             <select
               name="depositante"
               defaultValue={depositanteFilter}
               disabled={user.papel === "DEPOSITANTE"}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
             >
               <option value="">Todos</option>
               {depositanteOptions.map((depositante) => (
@@ -166,11 +166,11 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
           </label>
 
           <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Página</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Página</span>
             <select
               name="perPage"
               defaultValue={String(perPage)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               <option value="10">10 / página</option>
               <option value="20">20 / página</option>
@@ -179,12 +179,12 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
           </label>
 
           <div className="flex items-end gap-2">
-            <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
+            <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
               Aplicar
             </Button>
             <Link
               href="/expedicao/conferencia"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
             >
               Limpar
             </Link>
@@ -195,7 +195,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
       <section className="space-y-6">
         {paginatedOrders.length ? (
           <>
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
               <span>
                 Exibindo {visibleStart}-{visibleEnd} de {totalOrders} pedido(s)
               </span>
@@ -209,7 +209,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
                 >
                   Anterior
                 </PageLink>
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   Página {currentPage} de {totalPages}
                 </span>
                 <PageLink
@@ -225,29 +225,29 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
             </div>
 
             {paginatedOrders.map((order) => (
-              <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                      <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                         {order.statusLabel}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                         {order.depositante}
                       </span>
                       <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>
                       {order.pendingUnits > 0 ? (
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                           Pendentes: {order.pendingUnits} un
                         </span>
                       ) : null}
                     </div>
 
-                    <h2 className="mt-3 text-lg font-semibold text-slate-950">{order.externalNumber}</h2>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <h2 className="mt-3 text-lg font-semibold text-slate-950 dark:text-white">{order.externalNumber}</h2>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       {order.customer} • {order.destination}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <span>Código interno {order.code}</span>
                       <span>Criado em {order.createdAt}</span>
                       <span>{order.totalItems} item(ns)</span>
@@ -259,7 +259,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
 
                   <Link
                     href={`/expedicao/conferencia/${order.id}`}
-                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
                   >
                     Iniciar conferência
                   </Link>
@@ -268,7 +268,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
             ))}
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-slate-400">
             Nenhum pedido disponível para conferência com os filtros atuais.
           </div>
         )}
@@ -279,14 +279,14 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
 
 function buildAgeBadgeClass(tone: "fresh" | "warning" | "critical") {
   if (tone === "critical") {
-    return "rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700";
+    return "rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300";
   }
 
   if (tone === "warning") {
-    return "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700";
+    return "rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300";
   }
 
-  return "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700";
+  return "rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300";
 }
 
 function StatTile({
@@ -299,13 +299,13 @@ function StatTile({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{value}</p>
         </div>
-        <div className="rounded-full bg-sky-50 p-3 text-sky-700">
+        <div className="rounded-full bg-sky-50 p-3 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -346,7 +346,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-zinc-800 dark:text-zinc-600">
         {children}
       </span>
     );
@@ -355,7 +355,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
     >
       {children}
     </Link>
