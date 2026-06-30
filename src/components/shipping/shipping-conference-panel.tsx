@@ -246,8 +246,8 @@ export function ShippingConferencePanel({
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "concluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {feedback === "concluido"
@@ -261,7 +261,7 @@ export function ShippingConferencePanel({
       ) : null}
 
       {wrongProductScans > 0 || quantityDivergentItems > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="space-y-1">
@@ -277,40 +277,40 @@ export function ShippingConferencePanel({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
                 {order.statusLabel}
               </span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {order.depositante}
               </span>
               {pendingUnits > 0 ? (
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-200">
                   Pendentes: {pendingUnits} un
                 </span>
               ) : (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200">
                   Pedido conferido
                 </span>
               )}
             </div>
 
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">{order.externalNumber}</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="mt-3 text-xl font-semibold text-slate-950 dark:text-slate-100">{order.externalNumber}</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               {order.customer} • {order.destination}
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Código interno {order.code} • {order.totalItems} item(ns) • {order.totalUnits} unidade(s)
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Conferido</p>
-            <p className="mt-1 text-base font-semibold text-slate-900">{completionPercent}%</p>
-            <p className="mt-1 text-xs text-slate-500">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Conferido</p>
+            <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">{completionPercent}%</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {quantityDivergentItems
                 ? `${quantityDivergentItems} item(ns) com divergência`
                 : "Sem divergência de quantidade"}
@@ -320,9 +320,9 @@ export function ShippingConferencePanel({
 
         <div className="mt-5 grid gap-4 xl:grid-cols-[320px_1fr]">
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40">
               <label className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Operador responsável
                 </span>
                 <select
@@ -331,7 +331,7 @@ export function ShippingConferencePanel({
                     resetTimer();
                     setSelectedOperatorId(event.target.value);
                   }}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 >
                   <option value="">Selecionar operador</option>
                   {operators.map((operator) => (
@@ -342,7 +342,7 @@ export function ShippingConferencePanel({
                 </select>
               </label>
 
-              <div className="mt-4 grid gap-2 text-sm text-slate-600">
+              <div className="mt-4 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <InfoMini label="Início" value={formatDateTime(order.startedAt) || "Ainda não iniciado"} />
                 <InfoMini
                   label="Última atualização"
@@ -351,13 +351,13 @@ export function ShippingConferencePanel({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
               <form onSubmit={handleScanSubmit} className="space-y-2">
-                <span className="block text-sm font-medium text-slate-700">
+                <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Leitura de código de barras
                 </span>
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-white p-2">
-                  <Barcode className="h-4 w-4 text-slate-500" />
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-white p-2 dark:border-slate-700 dark:bg-slate-950">
+                  <Barcode className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                   <input
                     ref={scanInputRef}
                     value={scanValue}
@@ -373,21 +373,25 @@ export function ShippingConferencePanel({
                       }
                     }}
                     placeholder="Leia EAN/GTIN, SKU ou código interno"
-                    className="h-10 w-full border-0 bg-transparent px-1 text-sm text-slate-950 outline-none"
+                    className="h-10 w-full border-0 bg-transparent px-1 text-sm text-slate-950 outline-none dark:text-slate-100"
                   />
                   <button
                     type="submit"
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
                   >
                     <ScanSearch className="h-4 w-4" />
                     Ler
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Faça a leitura item a item para validar o pedido real antes da expedição.
                 </p>
                 {scanMessage ? (
-                  <p className={`text-sm ${scanTone === "success" ? "text-emerald-700" : "text-rose-700"}`}>
+                  <p
+                    className={`text-sm ${
+                      scanTone === "success" ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"
+                    }`}
+                  >
                     {scanMessage}
                   </p>
                 ) : null}
@@ -418,7 +422,7 @@ export function ShippingConferencePanel({
                   className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
                     operatorMode
                       ? "bg-sky-600 text-white hover:bg-sky-700"
-                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
                   }`}
                 >
                   {operatorMode ? "Modo operador ativo" : "Ativar modo operador"}
@@ -430,7 +434,7 @@ export function ShippingConferencePanel({
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
                     soundEnabled
                       ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
                   }`}
                 >
                   <Volume2 className="h-4 w-4" />
@@ -440,14 +444,14 @@ export function ShippingConferencePanel({
                 <button
                   type="button"
                   onClick={focusScanInput}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
                 >
                   <Focus className="h-4 w-4" />
                   Focar leitura
                 </button>
               </div>
 
-              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 dark:border-slate-800">
                 <video
                   ref={videoRef}
                   playsInline
@@ -458,7 +462,7 @@ export function ShippingConferencePanel({
                 />
               </div>
 
-              <p className="mt-3 text-sm text-slate-600">
+              <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 {cameraMessage ??
                   (cameraSupported
                     ? "Compatível com celular e notebook. Abra a câmera e escaneie o EAN/GTIN do item."
@@ -473,9 +477,9 @@ export function ShippingConferencePanel({
             <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
             <input type="hidden" name="redirectBase" value={redirectBase} />
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500">
+                <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900/70 dark:text-slate-300">
                   <tr>
                     <th className="px-4 py-3 font-medium">SKU / produto</th>
                     <th className="px-4 py-3 font-medium">Pedido</th>
@@ -487,36 +491,36 @@ export function ShippingConferencePanel({
                   {items.map((item) => (
                     <tr
                       key={item.id}
-                      className={`border-t border-slate-100 align-top ${
-                        activeItemId === item.id ? "bg-sky-50/60" : ""
+                      className={`border-t border-slate-100 align-top dark:border-slate-800 ${
+                        activeItemId === item.id ? "bg-sky-50/60 dark:bg-sky-500/10" : "dark:bg-slate-950/30"
                       }`}
                     >
-                      <td className="px-4 py-4 text-slate-900">
+                      <td className="px-4 py-4 text-slate-900 dark:text-slate-100">
                         <input type="hidden" name="itemId" value={item.id} />
                         <div className="font-medium">
                           {item.sku} • {item.name}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           Cod. {item.code} • Ref. {item.externalReference}
                         </div>
-                        <div className="mt-3 inline-block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                          <p className="text-[11px] font-medium uppercase tracking-wide text-amber-700">
+                        <div className="mt-3 inline-block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-500/30 dark:bg-amber-500/10">
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-amber-700 dark:text-amber-200">
                             EAN/GTIN esperado
                           </p>
-                          <p className="mt-1 text-sm font-semibold text-slate-950">
+                          <p className="mt-1 text-sm font-semibold text-slate-950 dark:text-slate-100">
                             {item.barcode || "-"}
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-slate-700">
+                      <td className="px-4 py-4 text-slate-700 dark:text-slate-200">
                         {item.requestedQuantity} {item.unit}
                       </td>
-                      <td className="px-4 py-4 text-slate-700">
+                      <td className="px-4 py-4 text-slate-700 dark:text-slate-200">
                         {item.separatedQuantity} {item.unit}
                       </td>
                       <td className="px-4 py-4">
                         {normalizeQuantity(item.confirmedQuantityValue) !== item.requestedQuantity ? (
-                          <div className="mb-2 inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                          <div className="mb-2 inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-200">
                             Divergência
                           </div>
                         ) : null}
@@ -531,16 +535,16 @@ export function ShippingConferencePanel({
                           step={1}
                           value={item.confirmedQuantityValue}
                           onChange={(event) => updateItemQuantity(item.id, event.target.value)}
-                          className="h-11 w-28 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                          className="h-11 w-28 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                         />
                         {Math.max(item.requestedQuantity - normalizeQuantity(item.confirmedQuantityValue), 0) > 0 ? (
-                          <p className="mt-2 text-xs font-medium text-amber-700">
+                          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
                             Faltam{" "}
                             {Math.max(item.requestedQuantity - normalizeQuantity(item.confirmedQuantityValue), 0)}{" "}
                             {item.unit}.
                           </p>
                         ) : (
-                          <p className="mt-2 text-xs font-medium text-emerald-700">Item conferido.</p>
+                          <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">Item conferido.</p>
                         )}
                       </td>
                     </tr>
@@ -556,7 +560,7 @@ export function ShippingConferencePanel({
                   name="intent"
                   value="complete"
                   variant="outline"
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
                   disabled={isSubmitting}
                   onClick={() => setIsSubmitting(true)}
                 >
@@ -564,7 +568,7 @@ export function ShippingConferencePanel({
                 </Button>
                 <Link
                   href={`${orderBasePath}/${order.id}`}
-                  className={`inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
+                  className={`inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
                 >
                   Ver pedido
                 </Link>
@@ -580,8 +584,8 @@ export function ShippingConferencePanel({
 function InfoMini({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }

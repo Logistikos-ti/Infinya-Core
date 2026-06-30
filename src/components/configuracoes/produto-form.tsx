@@ -38,13 +38,13 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
   return (
     <form
       action={formAction}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70"
     >
       <div>
-        <h2 className="text-lg font-semibold text-slate-950">
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada e unidade de estocagem.
         </p>
       </div>
@@ -141,8 +141,8 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
         <div
           className={`mt-4 rounded-xl px-4 py-3 text-sm ${
             state.success
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-rose-200 bg-rose-50 text-rose-700"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
           }`}
         >
           {state.message}
@@ -153,7 +153,7 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
         <Button
           type="submit"
           disabled={isPending}
-          className="bg-slate-950 text-white hover:bg-slate-800"
+          className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
         >
           {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alterações" : "Criar produto"}
         </Button>
@@ -172,13 +172,13 @@ type FieldProps = {
 function Field({ label, name, defaultValue, error }: FieldProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
       <input
         name={name}
         defaultValue={defaultValue}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
-      {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
+      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
     </label>
   );
 }
@@ -194,11 +194,11 @@ type SelectFieldProps = {
 function SelectField({ label, name, defaultValue, error, options }: SelectFieldProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       >
         {options.map((option) => (
           <option key={`${name}-${option.value}`} value={option.value}>
@@ -206,7 +206,7 @@ function SelectField({ label, name, defaultValue, error, options }: SelectFieldP
           </option>
         ))}
       </select>
-      {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
+      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
     </label>
   );
 }
@@ -225,7 +225,7 @@ function CheckboxField({
   defaultChecked,
 }: CheckboxFieldProps) {
   return (
-    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
+    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
       <input
         type="checkbox"
         name={name}
@@ -233,8 +233,8 @@ function CheckboxField({
         className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
       />
       <span>
-        <span className="font-medium text-slate-950">{label}</span>
-        <span className="mt-1 block text-slate-500">{description}</span>
+        <span className="font-medium text-slate-950 dark:text-slate-100">{label}</span>
+        <span className="mt-1 block text-slate-500 dark:text-slate-400">{description}</span>
       </span>
     </label>
   );

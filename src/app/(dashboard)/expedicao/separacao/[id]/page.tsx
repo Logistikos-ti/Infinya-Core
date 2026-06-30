@@ -26,10 +26,10 @@ export default async function PickingOrderDetailPage({ params }: PickingOrderDet
   }
 
   return (
-    <div className="space-y-6 relative opacity-95">
+    <div className="relative space-y-6 opacity-95">
       <Link
         href="/expedicao/separacao"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-zinc-400 transition hover:text-primary-600 dark:hover:text-primary-400"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-primary-600 dark:text-zinc-400 dark:hover:text-primary-400"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para fila de separação
