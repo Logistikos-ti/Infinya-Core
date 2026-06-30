@@ -45,10 +45,10 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
   return (
     <aside className="glass-card infinya-border-glow sticky top-0 z-10 m-3 flex min-h-screen w-72 flex-shrink-0 flex-col justify-between rounded-[28px] p-4 theme-transition shadow-xl">
       <div>
-        <div className="bg-infinya-panel mb-6 rounded-[24px] border border-white/10 px-3 py-4">
+        <div className="mb-6 px-1 py-2">
           <InfinyaBrand
             subtitle={"Opera\u00E7\u00E3o log\u00EDstica multi-tenant"}
-            subtitleClassName="text-slate-300/80"
+            subtitleClassName="text-slate-500 dark:text-slate-400"
           />
         </div>
 

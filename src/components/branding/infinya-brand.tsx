@@ -20,26 +20,25 @@ export function InfinyaBrand({
   subtitle,
   subtitleClassName,
   compact = false,
-  animated = true,
+  animated = false,
 }: InfinyaBrandProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div
         className={cn(
-          "infinya-mark-shell relative overflow-hidden rounded-[22px] border border-white/12 bg-[#071120]/90 shadow-[0_0_30px_rgba(34,211,238,0.12)]",
-          compact ? "h-11 w-[3.55rem]" : "h-14 w-[4.6rem]",
+          "relative overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-[0_10px_30px_rgba(8,17,34,0.18)]",
+          compact ? "h-11 w-11" : "h-14 w-14",
           animated && "infinya-mark-float",
           markClassName,
         )}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_24%,rgba(34,211,238,0.22),transparent_46%),radial-gradient(circle_at_74%_70%,rgba(192,132,252,0.28),transparent_42%)]" />
         <Image
           src="/branding/infinya-mark-512.png"
           alt="Infinya"
           fill
-          sizes={compact ? "57px" : "74px"}
+          sizes={compact ? "44px" : "56px"}
           className={cn(
-            "object-contain px-1 py-1 saturate-125",
+            "object-cover",
             animated && "infinya-mark-image",
           )}
           priority
@@ -47,22 +46,31 @@ export function InfinyaBrand({
       </div>
 
       <div className="min-w-0">
-        <p
-          className={cn(
-            "truncate font-semibold text-white",
-            compact ? "text-base tracking-[0.08em]" : "text-[1.4rem] tracking-[0.06em]",
-            nameClassName,
-          )}
-        >
-          <span className="text-infinya-brand">Infinya</span>
-          <span className="ml-2 align-middle text-[0.68em] font-medium uppercase tracking-[0.22em] text-slate-400 dark:text-slate-300">
-            {"• Log"}
+        <div className="flex min-w-0 items-center gap-2">
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              compact ? "h-5 w-[8.6rem]" : "h-7 w-[12rem]",
+              nameClassName,
+            )}
+          >
+            <Image
+              src="/branding/infinya-wordmark.png"
+              alt="Infinya"
+              fill
+              sizes={compact ? "138px" : "192px"}
+              className="object-contain object-left"
+              priority
+            />
+          </div>
+          <span className="shrink-0 rounded-full border border-slate-300/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+            Log
           </span>
-        </p>
+        </div>
         {subtitle ? (
           <p
             className={cn(
-              "truncate text-xs text-slate-300/90",
+              "truncate text-xs text-slate-500 dark:text-slate-300/90",
               compact ? "mt-0.5" : "mt-1",
               subtitleClassName,
             )}
