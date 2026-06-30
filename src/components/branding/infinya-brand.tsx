@@ -46,22 +46,29 @@ export function InfinyaBrand({
         <div className="absolute inset-[10%] overflow-hidden rounded-[16px]">
           <div
             className={cn(
-              "absolute inset-0 opacity-95",
+              "absolute inset-0 opacity-[0.98]",
               animated && "infinya-mark-breathe infinya-symbol-flow",
             )}
             style={symbolMaskStyle}
           />
           <div
             className={cn(
-              "pointer-events-none absolute inset-0 mix-blend-screen opacity-85",
+              "pointer-events-none absolute inset-0 mix-blend-screen opacity-[0.96]",
               animated && "infinya-symbol-aurora",
             )}
             style={symbolMaskStyle}
           />
           <div
             className={cn(
-              "pointer-events-none absolute inset-[-18%] mix-blend-color-dodge opacity-65 blur-[10px]",
+              "pointer-events-none absolute inset-[-18%] mix-blend-color-dodge opacity-[0.82] blur-[9px]",
               animated && "infinya-symbol-wave",
+            )}
+            style={symbolMaskStyle}
+          />
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-[-10%] mix-blend-screen opacity-[0.88]",
+              animated && "infinya-symbol-ribbon",
             )}
             style={symbolMaskStyle}
           />
@@ -70,7 +77,10 @@ export function InfinyaBrand({
             alt="Infinya"
             fill
             sizes={compact ? "44px" : "56px"}
-            className="pointer-events-none object-cover scale-[1.12] opacity-[0.94]"
+            className={cn(
+              "pointer-events-none object-cover scale-[1.12] opacity-[0.76]",
+              animated && "infinya-mark-overlay-motion",
+            )}
             priority
           />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_38%,rgba(4,8,22,0.06)_75%,rgba(4,8,22,0.18)_100%)]" />

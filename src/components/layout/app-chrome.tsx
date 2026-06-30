@@ -7,7 +7,6 @@ import type { AppUserContext } from "@/lib/auth";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { InfinyaBrand } from "@/components/branding/infinya-brand";
 
 type AppChromeProps = {
   children: ReactNode;
@@ -36,9 +35,6 @@ export function AppChrome({ children, user }: AppChromeProps) {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-slate-200/80 px-4 dark:border-white/10 sm:px-8 lg:border-none">
           <div className="flex w-full max-w-3xl items-center gap-4">
-            <div className="hidden xl:block">
-              <InfinyaBrand compact subtitle="WMS de execução logística" subtitleClassName="text-slate-500 dark:text-slate-400" />
-            </div>
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
