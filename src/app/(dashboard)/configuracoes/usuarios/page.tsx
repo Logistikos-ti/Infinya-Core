@@ -80,7 +80,10 @@ export default async function ConfiguracoesUsuariosPage({
   ]);
 
   const authPermissionsById = new Map(
-    authUsers.map((user) => [user.id, normalizeModulePermissions(user.user_metadata?.module_permissions)]),
+    authUsers.map((user) => [
+      user.id,
+      normalizeModulePermissions(user.user_metadata?.module_permissions),
+    ]),
   );
 
   const usuarios: UsuarioListItem[] = (usuariosBase ?? []).map((item) => ({
@@ -111,7 +114,7 @@ export default async function ConfiguracoesUsuariosPage({
     <div className="space-y-6">
       <Link
         href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para configurações
@@ -127,8 +130,8 @@ export default async function ConfiguracoesUsuariosPage({
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "criado" || feedback === "excluido" || feedback === "salvo"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {feedback === "criado"
@@ -144,18 +147,18 @@ export default async function ConfiguracoesUsuariosPage({
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                 {currentEditUser ? "Editar usuário" : "Novo usuário"}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Defina papel, depositante, status operacional e os módulos liberados para cada
                 usuário.
               </p>
             </div>
-            <div className="rounded-full bg-sky-50 p-2 text-sky-700">
+            <div className="rounded-full bg-sky-50 p-2 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               <UserPlus className="h-5 w-5" />
             </div>
           </div>
@@ -189,7 +192,9 @@ export default async function ConfiguracoesUsuariosPage({
                 required={!currentEditUser}
                 defaultValue=""
                 placeholder={
-                  currentEditUser ? "Preencha apenas se quiser redefinir" : "Mínimo de 8 caracteres"
+                  currentEditUser
+                    ? "Preencha apenas se quiser redefinir"
+                    : "Mínimo de 8 caracteres"
                 }
               />
               <SelectField
@@ -211,24 +216,26 @@ export default async function ConfiguracoesUsuariosPage({
               defaultValue={currentEditUser?.depositante_id ?? ""}
               options={[
                 ["", "Sem vínculo específico"],
-                ...((depositantes ?? []).map((depositante) => [depositante.id, depositante.nome]) as [
-                  string,
-                  string,
-                ][]),
+                ...((depositantes ?? []).map((depositante) => [
+                  depositante.id,
+                  depositante.nome,
+                ]) as [string, string][]),
               ]}
               helpText="Para perfis internos como TI e Administração, o vínculo pode ficar em branco. Para perfil Depositante, o vínculo deve existir."
             />
 
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-sm font-medium text-slate-900">Permissões por módulo</p>
-              <p className="mt-1 text-xs text-slate-500">
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+              <p className="text-sm font-medium text-slate-900 dark:text-white">
+                Permissões por módulo
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Salve exatamente os módulos marcados para este usuário.
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {APP_MODULES.map((module) => (
                   <label
                     key={module}
-                    className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-zinc-800 dark:text-slate-300"
                   >
                     <input
                       type="checkbox"
@@ -243,7 +250,7 @@ export default async function ConfiguracoesUsuariosPage({
               </div>
             </div>
 
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-zinc-800 dark:text-slate-300">
               <input
                 type="checkbox"
                 name="ativo"
@@ -254,13 +261,13 @@ export default async function ConfiguracoesUsuariosPage({
             </label>
 
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
+              <Button className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
                 {currentEditUser ? "Salvar alterações" : "Criar usuário"}
               </Button>
               {currentEditUser ? (
                 <Link
                   href="/configuracoes/usuarios"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
                   Cancelar edição
                 </Link>
@@ -269,15 +276,17 @@ export default async function ConfiguracoesUsuariosPage({
           </form>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Usuários cadastrados</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Usuários cadastrados
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Visão operacional por papel, depositante, status, último acesso e módulos ativos.
               </p>
             </div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               {totalUsers} registros
             </span>
           </div>
@@ -286,7 +295,7 @@ export default async function ConfiguracoesUsuariosPage({
             <select
               name="depositante"
               defaultValue={depositanteFilter}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               <option value="">Todos os depositantes</option>
               {(depositantes ?? []).map((depositante) => (
@@ -298,7 +307,7 @@ export default async function ConfiguracoesUsuariosPage({
             <select
               name="papel"
               defaultValue={papelFilter}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               <option value="">Todos os papéis</option>
               <option value="ADMIN">Administrador</option>
@@ -312,7 +321,7 @@ export default async function ConfiguracoesUsuariosPage({
             <select
               name="perPage"
               defaultValue={String(perPage)}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
             >
               <option value="10">10 / página</option>
               <option value="20">20 / página</option>
@@ -321,7 +330,7 @@ export default async function ConfiguracoesUsuariosPage({
             {(depositanteFilter || papelFilter) && (
               <Link
                 href="/configuracoes/usuarios"
-                className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Limpar
               </Link>
@@ -331,7 +340,7 @@ export default async function ConfiguracoesUsuariosPage({
           <div className="mt-5 space-y-4">
             {paginatedUsers.length ? (
               <>
-                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
                   <span>
                     Exibindo {visibleStart}-{visibleEnd} de {totalUsers} usuário(s)
                   </span>
@@ -345,7 +354,7 @@ export default async function ConfiguracoesUsuariosPage({
                     >
                       Anterior
                     </PageLink>
-                    <span className="text-xs font-medium text-slate-500">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                       Página {currentPage} de {totalPages}
                     </span>
                     <PageLink
@@ -361,94 +370,104 @@ export default async function ConfiguracoesUsuariosPage({
                 </div>
 
                 {paginatedUsers.map((item) => {
-                const isCurrentUser = currentUser.id === item.id;
-                const effectiveModules = getEffectiveModulesForForm(item.papel, item.modulePermissions);
+                  const isCurrentUser = currentUser.id === item.id;
+                  const effectiveModules = getEffectiveModulesForForm(
+                    item.papel,
+                    item.modulePermissions,
+                  );
 
-                return (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-base font-semibold text-slate-950">{item.nome}</p>
-                          <p className="text-sm text-slate-500">{item.email}</p>
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/20"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-base font-semibold text-slate-950 dark:text-white">
+                              {item.nome}
+                            </p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {item.email}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Badge>{getRoleLabel(item.papel)}</Badge>
+                            <Badge>{getDepositanteLabel(item.depositante)}</Badge>
+                            <Badge>{item.ativo ? "Ativo" : "Inativo"}</Badge>
+                            {isCurrentUser ? <Badge>Sessão atual</Badge> : null}
+                          </div>
+
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Último acesso:{" "}
+                            {item.ultimo_acesso_em
+                              ? new Date(item.ultimo_acesso_em).toLocaleString("pt-BR")
+                              : "Ainda não acessou"}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {effectiveModules.map((module) => (
+                              <span
+                                key={`${item.id}-${module}`}
+                                className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200"
+                              >
+                                {getModuleLabel(module)}
+                              </span>
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          <Badge>{getRoleLabel(item.papel)}</Badge>
-                          <Badge>{getDepositanteLabel(item.depositante)}</Badge>
-                          <Badge>{item.ativo ? "Ativo" : "Inativo"}</Badge>
-                          {isCurrentUser ? <Badge>Sessão atual</Badge> : null}
-                        </div>
-
-                        <p className="text-xs text-slate-500">
-                          Último acesso:{" "}
-                          {item.ultimo_acesso_em
-                            ? new Date(item.ultimo_acesso_em).toLocaleString("pt-BR")
-                            : "Ainda não acessou"}
-                        </p>
-
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {effectiveModules.map((module) => (
-                            <span
-                              key={`${item.id}-${module}`}
-                              className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700"
+                        <div className="space-y-3 lg:text-right">
+                          <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                            Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                          <div className="flex flex-wrap gap-2 lg:justify-end">
+                            <Link
+                              href={`/configuracoes/usuarios?editar=${item.id}`}
+                              className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                             >
-                              {getModuleLabel(module)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 lg:text-right">
-                        <p className="text-xs uppercase tracking-wide text-slate-400">
-                          Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
-                        </p>
-                        <div className="flex flex-wrap gap-2 lg:justify-end">
-                          <Link
-                            href={`/configuracoes/usuarios?editar=${item.id}`}
-                            className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <PencilLine className="h-4 w-4" />
-                            Editar
-                          </Link>
-                          <form action={toggleUsuarioStatusAction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <input
-                              type="hidden"
-                              name="nextActive"
-                              value={item.ativo ? "false" : "true"}
-                            />
-                            <Button
-                              type="submit"
-                              variant="outline"
-                              size="sm"
-                              disabled={isCurrentUser && item.ativo}
-                            >
-                              {item.ativo ? "Desativar" : "Ativar"}
-                            </Button>
-                          </form>
-                          <form action={deleteUsuarioAction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <Button
-                              type="submit"
-                              variant="outline"
-                              size="sm"
-                              disabled={isCurrentUser}
-                              className="border-rose-200 text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </form>
+                              <PencilLine className="h-4 w-4" />
+                              Editar
+                            </Link>
+                            <form action={toggleUsuarioStatusAction}>
+                              <input type="hidden" name="id" value={item.id} />
+                              <input
+                                type="hidden"
+                                name="nextActive"
+                                value={item.ativo ? "false" : "true"}
+                              />
+                              <Button
+                                type="submit"
+                                variant="outline"
+                                size="sm"
+                                disabled={isCurrentUser && item.ativo}
+                              >
+                                {item.ativo ? "Desativar" : "Ativar"}
+                              </Button>
+                            </form>
+                            <form action={deleteUsuarioAction}>
+                              <input type="hidden" name="id" value={item.id} />
+                              <Button
+                                type="submit"
+                                variant="outline"
+                                size="sm"
+                                disabled={isCurrentUser}
+                                className="border-rose-200 text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </form>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
               </>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
                 Nenhum usuário cadastrado com os filtros atuais.
               </div>
             )}
@@ -475,7 +494,7 @@ function Field({
   type?: string;
 }) {
   return (
-    <label className="space-y-2 text-sm text-slate-700">
+    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
       <span className="font-medium">{label}</span>
       <input
         type={type}
@@ -483,7 +502,7 @@ function Field({
         required={required}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300"
+        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
       />
     </label>
   );
@@ -503,12 +522,12 @@ function SelectField({
   helpText?: string;
 }) {
   return (
-    <label className="space-y-2 text-sm text-slate-700">
+    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
       <span className="font-medium">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-sky-300"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-sky-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
       >
         {options.map(([value, labelOption]) => (
           <option key={value || "blank"} value={value}>
@@ -516,14 +535,14 @@ function SelectField({
           </option>
         ))}
       </select>
-      {helpText ? <p className="text-xs text-slate-500">{helpText}</p> : null}
+      {helpText ? <p className="text-xs text-slate-500 dark:text-slate-400">{helpText}</p> : null}
     </label>
   );
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
       {children}
     </span>
   );
@@ -550,7 +569,8 @@ function normalizeModulePermissions(value: unknown): AppModule[] | null {
   }
 
   const validModules = value.filter(
-    (item): item is AppModule => typeof item === "string" && APP_MODULES.includes(item as AppModule),
+    (item): item is AppModule =>
+      typeof item === "string" && APP_MODULES.includes(item as AppModule),
   );
 
   return validModules.length ? validModules : null;
@@ -633,7 +653,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400">
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-zinc-800 dark:text-zinc-600">
         {children}
       </span>
     );
@@ -642,7 +662,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white"
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
     >
       {children}
     </Link>
