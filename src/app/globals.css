@@ -211,6 +211,50 @@ a {
       0 12px 28px rgba(8, 17, 34, 0.16),
       0 0 0 1px rgba(126, 232, 255, 0.06);
   }
+  .infinya-symbol-image {
+    animation:
+      infinya-mark-breathe 5.4s ease-in-out infinite,
+      infinya-symbol-image 4.8s ease-in-out infinite;
+    filter:
+      drop-shadow(0 0 10px rgba(92, 237, 255, 0.16))
+      drop-shadow(0 0 16px rgba(214, 115, 255, 0.14));
+  }
+  .infinya-symbol-lux {
+    background:
+      linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0) 6%,
+        rgba(155, 245, 255, 0.12) 20%,
+        rgba(107, 236, 255, 0.42) 30%,
+        rgba(255, 255, 255, 0.84) 40%,
+        rgba(101, 163, 255, 0.42) 52%,
+        rgba(198, 120, 255, 0.5) 66%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    background-size: 210% 210%;
+    animation: infinya-symbol-lux 3.2s linear infinite;
+  }
+  .infinya-symbol-lux-ribbon {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.88) 34%,
+        rgba(148, 239, 255, 0.52) 44%,
+        rgba(161, 114, 255, 0.4) 58%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    background-size: 165% 100%;
+    animation: infinya-symbol-lux-ribbon 2.2s linear infinite;
+  }
+  .infinya-symbol-aura {
+    background:
+      radial-gradient(circle at 16% 50%, rgba(78, 232, 255, 0.42), transparent 24%),
+      radial-gradient(circle at 52% 34%, rgba(109, 142, 255, 0.32), transparent 20%),
+      radial-gradient(circle at 82% 58%, rgba(234, 112, 255, 0.34), transparent 24%);
+    background-size: 180% 180%;
+    animation: infinya-symbol-aura 4.8s ease-in-out infinite;
+  }
   .infinya-mark-base-motion {
     animation:
       infinya-mark-breathe 5.2s ease-in-out infinite,
@@ -453,6 +497,73 @@ a {
       saturate(1.12)
       drop-shadow(0 0 14px rgba(99, 239, 255, 0.28))
       drop-shadow(0 0 22px rgba(215, 111, 255, 0.22));
+  }
+}
+
+@keyframes infinya-symbol-image {
+  0%, 100% {
+    filter:
+      brightness(0.98)
+      saturate(1)
+      drop-shadow(0 0 10px rgba(92, 237, 255, 0.14))
+      drop-shadow(0 0 16px rgba(214, 115, 255, 0.12));
+  }
+
+  50% {
+    filter:
+      brightness(1.04)
+      saturate(1.08)
+      drop-shadow(0 0 14px rgba(92, 237, 255, 0.22))
+      drop-shadow(0 0 20px rgba(214, 115, 255, 0.18));
+  }
+}
+
+@keyframes infinya-symbol-lux {
+  0% {
+    background-position: 0% 50%;
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+
+  100% {
+    background-position: 180% 50%;
+    opacity: 0.4;
+  }
+}
+
+@keyframes infinya-symbol-lux-ribbon {
+  0% {
+    background-position: -10% 50%;
+    opacity: 0.14;
+  }
+
+  40% {
+    opacity: 0.6;
+  }
+
+  100% {
+    background-position: 145% 50%;
+    opacity: 0.16;
+  }
+}
+
+@keyframes infinya-symbol-aura {
+  0% {
+    background-position: 0% 42%;
+    transform: translate3d(-1%, 0, 0) scale(1);
+  }
+
+  50% {
+    background-position: 100% 58%;
+    transform: translate3d(1%, -1%, 0) scale(1.03);
+  }
+
+  100% {
+    background-position: 0% 42%;
+    transform: translate3d(-1%, 0, 0) scale(1);
   }
 }
 
