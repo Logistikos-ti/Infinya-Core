@@ -113,7 +113,7 @@ export function ReceivingXmlImportPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55">
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-slate-950">Importar NF-e XML</h2>
         <p className="text-sm text-slate-600">
@@ -128,7 +128,7 @@ export function ReceivingXmlImportPanel({
             value={depositanteId}
             onChange={(event) => setDepositanteId(event.target.value)}
             disabled={lockDepositante || depositantes.length <= 1}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-900/70 dark:disabled:text-slate-400"
           >
             {depositantes.map((depositante) => (
               <option key={depositante.id} value={depositante.id}>
@@ -144,11 +144,11 @@ export function ReceivingXmlImportPanel({
             type="file"
             accept=".xml,text/xml,application/xml"
             onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:file:bg-slate-800 dark:hover:file:bg-slate-700"
           />
         </label>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
           O sistema tenta vincular os itens do XML por EAN/GTIN, código interno/SKU e nome do produto.
         </div>
 
@@ -167,7 +167,7 @@ export function ReceivingXmlImportPanel({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
         >
           {isUploading ? "Importando..." : "Importar XML"}
         </button>

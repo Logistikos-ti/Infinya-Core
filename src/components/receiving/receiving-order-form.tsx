@@ -244,7 +244,7 @@ export function ReceivingOrderForm({
     <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
       <form
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55"
       >
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -266,7 +266,7 @@ export function ReceivingOrderForm({
               value={draft.depositanteId}
               onChange={(event) => updateField("depositanteId", event.target.value)}
               disabled={lockDepositante || depositantes.length <= 1}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-900/70 dark:disabled:text-slate-400"
             >
               {depositantes.map((depositante) => (
                 <option key={depositante.id} value={depositante.id}>
@@ -281,7 +281,7 @@ export function ReceivingOrderForm({
               value={draft.fornecedor}
               onChange={(event) => updateField("fornecedor", event.target.value)}
               placeholder="Nome do fornecedor"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
           </Field>
 
@@ -290,7 +290,7 @@ export function ReceivingOrderForm({
               value={draft.notaFiscal}
               onChange={(event) => updateField("notaFiscal", event.target.value)}
               placeholder="Número da NF"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
           </Field>
 
@@ -299,7 +299,7 @@ export function ReceivingOrderForm({
               type="datetime-local"
               value={draft.previsao}
               onChange={(event) => updateField("previsao", event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
           </Field>
 
@@ -307,7 +307,7 @@ export function ReceivingOrderForm({
             <select
               value={draft.doca}
               onChange={(event) => updateField("doca", event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
               <option>DOCA-01</option>
               <option>DOCA-02</option>
@@ -328,12 +328,12 @@ export function ReceivingOrderForm({
             <input
               value={String(filledItemCount)}
               readOnly
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 outline-none dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300"
             />
           </Field>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-slate-200 p-5">
+        <div className="mt-6 rounded-2xl border border-slate-200 p-5 dark:border-white/10 dark:bg-slate-900/40">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-slate-950">Itens do recebimento</h3>
@@ -344,7 +344,7 @@ export function ReceivingOrderForm({
             <button
               type="button"
               onClick={addItem}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <Plus className="h-4 w-4" />
               Adicionar item
@@ -355,7 +355,7 @@ export function ReceivingOrderForm({
             {draft.items.map((item, index) => (
               <div
                 key={`receiving-item-${index}`}
-                className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1.5fr_0.7fr_auto]"
+                className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1.5fr_0.7fr_auto] dark:border-white/10 dark:bg-slate-950/45"
               >
                 <label className="space-y-2">
                   <span className="block text-sm font-medium text-slate-700">
@@ -364,7 +364,7 @@ export function ReceivingOrderForm({
                   <select
                     value={item.produtoId}
                     onChange={(event) => updateItem(index, "produtoId", event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="">Selecione um produto</option>
                     {availableProducts.map((produto) => (
@@ -385,7 +385,7 @@ export function ReceivingOrderForm({
                       updateItem(index, "quantidadePrevista", event.target.value)
                     }
                     placeholder="Ex.: 24"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   />
                 </label>
 
@@ -393,7 +393,7 @@ export function ReceivingOrderForm({
                   <button
                     type="button"
                     onClick={() => removeItem(index)}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-rose-200 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-rose-200 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/10"
                   >
                     <Trash2 className="h-4 w-4" />
                     Remover
@@ -401,7 +401,7 @@ export function ReceivingOrderForm({
                 </div>
 
                 {item.produtoId ? (
-                  <div className="md:col-span-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <div className="md:col-span-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-900/70 dark:text-slate-300">
                     {renderProductHint(availableProducts, item.produtoId)}
                   </div>
                 ) : null}
@@ -414,14 +414,14 @@ export function ReceivingOrderForm({
           ) : null}
 
           {!availableProducts.length ? (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
               Este depositante ainda não possui produtos ativos para vincular ao recebimento.
             </div>
           ) : null}
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-2">
-          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-200">
             <input
               type="checkbox"
               checked={draft.conferenciaLote}
@@ -436,7 +436,7 @@ export function ReceivingOrderForm({
             </span>
           </label>
 
-          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-200">
             <input
               type="checkbox"
               checked={draft.conferenciaValidade}
@@ -466,7 +466,7 @@ export function ReceivingOrderForm({
             onChange={(event) => updateField("observacoes", event.target.value)}
             rows={4}
             placeholder="Informações de doca, conferência ou orientações do depositante"
-            className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
           />
         </Field>
 
@@ -481,7 +481,7 @@ export function ReceivingOrderForm({
           <button
             type="button"
             onClick={resetDraft}
-            className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Limpar rascunho
           </button>
@@ -489,7 +489,7 @@ export function ReceivingOrderForm({
       </form>
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55">
           <h2 className="text-lg font-semibold text-slate-950">
             Resumo operacional
           </h2>
@@ -520,7 +520,7 @@ export function ReceivingOrderForm({
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55">
           <h2 className="text-lg font-semibold text-slate-950">
             Regras desta tela
           </h2>
@@ -560,7 +560,7 @@ type SummaryRowProps = {
 
 function SummaryRow({ label, value }: SummaryRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900/70">
       <span className="text-slate-500">{label}</span>
       <span className="font-medium text-slate-900">{value}</span>
     </div>

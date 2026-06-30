@@ -108,7 +108,7 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55">
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-slate-950">Importação em massa</h2>
         <p className="text-sm text-slate-600">
@@ -122,7 +122,7 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
           <select
             value={depositanteId}
             onChange={(event) => setDepositanteId(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
           >
             <option value="">Detectar automaticamente pela planilha</option>
             {depositantes.map((depositante) => (
@@ -139,11 +139,11 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
             type="file"
             accept=".xlsx,.csv"
             onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:file:bg-slate-800 dark:hover:file:bg-slate-700"
           />
         </label>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
           Colunas esperadas: nome, código interno, código externo/EAN, depositante, unidade,
           categoria, descrição e método de retirada.
         </div>
@@ -163,7 +163,7 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
         >
           {isUploading ? "Importando..." : "Importar planilha"}
         </button>

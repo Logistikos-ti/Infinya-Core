@@ -59,7 +59,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
   return (
     <form
       action={formAction}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55"
     >
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -71,7 +71,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
             fiscal, contatos e parâmetros operacionais.
           </p>
         </div>
-        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/70">
           {hasCurrentLogo ? (
             <Image
               src={logoPreviewUrl}
@@ -125,7 +125,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           <span className="mb-2 block text-sm font-medium text-slate-700">
             Logo do depositante
           </span>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-700 transition hover:border-sky-400 hover:bg-sky-50/40">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-700 transition hover:border-sky-400 hover:bg-sky-50/40 dark:border-white/15 dark:text-slate-200 dark:hover:bg-sky-500/10">
             <Upload className="h-4 w-4 text-slate-500" />
             <span>Selecionar imagem PNG, JPG ou WEBP</span>
             <input
@@ -148,7 +148,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           {state.errors?.logoFile ? (
             <span className="mt-2 block text-xs text-rose-600">{state.errors.logoFile}</span>
           ) : null}
-          <label className="mt-3 flex items-center gap-3 text-sm text-slate-700">
+          <label className="mt-3 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
             <input
               type="checkbox"
               name="removeLogo"
@@ -168,7 +168,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
         </label>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
         <h3 className="text-sm font-semibold text-slate-950">Endereço fiscal</h3>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field
@@ -216,7 +216,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-slate-950">Contatos telefônicos</h3>
@@ -241,7 +241,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           {telefonesContato.map((contato, index) => (
             <div
               key={`telefone-${index}`}
-              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_1fr_auto]"
+              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_1fr_auto] dark:border-white/10 dark:bg-slate-950/45"
             >
               <Field
                 label="Responsável"
@@ -279,7 +279,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4">
+      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-slate-950">E-mails do depositante</h3>
@@ -302,7 +302,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           {emailsContato.map((contato, index) => (
             <div
               key={`email-${index}`}
-              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_auto]"
+              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_auto] dark:border-white/10 dark:bg-slate-950/45"
             >
               <Field
                 label="E-mail"
@@ -342,7 +342,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           <select
             name="metodoRetiradaPadrao"
             defaultValue={defaultValues?.metodoRetiradaPadrao ?? "FEFO"}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
           >
             <option value="FEFO">FEFO</option>
             <option value="FIFO">FIFO</option>
@@ -420,7 +420,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
         <Button
           type="submit"
           disabled={isPending}
-          className="bg-slate-950 text-white hover:bg-slate-800"
+          className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400"
         >
           {isPending
             ? "Salvando..."
@@ -449,7 +449,7 @@ function Field({ label, name, defaultValue, error, type = "text" }: FieldProps) 
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
       />
       {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
     </label>
@@ -481,7 +481,7 @@ function TextAreaField({
         rows={rows}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
       />
       {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
     </label>
@@ -502,7 +502,7 @@ function CheckboxField({
   defaultChecked,
 }: CheckboxFieldProps) {
   return (
-    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700">
+    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-200">
       <input
         type="checkbox"
         name={name}

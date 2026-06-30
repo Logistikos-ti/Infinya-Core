@@ -51,7 +51,7 @@ export default async function EditarShippingOrderPage({
     <div className="space-y-6">
       <Link
         href={`/expedicao/${order.id}`}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para o pedido
