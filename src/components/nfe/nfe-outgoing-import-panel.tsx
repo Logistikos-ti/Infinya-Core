@@ -106,10 +106,12 @@ export function NfeOutgoingImportPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-slate-950">Importar XML de saída (SEFAZ)</h2>
-        <p className="text-sm text-slate-600">
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+          Importar XML de saída (SEFAZ)
+        </h2>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           Envie o XML autorizado da NF-e de saída para vincular automaticamente ao pedido de
           expedição e registrar o anexo fiscal no WMS.
         </p>
@@ -117,12 +119,14 @@ export function NfeOutgoingImportPanel({
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">Depositante</span>
+          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Depositante
+          </span>
           <select
             value={depositanteId}
             onChange={(event) => setDepositanteId(event.target.value)}
             disabled={lockDepositante || depositantes.length <= 1}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-900"
           >
             {depositantes.map((depositante) => (
               <option key={depositante.id} value={depositante.id}>
@@ -133,7 +137,7 @@ export function NfeOutgoingImportPanel({
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">
+          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
             Pedido ou código para vínculo manual
           </span>
           <input
@@ -141,21 +145,23 @@ export function NfeOutgoingImportPanel({
             value={pedidoBusca}
             onChange={(event) => setPedidoBusca(event.target.value)}
             placeholder="Opcional: número do pedido, código interno ou número da loja"
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">Arquivo XML</span>
+          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Arquivo XML
+          </span>
           <input
             type="file"
             accept=".xml,text/xml,application/xml"
             onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-950 outline-none transition file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:file:bg-slate-800 dark:file:text-slate-100 dark:hover:file:bg-slate-700"
           />
         </label>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
           O sistema valida se o XML é de saída, lê número da NF, chave de acesso e destinatário,
           e tenta vincular automaticamente ao pedido correspondente.
         </div>
@@ -164,8 +170,8 @@ export function NfeOutgoingImportPanel({
           <div
             className={`rounded-xl px-4 py-3 text-sm ${
               isError
-                ? "border border-rose-200 bg-rose-50 text-rose-700"
-                : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                ? "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
+                : "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
             }`}
           >
             {message}
@@ -175,7 +181,7 @@ export function NfeOutgoingImportPanel({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-slate-700 dark:disabled:text-slate-300"
         >
           {isUploading ? "Importando..." : "Importar XML de saída"}
         </button>
