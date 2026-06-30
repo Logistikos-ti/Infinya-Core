@@ -117,7 +117,7 @@ export default async function ConfiguracoesIntegracoesPage({
     <div className="space-y-6">
       <Link
         href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para configurações
@@ -133,8 +133,8 @@ export default async function ConfiguracoesIntegracoesPage({
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             isSuccessFeedback(feedback)
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {getFeedbackMessage(feedback, motivo)}
@@ -144,16 +144,16 @@ export default async function ConfiguracoesIntegracoesPage({
       <IntegrationAlertCenter initialAlerts={integrationAlerts} />
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_1.3fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Bling V3</h2>
-          <div className="mt-4 space-y-4 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Bling V3</h2>
+          <div className="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
             <InfoRow label="Base da aplicação" value={appBaseUrl} />
             <InfoRow label="Callback OAuth2" value={blingCallbackUrl} />
             <InfoRow label="Webhook de pedidos" value={blingWebhookUrl} />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p className="font-medium text-slate-950">Checklist do Bling V3</p>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+            <p className="font-medium text-slate-950 dark:text-white">Checklist do Bling V3</p>
             <ul className="mt-3 space-y-2">
               <li>1. Criar o aplicativo no portal de developers do Bling.</li>
               <li>2. Configurar o callback exatamente como exibido acima.</li>
@@ -164,15 +164,18 @@ export default async function ConfiguracoesIntegracoesPage({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Depositantes integráveis</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio mapeamento de empresa no Bling.
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Depositantes integráveis
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Cada depositante pode possuir sua própria autorização OAuth2 e seu próprio
+                mapeamento de empresa no Bling.
               </p>
             </div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               {depositanteRows.length} depositantes
             </span>
           </div>
@@ -219,30 +222,37 @@ export default async function ConfiguracoesIntegracoesPage({
                 });
 
                 return (
-                  <div key={depositante.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div
+                    key={depositante.id}
+                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+                  >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <p className="text-base font-semibold text-slate-950">
+                          <p className="text-base font-semibold text-slate-950 dark:text-white">
                             {depositante.nome}
                           </p>
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                               depositante.ativo
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                             }`}
                           >
                             {depositante.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-500">{depositante.codigo}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {depositante.codigo}
+                        </p>
 
                         {isConnected ? (
-                          <div className="space-y-1 text-sm text-slate-600">
+                          <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
                             <p>
                               Empresa conectada:{" "}
-                              <span className="font-medium text-slate-900">{empresaExibida}</span>
+                              <span className="font-medium text-slate-900 dark:text-slate-100">
+                                {empresaExibida}
+                              </span>
                             </p>
                             <p>Company ID: {bling?.companyId ?? "Ainda não identificado"}</p>
                             <p>
@@ -258,13 +268,15 @@ export default async function ConfiguracoesIntegracoesPage({
                                 : "Ainda não recebido"}
                             </p>
                             {bling?.companyId && !bling?.companyName ? (
-                              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-                                O vínculo já foi confirmado pelo `companyId`. Como o usuário do Bling não possui permissão para ler os dados básicos da empresa, mostramos provisoriamente a razão social cadastrada no WMS.
+                              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                                O vínculo já foi confirmado pelo `companyId`. Como o usuário do
+                                Bling não possui permissão para ler os dados básicos da empresa,
+                                mostramos provisoriamente a razão social cadastrada no WMS.
                               </p>
                             ) : null}
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-600">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
                             Este depositante ainda não possui autorização OAuth2 ativa no Bling.
                           </p>
                         )}
@@ -316,7 +328,7 @@ export default async function ConfiguracoesIntegracoesPage({
                             <Button
                               type="submit"
                               variant="outline"
-                              className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
                             >
                               <Unplug className="h-4 w-4" />
                               Desconectar
@@ -328,10 +340,10 @@ export default async function ConfiguracoesIntegracoesPage({
 
                     {isConnected ? (
                       <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(360px,0.95fr)_minmax(420px,1.05fr)]">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                           <div className="flex items-center gap-2">
-                            <Wifi className="h-4 w-4 text-slate-500" />
-                            <p className="text-sm font-semibold text-slate-950">
+                            <Wifi className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
                               Painel de monitoramento
                             </p>
                           </div>
@@ -376,10 +388,10 @@ export default async function ConfiguracoesIntegracoesPage({
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                           <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-slate-500" />
-                            <p className="text-sm font-semibold text-slate-950">
+                            <AlertTriangle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            <p className="text-sm font-semibold text-slate-950 dark:text-white">
                               Eventos, erros e reprocessamentos
                             </p>
                           </div>
@@ -389,25 +401,25 @@ export default async function ConfiguracoesIntegracoesPage({
                               latestEvents.map((event) => (
                                 <div
                                   key={event.id}
-                                  className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+                                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950"
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-sm font-medium text-slate-900">
+                                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                                         {event.titulo}
                                       </p>
-                                      <p className="mt-1 line-clamp-3 text-xs text-slate-600">
+                                      <p className="mt-1 line-clamp-3 text-xs text-slate-600 dark:text-slate-400">
                                         {event.descricao}
                                       </p>
                                     </div>
-                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700">
+                                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                       {formatDateTimePtBr(event.created_at)}
                                     </span>
                                   </div>
                                 </div>
                               ))
                             ) : (
-                              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+                              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                                 Nenhum evento de integração registrado ainda para este depositante.
                               </div>
                             )}
@@ -419,7 +431,7 @@ export default async function ConfiguracoesIntegracoesPage({
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
                 Nenhum depositante cadastrado ainda.
               </div>
             )}
@@ -428,15 +440,15 @@ export default async function ConfiguracoesIntegracoesPage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_1.3fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Mercado Livre</h2>
-          <div className="mt-4 space-y-4 text-sm text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Mercado Livre</h2>
+          <div className="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
             <InfoRow label="Base da aplicação" value={appBaseUrl} />
             <InfoRow label="Callback OAuth2" value={mercadoLivreCallbackUrl} />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p className="font-medium text-slate-950">Checklist Mercado Livre</p>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+            <p className="font-medium text-slate-950 dark:text-white">Checklist Mercado Livre</p>
             <ul className="mt-3 space-y-2">
               <li>1. Criar o aplicativo no Mercado Livre Developers.</li>
               <li>2. Configurar o callback exatamente como exibido acima.</li>
@@ -446,22 +458,25 @@ export default async function ConfiguracoesIntegracoesPage({
             </ul>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+          <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100">
             Nesta etapa, o foco é a operação de expedição: etiquetas de envio e código de rastreio.
             Isso funciona tanto para pedidos integrados quanto para pedidos cadastrados manualmente,
             desde que o `shipment_id` esteja informado.
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Depositantes com Mercado Livre</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Cada depositante conecta seu próprio seller e mantém etiqueta e rastreio isolados por operação.
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Depositantes com Mercado Livre
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Cada depositante conecta seu próprio seller e mantém etiqueta e rastreio isolados
+                por operação.
               </p>
             </div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               {depositanteRows.length} depositantes
             </span>
           </div>
@@ -482,28 +497,35 @@ export default async function ConfiguracoesIntegracoesPage({
                 );
 
                 return (
-                  <div key={`mercado-livre-${depositante.id}`} className="rounded-2xl border border-slate-200 p-4">
+                  <div
+                    key={`mercado-livre-${depositante.id}`}
+                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+                  >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <p className="text-base font-semibold text-slate-950">{depositante.nome}</p>
+                          <p className="text-base font-semibold text-slate-950 dark:text-white">
+                            {depositante.nome}
+                          </p>
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                               depositante.ativo
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                             }`}
                           >
                             {depositante.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-500">{depositante.codigo}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {depositante.codigo}
+                        </p>
 
                         {isConnected ? (
-                          <div className="space-y-1 text-sm text-slate-600">
+                          <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
                             <p>
                               Conta conectada:{" "}
-                              <span className="font-medium text-slate-900">
+                              <span className="font-medium text-slate-900 dark:text-slate-100">
                                 {mercadoLivre?.nickname ?? "Seller não identificado"}
                               </span>
                             </p>
@@ -517,8 +539,9 @@ export default async function ConfiguracoesIntegracoesPage({
                             <p>Pedidos elegíveis no fluxo: {relatedOrders.length}</p>
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-600">
-                            Este depositante ainda não possui autorização OAuth2 ativa no Mercado Livre.
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            Este depositante ainda não possui autorização OAuth2 ativa no Mercado
+                            Livre.
                           </p>
                         )}
 
@@ -557,7 +580,7 @@ export default async function ConfiguracoesIntegracoesPage({
                             <Button
                               type="submit"
                               variant="outline"
-                              className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
                             >
                               <Unplug className="h-4 w-4" />
                               Desconectar
@@ -596,7 +619,7 @@ export default async function ConfiguracoesIntegracoesPage({
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
                 Nenhum depositante cadastrado ainda.
               </div>
             )}
@@ -604,10 +627,12 @@ export default async function ConfiguracoesIntegracoesPage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-          <h2 className="text-lg font-semibold text-slate-950">O que fica pronto nesta etapa</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            O que fica pronto nesta etapa
+          </h2>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {[
@@ -620,7 +645,7 @@ export default async function ConfiguracoesIntegracoesPage({
           ].map((item) => (
             <div
               key={item}
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700"
+              className="rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-200"
             >
               {item}
             </div>
@@ -646,10 +671,10 @@ function MonitoringCard({
 }) {
   const tone =
     status === "SUCCESS"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
       : status === "ERROR"
-        ? "border-rose-200 bg-rose-50 text-rose-800"
-        : "border-amber-200 bg-amber-50 text-amber-800";
+        ? "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
+        : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200";
 
   const badge = status === "SUCCESS" ? "Ok" : status === "ERROR" ? "Erro" : "Pendente";
 
@@ -660,7 +685,7 @@ function MonitoringCard({
           <Icon className="h-4 w-4" />
           <p className="text-sm font-semibold">{label}</p>
         </div>
-        <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold">
+        <span className="rounded-full bg-white/70 px-2 py-1 text-[11px] font-semibold dark:bg-slate-950/60">
           {badge}
         </span>
       </div>
@@ -709,9 +734,11 @@ function getBlingIntegrationHealthStatus({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 break-all text-sm text-slate-800">{value}</p>
+    <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 break-all text-sm text-slate-800 dark:text-slate-100">{value}</p>
     </div>
   );
 }
@@ -726,7 +753,9 @@ function StatusBadge({
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-        active ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+        active
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+          : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200"
       }`}
     >
       <Link2 className="h-3.5 w-3.5" />

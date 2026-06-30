@@ -51,7 +51,7 @@ export default async function ConfiguracoesEnderecosPage({
     <div className="space-y-6">
       <Link
         href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para configurações
@@ -67,39 +67,39 @@ export default async function ConfiguracoesEnderecosPage({
         <div
           className={`rounded-2xl px-4 py-3 text-sm ${
             feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-amber-200 bg-amber-50 text-amber-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
           }`}
         >
           {feedback === "criado"
             ? "Endereço criado com sucesso."
             : feedback === "salvo"
               ? "Endereço atualizado com sucesso."
-            : feedback === "excluido"
+              : feedback === "excluido"
                 ? "Endereço excluído com sucesso."
                 : feedback === "gerado"
                   ? `${totalGenerated} endereços gerados ou atualizados com sucesso.`
-                : feedback === "vinculos"
-                  ? "Não foi possível excluir este endereço porque ele já possui estoque vinculado. Nesse caso, use desativar."
-                  : feedback === "erro-geracao"
-                    ? "Não foi possível gerar os endereços em massa. Revise os intervalos e tente novamente."
-                  : "Não foi possível concluir a operação solicitada."}
+                  : feedback === "vinculos"
+                    ? "Não foi possível excluir este endereço porque ele já possui estoque vinculado. Nesse caso, use desativar."
+                    : feedback === "erro-geracao"
+                      ? "Não foi possível gerar os endereços em massa. Revise os intervalos e tente novamente."
+                      : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                 {currentAddress ? "Editar endereço" : "Novo endereço"}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Cadastre áreas como recebimento, pulmão, picking, bloqueado e expedição com sua
                 posição física.
               </p>
             </div>
-            <div className="rounded-full bg-sky-50 p-2 text-sky-700">
+            <div className="rounded-full bg-sky-50 p-2 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
               <Plus className="h-5 w-5" />
             </div>
           </div>
@@ -183,7 +183,7 @@ export default async function ConfiguracoesEnderecosPage({
               placeholder="Ex.: 120"
             />
 
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
               <input
                 type="checkbox"
                 name="ativo"
@@ -200,7 +200,7 @@ export default async function ConfiguracoesEnderecosPage({
               {currentAddress ? (
                 <Link
                   href="/configuracoes/enderecos"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                 >
                   Cancelar edição
                 </Link>
@@ -209,16 +209,18 @@ export default async function ConfiguracoesEnderecosPage({
           </form>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Endereços cadastrados</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                Endereços cadastrados
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 Estrutura física usada em recebimento, armazenagem, picking e expedição.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                 {enderecos?.length ?? 0} registros
               </span>
             </div>
@@ -228,7 +230,7 @@ export default async function ConfiguracoesEnderecosPage({
             <select
               name="area"
               defaultValue={areaFilter}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
+              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
             >
               <option value="">Todas as áreas</option>
               <option value="RECEBIMENTO">Recebimento</option>
@@ -243,7 +245,7 @@ export default async function ConfiguracoesEnderecosPage({
             {areaFilter ? (
               <Link
                 href="/configuracoes/enderecos"
-                className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
               >
                 Limpar
               </Link>
@@ -253,12 +255,17 @@ export default async function ConfiguracoesEnderecosPage({
           <div className="mt-5 space-y-4">
             {enderecos?.length ? (
               enderecos.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+                >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-2">
                       <div>
-                        <p className="text-base font-semibold text-slate-950">{item.codigo}</p>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-base font-semibold text-slate-950 dark:text-white">
+                          {item.codigo}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {getAreaLabel(item.area)}
                           {item.descricao ? ` • ${item.descricao}` : ""}
                         </p>
@@ -280,19 +287,19 @@ export default async function ConfiguracoesEnderecosPage({
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                           item.ativo
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-slate-100 text-slate-600"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
                         {item.ativo ? "Ativo" : "Inativo"}
                       </span>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                         Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
                       </p>
                       <div className="flex flex-wrap gap-2 lg:justify-end">
                         <Link
                           href={`/configuracoes/enderecos?editar=${item.id}`}
-                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50"
+                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
                         >
                           <PencilLine className="h-4 w-4" />
                           Editar
@@ -314,7 +321,7 @@ export default async function ConfiguracoesEnderecosPage({
                             type="submit"
                             variant="outline"
                             size="sm"
-                            className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
                           >
                             <Trash2 className="h-4 w-4" />
                             Excluir
@@ -326,7 +333,7 @@ export default async function ConfiguracoesEnderecosPage({
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
                 Nenhum endereço cadastrado ainda.
               </div>
             )}
@@ -336,10 +343,12 @@ export default async function ConfiguracoesEnderecosPage({
 
       <AddressImportPanel />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">Gerar endereços em massa</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Gerar endereços em massa
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Monte corredores, módulos, níveis e posições em lote para acelerar o setup do armazém.
           </p>
         </div>
@@ -377,10 +386,34 @@ export default async function ConfiguracoesEnderecosPage({
           </div>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <RangeField prefixLabel="Corredor" prefixName="corredorPrefixo" startName="corredorInicio" endName="corredorFim" defaultPrefix="R" />
-            <RangeField prefixLabel="Módulo" prefixName="moduloPrefixo" startName="moduloInicio" endName="moduloFim" defaultPrefix="M" />
-            <RangeField prefixLabel="Nível" prefixName="nivelPrefixo" startName="nivelInicio" endName="nivelFim" defaultPrefix="N" />
-            <RangeField prefixLabel="Posição" prefixName="posicaoPrefixo" startName="posicaoInicio" endName="posicaoFim" defaultPrefix="P" />
+            <RangeField
+              prefixLabel="Corredor"
+              prefixName="corredorPrefixo"
+              startName="corredorInicio"
+              endName="corredorFim"
+              defaultPrefix="R"
+            />
+            <RangeField
+              prefixLabel="Módulo"
+              prefixName="moduloPrefixo"
+              startName="moduloInicio"
+              endName="moduloFim"
+              defaultPrefix="M"
+            />
+            <RangeField
+              prefixLabel="Nível"
+              prefixName="nivelPrefixo"
+              startName="nivelInicio"
+              endName="nivelFim"
+              defaultPrefix="N"
+            />
+            <RangeField
+              prefixLabel="Posição"
+              prefixName="posicaoPrefixo"
+              startName="posicaoInicio"
+              endName="posicaoFim"
+              defaultPrefix="P"
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -390,17 +423,15 @@ export default async function ConfiguracoesEnderecosPage({
               defaultValue=""
               placeholder="Ex.: 100"
             />
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 md:mt-7">
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 md:mt-7 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
               <input type="checkbox" name="ativo" defaultChecked className="h-4 w-4 rounded" />
               Gerar endereços já ativos
             </label>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            O código será montado automaticamente no padrão
-            {" "}
-            <strong>ÁREA-CORREDOR-MÓDULO-NÍVEL-POSIÇÃO</strong>, por exemplo:
-            {" "}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+            O código será montado automaticamente no padrão{" "}
+            <strong>ÁREA-CORREDOR-MÓDULO-NÍVEL-POSIÇÃO</strong>, por exemplo:{" "}
             <strong>PICK-R01-M01-N01-P01</strong>.
           </div>
 
@@ -410,10 +441,12 @@ export default async function ConfiguracoesEnderecosPage({
         </form>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold text-slate-950">Mapa 2D operacional</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Mapa 2D operacional
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Leitura visual inicial do galpão por corredor e módulo, usando os endereços já
             cadastrados no WMS.
           </p>
@@ -441,7 +474,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="space-y-2 text-sm text-slate-700">
+    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
       <span className="font-medium">{label}</span>
       <input
         type="text"
@@ -449,7 +482,7 @@ function Field({
         required={required}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300"
+        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
       />
     </label>
   );
@@ -467,12 +500,12 @@ function SelectField({
   options: [string, string][];
 }) {
   return (
-    <label className="space-y-2 text-sm text-slate-700">
+    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
       <span className="font-medium">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-sky-300"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       >
         {options.map(([value, labelOption]) => (
           <option key={value || "blank"} value={value}>
@@ -498,8 +531,8 @@ function RangeField({
   defaultPrefix: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 p-4">
-      <p className="text-sm font-medium text-slate-900">{prefixLabel}</p>
+    <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{prefixLabel}</p>
       <div className="mt-3 grid gap-3">
         <Field
           label="Prefixo"
@@ -508,24 +541,24 @@ function RangeField({
           placeholder={defaultPrefix}
         />
         <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-2 text-sm text-slate-700">
+          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <span className="font-medium">Início</span>
             <input
               type="number"
               min={1}
               name={startName}
               defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300"
+              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
             />
           </label>
-          <label className="space-y-2 text-sm text-slate-700">
+          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
             <span className="font-medium">Fim</span>
             <input
               type="number"
               min={1}
               name={endName}
               defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300"
+              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
             />
           </label>
         </div>
@@ -536,7 +569,7 @@ function RangeField({
 
 function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
       {children}
     </span>
   );
@@ -604,7 +637,7 @@ function WarehouseMap2D({
 
   if (!ruas.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
         Cadastre endereços com corredor, módulo, nível e posição para visualizar o mapa.
       </div>
     );
@@ -617,11 +650,14 @@ function WarehouseMap2D({
         const modulos = [...new Set(ruaItems.map((item) => item.modulo))].sort(naturalCodeSort);
 
         return (
-          <div key={rua} className="rounded-2xl border border-slate-200 p-4">
+          <div
+            key={rua}
+            className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
+          >
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-base font-semibold text-slate-950">{rua}</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-base font-semibold text-slate-950 dark:text-white">{rua}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   {ruaItems.length} endereços mapeados nesta rua
                 </p>
               </div>
@@ -638,11 +674,16 @@ function WarehouseMap2D({
                 );
 
                 return (
-                  <div key={`${rua}-${modulo}`} className="rounded-2xl border border-slate-200 p-4">
+                  <div
+                    key={`${rua}-${modulo}`}
+                    className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/60"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-slate-950">{modulo}</p>
-                        <p className="text-xs uppercase tracking-wide text-slate-400">
+                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                          {modulo}
+                        </p>
+                        <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                           {moduloItems.length} posições
                         </p>
                       </div>
@@ -659,7 +700,7 @@ function WarehouseMap2D({
                         {posicoes.map((posicao) => (
                           <div
                             key={`${modulo}-${posicao}-head`}
-                            className="rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-medium text-slate-600"
+                            className="rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                           >
                             {posicao}
                           </div>
@@ -667,9 +708,7 @@ function WarehouseMap2D({
 
                         {niveis.map((nivel) => (
                           <Fragment key={`${modulo}-${nivel}`}>
-                            <div
-                              className="rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-medium text-slate-600"
-                            >
+                            <div className="rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                               {nivel}
                             </div>
                             {posicoes.map((posicao) => {
@@ -684,8 +723,8 @@ function WarehouseMap2D({
                                     slot
                                       ? slot.ativo
                                         ? getAreaMapClass(slot.area)
-                                        : "border-slate-200 bg-slate-100 text-slate-500"
-                                      : "border-dashed border-slate-200 bg-white text-slate-300"
+                                        : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+                                      : "border-dashed border-slate-200 bg-white text-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-600"
                                   }`}
                                   title={slot?.codigo ?? "Sem endereço cadastrado"}
                                 >
@@ -724,17 +763,17 @@ function naturalCodeSort(left: string, right: string) {
 function getAreaMapClass(area: string) {
   switch (area) {
     case "RECEBIMENTO":
-      return "border-sky-200 bg-sky-50 text-sky-800";
+      return "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200";
     case "PULMAO":
-      return "border-violet-200 bg-violet-50 text-violet-800";
+      return "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-200";
     case "PICKING":
-      return "border-emerald-200 bg-emerald-50 text-emerald-800";
+      return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200";
     case "BLOQUEADO":
-      return "border-rose-200 bg-rose-50 text-rose-800";
+      return "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200";
     case "EXPEDICAO":
-      return "border-amber-200 bg-amber-50 text-amber-800";
+      return "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200";
     default:
-      return "border-slate-200 bg-slate-50 text-slate-700";
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200";
   }
 }
 
