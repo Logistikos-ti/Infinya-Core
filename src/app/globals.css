@@ -214,11 +214,14 @@ a {
   .infinya-mark-breathe {
     animation: infinya-mark-breathe 5.6s ease-in-out infinite;
   }
-  .infinya-orbit-track {
-    animation: infinya-orbit-track 4.4s ease-in-out infinite;
+  .infinya-symbol-shimmer {
+    animation: infinya-symbol-shimmer 5.8s ease-in-out infinite;
   }
-  .infinya-orbit-dot {
-    animation: infinya-orbit-dot 2.4s ease-in-out infinite;
+  .infinya-symbol-trail {
+    animation: infinya-symbol-trail 5.8s linear infinite;
+  }
+  .infinya-orbit-runner {
+    animation: infinya-orbit-runner 2.6s ease-in-out infinite;
     transform-origin: center;
   }
   
@@ -297,25 +300,37 @@ a {
   }
 }
 
-@keyframes infinya-orbit-track {
+@keyframes infinya-symbol-shimmer {
   0%, 100% {
-    opacity: 0.42;
-    filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.12));
-  }
-
-  50% {
-    opacity: 0.85;
-    filter: drop-shadow(0 0 7px rgba(34, 211, 238, 0.26));
-  }
-}
-
-@keyframes infinya-orbit-dot {
-  0%, 100% {
-    opacity: 0.72;
+    opacity: 0.92;
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.22));
   }
 
   50% {
     opacity: 1;
+    filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.36));
+  }
+}
+
+@keyframes infinya-symbol-trail {
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -258;
+  }
+}
+
+@keyframes infinya-orbit-runner {
+  0%, 100% {
+    opacity: 0.72;
+    filter: saturate(1) brightness(1);
+  }
+
+  50% {
+    opacity: 1;
+    filter: saturate(1.18) brightness(1.06);
   }
 }
 
