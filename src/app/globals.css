@@ -219,57 +219,13 @@ a {
       drop-shadow(0 0 12px rgba(92, 237, 255, 0.2))
       drop-shadow(0 0 20px rgba(214, 115, 255, 0.18));
   }
-  .infinya-symbol-lux {
-    background:
-      linear-gradient(
-        110deg,
-        rgba(255, 255, 255, 0) 6%,
-        rgba(155, 245, 255, 0.12) 20%,
-        rgba(107, 236, 255, 0.42) 30%,
-        rgba(255, 255, 255, 0.84) 40%,
-        rgba(101, 163, 255, 0.42) 52%,
-        rgba(198, 120, 255, 0.5) 66%,
-        rgba(255, 255, 255, 0) 100%
-      );
-    background-size: 210% 210%;
-    animation: infinya-symbol-lux 2.6s linear infinite;
+  .infinya-symbol-outline-glow {
+    animation: infinya-symbol-outline-glow 2.1s linear infinite;
+    opacity: 0.82;
   }
-  .infinya-symbol-lux-ribbon {
-    background:
-      linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.88) 34%,
-        rgba(148, 239, 255, 0.52) 44%,
-        rgba(161, 114, 255, 0.4) 58%,
-        rgba(255, 255, 255, 0) 100%
-      );
-    background-size: 165% 100%;
-    animation: infinya-symbol-lux-ribbon 1.7s linear infinite;
-  }
-  .infinya-symbol-aura {
-    background:
-      radial-gradient(circle at 16% 50%, rgba(78, 232, 255, 0.42), transparent 24%),
-      radial-gradient(circle at 52% 34%, rgba(109, 142, 255, 0.32), transparent 20%),
-      radial-gradient(circle at 82% 58%, rgba(234, 112, 255, 0.34), transparent 24%);
-    background-size: 180% 180%;
-    animation: infinya-symbol-aura 3.8s ease-in-out infinite;
-  }
-  .infinya-symbol-orbit {
-    background:
-      conic-gradient(
-        from 0deg,
-        rgba(255, 255, 255, 0) 0deg,
-        rgba(126, 242, 255, 0.14) 44deg,
-        rgba(255, 255, 255, 0.92) 70deg,
-        rgba(110, 224, 255, 0.62) 96deg,
-        rgba(126, 132, 255, 0.34) 138deg,
-        rgba(230, 116, 255, 0.62) 208deg,
-        rgba(255, 255, 255, 0.88) 238deg,
-        rgba(255, 255, 255, 0) 290deg,
-        rgba(255, 255, 255, 0) 360deg
-      );
-    animation: infinya-symbol-orbit 2.9s linear infinite;
+  .infinya-symbol-outline-core {
+    animation: infinya-symbol-outline-core 1.8s linear infinite;
+    opacity: 0.98;
   }
   .infinya-mark-base-motion {
     animation:
@@ -534,68 +490,23 @@ a {
   }
 }
 
-@keyframes infinya-symbol-lux {
-  0% {
-    background-position: 0% 50%;
-    opacity: 0.5;
+@keyframes infinya-symbol-outline-glow {
+  from {
+    stroke-dashoffset: 0;
   }
 
-  50% {
-    opacity: 0.9;
-  }
-
-  100% {
-    background-position: 180% 50%;
-    opacity: 0.5;
+  to {
+    stroke-dashoffset: -306;
   }
 }
 
-@keyframes infinya-symbol-lux-ribbon {
-  0% {
-    background-position: -10% 50%;
-    opacity: 0.18;
+@keyframes infinya-symbol-outline-core {
+  from {
+    stroke-dashoffset: 0;
   }
 
-  40% {
-    opacity: 0.82;
-  }
-
-  100% {
-    background-position: 145% 50%;
-    opacity: 0.2;
-  }
-}
-
-@keyframes infinya-symbol-aura {
-  0% {
-    background-position: 0% 42%;
-    transform: translate3d(-1%, 0, 0) scale(1);
-  }
-
-  50% {
-    background-position: 100% 58%;
-    transform: translate3d(1%, -1%, 0) scale(1.05);
-  }
-
-  100% {
-    background-position: 0% 42%;
-    transform: translate3d(-1%, 0, 0) scale(1);
-  }
-}
-
-@keyframes infinya-symbol-orbit {
-  0% {
-    transform: rotate(0deg) scale(1.02);
-    opacity: 0.28;
-  }
-
-  35% {
-    opacity: 0.72;
-  }
-
-  100% {
-    transform: rotate(360deg) scale(1.06);
-    opacity: 0.28;
+  to {
+    stroke-dashoffset: -306;
   }
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -22,16 +23,11 @@ export function InfinyaBrand({
   compact = false,
   animated = true,
 }: InfinyaBrandProps) {
-  const symbolMaskStyle = {
-    WebkitMaskImage: "url('/branding/infinya-mark-symbol-mask.png')",
-    maskImage: "url('/branding/infinya-mark-symbol-mask.png')",
-    WebkitMaskRepeat: "no-repeat",
-    maskRepeat: "no-repeat",
-    WebkitMaskPosition: "center",
-    maskPosition: "center",
-    WebkitMaskSize: "contain",
-    maskSize: "contain",
-  } as const;
+  const id = useId().replace(/:/g, "");
+  const outlineGradientId = `infinya-outline-${id}`;
+  const outlineGlowId = `infinya-outline-glow-${id}`;
+  const infinityPath =
+    "M 24 70 C 42 24 92 24 120 70 C 148 116 198 116 216 70 C 234 24 184 24 120 70 C 56 116 6 116 24 70";
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
@@ -45,35 +41,6 @@ export function InfinyaBrand({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_26%,rgba(34,211,238,0.16),transparent_42%),radial-gradient(circle_at_78%_72%,rgba(217,70,239,0.18),transparent_38%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
 
         <div className="absolute inset-[10%] overflow-hidden rounded-[16px]">
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-[-6%] opacity-[0.62] mix-blend-screen",
-              animated && "infinya-symbol-lux",
-            )}
-            style={symbolMaskStyle}
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-[-8%] opacity-[0.44] mix-blend-screen blur-[2px]",
-              animated && "infinya-symbol-lux-ribbon",
-            )}
-            style={symbolMaskStyle}
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-[-8%] opacity-[0.3] mix-blend-color-dodge",
-              animated && "infinya-symbol-aura",
-            )}
-            style={symbolMaskStyle}
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-[-10%] opacity-[0.56] mix-blend-screen blur-[3px]",
-              animated && "infinya-symbol-orbit",
-            )}
-            style={symbolMaskStyle}
-          />
-
           <Image
             src="/branding/infinya-mark-symbol.png"
             alt="Infinya"
@@ -85,6 +52,55 @@ export function InfinyaBrand({
             )}
             priority
           />
+
+          <svg
+            viewBox="0 0 240 140"
+            className="pointer-events-none absolute inset-[7%] h-[86%] w-[86%] overflow-visible"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id={outlineGradientId} x1="8" y1="28" x2="228" y2="112" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#9efcff" />
+                <stop offset="24%" stopColor="#22d3ee" />
+                <stop offset="54%" stopColor="#6f7cff" />
+                <stop offset="78%" stopColor="#b56dff" />
+                <stop offset="100%" stopColor="#ff9ff3" />
+              </linearGradient>
+              <filter id={outlineGlowId} x="-45%" y="-45%" width="190%" height="190%">
+                <feGaussianBlur stdDeviation="2.6" result="blur" />
+                <feColorMatrix
+                  in="blur"
+                  type="matrix"
+                  values="1 0 0 0 0
+                          0 1 0 0 0
+                          0 0 1 0 0
+                          0 0 0 1.2 0"
+                />
+              </filter>
+            </defs>
+
+            <path
+              d={infinityPath}
+              fill="none"
+              stroke={`url(#${outlineGradientId})`}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="56 250"
+              className={cn(animated && "infinya-symbol-outline-glow")}
+              filter={`url(#${outlineGlowId})`}
+            />
+            <path
+              d={infinityPath}
+              fill="none"
+              stroke={`url(#${outlineGradientId})`}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="40 266"
+              className={cn(animated && "infinya-symbol-outline-core")}
+            />
+          </svg>
 
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_38%,rgba(4,8,22,0.06)_74%,rgba(4,8,22,0.18)_100%)]" />
         </div>
