@@ -124,7 +124,7 @@ export function InfinyaBrand({
           </div>
           <span
             className={cn(
-              "mt-0.5 block text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-950",
+              "mt-0.5 block w-full text-center text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-950",
               compact && "text-[0.62rem]",
             )}
           >
