@@ -106,18 +106,25 @@ export function InfinyaBrand({
 
       <div className="min-w-0">
         <div className="min-w-0">
-          <p
+          <div
             className={cn(
-              "truncate font-semibold uppercase text-slate-950 dark:text-white",
-              compact ? "text-[1.02rem] tracking-[0.18em]" : "text-[1.24rem] tracking-[0.22em]",
+              "relative overflow-hidden",
+              compact ? "h-5 w-[7.4rem]" : "h-6 w-[8.8rem]",
               nameClassName,
             )}
           >
-            Infinya
-          </p>
+            <Image
+              src="/branding/infinya-wordmark-black.png"
+              alt="Infinya"
+              fill
+              sizes={compact ? "118px" : "141px"}
+              className="object-contain object-left"
+              priority
+            />
+          </div>
           <span
             className={cn(
-              "mt-0.5 block text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400",
+              "mt-0.5 block text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-950",
               compact && "text-[0.62rem]",
             )}
           >
