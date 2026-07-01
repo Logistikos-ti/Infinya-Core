@@ -19,6 +19,24 @@ const CAMERA_ERROR_MESSAGES: Record<string, string> = {
   AbortError: "A inicialização da câmera foi interrompida. Tente novamente.",
 };
 
+async function waitForVideoElement(
+  getVideo: () => HTMLVideoElement | null,
+  timeoutMs = 1200,
+) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const video = getVideo();
+    if (video) {
+      return video;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 16));
+  }
+
+  return null;
+}
+
 export function useCameraBarcodeScanner({
   onDetected,
   successCooldownMs = 1500,
@@ -72,7 +90,7 @@ export function useCameraBarcodeScanner({
   );
 
   const startCamera = useCallback(async () => {
-    if (!cameraSupported || !videoRef.current) {
+    if (!cameraSupported) {
       setCameraMessage("Leitura por câmera não suportada neste navegador.");
       return;
     }
@@ -82,6 +100,11 @@ export function useCameraBarcodeScanner({
 
     try {
       cleanupStream();
+
+      const videoElement = await waitForVideoElement(() => videoRef.current);
+      if (!videoElement) {
+        throw new Error("VideoElementUnavailable");
+      }
 
       const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
         import("@zxing/browser"),
@@ -123,7 +146,7 @@ export function useCameraBarcodeScanner({
       };
 
       const startWithConstraints = async (constraints: MediaStreamConstraints) =>
-        reader.decodeFromConstraints(constraints, videoRef.current ?? undefined, (result, error) => {
+        reader.decodeFromConstraints(constraints, videoElement, (result, error) => {
           if (result?.getText()) {
             handleDetection(result.getText());
             if (mountedRef.current) {

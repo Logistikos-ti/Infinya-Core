@@ -38,6 +38,7 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
   const eanInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleBarcodeDetected = useCallback((code: string) => {
     setEanGtinValue(code);
     requestAnimationFrame(() => {
@@ -45,6 +46,7 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
       eanInputRef.current?.select();
     });
   }, []);
+
   const {
     videoRef,
     cameraSupported,
@@ -66,7 +68,8 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada e unidade de estocagem.
+          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada e unidade de
+          estocagem.
         </p>
       </div>
 
@@ -202,7 +205,9 @@ type FieldProps = {
 function Field({ label, name, defaultValue, error, inputRef, value, onChange }: FieldProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+      </span>
       <input
         ref={inputRef ?? undefined}
         name={name}
@@ -227,7 +232,9 @@ type SelectFieldProps = {
 function SelectField({ label, name, defaultValue, error, options }: SelectFieldProps) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+        {label}
+      </span>
       <select
         name={name}
         defaultValue={defaultValue}
@@ -300,17 +307,17 @@ function BarcodeField({
 }: BarcodeFieldProps) {
   return (
     <div className="block md:col-span-2">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
           EAN/GTIN
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onToggleCamera}
-            disabled={!cameraSupported || cameraStarting}
+            disabled={cameraStarting}
             className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
           >
             {cameraEnabled ? <CameraOff className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
@@ -337,8 +344,8 @@ function BarcodeField({
       </div>
 
       {(cameraEnabled || cameraStarting || cameraMessage) && (
-        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-          <div className="grid gap-3 lg:grid-cols-[220px,1fr]">
+        <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="grid gap-3 sm:grid-cols-[200px,1fr] sm:items-start">
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 dark:border-slate-800">
               <video
                 ref={videoRef}
@@ -356,6 +363,12 @@ function BarcodeField({
                 {cameraMessage ??
                   "Aponte a câmera para o código. Quando a leitura ocorrer, o EAN/GTIN será preenchido automaticamente."}
               </p>
+              {!cameraSupported ? (
+                <p className="text-xs text-amber-600 dark:text-amber-300">
+                  Seu navegador não liberou a câmera. Se estiver no celular, teste pelo Chrome ou
+                  Safari atualizados.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
