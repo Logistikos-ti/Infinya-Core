@@ -6,7 +6,7 @@ export type ImportedProductRow = {
   codigoInterno: string;
   codigoExterno: string | null;
   depositanteNome: string | null;
-  unidadeEstocagem: "UNIDADE" | "CAIXA" | "PALLET";
+  unidadeEstocagem: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
   categoria: string | null;
   descricao: string | null;
   metodoRetirada: "FEFO" | "FIFO" | "LIFO";
@@ -432,8 +432,12 @@ function normalizeMetodo(value: unknown): "FEFO" | "FIFO" | "LIFO" {
   return "FIFO";
 }
 
-function normalizeUnidade(value: unknown): "UNIDADE" | "CAIXA" | "PALLET" {
+function normalizeUnidade(value: unknown): "UNIDADE" | "CAIXA" | "PACK" | "PALLET" {
   const cleaned = normalizeText(String(value ?? ""));
+
+  if (cleaned.includes("pack")) {
+    return "PACK";
+  }
 
   if (cleaned.includes("caixa")) {
     return "CAIXA";

@@ -55,7 +55,8 @@ export type Produto = {
   codigoExterno?: string | null;
   nome: string;
   categoria?: string | null;
-  unidadeEstocagem: "UNIDADE" | "CAIXA" | "PALLET";
+  unidadeEstocagem: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
+  quantidadePorEmbalagem?: number | null;
   metodoRetirada: MetodoRetirada;
   qtdMinima?: number | null;
   qtdMaxima?: number | null;

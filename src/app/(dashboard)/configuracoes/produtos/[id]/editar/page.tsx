@@ -21,7 +21,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     supabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -44,7 +44,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
       <ModulePageHeader
         title={`Editar ${product.nome}`}
-        description="Atualize identificação, categoria, método de retirada e status operacional do SKU."
+        description="Atualize identificação, categoria, método de retirada, embalagem e status operacional do SKU."
         badge="Cadastro"
       />
 
@@ -61,6 +61,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             categoria: product.categoria ?? "",
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
+            quantidadePorEmbalagem: product.quantidade_por_embalagem,
             exigeLote: product.exige_lote,
             exigeValidade: product.exige_validade,
             ativo: product.ativo,

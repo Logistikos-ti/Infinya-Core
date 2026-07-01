@@ -12,7 +12,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("produtos")
     .select(
-      "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante:depositantes(nome)",
+      "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, created_at, depositante:depositantes(nome)",
     )
     .order("nome");
 

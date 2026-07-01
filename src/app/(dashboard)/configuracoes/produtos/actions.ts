@@ -18,7 +18,8 @@ export type ProdutoActionState = {
       | "eanGtin"
       | "categoria"
       | "metodoRetirada"
-      | "unidadeEstocagem",
+      | "unidadeEstocagem"
+      | "quantidadePorEmbalagem",
       string
     >
   >;
@@ -30,6 +31,8 @@ export async function saveProdutoAction(
 ): Promise<ProdutoActionState> {
   await requireRoleAccess(["ADMIN", "TI"]);
 
+  const quantidadePorEmbalagemRaw = String(formData.get("quantidadePorEmbalagem") ?? "").trim();
+
   const parsed = produtoFormSchema.safeParse({
     id: String(formData.get("id") ?? "").trim() || undefined,
     depositanteId: String(formData.get("depositanteId") ?? "").trim(),
@@ -40,6 +43,7 @@ export async function saveProdutoAction(
     categoria: String(formData.get("categoria") ?? "").trim(),
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
+    quantidadePorEmbalagem: quantidadePorEmbalagemRaw ? Number(quantidadePorEmbalagemRaw) : undefined,
     exigeLote: formData.get("exigeLote") === "on",
     exigeValidade: formData.get("exigeValidade") === "on",
     ativo: formData.get("ativo") === "on",
@@ -60,6 +64,7 @@ export async function saveProdutoAction(
         categoria: flattened.categoria?.[0] ?? "",
         metodoRetirada: flattened.metodoRetirada?.[0] ?? "",
         unidadeEstocagem: flattened.unidadeEstocagem?.[0] ?? "",
+        quantidadePorEmbalagem: flattened.quantidadePorEmbalagem?.[0] ?? "",
       },
     };
   }
@@ -74,6 +79,10 @@ export async function saveProdutoAction(
     categoria: parsed.data.categoria || null,
     metodo_retirada: parsed.data.metodoRetirada,
     unidade_estocagem: parsed.data.unidadeEstocagem,
+    quantidade_por_embalagem:
+      parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
+        ? parsed.data.quantidadePorEmbalagem ?? null
+        : null,
     exige_lote: parsed.data.exigeLote,
     exige_validade: parsed.data.exigeValidade,
     ativo: parsed.data.ativo,

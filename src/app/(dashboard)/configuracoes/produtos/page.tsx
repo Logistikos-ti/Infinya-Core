@@ -40,7 +40,7 @@ export default async function ConfiguracoesProdutosPage({
   let productsQuery = supabase
     .from("produtos")
     .select(
-      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",
+      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",
       { count: "exact" },
     )
     .order("nome")
@@ -80,6 +80,7 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery,
     supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
   ]);
+
   const totalProducts = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
   const currentPage = Math.min(page, totalPages);
@@ -108,7 +109,7 @@ export default async function ConfiguracoesProdutosPage({
 
       <ModulePageHeader
         title="Produtos"
-        description="Cadastro mestre de SKU com EAN/GTIN, categoria, método FEFO/FIFO e unidade de estocagem."
+        description="Cadastro mestre de SKU com EAN/GTIN, método FEFO/FIFO, unidade de estocagem e regra de embalagem."
         badge="Cadastro mestre"
       />
 
@@ -149,8 +150,8 @@ export default async function ConfiguracoesProdutosPage({
               SKU operacional.
             </div>
             <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              EAN/GTIN é salvo no campo externo do produto, pronto para refinarmos depois com
-              modelagem dedicada.
+              EAN/GTIN é salvo no campo externo do produto. Pack e quantidade por embalagem podem
+              ser refinados manualmente após a importação.
             </div>
           </div>
         </div>
@@ -258,6 +259,7 @@ export default async function ConfiguracoesProdutosPage({
                 <option value="">Todas</option>
                 <option value="UNIDADE">Unidade</option>
                 <option value="CAIXA">Caixa</option>
+                <option value="PACK">Pack</option>
                 <option value="PALLET">Pallet</option>
               </select>
             </label>
@@ -340,11 +342,20 @@ export default async function ConfiguracoesProdutosPage({
                         </p>
                         <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
                         <p>Categoria: {item.categoria || "-"}</p>
+                        {(item.unidade_estocagem === "CAIXA" || item.unidade_estocagem === "PACK") &&
+                        item.quantidade_por_embalagem ? (
+                          <p>
+                            Quantidade por embalagem: {item.quantidade_por_embalagem} unidade(s)
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <Badge>{item.metodo_retirada}</Badge>
                         <Badge>{getUnidadeLabel(item.unidade_estocagem)}</Badge>
+                        {item.quantidade_por_embalagem ? (
+                          <Badge>{item.quantidade_por_embalagem} por embalagem</Badge>
+                        ) : null}
                         <Badge>{item.exige_lote ? "Com lote" : "Sem lote"}</Badge>
                         <Badge>{item.exige_validade ? "Com validade" : "Sem validade"}</Badge>
                       </div>
@@ -425,6 +436,8 @@ function getUnidadeLabel(value: string) {
       return "Unidade";
     case "CAIXA":
       return "Caixa";
+    case "PACK":
+      return "Pack";
     case "PALLET":
       return "Pallet";
     default:

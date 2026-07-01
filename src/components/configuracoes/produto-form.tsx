@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useRef, useState } from "react";
+import { useActionState, useCallback, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, CameraOff } from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,8 @@ type ProdutoFormProps = {
     eanGtin?: string;
     categoria?: string;
     metodoRetirada?: "FEFO" | "FIFO" | "LIFO";
-    unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PALLET";
+    unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
+    quantidadePorEmbalagem?: number | null;
     exigeLote?: boolean;
     exigeValidade?: boolean;
     ativo?: boolean;
@@ -37,7 +38,15 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
 
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
+  const [unidadeEstocagem, setUnidadeEstocagem] = useState<
+    "UNIDADE" | "CAIXA" | "PACK" | "PALLET"
+  >(defaultValues?.unidadeEstocagem ?? "UNIDADE");
   const eanInputRef = useRef<HTMLInputElement | null>(null);
+
+  const exibeQuantidadePorEmbalagem = useMemo(
+    () => unidadeEstocagem === "CAIXA" || unidadeEstocagem === "PACK",
+    [unidadeEstocagem],
+  );
 
   const handleBarcodeDetected = useCallback((code: string) => {
     setEanGtinValue(code);
@@ -68,8 +77,8 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada e unidade de
-          estocagem.
+          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada, unidade de
+          estocagem e regra de embalagem.
         </p>
       </div>
 
@@ -137,13 +146,31 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           label="Unidade de estocagem"
           name="unidadeEstocagem"
           defaultValue={defaultValues?.unidadeEstocagem ?? "UNIDADE"}
+          value={unidadeEstocagem}
+          onChange={(value) => setUnidadeEstocagem(value as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
           error={state.errors?.unidadeEstocagem}
           options={[
             { value: "UNIDADE", label: "Unidade" },
             { value: "CAIXA", label: "Caixa" },
+            { value: "PACK", label: "Pack" },
             { value: "PALLET", label: "Pallet" },
           ]}
         />
+
+        {exibeQuantidadePorEmbalagem ? (
+          <Field
+            label={`Quantidade por ${unidadeEstocagem === "PACK" ? "pack" : "caixa"}`}
+            name="quantidadePorEmbalagem"
+            type="number"
+            min={1}
+            step={1}
+            defaultValue={String(defaultValues?.quantidadePorEmbalagem ?? "")}
+            error={state.errors?.quantidadePorEmbalagem}
+            helperText="Informe quantas unidades deste SKU existem dentro da embalagem."
+          />
+        ) : (
+          <input type="hidden" name="quantidadePorEmbalagem" value="" />
+        )}
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -200,9 +227,25 @@ type FieldProps = {
   inputRef?: React.RefObject<HTMLInputElement | null>;
   value?: string;
   onChange?: (value: string) => void;
+  type?: "text" | "number";
+  min?: number;
+  step?: number;
+  helperText?: string;
 };
 
-function Field({ label, name, defaultValue, error, inputRef, value, onChange }: FieldProps) {
+function Field({
+  label,
+  name,
+  defaultValue,
+  error,
+  inputRef,
+  value,
+  onChange,
+  type = "text",
+  min,
+  step,
+  helperText,
+}: FieldProps) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -210,12 +253,18 @@ function Field({ label, name, defaultValue, error, inputRef, value, onChange }: 
       </span>
       <input
         ref={inputRef ?? undefined}
+        type={type}
+        min={min}
+        step={step}
         name={name}
         defaultValue={value === undefined ? defaultValue : undefined}
         value={value}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
+      {helperText ? (
+        <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">{helperText}</span>
+      ) : null}
       {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
     </label>
   );
@@ -225,11 +274,13 @@ type SelectFieldProps = {
   label: string;
   name: string;
   defaultValue: string;
+  value?: string;
+  onChange?: (value: string) => void;
   error?: string;
   options: { value: string; label: string }[];
 };
 
-function SelectField({ label, name, defaultValue, error, options }: SelectFieldProps) {
+function SelectField({ label, name, defaultValue, value, onChange, error, options }: SelectFieldProps) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -237,7 +288,9 @@ function SelectField({ label, name, defaultValue, error, options }: SelectFieldP
       </span>
       <select
         name={name}
-        defaultValue={defaultValue}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       >
         {options.map((option) => (
