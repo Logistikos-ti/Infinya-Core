@@ -42,6 +42,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
             className="min-w-0 flex-1"
             subtitle={user.nome}
             subtitleClassName="truncate"
+            forceLightWordmark
           />
           <div className="shrink-0 [&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-white [&_button:hover]:bg-white/10">
             <LogoutButton />

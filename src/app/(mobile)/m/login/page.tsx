@@ -16,7 +16,7 @@ export default async function MobileLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_25%),radial-gradient(circle_at_bottom,rgba(192,132,252,0.18),transparent_22%),#040816] px-4 py-6 text-white">
       <div className="infinya-border-glow w-full max-w-sm rounded-[28px] border border-white/10 bg-[#071120]/82 p-6 shadow-2xl backdrop-blur">
         <div className="space-y-2">
-          <InfinyaBrand subtitle="Webapp operacional" />
+          <InfinyaBrand subtitle="Webapp operacional" forceLightWordmark />
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
             Webapp operacional
           </p>

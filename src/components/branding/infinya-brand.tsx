@@ -12,6 +12,7 @@ type InfinyaBrandProps = {
   subtitleClassName?: string;
   compact?: boolean;
   animated?: boolean;
+  forceLightWordmark?: boolean;
 };
 
 export function InfinyaBrand({
@@ -20,6 +21,7 @@ export function InfinyaBrand({
   nameClassName,
   compact = false,
   animated = true,
+  forceLightWordmark = false,
 }: InfinyaBrandProps) {
   const id = useId().replace(/:/g, "");
   const outlineGradientId = `infinya-outline-${id}`;
@@ -118,7 +120,12 @@ export function InfinyaBrand({
               alt="Infinya"
               fill
               sizes={compact ? "106px" : "128px"}
-              className="object-contain object-left dark:brightness-0 dark:invert"
+              className={cn(
+                "object-contain object-left",
+                forceLightWordmark
+                  ? "brightness-0 invert"
+                  : "dark:brightness-0 dark:invert",
+              )}
               priority
             />
           </div>
