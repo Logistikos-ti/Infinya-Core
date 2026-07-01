@@ -6,6 +6,14 @@ type ScannerControlsLike = {
   stop: () => void;
 };
 
+type BarcodeDetectorLike = {
+  detect(source: ImageBitmapSource): Promise<Array<{ rawValue?: string }>>;
+};
+
+type BarcodeDetectorCtor = new (options?: {
+  formats?: string[];
+}) => BarcodeDetectorLike;
+
 type UseCameraBarcodeScannerOptions = {
   onDetected: (code: string) => void;
   successCooldownMs?: number;
@@ -37,15 +45,23 @@ async function waitForVideoElement(
   return null;
 }
 
+function normalizeCode(code: string) {
+  return code.trim();
+}
+
 export function useCameraBarcodeScanner({
   onDetected,
   successCooldownMs = 1500,
 }: UseCameraBarcodeScannerOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<ScannerControlsLike | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<BarcodeDetectorLike | null>(null);
+  const loopRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   const lastCodeRef = useRef<string>("");
   const lastDetectedAtRef = useRef<number>(0);
-  const mountedRef = useRef(true);
+
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [cameraMessage, setCameraMessage] = useState<string | null>(null);
@@ -58,19 +74,49 @@ export function useCameraBarcodeScanner({
     [],
   );
 
+  const nativeDetectorSupported = useMemo(
+    () => typeof window !== "undefined" && "BarcodeDetector" in window,
+    [],
+  );
+
+  const emitDetection = useCallback(
+    (code: string) => {
+      const normalizedCode = normalizeCode(code);
+      if (!normalizedCode) {
+        return;
+      }
+
+      const now = Date.now();
+      if (
+        normalizedCode === lastCodeRef.current &&
+        now - lastDetectedAtRef.current < successCooldownMs
+      ) {
+        return;
+      }
+
+      lastCodeRef.current = normalizedCode;
+      lastDetectedAtRef.current = now;
+      onDetected(normalizedCode);
+    },
+    [onDetected, successCooldownMs],
+  );
+
   const cleanupStream = useCallback(() => {
     controlsRef.current?.stop();
     controlsRef.current = null;
 
-    const currentVideo = videoRef.current;
-    const currentStream = currentVideo?.srcObject;
-    if (currentStream instanceof MediaStream) {
-      currentStream.getTracks().forEach((track) => track.stop());
+    if (loopRef.current) {
+      window.cancelAnimationFrame(loopRef.current);
+      loopRef.current = null;
     }
 
-    if (currentVideo) {
-      currentVideo.pause();
-      currentVideo.srcObject = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.srcObject = null;
     }
   }, []);
 
@@ -80,6 +126,7 @@ export function useCameraBarcodeScanner({
       if (!mountedRef.current) {
         return;
       }
+
       setCameraStarting(false);
       setCameraEnabled(false);
       if (typeof message !== "undefined") {
@@ -88,6 +135,38 @@ export function useCameraBarcodeScanner({
     },
     [cleanupStream],
   );
+
+  const runNativeDetectorLoop = useCallback(() => {
+    const loop = async () => {
+      const detector = detectorRef.current;
+      const video = videoRef.current;
+
+      if (!detector || !video || video.readyState < 2) {
+        loopRef.current = window.requestAnimationFrame(loop);
+        return;
+      }
+
+      try {
+        const results = await detector.detect(video);
+        const code = results.find((item) => item.rawValue?.trim())?.rawValue?.trim() ?? "";
+
+        if (code) {
+          emitDetection(code);
+          if (mountedRef.current) {
+            setCameraMessage("Câmera ativa. Aponte para o código de barras.");
+          }
+        }
+      } catch {
+        if (mountedRef.current) {
+          setCameraMessage("A câmera está ativa, mas a leitura automática falhou neste momento.");
+        }
+      }
+
+      loopRef.current = window.requestAnimationFrame(loop);
+    };
+
+    loopRef.current = window.requestAnimationFrame(loop);
+  }, [emitDetection]);
 
   const startCamera = useCallback(async () => {
     if (!cameraSupported) {
@@ -106,49 +185,60 @@ export function useCameraBarcodeScanner({
         throw new Error("VideoElementUnavailable");
       }
 
-      const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
-        import("@zxing/browser"),
-        import("@zxing/library"),
-      ]);
+      videoElement.setAttribute("playsinline", "true");
+      videoElement.setAttribute("webkit-playsinline", "true");
+      videoElement.muted = true;
 
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.EAN_8,
-        BarcodeFormat.CODE_128,
-        BarcodeFormat.CODE_39,
-        BarcodeFormat.UPC_A,
-        BarcodeFormat.UPC_E,
-      ]);
+      if (nativeDetectorSupported) {
+        const BarcodeDetectorRef = (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor })
+          .BarcodeDetector;
 
-      const reader = new BrowserMultiFormatReader(hints, {
-        delayBetweenScanAttempts: 120,
-        delayBetweenScanSuccess: 500,
+        if (BarcodeDetectorRef) {
+          detectorRef.current = new BarcodeDetectorRef({
+            formats: ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"],
+          });
+        }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
       });
 
-      const handleDetection = (code: string) => {
-        const normalizedCode = code.trim();
-        if (!normalizedCode) {
-          return;
-        }
+      streamRef.current = stream;
+      videoElement.srcObject = stream;
+      await videoElement.play();
 
-        const now = Date.now();
-        if (
-          normalizedCode === lastCodeRef.current &&
-          now - lastDetectedAtRef.current < successCooldownMs
-        ) {
-          return;
-        }
+      if (detectorRef.current) {
+        runNativeDetectorLoop();
+      } else {
+        const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
+          import("@zxing/browser"),
+          import("@zxing/library"),
+        ]);
 
-        lastCodeRef.current = normalizedCode;
-        lastDetectedAtRef.current = now;
-        onDetected(normalizedCode);
-      };
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+        ]);
 
-      const startWithConstraints = async (constraints: MediaStreamConstraints) =>
-        reader.decodeFromConstraints(constraints, videoElement, (result, error) => {
+        const reader = new BrowserMultiFormatReader(hints, {
+          delayBetweenScanAttempts: 90,
+          delayBetweenScanSuccess: 400,
+        });
+
+        controlsRef.current = await reader.decodeFromVideoElement(videoElement, (result, error) => {
           if (result?.getText()) {
-            handleDetection(result.getText());
+            emitDetection(result.getText());
             if (mountedRef.current) {
               setCameraMessage("Câmera ativa. Aponte para o código de barras.");
             }
@@ -169,26 +259,7 @@ export function useCameraBarcodeScanner({
             setCameraMessage("A câmera está ativa, mas a leitura falhou neste momento.");
           }
         });
-
-      let controls: ScannerControlsLike | null = null;
-
-      try {
-        controls = await startWithConstraints({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
-      } catch {
-        controls = await startWithConstraints({
-          video: true,
-          audio: false,
-        });
       }
-
-      controlsRef.current = controls;
 
       if (!mountedRef.current) {
         cleanupStream();
@@ -214,7 +285,7 @@ export function useCameraBarcodeScanner({
           "Não foi possível iniciar a câmera neste dispositivo.",
       );
     }
-  }, [cameraSupported, cleanupStream, onDetected, successCooldownMs]);
+  }, [cameraSupported, cleanupStream, emitDetection, nativeDetectorSupported, runNativeDetectorLoop]);
 
   const toggleCamera = useCallback(() => {
     if (cameraEnabled || cameraStarting) {
