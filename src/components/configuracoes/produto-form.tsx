@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useCallback, useRef, useState } from "react";
+import { Barcode, Camera, CameraOff } from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 
 type DepositanteOption = {
   id: string;
@@ -34,6 +36,25 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
   };
 
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
+  const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
+  const eanInputRef = useRef<HTMLInputElement | null>(null);
+  const handleBarcodeDetected = useCallback((code: string) => {
+    setEanGtinValue(code);
+    requestAnimationFrame(() => {
+      eanInputRef.current?.focus();
+      eanInputRef.current?.select();
+    });
+  }, []);
+  const {
+    videoRef,
+    cameraSupported,
+    cameraEnabled,
+    cameraStarting,
+    cameraMessage,
+    toggleCamera,
+  } = useCameraBarcodeScanner({
+    onDetected: handleBarcodeDetected,
+  });
 
   return (
     <form
@@ -80,11 +101,17 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           defaultValue={defaultValues?.nome ?? ""}
           error={state.errors?.nome}
         />
-        <Field
-          label="EAN/GTIN"
-          name="eanGtin"
-          defaultValue={defaultValues?.eanGtin ?? ""}
+        <BarcodeField
+          value={eanGtinValue}
           error={state.errors?.eanGtin}
+          inputRef={eanInputRef}
+          onChange={setEanGtinValue}
+          videoRef={videoRef}
+          cameraSupported={cameraSupported}
+          cameraEnabled={cameraEnabled}
+          cameraStarting={cameraStarting}
+          cameraMessage={cameraMessage}
+          onToggleCamera={toggleCamera}
         />
         <Field
           label="Categoria"
@@ -167,15 +194,21 @@ type FieldProps = {
   name: string;
   defaultValue: string;
   error?: string;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  value?: string;
+  onChange?: (value: string) => void;
 };
 
-function Field({ label, name, defaultValue, error }: FieldProps) {
+function Field({ label, name, defaultValue, error, inputRef, value, onChange }: FieldProps) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
       <input
+        ref={inputRef ?? undefined}
         name={name}
-        defaultValue={defaultValue}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
       {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
@@ -237,5 +270,98 @@ function CheckboxField({
         <span className="mt-1 block text-slate-500 dark:text-slate-400">{description}</span>
       </span>
     </label>
+  );
+}
+
+type BarcodeFieldProps = {
+  value: string;
+  error?: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onChange: (value: string) => void;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  cameraSupported: boolean;
+  cameraEnabled: boolean;
+  cameraStarting: boolean;
+  cameraMessage: string | null;
+  onToggleCamera: () => void;
+};
+
+function BarcodeField({
+  value,
+  error,
+  inputRef,
+  onChange,
+  videoRef,
+  cameraSupported,
+  cameraEnabled,
+  cameraStarting,
+  cameraMessage,
+  onToggleCamera,
+}: BarcodeFieldProps) {
+  return (
+    <div className="block md:col-span-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          EAN/GTIN
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onToggleCamera}
+            disabled={!cameraSupported || cameraStarting}
+            className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
+          >
+            {cameraEnabled ? <CameraOff className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
+            {cameraEnabled ? "Desligar câmera" : "Ler código"}
+          </Button>
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+            <Barcode className="h-3.5 w-3.5" />
+            USB ou câmera
+          </span>
+        </div>
+      </div>
+
+      <input
+        ref={inputRef}
+        name="eanGtin"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Digite ou leia o código de barras"
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
+      />
+
+      <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+        Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular.
+      </div>
+
+      {(cameraEnabled || cameraStarting || cameraMessage) && (
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+          <div className="grid gap-3 lg:grid-cols-[220px,1fr]">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 dark:border-slate-800">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="aspect-[4/3] h-full w-full object-cover"
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Leitura por câmera
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                {cameraMessage ??
+                  "Aponte a câmera para o código. Quando a leitura ocorrer, o EAN/GTIN será preenchido automaticamente."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
+    </div>
   );
 }

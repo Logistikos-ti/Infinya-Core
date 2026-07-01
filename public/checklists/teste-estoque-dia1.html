@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checklist de Teste - Estoque Dia 1</title>
+    <style>
+      :root {
+        --bg: #081120;
+        --panel: #0f1b31;
+        --line: #24324d;
+        --text: #eef4ff;
+        --muted: #9eb0cf;
+        --cyan: #56ecff;
+        --violet: #c184ff;
+        --ok: #36d399;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(86, 236, 255, 0.12), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(193, 132, 255, 0.12), transparent 24%),
+          var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .hero, .card {
+        background: rgba(15, 27, 49, 0.84);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        backdrop-filter: blur(10px);
+      }
+      .hero { padding: 28px; margin-bottom: 20px; }
+      h1 { margin: 0 0 8px; font-size: 30px; }
+      p { margin: 0; color: var(--muted); line-height: 1.5; }
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+      .card { padding: 22px; }
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 18px;
+      }
+      .item {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        align-items: start;
+        padding: 12px 0;
+        border-top: 1px solid rgba(255,255,255,0.06);
+      }
+      .item:first-of-type { border-top: 0; padding-top: 0; }
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        accent-color: var(--ok);
+      }
+      .label {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .hint {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .tag {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(86,236,255,0.12);
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .footer-note {
+        margin-top: 18px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <div class="tag">Homologação</div>
+        <h1>Checklist de Teste - Estoque Dia 1</h1>
+        <p>
+          Foco de hoje: cadastro de produto, leitura de código de barras, entrada inicial no estoque
+          e validação dos saldos, protocolos e rastreabilidade.
+        </p>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2 class="section-title">1. Cadastro de produto</h2>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Criar produto manualmente</span>
+              <span class="hint">Validar depositante, código interno, SKU, nome e categoria.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Cadastrar EAN/GTIN manualmente</span>
+              <span class="hint">Salvar e reabrir o produto para confirmar persistência.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Cadastrar EAN/GTIN via leitor USB</span>
+              <span class="hint">Confirmar preenchimento automático do campo EAN/GTIN.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Cadastrar EAN/GTIN via câmera</span>
+              <span class="hint">Testar notebook ou celular e confirmar leitura correta.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Editar produto cadastrado</span>
+              <span class="hint">Alterar categoria, unidade ou método FEFO/FIFO e salvar.</span>
+            </span>
+          </label>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">2. Regras do SKU</h2>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Validar unidade de estocagem</span>
+              <span class="hint">Unidade, caixa e pallet exibindo corretamente.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Validar controle de lote</span>
+              <span class="hint">Marcar e confirmar reflexo nos próximos fluxos.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Validar controle de validade</span>
+              <span class="hint">Marcar e confirmar suporte ao FEFO.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Validar produto ativo/inativo</span>
+              <span class="hint">Inativar, verificar comportamento e reativar.</span>
+            </span>
+          </label>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">3. Entrada no estoque</h2>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Receber ao menos 1 SKU sem lote/validade</span>
+              <span class="hint">Confirmar conclusão e lançamento no estoque.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Receber ao menos 1 SKU com lote/validade</span>
+              <span class="hint">Validar endereço, lote, validade e saldo.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Conferir saldo no módulo Estoque</span>
+              <span class="hint">Checar depositante, produto, área e endereço.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Abrir protocolo de depósito</span>
+              <span class="hint">Validar origem do saldo e linha do tempo.</span>
+            </span>
+          </label>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">4. Consulta e rastreabilidade</h2>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Filtrar por depositante</span>
+              <span class="hint">Conferir isolamento correto da operação.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Filtrar por produto / SKU</span>
+              <span class="hint">Confirmar localização rápida do saldo.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Filtrar por lote e área</span>
+              <span class="hint">Validar pesquisa operacional de estoque.</span>
+            </span>
+          </label>
+
+          <label class="item">
+            <input type="checkbox" />
+            <span>
+              <span class="label">Exportar ou imprimir protocolo</span>
+              <span class="hint">Checar PDF do protocolo individual ou em lote.</span>
+            </span>
+          </label>
+        </section>
+      </div>
+
+      <p class="footer-note">
+        Critério de saída do dia: pelo menos 3 produtos testados, 2 entradas concluídas no estoque e
+        validação de saldo, protocolo e rastreabilidade sem inconsistência visível.
+      </p>
+    </div>
+  </body>
+  </html>
