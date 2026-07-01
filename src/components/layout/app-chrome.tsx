@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Search } from "lucide-react";
+import { PackageSearch, Search, Settings2, Users, Warehouse } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { isAdminUser } from "@/lib/permissions";
 
 type AppChromeProps = {
   children: ReactNode;
@@ -16,6 +18,7 @@ type AppChromeProps = {
 export function AppChrome({ children, user }: AppChromeProps) {
   const pathname = usePathname();
   const currentPath = pathname || "/dashboard";
+  const showAdminMobileShortcuts = isAdminUser(user);
 
   return (
     <div className="theme-transition flex min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,#eef4ff_0%,#f7fbff_55%,#ffffff_100%)] text-slate-900 dark:bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] dark:text-zinc-100">
@@ -51,6 +54,38 @@ export function AppChrome({ children, user }: AppChromeProps) {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-24 lg:pb-12 z-10 scroll-smooth">
+          {showAdminMobileShortcuts ? (
+            <section className="mb-4 lg:hidden">
+              <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-max gap-2">
+                  <MobileAdminShortcut
+                    href="/configuracoes"
+                    label="Configurações"
+                    active={currentPath === "/configuracoes"}
+                    icon={<Settings2 className="h-4 w-4" />}
+                  />
+                  <MobileAdminShortcut
+                    href="/configuracoes/produtos"
+                    label="Produtos"
+                    active={currentPath.startsWith("/configuracoes/produtos")}
+                    icon={<PackageSearch className="h-4 w-4" />}
+                  />
+                  <MobileAdminShortcut
+                    href="/configuracoes/depositantes"
+                    label="Depositantes"
+                    active={currentPath.startsWith("/configuracoes/depositantes")}
+                    icon={<Warehouse className="h-4 w-4" />}
+                  />
+                  <MobileAdminShortcut
+                    href="/configuracoes/usuarios"
+                    label="Usuários"
+                    active={currentPath.startsWith("/configuracoes/usuarios")}
+                    icon={<Users className="h-4 w-4" />}
+                  />
+                </div>
+              </div>
+            </section>
+          ) : null}
           {children}
         </div>
       </main>
@@ -69,5 +104,32 @@ export function AppChrome({ children, user }: AppChromeProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function MobileAdminShortcut({
+  href,
+  label,
+  active,
+  icon,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  icon: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium transition",
+        active
+          ? "border-cyan-300/30 bg-cyan-400/12 text-cyan-700 shadow-[0_0_18px_rgba(34,211,238,0.14)] dark:text-cyan-300"
+          : "border-slate-200/80 bg-white/80 text-slate-700 dark:border-white/10 dark:bg-[#071120]/80 dark:text-slate-200",
+      ].join(" ")}
+    >
+      {icon}
+      <span>{label}</span>
+    </Link>
   );
 }
