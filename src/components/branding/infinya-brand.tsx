@@ -118,13 +118,13 @@ export function InfinyaBrand({
               alt="Infinya"
               fill
               sizes={compact ? "106px" : "128px"}
-              className="object-contain object-left"
+              className="object-contain object-left dark:invert"
               priority
             />
           </div>
           <span
             className={cn(
-              "mt-0.5 block w-full text-left text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-950",
+              "mt-0.5 block w-full text-left text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-950 dark:text-white",
               compact && "text-[0.62rem]",
             )}
           >
