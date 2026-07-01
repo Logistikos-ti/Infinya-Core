@@ -18,8 +18,6 @@ export function InfinyaBrand({
   className,
   markClassName,
   nameClassName,
-  subtitle,
-  subtitleClassName,
   compact = false,
   animated = true,
 }: InfinyaBrandProps) {
@@ -107,7 +105,7 @@ export function InfinyaBrand({
       </div>
 
       <div className="min-w-0">
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="min-w-0">
           <p
             className={cn(
               "truncate font-semibold uppercase text-slate-950 dark:text-white",
@@ -117,22 +115,15 @@ export function InfinyaBrand({
           >
             Infinya
           </p>
-          <span className="shrink-0 text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">
+          <span
+            className={cn(
+              "mt-0.5 block text-[0.68rem] font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400",
+              compact && "text-[0.62rem]",
+            )}
+          >
             Log
           </span>
         </div>
-
-        {subtitle ? (
-          <p
-            className={cn(
-              "truncate text-xs text-slate-500 dark:text-slate-300/90",
-              compact ? "mt-0.5" : "mt-1",
-              subtitleClassName,
-            )}
-          >
-            {subtitle}
-          </p>
-        ) : null}
       </div>
     </div>
   );
