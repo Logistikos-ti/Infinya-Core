@@ -118,7 +118,7 @@ export function InfinyaBrand({
               alt="Infinya"
               fill
               sizes={compact ? "106px" : "128px"}
-              className="object-contain object-left dark:invert"
+              className="object-contain object-left dark:brightness-0 dark:invert"
               priority
             />
           </div>
