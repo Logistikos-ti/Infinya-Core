@@ -130,8 +130,8 @@ export default async function ConfiguracoesPage() {
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Depositantes base</h2>
-              <p className="text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Depositantes base</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Dados reais do ambiente para isolamento multi-tenant e políticas de acesso.
               </p>
             </div>
@@ -143,27 +143,30 @@ export default async function ConfiguracoesPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {depositanteCards.length ? (
               depositanteCards.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 dark:border-white/10 dark:bg-white/5">
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200/70 bg-white/75 p-4 dark:border-white/10 dark:bg-slate-950/40"
+                >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">{item.nome}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.nome}</p>
                     <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
                       {item.metodo}
                     </span>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600">
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">SKUs</p>
-                      <p className="mt-1 font-medium text-slate-900">{item.skus}</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">SKUs</p>
+                      <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{item.skus}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400">Usuários</p>
-                      <p className="mt-1 font-medium text-slate-900">{item.usuarios}</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Usuários</p>
+                      <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{item.usuarios}</p>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 md:col-span-2">
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400 md:col-span-2">
                 Nenhum depositante cadastrado ainda.
               </div>
             )}
@@ -171,7 +174,7 @@ export default async function ConfiguracoesPage() {
         </div>
 
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Próximas ações</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Próximas ações</h2>
           <div className="mt-4 grid gap-3">
             {[
               `Revisar ${activeProducts} produtos já importados no ambiente.`,
@@ -181,7 +184,7 @@ export default async function ConfiguracoesPage() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-xl border border-slate-200/80 bg-white/60 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="rounded-xl border border-slate-200/80 bg-white/75 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200"
               >
                 {item}
               </div>
@@ -197,18 +200,18 @@ export default async function ConfiguracoesPage() {
             href={module.href}
             className="glass-card infinya-border-glow rounded-[24px] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]"
           >
-            <p className="text-base font-semibold text-slate-950">{module.title}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{module.description}</p>
+            <p className="text-base font-semibold text-slate-950 dark:text-white">{module.title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{module.description}</p>
           </Link>
         ))}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Endereços cadastrados</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Endereços cadastrados</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-slate-500">
+              <thead className="border-b border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                 <tr>
                   <th className="pb-3 font-medium">Código</th>
                   <th className="pb-3 font-medium">Área</th>
@@ -219,16 +222,16 @@ export default async function ConfiguracoesPage() {
               <tbody>
                 {enderecos?.length ? (
                   enderecos.map((address) => (
-                    <tr key={address.id} className="border-b border-slate-100 last:border-b-0">
-                      <td className="py-3 font-medium text-slate-900">{address.codigo}</td>
-                      <td className="py-3 text-slate-600">{formatArea(address.area)}</td>
-                      <td className="py-3 text-slate-600">{address.capacidade_maxima ?? "-"}</td>
+                    <tr key={address.id} className="border-b border-slate-100 last:border-b-0 dark:border-white/5">
+                      <td className="py-3 font-medium text-slate-900 dark:text-slate-100">{address.codigo}</td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">{formatArea(address.area)}</td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">{address.capacidade_maxima ?? "-"}</td>
                       <td className="py-3">
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                             address.ativo
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-slate-100 text-slate-600"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                              : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
                           }`}
                         >
                           {address.ativo ? "Ativo" : "Inativo"}
@@ -238,7 +241,7 @@ export default async function ConfiguracoesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-slate-500">
+                    <td colSpan={4} className="py-6 text-center text-slate-500 dark:text-slate-400">
                       Nenhum endereço cadastrado ainda.
                     </td>
                   </tr>
@@ -249,7 +252,7 @@ export default async function ConfiguracoesPage() {
         </div>
 
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Cobertura atual</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Cobertura atual</h2>
           <div className="mt-4 grid gap-3">
             <StatusRow
               label="Depositantes com SKU cadastrado"
@@ -276,18 +279,18 @@ export default async function ConfiguracoesPage() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white/85 p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/45">
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }
 
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm">
-      <span className="text-slate-600">{label}</span>
-      <span className="font-semibold text-slate-950">{value}</span>
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-sm dark:border-white/10 dark:bg-slate-950/30">
+      <span className="text-slate-600 dark:text-slate-300">{label}</span>
+      <span className="font-semibold text-slate-950 dark:text-white">{value}</span>
     </div>
   );
 }
