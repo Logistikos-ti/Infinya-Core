@@ -73,10 +73,44 @@ export async function saveProdutoAction(
   const adminSupabase = createSupabaseAdminClient();
   const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
   const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
+  const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
+
+  if (normalizedEan) {
+    const duplicateBarcodeQuery = adminSupabase
+      .from("produtos")
+      .select("id, nome, depositante:depositantes(nome)")
+      .eq("codigo_externo", normalizedEan)
+      .limit(1);
+
+    if (parsed.data.id) {
+      duplicateBarcodeQuery.neq("id", parsed.data.id);
+    }
+
+    const { data: duplicateBarcode, error: duplicateBarcodeError } = await duplicateBarcodeQuery.maybeSingle();
+
+    if (duplicateBarcodeError) {
+      return {
+        success: false,
+        message: `Nao foi possivel validar o EAN/GTIN: ${duplicateBarcodeError.message}`,
+      };
+    }
+
+    if (duplicateBarcode) {
+      const depositanteNome = extractDepositanteName(duplicateBarcode.depositante);
+      return {
+        success: false,
+        message: `Ja existe um produto com esse EAN/GTIN${depositanteNome ? ` no depositante ${depositanteNome}` : ""}: ${duplicateBarcode.nome}.`,
+        errors: {
+          eanGtin: "Este EAN/GTIN ja esta cadastrado.",
+        },
+      };
+    }
+  }
+
   const payload = {
     depositante_id: parsed.data.depositanteId,
     codigo_interno: resolvedInternalCode,
-    codigo_externo: parsed.data.eanGtin || null,
+    codigo_externo: normalizedEan,
     sku: resolvedSku,
     nome: parsed.data.nome,
     categoria: parsed.data.categoria || null,
@@ -230,4 +264,23 @@ function resolveProductInternalCode(rawValue: string | undefined, productName: s
 function resolveProductSku(rawValue: string | undefined, internalCode: string) {
   const normalized = (rawValue ?? "").trim().toUpperCase();
   return normalized || internalCode;
+}
+
+function normalizeBarcode(value: string | undefined) {
+  const normalized = (value ?? "").trim();
+  return normalized || null;
+}
+
+function extractDepositanteName(value: unknown) {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return typeof first?.nome === "string" ? first.nome : null;
+  }
+
+  if (value && typeof value === "object" && "nome" in value) {
+    const nome = (value as { nome?: unknown }).nome;
+    return typeof nome === "string" ? nome : null;
+  }
+
+  return null;
 }

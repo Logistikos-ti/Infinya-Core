@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 
@@ -20,11 +19,10 @@ type EditarProdutoPageProps = {
 export default async function EditarProdutoPage({ params }: EditarProdutoPageProps) {
   const currentUser = await requireConfigSectionAccess("produtos");
   const { id } = await params;
-  const supabase = await createSupabaseServerClient();
   const adminSupabase = createSupabaseAdminClient();
 
   const [{ data: product }, { data: depositantes }] = await Promise.all([
-    supabase
+    adminSupabase
       .from("produtos")
       .select(
         "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo",
