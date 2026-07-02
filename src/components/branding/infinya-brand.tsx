@@ -26,6 +26,9 @@ export function InfinyaBrand({
   const id = useId().replace(/:/g, "");
   const outlineGradientId = `infinya-outline-${id}`;
   const outlineGlowId = `infinya-outline-glow-${id}`;
+  const wordmarkTextClass = forceLightWordmark
+    ? "text-white"
+    : "text-slate-950 dark:text-white";
   const infinityPath =
     "M 24 70 C 42 24 92 24 120 70 C 148 116 198 116 216 70 C 234 24 184 24 120 70 C 56 116 6 116 24 70";
 
@@ -110,24 +113,36 @@ export function InfinyaBrand({
         <div className="min-w-0">
           <div
             className={cn(
-              "relative overflow-visible",
-              compact ? "h-5 w-[7.35rem]" : "h-6 w-[8.9rem]",
+              "flex items-end",
+              compact ? "h-5" : "h-6",
               nameClassName,
             )}
           >
-            <Image
-              src="/branding/infinya-wordmark-black.png"
-              alt="Infinya"
-              fill
-              sizes={compact ? "118px" : "142px"}
+            <span
+              aria-label="Infinya"
               className={cn(
-                "object-contain object-left",
-                forceLightWordmark
-                  ? "brightness-0 invert"
-                  : "dark:brightness-0 dark:invert",
+                "inline-flex items-end whitespace-nowrap font-black uppercase leading-none",
+                compact ? "text-[1.02rem] tracking-[0.09em]" : "text-[1.34rem] tracking-[0.11em]",
+                wordmarkTextClass,
               )}
-              priority
-            />
+            >
+              <span>INFIN</span>
+              <span className="relative mx-[0.04em] inline-flex items-end justify-center">
+                <span className="bg-[linear-gradient(135deg,#6ee7ff_0%,#22d3ee_32%,#8b5cf6_64%,#d946ef_100%)] bg-clip-text text-transparent">
+                  Y
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none absolute inset-0 blur-[0.5px] opacity-55",
+                    "bg-[linear-gradient(135deg,rgba(110,231,255,0.55)_0%,rgba(34,211,238,0.46)_32%,rgba(139,92,246,0.42)_64%,rgba(217,70,239,0.5)_100%)] bg-clip-text text-transparent",
+                  )}
+                >
+                  Y
+                </span>
+              </span>
+              <span>A</span>
+            </span>
           </div>
           <span
             className={cn(
