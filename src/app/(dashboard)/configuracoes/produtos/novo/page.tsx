@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function NovoProdutoPage() {
+  await requireConfigSectionAccess("produtos");
   const supabase = await createSupabaseServerClient();
   const { data: depositantes } = await supabase
     .from("depositantes")

@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { requireModuleAccess } from "@/lib/auth";
+import { getEffectiveConfigSections, isAdminUser, type ConfigSection } from "@/lib/permissions";
 import { isTransportadorasSchemaMissing } from "@/lib/transportadoras";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -37,6 +40,14 @@ const configModules = [
 ] as const;
 
 export default async function ConfiguracoesPage() {
+  const currentUser = await requireModuleAccess("configuracoes");
+  const allowedSections = getEffectiveConfigSections(currentUser);
+  const isFullConfigUser = isAdminUser(currentUser) || allowedSections.length === configModules.length;
+
+  if (!isFullConfigUser && allowedSections.length === 1) {
+    redirect(`/configuracoes/${allowedSections[0]}`);
+  }
+
   const supabase = await createSupabaseServerClient();
 
   const [
@@ -109,6 +120,11 @@ export default async function ConfiguracoesPage() {
       ? []
       : (transportadorasResult.data ?? []);
   const activeCarriers = transportadoras.filter((item) => item.ativo).length;
+  const visibleConfigModules = isFullConfigUser
+    ? configModules
+    : configModules.filter((module) =>
+        allowedSections.includes(module.href.split("/").pop() as ConfigSection),
+      );
 
   return (
     <div className="space-y-6">
@@ -194,7 +210,7 @@ export default async function ConfiguracoesPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {configModules.map((module) => (
+        {visibleConfigModules.map((module) => (
           <Link
             key={module.href}
             href={module.href}

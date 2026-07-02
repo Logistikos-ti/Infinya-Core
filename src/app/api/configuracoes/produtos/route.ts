@@ -1,8 +1,8 @@
-import { requireApiRoleAccess } from "@/lib/api-auth";
+import { requireApiConfigSectionAccess } from "@/lib/api-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const auth = await requireApiRoleAccess(["ADMIN", "TI"]);
+  const auth = await requireApiConfigSectionAccess("produtos");
 
   if (auth.response) {
     return auth.response;

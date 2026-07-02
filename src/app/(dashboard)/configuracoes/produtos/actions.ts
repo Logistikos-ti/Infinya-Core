@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRoleAccess } from "@/lib/auth";
+import { requireConfigSectionAccess, requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
@@ -29,7 +29,7 @@ export async function saveProdutoAction(
   _prevState: ProdutoActionState,
   formData: FormData,
 ): Promise<ProdutoActionState> {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("produtos");
 
   const quantidadePorEmbalagemRaw = String(formData.get("quantidadePorEmbalagem") ?? "").trim();
 
@@ -117,7 +117,7 @@ export async function saveProdutoAction(
 }
 
 export async function toggleProdutoStatusAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("produtos");
 
   const id = String(formData.get("id") ?? "").trim();
   const nextActive = String(formData.get("nextActive") ?? "").trim() === "true";

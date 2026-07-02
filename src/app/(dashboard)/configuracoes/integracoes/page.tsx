@@ -15,7 +15,7 @@ import {
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { IntegrationAlertCenter } from "@/components/integrations/integration-alert-center";
 import { Button } from "@/components/ui/button";
-import { requireRoleAccess } from "@/lib/auth";
+import { requireConfigSectionAccess, requireRoleAccess } from "@/lib/auth";
 import { getAppBaseUrl, getBlingCallbackUrl, getBlingWebhookUrl } from "@/lib/bling";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { buildIntegrationAlerts } from "@/lib/integration-alerts";
@@ -69,6 +69,7 @@ export default async function ConfiguracoesIntegracoesPage({
   searchParams,
 }: ConfiguracoesIntegracoesPageProps) {
   await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("integracoes");
 
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;

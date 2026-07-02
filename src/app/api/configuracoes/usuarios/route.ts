@@ -11,7 +11,7 @@ export async function GET() {
   const supabase = await createSupabaseServerClient();
   const { data: users, error } = await supabase
     .from("usuarios")
-    .select("id, email, nome, papel, ativo, created_at, depositante_id, depositante:depositantes(nome)")
+    .select("id, email, login, nome, papel, ativo, created_at, depositante_id, depositante:depositantes(nome)")
     .order("nome");
 
   if (error) {

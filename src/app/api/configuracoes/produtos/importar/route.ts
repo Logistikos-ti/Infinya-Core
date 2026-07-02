@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiRoleAccess } from "@/lib/api-auth";
+import { requireApiConfigSectionAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   detectDepositanteFromRows,
@@ -14,7 +14,7 @@ const allowedSpreadsheetMimeTypes = new Set([
 ]);
 
 export async function POST(request: Request) {
-  const auth = await requireApiRoleAccess(["ADMIN", "TI"]);
+  const auth = await requireApiConfigSectionAccess("produtos");
 
   if (auth.response) {
     return auth.response;

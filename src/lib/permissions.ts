@@ -13,6 +13,14 @@ export type AppModule =
   | "relatorios"
   | "configuracoes";
 
+export type ConfigSection =
+  | "depositantes"
+  | "usuarios"
+  | "produtos"
+  | "enderecos"
+  | "transportadoras"
+  | "integracoes";
+
 export const APP_MODULES: AppModule[] = [
   "dashboard",
   "recebimento",
@@ -22,6 +30,15 @@ export const APP_MODULES: AppModule[] = [
   "nfe",
   "relatorios",
   "configuracoes",
+];
+
+export const CONFIG_SECTIONS: ConfigSection[] = [
+  "depositantes",
+  "usuarios",
+  "produtos",
+  "enderecos",
+  "transportadoras",
+  "integracoes",
 ];
 
 const roleDefaultModules: Record<AppRole, readonly AppModule[]> = {
@@ -53,10 +70,6 @@ export function hasRoleAccess(user: AppUserContext, roles: readonly AppRole[]) {
   return roles.includes(user.papel);
 }
 
-export function canAccessModule(user: AppUserContext, module: AppModule) {
-  return getEffectiveModules(user).includes(module);
-}
-
 export function getEffectiveModules(user: AppUserContext) {
   if (user.modulePermissions?.length) {
     return user.modulePermissions;
@@ -65,8 +78,28 @@ export function getEffectiveModules(user: AppUserContext) {
   return [...roleDefaultModules[user.papel]];
 }
 
+export function canAccessModule(user: AppUserContext, module: AppModule) {
+  return getEffectiveModules(user).includes(module);
+}
+
 export function getDefaultModulesForRole(role: AppRole) {
   return [...roleDefaultModules[role]];
+}
+
+export function getEffectiveConfigSections(user: AppUserContext) {
+  if (!canAccessModule(user, "configuracoes")) {
+    return [] as ConfigSection[];
+  }
+
+  if (user.configSections?.length) {
+    return user.configSections;
+  }
+
+  return [...CONFIG_SECTIONS];
+}
+
+export function canAccessConfigSection(user: AppUserContext, section: ConfigSection) {
+  return getEffectiveConfigSections(user).includes(section);
 }
 
 export function isAdminUser(user: AppUserContext) {
@@ -83,6 +116,10 @@ export function canUploadOperationalDocuments(user: AppUserContext) {
 
 export function isAppModule(value: string): value is AppModule {
   return APP_MODULES.includes(value as AppModule);
+}
+
+export function isConfigSection(value: string): value is ConfigSection {
+  return CONFIG_SECTIONS.includes(value as ConfigSection);
 }
 
 export function getRoleLabel(role: AppRole) {
@@ -120,6 +157,25 @@ export function getModuleLabel(module: AppModule) {
       return "Configurações";
     default:
       return module;
+  }
+}
+
+export function getConfigSectionLabel(section: ConfigSection) {
+  switch (section) {
+    case "depositantes":
+      return "Depositantes";
+    case "usuarios":
+      return "Usuários";
+    case "produtos":
+      return "Produtos";
+    case "enderecos":
+      return "Endereços";
+    case "transportadoras":
+      return "Transportadoras";
+    case "integracoes":
+      return "Integrações";
+    default:
+      return section;
   }
 }
 

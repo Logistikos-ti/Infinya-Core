@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -18,6 +19,7 @@ type ConfiguracoesDepositantesPageProps = {
 export default async function ConfiguracoesDepositantesPage({
   searchParams,
 }: ConfiguracoesDepositantesPageProps) {
+  await requireConfigSectionAccess("depositantes");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
   const supabase = await createSupabaseServerClient();

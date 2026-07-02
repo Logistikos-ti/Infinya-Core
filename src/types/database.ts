@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
+          login: string;
           nome: string;
           papel: Database["public"]["Enums"]["papel_usuario"];
           depositante_id: string | null;

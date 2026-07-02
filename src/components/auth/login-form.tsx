@@ -24,15 +24,15 @@ export function LoginForm({
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-slate-700">
-          E-mail
+        <label htmlFor="identifier" className="text-sm font-medium text-slate-700">
+          Usuário ou e-mail
         </label>
         <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="voce@empresa.com.br"
+          id="identifier"
+          name="identifier"
+          type="text"
+          autoComplete="username"
+          placeholder="Digite seu usuário"
           className="w-full rounded-xl border border-slate-300/90 bg-white/95 px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white dark:text-slate-950"
         />
       </div>

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { DepositanteForm } from "@/components/configuracoes/depositante-form";
+import { requireConfigSectionAccess } from "@/lib/auth";
 
-export default function NovoDepositantePage() {
+export default async function NovoDepositantePage() {
+  await requireConfigSectionAccess("depositantes");
+
   return (
     <div className="space-y-6">
       <Link

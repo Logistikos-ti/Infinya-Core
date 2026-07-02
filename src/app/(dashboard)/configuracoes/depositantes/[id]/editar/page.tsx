@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { DepositanteForm } from "@/components/configuracoes/depositante-form";
 import { Button } from "@/components/ui/button";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { deleteDepositanteAction } from "@/app/(dashboard)/configuracoes/depositantes/actions";
@@ -17,6 +18,7 @@ type EditarDepositantePageProps = {
 export default async function EditarDepositantePage({
   params,
 }: EditarDepositantePageProps) {
+  await requireConfigSectionAccess("depositantes");
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 

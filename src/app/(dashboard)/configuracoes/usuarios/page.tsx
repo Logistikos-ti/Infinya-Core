@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { requireRoleAccess } from "@/lib/auth";
 import {
   APP_MODULES,
+  CONFIG_SECTIONS,
+  getConfigSectionLabel,
   getDefaultModulesForRole,
   getModuleLabel,
   getRoleLabel,
   type AppModule,
   type AppRole,
+  type ConfigSection,
 } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -34,6 +37,7 @@ type ConfiguracoesUsuariosPageProps = {
 type UsuarioListItem = {
   id: string;
   email: string;
+  login: string | null;
   nome: string;
   papel: AppRole;
   ativo: boolean;
@@ -42,6 +46,7 @@ type UsuarioListItem = {
   depositante_id: string | null;
   depositante: { nome?: string } | { nome?: string }[] | null;
   modulePermissions: AppModule[] | null;
+  configSections: ConfigSection[] | null;
 };
 
 export default async function ConfiguracoesUsuariosPage({
@@ -61,7 +66,7 @@ export default async function ConfiguracoesUsuariosPage({
   let usersQuery = supabase
     .from("usuarios")
     .select(
-      "id, email, nome, papel, ativo, created_at, ultimo_acesso_em, depositante_id, depositante:depositantes(nome)",
+      "id, email, login, nome, papel, ativo, created_at, ultimo_acesso_em, depositante_id, depositante:depositantes(nome)",
     )
     .order("nome");
 
@@ -82,14 +87,18 @@ export default async function ConfiguracoesUsuariosPage({
   const authPermissionsById = new Map(
     authUsers.map((user) => [
       user.id,
-      normalizeModulePermissions(user.user_metadata?.module_permissions),
+      {
+        modulePermissions: normalizeModulePermissions(user.user_metadata?.module_permissions),
+        configSections: normalizeConfigSections(user.user_metadata?.config_sections),
+      },
     ]),
   );
 
   const usuarios: UsuarioListItem[] = (usuariosBase ?? []).map((item) => ({
     ...item,
     papel: item.papel as AppRole,
-    modulePermissions: authPermissionsById.get(item.id) ?? null,
+    modulePermissions: authPermissionsById.get(item.id)?.modulePermissions ?? null,
+    configSections: authPermissionsById.get(item.id)?.configSections ?? null,
   }));
   const totalUsers = usuarios.length;
   const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
@@ -108,6 +117,10 @@ export default async function ConfiguracoesUsuariosPage({
   const currentEditModules = getEffectiveModulesForForm(
     currentEditUser?.papel,
     currentEditUser?.modulePermissions,
+  );
+  const currentEditConfigSections = getEffectiveConfigSectionsForForm(
+    currentEditModules,
+    currentEditUser?.configSections,
   );
 
   return (
@@ -142,6 +155,8 @@ export default async function ConfiguracoesUsuariosPage({
                 ? "Usuário excluído com sucesso."
                 : feedback === "autoprotecao"
                   ? "Seu próprio usuário não pode ser desativado nem excluído por esta tela."
+                  : feedback === "login-duplicado"
+                    ? "Esse usuário de login já existe. Escolha outro identificador."
                   : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
@@ -178,12 +193,12 @@ export default async function ConfiguracoesUsuariosPage({
                 placeholder="Nome completo"
               />
               <Field
-                label="E-mail"
-                name="email"
-                type="email"
+                label="Usuário de login"
+                name="login"
+                type="text"
                 required
-                defaultValue={currentEditUser?.email ?? ""}
-                placeholder="usuario@empresa.com.br"
+                defaultValue={currentEditUser?.login ?? ""}
+                placeholder="ex.: cadastro1"
               />
               <Field
                 label={currentEditUser ? "Nova senha" : "Senha inicial"}
@@ -245,6 +260,33 @@ export default async function ConfiguracoesUsuariosPage({
                       className="h-4 w-4 rounded"
                     />
                     {getModuleLabel(module)}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
+              <p className="text-sm font-medium text-slate-900 dark:text-white">
+                Acesso interno de Configurações
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Se o usuário tiver acesso ao módulo Configurações, você pode restringir só as
+                áreas desejadas. Para o seu caso, marque apenas Produtos.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {CONFIG_SECTIONS.map((section) => (
+                  <label
+                    key={section}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-zinc-800 dark:text-slate-300"
+                  >
+                    <input
+                      type="checkbox"
+                      name="configSections"
+                      value={section}
+                      defaultChecked={currentEditConfigSections.includes(section)}
+                      className="h-4 w-4 rounded"
+                    />
+                    {getConfigSectionLabel(section)}
                   </label>
                 ))}
               </div>
@@ -375,6 +417,10 @@ export default async function ConfiguracoesUsuariosPage({
                     item.papel,
                     item.modulePermissions,
                   );
+                  const effectiveConfigSections = getEffectiveConfigSectionsForForm(
+                    effectiveModules,
+                    item.configSections,
+                  );
 
                   return (
                     <div
@@ -388,7 +434,7 @@ export default async function ConfiguracoesUsuariosPage({
                               {item.nome}
                             </p>
                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {item.email}
+                              Login: {item.login ?? "não definido"}
                             </p>
                           </div>
 
@@ -416,6 +462,19 @@ export default async function ConfiguracoesUsuariosPage({
                               </span>
                             ))}
                           </div>
+
+                          {effectiveModules.includes("configuracoes") ? (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {effectiveConfigSections.map((section) => (
+                                <span
+                                  key={`${item.id}-config-${section}`}
+                                  className="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                                >
+                                  Config: {getConfigSectionLabel(section)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="space-y-3 lg:text-right">
@@ -563,6 +622,21 @@ function getEffectiveModulesForForm(
   return getDefaultModulesForRole("OPERADOR");
 }
 
+function getEffectiveConfigSectionsForForm(
+  modules: AppModule[],
+  currentSections: ConfigSection[] | null | undefined,
+) {
+  if (!modules.includes("configuracoes")) {
+    return [] as ConfigSection[];
+  }
+
+  if (currentSections?.length) {
+    return currentSections;
+  }
+
+  return [...CONFIG_SECTIONS];
+}
+
 function normalizeModulePermissions(value: unknown): AppModule[] | null {
   if (!Array.isArray(value)) {
     return null;
@@ -574,6 +648,19 @@ function normalizeModulePermissions(value: unknown): AppModule[] | null {
   );
 
   return validModules.length ? validModules : null;
+}
+
+function normalizeConfigSections(value: unknown): ConfigSection[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const validSections = value.filter(
+    (item): item is ConfigSection =>
+      typeof item === "string" && CONFIG_SECTIONS.includes(item as ConfigSection),
+  );
+
+  return validSections.length ? validSections : null;
 }
 
 function getDepositanteLabel(value: UsuarioListItem["depositante"]) {

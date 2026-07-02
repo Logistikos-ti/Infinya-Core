@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAccessDeniedErrorMessage, getCurrentUserContext } from "@/lib/auth";
 import {
+  getAccessDeniedErrorMessage,
+  getConfigSectionAccessDeniedErrorMessage,
+  getCurrentUserContext,
+} from "@/lib/auth";
+import {
+  canAccessConfigSection,
   canAccessModule,
   hasRoleAccess,
   type AppModule,
   type AppRole,
+  type ConfigSection,
 } from "@/lib/permissions";
 
 export {
@@ -49,8 +55,25 @@ export async function requireApiModuleAccess(module: AppModule) {
   if (!canAccessModule(auth.user, module)) {
     return {
       user: null,
+      response: NextResponse.json({ error: getAccessDeniedErrorMessage(module) }, { status: 403 }),
+    };
+  }
+
+  return auth;
+}
+
+export async function requireApiConfigSectionAccess(section: ConfigSection) {
+  const auth = await requireApiModuleAccess("configuracoes");
+
+  if (auth.response) {
+    return auth;
+  }
+
+  if (!canAccessConfigSection(auth.user, section)) {
+    return {
+      user: null,
       response: NextResponse.json(
-        { error: getAccessDeniedErrorMessage(module) },
+        { error: getConfigSectionAccessDeniedErrorMessage(section) },
         { status: 403 },
       ),
     };

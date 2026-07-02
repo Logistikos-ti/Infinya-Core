@@ -6,7 +6,15 @@ const baseUsuarioSchema = z.object({
     .trim()
     .min(3, "Informe o nome completo do usuário.")
     .max(120, "O nome deve ter no máximo 120 caracteres."),
-  email: z.email("Informe um e-mail válido."),
+  login: z
+    .string()
+    .trim()
+    .min(3, "Informe um usuário de login.")
+    .max(40, "O usuário deve ter no máximo 40 caracteres.")
+    .regex(
+      /^[a-zA-Z0-9._-]+$/,
+      "Use apenas letras, números, ponto, traço ou sublinhado no usuário.",
+    ),
   papel: z.enum(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]),
   depositanteId: z.string().uuid().nullable(),
   ativo: z.boolean().default(true),

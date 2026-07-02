@@ -1,10 +1,19 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUserContext, requireRoleAccess } from "@/lib/auth";
-import { APP_MODULES, getDefaultModulesForRole, type AppModule, type AppRole } from "@/lib/permissions";
+import {
+  APP_MODULES,
+  CONFIG_SECTIONS,
+  getDefaultModulesForRole,
+  type AppModule,
+  type AppRole,
+  type ConfigSection,
+} from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { buildInternalAuthEmail, normalizeUserLogin } from "@/lib/user-login";
 import { usuarioFormSchema, usuarioUpdateFormSchema } from "@/lib/validations/usuarios";
 
 export async function createUsuarioAction(formData: FormData) {
@@ -12,31 +21,48 @@ export async function createUsuarioAction(formData: FormData) {
 
   const parsed = usuarioFormSchema.safeParse({
     nome: String(formData.get("nome") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    login: normalizeUserLogin(String(formData.get("login") ?? "")),
     senha: String(formData.get("senha") ?? "").trim(),
     papel: String(formData.get("papel") ?? "OPERADOR").trim(),
     depositanteId: String(formData.get("depositanteId") ?? "").trim() || null,
     ativo: formData.get("ativo") === "on",
   });
   const modulePermissions = parseModulePermissions(formData);
+  const configSections = parseConfigSections(formData, modulePermissions);
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
   }
 
   const adminSupabase = createSupabaseAdminClient();
+  const generatedEmail = buildInternalAuthEmail(parsed.data.login, randomUUID());
+
+  const { data: existingLogin } = await adminSupabase
+    .from("usuarios")
+    .select("id")
+    .eq("login", parsed.data.login)
+    .maybeSingle();
+
+  if (existingLogin) {
+    redirect("/configuracoes/usuarios?feedback=login-duplicado");
+  }
+
   const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
-    email: parsed.data.email,
+    email: generatedEmail,
     password: parsed.data.senha,
     email_confirm: true,
     user_metadata: {
       nome: parsed.data.nome,
+      login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
+      config_sections: configSections,
     },
     app_metadata: {
+      login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
+      config_sections: configSections,
     },
   });
 
@@ -46,7 +72,8 @@ export async function createUsuarioAction(formData: FormData) {
 
   const { error: profileError } = await adminSupabase.from("usuarios").insert({
     id: authUser.user.id,
-    email: parsed.data.email,
+    email: generatedEmail,
+    login: parsed.data.login,
     nome: parsed.data.nome,
     papel: parsed.data.papel,
     depositante_id: parsed.data.depositanteId,
@@ -69,13 +96,14 @@ export async function updateUsuarioAction(formData: FormData) {
   const parsed = usuarioUpdateFormSchema.safeParse({
     id: String(formData.get("id") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    login: normalizeUserLogin(String(formData.get("login") ?? "")),
     senha: String(formData.get("senha") ?? "").trim(),
     papel: String(formData.get("papel") ?? "OPERADOR").trim(),
     depositanteId: String(formData.get("depositanteId") ?? "").trim() || null,
     ativo: formData.get("ativo") === "on",
   });
   const modulePermissions = parseModulePermissions(formData);
+  const configSections = parseConfigSections(formData, modulePermissions);
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
@@ -87,10 +115,31 @@ export async function updateUsuarioAction(formData: FormData) {
 
   const adminSupabase = createSupabaseAdminClient();
 
+  const { data: existingLogin } = await adminSupabase
+    .from("usuarios")
+    .select("id")
+    .eq("login", parsed.data.login)
+    .neq("id", parsed.data.id)
+    .maybeSingle();
+
+  if (existingLogin) {
+    redirect("/configuracoes/usuarios?feedback=login-duplicado");
+  }
+
+  const { data: currentProfile } = await adminSupabase
+    .from("usuarios")
+    .select("email")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+
+  const persistedEmail =
+    currentProfile?.email || buildInternalAuthEmail(parsed.data.login, parsed.data.id);
+
   const { error: profileError } = await adminSupabase
     .from("usuarios")
     .update({
-      email: parsed.data.email,
+      email: persistedEmail,
+      login: parsed.data.login,
       nome: parsed.data.nome,
       papel: parsed.data.papel,
       depositante_id: parsed.data.depositanteId,
@@ -104,19 +153,34 @@ export async function updateUsuarioAction(formData: FormData) {
 
   const attributes: {
     email: string;
-    user_metadata: { nome: string; papel: string; module_permissions: AppModule[] };
-    app_metadata: { papel: string; module_permissions: AppModule[] };
+    user_metadata: {
+      nome: string;
+      login: string;
+      papel: string;
+      module_permissions: AppModule[];
+      config_sections: ConfigSection[];
+    };
+    app_metadata: {
+      login: string;
+      papel: string;
+      module_permissions: AppModule[];
+      config_sections: ConfigSection[];
+    };
     password?: string;
   } = {
-    email: parsed.data.email,
+    email: persistedEmail,
     user_metadata: {
       nome: parsed.data.nome,
+      login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
+      config_sections: configSections,
     },
     app_metadata: {
+      login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
+      config_sections: configSections,
     },
   };
 
@@ -197,4 +261,17 @@ function parseModulePermissions(formData: FormData): AppModule[] {
   const papel = String(formData.get("papel") ?? "OPERADOR").trim() as AppRole;
 
   return selectedModules.length ? selectedModules : getDefaultModulesForRole(papel);
+}
+
+function parseConfigSections(formData: FormData, modulePermissions: AppModule[]): ConfigSection[] {
+  if (!modulePermissions.includes("configuracoes")) {
+    return [];
+  }
+
+  const selectedSections = formData
+    .getAll("configSections")
+    .map((value) => String(value))
+    .filter((value): value is ConfigSection => CONFIG_SECTIONS.includes(value as ConfigSection));
+
+  return selectedSections.length ? selectedSections : [...CONFIG_SECTIONS];
 }

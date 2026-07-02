@@ -4,6 +4,8 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
+import { requireConfigSectionAccess } from "@/lib/auth";
+import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 
@@ -14,6 +16,7 @@ type EditarProdutoPageProps = {
 };
 
 export default async function EditarProdutoPage({ params }: EditarProdutoPageProps) {
+  const currentUser = await requireConfigSectionAccess("produtos");
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
@@ -31,6 +34,8 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   if (!product) {
     notFound();
   }
+
+  const canDeleteProduct = isAdminUser(currentUser);
 
   return (
     <div className="space-y-6">
@@ -68,24 +73,26 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
           }}
         />
 
-        <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            A exclusão é permitida apenas quando o produto ainda não possui vínculos com estoque
-            ou itens de recebimento.
-          </p>
-          <form action={deleteProdutoAction} className="mt-4">
-            <input type="hidden" name="id" value={product.id} />
-            <Button
-              type="submit"
-              variant="outline"
-              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir produto
-            </Button>
-          </form>
-        </div>
+        {canDeleteProduct ? (
+          <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              A exclusão é permitida apenas quando o produto ainda não possui vínculos com estoque
+              ou itens de recebimento.
+            </p>
+            <form action={deleteProdutoAction} className="mt-4">
+              <input type="hidden" name="id" value={product.id} />
+              <Button
+                type="submit"
+                variant="outline"
+                className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                Excluir produto
+              </Button>
+            </form>
+          </div>
+        ) : null}
       </section>
     </div>
   );

@@ -3,7 +3,7 @@ import { ArrowLeft, PencilLine, Truck, Trash2 } from "lucide-react";
 import { TransportadoraForm } from "@/components/configuracoes/transportadora-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
-import { requireRoleAccess } from "@/lib/auth";
+import { requireConfigSectionAccess, requireRoleAccess } from "@/lib/auth";
 import {
   formatCnpj,
   formatTransportadoraModalidade,
@@ -34,6 +34,7 @@ export default async function ConfiguracoesTransportadorasPage({
   const statusFilter = params?.status?.trim() ?? "ativos";
 
   await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("transportadoras");
   const supabase = await createSupabaseServerClient();
 
   let query = supabase

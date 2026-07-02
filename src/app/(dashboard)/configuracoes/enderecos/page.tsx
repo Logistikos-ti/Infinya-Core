@@ -4,6 +4,7 @@ import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
 import { AddressImportPanel } from "@/components/configuracoes/address-import-panel";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   deleteEnderecoAction,
@@ -24,6 +25,7 @@ type ConfiguracoesEnderecosPageProps = {
 export default async function ConfiguracoesEnderecosPage({
   searchParams,
 }: ConfiguracoesEnderecosPageProps) {
+  await requireConfigSectionAccess("enderecos");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
   const editingId = params?.editar ?? null;

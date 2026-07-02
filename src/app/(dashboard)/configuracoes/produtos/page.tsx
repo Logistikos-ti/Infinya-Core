@@ -3,6 +3,8 @@ import { ArrowLeft, PencilLine, Plus, Search, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { Button } from "@/components/ui/button";
+import { requireConfigSectionAccess } from "@/lib/auth";
+import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   deleteProdutoAction,
@@ -25,6 +27,7 @@ type ConfiguracoesProdutosPageProps = {
 export default async function ConfiguracoesProdutosPage({
   searchParams,
 }: ConfiguracoesProdutosPageProps) {
+  const currentUser = await requireConfigSectionAccess("produtos");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
   const searchTerm = params?.q?.trim() ?? "";
@@ -96,6 +99,7 @@ export default async function ConfiguracoesProdutosPage({
     unidade: unidadeFiltro,
     perPage: String(perPage),
   };
+  const canDeleteProducts = isAdminUser(currentUser);
 
   return (
     <div className="space-y-6">
@@ -393,18 +397,20 @@ export default async function ConfiguracoesProdutosPage({
                             {item.ativo ? "Desativar" : "Ativar"}
                           </Button>
                         </form>
-                        <form action={deleteProdutoAction}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir
-                          </Button>
-                        </form>
+                        {canDeleteProducts ? (
+                          <form action={deleteProdutoAction}>
+                            <input type="hidden" name="id" value={item.id} />
+                            <Button
+                              type="submit"
+                              variant="outline"
+                              size="sm"
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Excluir
+                            </Button>
+                          </form>
+                        ) : null}
                       </div>
                     </div>
                   </div>
