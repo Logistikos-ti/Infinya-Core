@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { PackageSearch, Search, Settings2, Users, Warehouse } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
+import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdminUser } from "@/lib/permissions";
@@ -103,6 +104,8 @@ export function AppChrome({ children, user }: AppChromeProps) {
           </div>
         </div>
       </div>
+
+      <FirstAccessPasswordDialog isVisible={user.forcePasswordReset} userName={user.nome} />
     </div>
   );
 }

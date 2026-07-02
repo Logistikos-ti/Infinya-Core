@@ -26,6 +26,7 @@ export type AppUserContext = {
   ativo: boolean;
   modulePermissions: AppModule[] | null;
   configSections: ConfigSection[] | null;
+  forcePasswordReset: boolean;
 };
 
 export const getCurrentUserContext = cache(async (): Promise<AppUserContext | null> => {
@@ -59,6 +60,9 @@ export const getCurrentUserContext = cache(async (): Promise<AppUserContext | nu
     ativo: profile.ativo,
     modulePermissions: parseModulePermissions(user.user_metadata?.module_permissions),
     configSections: parseConfigSections(user.user_metadata?.config_sections),
+    forcePasswordReset: parseForcePasswordReset(
+      user.user_metadata?.force_password_reset ?? user.app_metadata?.force_password_reset,
+    ),
   };
 });
 
@@ -137,6 +141,10 @@ function parseConfigSections(value: unknown): ConfigSection[] | null {
   );
 
   return validSections.length ? validSections : null;
+}
+
+function parseForcePasswordReset(value: unknown) {
+  return value === true;
 }
 
 function extractDepositanteNome(value: unknown) {

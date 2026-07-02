@@ -57,12 +57,14 @@ export async function createUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      force_password_reset: true,
     },
     app_metadata: {
       login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      force_password_reset: true,
     },
   });
 
@@ -131,9 +133,13 @@ export async function updateUsuarioAction(formData: FormData) {
     .select("email")
     .eq("id", parsed.data.id)
     .maybeSingle();
+  const { data: currentAuthUser } = await adminSupabase.auth.admin.getUserById(parsed.data.id);
 
   const persistedEmail =
     currentProfile?.email || buildInternalAuthEmail(parsed.data.login, parsed.data.id);
+  const forcePasswordReset = parsed.data.senha
+    ? true
+    : currentAuthUser?.user?.user_metadata?.force_password_reset === true;
 
   const { error: profileError } = await adminSupabase
     .from("usuarios")
@@ -159,12 +165,14 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: string;
       module_permissions: AppModule[];
       config_sections: ConfigSection[];
+      force_password_reset: boolean;
     };
     app_metadata: {
       login: string;
       papel: string;
       module_permissions: AppModule[];
       config_sections: ConfigSection[];
+      force_password_reset: boolean;
     };
     password?: string;
   } = {
@@ -175,12 +183,14 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      force_password_reset: forcePasswordReset,
     },
     app_metadata: {
       login: parsed.data.login,
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      force_password_reset: forcePasswordReset,
     },
   };
 
