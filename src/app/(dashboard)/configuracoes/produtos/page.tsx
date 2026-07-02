@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import {
   deleteProdutoAction,
@@ -40,7 +39,6 @@ export default async function ConfiguracoesProdutosPage({
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   const startIndex = (page - 1) * perPage;
-  const supabase = await createSupabaseServerClient();
   const adminSupabase = createSupabaseAdminClient();
   const { data: rawDepositantes } = await adminSupabase
     .from("depositantes")
@@ -51,7 +49,7 @@ export default async function ConfiguracoesProdutosPage({
   const depositanteFiltroEfetivo =
     depositanteFiltro || (visibleDepositantes.length === 1 ? visibleDepositantes[0]?.id ?? "" : "");
 
-  let productsQuery = supabase
+  let productsQuery = adminSupabase
     .from("produtos")
     .select(
       "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",

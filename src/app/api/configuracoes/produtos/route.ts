@@ -1,5 +1,6 @@
 import { requireApiConfigSectionAccess } from "@/lib/api-auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 export async function GET() {
   const auth = await requireApiConfigSectionAccess("produtos");
@@ -8,7 +9,7 @@ export async function GET() {
     return auth.response;
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("produtos")
     .select(
@@ -23,7 +24,26 @@ export async function GET() {
     );
   }
 
+  const allowedDepositanteIds = new Set(
+    filterDepositanteOptionsByUser(
+      auth.user,
+      (data ?? [])
+        .map((item) => ({
+          id: item.depositante_id,
+          nome:
+            ((item.depositante as { nome?: string } | null) ?? null)?.nome ??
+            "",
+        }))
+        .filter((item): item is { id: string; nome: string } => Boolean(item.id)),
+    ).map((item) => item.id),
+  );
+
+  const products =
+    allowedDepositanteIds.size > 0
+      ? (data ?? []).filter((item) => allowedDepositanteIds.has(item.depositante_id))
+      : (data ?? []);
+
   return Response.json({
-    products: data ?? [],
+    products,
   });
 }
