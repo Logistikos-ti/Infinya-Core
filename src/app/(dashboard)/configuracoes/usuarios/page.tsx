@@ -303,7 +303,10 @@ export default async function ConfiguracoesUsuariosPage({
             </label>
 
             <div className="flex flex-wrap gap-3">
-              <Button className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
+              <Button
+                type="submit"
+                className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+              >
                 {currentEditUser ? "Salvar alterações" : "Criar usuário"}
               </Button>
               {currentEditUser ? (
