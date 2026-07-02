@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireConfigSectionAccess, requireRoleAccess } from "@/lib/auth";
@@ -70,11 +71,13 @@ export async function saveProdutoAction(
   }
 
   const adminSupabase = createSupabaseAdminClient();
+  const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
+  const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
   const payload = {
     depositante_id: parsed.data.depositanteId,
-    codigo_interno: parsed.data.codigoInterno,
+    codigo_interno: resolvedInternalCode,
     codigo_externo: parsed.data.eanGtin || null,
-    sku: parsed.data.sku,
+    sku: resolvedSku,
     nome: parsed.data.nome,
     categoria: parsed.data.categoria || null,
     metodo_retirada: parsed.data.metodoRetirada,
@@ -89,12 +92,12 @@ export async function saveProdutoAction(
   };
 
   if (parsed.data.id) {
-    const { error } = await adminSupabase.from("produtos").update(payload).eq("id", parsed.data.id);
+    const updateResult = await updateProductWithFallback(adminSupabase, parsed.data.id, payload);
 
-    if (error) {
+    if (updateResult.error) {
       return {
         success: false,
-        message: `Não foi possível atualizar o produto: ${error.message}`,
+        message: `Nao foi possivel atualizar o produto: ${updateResult.error.message}`,
       };
     }
 
@@ -103,12 +106,12 @@ export async function saveProdutoAction(
     redirect("/configuracoes/produtos?feedback=salvo");
   }
 
-  const { error } = await adminSupabase.from("produtos").insert(payload);
+  const insertResult = await insertProductWithFallback(adminSupabase, payload);
 
-  if (error) {
+  if (insertResult.error) {
     return {
       success: false,
-      message: `Não foi possível criar o produto: ${error.message}`,
+      message: `Nao foi possivel criar o produto: ${insertResult.error.message}`,
     };
   }
 
@@ -167,4 +170,64 @@ export async function deleteProdutoAction(formData: FormData) {
 
   revalidatePath("/configuracoes/produtos");
   redirect("/configuracoes/produtos?feedback=excluido");
+}
+
+async function updateProductWithFallback(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  id: string,
+  payload: Record<string, unknown>,
+) {
+  const result = await adminSupabase.from("produtos").update(payload).eq("id", id);
+
+  if (result.error && isMissingPackagingColumnError(result.error.message)) {
+    return adminSupabase.from("produtos").update(withoutPackagingQuantity(payload)).eq("id", id);
+  }
+
+  return result;
+}
+
+async function insertProductWithFallback(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  payload: Record<string, unknown>,
+) {
+  const result = await adminSupabase.from("produtos").insert(payload);
+
+  if (result.error && isMissingPackagingColumnError(result.error.message)) {
+    return adminSupabase.from("produtos").insert(withoutPackagingQuantity(payload));
+  }
+
+  return result;
+}
+
+function isMissingPackagingColumnError(message: string) {
+  return message.includes("quantidade_por_embalagem");
+}
+
+function withoutPackagingQuantity<T extends Record<string, unknown>>(payload: T) {
+  const rest = { ...payload };
+  delete rest.quantidade_por_embalagem;
+  return rest;
+}
+
+function resolveProductInternalCode(rawValue: string | undefined, productName: string) {
+  const normalized = (rawValue ?? "").trim().toUpperCase();
+
+  if (normalized) {
+    return normalized;
+  }
+
+  const baseName = productName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 20);
+
+  return `${baseName || "PRODUTO"}-${randomUUID().slice(0, 8).toUpperCase()}`;
+}
+
+function resolveProductSku(rawValue: string | undefined, internalCode: string) {
+  const normalized = (rawValue ?? "").trim().toUpperCase();
+  return normalized || internalCode;
 }
