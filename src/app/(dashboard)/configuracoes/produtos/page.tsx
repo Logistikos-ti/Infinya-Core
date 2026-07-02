@@ -52,7 +52,7 @@ export default async function ConfiguracoesProdutosPage({
   let productsQuery = adminSupabase
     .from("produtos")
     .select(
-      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",
+      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome)",
       { count: "exact" },
     )
     .order("nome")
@@ -352,20 +352,11 @@ export default async function ConfiguracoesProdutosPage({
                         </p>
                         <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
                         <p>Categoria: {item.categoria || "-"}</p>
-                        {(item.unidade_estocagem === "CAIXA" || item.unidade_estocagem === "PACK") &&
-                        item.quantidade_por_embalagem ? (
-                          <p>
-                            Quantidade por embalagem: {item.quantidade_por_embalagem} unidade(s)
-                          </p>
-                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <Badge>{item.metodo_retirada}</Badge>
                         <Badge>{getUnidadeLabel(item.unidade_estocagem)}</Badge>
-                        {item.quantidade_por_embalagem ? (
-                          <Badge>{item.quantidade_por_embalagem} por embalagem</Badge>
-                        ) : null}
                         <Badge>{item.exige_lote ? "Com lote" : "Sem lote"}</Badge>
                         <Badge>{item.exige_validade ? "Com validade" : "Sem validade"}</Badge>
                       </div>
