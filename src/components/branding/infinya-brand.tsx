@@ -110,16 +110,16 @@ export function InfinyaBrand({
         <div className="min-w-0">
           <div
             className={cn(
-              "relative overflow-hidden",
-              compact ? "h-5 w-[6.6rem]" : "h-6 w-[8rem]",
+              "relative overflow-visible",
+              compact ? "h-5 w-[7.35rem]" : "h-6 w-[8.9rem]",
               nameClassName,
             )}
           >
             <Image
-              src="/branding/infinya-wordmark-black-trim.png"
+              src="/branding/infinya-wordmark-black.png"
               alt="Infinya"
               fill
-              sizes={compact ? "106px" : "128px"}
+              sizes={compact ? "118px" : "142px"}
               className={cn(
                 "object-contain object-left",
                 forceLightWordmark

@@ -38,6 +38,9 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
 
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
+  const [depositanteId, setDepositanteId] = useState(
+    defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
+  );
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<
     "UNIDADE" | "CAIXA" | "PACK" | "PALLET"
   >(defaultValues?.unidadeEstocagem ?? "UNIDADE");
@@ -46,6 +49,16 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
   const exibeQuantidadePorEmbalagem = useMemo(
     () => unidadeEstocagem === "CAIXA" || unidadeEstocagem === "PACK",
     [unidadeEstocagem],
+  );
+  const depositanteOptions = useMemo(
+    () =>
+      depositantes.length === 1
+        ? depositantes.map((item) => ({ value: item.id, label: item.nome }))
+        : [
+            { value: "", label: "Selecione um depositante" },
+            ...depositantes.map((item) => ({ value: item.id, label: item.nome })),
+          ],
+    [depositantes],
   );
 
   const handleBarcodeDetected = useCallback((code: string) => {
@@ -88,12 +101,11 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
         <SelectField
           label="Depositante"
           name="depositanteId"
-          defaultValue={defaultValues?.depositanteId ?? ""}
+          defaultValue={depositanteId}
+          value={depositanteId}
+          onChange={setDepositanteId}
           error={state.errors?.depositanteId}
-          options={[
-            { value: "", label: "Selecione um depositante" },
-            ...depositantes.map((item) => ({ value: item.id, label: item.nome })),
-          ]}
+          options={depositanteOptions}
         />
         <Field
           label="Código interno"

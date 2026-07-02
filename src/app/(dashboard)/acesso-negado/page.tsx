@@ -50,7 +50,7 @@ export default async function AccessDeniedPage({
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
           href="/dashboard"
-          className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+          className="rounded-xl bg-infinya-gradient px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-95 dark:text-slate-950"
         >
           Voltar ao dashboard
         </Link>

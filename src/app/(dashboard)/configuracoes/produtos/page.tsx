@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import {
   deleteProdutoAction,
   toggleProdutoStatusAction,
@@ -39,6 +40,14 @@ export default async function ConfiguracoesProdutosPage({
   const perPage = normalizePerPage(params?.perPage);
   const startIndex = (page - 1) * perPage;
   const supabase = await createSupabaseServerClient();
+  const { data: rawDepositantes } = await supabase
+    .from("depositantes")
+    .select("id, nome")
+    .eq("ativo", true)
+    .order("nome");
+  const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, rawDepositantes ?? []);
+  const depositanteFiltroEfetivo =
+    depositanteFiltro || (visibleDepositantes.length === 1 ? visibleDepositantes[0]?.id ?? "" : "");
 
   let productsQuery = supabase
     .from("produtos")
@@ -61,8 +70,8 @@ export default async function ConfiguracoesProdutosPage({
     );
   }
 
-  if (depositanteFiltro) {
-    productsQuery = productsQuery.eq("depositante_id", depositanteFiltro);
+  if (depositanteFiltroEfetivo) {
+    productsQuery = productsQuery.eq("depositante_id", depositanteFiltroEfetivo);
   }
 
   if (statusFiltro === "ativos") {
@@ -79,10 +88,7 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery = productsQuery.eq("unidade_estocagem", unidadeFiltro);
   }
 
-  const [{ data: products, count }, { data: depositantes }] = await Promise.all([
-    productsQuery,
-    supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
-  ]);
+  const [{ data: products, count }] = await Promise.all([productsQuery]);
 
   const totalProducts = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
@@ -93,7 +99,7 @@ export default async function ConfiguracoesProdutosPage({
   const visibleEnd = Math.min(currentStartIndex + paginatedProducts.length, totalProducts);
   const baseQuery = {
     q: searchTerm,
-    depositante: depositanteFiltro,
+    depositante: depositanteFiltroEfetivo,
     status: statusFiltro,
     metodo: metodoFiltro,
     unidade: unidadeFiltro,
@@ -138,7 +144,7 @@ export default async function ConfiguracoesProdutosPage({
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.05fr_1.3fr]">
-        <ProductImportPanel depositantes={depositantes ?? []} />
+        <ProductImportPanel depositantes={visibleDepositantes} />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
@@ -208,11 +214,11 @@ export default async function ConfiguracoesProdutosPage({
               </span>
               <select
                 name="depositante"
-                defaultValue={depositanteFiltro}
+                defaultValue={depositanteFiltroEfetivo}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
                 <option value="">Todos</option>
-                {(depositantes ?? []).map((depositante) => (
+                {visibleDepositantes.map((depositante) => (
                   <option key={depositante.id} value={depositante.id}>
                     {depositante.nome}
                   </option>

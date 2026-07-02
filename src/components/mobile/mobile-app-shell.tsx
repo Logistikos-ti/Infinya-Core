@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, House, PackageCheck, ScanLine } from "lucide-react";
+import { ClipboardCheck, House, PackageCheck, ScanLine, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -27,6 +27,7 @@ const navItems: Array<{
   { href: "/m/recebimento", label: "Receb.", icon: PackageCheck, module: "recebimento" },
   { href: "/m/separacao", label: "Separ.", icon: ScanLine, module: "expedicao" },
   { href: "/m/conferencia", label: "Conf.", icon: ClipboardCheck, module: "expedicao" },
+  { href: "/configuracoes/produtos", label: "Produtos", icon: Settings2, module: "configuracoes" },
 ];
 
 export function MobileAppShell({ children, user }: MobileAppShellProps) {
@@ -58,7 +59,12 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#040816]/95 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-2 px-3">
+        <div
+          className={cn(
+            "mx-auto grid max-w-md gap-2 px-3",
+            visibleItems.length <= 4 ? "grid-cols-4" : "grid-cols-5",
+          )}
+        >
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const active = pathname.startsWith(item.href);

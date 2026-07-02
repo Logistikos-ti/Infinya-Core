@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Boxes, ClipboardCheck, House, PackageCheck, ScanLine } from "lucide-react";
+import { Boxes, ClipboardCheck, House, PackageCheck, ScanLine, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
@@ -16,7 +16,7 @@ const mobileNavigation: ReadonlyArray<{
   href: string;
   label: string;
   icon: LucideIcon;
-  module: "dashboard" | "recebimento" | "expedicao" | "estoque";
+  module: "dashboard" | "recebimento" | "expedicao" | "estoque" | "configuracoes";
   match?: string[];
 }> = [
   { href: "/dashboard", label: "In\u00EDcio", icon: House, module: "dashboard" },
@@ -34,6 +34,13 @@ const mobileNavigation: ReadonlyArray<{
     match: ["/expedicao/conferencia"],
   },
   { href: "/estoque", label: "Estoque", icon: Boxes, module: "estoque" },
+  {
+    href: "/configuracoes/produtos",
+    label: "Produtos",
+    icon: Settings2,
+    module: "configuracoes",
+    match: ["/configuracoes", "/configuracoes/produtos"],
+  },
 ] as const;
 
 export function AppMobileNav({ currentPath, user }: AppMobileNavProps) {
@@ -41,7 +48,12 @@ export function AppMobileNav({ currentPath, user }: AppMobileNavProps) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/92 px-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-[#071120]/92 lg:hidden">
-      <div className="grid grid-cols-5 gap-1">
+      <div
+        className={cn(
+          "grid gap-1",
+          visibleItems.length <= 4 ? "grid-cols-4" : "grid-cols-5",
+        )}
+      >
         {visibleItems.map((item) => {
           const Icon = item.icon;
           const isActive = (item.match ?? [item.href]).some((path) => currentPath.startsWith(path));

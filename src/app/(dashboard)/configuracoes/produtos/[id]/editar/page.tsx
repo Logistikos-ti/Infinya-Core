@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 
 type EditarProdutoPageProps = {
@@ -36,6 +37,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   }
 
   const canDeleteProduct = isAdminUser(currentUser);
+  const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
     <div className="space-y-6">
@@ -55,7 +57,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <ProdutoForm
-          depositantes={depositantes ?? []}
+          depositantes={visibleDepositantes}
           defaultValues={{
             id: product.id,
             depositanteId: product.depositante_id,

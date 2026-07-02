@@ -4,15 +4,17 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 export default async function NovoProdutoPage() {
-  await requireConfigSectionAccess("produtos");
+  const currentUser = await requireConfigSectionAccess("produtos");
   const supabase = await createSupabaseServerClient();
   const { data: depositantes } = await supabase
     .from("depositantes")
     .select("id, nome")
     .eq("ativo", true)
     .order("nome");
+  const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
     <div className="space-y-6">
@@ -30,7 +32,7 @@ export default async function NovoProdutoPage() {
         badge="Cadastro"
       />
 
-      <ProdutoForm depositantes={depositantes ?? []} />
+      <ProdutoForm depositantes={visibleDepositantes} />
     </div>
   );
 }
