@@ -4,7 +4,6 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
-import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import {
@@ -105,7 +104,7 @@ export default async function ConfiguracoesProdutosPage({
     unidade: unidadeFiltro,
     perPage: String(perPage),
   };
-  const canDeleteProducts = isAdminUser(currentUser);
+  const canDeleteProducts = true;
 
   return (
     <div className="space-y-6">

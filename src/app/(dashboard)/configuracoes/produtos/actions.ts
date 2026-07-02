@@ -3,7 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireConfigSectionAccess, requireRoleAccess } from "@/lib/auth";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
@@ -169,7 +169,7 @@ export async function toggleProdutoStatusAction(formData: FormData) {
 }
 
 export async function deleteProdutoAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("produtos");
 
   const id = String(formData.get("id") ?? "").trim();
 

@@ -5,7 +5,6 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
-import { isAdminUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -36,7 +35,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     notFound();
   }
 
-  const canDeleteProduct = isAdminUser(currentUser);
+  const canDeleteProduct = true;
   const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
