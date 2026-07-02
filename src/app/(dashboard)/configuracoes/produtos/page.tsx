@@ -5,6 +5,7 @@ import { ProductImportPanel } from "@/components/configuracoes/product-import-pa
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import {
@@ -40,7 +41,8 @@ export default async function ConfiguracoesProdutosPage({
   const perPage = normalizePerPage(params?.perPage);
   const startIndex = (page - 1) * perPage;
   const supabase = await createSupabaseServerClient();
-  const { data: rawDepositantes } = await supabase
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: rawDepositantes } = await adminSupabase
     .from("depositantes")
     .select("id, nome")
     .eq("ativo", true)

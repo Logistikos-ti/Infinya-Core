@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { AppUserContext } from "@/lib/auth";
+import { isAdminUser } from "@/lib/permissions";
 
 export function isScopedDepositanteUser(user: AppUserContext) {
-  return user.papel === "DEPOSITANTE" && Boolean(user.depositanteId);
+  return !isAdminUser(user) && Boolean(user.depositanteId);
 }
 
 export function ensureUserCanAccessDepositante(user: AppUserContext, depositanteId: string) {

@@ -3,12 +3,12 @@ import { ArrowLeft } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 export default async function NovoProdutoPage() {
   const currentUser = await requireConfigSectionAccess("produtos");
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: depositantes } = await supabase
     .from("depositantes")
     .select("id, nome")

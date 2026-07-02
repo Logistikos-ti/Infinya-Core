@@ -6,6 +6,7 @@ import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -20,6 +21,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   const currentUser = await requireConfigSectionAccess("produtos");
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
+  const adminSupabase = createSupabaseAdminClient();
 
   const [{ data: product }, { data: depositantes }] = await Promise.all([
     supabase
@@ -29,7 +31,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
       )
       .eq("id", id)
       .maybeSingle(),
-    supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
+    adminSupabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
   ]);
 
   if (!product) {
