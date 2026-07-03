@@ -3,7 +3,7 @@ import { canAccessModule, isProductCatalogOnlyUser } from "@/lib/permissions";
 
 export function getDefaultMobileRoute(user: AppUserContext) {
   if (isProductCatalogOnlyUser(user)) {
-    return "/configuracoes/produtos";
+    return "/m/inicio";
   }
 
   if (canAccessModule(user, "expedicao")) {

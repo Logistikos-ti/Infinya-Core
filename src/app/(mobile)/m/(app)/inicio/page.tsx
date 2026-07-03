@@ -4,19 +4,63 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  LogOut,
   PackageCheck,
   ScanLine,
+  Settings2,
   TriangleAlert,
 } from "lucide-react";
 import { requireUserContext } from "@/lib/auth";
 import { getMobileOperationsSnapshot } from "@/lib/mobile-home";
 import { getMobileWelcomeLabel } from "@/lib/mobile";
-import { canAccessModule } from "@/lib/permissions";
+import { canAccessModule, isProductCatalogOnlyUser } from "@/lib/permissions";
 
 export default async function MobileHomePage() {
   const user = await requireUserContext();
+  const isCatalogOnly = isProductCatalogOnlyUser(user);
   const canAccessReceiving = canAccessModule(user, "recebimento");
   const canAccessShipping = canAccessModule(user, "expedicao");
+
+  if (isCatalogOnly) {
+    return (
+      <div className="space-y-4">
+        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
+            Catálogo operacional
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold">Olá, {user.nome.split(" ")[0]}</h1>
+          <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
+            Use este espaço para cadastrar, revisar e ajustar produtos com segurança pelo celular.
+          </p>
+        </section>
+
+        <Link
+          href="/configuracoes/produtos"
+          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-white">Produtos</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Abrir catálogo, cadastrar novos itens e revisar códigos de barras.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+              <Settings2 className="h-5 w-5" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/m/sair"
+          className="flex h-14 items-center justify-center gap-2 rounded-[24px] border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair do app
+        </Link>
+      </div>
+    );
+  }
 
   const snapshot = await getMobileOperationsSnapshot(user, {
     includeReceiving: canAccessReceiving,
