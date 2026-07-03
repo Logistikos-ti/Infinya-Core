@@ -583,6 +583,8 @@ function formatUnitLabel(unit: string) {
       return "Unidade";
     case "CAIXA":
       return "Caixa";
+    case "PACK":
+      return "Pack";
     case "PALLET":
       return "Pallet";
     default:

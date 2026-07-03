@@ -131,7 +131,7 @@ export async function saveProdutoAction(
     if (updateResult.error) {
       return {
         success: false,
-        message: `Nao foi possivel atualizar o produto: ${updateResult.error.message}`,
+        message: humanizeProductPersistenceError("atualizar", updateResult.error.message),
       };
     }
 
@@ -145,7 +145,7 @@ export async function saveProdutoAction(
   if (insertResult.error) {
     return {
       success: false,
-      message: `Nao foi possivel criar o produto: ${insertResult.error.message}`,
+      message: humanizeProductPersistenceError("criar", insertResult.error.message),
     };
   }
 
@@ -291,4 +291,18 @@ function extractDepositanteName(value: unknown) {
   }
 
   return null;
+}
+
+function humanizeProductPersistenceError(
+  action: "criar" | "atualizar",
+  message: string,
+) {
+  if (
+    message.includes('invalid input value for enum unidade_estocagem') &&
+    message.includes('"PACK"')
+  ) {
+    return `Nao foi possivel ${action} o produto porque o banco online ainda nao recebeu a unidade PACK. Rode a migration de PACK no Supabase e tente novamente.`;
+  }
+
+  return `Nao foi possivel ${action} o produto: ${message}`;
 }

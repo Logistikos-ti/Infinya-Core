@@ -142,7 +142,7 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { error: `Falha ao importar os produtos: ${error.message}` },
+        { error: humanizeProductImportError(error.message) },
         { status: 500 },
       );
     }
@@ -158,4 +158,15 @@ export async function POST(request: Request) {
       produtosAtualizados: existingCodes.size,
     },
   });
+}
+
+function humanizeProductImportError(message: string) {
+  if (
+    message.includes('invalid input value for enum unidade_estocagem') &&
+    message.includes('"PACK"')
+  ) {
+    return "Falha ao importar os produtos: o banco online ainda nao recebeu a unidade PACK. Rode a migration de PACK no Supabase e tente novamente.";
+  }
+
+  return `Falha ao importar os produtos: ${message}`;
 }
