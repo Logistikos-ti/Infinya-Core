@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, PencilLine, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { ProductFiltersForm } from "@/components/configuracoes/product-filters-form";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
@@ -202,112 +203,18 @@ export default async function ConfiguracoesProdutosPage({
           </div>
         </div>
 
-        <form className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_0.9fr_auto]">
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Busca
-              </span>
-              <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950">
-                <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-                <input
-                  type="text"
-                  name="q"
-                  defaultValue={searchTerm}
-                  placeholder="Nome, SKU, codigo interno ou EAN"
-                  className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-                />
-              </div>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Depositante
-              </span>
-              <select
-                name="depositante"
-                defaultValue={depositanteFiltroEfetivo}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="">Todos</option>
-                {visibleDepositantes.map((depositante) => (
-                  <option key={depositante.id} value={depositante.id}>
-                    {depositante.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Status
-              </span>
-              <select
-                name="status"
-                defaultValue={statusFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="ativos">Ativos</option>
-                <option value="inativos">Inativos</option>
-                <option value="todos">Todos</option>
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Metodo
-              </span>
-              <select
-                name="metodo"
-                defaultValue={metodoFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="">Todos</option>
-                <option value="FEFO">FEFO</option>
-                <option value="FIFO">FIFO</option>
-                <option value="LIFO">LIFO</option>
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Unidade
-              </span>
-              <select
-                name="unidade"
-                defaultValue={unidadeFiltro}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="">Todas</option>
-                <option value="UNIDADE">Unidade</option>
-                <option value="CAIXA">Caixa</option>
-                <option value="PACK">Pack</option>
-                <option value="PALLET">Pallet</option>
-              </select>
-            </label>
-
-            <div className="flex items-end gap-2">
-              <Button type="submit" className="h-11 bg-slate-950 text-white hover:bg-slate-800">
-                Filtrar
-              </Button>
-              <select
-                name="perPage"
-                defaultValue={String(perPage)}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="10">10 / pagina</option>
-                <option value="20">20 / pagina</option>
-                <option value="50">50 / pagina</option>
-              </select>
-              <Link
-                href="/configuracoes/produtos"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-              >
-                Limpar
-              </Link>
-            </div>
-          </div>
-        </form>
+        <ProductFiltersForm
+          searchTerm={searchTerm}
+          depositante={depositanteFiltroEfetivo}
+          status={statusFiltro}
+          metodo={metodoFiltro}
+          unidade={unidadeFiltro}
+          perPage={String(perPage)}
+          depositantes={visibleDepositantes.map((depositante) => ({
+            value: depositante.id,
+            label: depositante.nome,
+          }))}
+        />
 
         <div className="mt-5 space-y-4">
           {paginatedProducts.length ? (
