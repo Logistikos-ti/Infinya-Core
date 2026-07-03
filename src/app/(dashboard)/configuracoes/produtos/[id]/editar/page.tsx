@@ -26,7 +26,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     adminSupabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -53,8 +53,8 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
         title={`Editar ${product.nome}`}
         description={
           compactMode
-            ? "Atualize nome, codigo de barras, depositante e regras operacionais do produto."
-            : "Atualize identificacao, categoria, metodo de retirada, embalagem e status operacional do SKU."
+            ? "Atualize nome, código de barras, depositante e regras operacionais do produto."
+            : "Atualize identificação, categoria, método de retirada, embalagem e status operacional do SKU."
         }
         badge="Cadastro"
       />
@@ -73,6 +73,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             categoria: product.categoria ?? "",
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
+            quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
             exigeLote: product.exige_lote,
             exigeValidade: product.exige_validade,
             ativo: product.ativo,
@@ -80,10 +81,10 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
         />
 
         <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusao</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            A exclusao fica liberada somente para produtos sem estoque, sem movimentacoes e sem uso
-            em recebimento ou expedicao.
+            A exclusão fica liberada somente para produtos sem estoque, sem movimentações e sem uso
+            em recebimento ou expedição.
           </p>
           <form action={deleteProdutoAction} className="mt-4">
             <input type="hidden" name="id" value={product.id} />

@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useCallback, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, CameraOff } from "lucide-react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Barcode, Camera, CameraOff, Check, ChevronDown } from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 
 type DepositanteOption = {
@@ -41,6 +42,9 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
   const [depositanteId, setDepositanteId] = useState(
     defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
+  );
+  const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(
+    defaultValues?.metodoRetirada ?? "FEFO",
   );
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<
     "UNIDADE" | "CAIXA" | "PACK" | "PALLET"
@@ -91,12 +95,12 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, metodo de retirada, unidade de
+          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada, unidade de
           estocagem e regra de embalagem.
         </p>
         {compactMode ? (
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
-            Modo de cadastro rapido com identificacao tecnica preservada automaticamente.
+            Modo de cadastro rápido com identificação técnica preservada automaticamente.
           </p>
         ) : null}
       </div>
@@ -104,10 +108,9 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <SelectField
+        <FancySelectField
           label="Depositante"
           name="depositanteId"
-          defaultValue={depositanteId}
           value={depositanteId}
           onChange={setDepositanteId}
           error={state.errors?.depositanteId}
@@ -122,7 +125,7 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
         ) : (
           <>
             <Field
-              label="Codigo interno"
+              label="Código interno"
               name="codigoInterno"
               defaultValue={defaultValues?.codigoInterno ?? ""}
               error={state.errors?.codigoInterno}
@@ -167,10 +170,11 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
           />
         )}
 
-        <SelectField
-          label="Metodo de retirada"
+        <FancySelectField
+          label="Método de retirada"
           name="metodoRetirada"
-          defaultValue={defaultValues?.metodoRetirada ?? "FEFO"}
+          value={metodoRetirada}
+          onChange={(value) => setMetodoRetirada(value as "FEFO" | "FIFO" | "LIFO")}
           error={state.errors?.metodoRetirada}
           options={[
             { value: "FEFO", label: "FEFO" },
@@ -178,10 +182,10 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
             { value: "LIFO", label: "LIFO" },
           ]}
         />
-        <SelectField
+
+        <FancySelectField
           label="Unidade de estocagem"
           name="unidadeEstocagem"
-          defaultValue={defaultValues?.unidadeEstocagem ?? "UNIDADE"}
           value={unidadeEstocagem}
           onChange={(value) => setUnidadeEstocagem(value as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
           error={state.errors?.unidadeEstocagem}
@@ -197,9 +201,9 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
           <Field
             label={`Quantidade por ${unidadeEstocagem === "PACK" ? "pack" : "caixa"}`}
             name="quantidadePorEmbalagem"
-            type="number"
-            min={1}
-            step={1}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             defaultValue={String(defaultValues?.quantidadePorEmbalagem ?? "")}
             error={state.errors?.quantidadePorEmbalagem}
             helperText="Informe quantas unidades deste SKU existem dentro da embalagem."
@@ -213,19 +217,19 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
         <CheckboxField
           name="exigeLote"
           label="Controlar lote"
-          description="Exige rastreabilidade de lote nas operacoes do produto."
+          description="Exige rastreabilidade de lote nas operações do produto."
           defaultChecked={defaultValues?.exigeLote ?? false}
         />
         <CheckboxField
           name="exigeValidade"
           label="Controlar validade"
-          description="Ativa controle de validade e suporte ao FEFO quando necessario."
+          description="Ativa controle de validade e suporte ao FEFO quando necessário."
           defaultChecked={defaultValues?.exigeValidade ?? false}
         />
         <CheckboxField
           name="ativo"
           label="Produto ativo"
-          description="Mantem o SKU disponivel para recebimento, estoque e expedicao."
+          description="Mantém o SKU disponível para recebimento, estoque e expedição."
           defaultChecked={defaultValues?.ativo ?? true}
         />
       </div>
@@ -248,7 +252,7 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
           disabled={isPending}
           className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
         >
-          {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alteracoes" : "Criar produto"}
+          {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alterações" : "Criar produto"}
         </Button>
       </div>
     </form>
@@ -267,6 +271,8 @@ type FieldProps = {
   min?: number;
   step?: number;
   helperText?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
 };
 
 function Field({
@@ -281,6 +287,8 @@ function Field({
   min,
   step,
   helperText,
+  inputMode,
+  pattern,
 }: FieldProps) {
   return (
     <label className="block">
@@ -292,10 +300,13 @@ function Field({
         type={type}
         min={min}
         step={step}
+        inputMode={inputMode}
+        pattern={pattern}
         name={name}
         defaultValue={value === undefined ? defaultValue : undefined}
         value={value}
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
+        onWheel={type === "number" ? (event) => event.currentTarget.blur() : undefined}
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
       {helperText ? (
@@ -306,37 +317,105 @@ function Field({
   );
 }
 
-type SelectFieldProps = {
+type FancySelectFieldProps = {
   label: string;
   name: string;
-  defaultValue: string;
-  value?: string;
-  onChange?: (value: string) => void;
+  value: string;
+  onChange: (value: string) => void;
   error?: string;
   options: { value: string; label: string }[];
 };
 
-function SelectField({ label, name, defaultValue, value, onChange, error, options }: SelectFieldProps) {
+function FancySelectField({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  options,
+}: FancySelectFieldProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   return (
-    <label className="block">
+    <div className="block" ref={containerRef}>
       <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
         {label}
       </span>
-      <select
-        name={name}
-        defaultValue={value === undefined ? defaultValue : undefined}
-        value={value}
-        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
+      <input type="hidden" name={name} value={value} />
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className={cn(
+          "flex h-[52px] w-full items-center justify-between rounded-2xl border bg-white px-4 text-left text-sm text-slate-950 outline-none transition",
+          "border-slate-300 shadow-[0_10px_35px_rgba(15,23,42,0.04)] hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)]",
+          "focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus-visible:ring-cyan-900/40",
+        )}
       >
-        {options.map((option) => (
-          <option key={`${name}-${option.value}`} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        <span className="truncate">{selectedOption?.label ?? "Selecionar"}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-slate-500 transition-transform dark:text-slate-300",
+            open ? "rotate-180" : "",
+          )}
+        />
+      </button>
+
+      {open ? (
+        <div className="relative">
+          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950">
+            {options.map((option) => {
+              const selected = option.value === value;
+
+              return (
+                <button
+                  key={`${name}-${option.value}`}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition",
+                    selected
+                      ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-200"
+                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900",
+                  )}
+                >
+                  <span>{option.label}</span>
+                  {selected ? <Check className="h-4 w-4" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
-    </label>
+    </div>
   );
 }
 
@@ -409,12 +488,16 @@ function BarcodeField({
             disabled={cameraStarting}
             className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
           >
-            {cameraEnabled ? <CameraOff className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
-            {cameraEnabled ? "Desligar camera" : "Ler codigo"}
+            {cameraEnabled ? (
+              <CameraOff className="mr-2 h-4 w-4" />
+            ) : (
+              <Camera className="mr-2 h-4 w-4" />
+            )}
+            {cameraEnabled ? "Desligar câmera" : "Ler código"}
           </Button>
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             <Barcode className="h-3.5 w-3.5" />
-            USB ou camera
+            USB ou câmera
           </span>
         </div>
       </div>
@@ -424,12 +507,12 @@ function BarcodeField({
         name="eanGtin"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Digite ou leia o codigo de barras"
+        placeholder="Digite ou leia o código de barras"
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
 
       <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
-        Funciona com leitor USB conectado ao teclado ou com camera do notebook/celular.
+        Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular.
       </div>
 
       {(cameraEnabled || cameraStarting || cameraMessage) && (
@@ -446,15 +529,15 @@ function BarcodeField({
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Leitura por camera
+                Leitura por câmera
               </p>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {cameraMessage ??
-                  "Aponte a camera para o codigo. Quando a leitura ocorrer, o EAN/GTIN sera preenchido automaticamente."}
+                  "Aponte a câmera para o código. Quando a leitura ocorrer, o EAN/GTIN será preenchido automaticamente."}
               </p>
               {!cameraSupported ? (
                 <p className="text-xs text-amber-600 dark:text-amber-300">
-                  Seu navegador nao liberou a camera. Se estiver no celular, teste pelo Chrome ou
+                  Seu navegador não liberou a câmera. Se estiver no celular, teste pelo Chrome ou
                   Safari atualizados.
                 </p>
               ) : null}

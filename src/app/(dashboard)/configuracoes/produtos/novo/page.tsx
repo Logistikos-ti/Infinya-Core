@@ -32,8 +32,8 @@ export default async function NovoProdutoPage() {
         title="Novo produto"
         description={
           compactMode
-            ? "Cadastre um novo produto com depositante, nome, codigo de barras e regras operacionais."
-            : "Cadastre um novo SKU com identificacao, categoria, EAN/GTIN, metodo de retirada e unidade."
+            ? "Cadastre um novo produto com depositante, nome, código de barras e regras operacionais."
+            : "Cadastre um novo SKU com identificação, categoria, EAN/GTIN, método de retirada e unidade."
         }
         badge="Cadastro"
       />
