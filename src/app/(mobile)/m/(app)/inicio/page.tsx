@@ -33,7 +33,7 @@ export default async function MobileHomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
             Catalogo operacional
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Ola, {user.nome.split(" ")[0]}</h1>
           <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
             Use este espaco para cadastrar, revisar e ajustar produtos com seguranca pelo celular.
           </p>
@@ -74,7 +74,7 @@ export default async function MobileHomePage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
             Estoque operacional
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Ola, {user.nome.split(" ")[0]}</h1>
           <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
             Consulte saldos, protocolos e inventario do armazem, alem de manter o catalogo de
             produtos atualizado.
@@ -206,7 +206,7 @@ export default async function MobileHomePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
               {getMobileWelcomeLabel(user)}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Ola, {user.nome.split(" ")[0]}</h1>
             <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
               Acesse rapido os modulos criticos da operacao sem passar pelo painel administrativo.
             </p>

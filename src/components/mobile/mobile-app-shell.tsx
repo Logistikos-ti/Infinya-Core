@@ -3,20 +3,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ClipboardCheck,
-  House,
-  LogOut,
-  PackageCheck,
-  ScanLine,
-  Settings2,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { LogOut } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
 import { ThemeProvider } from "@/components/theme-provider";
-import { canAccessModule, type AppModule } from "@/lib/permissions";
+import { getMobileNavigationItems } from "@/lib/mobile";
 import { cn } from "@/lib/utils";
 
 type MobileAppShellProps = {
@@ -24,27 +16,9 @@ type MobileAppShellProps = {
   user: AppUserContext;
 };
 
-const navItems: Array<{
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  module: AppModule;
-}> = [
-  { href: "/m/inicio", label: "In\u00edcio", icon: House, module: "dashboard" },
-  { href: "/m/recebimento", label: "Receb.", icon: PackageCheck, module: "recebimento" },
-  { href: "/m/separacao", label: "Separ.", icon: ScanLine, module: "expedicao" },
-  { href: "/m/conferencia", label: "Conf.", icon: ClipboardCheck, module: "expedicao" },
-  {
-    href: "/configuracoes/produtos",
-    label: "Produtos",
-    icon: Settings2,
-    module: "configuracoes",
-  },
-];
-
 export function MobileAppShell({ children, user }: MobileAppShellProps) {
   const pathname = usePathname();
-  const visibleItems = navItems.filter((item) => canAccessModule(user, item.module));
+  const navigationItems = getMobileNavigationItems(user);
 
   return (
     <ThemeProvider
@@ -81,7 +55,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
           {children}
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-sm font-medium text-white">Sess\u00e3o ativa</p>
+            <p className="text-sm font-medium text-white">Sessao ativa</p>
             <p className="mt-1 text-xs text-slate-300">{user.nome}</p>
             <Link
               href="/m/sair"
@@ -97,12 +71,17 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
           <div
             className={cn(
               "mx-auto grid max-w-md gap-2 px-3",
-              visibleItems.length <= 4 ? "grid-cols-4" : "grid-cols-5",
+              navigationItems.length <= 3
+                ? "grid-cols-3"
+                : navigationItems.length <= 4
+                  ? "grid-cols-4"
+                  : "grid-cols-5",
             )}
           >
-            {visibleItems.map((item) => {
+            {navigationItems.map((item) => {
               const Icon = item.icon;
-              const active = pathname.startsWith(item.href);
+              const matches = item.match ?? [item.href];
+              const active = matches.some((path) => pathname.startsWith(path));
 
               return (
                 <Link
