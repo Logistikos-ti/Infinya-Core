@@ -9,7 +9,7 @@ import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { isAdminUser } from "@/lib/permissions";
+import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 
 type AppChromeProps = {
   children: ReactNode;
@@ -20,6 +20,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
   const pathname = usePathname();
   const currentPath = pathname || "/dashboard";
   const showAdminMobileShortcuts = isAdminUser(user);
+  const isCatalogOnly = isProductCatalogOnlyUser(user);
 
   return (
     <div className="theme-transition flex min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,#eef4ff_0%,#f7fbff_55%,#ffffff_100%)] text-slate-900 dark:bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] dark:text-zinc-100">
@@ -43,7 +44,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Buscar pedidos, produtos..." 
+                placeholder={isCatalogOnly ? "Buscar produtos..." : "Buscar pedidos, produtos..."} 
                 className="w-full rounded-full border border-slate-200/80 bg-white/70 py-2 pl-10 pr-4 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 dark:border-white/10 dark:bg-[#071120]/70"
               />
             </div>

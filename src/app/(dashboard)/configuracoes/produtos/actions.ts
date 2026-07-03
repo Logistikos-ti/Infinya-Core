@@ -185,7 +185,15 @@ export async function deleteProdutoAction(formData: FormData) {
       .select("id", { count: "exact", head: true })
       .eq("produto_id", id),
     adminSupabase
+      .from("pedidos_expedicao_itens")
+      .select("id", { count: "exact", head: true })
+      .eq("produto_id", id),
+    adminSupabase
       .from("estoque")
+      .select("id", { count: "exact", head: true })
+      .eq("produto_id", id),
+    adminSupabase
+      .from("movimentacoes_estoque")
       .select("id", { count: "exact", head: true })
       .eq("produto_id", id),
   ]);

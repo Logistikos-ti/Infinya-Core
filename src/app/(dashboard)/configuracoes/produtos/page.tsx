@@ -4,6 +4,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import {
@@ -28,6 +29,8 @@ export default async function ConfiguracoesProdutosPage({
   searchParams,
 }: ConfiguracoesProdutosPageProps) {
   const currentUser = await requireConfigSectionAccess("produtos");
+  const compactMode = isProductCatalogOnlyUser(currentUser);
+  const showAdvancedPanels = isAdminUser(currentUser);
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
   const searchTerm = params?.q?.trim() ?? "";
@@ -104,7 +107,6 @@ export default async function ConfiguracoesProdutosPage({
     unidade: unidadeFiltro,
     perPage: String(perPage),
   };
-  const canDeleteProducts = true;
 
   return (
     <div className="space-y-6">
@@ -113,13 +115,17 @@ export default async function ConfiguracoesProdutosPage({
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Voltar para configurações
+        Voltar para configuracoes
       </Link>
 
       <ModulePageHeader
         title="Produtos"
-        description="Cadastro mestre de SKU com EAN/GTIN, método FEFO/FIFO, unidade de estocagem e regra de embalagem."
-        badge="Cadastro mestre"
+        description={
+          compactMode
+            ? "Ambiente de cadastro operacional para criar, revisar e manter o catalogo de produtos."
+            : "Cadastro mestre de SKU com EAN/GTIN, metodo FEFO/FIFO, unidade de estocagem e regra de embalagem."
+        }
+        badge={compactMode ? "Catalogo operacional" : "Cadastro mestre"}
       />
 
       {feedback ? (
@@ -135,36 +141,43 @@ export default async function ConfiguracoesProdutosPage({
             : feedback === "salvo"
               ? "Produto atualizado com sucesso."
               : feedback === "excluido"
-                ? "Produto excluído com sucesso."
+                ? "Produto excluido com sucesso."
                 : feedback === "vinculos"
-                  ? "Não foi possível excluir este produto porque ele já possui vínculos operacionais. Nesse caso, use desativar."
-                  : "Não foi possível concluir a operação solicitada."}
+                  ? "Nao foi possivel excluir este produto porque ele ja possui estoque, movimentacoes ou vinculos operacionais."
+                  : "Nao foi possivel concluir a operacao solicitada."}
         </div>
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[1.05fr_1.3fr]">
-        <ProductImportPanel depositantes={visibleDepositantes} />
+      {showAdvancedPanels ? (
+        <section className="grid gap-6 xl:grid-cols-[1.05fr_1.3fr]">
+          <ProductImportPanel depositantes={visibleDepositantes} />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-            Padrão de importação
-          </h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              O sistema usa o <strong>código interno</strong> como chave principal do upsert por
-              depositante.
-            </div>
-            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              Quando a planilha não traz SKU separado, o sistema usa o próprio código interno como
-              SKU operacional.
-            </div>
-            <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-              EAN/GTIN é salvo no campo externo do produto. Pack e quantidade por embalagem podem
-              ser refinados manualmente após a importação.
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Padrao de importacao
+            </h2>
+            <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                O sistema usa o <strong>codigo interno</strong> como chave principal do upsert por
+                depositante.
+              </div>
+              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                Quando a planilha nao traz SKU separado, o sistema usa o proprio codigo interno como
+                SKU operacional.
+              </div>
+              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                EAN/GTIN e salvo no campo externo do produto. Pack e quantidade por embalagem podem
+                ser refinados manualmente apos a importacao.
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4 text-sm text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+          Este acesso foi simplificado para cadastro de produtos. Campos tecnicos e operacoes mais
+          sensiveis ficam automatizados para evitar erros.
+        </section>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -173,7 +186,7 @@ export default async function ConfiguracoesProdutosPage({
               Produtos cadastrados
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Base ativa para recebimento, estoque, expedição e rastreabilidade por depositante.
+              Base ativa para recebimento, estoque, expedicao e rastreabilidade por depositante.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -201,7 +214,7 @@ export default async function ConfiguracoesProdutosPage({
                   type="text"
                   name="q"
                   defaultValue={searchTerm}
-                  placeholder="Nome, SKU, código interno ou EAN"
+                  placeholder="Nome, SKU, codigo interno ou EAN"
                   className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
@@ -242,7 +255,7 @@ export default async function ConfiguracoesProdutosPage({
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Método
+                Metodo
               </span>
               <select
                 name="metodo"
@@ -282,9 +295,9 @@ export default async function ConfiguracoesProdutosPage({
                 defaultValue={String(perPage)}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               >
-                <option value="10">10 / página</option>
-                <option value="20">20 / página</option>
-                <option value="50">50 / página</option>
+                <option value="10">10 / pagina</option>
+                <option value="20">20 / pagina</option>
+                <option value="50">50 / pagina</option>
               </select>
               <Link
                 href="/configuracoes/produtos"
@@ -314,7 +327,7 @@ export default async function ConfiguracoesProdutosPage({
                     Anterior
                   </PageLink>
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Página {currentPage} de {totalPages}
+                    Pagina {currentPage} de {totalPages}
                   </span>
                   <PageLink
                     disabled={currentPage >= totalPages}
@@ -323,7 +336,7 @@ export default async function ConfiguracoesProdutosPage({
                       page: String(currentPage + 1),
                     })}`}
                   >
-                    Próxima
+                    Proxima
                   </PageLink>
                 </div>
               </div>
@@ -340,7 +353,7 @@ export default async function ConfiguracoesProdutosPage({
                           {item.nome}
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {item.sku} • {item.codigo_interno}
+                          {(item.sku || "-") + " • " + (item.codigo_interno || "-")}
                         </p>
                       </div>
 
@@ -350,7 +363,7 @@ export default async function ConfiguracoesProdutosPage({
                           {((item.depositante as { nome?: string } | null) ?? null)?.nome ?? "-"}
                         </p>
                         <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
-                        <p>Categoria: {item.categoria || "-"}</p>
+                        {!compactMode ? <p>Categoria: {item.categoria || "-"}</p> : null}
                       </div>
 
                       <div className="flex flex-wrap gap-2">
@@ -393,20 +406,18 @@ export default async function ConfiguracoesProdutosPage({
                             {item.ativo ? "Desativar" : "Ativar"}
                           </Button>
                         </form>
-                        {canDeleteProducts ? (
-                          <form action={deleteProdutoAction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <Button
-                              type="submit"
-                              variant="outline"
-                              size="sm"
-                              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </form>
-                        ) : null}
+                        <form action={deleteProdutoAction}>
+                          <input type="hidden" name="id" value={item.id} />
+                          <Button
+                            type="submit"
+                            variant="outline"
+                            size="sm"
+                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </form>
                       </div>
                     </div>
                   </div>

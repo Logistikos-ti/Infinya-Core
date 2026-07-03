@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { requireUserContext } from "@/lib/auth";
-import { getModuleLabel, getRoleLabel, isAppModule } from "@/lib/permissions";
+import {
+  getModuleLabel,
+  getPreferredWebRoute,
+  getRoleLabel,
+  isAppModule,
+  isProductCatalogOnlyUser,
+} from "@/lib/permissions";
 
 type AccessDeniedPageProps = {
   searchParams?: Promise<{
@@ -19,7 +25,10 @@ export default async function AccessDeniedPage({
   const moduleParam = params?.modulo;
   const roleParam = params?.papel;
   const moduleLabel =
-    moduleParam && isAppModule(moduleParam) ? getModuleLabel(moduleParam) : "este módulo";
+    moduleParam && isAppModule(moduleParam) ? getModuleLabel(moduleParam) : "este modulo";
+  const preferredRoute = getPreferredWebRoute(user);
+  const primaryHref = isProductCatalogOnlyUser(user) ? "/configuracoes/produtos" : preferredRoute;
+  const primaryLabel = isProductCatalogOnlyUser(user) ? "Voltar para produtos" : "Voltar ao dashboard";
 
   return (
     <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
@@ -32,33 +41,33 @@ export default async function AccessDeniedPage({
           Acesso restrito
         </p>
         <h1 className="text-3xl font-semibold text-slate-950 dark:text-white">
-          Seu perfil não tem permissão para continuar
+          Seu perfil nao tem permissao para continuar
         </h1>
         <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-          O usuário <strong>{user.nome}</strong> está autenticado como{" "}
-          <strong>{getRoleLabel(user.papel)}</strong>, mas não possui acesso liberado para{" "}
+          O usuario <strong>{user.nome}</strong> esta autenticado como{" "}
+          <strong>{getRoleLabel(user.papel)}</strong>, mas nao possui acesso liberado para{" "}
           {moduleLabel}.
         </p>
         {params?.motivo === "papel" && roleParam ? (
           <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-            O papel recebido na sessão foi <strong>{roleParam}</strong>. Se esse acesso já
-            deveria existir, basta ajustarmos o vínculo do usuário no WMS.
+            O papel recebido na sessao foi <strong>{roleParam}</strong>. Se esse acesso ja
+            deveria existir, basta ajustarmos o vinculo do usuario no WMS.
           </p>
         ) : null}
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
-          href="/dashboard"
+          href={primaryHref}
           className="rounded-xl bg-infinya-gradient px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-95 dark:text-slate-950"
         >
-          Voltar ao dashboard
+          {primaryLabel}
         </Link>
         <Link
-          href="/nfe"
+          href={preferredRoute}
           className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          Ir para um módulo liberado
+          Ir para um modulo liberado
         </Link>
       </div>
     </div>

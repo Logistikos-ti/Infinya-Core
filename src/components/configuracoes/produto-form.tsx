@@ -13,6 +13,7 @@ type DepositanteOption = {
 
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
+  compactMode?: boolean;
   defaultValues?: {
     id?: string;
     depositanteId?: string;
@@ -30,7 +31,7 @@ type ProdutoFormProps = {
   };
 };
 
-export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
+export function ProdutoForm({ depositantes, compactMode = false, defaultValues }: ProdutoFormProps) {
   const initialState = {
     success: false,
     message: null,
@@ -90,9 +91,14 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada, unidade de
+          Cadastro de SKU com depositante, EAN/GTIN, categoria, metodo de retirada, unidade de
           estocagem e regra de embalagem.
         </p>
+        {compactMode ? (
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+            Modo de cadastro rapido com identificacao tecnica preservada automaticamente.
+          </p>
+        ) : null}
       </div>
 
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
@@ -107,24 +113,36 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           error={state.errors?.depositanteId}
           options={depositanteOptions}
         />
-        <Field
-          label="Código interno"
-          name="codigoInterno"
-          defaultValue={defaultValues?.codigoInterno ?? ""}
-          error={state.errors?.codigoInterno}
-        />
-        <Field
-          label="SKU"
-          name="sku"
-          defaultValue={defaultValues?.sku ?? ""}
-          error={state.errors?.sku}
-        />
+
+        {compactMode ? (
+          <>
+            <input type="hidden" name="codigoInterno" value={defaultValues?.codigoInterno ?? ""} />
+            <input type="hidden" name="sku" value={defaultValues?.sku ?? ""} />
+          </>
+        ) : (
+          <>
+            <Field
+              label="Codigo interno"
+              name="codigoInterno"
+              defaultValue={defaultValues?.codigoInterno ?? ""}
+              error={state.errors?.codigoInterno}
+            />
+            <Field
+              label="SKU"
+              name="sku"
+              defaultValue={defaultValues?.sku ?? ""}
+              error={state.errors?.sku}
+            />
+          </>
+        )}
+
         <Field
           label="Nome do produto"
           name="nome"
           defaultValue={defaultValues?.nome ?? ""}
           error={state.errors?.nome}
         />
+
         <BarcodeField
           value={eanGtinValue}
           error={state.errors?.eanGtin}
@@ -137,14 +155,20 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           cameraMessage={cameraMessage}
           onToggleCamera={toggleCamera}
         />
-        <Field
-          label="Categoria"
-          name="categoria"
-          defaultValue={defaultValues?.categoria ?? ""}
-          error={state.errors?.categoria}
-        />
+
+        {compactMode ? (
+          <input type="hidden" name="categoria" value={defaultValues?.categoria ?? ""} />
+        ) : (
+          <Field
+            label="Categoria"
+            name="categoria"
+            defaultValue={defaultValues?.categoria ?? ""}
+            error={state.errors?.categoria}
+          />
+        )}
+
         <SelectField
-          label="Método de retirada"
+          label="Metodo de retirada"
           name="metodoRetirada"
           defaultValue={defaultValues?.metodoRetirada ?? "FEFO"}
           error={state.errors?.metodoRetirada}
@@ -189,19 +213,19 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
         <CheckboxField
           name="exigeLote"
           label="Controlar lote"
-          description="Exige rastreabilidade de lote nas operações do produto."
+          description="Exige rastreabilidade de lote nas operacoes do produto."
           defaultChecked={defaultValues?.exigeLote ?? false}
         />
         <CheckboxField
           name="exigeValidade"
           label="Controlar validade"
-          description="Ativa controle de validade e suporte ao FEFO quando necessário."
+          description="Ativa controle de validade e suporte ao FEFO quando necessario."
           defaultChecked={defaultValues?.exigeValidade ?? false}
         />
         <CheckboxField
           name="ativo"
           label="Produto ativo"
-          description="Mantém o SKU disponível para recebimento, estoque e expedição."
+          description="Mantem o SKU disponivel para recebimento, estoque e expedicao."
           defaultChecked={defaultValues?.ativo ?? true}
         />
       </div>
@@ -224,7 +248,7 @@ export function ProdutoForm({ depositantes, defaultValues }: ProdutoFormProps) {
           disabled={isPending}
           className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
         >
-          {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alterações" : "Criar produto"}
+          {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alteracoes" : "Criar produto"}
         </Button>
       </div>
     </form>
@@ -386,11 +410,11 @@ function BarcodeField({
             className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
           >
             {cameraEnabled ? <CameraOff className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
-            {cameraEnabled ? "Desligar câmera" : "Ler código"}
+            {cameraEnabled ? "Desligar camera" : "Ler codigo"}
           </Button>
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             <Barcode className="h-3.5 w-3.5" />
-            USB ou câmera
+            USB ou camera
           </span>
         </div>
       </div>
@@ -400,12 +424,12 @@ function BarcodeField({
         name="eanGtin"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Digite ou leia o código de barras"
+        placeholder="Digite ou leia o codigo de barras"
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
       />
 
       <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
-        Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular.
+        Funciona com leitor USB conectado ao teclado ou com camera do notebook/celular.
       </div>
 
       {(cameraEnabled || cameraStarting || cameraMessage) && (
@@ -422,15 +446,15 @@ function BarcodeField({
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Leitura por câmera
+                Leitura por camera
               </p>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {cameraMessage ??
-                  "Aponte a câmera para o código. Quando a leitura ocorrer, o EAN/GTIN será preenchido automaticamente."}
+                  "Aponte a camera para o codigo. Quando a leitura ocorrer, o EAN/GTIN sera preenchido automaticamente."}
               </p>
               {!cameraSupported ? (
                 <p className="text-xs text-amber-600 dark:text-amber-300">
-                  Seu navegador não liberou a câmera. Se estiver no celular, teste pelo Chrome ou
+                  Seu navegador nao liberou a camera. Se estiver no celular, teste pelo Chrome ou
                   Safari atualizados.
                 </p>
               ) : null}

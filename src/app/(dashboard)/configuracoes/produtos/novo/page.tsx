@@ -3,11 +3,13 @@ import { ArrowLeft } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 export default async function NovoProdutoPage() {
   const currentUser = await requireConfigSectionAccess("produtos");
+  const compactMode = isProductCatalogOnlyUser(currentUser);
   const supabase = createSupabaseAdminClient();
   const { data: depositantes } = await supabase
     .from("depositantes")
@@ -28,11 +30,15 @@ export default async function NovoProdutoPage() {
 
       <ModulePageHeader
         title="Novo produto"
-        description="Cadastre um novo SKU com identificação, categoria, EAN/GTIN, método de retirada e unidade."
+        description={
+          compactMode
+            ? "Cadastre um novo produto com depositante, nome, codigo de barras e regras operacionais."
+            : "Cadastre um novo SKU com identificacao, categoria, EAN/GTIN, metodo de retirada e unidade."
+        }
         badge="Cadastro"
       />
 
-      <ProdutoForm depositantes={visibleDepositantes} />
+      <ProdutoForm depositantes={visibleDepositantes} compactMode={compactMode} />
     </div>
   );
 }

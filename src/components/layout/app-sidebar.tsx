@@ -15,7 +15,12 @@ import type { LucideIcon } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import type { AppUserContext } from "@/lib/auth";
-import { canAccessModule, getRoleLabel, type AppModule } from "@/lib/permissions";
+import {
+  canAccessModule,
+  getRoleLabel,
+  isProductCatalogOnlyUser,
+  type AppModule,
+} from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const navigation: ReadonlyArray<{
@@ -40,7 +45,9 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({ user, currentPath }: AppSidebarProps) {
-  const visibleNavigation = navigation.filter((item) => canAccessModule(user, item.module));
+  const visibleNavigation = isProductCatalogOnlyUser(user)
+    ? [{ href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 }]
+    : navigation.filter((item) => canAccessModule(user, item.module));
 
   return (
     <aside className="glass-card infinya-border-glow sticky top-0 z-10 m-3 flex min-h-screen w-72 flex-shrink-0 flex-col justify-between rounded-[28px] p-4 theme-transition shadow-xl">

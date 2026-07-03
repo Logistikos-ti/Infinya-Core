@@ -5,6 +5,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -17,6 +18,7 @@ type EditarProdutoPageProps = {
 
 export default async function EditarProdutoPage({ params }: EditarProdutoPageProps) {
   const currentUser = await requireConfigSectionAccess("produtos");
+  const compactMode = isProductCatalogOnlyUser(currentUser);
   const { id } = await params;
   const adminSupabase = createSupabaseAdminClient();
 
@@ -35,7 +37,6 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     notFound();
   }
 
-  const canDeleteProduct = true;
   const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
@@ -50,13 +51,18 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
       <ModulePageHeader
         title={`Editar ${product.nome}`}
-        description="Atualize identificação, categoria, método de retirada, embalagem e status operacional do SKU."
+        description={
+          compactMode
+            ? "Atualize nome, codigo de barras, depositante e regras operacionais do produto."
+            : "Atualize identificacao, categoria, metodo de retirada, embalagem e status operacional do SKU."
+        }
         badge="Cadastro"
       />
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <ProdutoForm
           depositantes={visibleDepositantes}
+          compactMode={compactMode}
           defaultValues={{
             id: product.id,
             depositanteId: product.depositante_id,
@@ -73,26 +79,24 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
           }}
         />
 
-        {canDeleteProduct ? (
-          <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              A exclusão é permitida apenas quando o produto ainda não possui vínculos com estoque
-              ou itens de recebimento.
-            </p>
-            <form action={deleteProdutoAction} className="mt-4">
-              <input type="hidden" name="id" value={product.id} />
-              <Button
-                type="submit"
-                variant="outline"
-                className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                Excluir produto
-              </Button>
-            </form>
-          </div>
-        ) : null}
+        <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusao</h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            A exclusao fica liberada somente para produtos sem estoque, sem movimentacoes e sem uso
+            em recebimento ou expedicao.
+          </p>
+          <form action={deleteProdutoAction} className="mt-4">
+            <input type="hidden" name="id" value={product.id} />
+            <Button
+              type="submit"
+              variant="outline"
+              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir produto
+            </Button>
+          </form>
+        </div>
       </section>
     </div>
   );

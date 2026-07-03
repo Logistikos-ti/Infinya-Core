@@ -2,7 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireModuleAccess } from "@/lib/auth";
-import { getEffectiveConfigSections, isAdminUser, type ConfigSection } from "@/lib/permissions";
+import {
+  getEffectiveConfigSections,
+  isAdminUser,
+  isProductCatalogOnlyUser,
+  type ConfigSection,
+} from "@/lib/permissions";
 import { isTransportadorasSchemaMissing } from "@/lib/transportadoras";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -41,6 +46,10 @@ const configModules = [
 
 export default async function ConfiguracoesPage() {
   const currentUser = await requireModuleAccess("configuracoes");
+  if (isProductCatalogOnlyUser(currentUser)) {
+    redirect("/configuracoes/produtos");
+  }
+
   const allowedSections = getEffectiveConfigSections(currentUser);
   const isFullConfigUser = isAdminUser(currentUser) || allowedSections.length === configModules.length;
 

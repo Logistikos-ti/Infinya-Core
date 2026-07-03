@@ -2,9 +2,11 @@
 
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
+import { getPreferredWebRoute } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isEmailLike, normalizeUserLogin } from "@/lib/user-login";
+import { getCurrentUserContext } from "@/lib/auth";
 
 export type LoginActionState = {
   error: string | null;
@@ -81,7 +83,11 @@ export async function loginAction(
     })
     .eq("id", user.id);
 
-  redirect(redirectTo.startsWith("/") ? redirectTo : "/dashboard");
+  const currentUser = await getCurrentUserContext();
+  const fallbackRedirect = currentUser ? getPreferredWebRoute(currentUser) : "/dashboard";
+  const nextRedirect = redirectTo.startsWith("/") ? redirectTo : fallbackRedirect;
+
+  redirect(nextRedirect === "/dashboard" ? fallbackRedirect : nextRedirect);
 }
 
 export async function logoutAction() {

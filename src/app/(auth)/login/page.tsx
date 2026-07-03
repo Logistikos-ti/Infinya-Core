@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import { getCurrentUserContext } from "@/lib/auth";
+import { getPreferredWebRoute } from "@/lib/permissions";
 
 export default async function LoginPage() {
   const user = await getCurrentUserContext();
 
   if (user) {
-    redirect("/dashboard");
+    redirect(getPreferredWebRoute(user));
   }
 
   return (

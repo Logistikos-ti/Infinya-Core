@@ -82,6 +82,17 @@ export function canAccessModule(user: AppUserContext, module: AppModule) {
   return getEffectiveModules(user).includes(module);
 }
 
+export function isProductCatalogOnlyUser(user: AppUserContext) {
+  const effectiveModules = getEffectiveModules(user);
+
+  return (
+    !isAdminUser(user) &&
+    effectiveModules.length === 1 &&
+    effectiveModules[0] === "configuracoes" &&
+    canAccessConfigSection(user, "produtos")
+  );
+}
+
 export function getDefaultModulesForRole(role: AppRole) {
   return [...roleDefaultModules[role]];
 }
@@ -112,6 +123,50 @@ export function canManageMultipleTenants(user: AppUserContext) {
 
 export function canUploadOperationalDocuments(user: AppUserContext) {
   return canAccessModule(user, "recebimento") || hasRoleAccess(user, ["ADMIN", "TI", "OPERADOR"]);
+}
+
+export function getPreferredWebRoute(user: AppUserContext) {
+  if (isProductCatalogOnlyUser(user)) {
+    return "/configuracoes/produtos";
+  }
+
+  if (canAccessModule(user, "dashboard")) {
+    return "/dashboard";
+  }
+
+  if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "produtos")) {
+    return "/configuracoes/produtos";
+  }
+
+  if (canAccessModule(user, "recebimento")) {
+    return "/recebimento";
+  }
+
+  if (canAccessModule(user, "expedicao")) {
+    return "/expedicao";
+  }
+
+  if (canAccessModule(user, "estoque")) {
+    return "/estoque";
+  }
+
+  if (canAccessModule(user, "romaneio")) {
+    return "/romaneio";
+  }
+
+  if (canAccessModule(user, "nfe")) {
+    return "/nfe";
+  }
+
+  if (canAccessModule(user, "relatorios")) {
+    return "/relatorios";
+  }
+
+  if (canAccessModule(user, "configuracoes")) {
+    return "/configuracoes";
+  }
+
+  return "/login";
 }
 
 export function isAppModule(value: string): value is AppModule {

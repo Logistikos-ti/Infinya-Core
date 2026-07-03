@@ -1,7 +1,11 @@
 import type { AppUserContext } from "@/lib/auth";
-import { canAccessModule } from "@/lib/permissions";
+import { canAccessModule, isProductCatalogOnlyUser } from "@/lib/permissions";
 
 export function getDefaultMobileRoute(user: AppUserContext) {
+  if (isProductCatalogOnlyUser(user)) {
+    return "/configuracoes/produtos";
+  }
+
   if (canAccessModule(user, "expedicao")) {
     return "/m/inicio";
   }
