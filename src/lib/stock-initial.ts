@@ -26,11 +26,11 @@ export async function registerInitialStock(input: RegisterInitialStockInput) {
     .maybeSingle();
 
   if (enderecoError) {
-    throw new Error(`Falha ao localizar o endereco: ${enderecoError.message}`);
+    throw new Error(`Falha ao localizar o endereço: ${enderecoError.message}`);
   }
 
   if (!endereco) {
-    throw new Error("Endereco nao encontrado ou inativo.");
+    throw new Error("Endereço não encontrado ou inativo.");
   }
 
   const { data: produtos, error: produtoError } = await supabase
@@ -52,11 +52,11 @@ export async function registerInitialStock(input: RegisterInitialStockInput) {
   }
 
   if (!produtos?.length) {
-    throw new Error("Produto nao encontrado neste depositante.");
+    throw new Error("Produto não encontrado neste depositante.");
   }
 
   if (produtos.length > 1) {
-    throw new Error("Mais de um produto corresponde ao codigo informado. Revise o cadastro.");
+    throw new Error("Mais de um produto corresponde ao código informado. Revise o cadastro.");
   }
 
   const produto = produtos[0];
@@ -88,7 +88,7 @@ export async function registerInitialStock(input: RegisterInitialStockInput) {
   }
 
   if ((existingRows ?? []).length > 1) {
-    throw new Error("Ja existem multiplas linhas para este produto no mesmo endereco. Revise o estoque.");
+    throw new Error("Já existem múltiplas linhas para este produto no mesmo endereço. Revise o estoque.");
   }
 
   const existingStock = existingRows?.[0] ?? null;
@@ -141,12 +141,12 @@ export async function registerInitialStock(input: RegisterInitialStockInput) {
       tipo: isPositive ? "AJUSTE_POSITIVO" : "AJUSTE_NEGATIVO",
       quantidade: Math.abs(difference),
       referencia_tipo: "INVENTARIO_INICIAL",
-      observacoes: `Carga inicial de estoque lancada manualmente para ${endereco.codigo}.`,
+      observacoes: `Carga inicial de estoque lançada manualmente para ${endereco.codigo}.`,
       criado_por: input.userId,
     });
 
     if (movementError) {
-      throw new Error(`Falha ao registrar a movimentacao: ${movementError.message}`);
+      throw new Error(`Falha ao registrar a movimentação: ${movementError.message}`);
     }
   }
 

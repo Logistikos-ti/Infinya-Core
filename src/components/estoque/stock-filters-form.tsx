@@ -57,14 +57,14 @@ export function StockFiltersForm({
               type="text"
               name="produto"
               defaultValue={produto}
-              placeholder="SKU, nome ou codigo interno"
+              placeholder="SKU, nome ou código interno"
               className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
         </label>
 
         <FancySelectInput
-          label="Area"
+          label="Área"
           name="area"
           value={areaValue}
           onChange={setAreaValue}

@@ -99,7 +99,7 @@ export function AppMobileNav({ currentPath, user }: AppMobileNavProps) {
         }));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/92 px-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-[#071120]/92 lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#071120]/92 px-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.28)] backdrop-blur lg:hidden">
       <div
         className={cn(
           "grid gap-1",
@@ -122,7 +122,7 @@ export function AppMobileNav({ currentPath, user }: AppMobileNavProps) {
                 "flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-medium transition-colors",
                 isActive
                   ? "bg-infinya-gradient text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.16)]"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white",
+                  : "text-slate-400 hover:bg-white/5 hover:text-white",
               )}
             >
               <Icon className="h-4 w-4" />
