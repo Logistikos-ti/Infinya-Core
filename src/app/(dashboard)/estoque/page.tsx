@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, Archive, Boxes, Download, ShieldAlert } from "lucide-react";
 import { StockFiltersForm } from "@/components/estoque/stock-filters-form";
+import { StockInitialEntryForm } from "@/components/estoque/stock-initial-entry-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   listStockStatsFromDb,
   listStockTraceabilityProtocolsFromDb,
 } from "@/lib/stock";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
@@ -45,6 +47,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
   const supabase = await createSupabaseServerClient();
+  const adminSupabase = createSupabaseAdminClient();
   const { data: depositantes } = await supabase
     .from("depositantes")
     .select("id, nome")
@@ -52,6 +55,38 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     .order("nome");
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const [{ data: produtosAtivos }, { data: enderecosAtivos }] = await Promise.all([
+    adminSupabase
+      .from("produtos")
+      .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo, exige_lote, exige_validade")
+      .eq("ativo", true)
+      .order("nome"),
+    adminSupabase
+      .from("enderecos")
+      .select("id, codigo, area")
+      .eq("ativo", true)
+      .order("codigo"),
+  ]);
+
+  const visibleDepositanteIds = new Set(depositanteOptions.map((item) => item.id));
+  const produtosInventario = (produtosAtivos ?? [])
+    .filter((item) => visibleDepositanteIds.has(item.depositante_id))
+    .map((item) => ({
+      id: item.id,
+      depositanteId: item.depositante_id,
+      nome: item.nome,
+      sku: item.sku,
+      codigoInterno: item.codigo_interno,
+      codigoExterno: item.codigo_externo,
+      exigeLote: item.exige_lote,
+      exigeValidade: item.exige_validade,
+    }));
+  const enderecosInventario = (enderecosAtivos ?? []).map((item) => ({
+    id: item.id,
+    codigo: item.codigo,
+    area: item.area,
+  }));
+
   const filters = {
     depositanteId: effectiveDepositanteFilter || undefined,
     productTerm: productFilter || undefined,
@@ -103,6 +138,17 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
           help={stockStatsCards[3].help}
         />
       </section>
+
+      <StockInitialEntryForm
+        depositantes={depositanteOptions.map((item) => ({
+          value: item.id,
+          label: item.nome,
+        }))}
+        produtos={produtosInventario}
+        enderecos={enderecosInventario}
+        defaultDepositanteId={effectiveDepositanteFilter}
+        canSelectDepositante={canManageMultipleTenants(user)}
+      />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
