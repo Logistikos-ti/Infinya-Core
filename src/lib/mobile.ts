@@ -1,8 +1,16 @@
 import type { AppUserContext } from "@/lib/auth";
-import { canAccessModule, isProductCatalogOnlyUser } from "@/lib/permissions";
+import {
+  canAccessModule,
+  isCatalogAndStockOperatorUser,
+  isProductCatalogOnlyUser,
+} from "@/lib/permissions";
 
 export function getDefaultMobileRoute(user: AppUserContext) {
   if (isProductCatalogOnlyUser(user)) {
+    return "/m/inicio";
+  }
+
+  if (isCatalogAndStockOperatorUser(user)) {
     return "/m/inicio";
   }
 

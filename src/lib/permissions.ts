@@ -93,6 +93,18 @@ export function isProductCatalogOnlyUser(user: AppUserContext) {
   );
 }
 
+export function isCatalogAndStockOperatorUser(user: AppUserContext) {
+  const effectiveModules = getEffectiveModules(user);
+
+  return (
+    !isAdminUser(user) &&
+    effectiveModules.length === 2 &&
+    effectiveModules.includes("configuracoes") &&
+    effectiveModules.includes("estoque") &&
+    canAccessConfigSection(user, "produtos")
+  );
+}
+
 export function getDefaultModulesForRole(role: AppRole) {
   return [...roleDefaultModules[role]];
 }
@@ -128,6 +140,10 @@ export function canUploadOperationalDocuments(user: AppUserContext) {
 export function getPreferredWebRoute(user: AppUserContext) {
   if (isProductCatalogOnlyUser(user)) {
     return "/configuracoes/produtos";
+  }
+
+  if (isCatalogAndStockOperatorUser(user)) {
+    return "/estoque";
   }
 
   if (canAccessModule(user, "dashboard")) {

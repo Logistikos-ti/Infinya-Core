@@ -18,6 +18,7 @@ import type { AppUserContext } from "@/lib/auth";
 import {
   canAccessModule,
   getRoleLabel,
+  isCatalogAndStockOperatorUser,
   isProductCatalogOnlyUser,
   type AppModule,
 } from "@/lib/permissions";
@@ -47,6 +48,11 @@ type AppSidebarProps = {
 export function AppSidebar({ user, currentPath }: AppSidebarProps) {
   const visibleNavigation = isProductCatalogOnlyUser(user)
     ? [{ href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 }]
+    : isCatalogAndStockOperatorUser(user)
+      ? [
+          { href: "/estoque", label: "Estoque", icon: Boxes },
+          { href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 },
+        ]
     : navigation.filter((item) => canAccessModule(user, item.module));
 
   return (

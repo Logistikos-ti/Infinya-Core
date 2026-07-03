@@ -13,11 +13,16 @@ import {
 import { requireUserContext } from "@/lib/auth";
 import { getMobileOperationsSnapshot } from "@/lib/mobile-home";
 import { getMobileWelcomeLabel } from "@/lib/mobile";
-import { canAccessModule, isProductCatalogOnlyUser } from "@/lib/permissions";
+import {
+  canAccessModule,
+  isCatalogAndStockOperatorUser,
+  isProductCatalogOnlyUser,
+} from "@/lib/permissions";
 
 export default async function MobileHomePage() {
   const user = await requireUserContext();
   const isCatalogOnly = isProductCatalogOnlyUser(user);
+  const isCatalogAndStockUser = isCatalogAndStockOperatorUser(user);
   const canAccessReceiving = canAccessModule(user, "recebimento");
   const canAccessShipping = canAccessModule(user, "expedicao");
 
@@ -26,11 +31,11 @@ export default async function MobileHomePage() {
       <div className="space-y-4">
         <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500 via-sky-600 to-slate-950 p-5 shadow-xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
-            Catálogo operacional
+            Catalogo operacional
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">Olá, {user.nome.split(" ")[0]}</h1>
+          <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
           <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
-            Use este espaço para cadastrar, revisar e ajustar produtos com segurança pelo celular.
+            Use este espaco para cadastrar, revisar e ajustar produtos com seguranca pelo celular.
           </p>
         </section>
 
@@ -42,7 +47,66 @@ export default async function MobileHomePage() {
             <div className="min-w-0">
               <p className="text-base font-semibold text-white">Produtos</p>
               <p className="mt-1 text-sm text-slate-300">
-                Abrir catálogo, cadastrar novos itens e revisar códigos de barras.
+                Abrir catalogo, cadastrar novos itens e revisar codigos de barras.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+              <Settings2 className="h-5 w-5" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/m/sair"
+          className="flex h-14 items-center justify-center gap-2 rounded-[24px] border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair do app
+        </Link>
+      </div>
+    );
+  }
+
+  if (isCatalogAndStockUser) {
+    return (
+      <div className="space-y-4">
+        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
+            Estoque operacional
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
+          <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
+            Consulte saldos, protocolos e inventario do armazem, alem de manter o catalogo de
+            produtos atualizado.
+          </p>
+        </section>
+
+        <Link
+          href="/estoque"
+          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-white">Estoque e inventario</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Abrir consulta de saldo, protocolos e rastreabilidade do armazem.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+              <PackageCheck className="h-5 w-5" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/configuracoes/produtos"
+          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-white">Produtos</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Cadastrar novos itens, revisar codigos de barras e manter o catalogo operacional.
               </p>
             </div>
             <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
@@ -80,7 +144,7 @@ export default async function MobileHomePage() {
     },
     {
       href: "/m/separacao",
-      title: "Separação",
+      title: "Separacao",
       value: snapshot.picking.count,
       help: "Pedidos aguardando coleta",
       detail: snapshot.picking.first?.externalNumber ?? "Sem picking pendente",
@@ -90,10 +154,10 @@ export default async function MobileHomePage() {
     },
     {
       href: "/m/conferencia",
-      title: "Conferência",
+      title: "Conferencia",
       value: snapshot.conference.count,
       help: "Pedidos para validar",
-      detail: snapshot.conference.first?.externalNumber ?? "Sem conferência pendente",
+      detail: snapshot.conference.first?.externalNumber ?? "Sem conferencia pendente",
       icon: ClipboardCheck,
       tone: "bg-amber-500/15 text-amber-300",
       visible: canAccessShipping,
@@ -106,13 +170,13 @@ export default async function MobileHomePage() {
   const nextAction =
     (snapshot.picking.first && {
       href: `/m/separacao/${snapshot.picking.first.id}`,
-      title: "Iniciar separação",
+      title: "Iniciar separacao",
       description: `${snapshot.picking.first.externalNumber} • ${snapshot.picking.first.customer}`,
       tone: "text-sky-300",
     }) ||
     (snapshot.conference.first && {
       href: `/m/conferencia/${snapshot.conference.first.id}`,
-      title: "Continuar conferência",
+      title: "Continuar conferencia",
       description: `${snapshot.conference.first.externalNumber} • ${snapshot.conference.first.customer}`,
       tone: "text-amber-300",
     }) ||
@@ -125,14 +189,12 @@ export default async function MobileHomePage() {
     null;
 
   const alertItems = [
-    snapshot.picking.count > 0
-      ? `${snapshot.picking.count} pedido(s) aguardando separação`
-      : null,
+    snapshot.picking.count > 0 ? `${snapshot.picking.count} pedido(s) aguardando separacao` : null,
     snapshot.conference.divergentItems > 0
-      ? `${snapshot.conference.divergentItems} divergência(s) em conferência`
+      ? `${snapshot.conference.divergentItems} divergencia(s) em conferencia`
       : null,
     snapshot.receiving.count > 0
-      ? `${snapshot.receiving.count} recebimento(s) aguardando avanço`
+      ? `${snapshot.receiving.count} recebimento(s) aguardando avanco`
       : null,
   ].filter(Boolean) as string[];
 
@@ -144,9 +206,9 @@ export default async function MobileHomePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
               {getMobileWelcomeLabel(user)}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold">Olá, {user.nome.split(" ")[0]}</h1>
+            <h1 className="mt-2 text-2xl font-semibold">Ola, {user.nome.split(" ")[0]}</h1>
             <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
-              Acesse rápido os módulos críticos da operação sem passar pelo painel administrativo.
+              Acesse rapido os modulos criticos da operacao sem passar pelo painel administrativo.
             </p>
           </div>
 
@@ -157,7 +219,7 @@ export default async function MobileHomePage() {
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">
-          <SummaryChip icon={CalendarDays} label="Pendências" value={String(totalPendencias)} />
+          <SummaryChip icon={CalendarDays} label="Pendencias" value={String(totalPendencias)} />
           <SummaryChip icon={ScanLine} label="Picking" value={String(snapshot.picking.count)} />
           <SummaryChip icon={CheckCircle2} label="Conf." value={String(snapshot.conference.count)} />
         </div>
@@ -169,7 +231,7 @@ export default async function MobileHomePage() {
           className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Próxima ação
+            Proxima acao
           </p>
           <div className="mt-3 flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -203,7 +265,7 @@ export default async function MobileHomePage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-white">Ações rápidas</p>
+            <p className="text-sm font-semibold text-white">Acoes rapidas</p>
             <p className="text-xs text-slate-400">Entre no fluxo certo do turno</p>
           </div>
         </div>
