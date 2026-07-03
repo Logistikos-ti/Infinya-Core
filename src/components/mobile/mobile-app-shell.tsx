@@ -3,10 +3,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, House, PackageCheck, ScanLine, Settings2 } from "lucide-react";
+import { ClipboardCheck, House, LogOut, PackageCheck, ScanLine, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
-import { LogoutButton } from "@/components/auth/logout-button";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
 import { canAccessModule, type AppModule } from "@/lib/permissions";
@@ -45,9 +44,13 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
             subtitleClassName="truncate"
             forceLightWordmark
           />
-          <div className="shrink-0 [&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-white [&_button:hover]:bg-white/10">
-            <LogoutButton />
-          </div>
+          <Link
+            href="/m/sair"
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Link>
         </div>
       </header>
 
@@ -56,6 +59,17 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
           <MobileInstallCard />
         </div>
         {children}
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <p className="text-sm font-medium text-white">Sessão ativa</p>
+          <p className="mt-1 text-xs text-slate-300">{user.nome}</p>
+          <Link
+            href="/m/sair"
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair do app
+          </Link>
+        </div>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#040816]/95 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 backdrop-blur">
