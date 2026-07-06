@@ -1,7 +1,10 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
+import { AddressBulkGeneratorForm } from "@/components/configuracoes/address-bulk-generator-form";
+import { AddressFiltersForm } from "@/components/configuracoes/address-filters-form";
 import { AddressImportPanel } from "@/components/configuracoes/address-import-panel";
+import { EnderecoForm } from "@/components/configuracoes/endereco-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
@@ -48,6 +51,15 @@ export default async function ConfiguracoesEnderecosPage({
   const currentAddress = editingId
     ? (enderecos ?? []).find((item) => item.id === editingId) ?? null
     : null;
+
+  const areaOptions = [
+    { value: "", label: "Todas as áreas" },
+    { value: "RECEBIMENTO", label: "Recebimento" },
+    { value: "PULMAO", label: "Pulmão" },
+    { value: "PICKING", label: "Picking" },
+    { value: "BLOQUEADO", label: "Bloqueado" },
+    { value: "EXPEDICAO", label: "Expedição" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -106,109 +118,33 @@ export default async function ConfiguracoesEnderecosPage({
             </div>
           </div>
 
-          <form action={saveEnderecoAction} className="mt-5 space-y-4">
-            <input type="hidden" name="id" value={currentAddress?.id ?? ""} />
+          <EnderecoForm
+            action={saveEnderecoAction}
+            defaultValues={{
+              id: currentAddress?.id,
+              codigo: currentAddress?.codigo ?? "",
+              descricao: currentAddress?.descricao ?? "",
+              area: currentAddress?.area ?? "PICKING",
+              unidadePadrao: currentAddress?.unidade_padrao ?? "",
+              rua: currentAddress?.rua ?? "",
+              modulo: currentAddress?.modulo ?? "",
+              nivel: currentAddress?.nivel ?? "",
+              posicao: currentAddress?.posicao ?? "",
+              capacidadeMaxima: currentAddress?.capacidade_maxima?.toString() ?? "",
+              ativo: currentAddress?.ativo ?? true,
+            }}
+          />
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field
-                label="Código"
-                name="codigo"
-                required
-                defaultValue={currentAddress?.codigo ?? ""}
-                placeholder="Ex.: PICK-01-A"
-              />
-              <Field
-                label="Descrição"
-                name="descricao"
-                defaultValue={currentAddress?.descricao ?? ""}
-                placeholder="Descrição operacional"
-              />
+          {currentAddress ? (
+            <div className="mt-3">
+              <Link
+                href="/configuracoes/enderecos"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                Cancelar edição
+              </Link>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <SelectField
-                label="Área"
-                name="area"
-                defaultValue={currentAddress?.area ?? "PICKING"}
-                options={[
-                  ["RECEBIMENTO", "Recebimento"],
-                  ["PULMAO", "Pulmão"],
-                  ["PICKING", "Picking"],
-                  ["BLOQUEADO", "Bloqueado"],
-                  ["EXPEDICAO", "Expedição"],
-                ]}
-              />
-              <SelectField
-                label="Unidade padrão"
-                name="unidadePadrao"
-                defaultValue={currentAddress?.unidade_padrao ?? ""}
-                options={[
-                  ["", "Não definida"],
-                  ["UNIDADE", "Unidade"],
-                  ["CAIXA", "Caixa"],
-                  ["PALLET", "Pallet"],
-                ]}
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <Field
-                label="Corredor"
-                name="rua"
-                defaultValue={currentAddress?.rua ?? ""}
-                placeholder="R01"
-              />
-              <Field
-                label="Módulo"
-                name="modulo"
-                defaultValue={currentAddress?.modulo ?? ""}
-                placeholder="M01"
-              />
-              <Field
-                label="Nível"
-                name="nivel"
-                defaultValue={currentAddress?.nivel ?? ""}
-                placeholder="N01"
-              />
-              <Field
-                label="Posição"
-                name="posicao"
-                defaultValue={currentAddress?.posicao ?? ""}
-                placeholder="P01"
-              />
-            </div>
-
-            <Field
-              label="Capacidade máxima"
-              name="capacidadeMaxima"
-              defaultValue={currentAddress?.capacidade_maxima?.toString() ?? ""}
-              placeholder="Ex.: 120"
-            />
-
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
-              <input
-                type="checkbox"
-                name="ativo"
-                defaultChecked={currentAddress?.ativo ?? true}
-                className="h-4 w-4 rounded"
-              />
-              Endereço ativo para operação
-            </label>
-
-            <div className="flex flex-wrap gap-3">
-              <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
-                {currentAddress ? "Salvar alterações" : "Criar endereço"}
-              </Button>
-              {currentAddress ? (
-                <Link
-                  href="/configuracoes/enderecos"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-                >
-                  Cancelar edição
-                </Link>
-              ) : null}
-            </div>
-          </form>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
@@ -228,31 +164,7 @@ export default async function ConfiguracoesEnderecosPage({
             </div>
           </div>
 
-          <form className="mt-5 flex flex-wrap gap-3">
-            <select
-              name="area"
-              defaultValue={areaFilter}
-              className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            >
-              <option value="">Todas as áreas</option>
-              <option value="RECEBIMENTO">Recebimento</option>
-              <option value="PULMAO">Pulmão</option>
-              <option value="PICKING">Picking</option>
-              <option value="BLOQUEADO">Bloqueado</option>
-              <option value="EXPEDICAO">Expedição</option>
-            </select>
-            <Button type="submit" variant="outline" size="sm">
-              Filtrar
-            </Button>
-            {areaFilter ? (
-              <Link
-                href="/configuracoes/enderecos"
-                className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-              >
-                Limpar
-              </Link>
-            ) : null}
-          </form>
+          <AddressFiltersForm area={areaFilter} areas={areaOptions} />
 
           <div className="mt-5 space-y-4">
             {enderecos?.length ? (
@@ -355,92 +267,7 @@ export default async function ConfiguracoesEnderecosPage({
           </p>
         </div>
 
-        <form action={generateEnderecosAction} className="mt-5 space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <SelectField
-              label="Área"
-              name="area"
-              defaultValue="PICKING"
-              options={[
-                ["RECEBIMENTO", "Recebimento"],
-                ["PULMAO", "Pulmão"],
-                ["PICKING", "Picking"],
-                ["BLOQUEADO", "Bloqueado"],
-                ["EXPEDICAO", "Expedição"],
-              ]}
-            />
-            <Field
-              label="Descrição base"
-              name="descricaoBase"
-              defaultValue=""
-              placeholder="Ex.: Picking fracionado"
-            />
-            <SelectField
-              label="Unidade padrão"
-              name="unidadePadrao"
-              defaultValue="CAIXA"
-              options={[
-                ["UNIDADE", "Unidade"],
-                ["CAIXA", "Caixa"],
-                ["PALLET", "Pallet"],
-              ]}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-4">
-            <RangeField
-              prefixLabel="Corredor"
-              prefixName="corredorPrefixo"
-              startName="corredorInicio"
-              endName="corredorFim"
-              defaultPrefix="R"
-            />
-            <RangeField
-              prefixLabel="Módulo"
-              prefixName="moduloPrefixo"
-              startName="moduloInicio"
-              endName="moduloFim"
-              defaultPrefix="M"
-            />
-            <RangeField
-              prefixLabel="Nível"
-              prefixName="nivelPrefixo"
-              startName="nivelInicio"
-              endName="nivelFim"
-              defaultPrefix="N"
-            />
-            <RangeField
-              prefixLabel="Posição"
-              prefixName="posicaoPrefixo"
-              startName="posicaoInicio"
-              endName="posicaoFim"
-              defaultPrefix="P"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              label="Capacidade máxima"
-              name="capacidadeMaxima"
-              defaultValue=""
-              placeholder="Ex.: 100"
-            />
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 md:mt-7 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
-              <input type="checkbox" name="ativo" defaultChecked className="h-4 w-4 rounded" />
-              Gerar endereços já ativos
-            </label>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
-            O código será montado automaticamente no padrão{" "}
-            <strong>ÁREA-CORREDOR-MÓDULO-NÍVEL-POSIÇÃO</strong>, por exemplo:{" "}
-            <strong>PICK-R01-M01-N01-P01</strong>.
-          </div>
-
-          <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
-            Gerar endereços
-          </Button>
-        </form>
+        <AddressBulkGeneratorForm action={generateEnderecosAction} />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
@@ -458,113 +285,6 @@ export default async function ConfiguracoesEnderecosPage({
           <WarehouseMap2D addresses={enderecos ?? []} />
         </div>
       </section>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  name,
-  defaultValue,
-  placeholder,
-  required = false,
-}: {
-  label: string;
-  name: string;
-  defaultValue: string;
-  placeholder: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-      <span className="font-medium">{label}</span>
-      <input
-        type="text"
-        name={name}
-        required={required}
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
-      />
-    </label>
-  );
-}
-
-function SelectField({
-  label,
-  name,
-  defaultValue,
-  options,
-}: {
-  label: string;
-  name: string;
-  defaultValue: string;
-  options: [string, string][];
-}) {
-  return (
-    <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-      <span className="font-medium">{label}</span>
-      <select
-        name={name}
-        defaultValue={defaultValue}
-        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-      >
-        {options.map(([value, labelOption]) => (
-          <option key={value || "blank"} value={value}>
-            {labelOption}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function RangeField({
-  prefixLabel,
-  prefixName,
-  startName,
-  endName,
-  defaultPrefix,
-}: {
-  prefixLabel: string;
-  prefixName: string;
-  startName: string;
-  endName: string;
-  defaultPrefix: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40">
-      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{prefixLabel}</p>
-      <div className="mt-3 grid gap-3">
-        <Field
-          label="Prefixo"
-          name={prefixName}
-          defaultValue={defaultPrefix}
-          placeholder={defaultPrefix}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-            <span className="font-medium">Início</span>
-            <input
-              type="number"
-              min={1}
-              name={startName}
-              defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            />
-          </label>
-          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
-            <span className="font-medium">Fim</span>
-            <input
-              type="number"
-              min={1}
-              name={endName}
-              defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            />
-          </label>
-        </div>
-      </div>
     </div>
   );
 }
