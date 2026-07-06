@@ -31,6 +31,13 @@ export default async function ProtocoloEstoquePage({
     notFound();
   }
 
+  const lastTrackedMovement = [...detail.movements]
+    .reverse()
+    .find((movement) => movement.user && movement.user !== "Sistema");
+  const operationalReference = lastTrackedMovement
+    ? `${lastTrackedMovement.user} • ${lastTrackedMovement.createdAt}`
+    : `Registro sistêmico • ${detail.createdAt}`;
+
   return (
     <div className="space-y-6">
       <div>
@@ -117,7 +124,7 @@ export default async function ProtocoloEstoquePage({
               <PanelInfo label="Lançado em" value={detail.source.launchedAt} />
             </div>
           ) : (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
               Não foi encontrada uma origem formal de recebimento para este saldo.
             </div>
           )}
@@ -126,22 +133,23 @@ export default async function ProtocoloEstoquePage({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-          Assinatura operacional
+          Responsável operacional
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          O PDF do protocolo já sai com campo para assinatura do operador e registro manual de
-          data e hora da conferência.
+          Este bloco mostra quem respondeu pela última ação rastreável do protocolo. No PDF, o
+          espaço de assinatura continua disponível apenas para conferência física, aceite ou
+          arquivo operacional.
         </p>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 dark:border-zinc-700">
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <PanelInfo label="Último responsável rastreado" value={operationalReference} />
+          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-5 dark:border-zinc-700">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Assinatura do operador
+              Assinatura no PDF
             </p>
-          </div>
-          <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 dark:border-zinc-700">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Data e hora da assinatura
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Usada somente quando o protocolo for impresso para conferência, aceite ou arquivo
+              físico.
             </p>
           </div>
         </div>

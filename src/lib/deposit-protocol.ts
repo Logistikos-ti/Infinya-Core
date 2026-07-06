@@ -50,8 +50,8 @@ function buildProtocolPageContent(detail: StockTraceabilityDetail): ProtocolPage
   }
 
   lines.push("");
-  lines.push("ASSINATURA OPERACIONAL");
-  lines.push("Recebido e conferido conforme protocolo impresso.");
+  lines.push("RESPONSAVEL OPERACIONAL");
+  lines.push("Protocolo com campo de assinatura reservado para conferencia fisica e arquivo operacional.");
 
   return {
     title: "INFINYA LOG - PROTOCOLO DE DEP\u00D3SITO",
@@ -135,13 +135,13 @@ function buildPageContentStream(page: ProtocolPageContent) {
   operators.push("BT");
   operators.push("/F1 10 Tf");
   operators.push("40 75 Td");
-  operators.push("(Assinatura do operador) Tj");
+  operators.push("(Assinatura para conferencia fisica) Tj");
   operators.push("ET");
 
   operators.push("BT");
   operators.push("/F1 10 Tf");
   operators.push("300 75 Td");
-  operators.push("(Data e hora da assinatura) Tj");
+  operators.push("(Data e hora da conferencia) Tj");
   operators.push("ET");
 
   return operators.join("\n");
