@@ -1,5 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type ProductRelation =
   | {
@@ -203,7 +203,7 @@ export type StockExpiryAlert = {
 };
 
 export async function listStockBalancesFromDb(filters?: StockFilters) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("estoque")
     .select(
@@ -223,7 +223,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
 }
 
 export async function listStockMovementsFromDb(filters?: StockFilters) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("movimentacoes_estoque")
     .select(
@@ -270,7 +270,7 @@ export async function listStockTraceabilityProtocolsFromDb(
 }
 
 export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: movementRows, error } = await supabase
     .from("movimentacoes_estoque")
     .select("estoque_id")
@@ -361,7 +361,7 @@ export async function listStockExpiryAlertsFromDb(
 }
 
 export async function getStockTraceabilityDetailFromDb(stockId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: stockRow } = await supabase
     .from("estoque")
     .select(

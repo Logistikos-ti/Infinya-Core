@@ -10,8 +10,12 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
+  const effectiveDepositanteId =
+    auth.user.papel === "DEPOSITANTE"
+      ? auth.user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
   const filters = {
-    depositanteId: searchParams.get("depositante")?.trim() || undefined,
+    depositanteId: effectiveDepositanteId,
     productTerm: searchParams.get("produto")?.trim() || undefined,
     area: searchParams.get("area")?.trim() || undefined,
     lot: searchParams.get("lote")?.trim() || undefined,
