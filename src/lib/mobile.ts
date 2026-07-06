@@ -7,6 +7,7 @@ import {
   PackageCheck,
   ScanLine,
   Settings2,
+  Warehouse,
 } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import {
@@ -83,6 +84,16 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
         icon: Settings2,
         match: ["/configuracoes", "/configuracoes/produtos"],
       },
+      ...(canAccessConfigSection(user, "enderecos")
+        ? [
+            {
+              href: "/configuracoes/enderecos",
+              label: "Endereços",
+              icon: Warehouse,
+              match: ["/configuracoes/enderecos"],
+            } satisfies MobileNavigationItem,
+          ]
+        : []),
       { href: "/m/sair", label: "Sair", icon: LogOut, match: ["/m/sair"] },
     ];
   }
@@ -132,6 +143,15 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
       label: "Produtos",
       icon: Settings2,
       match: ["/configuracoes", "/configuracoes/produtos"],
+    });
+  }
+
+  if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "enderecos")) {
+    items.push({
+      href: "/configuracoes/enderecos",
+      label: "Endereços",
+      icon: Warehouse,
+      match: ["/configuracoes/enderecos"],
     });
   }
 
