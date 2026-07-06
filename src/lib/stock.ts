@@ -167,10 +167,14 @@ export type StockTraceabilityDetail = {
   withdrawalMethod: WithdrawalMethod;
   withdrawalLabel: string;
   source: {
-    receivingCode: string;
+    kind: "RECEBIMENTO" | "INVENTARIO_INICIAL";
+    referenceLabel: string;
+    referenceValue: string;
     noteNumber: string;
-    supplier: string;
+    counterpartLabel: string;
+    counterpartValue: string;
     launchedAt: string;
+    launchedBy: string;
   } | null;
   movements: Array<{
     id: string;
@@ -407,6 +411,9 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
   const firstInboundMovement = (movementRows ?? []).find(
     (item) => item.tipo === "ENTRADA" && item.referencia_tipo === "PEDIDO_RECEBIMENTO",
   ) as RawMovementRow | undefined;
+  const firstInventoryMovement = (movementRows ?? []).find(
+    (item) => item.referencia_tipo === "INVENTARIO_INICIAL",
+  ) as RawMovementRow | undefined;
 
   let source: StockTraceabilityDetail["source"] = null;
 
@@ -420,12 +427,27 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     if (receivingOrder) {
       const order = receivingOrder as RawReceivingOrderReference;
       source = {
-        receivingCode: order.codigo,
+        kind: "RECEBIMENTO",
+        referenceLabel: "Pedido de recebimento",
+        referenceValue: order.codigo,
         noteNumber: order.nota_fiscal_numero ?? "-",
-        supplier: order.fornecedor_nome ?? "Fornecedor não informado",
+        counterpartLabel: "Fornecedor",
+        counterpartValue: order.fornecedor_nome ?? "Fornecedor n?o informado",
         launchedAt: new Date(order.created_at).toLocaleString("pt-BR"),
+        launchedBy: extractUserName(firstInboundMovement.criado_por) ?? "Sistema",
       };
     }
+  } else if (firstInventoryMovement) {
+    source = {
+      kind: "INVENTARIO_INICIAL",
+      referenceLabel: "Origem",
+      referenceValue: "Invent?rio inicial",
+      noteNumber: "-",
+      counterpartLabel: "Respons?vel pelo lan?amento",
+      counterpartValue: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
+      launchedAt: new Date(firstInventoryMovement.created_at).toLocaleString("pt-BR"),
+      launchedBy: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
+    };
   }
 
   const balance = mapStockBalance(stock);

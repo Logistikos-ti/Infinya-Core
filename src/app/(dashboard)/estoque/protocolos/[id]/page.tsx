@@ -118,10 +118,11 @@ export default async function ProtocoloEstoquePage({
           </h2>
           {detail.source ? (
             <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-              <PanelInfo label="Pedido de recebimento" value={detail.source.receivingCode} />
+              <PanelInfo label={detail.source.referenceLabel} value={detail.source.referenceValue} />
               <PanelInfo label="NF-e" value={detail.source.noteNumber} />
-              <PanelInfo label="Fornecedor" value={detail.source.supplier} />
-              <PanelInfo label="Lançado em" value={detail.source.launchedAt} />
+              <PanelInfo label={detail.source.counterpartLabel} value={detail.source.counterpartValue} />
+              <PanelInfo label="Lan?ado em" value={detail.source.launchedAt} />
+              <PanelInfo label="Registrado por" value={detail.source.launchedBy} />
             </div>
           ) : (
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
