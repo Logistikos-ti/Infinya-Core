@@ -17,6 +17,7 @@ import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import type { AppUserContext } from "@/lib/auth";
 import {
   canAccessModule,
+  canAccessConfigSection,
   getRoleLabel,
   isCatalogAndStockOperatorUser,
   isProductCatalogOnlyUser,
@@ -52,8 +53,11 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
       ? [
           { href: "/estoque", label: "Estoque", icon: Boxes },
           { href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 },
+          ...(canAccessConfigSection(user, "enderecos")
+            ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: Settings2 }]
+            : []),
         ]
-    : navigation.filter((item) => canAccessModule(user, item.module));
+      : navigation.filter((item) => canAccessModule(user, item.module));
 
   return (
     <aside className="glass-card infinya-border-glow sticky top-0 z-10 m-3 flex min-h-screen w-72 flex-shrink-0 flex-col justify-between rounded-[28px] p-4 theme-transition shadow-xl">

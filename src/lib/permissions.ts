@@ -114,11 +114,20 @@ export function getEffectiveConfigSections(user: AppUserContext) {
     return [] as ConfigSection[];
   }
 
-  if (user.configSections?.length) {
-    return user.configSections;
+  const sections = user.configSections?.length ? [...user.configSections] : [...CONFIG_SECTIONS];
+
+  // Operadores com acesso operacional a estoque + cadastro de produtos
+  // também precisam manter o endereçamento do armazém sem depender de ajuste manual.
+  if (
+    user.papel === "OPERADOR" &&
+    canAccessModule(user, "estoque") &&
+    sections.includes("produtos") &&
+    !sections.includes("enderecos")
+  ) {
+    sections.push("enderecos");
   }
 
-  return [...CONFIG_SECTIONS];
+  return sections;
 }
 
 export function canAccessConfigSection(user: AppUserContext, section: ConfigSection) {

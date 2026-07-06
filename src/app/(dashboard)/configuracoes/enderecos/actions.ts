@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRoleAccess } from "@/lib/auth";
+import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   enderecoFormSchema,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/validations/enderecos";
 
 export async function saveEnderecoAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("enderecos");
 
   const parsed = enderecoFormSchema.safeParse({
     id: String(formData.get("id") ?? "").trim() || undefined,
@@ -70,7 +70,7 @@ export async function saveEnderecoAction(formData: FormData) {
 }
 
 export async function toggleEnderecoStatusAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("enderecos");
 
   const id = String(formData.get("id") ?? "").trim();
   const nextActive = String(formData.get("nextActive") ?? "").trim() === "true";
@@ -87,7 +87,7 @@ export async function toggleEnderecoStatusAction(formData: FormData) {
 }
 
 export async function deleteEnderecoAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("enderecos");
 
   const id = String(formData.get("id") ?? "").trim();
 
@@ -117,7 +117,7 @@ export async function deleteEnderecoAction(formData: FormData) {
 }
 
 export async function generateEnderecosAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  await requireConfigSectionAccess("enderecos");
 
   const parsed = gerarEnderecosFormSchema.safeParse({
     area: String(formData.get("area") ?? "PICKING").trim(),

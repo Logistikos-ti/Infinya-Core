@@ -176,12 +176,12 @@ export function StockInitialEntryForm({
     }
 
     if (!matchedEndereco) {
-      setFeedback({ type: "error", message: "Bipe ou digite um endereco valido antes de salvar." });
+      setFeedback({ type: "error", message: "Bipe ou digite um endereço válido antes de salvar." });
       return;
     }
 
     if (!matchedProduto) {
-      setFeedback({ type: "error", message: "Bipe ou digite um produto valido antes de salvar." });
+      setFeedback({ type: "error", message: "Bipe ou digite um produto válido antes de salvar." });
       return;
     }
 
@@ -214,13 +214,14 @@ export function StockInitialEntryForm({
         setFeedback({
           type: "error",
           message: payload.error ?? "Nao foi possivel lancar o saldo inicial.",
+        
         });
         return;
       }
 
       setFeedback({
         type: "success",
-        message: payload.message ?? "Saldo inicial lancado com sucesso.",
+        message: payload.message ?? "Saldo inicial lançado com sucesso.",
       });
       setEnderecoCodigo("");
       setProdutoCodigo("");
@@ -233,7 +234,7 @@ export function StockInitialEntryForm({
     } catch {
       setFeedback({
         type: "error",
-        message: "Falha de comunicacao ao salvar a contagem inicial.",
+        message: "Falha de comunicação ao salvar a contagem inicial.",
       });
     } finally {
       setIsSubmitting(false);
@@ -248,12 +249,12 @@ export function StockInitialEntryForm({
             Carga inicial de estoque
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Use esta etapa para lancar a primeira contagem real do armazem. Aqui entram endereco,
-            produto, quantidade, lote e validade quando aplicavel.
+            Use esta etapa para lançar a primeira contagem real do armazém. Aqui entram endereço,
+            produto, quantidade, lote e validade quando aplicável.
           </p>
         </div>
         <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300">
-          Inventario inicial
+          Inventário inicial
         </span>
       </div>
 
@@ -269,9 +270,9 @@ export function StockInitialEntryForm({
           />
 
           <ScanInputField
-            label="Endereco"
+            label="Endereço"
             icon={MapPinned}
-            placeholder="Bipe ou digite o codigo do endereco"
+            placeholder="Bipe ou digite o código do endereço"
             value={enderecoCodigo}
             onChange={setEnderecoCodigo}
             inputRef={enderecoInputRef}
@@ -281,13 +282,13 @@ export function StockInitialEntryForm({
             cameraStarting={enderecoScanner.cameraStarting}
             cameraMessage={enderecoScanner.cameraMessage}
             onToggleCamera={enderecoScanner.toggleCamera}
-            helperText="Funciona com leitor USB conectado ao teclado ou com camera do notebook/celular."
+            helperText="Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular."
           />
 
           <ScanInputField
             label="Produto"
             icon={Barcode}
-            placeholder="Bipe EAN, SKU ou codigo interno"
+            placeholder="Bipe EAN, SKU ou código interno"
             value={produtoCodigo}
             onChange={setProdutoCodigo}
             inputRef={produtoInputRef}
@@ -297,7 +298,7 @@ export function StockInitialEntryForm({
             cameraStarting={produtoScanner.cameraStarting}
             cameraMessage={produtoScanner.cameraMessage}
             onToggleCamera={produtoScanner.toggleCamera}
-            helperText="Leia o EAN/GTIN, SKU ou codigo interno do produto para localizar o item."
+            helperText="Leia o EAN/GTIN, SKU ou código interno do produto para localizar o item."
           />
 
           <InputField
@@ -313,11 +314,11 @@ export function StockInitialEntryForm({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-950/40">
-            <p className="font-medium text-slate-700 dark:text-slate-200">Endereco localizado</p>
+            <p className="font-medium text-slate-700 dark:text-slate-200">Endereço localizado</p>
             <p className="mt-1 text-slate-600 dark:text-slate-300">
               {matchedEndereco
                 ? `${matchedEndereco.codigo} - ${formatAreaLabel(matchedEndereco.area)}`
-                : "Aguardando leitura do endereco."}
+                : "Aguardando leitura do endereço."}
             </p>
           </div>
 
@@ -340,7 +341,7 @@ export function StockInitialEntryForm({
               type="text"
               value={lote}
               onChange={(event) => setLote(event.target.value)}
-              placeholder="Obrigatorio se o produto controlar lote"
+              placeholder="Obrigatório se o produto controlar lote"
               className="h-[52px] w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none shadow-[0_10px_35px_rgba(15,23,42,0.04)] placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
             />
           </label>
@@ -362,7 +363,7 @@ export function StockInitialEntryForm({
           <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
             {matchedProduto.exigeLote ? "Este produto exige lote." : "Lote opcional."}{" "}
             {matchedProduto.exigeValidade
-              ? "A validade e obrigatoria para o saldo inicial."
+              ? "A validade é obrigatória para o saldo inicial."
               : "Validade opcional."}
           </div>
         ) : null}
@@ -386,7 +387,7 @@ export function StockInitialEntryForm({
             className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
           >
             <Save className="h-4 w-4" />
-            {isSubmitting ? "Lancando..." : "Lancar saldo inicial"}
+            {isSubmitting ? "Lançando..." : "Lançar estoque inicial"}
           </Button>
         </div>
       </form>
@@ -443,11 +444,11 @@ function ScanInputField({
             ) : (
               <Camera className="mr-2 h-4 w-4" />
             )}
-            {cameraEnabled ? "Desligar camera" : "Ler codigo"}
+            {cameraEnabled ? "Desligar câmera" : "Ler código"}
           </Button>
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             <Barcode className="h-3.5 w-3.5" />
-            USB ou camera
+            USB ou câmera
           </span>
         </div>
       </div>
@@ -482,15 +483,15 @@ function ScanInputField({
             </div>
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Leitura por camera
+                Leitura por câmera
               </p>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {cameraMessage ??
-                  "Aponte a camera para o codigo. Quando a leitura ocorrer, o campo sera preenchido automaticamente."}
+                  "Aponte a câmera para o código. Quando a leitura ocorrer, o campo será preenchido automaticamente."}
               </p>
               {!cameraSupported ? (
                 <p className="text-xs text-amber-600 dark:text-amber-300">
-                  Seu navegador nao liberou a camera. Se estiver no celular, teste pelo Chrome ou
+                  Seu navegador não liberou a câmera. Se estiver no celular, teste pelo Chrome ou
                   Safari atualizados.
                 </p>
               ) : null}
@@ -549,13 +550,13 @@ function formatAreaLabel(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmao";
+      return "Pulmão";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "Expedicao";
+      return "Expedição";
     default:
       return value;
   }
