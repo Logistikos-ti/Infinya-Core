@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Archive, Boxes, Download, ShieldAlert } from "lucide-react";
 import { StockFiltersForm } from "@/components/estoque/stock-filters-form";
 import { StockInitialEntryForm } from "@/components/estoque/stock-initial-entry-form";
+import { StockTransferForm } from "@/components/estoque/stock-transfer-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,20 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     listStockTraceabilityProtocolsFromDb(filters, stockBalances),
     listStockStatsFromDb(user, filters, stockBalances),
   ]);
+  const stockTransferSources = stockBalances
+    .filter(
+      (item) =>
+        item.status === "Disponível" &&
+        Number(item.saldo.replace(/\./g, "").replace(",", ".")) > 0,
+    )
+    .map((item) => ({
+      value: item.id,
+      depositanteId: item.depositanteId,
+      enderecoId:
+        enderecosInventario.find((endereco) => endereco.codigo === item.endereco)?.id ?? "",
+      label: `${item.protocol} • ${item.sku} • ${item.productName} • ${item.endereco} • saldo ${item.saldo}`,
+    }))
+    .filter((item) => item.enderecoId);
 
   return (
     <div className="space-y-6">
@@ -144,6 +159,21 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         }))}
         produtos={produtosInventario}
         enderecos={enderecosInventario}
+        defaultDepositanteId={effectiveDepositanteFilter}
+        canSelectDepositante={canManageMultipleTenants(user)}
+      />
+
+      <StockTransferForm
+        depositantes={depositanteOptions.map((item) => ({
+          value: item.id,
+          label: item.nome,
+        }))}
+        addresses={enderecosInventario.map((item) => ({
+          value: item.id,
+          label: item.codigo,
+          area: item.area,
+        }))}
+        stockSources={stockTransferSources}
         defaultDepositanteId={effectiveDepositanteFilter}
         canSelectDepositante={canManageMultipleTenants(user)}
       />
