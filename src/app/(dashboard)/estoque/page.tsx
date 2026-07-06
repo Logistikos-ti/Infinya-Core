@@ -243,7 +243,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+      <section className="space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
             Saldos monitorados
