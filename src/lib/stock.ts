@@ -432,7 +432,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
         referenceValue: order.codigo,
         noteNumber: order.nota_fiscal_numero ?? "-",
         counterpartLabel: "Fornecedor",
-        counterpartValue: order.fornecedor_nome ?? "Fornecedor n?o informado",
+        counterpartValue: order.fornecedor_nome ?? "Fornecedor não informado",
         launchedAt: new Date(order.created_at).toLocaleString("pt-BR"),
         launchedBy: extractUserName(firstInboundMovement.criado_por) ?? "Sistema",
       };
@@ -441,9 +441,9 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     source = {
       kind: "INVENTARIO_INICIAL",
       referenceLabel: "Origem",
-      referenceValue: "Invent?rio inicial",
+      referenceValue: "Inventário inicial",
       noteNumber: "-",
-      counterpartLabel: "Respons?vel pelo lan?amento",
+      counterpartLabel: "Responsável pelo lançamento",
       counterpartValue: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
       launchedAt: new Date(firstInventoryMovement.created_at).toLocaleString("pt-BR"),
       launchedBy: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",

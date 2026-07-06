@@ -8,9 +8,11 @@ import {
   FileSearch,
   Route,
 } from "lucide-react";
+import { StockBalanceAdminActions } from "@/components/estoque/stock-balance-admin-actions";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
+import { isAdminUser } from "@/lib/permissions";
 import { getStockTraceabilityDetailFromDb } from "@/lib/stock";
 
 type ProtocoloEstoquePageProps = {
@@ -22,7 +24,7 @@ type ProtocoloEstoquePageProps = {
 export default async function ProtocoloEstoquePage({
   params,
 }: ProtocoloEstoquePageProps) {
-  await requireModuleAccess("estoque");
+  const user = await requireModuleAccess("estoque");
 
   const { id } = await params;
   const detail = await getStockTraceabilityDetailFromDb(id);
@@ -65,6 +67,15 @@ export default async function ProtocoloEstoquePage({
           <Download className="h-4 w-4" />
           Emitir protocolo em PDF
         </Link>
+
+        {isAdminUser(user) ? (
+          <StockBalanceAdminActions
+            stockId={detail.id}
+            stockLabel={detail.protocol}
+            currentBalance={detail.saldo}
+            reservedBalance={detail.reservado}
+          />
+        ) : null}
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -120,13 +131,16 @@ export default async function ProtocoloEstoquePage({
             <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
               <PanelInfo label={detail.source.referenceLabel} value={detail.source.referenceValue} />
               <PanelInfo label="NF-e" value={detail.source.noteNumber} />
-              <PanelInfo label={detail.source.counterpartLabel} value={detail.source.counterpartValue} />
-              <PanelInfo label="Lan?ado em" value={detail.source.launchedAt} />
+              <PanelInfo
+                label={detail.source.counterpartLabel}
+                value={detail.source.counterpartValue}
+              />
+              <PanelInfo label="Lançado em" value={detail.source.launchedAt} />
               <PanelInfo label="Registrado por" value={detail.source.launchedBy} />
             </div>
           ) : (
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-slate-300">
-              Não foi encontrada uma origem formal de recebimento para este saldo.
+              Não foi encontrada uma origem formal para este saldo.
             </div>
           )}
         </div>

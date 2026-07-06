@@ -34,9 +34,9 @@ function buildProtocolPageContent(detail: StockTraceabilityDetail): ProtocolPage
     "ORIGEM",
     detail.source
       ? `${detail.source.referenceLabel}: ${detail.source.referenceValue} | NF-e ${detail.source.noteNumber}`
-      : "Origem n?o localizada",
+      : "Origem não localizada",
     detail.source ? `${detail.source.counterpartLabel}: ${detail.source.counterpartValue}` : "",
-    detail.source ? `Lan?ado em: ${detail.source.launchedAt}` : "",
+    detail.source ? `Lançado em: ${detail.source.launchedAt}` : "",
     detail.source ? `Registrado por: ${detail.source.launchedBy}` : "",
     "",
     "MOVIMENTAÇÕES",
