@@ -3,7 +3,7 @@ import type { AppUserContext } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
 
 export function isScopedDepositanteUser(user: AppUserContext) {
-  return !isAdminUser(user) && Boolean(user.depositanteId);
+  return user.papel === "DEPOSITANTE" && !isAdminUser(user) && Boolean(user.depositanteId);
 }
 
 export function ensureUserCanAccessDepositante(user: AppUserContext, depositanteId: string) {
