@@ -15,7 +15,6 @@ import {
   listStockTraceabilityProtocolsFromDb,
 } from "@/lib/stock";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 type EstoquePageProps = {
@@ -46,9 +45,8 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
-  const supabase = await createSupabaseServerClient();
   const adminSupabase = createSupabaseAdminClient();
-  const { data: depositantes } = await supabase
+  const { data: depositantes } = await adminSupabase
     .from("depositantes")
     .select("id, nome")
     .eq("ativo", true)
