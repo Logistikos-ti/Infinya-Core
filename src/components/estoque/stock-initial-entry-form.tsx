@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, CameraOff, MapPinned, Package, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,9 @@ export function StockInitialEntryForm({
   const router = useRouter();
   const enderecoInputRef = useRef<HTMLInputElement | null>(null);
   const produtoInputRef = useRef<HTMLInputElement | null>(null);
+  const quantidadeInputRef = useRef<HTMLInputElement | null>(null);
+  const shouldAdvanceToProdutoRef = useRef(false);
+  const shouldAdvanceToQuantidadeRef = useRef(false);
   const [depositanteId, setDepositanteId] = useState(
     defaultDepositanteId || (depositantes.length === 1 ? depositantes[0]?.value ?? "" : ""),
   );
@@ -90,20 +93,41 @@ export function StockInitialEntryForm({
   }, [depositanteId, produtoCodigo, produtosDoDepositante]);
 
   const handleEnderecoDetected = useCallback((code: string) => {
+    const normalized = normalizeCode(code);
+    const foundEndereco = enderecos.find((item) => normalizeCode(item.codigo) === normalized) ?? null;
     setEnderecoCodigo(code);
+    if (foundEndereco) {
+      shouldAdvanceToProdutoRef.current = true;
+      return;
+    }
+
     requestAnimationFrame(() => {
       enderecoInputRef.current?.focus();
       enderecoInputRef.current?.select();
     });
-  }, []);
+  }, [enderecos]);
 
   const handleProdutoDetected = useCallback((code: string) => {
+    const normalized = normalizeCode(code);
+    const foundProduto =
+      normalized && depositanteId
+        ? produtosDoDepositante.find((item) =>
+            [item.codigoExterno, item.codigoInterno, item.sku].some(
+              (value) => value && normalizeCode(value) === normalized,
+            ),
+          ) ?? null
+        : null;
     setProdutoCodigo(code);
+    if (foundProduto) {
+      shouldAdvanceToQuantidadeRef.current = true;
+      return;
+    }
+
     requestAnimationFrame(() => {
       produtoInputRef.current?.focus();
       produtoInputRef.current?.select();
     });
-  }, []);
+  }, [depositanteId, produtosDoDepositante]);
 
   const enderecoScanner = useCameraBarcodeScanner({
     onDetected: handleEnderecoDetected,
@@ -112,6 +136,35 @@ export function StockInitialEntryForm({
   const produtoScanner = useCameraBarcodeScanner({
     onDetected: handleProdutoDetected,
   });
+
+  const stopEnderecoCamera = enderecoScanner.stopCamera;
+  const stopProdutoCamera = produtoScanner.stopCamera;
+
+  useEffect(() => {
+    if (!shouldAdvanceToProdutoRef.current || !matchedEndereco) {
+      return;
+    }
+
+    shouldAdvanceToProdutoRef.current = false;
+    stopEnderecoCamera("Endereco lido. Continue no produto.");
+    requestAnimationFrame(() => {
+      produtoInputRef.current?.focus();
+      produtoInputRef.current?.select();
+    });
+  }, [matchedEndereco, stopEnderecoCamera]);
+
+  useEffect(() => {
+    if (!shouldAdvanceToQuantidadeRef.current || !matchedProduto) {
+      return;
+    }
+
+    shouldAdvanceToQuantidadeRef.current = false;
+    stopProdutoCamera("Produto lido. Informe a quantidade.");
+    requestAnimationFrame(() => {
+      quantidadeInputRef.current?.focus();
+      quantidadeInputRef.current?.select();
+    });
+  }, [matchedProduto, stopProdutoCamera]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -254,6 +307,7 @@ export function StockInitialEntryForm({
             value={quantidade}
             onChange={setQuantidade}
             inputMode="decimal"
+            inputRef={quantidadeInputRef}
           />
         </div>
 
@@ -455,6 +509,7 @@ function InputField({
   value,
   onChange,
   inputMode,
+  inputRef,
 }: {
   label: string;
   icon: typeof Barcode;
@@ -462,6 +517,7 @@ function InputField({
   value: string;
   onChange: (value: string) => void;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <label className="space-y-1">
@@ -471,6 +527,7 @@ function InputField({
       <div className="flex h-[52px] items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-[0_10px_35px_rgba(15,23,42,0.04)] dark:border-zinc-700 dark:bg-zinc-900">
         <Icon className="h-4 w-4 text-slate-400 dark:text-slate-500" />
         <input
+          ref={inputRef}
           type="text"
           inputMode={inputMode}
           value={value}
