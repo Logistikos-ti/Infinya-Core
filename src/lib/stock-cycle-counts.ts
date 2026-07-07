@@ -1,0 +1,431 @@
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+export type CycleCountSummary = {
+  id: string;
+  titulo: string;
+  depositanteId: string;
+  depositante: string;
+  area: string;
+  status: string;
+  createdAt: string;
+  countedItems: number;
+  totalItems: number;
+  divergentItems: number;
+};
+
+export type CycleCountDetail = {
+  id: string;
+  titulo: string;
+  depositanteId: string;
+  depositante: string;
+  area: string;
+  status: string;
+  observacoes: string;
+  createdAt: string;
+  startedAt: string;
+  completedAt: string;
+  countedItems: number;
+  totalItems: number;
+  divergentItems: number;
+  items: Array<{
+    id: string;
+    stockId: string;
+    protocol: string;
+    sku: string;
+    productName: string;
+    endereco: string;
+    area: string;
+    lote: string;
+    validade: string;
+    systemQuantity: string;
+    countedQuantity: string;
+    divergence: string;
+    status: string;
+    countedAt: string;
+    countedBy: string;
+    observations: string;
+  }>;
+};
+
+type CycleCountTablesResult<T> = {
+  available: boolean;
+  data: T;
+};
+
+type CreateCycleCountInput = {
+  userId: string;
+  depositanteId: string;
+  area?: string;
+  titulo: string;
+  observacoes?: string;
+};
+
+type UpdateCycleCountItemInput = {
+  userId: string;
+  cycleCountItemId: string;
+  countedQuantity: number;
+  observacoes?: string;
+};
+
+export async function listCycleCountsFromDb(depositanteId?: string): Promise<CycleCountTablesResult<CycleCountSummary[]>> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from("contagens_estoque")
+    .select("id, titulo, depositante_id, area, status, created_at, depositante:depositantes(nome)")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (isMissingCycleCountTables(error)) {
+    return { available: false, data: [] };
+  }
+
+  if (error) {
+    throw new Error(`Não foi possível carregar as contagens cíclicas: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    titulo: string;
+    depositante_id: string;
+    area: string | null;
+    status: string;
+    created_at: string;
+    depositante: { nome?: string } | Array<{ nome?: string }> | null;
+  }>;
+
+  const filteredRows = depositanteId
+    ? rows.filter((row) => row.depositante_id === depositanteId)
+    : rows;
+
+  const summaries = await Promise.all(
+    filteredRows.map(async (row) => {
+      const stats = await getCycleCountItemStats(row.id);
+
+      return {
+        id: row.id,
+        titulo: row.titulo,
+        depositanteId: row.depositante_id,
+        depositante: extractRelationName(row.depositante) ?? "Sem depositante",
+        area: row.area ?? "Todas as áreas",
+        status: row.status,
+        createdAt: new Date(row.created_at).toLocaleString("pt-BR"),
+        countedItems: stats.countedItems,
+        totalItems: stats.totalItems,
+        divergentItems: stats.divergentItems,
+      } satisfies CycleCountSummary;
+    }),
+  );
+
+  return { available: true, data: summaries };
+}
+
+export async function getStockCycleCountAvailability() {
+  const result = await listCycleCountsFromDb();
+  return result.available;
+}
+
+export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountTablesResult<CycleCountDetail | null>> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: header, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .select("id, titulo, depositante_id, area, status, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (isMissingCycleCountTables(headerError)) {
+    return { available: false, data: null };
+  }
+
+  if (headerError) {
+    throw new Error(`Não foi possível localizar esta contagem: ${headerError.message}`);
+  }
+
+  if (!header) {
+    return { available: true, data: null };
+  }
+
+  const { data: itemRows, error: itemError } = await supabase
+    .from("contagens_estoque_itens")
+    .select(
+      "id, quantidade_sistema, quantidade_contada, divergencia, status, observacoes, contado_em, contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
+    )
+    .eq("contagem_id", id)
+    .order("created_at", { ascending: true });
+
+  if (itemError) {
+    throw new Error(`Não foi possível carregar os itens desta contagem: ${itemError.message}`);
+  }
+
+  const items = ((itemRows ?? []) as Array<{
+    id: string;
+    quantidade_sistema: number | string;
+    quantidade_contada: number | string | null;
+    divergencia: number | string;
+    status: string;
+    observacoes: string | null;
+    contado_em: string | null;
+    contado_por: { nome?: string } | Array<{ nome?: string }> | null;
+    estoque:
+      | { id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }
+      | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
+      | null;
+    produto: { sku?: string; nome?: string } | Array<{ sku?: string; nome?: string }> | null;
+    endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
+  }>).map((item) => {
+    const stockId = extractRelationField(item.estoque, "id") ?? item.id;
+    const createdAt = extractRelationField(item.estoque, "created_at") ?? new Date().toISOString();
+
+    return {
+      id: item.id,
+      stockId,
+      protocol: buildTraceabilityProtocol(stockId, createdAt),
+      sku: extractRelationField(item.produto, "sku") ?? "SKU",
+      productName: extractRelationField(item.produto, "nome") ?? "Produto sem descrição",
+      endereco: extractRelationField(item.endereco, "codigo") ?? "Sem endereço",
+      area: extractRelationField(item.endereco, "area") ?? "Sem área",
+      lote: extractRelationField(item.estoque, "lote") ?? "-",
+      validade: extractRelationField(item.estoque, "validade_em")
+        ? formatDate(extractRelationField(item.estoque, "validade_em")!)
+        : "-",
+      systemQuantity: Number(item.quantidade_sistema ?? 0).toLocaleString("pt-BR"),
+      countedQuantity:
+        item.quantidade_contada === null
+          ? "-"
+          : Number(item.quantidade_contada ?? 0).toLocaleString("pt-BR"),
+      divergence: Number(item.divergencia ?? 0).toLocaleString("pt-BR"),
+      status: item.status,
+      countedAt: item.contado_em ? new Date(item.contado_em).toLocaleString("pt-BR") : "-",
+      countedBy: extractRelationName(item.contado_por) ?? "-",
+      observations: item.observacoes?.trim() || "Sem observações.",
+    };
+  });
+
+  const countedItems = items.filter((item) => item.status !== "PENDENTE").length;
+  const divergentItems = items.filter((item) => item.status === "DIVERGENTE").length;
+
+  return {
+    available: true,
+    data: {
+      id: header.id,
+      titulo: header.titulo,
+      depositanteId: header.depositante_id,
+      depositante: extractRelationName(header.depositante) ?? "Sem depositante",
+      area: header.area ?? "Todas as áreas",
+      status: header.status,
+      observacoes: header.observacoes?.trim() || "Sem observações.",
+      createdAt: new Date(header.created_at).toLocaleString("pt-BR"),
+      startedAt: header.iniciado_em ? new Date(header.iniciado_em).toLocaleString("pt-BR") : "-",
+      completedAt: header.concluido_em
+        ? new Date(header.concluido_em).toLocaleString("pt-BR")
+        : "-",
+      countedItems,
+      totalItems: items.length,
+      divergentItems,
+      items,
+    },
+  };
+}
+
+export async function createCycleCount(input: CreateCycleCountInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: countHeader, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .insert({
+      depositante_id: input.depositanteId,
+      titulo: input.titulo,
+      area: input.area || null,
+      observacoes: input.observacoes?.trim() || null,
+      status: "ABERTA",
+      criado_por: input.userId,
+      iniciado_em: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (headerError) {
+    throw new Error(`Não foi possível abrir a contagem: ${headerError.message}`);
+  }
+
+  const stockQuery = supabase
+    .from("estoque")
+    .select("id, depositante_id, produto_id, endereco_id, quantidade, endereco:enderecos(area)")
+    .eq("depositante_id", input.depositanteId)
+    .gt("quantidade", 0);
+
+  const { data: stockRows, error: stockError } = await stockQuery;
+
+  if (stockError) {
+    throw new Error(`Não foi possível capturar os saldos para contagem: ${stockError.message}`);
+  }
+
+  const filteredRows = ((stockRows ?? []) as Array<{
+    id: string;
+    depositante_id: string;
+    produto_id: string;
+    endereco_id: string;
+    quantidade: number | string;
+    endereco: { area?: string } | Array<{ area?: string }> | null;
+  }>).filter((row) => {
+    if (!input.area) {
+      return true;
+    }
+
+    const area = extractRelationField(row.endereco, "area");
+    return area === input.area;
+  });
+
+  if (!filteredRows.length) {
+    throw new Error("Nenhum saldo foi encontrado para abrir a contagem com esse filtro.");
+  }
+
+  const { error: itemInsertError } = await supabase.from("contagens_estoque_itens").insert(
+    filteredRows.map((row) => ({
+      contagem_id: countHeader.id,
+      depositante_id: row.depositante_id,
+      estoque_id: row.id,
+      produto_id: row.produto_id,
+      endereco_id: row.endereco_id,
+      quantidade_sistema: row.quantidade,
+      status: "PENDENTE",
+    })),
+  );
+
+  if (itemInsertError) {
+    throw new Error(`Não foi possível registrar os itens da contagem: ${itemInsertError.message}`);
+  }
+
+  return { id: countHeader.id };
+}
+
+export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: currentItem, error: currentItemError } = await supabase
+    .from("contagens_estoque_itens")
+    .select("id, quantidade_sistema")
+    .eq("id", input.cycleCountItemId)
+    .maybeSingle();
+
+  if (currentItemError) {
+    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+  }
+
+  if (!currentItem) {
+    throw new Error("Item da contagem não encontrado.");
+  }
+
+  const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
+  const divergence = input.countedQuantity - systemQuantity;
+  const status = divergence === 0 ? "CONTADO" : "DIVERGENTE";
+
+  const { error } = await supabase
+    .from("contagens_estoque_itens")
+    .update({
+      quantidade_contada: input.countedQuantity,
+      divergencia: divergence,
+      status,
+      observacoes: input.observacoes?.trim() || null,
+      contado_por: input.userId,
+      contado_em: new Date().toISOString(),
+    })
+    .eq("id", input.cycleCountItemId);
+
+  if (error) {
+    throw new Error(`Não foi possível registrar a contagem do item: ${error.message}`);
+  }
+}
+
+export async function completeCycleCount(cycleCountId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("contagens_estoque")
+    .update({
+      status: "CONCLUIDA",
+      concluido_em: new Date().toISOString(),
+    })
+    .eq("id", cycleCountId);
+
+  if (error) {
+    throw new Error(`Não foi possível concluir a contagem: ${error.message}`);
+  }
+}
+
+async function getCycleCountItemStats(cycleCountId: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("contagens_estoque_itens")
+    .select("status")
+    .eq("contagem_id", cycleCountId);
+
+  if (error) {
+    throw new Error(`Não foi possível carregar as estatísticas da contagem: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as Array<{ status: string }>;
+  return {
+    totalItems: rows.length,
+    countedItems: rows.filter((row) => row.status !== "PENDENTE").length,
+    divergentItems: rows.filter((row) => row.status === "DIVERGENTE").length,
+  };
+}
+
+function isMissingCycleCountTables(error: { message?: string; code?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  return (
+    error.code === "42P01" ||
+    error.message?.includes("contagens_estoque") ||
+    error.message?.includes("relation") ||
+    false
+  );
+}
+
+function extractRelationName(value: { nome?: string } | Array<{ nome?: string }> | null) {
+  if (Array.isArray(value)) {
+    return typeof value[0]?.nome === "string" ? value[0].nome : null;
+  }
+
+  if (value && typeof value.nome === "string") {
+    return value.nome;
+  }
+
+  return null;
+}
+
+function extractRelationField<T extends string>(
+  value:
+    | Partial<Record<T, string | null | undefined>>
+    | Array<Partial<Record<T, string | null | undefined>>>
+    | null,
+  field: T,
+) {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return typeof first?.[field] === "string" ? first[field] : null;
+  }
+
+  if (value && typeof value[field] === "string") {
+    return value[field] as string;
+  }
+
+  return null;
+}
+
+function formatDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function buildTraceabilityProtocol(id: string, createdAt: string) {
+  const date = new Date(createdAt);
+  const dateStamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+
+  return `DEP-${dateStamp}-${id.slice(0, 8).toUpperCase()}`;
+}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, Archive, Boxes, Download, ShieldAlert } from "lucide-react";
 import { StockFiltersForm } from "@/components/estoque/stock-filters-form";
 import { StockInitialEntryForm } from "@/components/estoque/stock-initial-entry-form";
+import { StockCycleCountCreateForm } from "@/components/estoque/stock-cycle-count-create-form";
 import { StockTransferForm } from "@/components/estoque/stock-transfer-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -15,6 +16,7 @@ import {
   listStockStatsFromDb,
   listStockTraceabilityProtocolsFromDb,
 } from "@/lib/stock";
+import { listCycleCountsFromDb } from "@/lib/stock-cycle-counts";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
@@ -102,6 +104,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     listStockTraceabilityProtocolsFromDb(filters, stockBalances),
     listStockStatsFromDb(user, filters, stockBalances),
   ]);
+  const cycleCountsResult = await listCycleCountsFromDb(filters.depositanteId);
   const stockTransferSources = stockBalances
     .filter(
       (item) =>
@@ -177,6 +180,78 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         defaultDepositanteId={effectiveDepositanteFilter}
         canSelectDepositante={canManageMultipleTenants(user)}
       />
+
+      <StockCycleCountCreateForm
+        available={cycleCountsResult.available}
+        depositantes={depositanteOptions.map((item) => ({
+          value: item.id,
+          label: item.nome,
+        }))}
+        areas={areaOptions}
+        defaultDepositanteId={effectiveDepositanteFilter}
+        canSelectDepositante={canManageMultipleTenants(user)}
+      />
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+              Contagens cíclicas recentes
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              Acompanhe o avanço das contagens em andamento e entre direto nos itens para registrar
+              divergências.
+            </p>
+          </div>
+          <span className="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
+            {cycleCountsResult.available
+              ? `${cycleCountsResult.data.length} contagem(ns)`
+              : "Migração pendente"}
+          </span>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {cycleCountsResult.available ? (
+            cycleCountsResult.data.length ? (
+              cycleCountsResult.data.map((count) => (
+                <Link
+                  key={count.id}
+                  href={`/estoque/inventarios/${count.id}`}
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-fuchsia-300 hover:shadow-sm dark:border-zinc-800 dark:hover:border-fuchsia-500/30"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                        {count.titulo}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {count.depositante} • {count.area} • {count.createdAt}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
+                      {count.status}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-3">
+                    <p>Itens: {count.totalItems}</p>
+                    <p>Contados: {count.countedItems}</p>
+                    <p>Divergências: {count.divergentItems}</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
+                Nenhuma contagem cíclica criada até o momento.
+              </div>
+            )
+          ) : (
+            <div className="rounded-2xl border border-dashed border-amber-200 px-4 py-8 text-center text-sm text-amber-700 dark:border-amber-500/30 dark:text-amber-300">
+              Assim que a nova migração do Supabase for executada, as contagens cíclicas aparecerão aqui.
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
