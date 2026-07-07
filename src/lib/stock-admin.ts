@@ -57,6 +57,131 @@ export async function zeroStockBalance(stockId: string, userId: string) {
   return { alreadyZero: false };
 }
 
+export async function blockStockBalance(
+  stockId: string,
+  userId: string,
+  reason: string,
+) {
+  const supabase = createSupabaseAdminClient();
+
+  const normalizedReason = reason.trim();
+
+  if (!normalizedReason) {
+    throw new Error("Informe o motivo do bloqueio operacional.");
+  }
+
+  const { data: stock, error } = await supabase
+    .from("estoque")
+    .select("id, depositante_id, produto_id, endereco_id, quantidade, bloqueado")
+    .eq("id", stockId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Falha ao localizar o saldo: ${error.message}`);
+  }
+
+  if (!stock) {
+    throw new Error("Saldo de estoque não encontrado.");
+  }
+
+  if (stock.bloqueado) {
+    return { alreadyBlocked: true };
+  }
+
+  const { error: updateError } = await supabase
+    .from("estoque")
+    .update({
+      bloqueado: true,
+      bloqueio_motivo: normalizedReason,
+      bloqueado_em: new Date().toISOString(),
+    })
+    .eq("id", stock.id);
+
+  if (updateError) {
+    throw new Error(`Falha ao bloquear o saldo: ${updateError.message}`);
+  }
+
+  const { error: movementError } = await supabase.from("movimentacoes_estoque").insert({
+    depositante_id: stock.depositante_id,
+    estoque_id: stock.id,
+    produto_id: stock.produto_id,
+    endereco_origem_id: stock.endereco_id,
+    endereco_destino_id: stock.endereco_id,
+    tipo: "BLOQUEIO",
+    quantidade: Number(stock.quantidade ?? 0),
+    referencia_tipo: "BLOQUEIO_OPERACIONAL",
+    observacoes: normalizedReason,
+    criado_por: userId,
+  });
+
+  if (movementError) {
+    throw new Error(`Falha ao registrar o bloqueio: ${movementError.message}`);
+  }
+
+  return { alreadyBlocked: false };
+}
+
+export async function unblockStockBalance(
+  stockId: string,
+  userId: string,
+  reason?: string,
+) {
+  const supabase = createSupabaseAdminClient();
+  const normalizedReason = reason?.trim() ?? "";
+
+  const { data: stock, error } = await supabase
+    .from("estoque")
+    .select("id, depositante_id, produto_id, endereco_id, quantidade, bloqueado, bloqueio_motivo")
+    .eq("id", stockId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Falha ao localizar o saldo: ${error.message}`);
+  }
+
+  if (!stock) {
+    throw new Error("Saldo de estoque não encontrado.");
+  }
+
+  if (!stock.bloqueado) {
+    return { alreadyUnblocked: true };
+  }
+
+  const { error: updateError } = await supabase
+    .from("estoque")
+    .update({
+      bloqueado: false,
+      bloqueio_motivo: null,
+      bloqueado_em: null,
+    })
+    .eq("id", stock.id);
+
+  if (updateError) {
+    throw new Error(`Falha ao desbloquear o saldo: ${updateError.message}`);
+  }
+
+  const note = normalizedReason || stock.bloqueio_motivo || "Saldo liberado para operação.";
+
+  const { error: movementError } = await supabase.from("movimentacoes_estoque").insert({
+    depositante_id: stock.depositante_id,
+    estoque_id: stock.id,
+    produto_id: stock.produto_id,
+    endereco_origem_id: stock.endereco_id,
+    endereco_destino_id: stock.endereco_id,
+    tipo: "DESBLOQUEIO",
+    quantidade: Number(stock.quantidade ?? 0),
+    referencia_tipo: "DESBLOQUEIO_OPERACIONAL",
+    observacoes: note,
+    criado_por: userId,
+  });
+
+  if (movementError) {
+    throw new Error(`Falha ao registrar o desbloqueio: ${movementError.message}`);
+  }
+
+  return { alreadyUnblocked: false };
+}
+
 export async function deleteStockBalance(stockId: string) {
   const supabase = createSupabaseAdminClient();
 

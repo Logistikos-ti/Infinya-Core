@@ -1,5 +1,10 @@
 import { requireApiRoleAccess } from "@/lib/api-auth";
-import { deleteStockBalance, zeroStockBalance } from "@/lib/stock-admin";
+import {
+  blockStockBalance,
+  deleteStockBalance,
+  unblockStockBalance,
+  zeroStockBalance,
+} from "@/lib/stock-admin";
 
 type RouteContext = {
   params: Promise<{
@@ -8,29 +13,49 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const auth = await requireApiRoleAccess(["ADMIN", "TI"]);
+  const auth = await requireApiRoleAccess(["ADMIN", "TI", "OPERADOR"]);
 
   if (auth.response) {
     return auth.response;
   }
 
   const { id } = await context.params;
-  const payload = (await request.json().catch(() => null)) as { action?: string } | null;
-
-  if (payload?.action !== "zero") {
-    return Response.json({ error: "Ação inválida para ajuste de estoque." }, { status: 400 });
-  }
+  const payload = (await request.json().catch(() => null)) as
+    | { action?: string; reason?: string }
+    | null;
 
   try {
-    const result = await zeroStockBalance(id, auth.user.id);
-    return Response.json({
-      message: result.alreadyZero
-        ? "Este saldo já estava zerado."
-        : "Saldo zerado com sucesso.",
-    });
+    switch (payload?.action) {
+      case "zero": {
+        const result = await zeroStockBalance(id, auth.user.id);
+        return Response.json({
+          message: result.alreadyZero
+            ? "Este saldo já estava zerado."
+            : "Saldo zerado com sucesso.",
+        });
+      }
+      case "block": {
+        const result = await blockStockBalance(id, auth.user.id, payload.reason ?? "");
+        return Response.json({
+          message: result.alreadyBlocked
+            ? "Este saldo já estava bloqueado."
+            : "Saldo bloqueado com sucesso.",
+        });
+      }
+      case "unblock": {
+        const result = await unblockStockBalance(id, auth.user.id, payload.reason);
+        return Response.json({
+          message: result.alreadyUnblocked
+            ? "Este saldo já estava disponível."
+            : "Saldo desbloqueado com sucesso.",
+        });
+      }
+      default:
+        return Response.json({ error: "Ação inválida para ajuste de estoque." }, { status: 400 });
+    }
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "Falha ao zerar o saldo." },
+      { error: error instanceof Error ? error.message : "Falha ao ajustar o saldo." },
       { status: 400 },
     );
   }

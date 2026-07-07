@@ -6,9 +6,11 @@ import {
   CalendarClock,
   Download,
   FileSearch,
+  Lock,
   Route,
 } from "lucide-react";
 import { StockBalanceAdminActions } from "@/components/estoque/stock-balance-admin-actions";
+import { StockBalanceBlockActions } from "@/components/estoque/stock-balance-block-actions";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
@@ -68,6 +70,16 @@ export default async function ProtocoloEstoquePage({
           Emitir protocolo em PDF
         </Link>
 
+        {user.papel !== "DEPOSITANTE" ? (
+          <StockBalanceBlockActions
+            stockId={detail.id}
+            stockLabel={detail.protocol}
+            status={detail.status}
+            currentReason={detail.blockReason}
+            blockedAt={detail.blockedAt}
+          />
+        ) : null}
+
         {isAdminUser(user) ? (
           <StockBalanceAdminActions
             stockId={detail.id}
@@ -98,10 +110,16 @@ export default async function ProtocoloEstoquePage({
           help={`Lote ${detail.lote} • ${detail.withdrawalMethod}`}
         />
         <StatCard
-          icon={FileSearch}
-          label="Movimentos"
-          value={String(detail.movements.length)}
-          help={`Entrada registrada em ${detail.createdAt}`}
+          icon={detail.status === "Bloqueado" ? Lock : FileSearch}
+          label={detail.status === "Bloqueado" ? "Status operacional" : "Movimentos"}
+          value={detail.status === "Bloqueado" ? "Bloqueado" : String(detail.movements.length)}
+          help={
+            detail.status === "Bloqueado"
+              ? detail.blockedAt
+                ? `Retido desde ${detail.blockedAt}`
+                : "Saldo temporariamente fora de circulação."
+              : `Entrada registrada em ${detail.createdAt}`
+          }
         />
       </section>
 
@@ -120,6 +138,13 @@ export default async function ProtocoloEstoquePage({
               value={detail.withdrawalLabel}
               spanTwo
             />
+            {detail.status === "Bloqueado" ? (
+              <PanelInfo
+                label="Motivo do bloqueio"
+                value={detail.blockReason || "Bloqueio operacional sem observação adicional."}
+                spanTwo
+              />
+            ) : null}
           </div>
         </div>
 

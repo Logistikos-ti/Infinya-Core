@@ -38,6 +38,8 @@ type RawStockRow = {
   depositante_id: string;
   quantidade: number | string;
   bloqueado: boolean;
+  bloqueio_motivo?: string | null;
+  bloqueado_em?: string | null;
   lote: string | null;
   validade_em: string | null;
   created_at: string;
@@ -51,6 +53,8 @@ type RawStockDetailRow = {
   quantidade: number | string;
   quantidade_reservada: number | string;
   bloqueado: boolean;
+  bloqueio_motivo?: string | null;
+  bloqueado_em?: string | null;
   lote: string | null;
   validade_em: string | null;
   fabricacao_em: string | null;
@@ -101,6 +105,8 @@ export type StockBalance = {
   saldo: string;
   validade: string;
   status: string;
+  blockReason: string;
+  blockedAt: string | null;
   createdAt: string;
   withdrawalMethod: WithdrawalMethod;
   withdrawalLabel: string;
@@ -163,6 +169,8 @@ export type StockTraceabilityDetail = {
   reservado: string;
   disponivel: string;
   status: string;
+  blockReason: string;
+  blockedAt: string | null;
   createdAt: string;
   withdrawalMethod: WithdrawalMethod;
   withdrawalLabel: string;
@@ -211,7 +219,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, bloqueado, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, depositante_id, quantidade, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -369,7 +377,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
   const { data: stockRow } = await supabase
     .from("estoque")
     .select(
-      "id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, fabricacao_em, created_at, depositante_id, produto_id, endereco_id, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, fabricacao_em, created_at, depositante_id, produto_id, endereco_id, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
     )
     .eq("id", stockId)
     .maybeSingle();
@@ -469,6 +477,8 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     reservado: reserved.toLocaleString("pt-BR"),
     disponivel: Math.max(quantity - reserved, 0).toLocaleString("pt-BR"),
     status: balance.status,
+    blockReason: balance.blockReason,
+    blockedAt: balance.blockedAt,
     createdAt: balance.createdAt,
     withdrawalMethod: balance.withdrawalMethod,
     withdrawalLabel: balance.withdrawalLabel,
@@ -532,6 +542,8 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     saldo: Number(item.quantidade ?? 0).toLocaleString("pt-BR"),
     validade: expiryDate ? formatDate(expiryDate) : "-",
     status: item.bloqueado ? "Bloqueado" : "Disponível",
+    blockReason: item.bloqueio_motivo?.trim() || "",
+    blockedAt: item.bloqueado_em ? new Date(item.bloqueado_em).toLocaleString("pt-BR") : null,
     createdAt: new Date(createdAt).toLocaleString("pt-BR"),
     withdrawalMethod,
     withdrawalLabel: formatWithdrawalLabel(withdrawalMethod, expiryDate, createdAt),
