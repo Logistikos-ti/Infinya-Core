@@ -15,6 +15,7 @@ export async function POST(request: Request) {
         area?: string;
         titulo?: string;
         observacoes?: string;
+        blindCount?: boolean;
         cycleCountId?: string;
       }
     | null;
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
       area,
       titulo: title,
       observacoes: String(payload.observacoes ?? "").trim(),
+      blindCount: Boolean(payload.blindCount),
     });
 
     return Response.json({

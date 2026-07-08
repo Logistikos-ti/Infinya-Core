@@ -4,10 +4,7 @@ import { useState } from "react";
 import { ClipboardList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  FancySelectInput,
-  type FancySelectOption,
-} from "@/components/ui/fancy-select-input";
+import { FancySelectInput, type FancySelectOption } from "@/components/ui/fancy-select-input";
 
 type StockCycleCountCreateFormProps = {
   available: boolean;
@@ -31,6 +28,7 @@ export function StockCycleCountCreateForm({
   const [area, setArea] = useState("");
   const [title, setTitle] = useState("");
   const [observations, setObservations] = useState("");
+  const [blindCount, setBlindCount] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
     null,
@@ -69,6 +67,7 @@ export function StockCycleCountCreateForm({
           area,
           titulo: title,
           observacoes: observations,
+          blindCount,
         }),
       });
 
@@ -115,8 +114,8 @@ export function StockCycleCountCreateForm({
             Inventário cíclico
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Abra contagens por depositante e área, registre o saldo contado e trate divergências
-            sem depender de planilhas paralelas.
+            Abra contagens por depositante e área, com opção de contagem cega e segunda conferência
+            para itens divergentes.
           </p>
         </div>
         <span className="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
@@ -161,6 +160,21 @@ export function StockCycleCountCreateForm({
             />
           </label>
         </div>
+
+        <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-zinc-200">
+          <input
+            type="checkbox"
+            checked={blindCount}
+            onChange={(event) => setBlindCount(event.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500"
+          />
+          <span>
+            <strong>Contagem cega</strong>
+            <br />
+            A primeira contagem não exibe a quantidade do sistema para o operador. Ideal para
+            conferência real de piso.
+          </span>
+        </label>
 
         <label className="space-y-1">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">

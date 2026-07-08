@@ -7,6 +7,7 @@ export type CycleCountSummary = {
   depositante: string;
   area: string;
   status: string;
+  blindCount: boolean;
   createdAt: string;
   countedItems: number;
   totalItems: number;
@@ -20,6 +21,7 @@ export type CycleCountDetail = {
   depositante: string;
   area: string;
   status: string;
+  blindCount: boolean;
   observacoes: string;
   createdAt: string;
   startedAt: string;
@@ -39,7 +41,9 @@ export type CycleCountDetail = {
     validade: string;
     systemQuantity: string;
     countedQuantity: string;
+    secondCountedQuantity: string;
     divergence: string;
+    secondDivergence: string;
     status: string;
     adjustmentStatus: string;
     adjustmentApprovedAt: string;
@@ -48,6 +52,9 @@ export type CycleCountDetail = {
     adjustmentNotes: string;
     countedAt: string;
     countedBy: string;
+    secondCountedAt: string;
+    secondCountedBy: string;
+    secondObservations: string;
     observations: string;
   }>;
 };
@@ -63,9 +70,17 @@ type CreateCycleCountInput = {
   area?: string;
   titulo: string;
   observacoes?: string;
+  blindCount?: boolean;
 };
 
 type UpdateCycleCountItemInput = {
+  userId: string;
+  cycleCountItemId: string;
+  countedQuantity: number;
+  observacoes?: string;
+};
+
+type RegisterSecondCountInput = {
   userId: string;
   cycleCountItemId: string;
   countedQuantity: number;
@@ -78,9 +93,12 @@ type DetailItemRow = {
   id: string;
   quantidade_sistema: number | string;
   quantidade_contada: number | string | null;
+  segunda_quantidade_contada?: number | string | null;
   divergencia: number | string;
+  segunda_divergencia?: number | string | null;
   status: string;
   observacoes: string | null;
+  segunda_observacoes?: string | null;
   ajuste_status?: string | null;
   ajuste_observacoes?: string | null;
   ajuste_aprovado_em?: string | null;
@@ -88,6 +106,8 @@ type DetailItemRow = {
   ajuste_aprovado_por?: RelationName;
   contado_em: string | null;
   contado_por: RelationName;
+  segunda_contado_em?: string | null;
+  segunda_contado_por?: RelationName;
   estoque:
     | { id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }
     | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
@@ -103,7 +123,9 @@ export async function listCycleCountsFromDb(
 
   const { data, error } = await supabase
     .from("contagens_estoque")
-    .select("id, titulo, depositante_id, area, status, created_at, depositante:depositantes(nome)")
+    .select(
+      "id, titulo, depositante_id, area, status, contagem_cega, created_at, depositante:depositantes(nome)",
+    )
     .order("created_at", { ascending: false })
     .limit(8);
 
@@ -121,6 +143,7 @@ export async function listCycleCountsFromDb(
     depositante_id: string;
     area: string | null;
     status: string;
+    contagem_cega?: boolean | null;
     created_at: string;
     depositante: RelationName;
   }>;
@@ -140,6 +163,7 @@ export async function listCycleCountsFromDb(
         depositante: extractRelationName(row.depositante) ?? "Sem depositante",
         area: row.area ?? "Todas as áreas",
         status: row.status,
+        blindCount: Boolean(row.contagem_cega),
         createdAt: new Date(row.created_at).toLocaleString("pt-BR"),
         countedItems: stats.countedItems,
         totalItems: stats.totalItems,
@@ -164,7 +188,7 @@ export async function getCycleCountDetailFromDb(
   const { data: header, error: headerError } = await supabase
     .from("contagens_estoque")
     .select(
-      "id, titulo, depositante_id, area, status, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)",
+      "id, titulo, depositante_id, area, status, contagem_cega, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -184,7 +208,7 @@ export async function getCycleCountDetailFromDb(
   const { data: itemRows, error: itemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, quantidade_sistema, quantidade_contada, divergencia, status, observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios(nome), contado_em, contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
+      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios(nome), contado_em, contado_por:usuarios(nome), segunda_contado_em, segunda_contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
     )
     .eq("contagem_id", id)
     .order("created_at", { ascending: true });
@@ -214,7 +238,15 @@ export async function getCycleCountDetailFromDb(
         item.quantidade_contada === null
           ? "-"
           : Number(item.quantidade_contada ?? 0).toLocaleString("pt-BR"),
+      secondCountedQuantity:
+        item.segunda_quantidade_contada === null || item.segunda_quantidade_contada === undefined
+          ? "-"
+          : Number(item.segunda_quantidade_contada ?? 0).toLocaleString("pt-BR"),
       divergence: Number(item.divergencia ?? 0).toLocaleString("pt-BR"),
+      secondDivergence:
+        item.segunda_divergencia === null || item.segunda_divergencia === undefined
+          ? "-"
+          : Number(item.segunda_divergencia ?? 0).toLocaleString("pt-BR"),
       status: item.status,
       adjustmentStatus: item.ajuste_status?.trim() || "NAO_NECESSARIO",
       adjustmentApprovedAt: item.ajuste_aprovado_em
@@ -227,6 +259,11 @@ export async function getCycleCountDetailFromDb(
       adjustmentNotes: item.ajuste_observacoes?.trim() || "Sem observações de ajuste.",
       countedAt: item.contado_em ? new Date(item.contado_em).toLocaleString("pt-BR") : "-",
       countedBy: extractRelationName(item.contado_por) ?? "-",
+      secondCountedAt: item.segunda_contado_em
+        ? new Date(item.segunda_contado_em).toLocaleString("pt-BR")
+        : "-",
+      secondCountedBy: extractRelationName(item.segunda_contado_por ?? null) ?? "-",
+      secondObservations: item.segunda_observacoes?.trim() || "Sem observações da segunda contagem.",
       observations: item.observacoes?.trim() || "Sem observações.",
     };
   });
@@ -243,6 +280,7 @@ export async function getCycleCountDetailFromDb(
       depositante: extractRelationName(header.depositante) ?? "Sem depositante",
       area: header.area ?? "Todas as áreas",
       status: header.status,
+      blindCount: Boolean(header.contagem_cega),
       observacoes: header.observacoes?.trim() || "Sem observações.",
       createdAt: new Date(header.created_at).toLocaleString("pt-BR"),
       startedAt: header.iniciado_em ? new Date(header.iniciado_em).toLocaleString("pt-BR") : "-",
@@ -265,6 +303,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
       titulo: input.titulo,
       area: input.area || null,
       observacoes: input.observacoes?.trim() || null,
+      contagem_cega: Boolean(input.blindCount),
       status: "ABERTA",
       criado_por: input.userId,
       iniciado_em: new Date().toISOString(),
@@ -360,6 +399,11 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
       ajuste_aprovado_por: null,
       ajuste_aprovado_em: null,
       ajuste_aplicado_em: null,
+      segunda_quantidade_contada: null,
+      segunda_divergencia: 0,
+      segunda_observacoes: null,
+      segunda_contado_por: null,
+      segunda_contado_em: null,
       contado_por: input.userId,
       contado_em: new Date().toISOString(),
     })
@@ -367,6 +411,50 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
 
   if (error) {
     throw new Error(`Não foi possível registrar a contagem do item: ${error.message}`);
+  }
+}
+
+export async function registerSecondCycleCount(input: RegisterSecondCountInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: currentItem, error: currentItemError } = await supabase
+    .from("contagens_estoque_itens")
+    .select("id, quantidade_sistema, quantidade_contada, status")
+    .eq("id", input.cycleCountItemId)
+    .maybeSingle();
+
+  if (currentItemError) {
+    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+  }
+
+  if (!currentItem) {
+    throw new Error("Item da contagem não encontrado.");
+  }
+
+  if (currentItem.status !== "DIVERGENTE") {
+    throw new Error("A segunda contagem é liberada apenas para itens com divergência.");
+  }
+
+  const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
+  const secondDivergence = input.countedQuantity - systemQuantity;
+
+  const { error } = await supabase
+    .from("contagens_estoque_itens")
+    .update({
+      segunda_quantidade_contada: input.countedQuantity,
+      segunda_divergencia: secondDivergence,
+      segunda_observacoes: input.observacoes?.trim() || null,
+      segunda_contado_por: input.userId,
+      segunda_contado_em: new Date().toISOString(),
+      ajuste_status: "PENDENTE_APROVACAO",
+      ajuste_aprovado_por: null,
+      ajuste_aprovado_em: null,
+      ajuste_aplicado_em: null,
+    })
+    .eq("id", input.cycleCountItemId);
+
+  if (error) {
+    throw new Error(`Não foi possível registrar a segunda contagem: ${error.message}`);
   }
 }
 
@@ -380,7 +468,7 @@ export async function approveCycleCountAdjustment(input: {
   const { data: currentItem, error: currentItemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, contagem_id, estoque_id, depositante_id, produto_id, endereco_id, quantidade_sistema, quantidade_contada, divergencia, status, ajuste_status, estoque:estoque(id, quantidade, bloqueado)",
+      "id, contagem_id, estoque_id, depositante_id, produto_id, endereco_id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, ajuste_status, estoque:estoque(id, quantidade, bloqueado)",
     )
     .eq("id", input.cycleCountItemId)
     .maybeSingle();
@@ -393,7 +481,9 @@ export async function approveCycleCountAdjustment(input: {
     throw new Error("Item da contagem não encontrado.");
   }
 
-  const countedQuantity = Number(currentItem.quantidade_contada ?? Number.NaN);
+  const approvedQuantity =
+    currentItem.segunda_quantidade_contada ?? currentItem.quantidade_contada ?? Number.NaN;
+  const countedQuantity = Number(approvedQuantity);
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
   const stockRelation = Array.isArray(currentItem.estoque) ? currentItem.estoque[0] : currentItem.estoque;
   const currentStockQuantity = Number(stockRelation?.quantidade ?? systemQuantity);
@@ -425,6 +515,7 @@ export async function approveCycleCountAdjustment(input: {
       .update({
         quantidade_sistema: countedQuantity,
         divergencia: 0,
+        segunda_divergencia: 0,
         status: "CONTADO",
         ajuste_status: "APLICADO",
         ajuste_observacoes: normalizedNotes,
@@ -452,8 +543,13 @@ export async function approveCycleCountAdjustment(input: {
     throw new Error(`Não foi possível atualizar o saldo do estoque: ${stockUpdateError.message}`);
   }
 
+  const sourceLabel =
+    currentItem.segunda_quantidade_contada !== null && currentItem.segunda_quantidade_contada !== undefined
+      ? "segunda contagem"
+      : "primeira contagem";
+
   const movementNote = [
-    "Ajuste de inventário aplicado a partir de contagem cíclica aprovada.",
+    `Ajuste de inventário aplicado a partir de ${sourceLabel} aprovada.`,
     `Sistema: ${systemQuantity.toLocaleString("pt-BR")}.`,
     `Contado: ${countedQuantity.toLocaleString("pt-BR")}.`,
     normalizedNotes ?? "",
@@ -484,6 +580,7 @@ export async function approveCycleCountAdjustment(input: {
     .update({
       quantidade_sistema: countedQuantity,
       divergencia: 0,
+      segunda_divergencia: 0,
       status: "CONTADO",
       ajuste_status: "APLICADO",
       ajuste_observacoes: normalizedNotes,

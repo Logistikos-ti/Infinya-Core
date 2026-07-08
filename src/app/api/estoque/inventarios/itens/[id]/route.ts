@@ -1,6 +1,10 @@
 import { requireApiModuleAccess } from "@/lib/api-auth";
 import { isAdminUser } from "@/lib/permissions";
-import { approveCycleCountAdjustment, updateCycleCountItem } from "@/lib/stock-cycle-counts";
+import {
+  approveCycleCountAdjustment,
+  registerSecondCycleCount,
+  updateCycleCountItem,
+} from "@/lib/stock-cycle-counts";
 
 type RouteContext = {
   params: Promise<{
@@ -47,6 +51,33 @@ export async function PATCH(request: Request, context: RouteContext) {
     } catch (error) {
       return Response.json(
         { error: error instanceof Error ? error.message : "Falha ao aprovar o ajuste." },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (payload?.action === "second-count") {
+    const secondCountedQuantity = Number(payload?.countedQuantity ?? 0);
+
+    if (!Number.isFinite(secondCountedQuantity) || secondCountedQuantity < 0) {
+      return Response.json(
+        { error: "Informe uma quantidade válida para a segunda contagem." },
+        { status: 400 },
+      );
+    }
+
+    try {
+      await registerSecondCycleCount({
+        userId: auth.user.id,
+        cycleCountItemId: id,
+        countedQuantity: secondCountedQuantity,
+        observacoes: String(payload?.observacoes ?? "").trim(),
+      });
+
+      return Response.json({ message: "Segunda contagem registrada com sucesso." });
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Falha ao registrar a segunda contagem." },
         { status: 400 },
       );
     }
