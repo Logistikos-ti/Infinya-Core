@@ -98,7 +98,7 @@ function formatArea(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmao";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":

@@ -10,7 +10,7 @@ type AddressBulkGeneratorFormProps = {
 
 const areaOptions: FancySelectOption[] = [
   { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Pulmão" },
+  { value: "PULMAO", label: "Armazenagem" },
   { value: "PICKING", label: "Picking" },
   { value: "BLOQUEADO", label: "Bloqueado" },
   { value: "EXPEDICAO", label: "Expedição" },

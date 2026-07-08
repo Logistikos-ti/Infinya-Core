@@ -55,7 +55,7 @@ export default async function ConfiguracoesEnderecosPage({
   const areaOptions = [
     { value: "", label: "Todas as áreas" },
     { value: "RECEBIMENTO", label: "Recebimento" },
-    { value: "PULMAO", label: "Pulmão" },
+    { value: "PULMAO", label: "Armazenagem" },
     { value: "PICKING", label: "Picking" },
     { value: "BLOQUEADO", label: "Bloqueado" },
     { value: "EXPEDICAO", label: "Expedição" },
@@ -109,7 +109,7 @@ export default async function ConfiguracoesEnderecosPage({
                 {currentAddress ? "Editar endereço" : "Novo endereço"}
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Cadastre áreas como recebimento, pulmão, picking, bloqueado e expedição com sua
+                Cadastre ?reas como recebimento, armazenagem, picking, bloqueado e expedi??o com sua
                 posição física.
               </p>
             </div>
@@ -302,7 +302,7 @@ function getAreaLabel(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-200";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
@@ -504,7 +504,7 @@ function getAreaShortLabel(area: string) {
     case "RECEBIMENTO":
       return "REC";
     case "PULMAO":
-      return "PUL";
+      return "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-200";
     case "PICKING":
       return "PICK";
     case "BLOQUEADO":
