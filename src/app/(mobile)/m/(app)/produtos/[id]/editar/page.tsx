@@ -48,7 +48,7 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
         Voltar para produtos
       </Link>
 
-      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-lg backdrop-blur">
+      <section className="mobile-glass-card rounded-[28px] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Edição móvel</p>
         <h1 className="mt-2 text-2xl font-semibold text-white">{product.nome}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-300">

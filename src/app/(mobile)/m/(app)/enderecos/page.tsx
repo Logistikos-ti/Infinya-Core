@@ -34,7 +34,7 @@ export default async function MobileEnderecosPage({ searchParams }: MobileEndere
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-violet-500 via-fuchsia-600 to-slate-950 p-5 shadow-xl">
+      <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-100/90">
           Enderecamento
         </p>
@@ -52,7 +52,7 @@ export default async function MobileEnderecosPage({ searchParams }: MobileEndere
 
       <Link
         href="/m/enderecos/novo"
-        className="flex items-center justify-between rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+        className="mobile-action-card flex items-center justify-between rounded-[24px] px-4 py-4 transition hover:-translate-y-0.5"
       >
         <div className="inline-flex items-center gap-3">
           <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">

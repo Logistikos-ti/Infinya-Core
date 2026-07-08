@@ -756,6 +756,42 @@ a {
   }
 }
 
+.mobile-hero-card {
+  background:
+    radial-gradient(circle at top left, rgba(110, 231, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.24), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(217, 70, 239, 0.2), transparent 24%),
+    linear-gradient(145deg, rgba(19, 78, 146, 0.98) 0%, rgba(8, 47, 73, 0.98) 42%, rgba(4, 8, 22, 1) 100%);
+  box-shadow:
+    0 24px 60px rgba(3, 10, 26, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.mobile-glass-card {
+  background: linear-gradient(180deg, rgba(10, 18, 36, 0.88) 0%, rgba(7, 14, 30, 0.94) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 40px rgba(3, 10, 26, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.mobile-action-card {
+  background: linear-gradient(180deg, rgba(13, 24, 48, 0.92) 0%, rgba(8, 17, 34, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 38px rgba(2, 8, 22, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.mobile-soft-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

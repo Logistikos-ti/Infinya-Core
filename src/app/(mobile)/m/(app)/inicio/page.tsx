@@ -28,7 +28,7 @@ export default async function MobileHomePage() {
   if (isCatalogOnly) {
     return (
       <div className="space-y-4">
-        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+        <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
             Catalogo operacional
           </p>
@@ -40,7 +40,7 @@ export default async function MobileHomePage() {
 
         <Link
           href="/m/produtos"
-          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+          className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -62,7 +62,7 @@ export default async function MobileHomePage() {
   if (isCatalogAndStockUser) {
     return (
       <div className="space-y-4">
-        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-cyan-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+        <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
             Estoque operacional
           </p>
@@ -75,7 +75,7 @@ export default async function MobileHomePage() {
 
         <Link
           href="/m/estoque"
-          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+          className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -92,7 +92,7 @@ export default async function MobileHomePage() {
 
         <Link
           href="/m/produtos"
-          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+          className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -185,7 +185,7 @@ export default async function MobileHomePage() {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-sky-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+      <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
@@ -197,7 +197,7 @@ export default async function MobileHomePage() {
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white/10 px-3 py-2 text-right text-xs text-sky-50 backdrop-blur">
+          <div className="mobile-soft-chip rounded-2xl px-3 py-2 text-right text-xs text-sky-50">
             <p className="font-semibold uppercase tracking-wide">Hoje</p>
             <p className="mt-1">{formatDateLabel(new Date())}</p>
           </div>
@@ -213,7 +213,7 @@ export default async function MobileHomePage() {
       {nextAction ? (
         <Link
           href={nextAction.href}
-          className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+          className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Proxima acao

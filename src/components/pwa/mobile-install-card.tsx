@@ -91,7 +91,7 @@ export function MobileInstallCard() {
   };
 
   return (
-    <section className="rounded-[24px] border border-cyan-400/25 bg-gradient-to-br from-cyan-400/10 via-fuchsia-400/10 to-white/5 p-4 shadow-[0_18px_50px_rgba(34,211,238,0.08)] backdrop-blur">
+    <section className="mobile-glass-card rounded-[24px] p-4">
       <div className="flex items-start gap-3">
         <div className="rounded-2xl bg-infinya-gradient p-3 text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.2)]">
           <Smartphone className="h-5 w-5" />
@@ -105,7 +105,8 @@ export function MobileInstallCard() {
             Instale o Infinya • Log no celular
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            Abra como aplicativo, com acesso rápido pela tela inicial e experiência mais fluida na operação.
+            Abra como aplicativo, com acesso rápido pela tela inicial e experiência mais fluida na
+            operação.
           </p>
 
           {deferredPrompt ? (
@@ -127,12 +128,13 @@ export function MobileInstallCard() {
               </button>
             </div>
           ) : ios ? (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+            <div className="mobile-soft-chip mt-4 rounded-2xl px-4 py-3 text-sm text-slate-200">
               No iPhone/iPad, use o menu do navegador e toque em <strong>Adicionar à Tela de Início</strong>.
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-              Se o navegador ainda não mostrar o botão de instalar, continue navegando no mobile por alguns segundos e tente novamente pelo menu do navegador.
+            <div className="mobile-soft-chip mt-4 rounded-2xl px-4 py-3 text-sm text-slate-200">
+              Se o navegador ainda não mostrar o botão de instalar, continue navegando no mobile por
+              alguns segundos e tente novamente pelo menu do navegador.
             </div>
           )}
         </div>

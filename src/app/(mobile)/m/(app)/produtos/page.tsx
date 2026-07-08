@@ -72,7 +72,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-lg backdrop-blur">
+      <section className="mobile-glass-card rounded-[28px] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
@@ -90,13 +90,13 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+          <div className="mobile-soft-chip rounded-2xl p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
               Produtos
             </p>
             <p className="mt-2 text-2xl font-semibold text-white">{totalProdutos}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+          <div className="mobile-soft-chip rounded-2xl p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
               Depositantes
             </p>
@@ -135,11 +135,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
       ) : null}
 
       {!compactMode ? (
-        <form
-          method="get"
-          action="/m/produtos"
-          className="rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-lg backdrop-blur"
-        >
+        <form method="get" action="/m/produtos" className="mobile-glass-card rounded-[28px] p-4">
           <label className="block">
             <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Buscar produto
@@ -172,7 +168,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                   statusFiltro === item.value
                     ? "bg-infinya-gradient text-slate-950"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300"
+                    : "mobile-soft-chip text-slate-300"
                 }`}
               >
                 {item.label}
@@ -187,7 +183,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                   !depositanteEfetivo
                     ? "bg-cyan-500/20 text-cyan-200"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300"
+                    : "mobile-soft-chip text-slate-300"
                 }`}
               >
                 Todos os depositantes
@@ -203,7 +199,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                     depositanteEfetivo === depositante.id
                       ? "bg-cyan-500/20 text-cyan-200"
-                      : "border border-white/10 bg-white/[0.04] text-slate-300"
+                      : "mobile-soft-chip text-slate-300"
                   }`}
                 >
                   {depositante.nome}
@@ -226,7 +222,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
             <Link
               key={produto.id}
               href={`/m/produtos/${produto.id}/editar`}
-              className="block rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-lg backdrop-blur transition hover:bg-white/[0.06]"
+              className="mobile-action-card block rounded-[28px] p-4 transition hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -247,9 +243,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
               </div>
 
               <div className="mt-3 grid gap-2 text-sm text-slate-300">
-                <p>
-                  Depositante: {extractDepositanteName(produto.depositante) ?? "-"}
-                </p>
+                <p>Depositante: {extractDepositanteName(produto.depositante) ?? "-"}</p>
                 <p>EAN/GTIN: {produto.codigo_externo || "-"}</p>
                 <p>Categoria: {produto.categoria || "-"}</p>
               </div>
@@ -269,7 +263,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
             </Link>
           ))
         ) : (
-          <div className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.04] px-4 py-8 text-center text-sm text-slate-400">
+          <div className="mobile-glass-card rounded-[28px] border-dashed px-4 py-8 text-center text-sm text-slate-400">
             Nenhum produto encontrado com os filtros atuais.
           </div>
         )}
@@ -280,7 +274,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-slate-200">
+    <span className="mobile-soft-chip rounded-full px-3 py-1 text-xs font-medium text-slate-200">
       {children}
     </span>
   );

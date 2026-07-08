@@ -57,7 +57,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
 
           {children}
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="mobile-glass-card mt-6 rounded-2xl p-4">
             <p className="text-sm font-medium text-white">Sessao ativa</p>
             <p className="mt-1 text-xs text-slate-300">{user.nome}</p>
           </div>

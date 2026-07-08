@@ -41,13 +41,13 @@ export default async function MobileEstoquePage() {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-sky-500 via-sky-600 to-slate-950 p-5 shadow-xl">
+      <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
           Estoque operacional
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Fluxos do estoque</h1>
         <p className="mt-2 text-sm leading-6 text-slate-100/90">
-          Escolha a acao que deseja executar no armazem para manter o fluxo mais limpo e rapido no
+          Escolha a ação que deseja executar no armazém para manter o fluxo mais limpo e rápido no
           celular.
         </p>
       </section>
@@ -60,7 +60,7 @@ export default async function MobileEstoquePage() {
             <Link
               key={card.href}
               href={card.href}
-              className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
+              className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
@@ -78,7 +78,7 @@ export default async function MobileEstoquePage() {
 
       <Link
         href="/estoque"
-        className="flex items-center justify-between rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-300 transition hover:bg-white/7"
+        className="mobile-action-card flex items-center justify-between rounded-[24px] px-4 py-4 text-sm text-slate-300 transition hover:-translate-y-0.5"
       >
         <span className="inline-flex items-center gap-2 font-medium text-white">
           <Boxes className="h-4 w-4" />
