@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Boxes, ClipboardList, PackageSearch, TriangleAlert } from "lucide-react";
+import { CycleCountAdjustmentApproveButton } from "@/components/estoque/cycle-count-adjustment-approve-button";
 import { CycleCountCompleteButton } from "@/components/estoque/cycle-count-complete-button";
 import { CycleCountItemForm } from "@/components/estoque/cycle-count-item-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
-import { getStockCycleCountAvailability, getCycleCountDetailFromDb } from "@/lib/stock-cycle-counts";
+import { isAdminUser } from "@/lib/permissions";
+import {
+  getCycleCountDetailFromDb,
+  getStockCycleCountAvailability,
+} from "@/lib/stock-cycle-counts";
 
 type EstoqueInventarioDetalhePageProps = {
   params: Promise<{
@@ -17,7 +22,7 @@ type EstoqueInventarioDetalhePageProps = {
 export default async function EstoqueInventarioDetalhePage({
   params,
 }: EstoqueInventarioDetalhePageProps) {
-  await requireModuleAccess("estoque");
+  const user = await requireModuleAccess("estoque");
 
   const { id } = await params;
   const availability = await getStockCycleCountAvailability();
@@ -95,9 +100,7 @@ export default async function EstoqueInventarioDetalhePage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
-        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-          Itens da contagem
-        </h2>
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Itens da contagem</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Registre a quantidade contada em cada saldo e acompanhe a divergência diretamente pelo
           protocolo.
@@ -118,6 +121,9 @@ export default async function EstoqueInventarioDetalhePage({
                 </Link>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                   {item.status}
+                </span>
+                <span className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
+                  {item.adjustmentStatus}
                 </span>
               </div>
 
@@ -160,8 +166,29 @@ export default async function EstoqueInventarioDetalhePage({
                   />
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-zinc-950/40 dark:text-slate-300">
-                  {item.observations}
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-zinc-950/40 dark:text-slate-300">
+                    <p>{item.observations}</p>
+                    <div className="mt-2 grid gap-2 text-xs text-slate-500 dark:text-slate-400 md:grid-cols-2">
+                      <p>Status do ajuste: {item.adjustmentStatus}</p>
+                      <p>Aprovado por: {item.adjustmentApprovedBy}</p>
+                      <p>Aprovado em: {item.adjustmentApprovedAt}</p>
+                      <p>Aplicado em: {item.adjustmentAppliedAt}</p>
+                    </div>
+                    {item.adjustmentNotes !== "Sem observações de ajuste." ? (
+                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        Observação do ajuste: {item.adjustmentNotes}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {item.status === "DIVERGENTE" && isAdminUser(user) ? (
+                    <CycleCountAdjustmentApproveButton
+                      itemId={item.id}
+                      adjustmentStatus={item.adjustmentStatus}
+                      divergence={item.divergence}
+                    />
+                  ) : null}
                 </div>
               )}
             </div>

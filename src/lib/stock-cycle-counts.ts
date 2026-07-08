@@ -41,6 +41,11 @@ export type CycleCountDetail = {
     countedQuantity: string;
     divergence: string;
     status: string;
+    adjustmentStatus: string;
+    adjustmentApprovedAt: string;
+    adjustmentAppliedAt: string;
+    adjustmentApprovedBy: string;
+    adjustmentNotes: string;
     countedAt: string;
     countedBy: string;
     observations: string;
@@ -67,7 +72,33 @@ type UpdateCycleCountItemInput = {
   observacoes?: string;
 };
 
-export async function listCycleCountsFromDb(depositanteId?: string): Promise<CycleCountTablesResult<CycleCountSummary[]>> {
+type RelationName = { nome?: string } | Array<{ nome?: string }> | null;
+
+type DetailItemRow = {
+  id: string;
+  quantidade_sistema: number | string;
+  quantidade_contada: number | string | null;
+  divergencia: number | string;
+  status: string;
+  observacoes: string | null;
+  ajuste_status?: string | null;
+  ajuste_observacoes?: string | null;
+  ajuste_aprovado_em?: string | null;
+  ajuste_aplicado_em?: string | null;
+  ajuste_aprovado_por?: RelationName;
+  contado_em: string | null;
+  contado_por: RelationName;
+  estoque:
+    | { id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }
+    | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
+    | null;
+  produto: { sku?: string; nome?: string } | Array<{ sku?: string; nome?: string }> | null;
+  endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
+};
+
+export async function listCycleCountsFromDb(
+  depositanteId?: string,
+): Promise<CycleCountTablesResult<CycleCountSummary[]>> {
   const supabase = createSupabaseAdminClient();
 
   const { data, error } = await supabase
@@ -91,7 +122,7 @@ export async function listCycleCountsFromDb(depositanteId?: string): Promise<Cyc
     area: string | null;
     status: string;
     created_at: string;
-    depositante: { nome?: string } | Array<{ nome?: string }> | null;
+    depositante: RelationName;
   }>;
 
   const filteredRows = depositanteId
@@ -125,12 +156,16 @@ export async function getStockCycleCountAvailability() {
   return result.available;
 }
 
-export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountTablesResult<CycleCountDetail | null>> {
+export async function getCycleCountDetailFromDb(
+  id: string,
+): Promise<CycleCountTablesResult<CycleCountDetail | null>> {
   const supabase = createSupabaseAdminClient();
 
   const { data: header, error: headerError } = await supabase
     .from("contagens_estoque")
-    .select("id, titulo, depositante_id, area, status, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)")
+    .select(
+      "id, titulo, depositante_id, area, status, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -149,7 +184,7 @@ export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountT
   const { data: itemRows, error: itemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, quantidade_sistema, quantidade_contada, divergencia, status, observacoes, contado_em, contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
+      "id, quantidade_sistema, quantidade_contada, divergencia, status, observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios(nome), contado_em, contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
     )
     .eq("contagem_id", id)
     .order("created_at", { ascending: true });
@@ -158,22 +193,7 @@ export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountT
     throw new Error(`Não foi possível carregar os itens desta contagem: ${itemError.message}`);
   }
 
-  const items = ((itemRows ?? []) as Array<{
-    id: string;
-    quantidade_sistema: number | string;
-    quantidade_contada: number | string | null;
-    divergencia: number | string;
-    status: string;
-    observacoes: string | null;
-    contado_em: string | null;
-    contado_por: { nome?: string } | Array<{ nome?: string }> | null;
-    estoque:
-      | { id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }
-      | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
-      | null;
-    produto: { sku?: string; nome?: string } | Array<{ sku?: string; nome?: string }> | null;
-    endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
-  }>).map((item) => {
+  const items = ((itemRows ?? []) as DetailItemRow[]).map((item) => {
     const stockId = extractRelationField(item.estoque, "id") ?? item.id;
     const createdAt = extractRelationField(item.estoque, "created_at") ?? new Date().toISOString();
 
@@ -196,6 +216,15 @@ export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountT
           : Number(item.quantidade_contada ?? 0).toLocaleString("pt-BR"),
       divergence: Number(item.divergencia ?? 0).toLocaleString("pt-BR"),
       status: item.status,
+      adjustmentStatus: item.ajuste_status?.trim() || "NAO_NECESSARIO",
+      adjustmentApprovedAt: item.ajuste_aprovado_em
+        ? new Date(item.ajuste_aprovado_em).toLocaleString("pt-BR")
+        : "-",
+      adjustmentAppliedAt: item.ajuste_aplicado_em
+        ? new Date(item.ajuste_aplicado_em).toLocaleString("pt-BR")
+        : "-",
+      adjustmentApprovedBy: extractRelationName(item.ajuste_aprovado_por ?? null) ?? "-",
+      adjustmentNotes: item.ajuste_observacoes?.trim() || "Sem observações de ajuste.",
       countedAt: item.contado_em ? new Date(item.contado_em).toLocaleString("pt-BR") : "-",
       countedBy: extractRelationName(item.contado_por) ?? "-",
       observations: item.observacoes?.trim() || "Sem observações.",
@@ -217,9 +246,7 @@ export async function getCycleCountDetailFromDb(id: string): Promise<CycleCountT
       observacoes: header.observacoes?.trim() || "Sem observações.",
       createdAt: new Date(header.created_at).toLocaleString("pt-BR"),
       startedAt: header.iniciado_em ? new Date(header.iniciado_em).toLocaleString("pt-BR") : "-",
-      completedAt: header.concluido_em
-        ? new Date(header.concluido_em).toLocaleString("pt-BR")
-        : "-",
+      completedAt: header.concluido_em ? new Date(header.concluido_em).toLocaleString("pt-BR") : "-",
       countedItems,
       totalItems: items.length,
       divergentItems,
@@ -249,13 +276,11 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     throw new Error(`Não foi possível abrir a contagem: ${headerError.message}`);
   }
 
-  const stockQuery = supabase
+  const { data: stockRows, error: stockError } = await supabase
     .from("estoque")
     .select("id, depositante_id, produto_id, endereco_id, quantidade, endereco:enderecos(area)")
     .eq("depositante_id", input.depositanteId)
     .gt("quantidade", 0);
-
-  const { data: stockRows, error: stockError } = await stockQuery;
 
   if (stockError) {
     throw new Error(`Não foi possível capturar os saldos para contagem: ${stockError.message}`);
@@ -290,6 +315,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
       endereco_id: row.endereco_id,
       quantidade_sistema: row.quantidade,
       status: "PENDENTE",
+      ajuste_status: "NAO_NECESSARIO",
     })),
   );
 
@@ -320,6 +346,7 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
   const divergence = input.countedQuantity - systemQuantity;
   const status = divergence === 0 ? "CONTADO" : "DIVERGENTE";
+  const adjustmentStatus = divergence === 0 ? "NAO_NECESSARIO" : "PENDENTE_APROVACAO";
 
   const { error } = await supabase
     .from("contagens_estoque_itens")
@@ -328,6 +355,11 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
       divergencia: divergence,
       status,
       observacoes: input.observacoes?.trim() || null,
+      ajuste_status: adjustmentStatus,
+      ajuste_observacoes: divergence === 0 ? null : input.observacoes?.trim() || null,
+      ajuste_aprovado_por: null,
+      ajuste_aprovado_em: null,
+      ajuste_aplicado_em: null,
       contado_por: input.userId,
       contado_em: new Date().toISOString(),
     })
@@ -336,6 +368,136 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
   if (error) {
     throw new Error(`Não foi possível registrar a contagem do item: ${error.message}`);
   }
+}
+
+export async function approveCycleCountAdjustment(input: {
+  userId: string;
+  cycleCountItemId: string;
+  observacoes?: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: currentItem, error: currentItemError } = await supabase
+    .from("contagens_estoque_itens")
+    .select(
+      "id, contagem_id, estoque_id, depositante_id, produto_id, endereco_id, quantidade_sistema, quantidade_contada, divergencia, status, ajuste_status, estoque:estoque(id, quantidade, bloqueado)",
+    )
+    .eq("id", input.cycleCountItemId)
+    .maybeSingle();
+
+  if (currentItemError) {
+    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+  }
+
+  if (!currentItem) {
+    throw new Error("Item da contagem não encontrado.");
+  }
+
+  const countedQuantity = Number(currentItem.quantidade_contada ?? Number.NaN);
+  const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
+  const stockRelation = Array.isArray(currentItem.estoque) ? currentItem.estoque[0] : currentItem.estoque;
+  const currentStockQuantity = Number(stockRelation?.quantidade ?? systemQuantity);
+  const isBlocked = Boolean(stockRelation?.bloqueado);
+
+  if (!Number.isFinite(countedQuantity)) {
+    throw new Error("Este item ainda não possui quantidade contada para ajuste.");
+  }
+
+  if (currentItem.status !== "DIVERGENTE") {
+    throw new Error("Apenas itens com divergência podem ser aprovados para ajuste.");
+  }
+
+  if (currentItem.ajuste_status === "APLICADO") {
+    return { alreadyApplied: true };
+  }
+
+  if (isBlocked) {
+    throw new Error("Desbloqueie este saldo antes de aplicar o ajuste do inventário.");
+  }
+
+  const now = new Date().toISOString();
+  const normalizedNotes = input.observacoes?.trim() || null;
+  const difference = countedQuantity - currentStockQuantity;
+
+  if (difference === 0) {
+    const { error: syncError } = await supabase
+      .from("contagens_estoque_itens")
+      .update({
+        quantidade_sistema: countedQuantity,
+        divergencia: 0,
+        status: "CONTADO",
+        ajuste_status: "APLICADO",
+        ajuste_observacoes: normalizedNotes,
+        ajuste_aprovado_por: input.userId,
+        ajuste_aprovado_em: now,
+        ajuste_aplicado_em: now,
+      })
+      .eq("id", currentItem.id);
+
+    if (syncError) {
+      throw new Error(`Não foi possível sincronizar o item da contagem: ${syncError.message}`);
+    }
+
+    return { alreadyApplied: false, movementType: "SEM_AJUSTE" as const };
+  }
+
+  const movementType = difference > 0 ? "AJUSTE_POSITIVO" : "AJUSTE_NEGATIVO";
+
+  const { error: stockUpdateError } = await supabase
+    .from("estoque")
+    .update({ quantidade: countedQuantity })
+    .eq("id", currentItem.estoque_id);
+
+  if (stockUpdateError) {
+    throw new Error(`Não foi possível atualizar o saldo do estoque: ${stockUpdateError.message}`);
+  }
+
+  const movementNote = [
+    "Ajuste de inventário aplicado a partir de contagem cíclica aprovada.",
+    `Sistema: ${systemQuantity.toLocaleString("pt-BR")}.`,
+    `Contado: ${countedQuantity.toLocaleString("pt-BR")}.`,
+    normalizedNotes ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const { error: movementError } = await supabase.from("movimentacoes_estoque").insert({
+    depositante_id: currentItem.depositante_id,
+    estoque_id: currentItem.estoque_id,
+    produto_id: currentItem.produto_id,
+    endereco_origem_id: currentItem.endereco_id,
+    endereco_destino_id: currentItem.endereco_id,
+    tipo: movementType,
+    quantidade: Math.abs(difference),
+    referencia_tipo: "CONTAGEM_CICLICA",
+    referencia_id: currentItem.contagem_id,
+    observacoes: movementNote,
+    criado_por: input.userId,
+  });
+
+  if (movementError) {
+    throw new Error(`Não foi possível registrar o ajuste do inventário: ${movementError.message}`);
+  }
+
+  const { error: itemUpdateError } = await supabase
+    .from("contagens_estoque_itens")
+    .update({
+      quantidade_sistema: countedQuantity,
+      divergencia: 0,
+      status: "CONTADO",
+      ajuste_status: "APLICADO",
+      ajuste_observacoes: normalizedNotes,
+      ajuste_aprovado_por: input.userId,
+      ajuste_aprovado_em: now,
+      ajuste_aplicado_em: now,
+    })
+    .eq("id", currentItem.id);
+
+  if (itemUpdateError) {
+    throw new Error(`Não foi possível fechar o item da contagem: ${itemUpdateError.message}`);
+  }
+
+  return { alreadyApplied: false, movementType };
 }
 
 export async function completeCycleCount(cycleCountId: string) {
@@ -386,7 +548,7 @@ function isMissingCycleCountTables(error: { message?: string; code?: string } | 
   );
 }
 
-function extractRelationName(value: { nome?: string } | Array<{ nome?: string }> | null) {
+function extractRelationName(value: RelationName) {
   if (Array.isArray(value)) {
     return typeof value[0]?.nome === "string" ? value[0].nome : null;
   }
