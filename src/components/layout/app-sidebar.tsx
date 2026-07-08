@@ -69,6 +69,7 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
       <div>
         <div className="mb-6 px-1 py-2">
           <InfinyaBrand
+            compact
             subtitle="Operação logística multi-tenant"
             subtitleClassName="text-slate-500 dark:text-slate-400"
           />

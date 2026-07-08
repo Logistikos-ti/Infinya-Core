@@ -37,13 +37,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
       >
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#040816]/95 backdrop-blur">
           <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
-            <InfinyaBrand
-              compact
-              className="min-w-0 flex-1"
-              subtitle={user.nome}
-              subtitleClassName="truncate"
-              forceLightWordmark
-            />
+            <InfinyaBrand compact className="min-w-0 flex-1" subtitle={user.nome} />
           </div>
         </header>
 
