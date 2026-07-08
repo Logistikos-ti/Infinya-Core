@@ -1,0 +1,102 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Trash2 } from "lucide-react";
+import { ProdutoForm } from "@/components/configuracoes/produto-form";
+import { Button } from "@/components/ui/button";
+import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
+import { requireConfigSectionAccess } from "@/lib/auth";
+import { isProductCatalogOnlyUser } from "@/lib/permissions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+
+type MobileEditarProdutoPageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export default async function MobileEditarProdutoPage({ params }: MobileEditarProdutoPageProps) {
+  const user = await requireConfigSectionAccess("produtos");
+  const compactMode = isProductCatalogOnlyUser(user);
+  const { id } = await params;
+  const supabase = createSupabaseAdminClient();
+
+  const [{ data: product }, { data: depositantes }] = await Promise.all([
+    supabase
+      .from("produtos")
+      .select(
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
+  ]);
+
+  if (!product) {
+    notFound();
+  }
+
+  const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantes ?? []);
+
+  return (
+    <div className="space-y-4">
+      <Link
+        href="/m/produtos"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Voltar para produtos
+      </Link>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-lg backdrop-blur">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Edição móvel</p>
+        <h1 className="mt-2 text-2xl font-semibold text-white">{product.nome}</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          Revise código de barras, regras de retirada, unidade de estocagem e situação operacional.
+        </p>
+      </section>
+
+      <ProdutoForm
+        depositantes={visibleDepositantes}
+        compactMode={compactMode}
+        returnPath="/m/produtos"
+        defaultValues={{
+          id: product.id,
+          depositanteId: product.depositante_id,
+          codigoInterno: product.codigo_interno,
+          sku: product.sku ?? "",
+          nome: product.nome,
+          eanGtin: product.codigo_externo ?? "",
+          categoria: product.categoria ?? "",
+          metodoRetirada: product.metodo_retirada,
+          unidadeEstocagem: product.unidade_estocagem,
+          quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
+          exigeLote: product.exige_lote,
+          exigeValidade: product.exige_validade,
+          ativo: product.ativo,
+        }}
+      />
+
+      <section className="rounded-[28px] border border-rose-500/20 bg-rose-500/10 p-5">
+        <h2 className="text-lg font-semibold text-white">Excluir produto</h2>
+        <p className="mt-2 text-sm leading-6 text-rose-100/85">
+          A exclusão só será concluída quando o produto não possuir estoque, movimentações ou vínculos
+          operacionais.
+        </p>
+
+        <form action={deleteProdutoAction} className="mt-4">
+          <input type="hidden" name="id" value={product.id} />
+          <input type="hidden" name="redirectTo" value="/m/produtos" />
+          <Button
+            type="submit"
+            variant="outline"
+            className="h-11 rounded-2xl border-rose-300/40 bg-transparent text-rose-100 hover:bg-rose-500/10"
+          >
+            <Trash2 className="h-4 w-4" />
+            Excluir produto
+          </Button>
+        </form>
+      </section>
+    </div>
+  );
+}

@@ -31,6 +31,7 @@ export async function saveProdutoAction(
   formData: FormData,
 ): Promise<ProdutoActionState> {
   await requireConfigSectionAccess("produtos");
+  const returnPath = normalizeRedirectPath(String(formData.get("returnPath") ?? "").trim());
 
   const quantidadePorEmbalagemRaw = String(formData.get("quantidadePorEmbalagem") ?? "").trim();
 
@@ -137,6 +138,11 @@ export async function saveProdutoAction(
 
     revalidatePath("/configuracoes/produtos");
     revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
+    if (returnPath) {
+      revalidatePath(returnPath);
+      redirect(`${returnPath}?feedback=salvo`);
+    }
+
     redirect("/configuracoes/produtos?feedback=salvo");
   }
 
@@ -150,6 +156,11 @@ export async function saveProdutoAction(
   }
 
   revalidatePath("/configuracoes/produtos");
+  if (returnPath) {
+    revalidatePath(returnPath);
+    redirect(`${returnPath}?feedback=criado`);
+  }
+
   redirect("/configuracoes/produtos?feedback=criado");
 }
 
@@ -172,9 +183,10 @@ export async function deleteProdutoAction(formData: FormData) {
   await requireConfigSectionAccess("produtos");
 
   const id = String(formData.get("id") ?? "").trim();
+  const redirectTo = normalizeRedirectPath(String(formData.get("redirectTo") ?? "").trim());
 
   if (!id) {
-    redirect("/configuracoes/produtos?feedback=erro");
+    redirect(buildRedirectWithFeedback(redirectTo, "erro"));
   }
 
   const adminSupabase = createSupabaseAdminClient();
@@ -201,17 +213,21 @@ export async function deleteProdutoAction(formData: FormData) {
   const totalDependencies = dependencyChecks.reduce((total, query) => total + (query.count ?? 0), 0);
 
   if (totalDependencies > 0) {
-    redirect("/configuracoes/produtos?feedback=vinculos");
+    redirect(buildRedirectWithFeedback(redirectTo, "vinculos"));
   }
 
   const { error } = await adminSupabase.from("produtos").delete().eq("id", id);
 
   if (error) {
-    redirect("/configuracoes/produtos?feedback=erro");
+    redirect(buildRedirectWithFeedback(redirectTo, "erro"));
   }
 
   revalidatePath("/configuracoes/produtos");
-  redirect("/configuracoes/produtos?feedback=excluido");
+  if (redirectTo) {
+    revalidatePath(redirectTo);
+  }
+
+  redirect(buildRedirectWithFeedback(redirectTo, "excluido"));
 }
 
 async function updateProductWithFallback(
@@ -305,4 +321,17 @@ function humanizeProductPersistenceError(
   }
 
   return `Nao foi possivel ${action} o produto: ${message}`;
+}
+
+function normalizeRedirectPath(value: string) {
+  if (!value.startsWith("/")) {
+    return null;
+  }
+
+  return value;
+}
+
+function buildRedirectWithFeedback(redirectTo: string | null, feedback: string) {
+  const basePath = redirectTo || "/configuracoes/produtos";
+  return `${basePath}?feedback=${feedback}`;
 }

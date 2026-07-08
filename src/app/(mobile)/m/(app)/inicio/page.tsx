@@ -39,7 +39,7 @@ export default async function MobileHomePage() {
         </section>
 
         <Link
-          href="/configuracoes/produtos"
+          href="/m/produtos"
           className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
         >
           <div className="flex items-center justify-between gap-4">
@@ -91,7 +91,7 @@ export default async function MobileHomePage() {
         </Link>
 
         <Link
-          href="/configuracoes/produtos"
+          href="/m/produtos"
           className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
         >
           <div className="flex items-center justify-between gap-4">

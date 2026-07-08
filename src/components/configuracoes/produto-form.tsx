@@ -15,6 +15,7 @@ type DepositanteOption = {
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
   compactMode?: boolean;
+  returnPath?: string;
   defaultValues?: {
     id?: string;
     depositanteId?: string;
@@ -32,7 +33,12 @@ type ProdutoFormProps = {
   };
 };
 
-export function ProdutoForm({ depositantes, compactMode = false, defaultValues }: ProdutoFormProps) {
+export function ProdutoForm({
+  depositantes,
+  compactMode = false,
+  returnPath,
+  defaultValues,
+}: ProdutoFormProps) {
   const initialState = {
     success: false,
     message: null,
@@ -106,6 +112,7 @@ export function ProdutoForm({ depositantes, compactMode = false, defaultValues }
       </div>
 
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
+      <input type="hidden" name="returnPath" value={returnPath ?? ""} />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <FancySelectField

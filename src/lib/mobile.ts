@@ -65,10 +65,10 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
     return [
       { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
       {
-        href: "/configuracoes/produtos",
+        href: "/m/produtos",
         label: "Produtos",
         icon: Settings2,
-        match: ["/configuracoes/produtos"],
+        match: ["/m/produtos"],
       },
       { href: "/m/sair", label: "Sair", icon: LogOut, match: ["/m/sair"] },
     ];
@@ -79,10 +79,10 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
       { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
       { href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] },
       {
-        href: "/configuracoes/produtos",
+        href: "/m/produtos",
         label: "Produtos",
         icon: Settings2,
-        match: ["/configuracoes/produtos"],
+        match: ["/m/produtos"],
       },
       ...(canAccessConfigSection(user, "enderecos")
         ? [
@@ -139,10 +139,10 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
 
   if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "produtos")) {
     items.push({
-      href: "/configuracoes/produtos",
+      href: "/m/produtos",
       label: "Produtos",
       icon: Settings2,
-      match: ["/configuracoes/produtos"],
+      match: ["/m/produtos"],
     });
   }
 
