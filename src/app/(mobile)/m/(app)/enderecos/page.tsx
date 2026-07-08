@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, MapPinned, Plus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
+import { MobileAddressList } from "@/components/mobile/mobile-address-list";
 import { canAccessConfigSection, canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -65,63 +66,7 @@ export default async function MobileEnderecosPage({ searchParams }: MobileEndere
         <ArrowRight className="h-4 w-4 text-slate-300" />
       </Link>
 
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur">
-        <div className="flex items-center gap-2">
-          <MapPinned className="h-4 w-4 text-cyan-300" />
-          <p className="text-sm font-semibold text-white">Ultimos enderecos</p>
-        </div>
-
-        <div className="mt-3 space-y-3">
-          {enderecos?.length ? (
-            enderecos.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-white">{item.codigo}</p>
-                    <p className="mt-1 text-sm text-slate-300">{formatArea(item.area)}</p>
-                    {item.descricao ? (
-                      <p className="mt-1 text-xs text-slate-400">{item.descricao}</p>
-                    ) : null}
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                      item.ativo
-                        ? "bg-emerald-500/15 text-emerald-200"
-                        : "bg-white/10 text-slate-300"
-                    }`}
-                  >
-                    {item.ativo ? "Ativo" : "Inativo"}
-                  </span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-slate-400">
-              Nenhum endereco encontrado.
-            </div>
-          )}
-        </div>
-      </section>
+      <MobileAddressList addresses={enderecos ?? []} />
     </div>
   );
-}
-
-function formatArea(value: string) {
-  switch (value) {
-    case "RECEBIMENTO":
-      return "Recebimento";
-    case "PULMAO":
-      return "Pulmao";
-    case "PICKING":
-      return "Picking";
-    case "BLOQUEADO":
-      return "Bloqueado";
-    case "EXPEDICAO":
-      return "Expedicao";
-    default:
-      return value;
-  }
 }
