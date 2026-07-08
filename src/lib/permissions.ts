@@ -98,9 +98,11 @@ export function isCatalogAndStockOperatorUser(user: AppUserContext) {
 
   return (
     !isAdminUser(user) &&
-    effectiveModules.length === 2 &&
     effectiveModules.includes("configuracoes") &&
-    effectiveModules.includes("estoque") &&
+    (effectiveModules.includes("estoque") || effectiveModules.includes("expedicao")) &&
+    effectiveModules.every((module) =>
+      ["configuracoes", "estoque", "expedicao"].includes(module),
+    ) &&
     canAccessConfigSection(user, "produtos")
   );
 }
@@ -152,7 +154,15 @@ export function getPreferredWebRoute(user: AppUserContext) {
   }
 
   if (isCatalogAndStockOperatorUser(user)) {
-    return "/estoque";
+    if (canAccessModule(user, "estoque")) {
+      return "/estoque";
+    }
+
+    if (canAccessModule(user, "expedicao")) {
+      return "/expedicao";
+    }
+
+    return "/configuracoes/produtos";
   }
 
   if (canAccessModule(user, "dashboard")) {

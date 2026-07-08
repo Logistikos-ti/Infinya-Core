@@ -22,6 +22,7 @@ export default async function MobileHomePage() {
   const user = await requireUserContext();
   const isCatalogOnly = isProductCatalogOnlyUser(user);
   const isCatalogAndStockUser = isCatalogAndStockOperatorUser(user);
+  const canAccessStock = canAccessModule(user, "estoque");
   const canAccessReceiving = canAccessModule(user, "recebimento");
   const canAccessShipping = canAccessModule(user, "expedicao");
 
@@ -64,31 +65,55 @@ export default async function MobileHomePage() {
       <div className="space-y-4">
         <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
-            Estoque operacional
+            {canAccessShipping ? "Operação de expedição" : "Estoque operacional"}
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-white">Ola, {user.nome.split(" ")[0]}</h1>
           <p className="mt-2 max-w-[22rem] text-sm leading-6 text-slate-100/90">
-            Consulte saldos, protocolos e inventario do armazem, alem de manter o catalogo de
-            produtos atualizado.
+            {canAccessStock && canAccessShipping
+              ? "Acesse estoque, fila de expedição e cadastro operacional sem depender do painel completo."
+              : canAccessShipping
+                ? "Entre direto na fila de separação e mantenha também o catálogo operacional atualizado."
+                : "Consulte saldos, protocolos e inventario do armazem, alem de manter o catalogo de produtos atualizado."}
           </p>
         </section>
 
-        <Link
-          href="/m/estoque"
-          className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-white">Estoque e inventario</p>
-              <p className="mt-1 text-sm text-slate-300">
-                Abrir consulta de saldo, protocolos e rastreabilidade do armazem.
-              </p>
+        {canAccessStock ? (
+          <Link
+            href="/m/estoque"
+            className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-base font-semibold text-white">Estoque e inventario</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  Abrir consulta de saldo, protocolos e rastreabilidade do armazem.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
+                <PackageCheck className="h-5 w-5" />
+              </div>
             </div>
-            <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
-              <PackageCheck className="h-5 w-5" />
+          </Link>
+        ) : null}
+
+        {canAccessShipping ? (
+          <Link
+            href="/m/separacao"
+            className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-base font-semibold text-white">Expedição</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  Abrir fila de separação e seguir o fluxo operacional de saída.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-sky-500/15 p-3 text-sky-300">
+                <ScanLine className="h-5 w-5" />
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        ) : null}
 
         <Link
           href="/m/produtos"

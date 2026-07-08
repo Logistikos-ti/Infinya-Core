@@ -30,6 +30,10 @@ export function getDefaultMobileRoute(user: AppUserContext) {
   }
 
   if (isCatalogAndStockOperatorUser(user)) {
+    if (canAccessModule(user, "expedicao")) {
+      return "/m/inicio";
+    }
+
     return "/m/inicio";
   }
 
@@ -77,7 +81,12 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   if (isCatalogAndStockOperatorUser(user)) {
     return [
       { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
-      { href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] },
+      ...(canAccessModule(user, "estoque")
+        ? [{ href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] }]
+        : []),
+      ...(canAccessModule(user, "expedicao")
+        ? [{ href: "/m/separacao", label: "Exped.", icon: ScanLine, match: ["/m/separacao", "/m/conferencia"] }]
+        : []),
       {
         href: "/m/produtos",
         label: "Produtos",

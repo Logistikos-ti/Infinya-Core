@@ -16,8 +16,8 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import type { AppUserContext } from "@/lib/auth";
 import {
-  canAccessModule,
   canAccessConfigSection,
+  canAccessModule,
   getRoleLabel,
   isCatalogAndStockOperatorUser,
   isProductCatalogOnlyUser,
@@ -33,12 +33,12 @@ const navigation: ReadonlyArray<{
 }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
   { href: "/recebimento", label: "Recebimento", icon: PackageCheck, module: "recebimento" },
-  { href: "/expedicao", label: "Expedi\u00E7\u00E3o", icon: Truck, module: "expedicao" },
+  { href: "/expedicao", label: "Expedição", icon: Truck, module: "expedicao" },
   { href: "/estoque", label: "Estoque", icon: Boxes, module: "estoque" },
   { href: "/romaneio", label: "Romaneio", icon: FileText, module: "romaneio" },
   { href: "/nfe", label: "NF-e", icon: Receipt, module: "nfe" },
-  { href: "/relatorios", label: "Relat\u00F3rios", icon: BarChart3, module: "relatorios" },
-  { href: "/configuracoes", label: "Configura\u00E7\u00F5es", icon: Settings2, module: "configuracoes" },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
+  { href: "/configuracoes", label: "Configurações", icon: Settings2, module: "configuracoes" },
 ] as const;
 
 type AppSidebarProps = {
@@ -51,7 +51,12 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
     ? [{ href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 }]
     : isCatalogAndStockOperatorUser(user)
       ? [
-          { href: "/estoque", label: "Estoque", icon: Boxes },
+          ...(canAccessModule(user, "estoque")
+            ? [{ href: "/estoque", label: "Estoque", icon: Boxes }]
+            : []),
+          ...(canAccessModule(user, "expedicao")
+            ? [{ href: "/expedicao", label: "Expedição", icon: Truck }]
+            : []),
           { href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 },
           ...(canAccessConfigSection(user, "enderecos")
             ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: Settings2 }]
@@ -64,7 +69,7 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
       <div>
         <div className="mb-6 px-1 py-2">
           <InfinyaBrand
-            subtitle={"Opera\u00E7\u00E3o log\u00EDstica multi-tenant"}
+            subtitle="Operação logística multi-tenant"
             subtitleClassName="text-slate-500 dark:text-slate-400"
           />
         </div>
@@ -95,7 +100,7 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
 
       <div className="mt-4 border-t border-slate-200/80 px-2 py-3 pt-4 dark:border-white/10">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          {"Sess\u00E3o ativa"}
+          Sessão ativa
         </p>
         <div className="flex items-center justify-between gap-3">
           <div className="overflow-hidden">
