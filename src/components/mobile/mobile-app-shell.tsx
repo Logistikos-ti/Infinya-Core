@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
@@ -29,7 +28,7 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
     >
       <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.1),transparent_28%),radial-gradient(circle_at_bottom,rgba(192,132,252,0.12),transparent_24%),#040816] text-white dark">
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#040816]/95 backdrop-blur">
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-4 py-4">
+          <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
             <InfinyaBrand
               compact
               className="min-w-0 flex-1"
@@ -37,13 +36,6 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
               subtitleClassName="truncate"
               forceLightWordmark
             />
-            <Link
-              href="/m/sair"
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
-            </Link>
           </div>
         </header>
 
@@ -57,13 +49,6 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
           <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
             <p className="text-sm font-medium text-white">Sessao ativa</p>
             <p className="mt-1 text-xs text-slate-300">{user.nome}</p>
-            <Link
-              href="/m/sair"
-              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair do app
-            </Link>
           </div>
         </main>
 

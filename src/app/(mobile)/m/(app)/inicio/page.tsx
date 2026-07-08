@@ -4,7 +4,6 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
-  LogOut,
   PackageCheck,
   ScanLine,
   Settings2,
@@ -56,13 +55,6 @@ export default async function MobileHomePage() {
           </div>
         </Link>
 
-        <Link
-          href="/m/sair"
-          className="flex h-14 items-center justify-center gap-2 rounded-[24px] border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair do app
-        </Link>
       </div>
     );
   }
@@ -82,7 +74,7 @@ export default async function MobileHomePage() {
         </section>
 
         <Link
-          href="/estoque"
+          href="/m/estoque"
           className="block rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur transition hover:bg-white/7"
         >
           <div className="flex items-center justify-between gap-4">
@@ -115,13 +107,6 @@ export default async function MobileHomePage() {
           </div>
         </Link>
 
-        <Link
-          href="/m/sair"
-          className="flex h-14 items-center justify-center gap-2 rounded-[24px] border border-rose-400/30 bg-rose-500/10 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/15"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair do app
-        </Link>
       </div>
     );
   }

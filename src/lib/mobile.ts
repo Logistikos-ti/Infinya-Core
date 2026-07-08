@@ -68,7 +68,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
         href: "/configuracoes/produtos",
         label: "Produtos",
         icon: Settings2,
-        match: ["/configuracoes", "/configuracoes/produtos"],
+        match: ["/configuracoes/produtos"],
       },
       { href: "/m/sair", label: "Sair", icon: LogOut, match: ["/m/sair"] },
     ];
@@ -77,20 +77,20 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   if (isCatalogAndStockOperatorUser(user)) {
     return [
       { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
-      { href: "/estoque", label: "Estoque", icon: Boxes, match: ["/estoque"] },
+      { href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] },
       {
         href: "/configuracoes/produtos",
         label: "Produtos",
         icon: Settings2,
-        match: ["/configuracoes", "/configuracoes/produtos"],
+        match: ["/configuracoes/produtos"],
       },
       ...(canAccessConfigSection(user, "enderecos")
         ? [
             {
-              href: "/configuracoes/enderecos",
-              label: "Endereços",
+              href: "/m/enderecos",
+              label: "Enderecos",
               icon: Warehouse,
-              match: ["/configuracoes/enderecos"],
+              match: ["/m/enderecos"],
             } satisfies MobileNavigationItem,
           ]
         : []),
@@ -134,7 +134,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   }
 
   if (canAccessModule(user, "estoque")) {
-    items.push({ href: "/estoque", label: "Estoque", icon: Boxes, match: ["/estoque"] });
+    items.push({ href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] });
   }
 
   if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "produtos")) {
@@ -142,16 +142,16 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
       href: "/configuracoes/produtos",
       label: "Produtos",
       icon: Settings2,
-      match: ["/configuracoes", "/configuracoes/produtos"],
+      match: ["/configuracoes/produtos"],
     });
   }
 
   if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "enderecos")) {
     items.push({
-      href: "/configuracoes/enderecos",
-      label: "Endereços",
+      href: "/m/enderecos",
+      label: "Enderecos",
       icon: Warehouse,
-      match: ["/configuracoes/enderecos"],
+      match: ["/m/enderecos"],
     });
   }
 
