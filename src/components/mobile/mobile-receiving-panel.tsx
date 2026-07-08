@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -161,7 +161,7 @@ export function MobileReceivingPanel({
     const normalizedScan = normalizeScan(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Leia ou digite um código para localizar o item.", "error");
+      setFeedback("Leia ou digite um cÃ³digo para localizar o item.", "error");
       return;
     }
 
@@ -173,7 +173,7 @@ export function MobileReceivingPanel({
 
     if (!matchedItem) {
       setActiveItemId(null);
-      setFeedback("Código não encontrado neste recebimento.", "error");
+      setFeedback("CÃ³digo nÃ£o encontrado neste recebimento.", "error");
       focusScanInput();
       return;
     }
@@ -225,12 +225,12 @@ export function MobileReceivingPanel({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "Não foi possível salvar a conferência.");
+        setError(result.error ?? "NÃ£o foi possÃ­vel salvar a conferÃªncia.");
         playFeedbackTone("error");
         return;
       }
 
-      setMessage(result.message ?? "Conferência atualizada com sucesso.");
+      setMessage(result.message ?? "ConferÃªncia atualizada com sucesso.");
       playFeedbackTone("success");
 
       if (finalizar) {
@@ -238,7 +238,7 @@ export function MobileReceivingPanel({
         return;
       }
     } catch {
-      setError("Falha de comunicação com a API do recebimento.");
+      setError("Falha de comunicaÃ§Ã£o com a API do recebimento.");
       playFeedbackTone("error");
     } finally {
       setIsSaving(false);
@@ -251,7 +251,7 @@ export function MobileReceivingPanel({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-              Conferência inbound
+              ConferÃªncia inbound
             </p>
             <p className="mt-2 text-sm text-slate-300">
               Lance quantidade, lote e validade direto no celular.
@@ -272,7 +272,7 @@ export function MobileReceivingPanel({
       {nextItem ? (
         <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-            Próximo item sugerido
+            PrÃ³ximo item sugerido
           </p>
           <p className="mt-2 text-base font-semibold text-white">{nextItem.sku}</p>
           <p className="mt-1 text-sm text-slate-300">{nextItem.description}</p>
@@ -290,7 +290,7 @@ export function MobileReceivingPanel({
       <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Endereço destino
+            EndereÃ§o destino
           </span>
           <select
             value={enderecoId}
@@ -299,7 +299,7 @@ export function MobileReceivingPanel({
           >
             {addresses.map((address) => (
               <option key={address.id} value={address.id}>
-                {address.codigo} • {formatArea(address.area)}
+                {address.codigo} â€¢ {formatArea(address.area)}
               </option>
             ))}
           </select>
@@ -320,7 +320,7 @@ export function MobileReceivingPanel({
                   scanInputRef.current?.focus();
                 }, 40);
               }}
-              placeholder="Leia EAN, SKU ou código"
+              placeholder="Leia EAN, SKU ou cÃ³digo"
               className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
             />
             <button
@@ -382,7 +382,7 @@ export function MobileReceivingPanel({
                   <p className="text-sm font-semibold text-white">{item.sku}</p>
                   <p className="mt-1 text-sm text-slate-300">{item.description}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Código {item.internalCode || "-"} • EAN {item.barcode || "-"}
+                    CÃ³digo {item.internalCode || "-"} â€¢ EAN {item.barcode || "-"}
                   </p>
                 </div>
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
@@ -418,7 +418,7 @@ export function MobileReceivingPanel({
                   <input
                     value={item.lotValue}
                     onChange={(event) => updateItem(item.id, "lotValue", event.target.value)}
-                    placeholder={item.requireLot ? "Obrigatório" : "Opcional"}
+                    placeholder={item.requireLot ? "ObrigatÃ³rio" : "Opcional"}
                     className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
                   />
                 </label>
@@ -463,7 +463,7 @@ export function MobileReceivingPanel({
 
       <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
         <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-          <span>{progress.percent}% concluído</span>
+          <span>{progress.percent}% concluÃ­do</span>
           <span>{progress.pending} un pendente(s)</span>
         </div>
 
@@ -474,7 +474,7 @@ export function MobileReceivingPanel({
             disabled={isSaving || !enderecoId}
             className="h-11 bg-slate-100 text-slate-950 hover:bg-white"
           >
-            {isSaving ? "Salvando..." : "Salvar conferência"}
+            {isSaving ? "Salvando..." : "Salvar conferÃªncia"}
           </Button>
           <Button
             type="button"
@@ -482,7 +482,7 @@ export function MobileReceivingPanel({
             disabled={isSaving || !enderecoId}
             className="h-11 bg-emerald-500 text-slate-950 hover:bg-emerald-400"
           >
-            {isSaving ? "Concluindo..." : "Concluir e lançar no estoque"}
+            {isSaving ? "Concluindo..." : "Concluir e lanÃ§ar no estoque"}
           </Button>
         </div>
       </div>
@@ -513,13 +513,13 @@ function formatArea(area: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "Expedição";
+      return "ExpediÃ§Ã£o";
     default:
       return area;
   }
@@ -537,3 +537,5 @@ function normalizeQuantity(value: string) {
 
   return Math.max(0, numeric);
 }
+
+

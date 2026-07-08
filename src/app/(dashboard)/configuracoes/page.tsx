@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireModuleAccess } from "@/lib/auth";
@@ -15,12 +15,12 @@ const configModules = [
   {
     href: "/configuracoes/depositantes",
     title: "Depositantes",
-    description: "Carteira ativa, contatos, regras operacionais e segregação por cliente.",
+    description: "Carteira ativa, contatos, regras operacionais e segregaÃ§Ã£o por cliente.",
   },
   {
     href: "/configuracoes/usuarios",
-    title: "Usuários",
-    description: "Papéis, acessos, vínculo por depositante e gestão de sessão operacional.",
+    title: "UsuÃ¡rios",
+    description: "PapÃ©is, acessos, vÃ­nculo por depositante e gestÃ£o de sessÃ£o operacional.",
   },
   {
     href: "/configuracoes/produtos",
@@ -29,18 +29,18 @@ const configModules = [
   },
   {
     href: "/configuracoes/enderecos",
-    title: "Endereços",
-    description: "Mapa físico de recebimento, pulmão, picking, bloqueado e expedição.",
+    title: "EndereÃ§os",
+    description: "Mapa fÃ­sico de recebimento, pulmÃ£o, picking, bloqueado e expediÃ§Ã£o.",
   },
   {
     href: "/configuracoes/transportadoras",
     title: "Transportadoras",
-    description: "CNPJ, modalidades, contato principal e base logística para expedição e romaneio.",
+    description: "CNPJ, modalidades, contato principal e base logÃ­stica para expediÃ§Ã£o e romaneio.",
   },
   {
     href: "/configuracoes/integracoes",
-    title: "Integrações",
-    description: "Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.",
+    title: "IntegraÃ§Ãµes",
+    description: "Bling V3, OAuth2, webhooks operacionais e conexÃµes externas por depositante.",
   },
 ] as const;
 
@@ -138,16 +138,16 @@ export default async function ConfiguracoesPage() {
   return (
     <div className="space-y-6">
       <ModulePageHeader
-        title="Configurações"
-        description="Cadastros mestres do WMS: depositantes, usuários, produtos, endereços, transportadoras e parâmetros operacionais."
+        title="ConfiguraÃ§Ãµes"
+        description="Cadastros mestres do WMS: depositantes, usuÃ¡rios, produtos, endereÃ§os, transportadoras e parÃ¢metros operacionais."
         badge="Base operacional"
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard label="Depositantes ativos" value={String(activeDepositantes)} />
         <SummaryCard label="Produtos ativos" value={String(activeProducts)} />
-        <SummaryCard label="Usuários ativos" value={String(activeUsers)} />
-        <SummaryCard label="Endereços ativos" value={String(activeAddresses)} />
+        <SummaryCard label="UsuÃ¡rios ativos" value={String(activeUsers)} />
+        <SummaryCard label="EndereÃ§os ativos" value={String(activeAddresses)} />
         <SummaryCard label="Transportadoras ativas" value={String(activeCarriers)} />
       </section>
 
@@ -157,7 +157,7 @@ export default async function ConfiguracoesPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Depositantes base</h2>
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                Dados reais do ambiente para isolamento multi-tenant e políticas de acesso.
+                Dados reais do ambiente para isolamento multi-tenant e polÃ­ticas de acesso.
               </p>
             </div>
             <span className="rounded-full bg-infinya-gradient px-3 py-1 text-xs font-semibold text-slate-950">
@@ -184,7 +184,7 @@ export default async function ConfiguracoesPage() {
                       <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{item.skus}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Usuários</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">UsuÃ¡rios</p>
                       <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">{item.usuarios}</p>
                     </div>
                   </div>
@@ -199,13 +199,13 @@ export default async function ConfiguracoesPage() {
         </div>
 
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Próximas ações</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">PrÃ³ximas aÃ§Ãµes</h2>
           <div className="mt-4 grid gap-3">
             {[
-              `Revisar ${activeProducts} produtos já importados no ambiente.`,
+              `Revisar ${activeProducts} produtos jÃ¡ importados no ambiente.`,
               "Padronizar categorias e unidades comerciais por depositante.",
-              "Conectar importação em massa com planilhas operacionais reais.",
-              "Completar cadastros de usuários, endereços, transportadoras e regras por cliente.",
+              "Conectar importaÃ§Ã£o em massa com planilhas operacionais reais.",
+              "Completar cadastros de usuÃ¡rios, endereÃ§os, transportadoras e regras por cliente.",
             ].map((item) => (
               <div
                 key={item}
@@ -233,13 +233,13 @@ export default async function ConfiguracoesPage() {
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="glass-card infinya-border-glow rounded-[24px] p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Endereços cadastrados</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">EndereÃ§os cadastrados</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                 <tr>
-                  <th className="pb-3 font-medium">Código</th>
-                  <th className="pb-3 font-medium">Área</th>
+                  <th className="pb-3 font-medium">CÃ³digo</th>
+                  <th className="pb-3 font-medium">Ãrea</th>
                   <th className="pb-3 font-medium">Capacidade</th>
                   <th className="pb-3 font-medium">Status</th>
                 </tr>
@@ -267,7 +267,7 @@ export default async function ConfiguracoesPage() {
                 ) : (
                   <tr>
                     <td colSpan={4} className="py-6 text-center text-slate-500 dark:text-slate-400">
-                      Nenhum endereço cadastrado ainda.
+                      Nenhum endereÃ§o cadastrado ainda.
                     </td>
                   </tr>
                 )}
@@ -288,11 +288,11 @@ export default async function ConfiguracoesPage() {
               value={String(depositanteCards.filter((item) => item.skus === 0).length)}
             />
             <StatusRow
-              label="Usuários vinculados a depositantes"
+              label="UsuÃ¡rios vinculados a depositantes"
               value={String((usuarios ?? []).filter((item) => item.depositante_id).length)}
             />
             <StatusRow
-              label="Método predominante no ambiente"
+              label="MÃ©todo predominante no ambiente"
               value={getPreferredMethod((produtos ?? []).map((item) => item.metodo_retirada))}
             />
           </div>
@@ -334,14 +334,16 @@ function formatArea(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "Expedição";
+      return "ExpediÃ§Ã£o";
     default:
       return value;
   }
 }
+
+

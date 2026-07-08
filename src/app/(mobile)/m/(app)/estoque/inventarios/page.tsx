@@ -1,14 +1,14 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { StockCycleCountCreateForm } from "@/components/estoque/stock-cycle-count-create-form";
 import { getMobileStockPageData } from "../_lib";
 
 const areaOptions = [
   { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Pulmão" },
+  { value: "PULMAO", label: "Armazenagem" },
   { value: "PICKING", label: "Picking" },
   { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "Expedição" },
+  { value: "EXPEDICAO", label: "ExpediÃ§Ã£o" },
 ];
 
 export default async function MobileStockInventariosPage() {
@@ -47,7 +47,7 @@ export default async function MobileStockInventariosPage() {
               >
                 <p className="font-medium text-white">{count.titulo}</p>
                 <p className="mt-1 text-xs text-slate-400">
-                  {count.area} • {count.status} • {count.createdAt}
+                  {count.area} â€¢ {count.status} â€¢ {count.createdAt}
                 </p>
               </Link>
             ))}
@@ -57,3 +57,5 @@ export default async function MobileStockInventariosPage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Download, FileSpreadsheet, FileText, Search } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
@@ -26,16 +26,16 @@ type RelatoriosPageProps = {
 const areaOptions = [
   { value: "", label: "Todas" },
   { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Pulmão" },
+  { value: "PULMAO", label: "Armazenagem" },
   { value: "PICKING", label: "Picking" },
   { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "Expedição" },
+  { value: "EXPEDICAO", label: "ExpediÃ§Ã£o" },
 ];
 
 const fiscalFlowOptions = [
   { value: "", label: "Todos" },
   { value: "ENTRADA", label: "Entrada" },
-  { value: "SAIDA", label: "Saída" },
+  { value: "SAIDA", label: "SaÃ­da" },
 ];
 
 export default async function RelatoriosPage({ searchParams }: RelatoriosPageProps) {
@@ -108,8 +108,8 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
   return (
     <div className="space-y-6">
       <ModulePageHeader
-        title="Relatórios"
-        description="Saldo, fiscal, produtividade, SLA, rastreabilidade e exportações operacionais."
+        title="RelatÃ³rios"
+        description="Saldo, fiscal, produtividade, SLA, rastreabilidade e exportaÃ§Ãµes operacionais."
         badge="Operacional"
       />
 
@@ -117,11 +117,11 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Relatório de saldo exportável
+              RelatÃ³rio de saldo exportÃ¡vel
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Exporte o saldo filtrado do estoque em Excel ou CSV, pronto para análise, envio ao
-              cliente e conferência externa.
+              Exporte o saldo filtrado do estoque em Excel ou CSV, pronto para anÃ¡lise, envio ao
+              cliente e conferÃªncia externa.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -171,7 +171,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
                   type="text"
                   name="produto"
                   defaultValue={productFilter}
-                  placeholder="SKU, nome ou código interno"
+                  placeholder="SKU, nome ou cÃ³digo interno"
                   className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
@@ -179,7 +179,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Área
+                Ãrea
               </span>
               <select
                 name="area"
@@ -230,11 +230,11 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Relatório resumido de NF-e por depositante e período
+              RelatÃ³rio resumido de NF-e por depositante e perÃ­odo
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Consolida entradas, saídas, valor total movimentado, volumes e itens fiscais por
-              depositante no período selecionado.
+              Consolida entradas, saÃ­das, valor total movimentado, volumes e itens fiscais por
+              depositante no perÃ­odo selecionado.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -323,20 +323,20 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
                 type="text"
                 name="emitente"
                 defaultValue={issuerTerm}
-                placeholder="Razão social ou documento"
+                placeholder="RazÃ£o social ou documento"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Destinatário
+                DestinatÃ¡rio
               </span>
               <input
                 type="text"
                 name="destinatario"
                 defaultValue={recipientTerm}
-                placeholder="Razão social ou documento"
+                placeholder="RazÃ£o social ou documento"
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
               />
             </label>
@@ -362,7 +362,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard label="Documentos fiscais" value={String(fiscalTotals.totalDocuments)} />
           <SummaryCard label="NF-e de entrada" value={String(fiscalTotals.entradaDocuments)} />
-          <SummaryCard label="NF-e de saída" value={String(fiscalTotals.saidaDocuments)} />
+          <SummaryCard label="NF-e de saÃ­da" value={String(fiscalTotals.saidaDocuments)} />
           <SummaryCard label="Valor total" value={formatCurrency(fiscalTotals.totalValue)} />
         </div>
 
@@ -372,15 +372,15 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
               <tr>
                 <th className="pb-3 font-medium">Depositante</th>
                 <th className="pb-3 font-medium">Entrada</th>
-                <th className="pb-3 font-medium">Saída</th>
+                <th className="pb-3 font-medium">SaÃ­da</th>
                 <th className="pb-3 font-medium">Total NF-e</th>
                 <th className="pb-3 font-medium">Valor entrada</th>
-                <th className="pb-3 font-medium">Valor saída</th>
+                <th className="pb-3 font-medium">Valor saÃ­da</th>
                 <th className="pb-3 font-medium">Valor total</th>
                 <th className="pb-3 font-medium">Itens</th>
                 <th className="pb-3 font-medium">Volumes</th>
-                <th className="pb-3 font-medium">Primeira emissão</th>
-                <th className="pb-3 font-medium">Última emissão</th>
+                <th className="pb-3 font-medium">Primeira emissÃ£o</th>
+                <th className="pb-3 font-medium">Ãšltima emissÃ£o</th>
               </tr>
             </thead>
             <tbody>
@@ -452,3 +452,5 @@ function formatCurrency(value: number) {
     currency: "BRL",
   });
 }
+
+

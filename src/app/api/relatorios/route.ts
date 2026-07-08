@@ -1,4 +1,4 @@
-import { requireApiModuleAccess } from "@/lib/api-auth";
+﻿import { requireApiModuleAccess } from "@/lib/api-auth";
 import type { AppUserContext } from "@/lib/auth";
 import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
 import { listStockBalancesFromDb } from "@/lib/stock";
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
   }
 
   return Response.json(
-    { error: "Relatório inválido. Use saldo-estoque ou nfe-resumo." },
+    { error: "RelatÃ³rio invÃ¡lido. Use saldo-estoque ou nfe-resumo." },
     { status: 400 },
   );
 }
@@ -133,7 +133,7 @@ async function exportFiscalSummaryReport(
 
   const rows: FiscalExportRow[] = summary.map((item) => ({
     Depositante: item.depositante,
-    Fluxo: flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "Saída" : "Todos",
+    Fluxo: flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "SaÃ­da" : "Todos",
     Emitente: issuerTerm || "Todos",
     Destinatario: recipientTerm || "Todos",
     NFEntrada: String(item.entradaDocuments),
@@ -185,7 +185,7 @@ function exportRows<T extends Record<string, string>>(
   }
 
   return Response.json(
-    { error: "Formato de exportação inválido. Use csv ou excel." },
+    { error: "Formato de exportaÃ§Ã£o invÃ¡lido. Use csv ou excel." },
     { status: 400 },
   );
 }
@@ -268,13 +268,13 @@ function formatAreaLabel(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "Expedição";
+      return "ExpediÃ§Ã£o";
     default:
       return value;
   }
@@ -286,3 +286,5 @@ function formatCurrency(value: number) {
     currency: "BRL",
   });
 }
+
+

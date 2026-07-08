@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { AlertTriangle, Archive, Boxes, Download, ShieldAlert } from "lucide-react";
 import { StockFiltersForm } from "@/components/estoque/stock-filters-form";
 import { StockInitialEntryForm } from "@/components/estoque/stock-initial-entry-form";
@@ -32,10 +32,10 @@ type EstoquePageProps = {
 const areaOptions = [
   { value: "", label: "Todas" },
   { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Pulmão" },
+  { value: "PULMAO", label: "Armazenagem" },
   { value: "PICKING", label: "Picking" },
   { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "Expedição" },
+  { value: "EXPEDICAO", label: "ExpediÃ§Ã£o" },
 ];
 
 export default async function EstoquePage({ searchParams }: EstoquePageProps) {
@@ -108,7 +108,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
   const stockTransferSources = stockBalances
     .filter(
       (item) =>
-        item.status === "Disponível" &&
+        item.status === "DisponÃ­vel" &&
         Number(item.saldo.replace(/\./g, "").replace(",", ".")) > 0,
     )
     .map((item) => ({
@@ -116,7 +116,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
       depositanteId: item.depositanteId,
       enderecoId:
         enderecosInventario.find((endereco) => endereco.codigo === item.endereco)?.id ?? "",
-      label: `${item.protocol} • ${item.sku} • ${item.productName} • ${item.endereco} • saldo ${item.saldo}`,
+      label: `${item.protocol} â€¢ ${item.sku} â€¢ ${item.productName} â€¢ ${item.endereco} â€¢ saldo ${item.saldo}`,
     }))
     .filter((item) => item.enderecoId);
 
@@ -124,7 +124,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
     <div className="space-y-6">
       <ModulePageHeader
         title="Estoque"
-        description="Consulta operacional de saldos por depositante, produto, área, lote e rastreabilidade."
+        description="Consulta operacional de saldos por depositante, produto, Ã¡rea, lote e rastreabilidade."
         badge="Log"
       />
 
@@ -196,17 +196,17 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Contagens cíclicas recentes
+              Contagens cÃ­clicas recentes
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Acompanhe o avanço das contagens em andamento e entre direto nos itens para registrar
-              divergências.
+              Acompanhe o avanÃ§o das contagens em andamento e entre direto nos itens para registrar
+              divergÃªncias.
             </p>
           </div>
           <span className="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
             {cycleCountsResult.available
               ? `${cycleCountsResult.data.length} contagem(ns)`
-              : "Migração pendente"}
+              : "MigraÃ§Ã£o pendente"}
           </span>
         </div>
 
@@ -225,7 +225,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                         {count.titulo}
                       </p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {count.depositante} • {count.area} • {count.createdAt}
+                        {count.depositante} â€¢ {count.area} â€¢ {count.createdAt}
                       </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
@@ -236,18 +236,18 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                   <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-3">
                     <p>Itens: {count.totalItems}</p>
                     <p>Contados: {count.countedItems}</p>
-                    <p>Divergências: {count.divergentItems}</p>
+                    <p>DivergÃªncias: {count.divergentItems}</p>
                   </div>
                 </Link>
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
-                Nenhuma contagem cíclica criada até o momento.
+                Nenhuma contagem cÃ­clica criada atÃ© o momento.
               </div>
             )
           ) : (
             <div className="rounded-2xl border border-dashed border-amber-200 px-4 py-8 text-center text-sm text-amber-700 dark:border-amber-500/30 dark:text-amber-300">
-              Assim que a nova migração do Supabase for executada, as contagens cíclicas aparecerão aqui.
+              Assim que a nova migraÃ§Ã£o do Supabase for executada, as contagens cÃ­clicas aparecerÃ£o aqui.
             </div>
           )}
         </div>
@@ -260,12 +260,12 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               Alertas de vencimento
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              O sistema destaca lotes vencidos ou com vencimento em até 30 dias para ação
+              O sistema destaca lotes vencidos ou com vencimento em atÃ© 30 dias para aÃ§Ã£o
               operacional imediata.
             </p>
           </div>
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-            {stockExpiryAlerts.filter((item) => item.severity === "critico").length} crítico(s)
+            {stockExpiryAlerts.filter((item) => item.severity === "critico").length} crÃ­tico(s)
           </span>
         </div>
 
@@ -287,7 +287,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                       {item.protocol}
                     </p>
                     <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                      {item.depositante} • {item.sku} • {item.productName}
+                      {item.depositante} â€¢ {item.sku} â€¢ {item.productName}
                     </p>
                   </div>
                   <span
@@ -302,8 +302,8 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 </div>
 
                 <div className="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
-                  <p>Área: {formatAreaLabel(item.area)}</p>
-                  <p>Endereço: {item.endereco}</p>
+                  <p>Ãrea: {formatAreaLabel(item.area)}</p>
+                  <p>EndereÃ§o: {item.endereco}</p>
                   <p>Lote: {item.lote}</p>
                   <p>Saldo: {item.saldo}</p>
                   <p>Validade: {item.expiryDate}</p>
@@ -312,7 +312,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
-              Nenhum lote próximo ao vencimento dentro do filtro atual.
+              Nenhum lote prÃ³ximo ao vencimento dentro do filtro atual.
             </div>
           )}
         </div>
@@ -325,8 +325,8 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               Consulta de estoque
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Filtre os saldos por depositante, produto, área e lote para localizar rapidamente a
-              posição certa.
+              Filtre os saldos por depositante, produto, Ã¡rea e lote para localizar rapidamente a
+              posiÃ§Ã£o certa.
             </p>
           </div>
           <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -354,7 +354,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             Saldos monitorados
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Estoque real lançado a partir do fluxo de recebimento e das próximas movimentações.
+            Estoque real lanÃ§ado a partir do fluxo de recebimento e das prÃ³ximas movimentaÃ§Ãµes.
           </p>
 
           <div className="mt-5 overflow-x-auto">
@@ -365,11 +365,11 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                   <th className="pb-3 font-medium">SKU</th>
                   <th className="pb-3 font-medium">Produto</th>
                   <th className="pb-3 font-medium">Depositante</th>
-                  <th className="pb-3 font-medium">Área</th>
-                  <th className="pb-3 font-medium">Endereço</th>
+                  <th className="pb-3 font-medium">Ãrea</th>
+                  <th className="pb-3 font-medium">EndereÃ§o</th>
                   <th className="pb-3 font-medium">Lote</th>
                   <th className="pb-3 font-medium">Saldo</th>
-                  <th className="pb-3 font-medium">Método</th>
+                  <th className="pb-3 font-medium">MÃ©todo</th>
                   <th className="pb-3 font-medium">Validade</th>
                   <th className="pb-3 font-medium">Status</th>
                 </tr>
@@ -436,10 +436,10 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Protocolos de depósito
+                Protocolos de depÃ³sito
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Rastreabilidade por lote, validade, área, endereço e data de entrada.
+                Rastreabilidade por lote, validade, Ã¡rea, endereÃ§o e data de entrada.
               </p>
             </div>
             <Button
@@ -483,7 +483,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                           {item.protocol}
                         </Link>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {item.depositante} • {item.sku} • {formatAreaLabel(item.area)} •{" "}
+                          {item.depositante} â€¢ {item.sku} â€¢ {formatAreaLabel(item.area)} â€¢{" "}
                           {item.endereco}
                         </p>
                         <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
@@ -514,10 +514,10 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-          Últimos movimentos rastreáveis
+          Ãšltimos movimentos rastreÃ¡veis
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cada movimentação mantém o vínculo com protocolo, lote, validade e referência de
+          Cada movimentaÃ§Ã£o mantÃ©m o vÃ­nculo com protocolo, lote, validade e referÃªncia de
           origem.
         </p>
 
@@ -545,7 +545,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
-              Nenhuma movimentação encontrada dentro do filtro atual.
+              Nenhuma movimentaÃ§Ã£o encontrada dentro do filtro atual.
             </div>
           )}
         </div>
@@ -559,14 +559,17 @@ function formatAreaLabel(value: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "Expedição";
+      return "ExpediÃ§Ã£o";
     default:
       return value;
   }
 }
+
+
+

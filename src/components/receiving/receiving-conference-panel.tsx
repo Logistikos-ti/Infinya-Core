@@ -684,7 +684,7 @@ function formatArea(area: string) {
     case "RECEBIMENTO":
       return "Recebimento";
     case "PULMAO":
-      return "Pulmão";
+      return "Armazenagem";
     case "PICKING":
       return "Picking";
     case "BLOQUEADO":
@@ -714,4 +714,5 @@ function formatStatus(status: string) {
 function normalizeScanValue(value: string) {
   return value.replace(/[^a-zA-Z0-9]/g, "").trim().toUpperCase();
 }
+
 
