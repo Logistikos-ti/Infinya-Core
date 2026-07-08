@@ -18,6 +18,11 @@ type MobileAppShellProps = {
 export function MobileAppShell({ children, user }: MobileAppShellProps) {
   const pathname = usePathname();
   const navigationItems = getMobileNavigationItems(user);
+  const mobileShellBackground = {
+    backgroundColor: "#040816",
+    backgroundImage:
+      "radial-gradient(circle at top, rgba(34,211,238,0.10), transparent 28%), radial-gradient(circle at bottom, rgba(192,132,252,0.12), transparent 24%)",
+  } as const;
 
   return (
     <ThemeProvider
@@ -26,7 +31,10 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.1),transparent_28%),radial-gradient(circle_at_bottom,rgba(192,132,252,0.12),transparent_24%),#040816] text-white dark">
+      <div
+        className="min-h-dvh overflow-x-hidden bg-[#040816] text-white dark"
+        style={mobileShellBackground}
+      >
         <header className="sticky top-0 z-30 border-b border-white/10 bg-[#040816]/95 backdrop-blur">
           <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-4">
             <InfinyaBrand
@@ -39,7 +47,10 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto min-h-[calc(100vh-144px)] max-w-md px-4 py-4 pb-24">
+        <main
+          className="mx-auto min-h-[calc(100dvh-144px)] max-w-md bg-[#040816] px-4 py-4 pb-24"
+          style={mobileShellBackground}
+        >
           <div className="mb-4">
             <MobileInstallCard />
           </div>
