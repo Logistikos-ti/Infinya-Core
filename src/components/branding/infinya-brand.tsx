@@ -26,7 +26,7 @@ function BrandGlyph({ className }: { className?: string }) {
         alt="Infinoos WMS"
         fill
         sizes="64px"
-        className="relative z-10 object-contain p-2.5"
+        className="relative z-10 object-contain p-[0.58rem]"
         priority
       />
     </div>
@@ -47,7 +47,7 @@ function BrandWordmark({
       <div
         className={cn(
           "truncate font-black uppercase leading-none",
-          compact ? "text-[1rem] tracking-[0.22em]" : "text-[1.36rem] tracking-[0.24em]",
+          compact ? "text-[0.98rem] tracking-[0.2em]" : "text-[1.34rem] tracking-[0.22em]",
           forceLightWordmark ? "text-white" : "text-slate-950 dark:text-white",
           nameClassName,
         )}
@@ -57,7 +57,7 @@ function BrandWordmark({
       <div
         className={cn(
           "mt-1 font-black uppercase leading-none",
-          compact ? "text-[0.78rem] tracking-[0.5em]" : "text-[1.55rem] tracking-[0.34em]",
+          compact ? "text-[0.76rem] tracking-[0.42em]" : "text-[1.5rem] tracking-[0.3em]",
           "bg-[linear-gradient(90deg,#6ee7ff_0%,#60a5fa_28%,#7c78ff_62%,#d946ef_100%)] bg-clip-text text-transparent",
           "drop-shadow-[0_0_18px_rgba(96,165,250,0.18)]",
         )}
@@ -80,8 +80,10 @@ export function InfinyaBrand({
   if (compact) {
     return (
       <div className={cn("min-w-0", className)}>
-        <div className="flex min-w-0 items-center gap-3">
-          <BrandGlyph className={cn("h-14 w-14 flex-shrink-0 rounded-[18px]", markClassName)} />
+        <div className="flex min-w-0 items-center gap-3.5">
+          <BrandGlyph
+            className={cn("h-[52px] w-[52px] flex-shrink-0 rounded-[17px]", markClassName)}
+          />
           <BrandWordmark
             compact
             forceLightWordmark={forceLightWordmark}
@@ -92,7 +94,7 @@ export function InfinyaBrand({
         {subtitle ? (
           <p
             className={cn(
-              "mt-2 truncate pl-[68px] text-xs font-medium text-slate-600 dark:text-slate-300",
+              "mt-2 truncate pl-[66px] text-xs font-medium text-slate-600 dark:text-slate-300",
               subtitleClassName,
             )}
           >
@@ -113,8 +115,8 @@ export function InfinyaBrand({
         )}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(110,231,255,0.14),transparent_28%),radial-gradient(circle_at_85%_82%,rgba(217,70,239,0.14),transparent_26%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
-        <div className="relative z-10 flex min-w-0 items-center gap-4">
-          <BrandGlyph className="h-[70px] w-[70px] flex-shrink-0 rounded-[22px]" />
+        <div className="relative z-10 flex min-w-0 items-center gap-4.5">
+          <BrandGlyph className="h-[66px] w-[66px] flex-shrink-0 rounded-[21px]" />
           <BrandWordmark forceLightWordmark={forceLightWordmark} nameClassName={nameClassName} />
         </div>
       </div>
