@@ -15,7 +15,7 @@ type LoginFormProps = {
 
 export function LoginForm({
   redirectTo = "/dashboard",
-  submitLabel = "Entrar no Infinya \u2022 Log",
+  submitLabel = "Entrar no Infinoos WMS",
 }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 

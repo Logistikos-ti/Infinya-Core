@@ -54,20 +54,20 @@ export function getDefaultMobileRoute(user: AppUserContext) {
 
 export function getMobileWelcomeLabel(user: AppUserContext) {
   if (user.papel === "OPERADOR") {
-    return "Operacao em campo";
+    return "Operação em campo";
   }
 
   if (user.papel === "DEPOSITANTE") {
     return "Consulta operacional";
   }
 
-  return "Controle movel";
+  return "Controle móvel";
 }
 
 export function getMobileNavigationItems(user: AppUserContext): MobileNavigationItem[] {
   if (isProductCatalogOnlyUser(user)) {
     return [
-      { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
+      { href: "/m/inicio", label: "Início", icon: House, match: ["/m/inicio"] },
       {
         href: "/m/produtos",
         label: "Produtos",
@@ -80,12 +80,19 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
 
   if (isCatalogAndStockOperatorUser(user)) {
     return [
-      { href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] },
+      { href: "/m/inicio", label: "Início", icon: House, match: ["/m/inicio"] },
       ...(canAccessModule(user, "estoque")
         ? [{ href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] }]
         : []),
       ...(canAccessModule(user, "expedicao")
-        ? [{ href: "/m/separacao", label: "Exped.", icon: ScanLine, match: ["/m/separacao", "/m/conferencia"] }]
+        ? [
+            {
+              href: "/m/separacao",
+              label: "Exped.",
+              icon: ScanLine,
+              match: ["/m/separacao", "/m/conferencia"],
+            } satisfies MobileNavigationItem,
+          ]
         : []),
       {
         href: "/m/produtos",
@@ -97,7 +104,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
         ? [
             {
               href: "/m/enderecos",
-              label: "Enderecos",
+              label: "Endereços",
               icon: Warehouse,
               match: ["/m/enderecos"],
             } satisfies MobileNavigationItem,
@@ -115,7 +122,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
     canAccessModule(user, "expedicao") ||
     canAccessModule(user, "estoque")
   ) {
-    items.push({ href: "/m/inicio", label: "Inicio", icon: House, match: ["/m/inicio"] });
+    items.push({ href: "/m/inicio", label: "Início", icon: House, match: ["/m/inicio"] });
   }
 
   if (canAccessModule(user, "recebimento")) {
@@ -158,7 +165,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "enderecos")) {
     items.push({
       href: "/m/enderecos",
-      label: "Enderecos",
+      label: "Endereços",
       icon: Warehouse,
       match: ["/m/enderecos"],
     });

@@ -15,21 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Infinya \u2022 Log",
-  description: "WMS propriet\u00E1rio da Infinya para opera\u00E7\u00F5es log\u00EDsticas multi-tenant.",
+  title: "Infinoos WMS",
+  description: "WMS proprietário da Infinoos para operações logísticas multi-tenant.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Infinya Log",
+    title: "Infinoos WMS",
   },
   icons: {
-    apple: [{ url: "/branding/infinya-mark-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/branding/infinoos-mark-192.png", sizes: "192x192", type: "image/png" }],
     icon: [
-      { url: "/branding/infinya-mark-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/branding/infinya-mark-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/branding/infinoos-mark-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/branding/infinoos-mark-512.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: ["/branding/infinya-mark-192.png"],
+    shortcut: ["/branding/infinoos-mark-192.png"],
   },
 };
 

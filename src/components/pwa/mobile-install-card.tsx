@@ -102,7 +102,7 @@ export function MobileInstallCard() {
             Webapp instalável
           </p>
           <h2 className="mt-1 text-base font-semibold text-white">
-            Instale o Infinya • Log no celular
+            Instale o Infinoos WMS no celular
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-300">
             Abra como aplicativo, com acesso rápido pela tela inicial e experiência mais fluida na

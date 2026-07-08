@@ -42,7 +42,7 @@ function buildRomaneioPage(
   ];
 
   return {
-    title: "INFINYA LOG - ROMANEIO DE EXPEDI\u00C7\u00C3O",
+    title: "INFINOOS WMS - ROMANEIO DE EXPEDIÇÃO",
     lines,
   };
 }

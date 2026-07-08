@@ -51,11 +51,11 @@ function buildProtocolPageContent(detail: StockTraceabilityDetail): ProtocolPage
   }
 
   lines.push("");
-  lines.push("RESPONSAVEL OPERACIONAL");
-  lines.push("Protocolo com campo de assinatura reservado para conferencia fisica e arquivo operacional.");
+  lines.push("RESPONSÁVEL OPERACIONAL");
+  lines.push("Protocolo com campo de assinatura reservado para conferência física e arquivo operacional.");
 
   return {
-    title: "INFINYA LOG - PROTOCOLO DE DEP\u00D3SITO",
+    title: "INFINOOS WMS - PROTOCOLO DE DEPÓSITO",
     lines,
   };
 }
@@ -136,13 +136,13 @@ function buildPageContentStream(page: ProtocolPageContent) {
   operators.push("BT");
   operators.push("/F1 10 Tf");
   operators.push("40 75 Td");
-  operators.push("(Assinatura para conferencia fisica) Tj");
+  operators.push("(Assinatura para conferência física) Tj");
   operators.push("ET");
 
   operators.push("BT");
   operators.push("/F1 10 Tf");
   operators.push("300 75 Td");
-  operators.push("(Data e hora da conferencia) Tj");
+  operators.push("(Data e hora da conferência) Tj");
   operators.push("ET");
 
   return operators.join("\n");

@@ -21,11 +21,11 @@ export default async function LoginPage() {
           </span>
           <h1 className="text-2xl font-semibold text-slate-950 dark:text-white">Entrar no WMS</h1>
           <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Entre com seu usuário para operar recebimento, estoque e expedição com
-            segregação por depositante desde a base do sistema.
+            Entre com seu usuário para operar recebimento, estoque e expedição com segregação por
+            depositante desde a base do sistema.
           </p>
         </div>
-        <LoginForm submitLabel={"Entrar no Infinya \u2022 Log"} />
+        <LoginForm submitLabel="Entrar no Infinoos WMS" />
       </div>
     </main>
   );
