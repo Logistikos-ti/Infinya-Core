@@ -41,7 +41,7 @@ const unidadeOptions: FancySelectOption[] = [
 export function EnderecoForm({ action, defaultValues }: EnderecoFormProps) {
   const codigoInputRef = useRef<HTMLInputElement | null>(null);
   const [codigo, setCodigo] = useState(defaultValues?.codigo ?? "");
-  const [area, setArea] = useState(defaultValues?.area ?? "PICKING");
+  const [area, setArea] = useState(defaultValues?.area ?? "PULMAO");
   const [unidadePadrao, setUnidadePadrao] = useState(defaultValues?.unidadePadrao ?? "");
 
   const handleBarcodeDetected = useCallback((code: string) => {

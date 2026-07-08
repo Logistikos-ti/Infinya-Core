@@ -23,7 +23,7 @@ const unidadeOptions: FancySelectOption[] = [
 ];
 
 export function AddressBulkGeneratorForm({ action }: AddressBulkGeneratorFormProps) {
-  const [area, setArea] = useState("PICKING");
+  const [area, setArea] = useState("PULMAO");
   const [unidadePadrao, setUnidadePadrao] = useState("CAIXA");
 
   return (
