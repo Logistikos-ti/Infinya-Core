@@ -24,6 +24,11 @@ export type MobileNavigationItem = {
   match?: string[];
 };
 
+export type MobileNavigationGroups = {
+  primary: MobileNavigationItem[];
+  secondary: MobileNavigationItem[];
+};
+
 export function getDefaultMobileRoute(user: AppUserContext) {
   if (isProductCatalogOnlyUser(user)) {
     return "/m/inicio";
@@ -172,4 +177,14 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   }
 
   return items;
+}
+
+export function getMobileNavigationGroups(user: AppUserContext): MobileNavigationGroups {
+  const allItems = getMobileNavigationItems(user);
+  const primaryHrefs = new Set(["/m/inicio", "/m/separacao", "/m/produtos", "/m/sair"]);
+
+  const primary = allItems.filter((item) => primaryHrefs.has(item.href));
+  const secondary = allItems.filter((item) => !primaryHrefs.has(item.href));
+
+  return { primary, secondary };
 }
