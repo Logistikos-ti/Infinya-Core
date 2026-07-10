@@ -1,5 +1,6 @@
-import type { AppUserContext } from "@/lib/auth";
+﻿import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
 type ProductRelation =
   | {
@@ -291,7 +292,7 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
     .eq("referencia_id", receivingOrderId);
 
   if (error) {
-    throw new Error(`Não foi possível localizar os protocolos deste recebimento: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel localizar os protocolos deste recebimento: ${error.message}`);
   }
 
   const stockIds = [...new Set((movementRows ?? []).map((item) => item.estoque_id).filter(Boolean))] as string[];
@@ -309,7 +310,7 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
     .order("created_at", { ascending: false });
 
   if (stockError) {
-    throw new Error(`Não foi possível carregar os saldos gerados por este recebimento: ${stockError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar os saldos gerados por este recebimento: ${stockError.message}`);
   }
 
   return ((stockRows ?? []) as RawStockRow[]).map((item) => {
@@ -361,7 +362,7 @@ export async function listStockExpiryAlertsFromDb(
         severity: daysToExpiry <= 7 ? "critico" : "atencao",
         severityLabel:
           daysToExpiry < 0
-            ? `Vencido há ${Math.abs(daysToExpiry)} dia(s)`
+            ? `Vencido hÃ¡ ${Math.abs(daysToExpiry)} dia(s)`
             : daysToExpiry === 0
               ? "Vence hoje"
               : `Vence em ${daysToExpiry} dia(s)`,
@@ -412,8 +413,8 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
         ? formatDate(stock.validade_em)
         : "-",
     user: extractUserName(item.criado_por) ?? "Sistema",
-    createdAt: new Date(item.created_at).toLocaleString("pt-BR"),
-    notes: item.observacoes?.trim() || "Sem observações.",
+    createdAt: formatDateTimePtBr(item.created_at),
+    notes: item.observacoes?.trim() || "Sem observaÃ§Ãµes.",
   }));
 
   const firstInboundMovement = (movementRows ?? []).find(
@@ -440,8 +441,8 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
         referenceValue: order.codigo,
         noteNumber: order.nota_fiscal_numero ?? "-",
         counterpartLabel: "Fornecedor",
-        counterpartValue: order.fornecedor_nome ?? "Fornecedor não informado",
-        launchedAt: new Date(order.created_at).toLocaleString("pt-BR"),
+        counterpartValue: order.fornecedor_nome ?? "Fornecedor nÃ£o informado",
+        launchedAt: formatDateTimePtBr(order.created_at),
         launchedBy: extractUserName(firstInboundMovement.criado_por) ?? "Sistema",
       };
     }
@@ -449,11 +450,11 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     source = {
       kind: "INVENTARIO_INICIAL",
       referenceLabel: "Origem",
-      referenceValue: "Inventário inicial",
+      referenceValue: "InventÃ¡rio inicial",
       noteNumber: "-",
-      counterpartLabel: "Responsável pelo lançamento",
+      counterpartLabel: "ResponsÃ¡vel pelo lanÃ§amento",
       counterpartValue: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
-      launchedAt: new Date(firstInventoryMovement.created_at).toLocaleString("pt-BR"),
+      launchedAt: formatDateTimePtBr(firstInventoryMovement.created_at),
       launchedBy: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
     };
   }
@@ -498,17 +499,17 @@ export async function listStockStatsFromDb(
 
   return [
     {
-      label: user.papel === "DEPOSITANTE" ? "Saldos visíveis" : "Linhas de estoque",
+      label: user.papel === "DEPOSITANTE" ? "Saldos visÃ­veis" : "Linhas de estoque",
       value: String(balances.length),
       help:
         user.papel === "DEPOSITANTE"
-          ? "Linhas de estoque disponíveis para o seu depositante."
-          : "Saldos já lançados no armazém.",
+          ? "Linhas de estoque disponÃ­veis para o seu depositante."
+          : "Saldos jÃ¡ lanÃ§ados no armazÃ©m.",
     },
     {
       label: "Lotes bloqueados",
       value: String(balances.filter((item) => item.status === "Bloqueado").length),
-      help: "Itens bloqueados no ambiente visível.",
+      help: "Itens bloqueados no ambiente visÃ­vel.",
     },
     {
       label: "Com validade",
@@ -516,9 +517,9 @@ export async function listStockStatsFromDb(
       help: "Linhas com controle de validade.",
     },
     {
-      label: "Próximos ao vencimento",
+      label: "PrÃ³ximos ao vencimento",
       value: String(expiryAlerts.length),
-      help: "Lotes com vencimento em até 30 dias dentro do filtro aplicado.",
+      help: "Lotes com vencimento em atÃ© 30 dias dentro do filtro aplicado.",
     },
   ] as const;
 }
@@ -532,19 +533,19 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     id: item.id,
     protocol: buildTraceabilityProtocol(item),
     sku: extractProductField(item.produto, "sku") ?? "SKU",
-    productName: extractProductField(item.produto, "nome") ?? "Produto sem descrição",
+    productName: extractProductField(item.produto, "nome") ?? "Produto sem descriÃ§Ã£o",
     internalCode: extractProductField(item.produto, "codigo_interno") ?? "",
     depositanteId: item.depositante_id,
     depositante: extractDepositanteName(item.depositante) ?? "Sem depositante",
-    endereco: extractEnderecoField(item.endereco, "codigo") ?? "Sem endereço",
-    area: extractEnderecoField(item.endereco, "area") ?? "Sem área",
+    endereco: extractEnderecoField(item.endereco, "codigo") ?? "Sem endereÃ§o",
+    area: extractEnderecoField(item.endereco, "area") ?? "Sem Ã¡rea",
     lote: item.lote ?? "-",
     saldo: Number(item.quantidade ?? 0).toLocaleString("pt-BR"),
     validade: expiryDate ? formatDate(expiryDate) : "-",
-    status: item.bloqueado ? "Bloqueado" : "Disponível",
+    status: item.bloqueado ? "Bloqueado" : "DisponÃ­vel",
     blockReason: item.bloqueio_motivo?.trim() || "",
-    blockedAt: item.bloqueado_em ? new Date(item.bloqueado_em).toLocaleString("pt-BR") : null,
-    createdAt: new Date(createdAt).toLocaleString("pt-BR"),
+    blockedAt: item.bloqueado_em ? formatDateTimePtBr(item.bloqueado_em) : null,
+    createdAt: formatDateTimePtBr(createdAt),
     withdrawalMethod,
     withdrawalLabel: formatWithdrawalLabel(withdrawalMethod, expiryDate, createdAt),
     withdrawalRank: buildWithdrawalRank(withdrawalMethod, expiryDate, createdAt),
@@ -565,7 +566,7 @@ function mapMovementSummary(item: RawMovementRow): StockMovement {
       createdAt: item.created_at,
       id: item.id,
     }),
-    label: `${formatMovementType(item.tipo)} de ${Number(item.quantidade ?? 0).toLocaleString("pt-BR")} no SKU ${sku} ${buildMovementRoute(origin, destination)} em ${new Date(item.created_at).toLocaleString("pt-BR")}`,
+    label: `${formatMovementType(item.tipo)} de ${Number(item.quantidade ?? 0).toLocaleString("pt-BR")} no SKU ${sku} ${buildMovementRoute(origin, destination)} em ${formatDateTimePtBr(item.created_at)}`,
     lot,
     expiry,
     reference: formatReference(item.referencia_tipo, item.referencia_id, item.observacoes),
@@ -716,7 +717,7 @@ function extractWithdrawalMethod(value: ProductRelation): WithdrawalMethod {
 }
 
 function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+  return formatDatePtBr(new Date(`${value}T00:00:00`));
 }
 
 function formatMovementType(value: string) {
@@ -724,9 +725,9 @@ function formatMovementType(value: string) {
     case "ENTRADA":
       return "Entrada";
     case "SAIDA":
-      return "Saída";
+      return "SaÃ­da";
     case "TRANSFERENCIA":
-      return "Transferência";
+      return "TransferÃªncia";
     case "AJUSTE_POSITIVO":
       return "Ajuste positivo";
     case "AJUSTE_NEGATIVO":
@@ -742,10 +743,7 @@ function formatMovementType(value: string) {
 
 function buildTraceabilityProtocol(input: { created_at?: string; createdAt?: string; id: string }) {
   const createdAt = input.created_at ?? input.createdAt ?? new Date().toISOString();
-  const date = new Date(createdAt);
-  const dateStamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
+  const dateStamp = getSaoPauloDateStamp(createdAt) ?? "00000000";
 
   return `DEP-${dateStamp}-${input.id.slice(0, 8).toUpperCase()}`;
 }
@@ -763,7 +761,7 @@ function buildMovementRoute(origin: string | null, destination: string | null) {
     return `a partir de ${origin}`;
   }
 
-  return "sem endereço vinculado";
+  return "sem endereÃ§o vinculado";
 }
 
 function formatReference(
@@ -772,14 +770,14 @@ function formatReference(
   notes: string | null,
 ) {
   if (referenceType && referenceId) {
-    return `${referenceType} · ${referenceId.slice(0, 8).toUpperCase()}`;
+    return `${referenceType} Â· ${referenceId.slice(0, 8).toUpperCase()}`;
   }
 
   if (notes?.trim()) {
     return notes.trim();
   }
 
-  return "Sem referência";
+  return "Sem referÃªncia";
 }
 
 function buildWithdrawalRank(
@@ -811,15 +809,15 @@ function formatWithdrawalLabel(
 ) {
   if (method === "FEFO") {
     return expiryDate
-      ? `FEFO · vence em ${formatDate(expiryDate)}`
-      : "FEFO · aguardando validade";
+      ? `FEFO Â· vence em ${formatDate(expiryDate)}`
+      : "FEFO Â· aguardando validade";
   }
 
   if (method === "FIFO") {
-    return `FIFO · entrou em ${new Date(createdAt).toLocaleDateString("pt-BR")}`;
+    return `FIFO Â· entrou em ${formatDatePtBr(createdAt)}`;
   }
 
-  return `LIFO · entrou em ${new Date(createdAt).toLocaleDateString("pt-BR")}`;
+  return `LIFO Â· entrou em ${formatDatePtBr(createdAt)}`;
 }
 
 function normalizeSearch(value: string | null | undefined) {
@@ -850,3 +848,5 @@ function diffInDays(start: Date, end: Date) {
   const millisecondsPerDay = 1000 * 60 * 60 * 24;
   return Math.floor((end.getTime() - start.getTime()) / millisecondsPerDay);
 }
+
+

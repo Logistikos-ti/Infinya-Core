@@ -1,4 +1,5 @@
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+﻿import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
 export type CycleCountSummary = {
   id: string;
@@ -134,7 +135,7 @@ export async function listCycleCountsFromDb(
   }
 
   if (error) {
-    throw new Error(`Não foi possível carregar as contagens cíclicas: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar as contagens cÃ­clicas: ${error.message}`);
   }
 
   const rows = (data ?? []) as Array<{
@@ -161,10 +162,10 @@ export async function listCycleCountsFromDb(
         titulo: row.titulo,
         depositanteId: row.depositante_id,
         depositante: extractRelationName(row.depositante) ?? "Sem depositante",
-        area: row.area ?? "Todas as áreas",
+        area: row.area ?? "Todas as Ã¡reas",
         status: row.status,
         blindCount: Boolean(row.contagem_cega),
-        createdAt: new Date(row.created_at).toLocaleString("pt-BR"),
+        createdAt: formatDateTimePtBr(row.created_at),
         countedItems: stats.countedItems,
         totalItems: stats.totalItems,
         divergentItems: stats.divergentItems,
@@ -198,7 +199,7 @@ export async function getCycleCountDetailFromDb(
   }
 
   if (headerError) {
-    throw new Error(`Não foi possível localizar esta contagem: ${headerError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel localizar esta contagem: ${headerError.message}`);
   }
 
   if (!header) {
@@ -214,7 +215,7 @@ export async function getCycleCountDetailFromDb(
     .order("created_at", { ascending: true });
 
   if (itemError) {
-    throw new Error(`Não foi possível carregar os itens desta contagem: ${itemError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar os itens desta contagem: ${itemError.message}`);
   }
 
   const items = ((itemRows ?? []) as DetailItemRow[]).map((item) => {
@@ -226,9 +227,9 @@ export async function getCycleCountDetailFromDb(
       stockId,
       protocol: buildTraceabilityProtocol(stockId, createdAt),
       sku: extractRelationField(item.produto, "sku") ?? "SKU",
-      productName: extractRelationField(item.produto, "nome") ?? "Produto sem descrição",
-      endereco: extractRelationField(item.endereco, "codigo") ?? "Sem endereço",
-      area: extractRelationField(item.endereco, "area") ?? "Sem área",
+      productName: extractRelationField(item.produto, "nome") ?? "Produto sem descriÃ§Ã£o",
+      endereco: extractRelationField(item.endereco, "codigo") ?? "Sem endereÃ§o",
+      area: extractRelationField(item.endereco, "area") ?? "Sem Ã¡rea",
       lote: extractRelationField(item.estoque, "lote") ?? "-",
       validade: extractRelationField(item.estoque, "validade_em")
         ? formatDate(extractRelationField(item.estoque, "validade_em")!)
@@ -250,21 +251,21 @@ export async function getCycleCountDetailFromDb(
       status: item.status,
       adjustmentStatus: item.ajuste_status?.trim() || "NAO_NECESSARIO",
       adjustmentApprovedAt: item.ajuste_aprovado_em
-        ? new Date(item.ajuste_aprovado_em).toLocaleString("pt-BR")
+        ? formatDateTimePtBr(item.ajuste_aprovado_em)
         : "-",
       adjustmentAppliedAt: item.ajuste_aplicado_em
-        ? new Date(item.ajuste_aplicado_em).toLocaleString("pt-BR")
+        ? formatDateTimePtBr(item.ajuste_aplicado_em)
         : "-",
       adjustmentApprovedBy: extractRelationName(item.ajuste_aprovado_por ?? null) ?? "-",
-      adjustmentNotes: item.ajuste_observacoes?.trim() || "Sem observações de ajuste.",
-      countedAt: item.contado_em ? new Date(item.contado_em).toLocaleString("pt-BR") : "-",
+      adjustmentNotes: item.ajuste_observacoes?.trim() || "Sem observaÃ§Ãµes de ajuste.",
+      countedAt: item.contado_em ? formatDateTimePtBr(item.contado_em) : "-",
       countedBy: extractRelationName(item.contado_por) ?? "-",
       secondCountedAt: item.segunda_contado_em
-        ? new Date(item.segunda_contado_em).toLocaleString("pt-BR")
+        ? formatDateTimePtBr(item.segunda_contado_em)
         : "-",
       secondCountedBy: extractRelationName(item.segunda_contado_por ?? null) ?? "-",
-      secondObservations: item.segunda_observacoes?.trim() || "Sem observações da segunda contagem.",
-      observations: item.observacoes?.trim() || "Sem observações.",
+      secondObservations: item.segunda_observacoes?.trim() || "Sem observaÃ§Ãµes da segunda contagem.",
+      observations: item.observacoes?.trim() || "Sem observaÃ§Ãµes.",
     };
   });
 
@@ -278,13 +279,13 @@ export async function getCycleCountDetailFromDb(
       titulo: header.titulo,
       depositanteId: header.depositante_id,
       depositante: extractRelationName(header.depositante) ?? "Sem depositante",
-      area: header.area ?? "Todas as áreas",
+      area: header.area ?? "Todas as Ã¡reas",
       status: header.status,
       blindCount: Boolean(header.contagem_cega),
-      observacoes: header.observacoes?.trim() || "Sem observações.",
-      createdAt: new Date(header.created_at).toLocaleString("pt-BR"),
-      startedAt: header.iniciado_em ? new Date(header.iniciado_em).toLocaleString("pt-BR") : "-",
-      completedAt: header.concluido_em ? new Date(header.concluido_em).toLocaleString("pt-BR") : "-",
+      observacoes: header.observacoes?.trim() || "Sem observaÃ§Ãµes.",
+      createdAt: formatDateTimePtBr(header.created_at),
+      startedAt: header.iniciado_em ? formatDateTimePtBr(header.iniciado_em) : "-",
+      completedAt: header.concluido_em ? formatDateTimePtBr(header.concluido_em) : "-",
       countedItems,
       totalItems: items.length,
       divergentItems,
@@ -312,7 +313,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     .single();
 
   if (headerError) {
-    throw new Error(`Não foi possível abrir a contagem: ${headerError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel abrir a contagem: ${headerError.message}`);
   }
 
   const { data: stockRows, error: stockError } = await supabase
@@ -322,7 +323,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     .gt("quantidade", 0);
 
   if (stockError) {
-    throw new Error(`Não foi possível capturar os saldos para contagem: ${stockError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel capturar os saldos para contagem: ${stockError.message}`);
   }
 
   const filteredRows = ((stockRows ?? []) as Array<{
@@ -359,7 +360,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
   );
 
   if (itemInsertError) {
-    throw new Error(`Não foi possível registrar os itens da contagem: ${itemInsertError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel registrar os itens da contagem: ${itemInsertError.message}`);
   }
 
   return { id: countHeader.id };
@@ -375,11 +376,11 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
     .maybeSingle();
 
   if (currentItemError) {
-    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel localizar o item da contagem: ${currentItemError.message}`);
   }
 
   if (!currentItem) {
-    throw new Error("Item da contagem não encontrado.");
+    throw new Error("Item da contagem nÃ£o encontrado.");
   }
 
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
@@ -410,7 +411,7 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
     .eq("id", input.cycleCountItemId);
 
   if (error) {
-    throw new Error(`Não foi possível registrar a contagem do item: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel registrar a contagem do item: ${error.message}`);
   }
 }
 
@@ -424,15 +425,15 @@ export async function registerSecondCycleCount(input: RegisterSecondCountInput) 
     .maybeSingle();
 
   if (currentItemError) {
-    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel localizar o item da contagem: ${currentItemError.message}`);
   }
 
   if (!currentItem) {
-    throw new Error("Item da contagem não encontrado.");
+    throw new Error("Item da contagem nÃ£o encontrado.");
   }
 
   if (currentItem.status !== "DIVERGENTE") {
-    throw new Error("A segunda contagem é liberada apenas para itens com divergência.");
+    throw new Error("A segunda contagem Ã© liberada apenas para itens com divergÃªncia.");
   }
 
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
@@ -454,7 +455,7 @@ export async function registerSecondCycleCount(input: RegisterSecondCountInput) 
     .eq("id", input.cycleCountItemId);
 
   if (error) {
-    throw new Error(`Não foi possível registrar a segunda contagem: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel registrar a segunda contagem: ${error.message}`);
   }
 }
 
@@ -474,11 +475,11 @@ export async function approveCycleCountAdjustment(input: {
     .maybeSingle();
 
   if (currentItemError) {
-    throw new Error(`Não foi possível localizar o item da contagem: ${currentItemError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel localizar o item da contagem: ${currentItemError.message}`);
   }
 
   if (!currentItem) {
-    throw new Error("Item da contagem não encontrado.");
+    throw new Error("Item da contagem nÃ£o encontrado.");
   }
 
   const approvedQuantity =
@@ -490,11 +491,11 @@ export async function approveCycleCountAdjustment(input: {
   const isBlocked = Boolean(stockRelation?.bloqueado);
 
   if (!Number.isFinite(countedQuantity)) {
-    throw new Error("Este item ainda não possui quantidade contada para ajuste.");
+    throw new Error("Este item ainda nÃ£o possui quantidade contada para ajuste.");
   }
 
   if (currentItem.status !== "DIVERGENTE") {
-    throw new Error("Apenas itens com divergência podem ser aprovados para ajuste.");
+    throw new Error("Apenas itens com divergÃªncia podem ser aprovados para ajuste.");
   }
 
   if (currentItem.ajuste_status === "APLICADO") {
@@ -502,7 +503,7 @@ export async function approveCycleCountAdjustment(input: {
   }
 
   if (isBlocked) {
-    throw new Error("Desbloqueie este saldo antes de aplicar o ajuste do inventário.");
+    throw new Error("Desbloqueie este saldo antes de aplicar o ajuste do inventÃ¡rio.");
   }
 
   const now = new Date().toISOString();
@@ -526,7 +527,7 @@ export async function approveCycleCountAdjustment(input: {
       .eq("id", currentItem.id);
 
     if (syncError) {
-      throw new Error(`Não foi possível sincronizar o item da contagem: ${syncError.message}`);
+      throw new Error(`NÃ£o foi possÃ­vel sincronizar o item da contagem: ${syncError.message}`);
     }
 
     return { alreadyApplied: false, movementType: "SEM_AJUSTE" as const };
@@ -540,7 +541,7 @@ export async function approveCycleCountAdjustment(input: {
     .eq("id", currentItem.estoque_id);
 
   if (stockUpdateError) {
-    throw new Error(`Não foi possível atualizar o saldo do estoque: ${stockUpdateError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel atualizar o saldo do estoque: ${stockUpdateError.message}`);
   }
 
   const sourceLabel =
@@ -549,7 +550,7 @@ export async function approveCycleCountAdjustment(input: {
       : "primeira contagem";
 
   const movementNote = [
-    `Ajuste de inventário aplicado a partir de ${sourceLabel} aprovada.`,
+    `Ajuste de inventÃ¡rio aplicado a partir de ${sourceLabel} aprovada.`,
     `Sistema: ${systemQuantity.toLocaleString("pt-BR")}.`,
     `Contado: ${countedQuantity.toLocaleString("pt-BR")}.`,
     normalizedNotes ?? "",
@@ -572,7 +573,7 @@ export async function approveCycleCountAdjustment(input: {
   });
 
   if (movementError) {
-    throw new Error(`Não foi possível registrar o ajuste do inventário: ${movementError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel registrar o ajuste do inventÃ¡rio: ${movementError.message}`);
   }
 
   const { error: itemUpdateError } = await supabase
@@ -591,7 +592,7 @@ export async function approveCycleCountAdjustment(input: {
     .eq("id", currentItem.id);
 
   if (itemUpdateError) {
-    throw new Error(`Não foi possível fechar o item da contagem: ${itemUpdateError.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel fechar o item da contagem: ${itemUpdateError.message}`);
   }
 
   return { alreadyApplied: false, movementType };
@@ -609,7 +610,7 @@ export async function completeCycleCount(cycleCountId: string) {
     .eq("id", cycleCountId);
 
   if (error) {
-    throw new Error(`Não foi possível concluir a contagem: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel concluir a contagem: ${error.message}`);
   }
 }
 
@@ -621,7 +622,7 @@ async function getCycleCountItemStats(cycleCountId: string) {
     .eq("contagem_id", cycleCountId);
 
   if (error) {
-    throw new Error(`Não foi possível carregar as estatísticas da contagem: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar as estatÃ­sticas da contagem: ${error.message}`);
   }
 
   const rows = (data ?? []) as Array<{ status: string }>;
@@ -677,14 +678,14 @@ function extractRelationField<T extends string>(
 }
 
 function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR");
+  return formatDatePtBr(new Date(`${value}T00:00:00`));
 }
 
 function buildTraceabilityProtocol(id: string, createdAt: string) {
-  const date = new Date(createdAt);
-  const dateStamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(
-    date.getDate(),
-  ).padStart(2, "0")}`;
+  const dateStamp = getSaoPauloDateStamp(createdAt) ?? "00000000";
 
   return `DEP-${dateStamp}-${id.slice(0, 8).toUpperCase()}`;
 }
+
+
+

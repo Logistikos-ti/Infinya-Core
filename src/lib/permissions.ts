@@ -72,7 +72,17 @@ export function hasRoleAccess(user: AppUserContext, roles: readonly AppRole[]) {
 
 export function getEffectiveModules(user: AppUserContext) {
   if (user.modulePermissions?.length) {
-    return user.modulePermissions;
+    const modules = [...user.modulePermissions];
+
+    if (
+      user.papel === "OPERADOR" &&
+      modules.includes("estoque") &&
+      !modules.includes("expedicao")
+    ) {
+      modules.push("expedicao");
+    }
+
+    return modules;
   }
 
   return [...roleDefaultModules[user.papel]];
