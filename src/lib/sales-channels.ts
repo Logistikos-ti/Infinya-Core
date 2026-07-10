@@ -1,4 +1,4 @@
-export type SalesChannelCode =
+﻿export type SalesChannelCode =
   | "MERCADO_LIVRE"
   | "SHOPEE"
   | "AMAZON"
@@ -22,7 +22,7 @@ export const SALES_CHANNEL_OPTIONS: readonly SalesChannelOption[] = [
   { value: "MAGAZINE_LUIZA", label: "Magazine Luiza", marketplace: true },
   { value: "OLIST", label: "Olist", marketplace: true },
   { value: "LOJA_INTEGRADA", label: "Loja Integrada", marketplace: false },
-  { value: "SITE_PROPRIO", label: "Site próprio", marketplace: false },
+  { value: "SITE_PROPRIO", label: "Site prÃ³prio", marketplace: false },
   { value: "VENDA_DIRETA", label: "Venda direta", marketplace: false },
   { value: "OUTRO", label: "Outro canal", marketplace: false },
 ] as const;
@@ -52,6 +52,8 @@ export function detectSalesChannelFromPayload(payload: Record<string, unknown>) 
 
   const loja = isRecord(payload.loja) ? payload.loja : null;
   const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
 
   const cnpj = normalizeDigits(readString(intermediador?.cnpj));
@@ -121,11 +123,11 @@ export function readMarketplaceDisplay(payload: Record<string, unknown>) {
   const manualCommercial = readManualCommercial(payload);
 
   if (typeof manualCommercial?.marketplace === "boolean") {
-    return manualCommercial.marketplace ? "Sim" : "Não";
+    return manualCommercial.marketplace ? "Sim" : "NÃ£o";
   }
 
   const detected = detectSalesChannelFromPayload(payload);
-  return detected?.marketplace ? "Sim" : "Não";
+  return detected?.marketplace ? "Sim" : "NÃ£o";
 }
 
 export function readStoreDisplay(
@@ -146,15 +148,17 @@ export function readStoreDisplay(
   const contato = isRecord(payload.contato) ? payload.contato : null;
   const loja = isRecord(payload.loja) ? payload.loja : null;
   const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
+  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
 
   return (
     readHumanStoreName(contato?.fantasia) ??
     readHumanStoreName(contato?.nomeFantasia) ??
     readHumanStoreName(contato?.nomeLoja) ??
+    readHumanStoreName(intermediador?.nomeUsuario) ??
     readHumanStoreName(unidadeNegocio?.id) ??
     readHumanStoreName(loja?.id) ??
     readHumanStoreName(storeNumberFallback) ??
-    "Loja não identificada"
+    "Loja nÃ£o identificada"
   );
 }
 
@@ -249,3 +253,4 @@ function readString(value: unknown) {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
+

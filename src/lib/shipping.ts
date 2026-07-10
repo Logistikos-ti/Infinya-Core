@@ -1,4 +1,4 @@
-import type { AppUserContext } from "@/lib/auth";
+﻿import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import {
   detectSalesChannelFromPayload,
@@ -232,7 +232,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
       return [] as ShippingOrderSummary[];
     }
 
-    throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel listar os pedidos de expediÃ§Ã£o: ${error.message}`);
   }
 
   const orders = ((data ?? []) as RawShippingOrderRow[]).map(mapShippingOrderSummary);
@@ -296,24 +296,24 @@ export async function listShippingStatsFromDb(
       value: String(orders.length),
       help:
         user.papel === "DEPOSITANTE"
-          ? "Pedidos de expedição visíveis para o seu depositante."
-          : "Pedidos vindos do Bling já espelhados no WMS.",
+          ? "Pedidos de expediÃ§Ã£o visÃ­veis para o seu depositante."
+          : "Pedidos vindos do Bling jÃ¡ espelhados no WMS.",
     },
     {
-      label: "Aguardando separação",
+      label: "Aguardando separaÃ§Ã£o",
       value: String(aguardando),
-      help: "Pedidos recém-chegados, aguardando início operacional.",
+      help: "Pedidos recÃ©m-chegados, aguardando inÃ­cio operacional.",
     },
     {
-      label: "Em execução",
+      label: "Em execuÃ§Ã£o",
       value: String(emSeparacao),
-      help: "Pedidos já em separação ou conferência.",
+      help: "Pedidos jÃ¡ em separaÃ§Ã£o ou conferÃªncia.",
     },
     {
       label: "Expedidos",
       value: String(expedidos),
       help: prontos
-        ? `${prontos} pedido(s) também já pronto(s) para romaneio.`
+        ? `${prontos} pedido(s) tambÃ©m jÃ¡ pronto(s) para romaneio.`
         : "Nenhum pedido aguardando romaneio no momento.",
     },
   ] as const;
@@ -325,22 +325,22 @@ export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSumma
     {
       status: "NOVO",
       label: "Entrada do Bling",
-      help: "Pedidos recém importados e aguardando liberação para separação.",
+      help: "Pedidos recÃ©m importados e aguardando liberaÃ§Ã£o para separaÃ§Ã£o.",
     },
     {
       status: "EM_SEPARACAO",
-      label: "Separação em andamento",
-      help: "Pedidos já em picking no armazém.",
+      label: "SeparaÃ§Ã£o em andamento",
+      help: "Pedidos jÃ¡ em picking no armazÃ©m.",
     },
     {
       status: "EM_CONFERENCIA",
-      label: "Conferência final",
-      help: "Pedidos em validação final antes do romaneio.",
+      label: "ConferÃªncia final",
+      help: "Pedidos em validaÃ§Ã£o final antes do romaneio.",
     },
     {
       status: "PRONTO_ROMANEIO",
       label: "Pronto para romaneio",
-      help: "Pedidos aptos para consolidação e despacho.",
+      help: "Pedidos aptos para consolidaÃ§Ã£o e despacho.",
     },
   ] as const;
 
@@ -365,7 +365,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
       return null;
     }
 
-    throw new Error(`Não foi possível carregar o pedido de expedição: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido de expediÃ§Ã£o: ${error.message}`);
   }
 
   if (!data) {
@@ -379,10 +379,10 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  const customer = order.cliente_nome?.trim() || "Cliente não informado";
+  const customer = order.cliente_nome?.trim() || "Cliente nÃ£o informado";
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-    "Destino não informado";
+    "Destino nÃ£o informado";
   const marketplace = extractMarketplace(payload);
   const invoice = extractInvoice(payload);
   const orderType = extractOrderType(payload, order.origem);
@@ -441,9 +441,9 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     units: Number(order.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     unitsRaw: Number(order.quantidade_unidades ?? 0),
     orderDate: formatBusinessDateTimeOrFallback(order.data_pedido, "Sem data"),
-    shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsão"),
+    shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsÃ£o"),
     expectedDate,
-    syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda não sincronizado"),
+    syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda nÃ£o sincronizado"),
     marketplace,
     invoice,
     carrierName,
@@ -451,7 +451,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     trackingCode,
     suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
     suppliesTotalCostRaw,
-    notes: order.observacoes?.trim() || "Sem observações.",
+    notes: order.observacoes?.trim() || "Sem observaÃ§Ãµes.",
     attachments,
     supplies,
     items,
@@ -471,7 +471,7 @@ async function listShippingAttachments(orderId: string, invoice: string, origin:
       return buildDefaultShippingAttachments([], invoice, orderId, origin);
     }
 
-    throw new Error(`Não foi possível carregar os anexos do pedido: ${error.message}`);
+    throw new Error(`NÃ£o foi possÃ­vel carregar os anexos do pedido: ${error.message}`);
   }
 
   return buildDefaultShippingAttachments((data ?? []) as RawStoredDocumentRow[], invoice, orderId, origin);
@@ -492,15 +492,15 @@ function buildDefaultShippingAttachments(
     buildAttachment(
       "XML_NF",
       nfDocument,
-      invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
-      "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
+      invoice !== "Ainda nÃ£o vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
+      "Anexe aqui o XML da nota fiscal quando o documento estiver disponÃ­vel no fluxo fiscal.",
       origin === "BLING" ? `/api/expedicao/${orderId}/nota-fiscal-preview` : null,
     ),
     buildAttachment(
       "ETIQUETA",
       labelDocument,
       "Etiqueta do marketplace",
-      "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
+      "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logÃ­stico.",
       null,
     ),
   ];
@@ -543,9 +543,9 @@ function buildAttachment(
 export function listShippingFlowSteps() {
   return [
     "Receber pedido do canal integrado",
-    "Reservar itens e abrir separação",
-    "Conferir volumes e divergências",
-    "Gerar romaneio e liberar expedição",
+    "Reservar itens e abrir separaÃ§Ã£o",
+    "Conferir volumes e divergÃªncias",
+    "Gerar romaneio e liberar expediÃ§Ã£o",
   ] as const;
 }
 
@@ -554,10 +554,10 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const storeDisplay = extractStore(payload, item.numero_loja);
   const marketplace = extractMarketplace(payload);
   const carrierName = extractCarrierName(payload);
-  const customer = item.cliente_nome?.trim() || "Cliente não informado";
+  const customer = item.cliente_nome?.trim() || "Cliente nÃ£o informado";
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-    "Destino não informado";
+    "Destino nÃ£o informado";
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
 
   return {
@@ -583,7 +583,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     createdAt: ageMeta.createdAtLabel,
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
-    syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
+    syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda nÃ£o sincronizado"),
   };
 }
 
@@ -677,7 +677,7 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
 function extractInvoice(payload: Record<string, unknown>) {
   const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
 
-  return readString(notaFiscal?.numero) ?? "Ainda não vinculada";
+  return readString(notaFiscal?.numero) ?? "Ainda nÃ£o vinculada";
 }
 
 function extractPlatformOrderNumber(
@@ -699,14 +699,27 @@ function extractPlatformOrderNumber(
 }
 
 function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: string | null) {
-  return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsão");
+  return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsÃ£o");
 }
 
 function extractCarrierName(payload: Record<string, unknown>) {
   const transporte = isRecord(payload.transporte) ? payload.transporte : null;
-  const transportador = transporte && isRecord(transporte.contato) ? transporte.contato : null;
+  const transportadorContato = transporte && isRecord(transporte.contato) ? transporte.contato : null;
+  const transportadorCadastro = transporte && isRecord(transporte.transportador) ? transporte.transportador : null;
+  const volumes = Array.isArray(transporte?.volumes) ? transporte.volumes : [];
+  const firstVolume = volumes.find((item) => isRecord(item));
+  const serviceName = firstVolume && isRecord(firstVolume) ? readString(firstVolume.servico) : null;
+  const trackingCode =
+    firstVolume && isRecord(firstVolume) ? readString(firstVolume.codigoRastreamento) : null;
+  const salesChannelCode =
+    readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
 
-  return readString(transportador?.nome) ?? "Transportadora não informada";
+  return (
+    readString(transportadorCadastro?.nome) ??
+    readString(transportadorContato?.nome) ??
+    inferCarrierNameFromService(serviceName, trackingCode, salesChannelCode) ??
+    "Transportadora nÃ£o informada"
+  );
 }
 
 function extractShippingService(payload: Record<string, unknown>) {
@@ -715,8 +728,8 @@ function extractShippingService(payload: Record<string, unknown>) {
   const firstVolume = volumes.find((item) => isRecord(item));
 
   return firstVolume && isRecord(firstVolume)
-    ? readString(firstVolume.servico) ?? "Serviço não informado"
-    : "Serviço não informado";
+    ? readString(firstVolume.servico) ?? "ServiÃ§o nÃ£o informado"
+    : "ServiÃ§o nÃ£o informado";
 }
 
 function extractTrackingCode(payload: Record<string, unknown>) {
@@ -725,8 +738,47 @@ function extractTrackingCode(payload: Record<string, unknown>) {
   const firstVolume = volumes.find((item) => isRecord(item));
 
   return firstVolume && isRecord(firstVolume)
-    ? readString(firstVolume.codigoRastreamento) ?? "Rastreio não informado"
-    : "Rastreio não informado";
+    ? readString(firstVolume.codigoRastreamento) ?? "Rastreio nÃ£o informado"
+    : "Rastreio nÃ£o informado";
+}
+
+function inferCarrierNameFromService(
+  serviceName: string | null,
+  trackingCode: string | null,
+  salesChannelCode: string | null,
+) {
+  const service = serviceName?.toLocaleLowerCase("pt-BR") ?? "";
+  const tracking = trackingCode?.toLocaleLowerCase("pt-BR") ?? "";
+
+  if (service.includes("amazon") || tracking.startsWith("amz")) {
+    return "Amazon Transportes";
+  }
+
+  if (service.includes("shopee")) {
+    return "Shopee Xpress";
+  }
+
+  if (service.includes("mercado envios") || tracking.startsWith("mel")) {
+    return "Mercado Envios";
+  }
+
+  if (service.includes("magalu") || service.includes("magazine")) {
+    return "Magalu Entregas";
+  }
+
+  if (service.includes("olist")) {
+    return "Olist";
+  }
+
+  if (service.includes("correios")) {
+    return "Correios";
+  }
+
+  if (salesChannelCode === "MERCADO_LIVRE" && service) {
+    return "Mercado Envios";
+  }
+
+  return serviceName;
 }
 
 function extractSupplies(payload: Record<string, unknown>) {
@@ -786,11 +838,11 @@ export function formatShippingStatusLabel(status: string) {
     case "NOVO":
       return "Novo";
     case "EM_SEPARACAO":
-      return "Em separação";
+      return "Em separaÃ§Ã£o";
     case "SEPARADO":
       return "Separado";
     case "EM_CONFERENCIA":
-      return "Em conferência";
+      return "Em conferÃªncia";
     case "CONFERIDO":
       return "Conferido";
     case "PRONTO_ROMANEIO":
@@ -811,3 +863,4 @@ function isShippingSchemaMissing(error: { code?: string; message?: string }) {
 function isShippingDocumentLinkMissing(error: { code?: string; message?: string }) {
   return error.code === "42703" || error.message?.includes("pedido_expedicao_id") === true;
 }
+
