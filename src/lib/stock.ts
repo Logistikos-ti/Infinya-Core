@@ -292,7 +292,7 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
     .eq("referencia_id", receivingOrderId);
 
   if (error) {
-    throw new Error(`NÃ£o foi possÃ­vel localizar os protocolos deste recebimento: ${error.message}`);
+    throw new Error(`Não foi possível localizar os protocolos deste recebimento: ${error.message}`);
   }
 
   const stockIds = [...new Set((movementRows ?? []).map((item) => item.estoque_id).filter(Boolean))] as string[];
@@ -310,7 +310,7 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
     .order("created_at", { ascending: false });
 
   if (stockError) {
-    throw new Error(`NÃ£o foi possÃ­vel carregar os saldos gerados por este recebimento: ${stockError.message}`);
+    throw new Error(`Não foi possível carregar os saldos gerados por este recebimento: ${stockError.message}`);
   }
 
   return ((stockRows ?? []) as RawStockRow[]).map((item) => {
@@ -362,7 +362,7 @@ export async function listStockExpiryAlertsFromDb(
         severity: daysToExpiry <= 7 ? "critico" : "atencao",
         severityLabel:
           daysToExpiry < 0
-            ? `Vencido hÃ¡ ${Math.abs(daysToExpiry)} dia(s)`
+            ? `Vencido há ${Math.abs(daysToExpiry)} dia(s)`
             : daysToExpiry === 0
               ? "Vence hoje"
               : `Vence em ${daysToExpiry} dia(s)`,
@@ -414,7 +414,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
         : "-",
     user: extractUserName(item.criado_por) ?? "Sistema",
     createdAt: formatDateTimePtBr(item.created_at),
-    notes: item.observacoes?.trim() || "Sem observaÃ§Ãµes.",
+    notes: item.observacoes?.trim() || "Sem observações.",
   }));
 
   const firstInboundMovement = (movementRows ?? []).find(
@@ -441,7 +441,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
         referenceValue: order.codigo,
         noteNumber: order.nota_fiscal_numero ?? "-",
         counterpartLabel: "Fornecedor",
-        counterpartValue: order.fornecedor_nome ?? "Fornecedor nÃ£o informado",
+        counterpartValue: order.fornecedor_nome ?? "Fornecedor não informado",
         launchedAt: formatDateTimePtBr(order.created_at),
         launchedBy: extractUserName(firstInboundMovement.criado_por) ?? "Sistema",
       };
@@ -450,9 +450,9 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     source = {
       kind: "INVENTARIO_INICIAL",
       referenceLabel: "Origem",
-      referenceValue: "InventÃ¡rio inicial",
+      referenceValue: "Inventário inicial",
       noteNumber: "-",
-      counterpartLabel: "ResponsÃ¡vel pelo lanÃ§amento",
+      counterpartLabel: "Responsável pelo lançamento",
       counterpartValue: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
       launchedAt: formatDateTimePtBr(firstInventoryMovement.created_at),
       launchedBy: extractUserName(firstInventoryMovement.criado_por) ?? "Sistema",
@@ -499,17 +499,17 @@ export async function listStockStatsFromDb(
 
   return [
     {
-      label: user.papel === "DEPOSITANTE" ? "Saldos visÃ­veis" : "Linhas de estoque",
+      label: user.papel === "DEPOSITANTE" ? "Saldos visíveis" : "Linhas de estoque",
       value: String(balances.length),
       help:
         user.papel === "DEPOSITANTE"
-          ? "Linhas de estoque disponÃ­veis para o seu depositante."
-          : "Saldos jÃ¡ lanÃ§ados no armazÃ©m.",
+          ? "Linhas de estoque disponíveis para o seu depositante."
+          : "Saldos já lançados no armazém.",
     },
     {
       label: "Lotes bloqueados",
       value: String(balances.filter((item) => item.status === "Bloqueado").length),
-      help: "Itens bloqueados no ambiente visÃ­vel.",
+      help: "Itens bloqueados no ambiente visível.",
     },
     {
       label: "Com validade",
@@ -517,9 +517,9 @@ export async function listStockStatsFromDb(
       help: "Linhas com controle de validade.",
     },
     {
-      label: "PrÃ³ximos ao vencimento",
+      label: "Próximos ao vencimento",
       value: String(expiryAlerts.length),
-      help: "Lotes com vencimento em atÃ© 30 dias dentro do filtro aplicado.",
+      help: "Lotes com vencimento em até 30 dias dentro do filtro aplicado.",
     },
   ] as const;
 }
