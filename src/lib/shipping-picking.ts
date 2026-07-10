@@ -173,7 +173,14 @@ type ShippingPickingQueryOptions = {
 };
 
 const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
-const activePickingStatuses = ["NOVO", "EM_SEPARACAO", "SEPARADO"] as const;
+const activePickingStatuses = [
+  "NOVO",
+  "EM_SEPARACAO",
+  "SEPARADO",
+  "EM_CONFERENCIA",
+  "CONFERIDO",
+  "PRONTO_ROMANEIO",
+] as const;
 
 export async function listPickingOperatorsFromDb(
   user: AppUserContext,
@@ -749,4 +756,3 @@ function readString(value: unknown) {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
-

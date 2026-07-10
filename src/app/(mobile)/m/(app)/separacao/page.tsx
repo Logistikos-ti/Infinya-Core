@@ -76,9 +76,9 @@ export default async function MobilePickingQueuePage({
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
           Separação
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Fila de picking</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-white">Fila operacional</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Abra um pedido e conclua a coleta diretamente no app.
+          Abra um pedido e continue a opera??o de sa?da diretamente no app.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -149,7 +149,7 @@ export default async function MobilePickingQueuePage({
             return (
               <Link
                 key={order.id}
-                href={`/m/separacao/${order.id}`}
+                href={getMobileShippingOrderHref(order.status, order.id)}
                 className={`block overflow-hidden rounded-[26px] border p-4 shadow-lg backdrop-blur transition active:scale-[0.99] ${tone.wrapper}`}
               >
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -199,12 +199,12 @@ export default async function MobilePickingQueuePage({
 
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-300">
-                      Toque para abrir o pedido e iniciar a leitura dos itens.
+                      {getMobileShippingOrderHelp(order.status)}
                     </p>
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold ${tone.cta}`}
                     >
-                      Iniciar
+                      {getMobileShippingOrderCta(order.status)}
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </div>
@@ -274,6 +274,46 @@ function QueueInfo({
       <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>
   );
+}
+
+function getMobileShippingOrderHref(status: string, orderId: string) {
+  if (["EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
+    return `/m/conferencia/${orderId}`;
+  }
+
+  return `/m/separacao/${orderId}`;
+}
+
+function getMobileShippingOrderCta(status: string) {
+  if (["EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
+    return "Conferir";
+  }
+
+  if (status === "SEPARADO") {
+    return "Validar";
+  }
+
+  if (status === "EM_SEPARACAO") {
+    return "Continuar";
+  }
+
+  return "Iniciar";
+}
+
+function getMobileShippingOrderHelp(status: string) {
+  if (["EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
+    return "Toque para abrir a confer?ncia do pedido e seguir o fluxo operacional.";
+  }
+
+  if (status === "SEPARADO") {
+    return "Pedido separado. Toque para revisar a coleta ou avan?ar no fluxo.";
+  }
+
+  if (status === "EM_SEPARACAO") {
+    return "Toque para retomar a separa??o e concluir os itens pendentes.";
+  }
+
+  return "Toque para abrir o pedido e iniciar a leitura dos itens.";
 }
 
 function InlineChip({
