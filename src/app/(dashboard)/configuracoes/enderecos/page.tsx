@@ -53,12 +53,12 @@ export default async function ConfiguracoesEnderecosPage({
     : null;
 
   const areaOptions = [
-    { value: "", label: "Todas as Ã¡reas" },
+    { value: "", label: "Todas as áreas" },
     { value: "RECEBIMENTO", label: "Recebimento" },
     { value: "PULMAO", label: "Armazenagem" },
     { value: "PICKING", label: "Picking" },
     { value: "BLOQUEADO", label: "Bloqueado" },
-    { value: "EXPEDICAO", label: "ExpediÃ§Ã£o" },
+    { value: "EXPEDICAO", label: "Expedição" },
   ];
 
   return (
@@ -68,12 +68,12 @@ export default async function ConfiguracoesEnderecosPage({
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Voltar para configuraÃ§Ãµes
+        Voltar para configurações
       </Link>
 
       <ModulePageHeader
-        title="EndereÃ§os"
-        description="Mapa fÃ­sico do armazÃ©m com Ã¡reas, corredores, mÃ³dulos, nÃ­veis e posiÃ§Ãµes operacionais."
+        title="Endereços"
+        description="Mapa físico do armazém com áreas, corredores, módulos, níveis e posições operacionais."
         badge="Semana 2"
       />
 
@@ -86,18 +86,18 @@ export default async function ConfiguracoesEnderecosPage({
           }`}
         >
           {feedback === "criado"
-            ? "EndereÃ§o criado com sucesso."
+            ? "Endereço criado com sucesso."
             : feedback === "salvo"
-              ? "EndereÃ§o atualizado com sucesso."
+              ? "Endereço atualizado com sucesso."
               : feedback === "excluido"
-                ? "EndereÃ§o excluÃ­do com sucesso."
+                ? "Endereço excluído com sucesso."
                 : feedback === "gerado"
-                  ? `${totalGenerated} endereÃ§os gerados ou atualizados com sucesso.`
+                  ? `${totalGenerated} endereços gerados ou atualizados com sucesso.`
                   : feedback === "vinculos"
-                    ? "NÃ£o foi possÃ­vel excluir este endereÃ§o porque ele jÃ¡ possui estoque vinculado. Nesse caso, use desativar."
+                    ? "Não foi possível excluir este endereço porque ele já possui estoque vinculado. Nesse caso, use desativar."
                     : feedback === "erro-geracao"
-                      ? "NÃ£o foi possÃ­vel gerar os endereÃ§os em massa. Revise os intervalos e tente novamente."
-                      : "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o solicitada."}
+                      ? "Não foi possível gerar os endereços em massa. Revise os intervalos e tente novamente."
+                      : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
 
@@ -106,11 +106,11 @@ export default async function ConfiguracoesEnderecosPage({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                {currentAddress ? "Editar endereÃ§o" : "Novo endereÃ§o"}
+                {currentAddress ? "Editar endereço" : "Novo endereço"}
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Cadastre ?reas como recebimento, armazenagem, picking, bloqueado e expedi??o com sua
-                posiÃ§Ã£o fÃ­sica.
+                Cadastre áreas como recebimento, armazenagem, picking, bloqueado e expedição com sua
+                posição física.
               </p>
             </div>
             <div className="rounded-full bg-sky-50 p-2 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -141,7 +141,7 @@ export default async function ConfiguracoesEnderecosPage({
                 href="/configuracoes/enderecos"
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
               >
-                Cancelar ediÃ§Ã£o
+                Cancelar edição
               </Link>
             </div>
           ) : null}
@@ -151,10 +151,10 @@ export default async function ConfiguracoesEnderecosPage({
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                EndereÃ§os cadastrados
+                Endereços cadastrados
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Estrutura fÃ­sica usada em recebimento, armazenagem, picking e expediÃ§Ã£o.
+                Estrutura física usada em recebimento, armazenagem, picking e expedição.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -181,15 +181,15 @@ export default async function ConfiguracoesEnderecosPage({
                         </p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                           {getAreaLabel(item.area)}
-                          {item.descricao ? ` â€¢ ${item.descricao}` : ""}
+                          {item.descricao ? ` • ${item.descricao}` : ""}
                         </p>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         <Badge>{item.rua || "Sem corredor"}</Badge>
-                        <Badge>{item.modulo || "Sem mÃ³dulo"}</Badge>
-                        <Badge>{item.nivel || "Sem nÃ­vel"}</Badge>
-                        <Badge>{item.posicao || "Sem posiÃ§Ã£o"}</Badge>
+                        <Badge>{item.modulo || "Sem módulo"}</Badge>
+                        <Badge>{item.nivel || "Sem nível"}</Badge>
+                        <Badge>{item.posicao || "Sem posição"}</Badge>
                         {item.unidade_padrao ? <Badge>{getUnidadeLabel(item.unidade_padrao)}</Badge> : null}
                         {item.capacidade_maxima !== null ? (
                           <Badge>Capacidade: {formatCapacity(item.capacidade_maxima)}</Badge>
@@ -248,7 +248,7 @@ export default async function ConfiguracoesEnderecosPage({
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                Nenhum endereÃ§o cadastrado ainda.
+                Nenhum endereço cadastrado ainda.
               </div>
             )}
           </div>
@@ -260,10 +260,10 @@ export default async function ConfiguracoesEnderecosPage({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
         <div>
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-            Gerar endereÃ§os em massa
+            Gerar endereços em massa
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Monte corredores, mÃ³dulos, nÃ­veis e posiÃ§Ãµes em lote para acelerar o setup do armazÃ©m.
+            Monte corredores, módulos, níveis e posições em lote para acelerar o setup do armazém.
           </p>
         </div>
 
@@ -276,7 +276,7 @@ export default async function ConfiguracoesEnderecosPage({
             Mapa 2D operacional
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Leitura visual inicial do galpÃ£o por corredor e mÃ³dulo, usando os endereÃ§os jÃ¡
+            Leitura visual inicial do galpão por corredor e módulo, usando os endereços já
             cadastrados no WMS.
           </p>
         </div>
@@ -360,7 +360,7 @@ function WarehouseMap2D({
   if (!ruas.length) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
-        Cadastre endereÃ§os com corredor, mÃ³dulo, nÃ­vel e posiÃ§Ã£o para visualizar o mapa.
+        Cadastre endereços com corredor, módulo, nível e posição para visualizar o mapa.
       </div>
     );
   }
@@ -380,7 +380,7 @@ function WarehouseMap2D({
               <div>
                 <p className="text-base font-semibold text-slate-950 dark:text-white">{rua}</p>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {ruaItems.length} endereÃ§os mapeados nesta rua
+                  {ruaItems.length} endereços mapeados nesta rua
                 </p>
               </div>
             </div>
@@ -406,7 +406,7 @@ function WarehouseMap2D({
                           {modulo}
                         </p>
                         <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                          {moduloItems.length} posiÃ§Ãµes
+                          {moduloItems.length} posições
                         </p>
                       </div>
                     </div>
@@ -448,7 +448,7 @@ function WarehouseMap2D({
                                         : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                                       : "border-dashed border-slate-200 bg-white text-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-600"
                                   }`}
-                                  title={slot?.codigo ?? "Sem endereÃ§o cadastrado"}
+                                  title={slot?.codigo ?? "Sem endereço cadastrado"}
                                 >
                                   {slot ? (
                                     <div className="flex h-full flex-col justify-between gap-2">
