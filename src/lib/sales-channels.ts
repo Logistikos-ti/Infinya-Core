@@ -53,8 +53,6 @@ export function detectSalesChannelFromPayload(payload: Record<string, unknown>) 
   const loja = isRecord(payload.loja) ? payload.loja : null;
   const unidadeNegocio = loja && isRecord(loja.unidadeNegocio) ? loja.unidadeNegocio : null;
   const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
-  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
-  const intermediador = isRecord(payload.intermediador) ? payload.intermediador : null;
 
   const cnpj = normalizeDigits(readString(intermediador?.cnpj));
   const login = readString(intermediador?.nomeUsuario);
