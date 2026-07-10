@@ -44,10 +44,10 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
-              className="rounded-2xl transition hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.99]"
               aria-label="Abrir menu"
             >
-              <InfinyaBrand compact className="min-w-0 flex-1" subtitle={user.nome} />
+              <InfinyaBrand compact className="w-full" />
             </button>
           </div>
         </header>
