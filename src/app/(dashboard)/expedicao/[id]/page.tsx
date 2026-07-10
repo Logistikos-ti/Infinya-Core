@@ -30,7 +30,7 @@ export default async function ShippingOrderDetailPage({
   const { id } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const feedback = resolvedSearchParams?.feedback?.trim() ?? "";
-  const order = await getShippingOrderDetailFromDb(id);
+  const order = await getShippingOrderDetailFromDb(id, user);
 
   if (!order) {
     notFound();

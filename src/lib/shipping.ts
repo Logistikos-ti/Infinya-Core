@@ -6,7 +6,7 @@ import {
   readMarketplaceDisplay,
   readStoreDisplay,
 } from "@/lib/sales-channels";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -200,7 +200,7 @@ export type ShippingOrderDetail = {
 };
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("pedidos_expedicao")
     .select(
@@ -350,8 +350,8 @@ export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSumma
   }));
 }
 
-export async function getShippingOrderDetailFromDb(id: string) {
-  const supabase = await createSupabaseServerClient();
+export async function getShippingOrderDetailFromDb(id: string, user?: AppUserContext) {
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
@@ -373,6 +373,11 @@ export async function getShippingOrderDetailFromDb(id: string) {
   }
 
   const order = data as RawShippingOrderDetailRow;
+
+  if (user?.papel === "DEPOSITANTE" && user.depositanteId && order.depositante_id !== user.depositanteId) {
+    return null;
+  }
+
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const customer = order.cliente_nome?.trim() || "Cliente não informado";
   const destination =
@@ -454,7 +459,7 @@ export async function getShippingOrderDetailFromDb(id: string) {
 }
 
 async function listShippingAttachments(orderId: string, invoice: string, origin: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("documentos_armazenados")
     .select("id, tipo, nome_arquivo, mime_type, created_at")

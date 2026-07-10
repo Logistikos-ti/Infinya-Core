@@ -10,10 +10,14 @@ type RouteContext = {
 };
 
 export async function GET(request: Request, context: RouteContext) {
-  await requireApiModuleAccess("expedicao");
+  const auth = await requireApiModuleAccess("expedicao");
+
+  if (auth.response) {
+    return auth.response;
+  }
 
   const { id } = await context.params;
-  const order = await getShippingOrderDetailFromDb(id);
+  const order = await getShippingOrderDetailFromDb(id, auth.user);
 
   if (!order) {
     return NextResponse.json({ error: "Pedido de expedição não encontrado." }, { status: 404 });

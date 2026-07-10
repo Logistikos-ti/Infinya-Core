@@ -1,5 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -53,7 +53,7 @@ export async function getMobileOperationsSnapshot(
     includeShipping?: boolean;
   },
 ): Promise<MobileOperationsSnapshot> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const depositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
   const includeReceiving = options?.includeReceiving ?? true;
   const includeShipping = options?.includeShipping ?? true;
@@ -94,7 +94,7 @@ export async function getMobileOperationsSnapshot(
 }
 
 async function getReceivingSnapshot(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   depositanteId?: string,
 ): Promise<MobileQueueSnapshot> {
   let baseQuery = supabase
@@ -127,7 +127,7 @@ async function getReceivingSnapshot(
 }
 
 async function getPickingSnapshot(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   depositanteId?: string,
 ): Promise<MobileQueueSnapshot> {
   let query = supabase
@@ -169,7 +169,7 @@ async function getPickingSnapshot(
 }
 
 async function getConferenceSnapshot(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   depositanteId?: string,
 ): Promise<MobileOperationsSnapshot["conference"]> {
   let firstQuery = supabase

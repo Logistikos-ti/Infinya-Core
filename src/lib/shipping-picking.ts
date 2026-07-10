@@ -1,7 +1,7 @@
 import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatShippingStatusLabel } from "@/lib/shipping";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -186,7 +186,7 @@ export async function listPickingOperatorsFromDb(
   user: AppUserContext,
   depositanteId?: string,
 ) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("usuarios")
     .select("id, nome, papel, depositante_id, ativo")
@@ -226,7 +226,7 @@ export async function listShippingPickingOrdersFromDb(
   filters?: ShippingPickingFilters,
   options?: ShippingPickingQueryOptions,
 ) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const effectiveDepositanteId =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : filters?.depositanteId;
   const includeRouteData = options?.includeRouteData ?? false;
@@ -275,7 +275,7 @@ export async function listShippingPickingOrdersFromDb(
 }
 
 export async function getShippingPickingOrderFromDb(user: AppUserContext, id: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await buildPickingOrdersQuery(supabase).eq("id", id).maybeSingle();
 
   if (error) {
@@ -412,14 +412,14 @@ function mapPickingItem(
   } satisfies ShippingPickingItem;
 }
 
-function buildPickingOrdersQuery(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
     "id, codigo, created_at, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
   );
 }
 
 async function loadPickingStockRows(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
   orders: RawPickingOrderRow[],
 ) {
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];

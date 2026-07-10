@@ -1,7 +1,7 @@
 import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatShippingStatusLabel } from "@/lib/shipping";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -104,7 +104,7 @@ export async function listShippingConferenceOrdersFromDb(
   user: AppUserContext,
   filters?: ShippingConferenceFilters,
 ) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const effectiveDepositanteId =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : filters?.depositanteId;
 
@@ -141,7 +141,7 @@ export async function listShippingConferenceOrdersFromDb(
 }
 
 export async function getShippingConferenceOrderFromDb(user: AppUserContext, id: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const effectiveDepositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
 
   let query = supabase
