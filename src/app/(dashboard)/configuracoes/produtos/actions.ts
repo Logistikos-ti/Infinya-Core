@@ -137,7 +137,9 @@ export async function saveProdutoAction(
     }
 
     revalidatePath("/configuracoes/produtos");
+    revalidatePath("/m/produtos");
     revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
+    revalidatePath(`/m/produtos/${parsed.data.id}/editar`);
     if (returnPath) {
       revalidatePath(returnPath);
       redirect(`${returnPath}?feedback=salvo`);

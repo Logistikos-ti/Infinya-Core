@@ -38,6 +38,21 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   }
 
   const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
+  const formKey = [
+    product.id,
+    product.depositante_id,
+    product.codigo_interno ?? "",
+    product.codigo_externo ?? "",
+    product.sku ?? "",
+    product.nome ?? "",
+    product.categoria ?? "",
+    product.metodo_retirada ?? "",
+    product.unidade_estocagem ?? "",
+    String(product.quantidade_por_embalagem ?? ""),
+    String(product.exige_lote),
+    String(product.exige_validade),
+    String(product.ativo),
+  ].join("|");
 
   return (
     <div className="space-y-6">
@@ -61,6 +76,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <ProdutoForm
+          key={formKey}
           depositantes={visibleDepositantes}
           compactMode={compactMode}
           defaultValues={{

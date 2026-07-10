@@ -37,6 +37,21 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
   }
 
   const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const formKey = [
+    product.id,
+    product.depositante_id,
+    product.codigo_interno ?? "",
+    product.codigo_externo ?? "",
+    product.sku ?? "",
+    product.nome ?? "",
+    product.categoria ?? "",
+    product.metodo_retirada ?? "",
+    product.unidade_estocagem ?? "",
+    String(product.quantidade_por_embalagem ?? ""),
+    String(product.exige_lote),
+    String(product.exige_validade),
+    String(product.ativo),
+  ].join("|");
 
   return (
     <div className="space-y-4">
@@ -57,6 +72,7 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
       </section>
 
       <ProdutoForm
+        key={formKey}
         depositantes={visibleDepositantes}
         compactMode={compactMode}
         returnPath="/m/produtos"

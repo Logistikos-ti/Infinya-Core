@@ -91,6 +91,21 @@ export function ProdutoForm({
     onDetected: handleBarcodeDetected,
   });
 
+  useEffect(() => {
+    setEanGtinValue(defaultValues?.eanGtin ?? "");
+    setDepositanteId(
+      defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
+    );
+    setMetodoRetirada(defaultValues?.metodoRetirada ?? "FEFO");
+    setUnidadeEstocagem(defaultValues?.unidadeEstocagem ?? "UNIDADE");
+  }, [
+    defaultValues?.eanGtin,
+    defaultValues?.depositanteId,
+    defaultValues?.metodoRetirada,
+    defaultValues?.unidadeEstocagem,
+    depositantes,
+  ]);
+
   return (
     <form
       action={formAction}
