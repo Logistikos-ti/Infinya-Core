@@ -1,21 +1,31 @@
-﻿import { redirect } from "next/navigation";
-import { getCurrentUserContext } from "@/lib/auth";
-import { canAccessModule, canManageMultipleTenants } from "@/lib/permissions";
+import { requireModuleAccess } from "@/lib/auth";
+import { canManageMultipleTenants } from "@/lib/permissions";
+import {
+  listStockBalancesFromDb,
+  listStockExpiryAlertsFromDb,
+  listStockMovementsFromDb,
+  listStockStatsFromDb,
+  listStockTraceabilityProtocolsFromDb,
+} from "@/lib/stock";
 import { listCycleCountsFromDb } from "@/lib/stock-cycle-counts";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { listStockBalancesFromDb } from "@/lib/stock";
 
-export async function getMobileStockPageData() {
-  const user = await getCurrentUserContext();
+type StockSearchParams = {
+  depositante?: string;
+  produto?: string;
+  area?: string;
+  lote?: string;
+};
 
-  if (!user || !user.ativo) {
-    redirect("/m/login");
-  }
-
-  if (!canAccessModule(user, "estoque")) {
-    redirect("/m/inicio");
-  }
+export async function getDesktopStockPageData(params?: StockSearchParams) {
+  const user = await requireModuleAccess("estoque");
+  const depositanteFilter = params?.depositante?.trim() ?? "";
+  const productFilter = params?.produto?.trim() ?? "";
+  const areaFilter = params?.area?.trim() ?? "";
+  const lotFilter = params?.lote?.trim() ?? "";
+  const effectiveDepositanteFilter =
+    user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
   const adminSupabase = createSupabaseAdminClient();
   const { data: depositantes } = await adminSupabase
@@ -25,7 +35,6 @@ export async function getMobileStockPageData() {
     .order("nome");
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
-
   const [{ data: produtosAtivos }, { data: enderecosAtivos }] = await Promise.all([
     adminSupabase
       .from("produtos")
@@ -58,11 +67,23 @@ export async function getMobileStockPageData() {
     area: item.area,
   }));
 
-  const effectiveDepositanteFilter =
-    user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteOptions[0]?.id ?? "";
-  const stockBalances = await listStockBalancesFromDb({
+  const filters = {
     depositanteId: effectiveDepositanteFilter || undefined,
-  });
+    productTerm: productFilter || undefined,
+    area: areaFilter || undefined,
+    lot: lotFilter || undefined,
+  };
+
+  const [stockBalances, stockMovements] = await Promise.all([
+    listStockBalancesFromDb(filters),
+    listStockMovementsFromDb(filters),
+  ]);
+  const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards] = await Promise.all([
+    listStockExpiryAlertsFromDb(filters, 30, stockBalances),
+    listStockTraceabilityProtocolsFromDb(filters, stockBalances),
+    listStockStatsFromDb(user, filters, stockBalances),
+  ]);
+  const cycleCountsResult = await listCycleCountsFromDb(filters.depositanteId);
   const stockTransferSources = stockBalances
     .filter(
       (item) =>
@@ -78,17 +99,23 @@ export async function getMobileStockPageData() {
     }))
     .filter((item) => item.enderecoId);
 
-  const cycleCountsResult = await listCycleCountsFromDb(effectiveDepositanteFilter || undefined);
-
   return {
     user,
-    cycleCountsResult,
+    depositanteFilter,
+    productFilter,
+    areaFilter,
+    lotFilter,
+    effectiveDepositanteFilter,
     depositanteOptions,
     produtosInventario,
     enderecosInventario,
+    stockBalances,
+    stockMovements,
+    stockExpiryAlerts,
+    traceabilityProtocols,
+    stockStatsCards,
+    cycleCountsResult,
     stockTransferSources,
-    defaultDepositanteId: effectiveDepositanteFilter,
     canSelectDepositante: canManageMultipleTenants(user),
   };
 }
-

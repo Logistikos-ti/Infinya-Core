@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import { ArrowRightLeft, MoveRight } from "lucide-react";
@@ -57,7 +57,7 @@ export function StockTransferForm({
         .filter((item) => item.value !== selectedSource?.enderecoId)
         .map((item) => ({
           value: item.value,
-          label: `${item.label} â€¢ ${formatAreaLabel(item.area)}`,
+          label: `${item.label} • ${formatAreaLabel(item.area)}`,
         })),
     [addresses, selectedSource],
   );
@@ -67,7 +67,7 @@ export function StockTransferForm({
     setFeedback(null);
 
     if (!depositanteId) {
-      setFeedback({ type: "error", message: "Selecione o depositante da movimentaÃ§Ã£o." });
+      setFeedback({ type: "error", message: "Selecione o depositante da movimentação." });
       return;
     }
 
@@ -77,7 +77,7 @@ export function StockTransferForm({
     }
 
     if (!destinationAddressId) {
-      setFeedback({ type: "error", message: "Selecione um endereÃ§o de destino." });
+      setFeedback({ type: "error", message: "Selecione um endereço de destino." });
       return;
     }
 
@@ -106,14 +106,14 @@ export function StockTransferForm({
       if (!response.ok) {
         setFeedback({
           type: "error",
-          message: payload.error ?? "NÃ£o foi possÃ­vel concluir a transferÃªncia interna.",
+          message: payload.error ?? "Não foi possível concluir a transferência interna.",
         });
         return;
       }
 
       setFeedback({
         type: "success",
-        message: payload.message ?? "TransferÃªncia interna concluÃ­da com sucesso.",
+        message: payload.message ?? "Transferência interna concluída com sucesso.",
       });
       setStockId("");
       setDestinationAddressId("");
@@ -122,7 +122,7 @@ export function StockTransferForm({
     } catch {
       setFeedback({
         type: "error",
-        message: "Falha de comunicaÃ§Ã£o ao transferir o estoque.",
+        message: "Falha de comunicação ao transferir o estoque.",
       });
     } finally {
       setIsSubmitting(false);
@@ -134,15 +134,15 @@ export function StockTransferForm({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-            MovimentaÃ§Ã£o interna
+            Movimentação interna
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Transfira saldo entre endereÃ§os do armazÃ©m com rastreabilidade completa de origem,
+            Transfira saldo entre endereços do armazém com rastreabilidade completa de origem,
             destino, operador e quantidade.
           </p>
         </div>
         <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
-          TransferÃªncia
+          Transferência
         </span>
       </div>
 
@@ -169,13 +169,13 @@ export function StockTransferForm({
             options={
               filteredSources.length
                 ? filteredSources.map((item) => ({ value: item.value, label: item.label }))
-                : [{ value: "", label: "Nenhum saldo disponÃ­vel para transferir" }]
+                : [{ value: "", label: "Nenhum saldo disponível para transferir" }]
             }
             disabled={!filteredSources.length}
           />
 
           <FancySelectInput
-            label="EndereÃ§o de destino"
+            label="Endereço de destino"
             name="destinationAddressId"
             value={destinationAddressId}
             onChange={setDestinationAddressId}
@@ -251,10 +251,8 @@ function formatAreaLabel(area: string) {
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "ExpediÃ§Ã£o";
+      return "Expedição";
     default:
       return area;
   }
 }
-
-

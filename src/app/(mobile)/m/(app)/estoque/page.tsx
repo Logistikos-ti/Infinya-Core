@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Boxes, ClipboardList, MoveRight, PlusCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
@@ -7,22 +7,22 @@ import { canAccessModule } from "@/lib/permissions";
 const actionCards = [
   {
     href: "/m/estoque/saldo-inicial",
-    title: "Lancar estoque inicial",
-    description: "Bipe endereco e produto para registrar a primeira carga de saldo.",
+    title: "Lançar estoque inicial",
+    description: "Bipe endereço e produto para registrar a primeira carga de saldo.",
     icon: PlusCircle,
     tone: "from-cyan-500/20 to-sky-500/10 text-cyan-200",
   },
   {
     href: "/m/estoque/movimentacao-interna",
-    title: "Movimentacao interna",
-    description: "Transfira saldo entre enderecos com rastreabilidade completa.",
+    title: "Movimentação interna",
+    description: "Transfira saldo entre endereços com rastreabilidade completa.",
     icon: MoveRight,
     tone: "from-violet-500/20 to-fuchsia-500/10 text-violet-200",
   },
   {
     href: "/m/estoque/inventarios",
-    title: "Inventario ciclico",
-    description: "Abra contagens cegas, registre divergencias e segunda conferencia.",
+    title: "Inventário cíclico",
+    description: "Abra contagens cegas, registre divergências e segunda conferência.",
     icon: ClipboardList,
     tone: "from-amber-500/20 to-orange-500/10 text-amber-200",
   },
@@ -89,3 +89,4 @@ export default async function MobileEstoquePage() {
     </div>
   );
 }
+

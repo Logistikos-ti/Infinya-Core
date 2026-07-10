@@ -1,24 +1,19 @@
-﻿import Link from "next/link";
-import { AlertTriangle, Archive, Boxes, Download, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  Archive,
+  Boxes,
+  ClipboardList,
+  Download,
+  MoveRight,
+  PlusCircle,
+  ShieldAlert,
+} from "lucide-react";
 import { StockFiltersForm } from "@/components/estoque/stock-filters-form";
-import { StockInitialEntryForm } from "@/components/estoque/stock-initial-entry-form";
-import { StockCycleCountCreateForm } from "@/components/estoque/stock-cycle-count-create-form";
-import { StockTransferForm } from "@/components/estoque/stock-transfer-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
-import { requireModuleAccess } from "@/lib/auth";
-import { canManageMultipleTenants } from "@/lib/permissions";
-import {
-  listStockBalancesFromDb,
-  listStockExpiryAlertsFromDb,
-  listStockMovementsFromDb,
-  listStockStatsFromDb,
-  listStockTraceabilityProtocolsFromDb,
-} from "@/lib/stock";
-import { listCycleCountsFromDb } from "@/lib/stock-cycle-counts";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { getDesktopStockPageData } from "./_lib";
 
 type EstoquePageProps = {
   searchParams?: Promise<{
@@ -35,185 +30,135 @@ const areaOptions = [
   { value: "PULMAO", label: "Armazenagem" },
   { value: "PICKING", label: "Picking" },
   { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "ExpediÃ§Ã£o" },
+  { value: "EXPEDICAO", label: "Expedição" },
+];
+
+const stockActionCards = [
+  {
+    href: "/estoque/saldo-inicial",
+    title: "Lançar estoque inicial",
+    description: "Abra a tela dedicada para bipar endereço e produto na primeira carga de saldo.",
+    icon: PlusCircle,
+    tone:
+      "border-cyan-200 bg-gradient-to-br from-cyan-50 to-sky-50 text-cyan-700 dark:border-cyan-500/30 dark:from-cyan-500/10 dark:to-sky-500/10 dark:text-cyan-200",
+  },
+  {
+    href: "/estoque/movimentacao-interna",
+    title: "Movimentação interna",
+    description: "Transfira saldos entre endereços com origem, destino e quantidade rastreáveis.",
+    icon: MoveRight,
+    tone:
+      "border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 text-violet-700 dark:border-violet-500/30 dark:from-violet-500/10 dark:to-fuchsia-500/10 dark:text-violet-200",
+  },
+  {
+    href: "/estoque/inventarios/novo",
+    title: "Inventário cíclico",
+    description: "Crie contagens cegas por depositante e área sem misturar com a consulta geral.",
+    icon: ClipboardList,
+    tone:
+      "border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700 dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-200",
+  },
 ];
 
 export default async function EstoquePage({ searchParams }: EstoquePageProps) {
-  const user = await requireModuleAccess("estoque");
   const params = searchParams ? await searchParams : undefined;
-  const depositanteFilter = params?.depositante?.trim() ?? "";
-  const productFilter = params?.produto?.trim() ?? "";
-  const areaFilter = params?.area?.trim() ?? "";
-  const lotFilter = params?.lote?.trim() ?? "";
-  const effectiveDepositanteFilter =
-    user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
-
-  const adminSupabase = createSupabaseAdminClient();
-  const { data: depositantes } = await adminSupabase
-    .from("depositantes")
-    .select("id, nome")
-    .eq("ativo", true)
-    .order("nome");
-
-  const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
-  const [{ data: produtosAtivos }, { data: enderecosAtivos }] = await Promise.all([
-    adminSupabase
-      .from("produtos")
-      .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo, exige_lote, exige_validade")
-      .eq("ativo", true)
-      .order("nome"),
-    adminSupabase
-      .from("enderecos")
-      .select("id, codigo, area")
-      .eq("ativo", true)
-      .order("codigo"),
-  ]);
-
-  const visibleDepositanteIds = new Set(depositanteOptions.map((item) => item.id));
-  const produtosInventario = (produtosAtivos ?? [])
-    .filter((item) => visibleDepositanteIds.has(item.depositante_id))
-    .map((item) => ({
-      id: item.id,
-      depositanteId: item.depositante_id,
-      nome: item.nome,
-      sku: item.sku,
-      codigoInterno: item.codigo_interno,
-      codigoExterno: item.codigo_externo,
-      exigeLote: item.exige_lote,
-      exigeValidade: item.exige_validade,
-    }));
-  const enderecosInventario = (enderecosAtivos ?? []).map((item) => ({
-    id: item.id,
-    codigo: item.codigo,
-    area: item.area,
-  }));
-
-  const filters = {
-    depositanteId: effectiveDepositanteFilter || undefined,
-    productTerm: productFilter || undefined,
-    area: areaFilter || undefined,
-    lot: lotFilter || undefined,
-  };
-
-  const [stockBalances, stockMovements] = await Promise.all([
-    listStockBalancesFromDb(filters),
-    listStockMovementsFromDb(filters),
-  ]);
-  const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards] = await Promise.all([
-    listStockExpiryAlertsFromDb(filters, 30, stockBalances),
-    listStockTraceabilityProtocolsFromDb(filters, stockBalances),
-    listStockStatsFromDb(user, filters, stockBalances),
-  ]);
-  const cycleCountsResult = await listCycleCountsFromDb(filters.depositanteId);
-  const stockTransferSources = stockBalances
-    .filter(
-      (item) =>
-        item.status === "DisponÃ­vel" &&
-        Number(item.saldo.replace(/\./g, "").replace(",", ".")) > 0,
-    )
-    .map((item) => ({
-      value: item.id,
-      depositanteId: item.depositanteId,
-      enderecoId:
-        enderecosInventario.find((endereco) => endereco.codigo === item.endereco)?.id ?? "",
-      label: `${item.protocol} â€¢ ${item.sku} â€¢ ${item.productName} â€¢ ${item.endereco} â€¢ saldo ${item.saldo}`,
-    }))
-    .filter((item) => item.enderecoId);
+  const data = await getDesktopStockPageData(params);
 
   return (
     <div className="space-y-6">
       <ModulePageHeader
         title="Estoque"
-        description="Consulta operacional de saldos por depositante, produto, Ã¡rea, lote e rastreabilidade."
+        description="Consulta operacional de saldos por depositante, produto, área, lote e rastreabilidade."
         badge="Log"
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={Boxes}
-          label={stockStatsCards[0].label}
-          value={stockStatsCards[0].value}
-          help={stockStatsCards[0].help}
+          label={data.stockStatsCards[0].label}
+          value={data.stockStatsCards[0].value}
+          help={data.stockStatsCards[0].help}
         />
         <StatCard
           icon={ShieldAlert}
-          label={stockStatsCards[1].label}
-          value={stockStatsCards[1].value}
-          help={stockStatsCards[1].help}
+          label={data.stockStatsCards[1].label}
+          value={data.stockStatsCards[1].value}
+          help={data.stockStatsCards[1].help}
         />
         <StatCard
           icon={Archive}
-          label={stockStatsCards[2].label}
-          value={stockStatsCards[2].value}
-          help={stockStatsCards[2].help}
+          label={data.stockStatsCards[2].label}
+          value={data.stockStatsCards[2].value}
+          help={data.stockStatsCards[2].help}
         />
         <StatCard
           icon={AlertTriangle}
-          label={stockStatsCards[3].label}
-          value={stockStatsCards[3].value}
-          help={stockStatsCards[3].help}
+          label={data.stockStatsCards[3].label}
+          value={data.stockStatsCards[3].value}
+          help={data.stockStatsCards[3].help}
         />
       </section>
 
-      <StockInitialEntryForm
-        depositantes={depositanteOptions.map((item) => ({
-          value: item.id,
-          label: item.nome,
-        }))}
-        produtos={produtosInventario}
-        enderecos={enderecosInventario}
-        defaultDepositanteId={effectiveDepositanteFilter}
-        canSelectDepositante={canManageMultipleTenants(user)}
-      />
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+            Ações operacionais
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Escolha o fluxo que deseja executar. Cada operação abre sua própria tela para deixar o
+            uso mais limpo e intuitivo.
+          </p>
+        </div>
 
-      <StockTransferForm
-        depositantes={depositanteOptions.map((item) => ({
-          value: item.id,
-          label: item.nome,
-        }))}
-        addresses={enderecosInventario.map((item) => ({
-          value: item.id,
-          label: item.codigo,
-          area: item.area,
-        }))}
-        stockSources={stockTransferSources}
-        defaultDepositanteId={effectiveDepositanteFilter}
-        canSelectDepositante={canManageMultipleTenants(user)}
-      />
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          {stockActionCards.map((card) => {
+            const Icon = card.icon;
 
-      <StockCycleCountCreateForm
-        available={cycleCountsResult.available}
-        depositantes={depositanteOptions.map((item) => ({
-          value: item.id,
-          label: item.nome,
-        }))}
-        areas={areaOptions}
-        defaultDepositanteId={effectiveDepositanteFilter}
-        canSelectDepositante={canManageMultipleTenants(user)}
-      />
+            return (
+              <Link
+                key={card.href}
+                href={card.href}
+                className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-sm ${card.tone}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold">{card.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/70 p-3 shadow-sm dark:bg-slate-950/40">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Contagens cÃ­clicas recentes
+              Contagens cíclicas recentes
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Acompanhe o avanÃ§o das contagens em andamento e entre direto nos itens para registrar
-              divergÃªncias.
+              Acompanhe o avanço das contagens em andamento e entre direto nos itens para registrar
+              divergências.
             </p>
           </div>
           <span className="rounded-full bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
-            {cycleCountsResult.available
-              ? `${cycleCountsResult.data.length} contagem(ns)`
-              : "MigraÃ§Ã£o pendente"}
+            {data.cycleCountsResult.available
+              ? `${data.cycleCountsResult.data.length} contagem(ns)`
+              : "Migração pendente"}
           </span>
         </div>
 
         <div className="mt-5 space-y-3">
-          {cycleCountsResult.available ? (
-            cycleCountsResult.data.length ? (
-              cycleCountsResult.data.map((count) => (
+          {data.cycleCountsResult.available ? (
+            data.cycleCountsResult.data.length ? (
+              data.cycleCountsResult.data.map((count) => (
                 <Link
                   key={count.id}
                   href={`/estoque/inventarios/${count.id}`}
@@ -225,7 +170,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                         {count.titulo}
                       </p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {count.depositante} â€¢ {count.area} â€¢ {count.createdAt}
+                        {count.depositante} • {count.area} • {count.createdAt}
                       </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
@@ -236,18 +181,19 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                   <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-3">
                     <p>Itens: {count.totalItems}</p>
                     <p>Contados: {count.countedItems}</p>
-                    <p>DivergÃªncias: {count.divergentItems}</p>
+                    <p>Divergências: {count.divergentItems}</p>
                   </div>
                 </Link>
               ))
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
-                Nenhuma contagem cÃ­clica criada atÃ© o momento.
+                Nenhuma contagem cíclica criada até o momento.
               </div>
             )
           ) : (
             <div className="rounded-2xl border border-dashed border-amber-200 px-4 py-8 text-center text-sm text-amber-700 dark:border-amber-500/30 dark:text-amber-300">
-              Assim que a nova migraÃ§Ã£o do Supabase for executada, as contagens cÃ­clicas aparecerÃ£o aqui.
+              Assim que a nova migração do Supabase for executada, as contagens cíclicas aparecerão
+              aqui.
             </div>
           )}
         </div>
@@ -260,18 +206,18 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               Alertas de vencimento
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              O sistema destaca lotes vencidos ou com vencimento em atÃ© 30 dias para aÃ§Ã£o
+              O sistema destaca lotes vencidos ou com vencimento em até 30 dias para ação
               operacional imediata.
             </p>
           </div>
           <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
-            {stockExpiryAlerts.filter((item) => item.severity === "critico").length} crÃ­tico(s)
+            {data.stockExpiryAlerts.filter((item) => item.severity === "critico").length} crítico(s)
           </span>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {stockExpiryAlerts.length ? (
-            stockExpiryAlerts.map((item) => (
+          {data.stockExpiryAlerts.length ? (
+            data.stockExpiryAlerts.map((item) => (
               <Link
                 key={item.id}
                 href={`/estoque/protocolos/${item.id}`}
@@ -287,7 +233,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                       {item.protocol}
                     </p>
                     <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                      {item.depositante} â€¢ {item.sku} â€¢ {item.productName}
+                      {item.depositante} • {item.sku} • {item.productName}
                     </p>
                   </div>
                   <span
@@ -302,8 +248,8 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                 </div>
 
                 <div className="mt-3 grid gap-2 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
-                  <p>Ãrea: {formatAreaLabel(item.area)}</p>
-                  <p>EndereÃ§o: {item.endereco}</p>
+                  <p>Área: {formatAreaLabel(item.area)}</p>
+                  <p>Endereço: {item.endereco}</p>
                   <p>Lote: {item.lote}</p>
                   <p>Saldo: {item.saldo}</p>
                   <p>Validade: {item.expiryDate}</p>
@@ -312,7 +258,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
-              Nenhum lote prÃ³ximo ao vencimento dentro do filtro atual.
+              Nenhum lote próximo ao vencimento dentro do filtro atual.
             </div>
           )}
         </div>
@@ -325,22 +271,22 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
               Consulta de estoque
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Filtre os saldos por depositante, produto, Ã¡rea e lote para localizar rapidamente a
-              posiÃ§Ã£o certa.
+              Filtre os saldos por depositante, produto, área e lote para localizar rapidamente a
+              posição certa.
             </p>
           </div>
           <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-            {stockBalances.length} saldo(s)
+            {data.stockBalances.length} saldo(s)
           </span>
         </div>
 
         <StockFiltersForm
-          depositante={effectiveDepositanteFilter}
-          produto={productFilter}
-          area={areaFilter}
-          lote={lotFilter}
-          canSelectDepositante={canManageMultipleTenants(user)}
-          depositantes={depositanteOptions.map((depositante) => ({
+          depositante={data.effectiveDepositanteFilter}
+          produto={data.productFilter}
+          area={data.areaFilter}
+          lote={data.lotFilter}
+          canSelectDepositante={data.canSelectDepositante}
+          depositantes={data.depositanteOptions.map((depositante) => ({
             value: depositante.id,
             label: depositante.nome,
           }))}
@@ -354,7 +300,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             Saldos monitorados
           </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Estoque real lanÃ§ado a partir do fluxo de recebimento e das prÃ³ximas movimentaÃ§Ãµes.
+            Estoque real lançado a partir do fluxo de recebimento e das próximas movimentações.
           </p>
 
           <div className="mt-5 overflow-x-auto">
@@ -365,17 +311,17 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                   <th className="pb-3 font-medium">SKU</th>
                   <th className="pb-3 font-medium">Produto</th>
                   <th className="pb-3 font-medium">Depositante</th>
-                  <th className="pb-3 font-medium">Ãrea</th>
-                  <th className="pb-3 font-medium">EndereÃ§o</th>
+                  <th className="pb-3 font-medium">Área</th>
+                  <th className="pb-3 font-medium">Endereço</th>
                   <th className="pb-3 font-medium">Lote</th>
                   <th className="pb-3 font-medium">Saldo</th>
-                  <th className="pb-3 font-medium">MÃ©todo</th>
+                  <th className="pb-3 font-medium">Método</th>
                   <th className="pb-3 font-medium">Validade</th>
                   <th className="pb-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {stockBalances.map((item) => (
+                {data.stockBalances.map((item) => (
                   <tr
                     key={`${item.id}-${item.sku}-${item.lote}`}
                     className="border-b border-slate-100 last:border-b-0 dark:border-zinc-800"
@@ -388,21 +334,13 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                         {item.protocol}
                       </Link>
                     </td>
-                    <td className="py-3 font-medium text-slate-900 dark:text-white">
-                      {item.sku}
-                    </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {item.productName}
-                    </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {item.depositante}
-                    </td>
+                    <td className="py-3 font-medium text-slate-900 dark:text-white">{item.sku}</td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.productName}</td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.depositante}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-300">
                       {formatAreaLabel(item.area)}
                     </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {item.endereco}
-                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.endereco}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-300">{item.lote}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-300">{item.saldo}</td>
                     <td className="py-3">
@@ -410,9 +348,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                         {item.withdrawalLabel}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-300">
-                      {item.validade}
-                    </td>
+                    <td className="py-3 text-slate-600 dark:text-slate-300">{item.validade}</td>
                     <td className="py-3">
                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
                         {item.status}
@@ -420,7 +356,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                     </td>
                   </tr>
                 ))}
-                {!stockBalances.length ? (
+                {!data.stockBalances.length ? (
                   <tr>
                     <td colSpan={11} className="py-6 text-center text-slate-500 dark:text-slate-400">
                       Nenhum saldo encontrado com os filtros atuais.
@@ -436,10 +372,10 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Protocolos de depÃ³sito
+                Protocolos de depósito
               </h2>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Rastreabilidade por lote, validade, Ã¡rea, endereÃ§o e data de entrada.
+                Rastreabilidade por lote, validade, área, endereço e data de entrada.
               </p>
             </div>
             <Button
@@ -460,8 +396,8 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             target="_blank"
             className="mt-4 space-y-3"
           >
-            {traceabilityProtocols.length ? (
-              traceabilityProtocols.map((item) => (
+            {data.traceabilityProtocols.length ? (
+              data.traceabilityProtocols.map((item) => (
                 <label
                   key={item.id}
                   className="flex gap-3 rounded-2xl border border-slate-200 p-4 transition hover:border-slate-300 dark:border-zinc-800 dark:hover:border-zinc-700"
@@ -483,7 +419,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
                           {item.protocol}
                         </Link>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {item.depositante} â€¢ {item.sku} â€¢ {formatAreaLabel(item.area)} â€¢{" "}
+                          {item.depositante} • {item.sku} • {formatAreaLabel(item.area)} •{" "}
                           {item.endereco}
                         </p>
                         <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
@@ -514,16 +450,15 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-          Ãšltimos movimentos rastreÃ¡veis
+          Últimos movimentos rastreáveis
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cada movimentaÃ§Ã£o mantÃ©m o vÃ­nculo com protocolo, lote, validade e referÃªncia de
-          origem.
+          Cada movimentação mantém o vínculo com protocolo, lote, validade e referência de origem.
         </p>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          {stockMovements.length ? (
-            stockMovements.map((item) => (
+          {data.stockMovements.length ? (
+            data.stockMovements.map((item) => (
               <div
                 key={item.id}
                 className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/30"
@@ -545,7 +480,7 @@ export default async function EstoquePage({ searchParams }: EstoquePageProps) {
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400 lg:col-span-2">
-              Nenhuma movimentaÃ§Ã£o encontrada dentro do filtro atual.
+              Nenhuma movimentação encontrada dentro do filtro atual.
             </div>
           )}
         </div>
@@ -565,11 +500,8 @@ function formatAreaLabel(value: string) {
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "ExpediÃ§Ã£o";
+      return "Expedição";
     default:
       return value;
   }
 }
-
-
-
