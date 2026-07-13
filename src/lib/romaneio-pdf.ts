@@ -1,4 +1,5 @@
 import type { RomaneioCarrierGroup } from "@/lib/romaneio";
+import type { RomaneioRecordDetail } from "@/lib/romaneio-records";
 
 type RomaneioPageContent = {
   title: string;
@@ -15,6 +16,20 @@ export function buildRomaneioPdf(group: RomaneioCarrierGroup) {
   }
 
   return createSimplePdfDocument(pages.length ? pages : [buildRomaneioPage(group, [], 1)]);
+}
+
+export function buildRomaneioRecordPdf(record: RomaneioRecordDetail) {
+  const chunkSize = 18;
+  const pages: RomaneioPageContent[] = [];
+
+  for (let start = 0; start < record.orders.length; start += chunkSize) {
+    const chunk = record.orders.slice(start, start + chunkSize);
+    pages.push(buildPersistedRomaneioPage(record, chunk, Math.floor(start / chunkSize) + 1));
+  }
+
+  return createSimplePdfDocument(
+    pages.length ? pages : [buildPersistedRomaneioPage(record, [], 1)],
+  );
 }
 
 function buildRomaneioPage(
@@ -43,6 +58,43 @@ function buildRomaneioPage(
 
   return {
     title: "INFINOOS WMS - ROMANEIO DE EXPEDIÇÃO",
+    lines,
+  };
+}
+
+function buildPersistedRomaneioPage(
+  record: RomaneioRecordDetail,
+  orders: RomaneioRecordDetail["orders"],
+  pageNumber: number,
+): RomaneioPageContent {
+  const lines = [
+    `Codigo do romaneio: ${record.code}`,
+    `Transportadora: ${record.carrierName}`,
+    `Status: ${record.statusLabel}`,
+    `Pagina: ${pageNumber}`,
+    `Data de emissao: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+    `Pedidos na carga: ${record.orderCount} | Unidades: ${record.totalUnits} | Valor: ${record.totalValue}`,
+    `Motorista: ${record.driverName ?? "Nao informado"}`,
+    `Documento do motorista: ${record.driverDocument ?? "Nao informado"}`,
+    `Veiculo: ${record.vehicleModel ?? "-"} | Placa: ${record.vehiclePlate ?? "-"}`,
+    `Depositantes: ${record.depositantes.join(", ") || "-"}`,
+    `Destinos: ${record.destinations.join(", ") || "-"}`,
+    "",
+    "PEDIDOS",
+    ...orders.map(
+      (order, index) =>
+        `${index + 1}. ${order.externalNumber} | ${order.customer} | ${order.destination} | ${order.units} un | ${order.total} | ${order.statusLabel}`,
+    ),
+    "",
+    "OBSERVACOES",
+    record.notes || "Sem observacoes operacionais.",
+    "",
+    "ASSINATURAS",
+    "Conferido e liberado para saida do carregamento.",
+  ];
+
+  return {
+    title: "INFINOOS WMS - ROMANEIO OPERACIONAL",
     lines,
   };
 }
