@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, FileDown, Truck } from "lucide-react";
+import { ArrowLeft, Truck } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { RomaneioDetailForm } from "@/components/romaneio/romaneio-detail-form";
 import { requireModuleAccess } from "@/lib/auth";

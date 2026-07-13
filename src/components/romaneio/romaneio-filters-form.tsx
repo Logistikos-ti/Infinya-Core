@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FancySelectInput, type FancySelectOption } from "@/components/ui/fancy-select-input";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
+import Link from "next/link";
 
 type RomaneioFiltersFormProps = {
   status: string;
@@ -65,12 +66,12 @@ export function RomaneioFiltersForm({
         >
           Aplicar
         </button>
-        <a
+        <Link
           href="/romaneio"
           className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
           Limpar
-        </a>
+        </Link>
       </div>
     </form>
   );

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -93,7 +94,7 @@ export function ProdutoForm({
           (!depositanteId || item.depositanteId === depositanteId) &&
           (!defaultValues?.id || item.id !== defaultValues.id),
       ),
-    [defaultValues?.id, depositanteId, productOptions],
+    [defaultValues, depositanteId, productOptions],
   );
 
   const handleBarcodeDetected = useCallback((code: string) => {
