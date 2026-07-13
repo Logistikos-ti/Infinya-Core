@@ -9,7 +9,7 @@ import {
   listRomaneioRecordsFromDb,
   listRomaneioSuggestionsFromDb,
 } from "@/lib/romaneio-records";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { createRomaneioRecordAction } from "./actions";
 
@@ -42,8 +42,11 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
   const depositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
 
-  const supabase = await createSupabaseServerClient();
-  const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
+  const supabase = createSupabaseAdminClient();
+  const { data: depositantes } = await supabase
+    .from("depositantes")
+    .select("id, nome")
+    .order("nome");
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
   const depositanteSelectOptions = [
     { value: "", label: "Todos" },

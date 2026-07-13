@@ -136,20 +136,37 @@ function DateField({
   name: string;
   defaultValue: string;
 }) {
+  const [value, setValue] = useState(defaultValue);
+
   return (
     <label className="space-y-1">
       <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
       <div className="relative">
-        <CalendarDays className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+        <CalendarDays className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+        <div className="flex h-[52px] w-full items-center rounded-2xl border border-slate-200 bg-white pl-11 pr-12 text-sm text-slate-700 shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)]">
+          <span className={value ? "" : "text-slate-400 dark:text-slate-500"}>
+            {value ? formatDateLabel(value) : "Selecionar data"}
+          </span>
+        </div>
         <input
           type="date"
           name={name}
-          defaultValue={defaultValue}
-          className="h-[52px] w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 outline-none shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus:ring-cyan-900/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70 dark:[&::-webkit-calendar-picker-indicator]:invert"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          className="absolute inset-0 z-20 h-[52px] w-full cursor-pointer opacity-0"
         />
       </div>
     </label>
   );
+}
+
+function formatDateLabel(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
 }
