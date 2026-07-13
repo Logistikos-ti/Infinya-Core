@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { Box, Layers, Percent, MapPin, Search } from "lucide-react";
 

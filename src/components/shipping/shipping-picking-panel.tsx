@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, Map, ScanSearch, Volume2 } from "lucide-react";

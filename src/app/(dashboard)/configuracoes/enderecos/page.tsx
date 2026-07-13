@@ -1,19 +1,14 @@
-import { Fragment } from "react";
 import Link from "next/link";
-import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { AddressBulkGeneratorForm } from "@/components/configuracoes/address-bulk-generator-form";
-import { AddressFiltersForm } from "@/components/configuracoes/address-filters-form";
 import { AddressImportPanel } from "@/components/configuracoes/address-import-panel";
 import { EnderecoForm } from "@/components/configuracoes/endereco-form";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EnderecosDashboard } from "@/components/configuracoes/enderecos-dashboard";
 import {
-  deleteEnderecoAction,
   generateEnderecosAction,
   saveEnderecoAction,
-  toggleEnderecoStatusAction,
 } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 
 type ConfiguracoesEnderecosPageProps = {
