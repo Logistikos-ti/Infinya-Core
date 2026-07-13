@@ -6,6 +6,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingSuppliesFields } from "@/components/shipping/shipping-supplies-fields";
 import { Button } from "@/components/ui/button";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { requireRoleAccess } from "@/lib/auth";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 import { getShippingOrderDetailFromDb } from "@/lib/shipping";
@@ -200,11 +201,11 @@ export default async function EditarShippingOrderPage({
             </Field>
 
             <Field label="Previsão de envio">
-              <input
-                type="date"
+              <DatePickerInput
+                label="Previsão de envio"
                 name="previsaoEnvioEm"
-                defaultValue={normalizeDateInput(order.shipDate)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none"
+                value={normalizeDateInput(order.shipDate)}
+                hideLabel
               />
             </Field>
 

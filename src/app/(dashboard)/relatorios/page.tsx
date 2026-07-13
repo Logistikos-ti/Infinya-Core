@@ -2,6 +2,7 @@
 import { Download, FileSpreadsheet, FileText, Search } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { requireModuleAccess } from "@/lib/auth";
 import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
 import { canManageMultipleTenants } from "@/lib/permissions";
@@ -274,29 +275,9 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
               </select>
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Data inicial
-              </span>
-              <input
-                type="date"
-                name="dataInicio"
-                defaultValue={dateFrom}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
-            </label>
+            <DatePickerInput label="Data inicial" name="dataInicio" value={dateFrom} />
 
-            <label className="space-y-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Data final
-              </span>
-              <input
-                type="date"
-                name="dataFim"
-                defaultValue={dateTo}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
-            </label>
+            <DatePickerInput label="Data final" name="dataFim" value={dateTo} />
 
             <label className="space-y-1">
               <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">

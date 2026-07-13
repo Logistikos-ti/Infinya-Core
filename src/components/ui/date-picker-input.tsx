@@ -10,9 +10,17 @@ type DatePickerInputProps = {
   label: string;
   name: string;
   value?: string;
+  required?: boolean;
+  hideLabel?: boolean;
 };
 
-export function DatePickerInput({ label, name, value = "" }: DatePickerInputProps) {
+export function DatePickerInput({
+  label,
+  name,
+  value = "",
+  required = false,
+  hideLabel = false,
+}: DatePickerInputProps) {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value);
   const [viewDate, setViewDate] = useState(() => getInitialViewDate(value));
@@ -59,10 +67,12 @@ export function DatePickerInput({ label, name, value = "" }: DatePickerInputProp
 
   return (
     <div className="space-y-1" ref={containerRef}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {label}
-      </span>
-      <input type="hidden" name={name} value={selectedDate} />
+      {hideLabel ? null : (
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {label}
+        </span>
+      )}
+      <input type="hidden" name={name} value={selectedDate} required={required} />
 
       <button
         type="button"

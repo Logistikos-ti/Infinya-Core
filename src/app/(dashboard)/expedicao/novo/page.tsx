@@ -3,6 +3,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingSuppliesFields } from "@/components/shipping/shipping-supplies-fields";
 import { Button } from "@/components/ui/button";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { requireRoleAccess } from "@/lib/auth";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -139,12 +140,7 @@ export default async function NovoPedidoManualPage({
             </Field>
 
             <Field label="Data do pedido">
-              <input
-                type="date"
-                name="dataPedido"
-                required
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
+              <DatePickerInput label="Data do pedido" name="dataPedido" required hideLabel />
             </Field>
 
             <Field label="Cliente">
@@ -178,11 +174,7 @@ export default async function NovoPedidoManualPage({
             </Field>
 
             <Field label="Previsão de envio">
-              <input
-                type="date"
-                name="previsaoEnvioEm"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
+              <DatePickerInput label="Previsão de envio" name="previsaoEnvioEm" hideLabel />
             </Field>
 
             <Field label="Transportadora">

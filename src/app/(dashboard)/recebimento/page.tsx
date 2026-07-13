@@ -11,6 +11,7 @@ import {
   Loader,
   Eye
 } from "lucide-react";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { requireModuleAccess } from "@/lib/auth";
 import { canManageMultipleTenants } from "@/lib/permissions";
 import {
@@ -197,12 +198,9 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
               ))}
             </select>
           )}
-          <input
-            type="date"
-            name="dataInicial"
-            defaultValue={dateFrom}
-            className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary-500/50"
-          />
+          <div className="min-w-[220px]">
+            <DatePickerInput label="Data inicial" name="dataInicial" value={dateFrom} />
+          </div>
           <button type="submit" className="p-2 bg-slate-900 dark:bg-zinc-800 text-white border border-slate-900 dark:border-zinc-700 rounded-lg hover:bg-slate-800 transition flex items-center justify-center">
             <Filter className="w-4 h-4" />
           </button>
