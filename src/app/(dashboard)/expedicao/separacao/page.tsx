@@ -272,10 +272,18 @@ export default async function ExpedicaoSeparacaoPage({
                   </div>
 
                   <Link
-                    href={`/expedicao/separacao/${order.id}`}
+                    href={
+                      order.status === "SEPARADO" || order.status === "EM_CONFERENCIA"
+                        ? `/expedicao/conferencia/${order.id}`
+                        : `/expedicao/separacao/${order.id}`
+                    }
                     className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-600"
                   >
-                    Iniciar Separacao
+                    {order.status === "SEPARADO"
+                      ? "Iniciar Conferencia"
+                      : order.status === "EM_CONFERENCIA"
+                        ? "Continuar Conferencia"
+                        : "Iniciar Separacao"}
                   </Link>
                 </div>
               </article>

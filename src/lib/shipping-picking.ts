@@ -346,7 +346,14 @@ function mapPickingOrder(
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
-  const items = (order.itens ?? []).map((item) =>
+  const payloadContact = readRecord(payload.contato);
+  const payloadCity = readString(payloadContact?.cidade);
+  const payloadState = readString(payloadContact?.uf);
+  const rawItems =
+    order.itens && order.itens.length > 0
+      ? order.itens
+      : buildFallbackPickingItemsFromPayload(payload, order.id, order.depositante_id);
+  const items = rawItems.map((item) =>
     mapPickingItem(order.depositante_id, item, stockRows, includeRouteData, productImageMap),
   );
   const routeStops = includeRouteData ? buildRouteStops(items) : [];
@@ -368,15 +375,17 @@ function mapPickingOrder(
       order.numero_loja,
       order.codigo,
     ),
-    customer: order.cliente_nome?.trim() || "Cliente não informado",
+    customer: order.cliente_nome?.trim() || readString(payloadContact?.nome) || "Cliente n?o informado",
     destination:
-      [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-      "Destino não informado",
+      [order.cliente_cidade?.trim(), order.cliente_uf?.trim(), payloadCity, payloadState]
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" - ") || "Destino n?o informado",
     status: order.status,
     statusLabel: formatShippingStatusLabel(order.status),
     depositanteId: order.depositante_id,
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
-    totalItems: Number(order.quantidade_itens ?? items.length),
+    totalItems: Number(order.quantidade_itens ?? items.length) || items.length,
     totalUnits: totalRequested,
     assignedOperatorId: picking.operatorId,
     assignedOperatorName: picking.operatorName,
@@ -392,6 +401,52 @@ function mapPickingOrder(
   } satisfies ShippingPickingOrder;
 }
 
+function buildFallbackPickingItemsFromPayload(
+  payload: Record<string, unknown>,
+  orderId: string,
+  depositanteId: string,
+): RawPickingOrderItemRow[] {
+  const payloadItems = readArray(payload.itens);
+  const fallbackItems: RawPickingOrderItemRow[] = [];
+
+  payloadItems.forEach((entry, index) => {
+    const row = readRecord(entry);
+    if (!row) {
+      return;
+    }
+
+    const quantity = Number(row.quantidade ?? 0);
+    const name = readString(row.descricao) ?? readString(row.nome);
+
+    if (!name || quantity <= 0) {
+      return;
+    }
+
+    fallbackItems.push({
+      id: `${orderId}-payload-${index + 1}`,
+      produto_id: null,
+      referencia_externa:
+        readString(row.id) ?? readString(row.codigo) ?? `${orderId}-${index + 1}`,
+      codigo_produto: readString(row.codigo),
+      sku: readString(row.codigo),
+      nome: name,
+      unidade: readString(row.unidade) ?? "UN",
+      quantidade: quantity,
+      quantidade_separada: 0,
+      payload_origem: {
+        itemId: readString(row.id),
+        source: "payload_fallback",
+        pedidoId: orderId,
+        depositanteId,
+      },
+      produto: {
+        codigo_externo: readString(row.gtin) ?? readString(row.ean),
+      },
+    });
+  });
+
+  return fallbackItems;
+}
 function mapPickingItem(
   depositanteId: string,
   item: RawPickingOrderItemRow,
