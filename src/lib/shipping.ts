@@ -232,7 +232,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
       return [] as ShippingOrderSummary[];
     }
 
-    throw new Error(`NÃ£o foi possÃ­vel listar os pedidos de expediÃ§Ã£o: ${error.message}`);
+    throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
   }
 
   const orders = ((data ?? []) as RawShippingOrderRow[]).map(mapShippingOrderSummary);
@@ -296,24 +296,24 @@ export async function listShippingStatsFromDb(
       value: String(orders.length),
       help:
         user.papel === "DEPOSITANTE"
-          ? "Pedidos de expediÃ§Ã£o visÃ­veis para o seu depositante."
-          : "Pedidos vindos do Bling jÃ¡ espelhados no WMS.",
+          ? "Pedidos de expedição visíveis para o seu depositante."
+          : "Pedidos vindos do Bling já espelhados no WMS.",
     },
     {
-      label: "Aguardando separaÃ§Ã£o",
+      label: "Aguardando separação",
       value: String(aguardando),
-      help: "Pedidos recÃ©m-chegados, aguardando inÃ­cio operacional.",
+      help: "Pedidos recém-chegados, aguardando início operacional.",
     },
     {
-      label: "Em execuÃ§Ã£o",
+      label: "Em execução",
       value: String(emSeparacao),
-      help: "Pedidos jÃ¡ em separaÃ§Ã£o ou conferÃªncia.",
+      help: "Pedidos já em separação ou conferência.",
     },
     {
       label: "Expedidos",
       value: String(expedidos),
       help: prontos
-        ? `${prontos} pedido(s) tambÃ©m jÃ¡ pronto(s) para romaneio.`
+        ? `${prontos} pedido(s) também já pronto(s) para romaneio.`
         : "Nenhum pedido aguardando romaneio no momento.",
     },
   ] as const;
@@ -325,22 +325,22 @@ export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSumma
     {
       status: "NOVO",
       label: "Entrada do Bling",
-      help: "Pedidos recÃ©m importados e aguardando liberaÃ§Ã£o para separaÃ§Ã£o.",
+      help: "Pedidos recém-importados e aguardando liberação para separação.",
     },
     {
       status: "EM_SEPARACAO",
-      label: "SeparaÃ§Ã£o em andamento",
-      help: "Pedidos jÃ¡ em picking no armazÃ©m.",
+      label: "Separação em andamento",
+      help: "Pedidos já em picking no armazém.",
     },
     {
       status: "EM_CONFERENCIA",
-      label: "ConferÃªncia final",
-      help: "Pedidos em validaÃ§Ã£o final antes do romaneio.",
+      label: "Conferência final",
+      help: "Pedidos em validação final antes do romaneio.",
     },
     {
       status: "PRONTO_ROMANEIO",
       label: "Pronto para romaneio",
-      help: "Pedidos aptos para consolidaÃ§Ã£o e despacho.",
+      help: "Pedidos aptos para consolidação e despacho.",
     },
   ] as const;
 
