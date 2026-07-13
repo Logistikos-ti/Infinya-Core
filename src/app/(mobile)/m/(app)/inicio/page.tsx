@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  FileText,
   PackageCheck,
   ScanLine,
   Settings2,
@@ -25,6 +26,7 @@ export default async function MobileHomePage() {
   const canAccessStock = canAccessModule(user, "estoque");
   const canAccessReceiving = canAccessModule(user, "recebimento");
   const canAccessShipping = canAccessModule(user, "expedicao");
+  const canAccessRomaneio = canAccessModule(user, "romaneio");
 
   if (isCatalogOnly) {
     return (
@@ -115,6 +117,25 @@ export default async function MobileHomePage() {
           </Link>
         ) : null}
 
+        {canAccessRomaneio ? (
+          <Link
+            href="/m/romaneio"
+            className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-base font-semibold text-white">Romaneio</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  Agrupar pedidos por transportadora e emitir o PDF da carga.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-violet-500/15 p-3 text-violet-300">
+                <FileText className="h-5 w-5" />
+              </div>
+            </div>
+          </Link>
+        ) : null}
+
         <Link
           href="/m/produtos"
           className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
@@ -139,6 +160,7 @@ export default async function MobileHomePage() {
   const snapshot = await getMobileOperationsSnapshot(user, {
     includeReceiving: canAccessReceiving,
     includeShipping: canAccessShipping,
+    includeRomaneio: canAccessRomaneio,
   });
 
   const cards = [
@@ -172,10 +194,23 @@ export default async function MobileHomePage() {
       tone: "bg-amber-500/15 text-amber-300",
       visible: canAccessShipping,
     },
+    {
+      href: "/m/romaneio",
+      title: "Romaneio",
+      value: snapshot.romaneio.count,
+      help: "Cargas prontas para emissao",
+      detail: snapshot.romaneio.first?.depositante ?? "Sem romaneio pendente",
+      icon: FileText,
+      tone: "bg-violet-500/15 text-violet-300",
+      visible: canAccessRomaneio,
+    },
   ].filter((card) => card.visible);
 
   const totalPendencias =
-    snapshot.receiving.count + snapshot.picking.count + snapshot.conference.count;
+    snapshot.receiving.count +
+    snapshot.picking.count +
+    snapshot.conference.count +
+    snapshot.romaneio.count;
 
   const nextAction =
     (snapshot.picking.first && {

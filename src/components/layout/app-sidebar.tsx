@@ -57,6 +57,9 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
           ...(canAccessModule(user, "expedicao")
             ? [{ href: "/expedicao", label: "Expedição", icon: Truck }]
             : []),
+          ...(canAccessModule(user, "romaneio")
+            ? [{ href: "/romaneio", label: "Romaneio", icon: FileText }]
+            : []),
           { href: "/configuracoes/produtos", label: "Produtos", icon: Settings2 },
           ...(canAccessConfigSection(user, "enderecos")
             ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: Settings2 }]

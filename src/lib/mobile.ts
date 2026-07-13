@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
   ClipboardCheck,
+  FileText,
   House,
   LogOut,
   PackageCheck,
@@ -99,6 +100,16 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
             } satisfies MobileNavigationItem,
           ]
         : []),
+      ...(canAccessModule(user, "romaneio")
+        ? [
+            {
+              href: "/m/romaneio",
+              label: "Romaneio",
+              icon: FileText,
+              match: ["/m/romaneio"],
+            } satisfies MobileNavigationItem,
+          ]
+        : []),
       {
         href: "/m/produtos",
         label: "Produtos",
@@ -156,6 +167,15 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
 
   if (canAccessModule(user, "estoque")) {
     items.push({ href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] });
+  }
+
+  if (canAccessModule(user, "romaneio")) {
+    items.push({
+      href: "/m/romaneio",
+      label: "Romaneio",
+      icon: FileText,
+      match: ["/m/romaneio"],
+    });
   }
 
   if (canAccessModule(user, "configuracoes") && canAccessConfigSection(user, "produtos")) {

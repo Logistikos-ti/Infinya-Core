@@ -27,6 +27,11 @@ type MobileConferenceRow = MobileShippingHeadlineRow & {
     | null;
 };
 
+type MobileRomaneioRow = {
+  id: string;
+  payload_origem: Record<string, unknown> | null;
+};
+
 export type MobileQueueSnapshot = {
   count: number;
   first: {
@@ -44,6 +49,7 @@ export type MobileOperationsSnapshot = {
   conference: MobileQueueSnapshot & {
     divergentItems: number;
   };
+  romaneio: MobileQueueSnapshot;
 };
 
 export async function getMobileOperationsSnapshot(
@@ -51,12 +57,14 @@ export async function getMobileOperationsSnapshot(
   options?: {
     includeReceiving?: boolean;
     includeShipping?: boolean;
+    includeRomaneio?: boolean;
   },
 ): Promise<MobileOperationsSnapshot> {
   const supabase = createSupabaseAdminClient();
   const depositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
   const includeReceiving = options?.includeReceiving ?? true;
   const includeShipping = options?.includeShipping ?? true;
+  const includeRomaneio = options?.includeRomaneio ?? true;
 
   const receivingPromise = includeReceiving
     ? getReceivingSnapshot(supabase, depositanteId)
@@ -80,16 +88,25 @@ export async function getMobileOperationsSnapshot(
         divergentItems: 0,
       } satisfies MobileOperationsSnapshot["conference"]);
 
-  const [receiving, picking, conference] = await Promise.all([
+  const romaneioPromise = includeRomaneio
+    ? getRomaneioSnapshot(supabase, depositanteId)
+    : Promise.resolve({
+        count: 0,
+        first: null,
+      } satisfies MobileQueueSnapshot);
+
+  const [receiving, picking, conference, romaneio] = await Promise.all([
     receivingPromise,
     pickingPromise,
     conferencePromise,
+    romaneioPromise,
   ]);
 
   return {
     receiving,
     picking,
     conference,
+    romaneio,
   };
 }
 
@@ -239,6 +256,44 @@ async function getConferenceSnapshot(
   };
 }
 
+async function getRomaneioSnapshot(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  depositanteId?: string,
+): Promise<MobileQueueSnapshot> {
+  let query = supabase
+    .from("pedidos_expedicao")
+    .select("id, payload_origem", {
+      count: "exact",
+    })
+    .in("status", ["PRONTO_ROMANEIO", "EXPEDIDO"])
+    .order("previsao_envio_em", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (depositanteId) {
+    query = query.eq("depositante_id", depositanteId);
+  }
+
+  const { data, count, error } = await query.limit(1);
+
+  if (error) {
+    throw new Error(`Não foi possível carregar o snapshot de romaneio: ${error.message}`);
+  }
+
+  const first = ((data ?? []) as MobileRomaneioRow[])[0];
+  const payload = isRecord(first?.payload_origem) ? first.payload_origem : {};
+
+  return {
+    count: count ?? 0,
+    first: first
+      ? {
+          id: first.id,
+          code: first.id,
+          depositante: extractCarrierName(payload),
+        }
+      : null,
+  };
+}
+
 function extractRelationName(value: RelationName) {
   if (Array.isArray(value)) {
     return typeof value[0]?.nome === "string" ? value[0].nome : null;
@@ -269,6 +324,13 @@ function extractPlatformOrderNumber(
   }
 
   return mercadoLivreOrderId ?? orderNumber ?? storeNumber ?? fallbackCode;
+}
+
+function extractCarrierName(payload: Record<string, unknown>) {
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const transportador = transporte && isRecord(transporte.contato) ? transporte.contato : null;
+
+  return readString(transportador?.nome) ?? "Transportadora não informada";
 }
 
 function readString(value: unknown) {

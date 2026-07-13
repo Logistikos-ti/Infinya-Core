@@ -82,6 +82,14 @@ export function getEffectiveModules(user: AppUserContext) {
       modules.push("expedicao");
     }
 
+    if (
+      user.papel === "OPERADOR" &&
+      modules.includes("expedicao") &&
+      !modules.includes("romaneio")
+    ) {
+      modules.push("romaneio");
+    }
+
     return modules;
   }
 
@@ -109,9 +117,11 @@ export function isCatalogAndStockOperatorUser(user: AppUserContext) {
   return (
     !isAdminUser(user) &&
     effectiveModules.includes("configuracoes") &&
-    (effectiveModules.includes("estoque") || effectiveModules.includes("expedicao")) &&
+    (effectiveModules.includes("estoque") ||
+      effectiveModules.includes("expedicao") ||
+      effectiveModules.includes("romaneio")) &&
     effectiveModules.every((module) =>
-      ["configuracoes", "estoque", "expedicao"].includes(module),
+      ["configuracoes", "estoque", "expedicao", "romaneio"].includes(module),
     ) &&
     canAccessConfigSection(user, "produtos")
   );
