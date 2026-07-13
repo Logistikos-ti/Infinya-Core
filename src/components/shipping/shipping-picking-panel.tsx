@@ -270,8 +270,7 @@ export function ShippingPickingPanel({
     return true;
   }
 
-  function handleScanSubmit(event?: React.FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
+  function handleScanSubmit() {
     applyScannedCode(scanValue);
   }
 
@@ -369,7 +368,7 @@ export function ShippingPickingPanel({
 
           {/* Scanner Tool */}
           <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
-            <form onSubmit={handleScanSubmit} className="space-y-3">
+            <div className="space-y-3">
               <span className="block text-sm font-bold text-slate-700 dark:text-zinc-300">
                 Leitura de código de barras
               </span>
@@ -382,6 +381,12 @@ export function ShippingPickingPanel({
                     resetTimer();
                     setScanValue(event.target.value);
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleScanSubmit();
+                    }
+                  }}
                   onBlur={() => {
                     if (operatorMode && !cameraEnabled) {
                       window.setTimeout(() => {
@@ -393,7 +398,8 @@ export function ShippingPickingPanel({
                   className="h-10 w-full border-0 bg-transparent px-2 text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleScanSubmit}
                   className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 dark:bg-white px-4 text-sm font-bold text-white dark:text-slate-900 shadow-md transition hover:bg-slate-800 dark:hover:bg-slate-200"
                 >
                   <ScanSearch className="h-4 w-4" />
@@ -412,7 +418,7 @@ export function ShippingPickingPanel({
                   {scanMessage}
                 </div>
               ) : null}
-            </form>
+            </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button
