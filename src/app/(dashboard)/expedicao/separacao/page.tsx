@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, PackageCheck, ScanSearch, TriangleAlert, UserRound } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import { Button } from "@/components/ui/button";
+import { ShippingPickingFiltersForm } from "@/components/shipping/shipping-picking-filters-form";
 import { requireModuleAccess } from "@/lib/auth";
 import { listPickingOperatorsFromDb, listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -20,8 +20,8 @@ type ExpedicaoSeparacaoPageProps = {
 
 const statusOptions = [
   { value: "", label: "Todos" },
-  { value: "NOVO", label: "Aguardando início" },
-  { value: "EM_SEPARACAO", label: "Em separação" },
+  { value: "NOVO", label: "Aguardando inicio" },
+  { value: "EM_SEPARACAO", label: "Em separacao" },
   { value: "SEPARADO", label: "Separado" },
 ] as const;
 
@@ -73,19 +73,38 @@ export default async function ExpedicaoSeparacaoPage({
     perPage: String(perPage),
   };
 
+  const statusFilterOptions = statusOptions.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }));
+  const operatorFilterOptions = [
+    { value: "", label: "Todos" },
+    ...operators.map((operator) => ({
+      value: operator.id,
+      label: operator.name,
+    })),
+  ];
+  const depositanteFilterOptions = [
+    { value: "", label: "Todos" },
+    ...depositanteOptions.map((depositante) => ({
+      value: depositante.id,
+      label: depositante.nome,
+    })),
+  ];
+
   return (
-    <div className="space-y-6 relative opacity-95">
+    <div className="relative space-y-6 opacity-95">
       <Link
         href="/expedicao"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-zinc-400 transition hover:text-primary-600 dark:hover:text-primary-400"
+        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-primary-600 dark:text-zinc-400 dark:hover:text-primary-400"
       >
         <ArrowLeft className="h-4 w-4" />
-        Voltar para expedição
+        Voltar para expedicao
       </Link>
 
       <ModulePageHeader
-        title="Fila de Separação (Picking)"
-        description="Fila de pedidos por operador, com rota sugerida no armazém, leitura de código de barras e apontamento das quantidades separadas."
+        title="Fila de Separacao (Picking)"
+        description="Fila de pedidos por operador, com rota sugerida no armazem, leitura de codigo de barras e apontamento das quantidades separadas."
         badge="Em Foco"
       />
 
@@ -98,12 +117,12 @@ export default async function ExpedicaoSeparacaoPage({
           }`}
         >
           {feedback === "concluido"
-            ? "Separação concluída e pedido movido para o próximo passo."
+            ? "Separacao concluida e pedido movido para o proximo passo."
             : feedback === "incompleto"
-              ? "Ainda existem itens pendentes. O pedido voltou para a fila para nova separação."
+              ? "Ainda existem itens pendentes. O pedido voltou para a fila para nova separacao."
               : feedback === "inatividade"
                 ? "Pedido devolvido para a fila por inatividade do operador."
-                : "Não foi possível concluir a operação solicitada."}
+                : "Nao foi possivel concluir a operacao solicitada."}
         </div>
       ) : null}
 
@@ -117,14 +136,14 @@ export default async function ExpedicaoSeparacaoPage({
         />
         <StatTile
           icon={ScanSearch}
-          label="Aguardando início"
+          label="Aguardando inicio"
           value={String(pendingOrders)}
           colorClass="text-amber-600 dark:text-amber-400 bg-amber-500/10"
           borderClass="hover:border-amber-500/30 border-l-4 border-l-amber-500"
         />
         <StatTile
           icon={UserRound}
-          label="Em separação"
+          label="Em separacao"
           value={String(runningOrders)}
           colorClass="text-primary-600 dark:text-primary-400 bg-primary-500/10"
           borderClass="hover:border-primary-500/30 border-l-4 border-l-primary-500"
@@ -138,7 +157,7 @@ export default async function ExpedicaoSeparacaoPage({
         />
       </section>
 
-      <section className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md p-6 shadow-sm transition-all hover:border-primary-500/30">
+      <section className="rounded-2xl border border-slate-200/80 bg-white/70 p-6 shadow-sm transition-all hover:border-primary-500/30 dark:border-zinc-800/80 dark:bg-zinc-900/65 dark:backdrop-blur-md">
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Filtro operacional</h2>
           <p className="text-sm text-slate-500 dark:text-zinc-400">
@@ -146,86 +165,22 @@ export default async function ExpedicaoSeparacaoPage({
           </p>
         </div>
 
-        <form className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-5 items-end">
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Status</span>
-            <select
-              name="status"
-              defaultValue={statusFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value || "todos"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Operador</span>
-            <select
-              name="operador"
-              defaultValue={operatorFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-            >
-              <option value="">Todos</option>
-              {operators.map((operator) => (
-                <option key={operator.id} value={operator.id}>
-                  {operator.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Depositante</span>
-            <select
-              name="depositante"
-              defaultValue={depositanteFilter}
-              disabled={user.papel === "DEPOSITANTE"}
-              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all disabled:bg-slate-50 disabled:dark:bg-zinc-900/50 disabled:opacity-50"
-            >
-              <option value="">Todos</option>
-              {depositanteOptions.map((depositante) => (
-                <option key={depositante.id} value={depositante.id}>
-                  {depositante.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Página</span>
-            <select
-              name="perPage"
-              defaultValue={String(perPage)}
-              className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-slate-700 dark:text-zinc-300 outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-            >
-              <option value="10">10 / página</option>
-              <option value="20">20 / página</option>
-              <option value="50">50 / página</option>
-            </select>
-          </label>
-
-          <div className="flex items-center gap-2">
-            <Button type="submit" className="h-11 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-white transition-all font-semibold rounded-xl flex-1">
-              Aplicar Filtros
-            </Button>
-            <Link
-              href="/expedicao/separacao"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 px-4 text-sm font-semibold text-slate-700 dark:text-zinc-300 transition hover:bg-slate-100 dark:hover:bg-zinc-800"
-            >
-              Limpar
-            </Link>
-          </div>
-        </form>
+        <ShippingPickingFiltersForm
+          status={statusFilter}
+          operador={operatorFilter}
+          depositante={depositanteFilter}
+          perPage={String(perPage)}
+          canSelectDepositante={user.papel !== "DEPOSITANTE"}
+          statusOptions={statusFilterOptions}
+          operatorOptions={operatorFilterOptions}
+          depositanteOptions={depositanteFilterOptions}
+        />
       </section>
 
       <section className="space-y-4">
         {paginatedOrders.length ? (
           <>
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 px-4 py-3 text-sm text-slate-600 dark:text-zinc-400 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-sm text-slate-600 dark:border-zinc-800/80 dark:bg-zinc-900/65 dark:text-zinc-400 md:flex-row md:items-center md:justify-between">
               <span>
                 Exibindo {visibleStart}-{visibleEnd} de {totalOrders} pedido(s)
               </span>
@@ -240,7 +195,7 @@ export default async function ExpedicaoSeparacaoPage({
                   Anterior
                 </PageLink>
                 <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">
-                  Página {currentPage} de {totalPages}
+                  Pagina {currentPage} de {totalPages}
                 </span>
                 <PageLink
                   disabled={currentPage >= totalPages}
@@ -249,70 +204,86 @@ export default async function ExpedicaoSeparacaoPage({
                     page: String(currentPage + 1),
                   })}`}
                 >
-                  Próxima
+                  Proxima
                 </PageLink>
               </div>
             </div>
 
             {paginatedOrders.map((order) => (
-              <article key={order.id} className="glass-card rounded-2xl p-5 transition-all hover:border-primary-500/30 group">
+              <article
+                key={order.id}
+                className="glass-card group rounded-2xl p-5 transition-all hover:border-primary-500/30"
+              >
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide border ${
+                        className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${
                           order.status === "NOVO"
-                            ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20"
+                            ? "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-400"
                             : order.status === "EM_SEPARACAO"
-                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         }`}
                       >
                         {order.statusLabel}
                       </span>
-                      <span className="rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                      <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                         {order.depositante}
                       </span>
-                      <span className={buildAgeBadgeClass(order.ageTone)}>
-                        {order.ageLabel}
-                      </span>
+                      <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>
                       {order.shortageUnits > 0 ? (
-                        <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
+                        <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
                           Pendentes: {order.shortageUnits} un
                         </span>
                       ) : null}
                     </div>
 
-                    <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    <h2 className="mt-3 text-lg font-bold text-slate-900 transition-colors group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">
                       {order.externalNumber}
                     </h2>
                     <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
-                      {order.customer} <span className="text-slate-300 dark:text-zinc-600 px-1">•</span> {order.destination}
+                      {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">-</span>{" "}
+                      {order.destination}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Código int: {order.code}</span>
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Criado em: {order.createdAt}</span>
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalItems} item(ns)</span>
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalUnits} unidade(s)</span>
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.routeStopCount} parada(s)</span>
-                      <span className="bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 px-2 py-1 rounded-md">{order.completionPercent}% concluído</span>
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Operador: {order.assignedOperatorName ?? "Não atribuído"}</span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        Codigo int: {order.code}
+                      </span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        Criado em: {order.createdAt}
+                      </span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        {order.totalItems} item(ns)
+                      </span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        {order.totalUnits} unidade(s)
+                      </span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        {order.routeStopCount} parada(s)
+                      </span>
+                      <span className="rounded-md border border-primary-500/20 bg-primary-500/10 px-2 py-1 text-primary-600 dark:text-primary-400">
+                        {order.completionPercent}% concluido
+                      </span>
+                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                        Operador: {order.assignedOperatorName ?? "Nao atribuido"}
+                      </span>
                     </div>
                   </div>
 
                   <Link
                     href={`/expedicao/separacao/${order.id}`}
-                    className="inline-flex h-11 items-center justify-center rounded-xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:bg-primary-600 hover:-translate-y-0.5 whitespace-nowrap"
+                    className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-600"
                   >
-                    Iniciar Separação
+                    Iniciar Separacao
                   </Link>
                 </div>
               </article>
             ))}
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 p-10 text-center text-sm font-medium text-slate-500 dark:text-zinc-400 shadow-sm backdrop-blur-sm">
-            Nenhum pedido disponível para separação com os filtros atuais.
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/50 p-10 text-center text-sm font-medium text-slate-500 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400">
+            Nenhum pedido disponivel para separacao com os filtros atuais.
           </div>
         )}
       </section>
@@ -393,7 +364,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 dark:border-zinc-700 px-3 text-sm font-medium text-slate-400 dark:text-zinc-600">
+      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-zinc-700 dark:text-zinc-600">
         {children}
       </span>
     );
@@ -402,7 +373,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center rounded-xl border border-slate-300 dark:border-zinc-700 px-3 text-sm font-medium text-slate-700 dark:text-zinc-300 transition hover:bg-white dark:hover:bg-zinc-800"
+      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
     >
       {children}
     </Link>
