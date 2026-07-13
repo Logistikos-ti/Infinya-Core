@@ -206,7 +206,7 @@ export function MobileConferencePanel({
     resetTimer();
     setItems((current) =>
       current.map((item) =>
-        item.id === itemId ? { ...item, confirmedQuantityValue: value } : item,
+        item.id === itemId && !item.isKit ? { ...item, confirmedQuantityValue: value } : item,
       ),
     );
   }
@@ -243,11 +243,7 @@ export function MobileConferencePanel({
       return;
     }
 
-    const matchedItem = items.find((item) =>
-      [item.barcode, item.code, item.sku]
-        .filter(Boolean)
-        .some((value) => normalizeScan(value) === normalizedScan),
-    );
+    const matchedItem = items.find((item) => matchesItemScan(item, normalizedScan));
 
     if (!matchedItem) {
       setActiveItemId(null);
@@ -261,32 +257,97 @@ export function MobileConferencePanel({
       return;
     }
 
-    const currentConfirmed = normalizeQuantity(matchedItem.confirmedQuantityValue);
-    if (currentConfirmed >= matchedItem.requestedQuantity) {
-      setActiveItemId(matchedItem.id);
-      const message = `O item ${matchedItem.sku} já foi totalmente conferido.`;
-      setFeedback(message, "error");
-      pushScanHistory(message, "error");
-      if (!cameraEnabled) {
-        focusScanInput();
+    let message = "";
+
+    if (matchedItem.isKit && matchedItem.kitComponents.length > 0) {
+      const matchedComponent = findMatchingKitComponent(matchedItem, normalizedScan);
+
+      if (!matchedComponent) {
+        setActiveItemId(matchedItem.id);
+        setWrongProductScans((current) => current + 1);
+        message = `Kit ${matchedItem.sku} localizado, mas o componente lido não está mapeado.`;
+        setFeedback(message, "error");
+        pushScanHistory(message, "error");
+        if (!cameraEnabled) {
+          focusScanInput();
+        }
+        return;
       }
-      return;
+
+      if (matchedComponent.confirmedQuantity >= matchedComponent.requestedQuantity) {
+        setActiveItemId(matchedItem.id);
+        message = `Componente ${matchedComponent.sku} já conferido por completo.`;
+        setFeedback(message, "error");
+        pushScanHistory(message, "error");
+        if (!cameraEnabled) {
+          focusScanInput();
+        }
+        return;
+      }
+
+      const nextComponentQuantity = matchedComponent.confirmedQuantity + 1;
+      const nextTotalConfirmed = matchedItem.kitComponents.reduce(
+        (sum, component) =>
+          sum +
+          (component.componentProductId === matchedComponent.componentProductId
+            ? component.confirmedQuantity + 1
+            : component.confirmedQuantity),
+        0,
+      );
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? {
+                ...item,
+                kitComponents: item.kitComponents.map((component) =>
+                  component.componentProductId === matchedComponent.componentProductId
+                    ? {
+                        ...component,
+                        confirmedQuantity: component.confirmedQuantity + 1,
+                        pendingQuantity: Math.max(
+                          component.requestedQuantity - (component.confirmedQuantity + 1),
+                          0,
+                        ),
+                      }
+                    : component,
+                ),
+                confirmedQuantityValue: String(nextTotalConfirmed),
+              }
+            : item,
+        ),
+      );
+
+      message = `${matchedItem.sku}: ${matchedComponent.sku} ${nextComponentQuantity}/${matchedComponent.requestedQuantity}. Total ${nextTotalConfirmed}/${matchedItem.requestedQuantity}.`;
+    } else {
+      const currentConfirmed = normalizeQuantity(matchedItem.confirmedQuantityValue);
+      if (currentConfirmed >= matchedItem.requestedQuantity) {
+        setActiveItemId(matchedItem.id);
+        message = `O item ${matchedItem.sku} já foi totalmente conferido.`;
+        setFeedback(message, "error");
+        pushScanHistory(message, "error");
+        if (!cameraEnabled) {
+          focusScanInput();
+        }
+        return;
+      }
+
+      const nextConfirmed = Math.min(currentConfirmed + 1, matchedItem.requestedQuantity);
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? { ...item, confirmedQuantityValue: String(nextConfirmed) }
+            : item,
+        ),
+      );
+
+      message = `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`;
     }
-
-    const nextConfirmed = Math.min(currentConfirmed + 1, matchedItem.requestedQuantity);
-
-    setItems((current) =>
-      current.map((item) =>
-        item.id === matchedItem.id
-          ? { ...item, confirmedQuantityValue: String(nextConfirmed) }
-          : item,
-      ),
-    );
 
     setActiveItemId(matchedItem.id);
     highlightScannedItem(matchedItem.id);
     setScanValue("");
-    const message = `${matchedItem.sku}: ${nextConfirmed}/${matchedItem.requestedQuantity} conferido(s).`;
     setFeedback(message, "success");
     pushScanHistory(message, "success");
     resetTimer();
@@ -597,7 +658,7 @@ export function MobileConferencePanel({
                       : "rounded-[20px] border-white/10 bg-white/5 p-3.5"
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-amber" : ""}`}
             >
-              <input type="hidden" name="itemKitProgress" value="" />
+              <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
               <input type="hidden" name="itemId" value={item.id} />
 
               <div className={`flex items-start justify-between ${isCurrentItem ? "gap-3" : "gap-2.5"}`}>
@@ -678,6 +739,26 @@ export function MobileConferencePanel({
                   </p>
                 </div>
               </div>
+              {item.isKit && item.kitComponents.length ? (
+                <div className="mt-3 space-y-2">
+                  {item.kitComponents.map((component) => (
+                    <div
+                      key={`${item.id}-${component.componentProductId}`}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{component.sku}</p>
+                          <p className="text-[11px] text-slate-400">GTIN {component.barcode || "-"}</p>
+                        </div>
+                        <p className="text-xs font-semibold text-amber-200">
+                          {component.confirmedQuantity}/{component.requestedQuantity}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-3 gap-2`}>
                 <InfoBadge label="Pedido" value={`${item.requestedQuantity}`} />
@@ -694,6 +775,7 @@ export function MobileConferencePanel({
                     step={1}
                     value={item.confirmedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
+                    readOnly={item.isKit}
                     className={`h-11 w-full rounded-2xl border px-3 text-sm text-white outline-none ${
                       isCurrentItem
                         ? "border-amber-300/40 bg-amber-950/30"
@@ -799,4 +881,35 @@ function normalizeQuantity(value: string) {
   }
 
   return Math.max(0, numeric);
+}
+
+function matchesItemScan(item: MobileConferenceItem, normalizedScan: string) {
+  return item.scanTargets
+    .filter(Boolean)
+    .some((value) => normalizeScan(value) === normalizedScan);
+}
+
+function findMatchingKitComponent(item: MobileConferenceItem, normalizedScan: string) {
+  return item.kitComponents.find((component) =>
+    [component.barcode, component.sku]
+      .filter(Boolean)
+      .some((value) => normalizeScan(value) === normalizedScan),
+  );
+}
+
+function serializeKitProgress(item: MobileConferenceItem) {
+  if (!item.isKit || item.kitComponents.length === 0) {
+    return "";
+  }
+
+  return JSON.stringify(
+    item.kitComponents.map((component) => ({
+      componentProductId: component.componentProductId,
+      quantityPerKit: component.quantityPerKit,
+      separatedQuantity: component.confirmedQuantity,
+      sku: component.sku,
+      name: component.name,
+      barcode: component.barcode,
+    })),
+  );
 }

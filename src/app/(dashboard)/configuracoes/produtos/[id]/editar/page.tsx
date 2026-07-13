@@ -22,11 +22,11 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   const { id } = await params;
   const adminSupabase = createSupabaseAdminClient();
 
-  const [{ data: product }, { data: depositantes }, { data: componentOptions }, { data: kitComponents }] = await Promise.all([
+  const [{ data: product }, { data: depositantes }, { data: componentOptions }] = await Promise.all([
     adminSupabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, tipo_produto, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -36,10 +36,6 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
       .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
       .eq("ativo", true)
       .order("nome"),
-    adminSupabase
-      .from("produto_kit_componentes")
-      .select("produto_componente_id, quantidade")
-      .eq("produto_kit_id", id),
   ]);
 
   if (!product) {
@@ -87,6 +83,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
         <ProdutoForm
           key={formKey}
           depositantes={visibleDepositantes}
+          productKitEnabled={false}
           compactMode={compactMode}
           defaultValues={{
             id: product.id,
@@ -96,17 +93,13 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             nome: product.nome,
             eanGtin: product.codigo_externo ?? "",
             categoria: product.categoria ?? "",
-            tipoProduto: product.tipo_produto,
+            tipoProduto: "SIMPLES",
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
             quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
             exigeLote: product.exige_lote,
             exigeValidade: product.exige_validade,
             ativo: product.ativo,
-            kitComponents: (kitComponents ?? []).map((item) => ({
-              componentProductId: item.produto_componente_id,
-              quantity: Number(item.quantidade ?? 0),
-            })),
           }}
           productOptions={(componentOptions ?? []).map((item) => ({
             id: item.id,

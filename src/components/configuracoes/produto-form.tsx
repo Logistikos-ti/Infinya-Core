@@ -16,6 +16,7 @@ type DepositanteOption = {
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
   productOptions: ProductKitComponentOption[];
+  productKitEnabled?: boolean;
   compactMode?: boolean;
   returnPath?: string;
   defaultValues?: {
@@ -40,6 +41,7 @@ type ProdutoFormProps = {
 export function ProdutoForm({
   depositantes,
   productOptions,
+  productKitEnabled = false,
   compactMode = false,
   returnPath,
   defaultValues,
@@ -218,17 +220,21 @@ export function ProdutoForm({
           />
         )}
 
-        <FancySelectField
-          label="Tipo de produto"
-          name="tipoProduto"
-          value={tipoProduto}
-          onChange={(value) => setTipoProduto(value as "SIMPLES" | "KIT")}
-          error={state.errors?.tipoProduto}
-          options={[
-            { value: "SIMPLES", label: "Simples" },
-            { value: "KIT", label: "Kit montado na separação" },
-          ]}
-        />
+        {productKitEnabled ? (
+          <FancySelectField
+            label="Tipo de produto"
+            name="tipoProduto"
+            value={tipoProduto}
+            onChange={(value) => setTipoProduto(value as "SIMPLES" | "KIT")}
+            error={state.errors?.tipoProduto}
+            options={[
+              { value: "SIMPLES", label: "Simples" },
+              { value: "KIT", label: "Kit montado na separação" },
+            ]}
+          />
+        ) : (
+          <input type="hidden" name="tipoProduto" value="SIMPLES" />
+        )}
 
         <FancySelectField
           label="Método de retirada"
@@ -273,7 +279,7 @@ export function ProdutoForm({
         )}
       </div>
 
-      {tipoProduto === "KIT" ? (
+      {productKitEnabled && tipoProduto === "KIT" ? (
         <div className="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>

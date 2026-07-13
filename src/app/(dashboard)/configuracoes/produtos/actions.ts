@@ -32,6 +32,7 @@ export async function saveProdutoAction(
   _prevState: ProdutoActionState,
   formData: FormData,
 ): Promise<ProdutoActionState> {
+  const productKitsEnabled = false;
   await requireConfigSectionAccess("produtos");
   const returnPath = normalizeRedirectPath(String(formData.get("returnPath") ?? "").trim());
 
@@ -83,9 +84,11 @@ export async function saveProdutoAction(
   const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
   const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
   const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
-  const normalizedKitComponents = normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities);
+  const normalizedKitComponents = productKitsEnabled
+    ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
+    : [];
 
-  if (parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
+  if (productKitsEnabled && parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
     return {
       success: false,
       message: "Adicione ao menos um componente para salvar o kit.",
@@ -134,7 +137,6 @@ export async function saveProdutoAction(
     sku: resolvedSku,
     nome: parsed.data.nome,
     categoria: parsed.data.categoria || null,
-    tipo_produto: parsed.data.tipoProduto,
     metodo_retirada: parsed.data.metodoRetirada,
     unidade_estocagem: parsed.data.unidadeEstocagem,
     quantidade_por_embalagem:
@@ -156,19 +158,21 @@ export async function saveProdutoAction(
       };
     }
 
-    const componentsError = await syncKitComponents(
-      adminSupabase,
-      parsed.data.id,
-      parsed.data.depositanteId,
-      parsed.data.tipoProduto,
-      normalizedKitComponents,
-    );
+    if (productKitsEnabled) {
+      const componentsError = await syncKitComponents(
+        adminSupabase,
+        parsed.data.id,
+        parsed.data.depositanteId,
+        parsed.data.tipoProduto,
+        normalizedKitComponents,
+      );
 
-    if (componentsError) {
-      return {
-        success: false,
-        message: componentsError,
-      };
+      if (componentsError) {
+        return {
+          success: false,
+          message: componentsError,
+        };
+      }
     }
 
     revalidatePath("/configuracoes/produtos");
@@ -192,19 +196,21 @@ export async function saveProdutoAction(
     };
   }
 
-  const componentsError = await syncKitComponents(
-    adminSupabase,
-    insertResult.data.id,
-    parsed.data.depositanteId,
-    parsed.data.tipoProduto,
-    normalizedKitComponents,
-  );
+  if (productKitsEnabled) {
+    const componentsError = await syncKitComponents(
+      adminSupabase,
+      insertResult.data.id,
+      parsed.data.depositanteId,
+      parsed.data.tipoProduto,
+      normalizedKitComponents,
+    );
 
-  if (componentsError) {
-    return {
-      success: false,
-      message: componentsError,
-    };
+    if (componentsError) {
+      return {
+        success: false,
+        message: componentsError,
+      };
+    }
   }
 
   revalidatePath("/configuracoes/produtos");
@@ -232,6 +238,7 @@ export async function toggleProdutoStatusAction(formData: FormData) {
 }
 
 export async function deleteProdutoAction(formData: FormData) {
+  const productKitsEnabled = false;
   await requireConfigSectionAccess("produtos");
 
   const id = String(formData.get("id") ?? "").trim();
@@ -260,10 +267,12 @@ export async function deleteProdutoAction(formData: FormData) {
       .from("movimentacoes_estoque")
       .select("id", { count: "exact", head: true })
       .eq("produto_id", id),
-    adminSupabase
-      .from("produto_kit_componentes")
-      .select("id", { count: "exact", head: true })
-      .eq("produto_componente_id", id),
+    productKitsEnabled
+      ? adminSupabase
+          .from("produto_kit_componentes")
+          .select("id", { count: "exact", head: true })
+          .eq("produto_componente_id", id)
+      : Promise.resolve({ count: 0 } as { count: number | null }),
   ]);
 
   const totalDependencies = dependencyChecks.reduce((total, query) => total + (query.count ?? 0), 0);
