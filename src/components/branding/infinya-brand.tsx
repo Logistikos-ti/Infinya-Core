@@ -43,7 +43,7 @@ function BrandLockup({
   return (
     <div className={cn("relative min-w-0", className)}>
       <Image
-        src="/branding/infinoos-lockup-wms.png"
+        src="/branding/infinoos-lockup-wms-house.png"
         alt="Infinoos WMS"
         width={compact ? 184 : 286}
         height={compact ? 58 : 90}
