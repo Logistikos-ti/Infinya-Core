@@ -191,7 +191,7 @@ export function MobilePickingPanel({
     resetTimer();
     setItems((current) =>
       current.map((item) =>
-        item.id === itemId ? { ...item, separatedQuantityValue: value } : item,
+        item.id === itemId && !item.isKit ? { ...item, separatedQuantityValue: value } : item,
       ),
     );
   }
@@ -221,11 +221,7 @@ export function MobilePickingPanel({
       return;
     }
 
-    const matchedItem = items.find((item) =>
-      [item.barcode, item.code, item.sku]
-        .filter(Boolean)
-        .some((value) => normalizeScan(value) === normalizedScan),
-    );
+    const matchedItem = items.find((item) => matchesItemScan(item, normalizedScan));
 
     if (!matchedItem) {
       setActiveItemId(null);
@@ -238,21 +234,85 @@ export function MobilePickingPanel({
       return;
     }
 
-    const currentSeparated = normalizeQuantity(matchedItem.separatedQuantityValue);
-    const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
+    let message = "";
 
-    setItems((current) =>
-      current.map((item) =>
-        item.id === matchedItem.id
-          ? { ...item, separatedQuantityValue: String(nextSeparated) }
-          : item,
-      ),
-    );
+    if (matchedItem.isKit && matchedItem.kitComponents.length > 0) {
+      const matchedComponent = findMatchingKitComponent(matchedItem, normalizedScan);
+
+      if (!matchedComponent) {
+        setActiveItemId(matchedItem.id);
+        message = `Kit ${matchedItem.sku} localizado, mas o componente lido não está mapeado.`;
+        setFeedback(message, "error");
+        pushScanHistory(message, "error");
+        if (!cameraEnabled) {
+          focusScanInput();
+        }
+        return;
+      }
+
+      if (matchedComponent.separatedQuantity >= matchedComponent.requestedQuantity) {
+        setActiveItemId(matchedItem.id);
+        message = `Componente ${matchedComponent.sku} já completo (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`;
+        setFeedback(message, "error");
+        pushScanHistory(message, "error");
+        if (!cameraEnabled) {
+          focusScanInput();
+        }
+        return;
+      }
+
+      const nextComponentQuantity = matchedComponent.separatedQuantity + 1;
+      const nextTotalSeparated = matchedItem.kitComponents.reduce(
+        (sum, component) =>
+          sum +
+          (component.componentProductId === matchedComponent.componentProductId
+            ? component.separatedQuantity + 1
+            : component.separatedQuantity),
+        0,
+      );
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? {
+                ...item,
+                kitComponents: item.kitComponents.map((component) =>
+                  component.componentProductId === matchedComponent.componentProductId
+                    ? {
+                        ...component,
+                        separatedQuantity: component.separatedQuantity + 1,
+                        remainingQuantity: Math.max(
+                          component.requestedQuantity - (component.separatedQuantity + 1),
+                          0,
+                        ),
+                      }
+                    : component,
+                ),
+                separatedQuantityValue: String(nextTotalSeparated),
+              }
+            : item,
+        ),
+      );
+
+      message = `${matchedItem.sku}: ${matchedComponent.sku} ${nextComponentQuantity}/${matchedComponent.requestedQuantity}. Total ${nextTotalSeparated}/${matchedItem.requestedQuantity}.`;
+    } else {
+      const currentSeparated = normalizeQuantity(matchedItem.separatedQuantityValue);
+      const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? { ...item, separatedQuantityValue: String(nextSeparated) }
+            : item,
+        ),
+      );
+
+      message = `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`;
+    }
 
     setActiveItemId(matchedItem.id);
     highlightScannedItem(matchedItem.id);
     setScanValue("");
-    const message = `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`;
     setFeedback(message, "success");
     pushScanHistory(message, "success");
     resetTimer();
@@ -541,7 +601,7 @@ export function MobilePickingPanel({
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
-              <input type="hidden" name="itemKitProgress" value="" />
+              <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
 
               <div className={`flex items-start justify-between ${isCurrentItem ? "gap-4" : "gap-3"}`}>
                 <div className="min-w-0">
@@ -634,6 +694,7 @@ export function MobilePickingPanel({
                     step={1}
                     value={item.separatedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
+                    readOnly={item.isKit}
                     className={`h-11 w-full rounded-xl border px-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-colors ${
                       isCurrentItem ? "border-primary-500/40 bg-white dark:bg-zinc-900" : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
                     }`}
@@ -656,7 +717,28 @@ export function MobilePickingPanel({
                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Endereços sugeridos
                 </p>
-                {item.routeLines.length ? (
+                {item.isKit && item.kitComponents.length ? (
+                  <div className="space-y-3">
+                    {item.kitComponents.map((component) => (
+                      <div
+                        key={`${item.id}-${component.componentProductId}`}
+                        className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{component.sku}</p>
+                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                              GTIN {component.barcode || "-"}
+                            </p>
+                          </div>
+                          <p className="text-xs font-bold text-primary-600 dark:text-primary-400">
+                            {component.separatedQuantity}/{component.requestedQuantity}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : item.routeLines.length ? (
                   item.routeLines.map((line) => (
                     <div
                       key={`${item.id}-${line.stockId}`}
@@ -785,4 +867,35 @@ function normalizeQuantity(value: string) {
   }
 
   return Math.max(0, numeric);
+}
+
+function matchesItemScan(item: MobilePickingItem, normalizedScan: string) {
+  return item.scanTargets
+    .filter(Boolean)
+    .some((value) => normalizeScan(value) === normalizedScan);
+}
+
+function findMatchingKitComponent(item: MobilePickingItem, normalizedScan: string) {
+  return item.kitComponents.find((component) =>
+    [component.barcode, component.sku]
+      .filter(Boolean)
+      .some((value) => normalizeScan(value) === normalizedScan),
+  );
+}
+
+function serializeKitProgress(item: MobilePickingItem) {
+  if (!item.isKit || item.kitComponents.length === 0) {
+    return "";
+  }
+
+  return JSON.stringify(
+    item.kitComponents.map((component) => ({
+      componentProductId: component.componentProductId,
+      quantityPerKit: component.quantityPerKit,
+      separatedQuantity: component.separatedQuantity,
+      sku: component.sku,
+      name: component.name,
+      barcode: component.barcode,
+    })),
+  );
 }

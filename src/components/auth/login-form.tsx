@@ -11,9 +11,10 @@ const initialState: LoginActionState = {
 
 type LoginFormProps = {
   redirectTo?: string;
+  submitLabel?: string;
 };
 
-export function LoginForm({ redirectTo = "/dashboard" }: LoginFormProps) {
+export function LoginForm({ redirectTo = "/dashboard", submitLabel = "Entrar na operação" }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
   return (
@@ -72,7 +73,7 @@ export function LoginForm({ redirectTo = "/dashboard" }: LoginFormProps) {
           disabled={isPending}
           className="h-[52px] mt-2 border-none rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-manrope text-[16px] font-extrabold tracking-[0.01em] cursor-pointer shadow-[0_10px_28px_rgba(99,102,241,0.35)] transition-all duration-200 hover:shadow-[0_14px_36px_rgba(99,102,241,0.5)] hover:-translate-y-px active:translate-y-0 disabled:opacity-70 disabled:pointer-events-none"
         >
-          {isPending ? "Entrando..." : "Entrar na operação"}
+          {isPending ? "Entrando..." : submitLabel}
         </button>
       </form>
 

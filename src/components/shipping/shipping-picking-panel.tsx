@@ -148,7 +148,7 @@ export function ShippingPickingPanel({
     resetTimer();
     setItems((current) =>
       current.map((item) =>
-        item.id === itemId
+        item.id === itemId && !item.isKit
           ? {
               ...item,
               separatedQuantityValue: value,
@@ -166,11 +166,7 @@ export function ShippingPickingPanel({
       return false;
     }
 
-    const matchedItem = items.find((item) =>
-      [item.barcode, item.code, item.sku]
-        .filter(Boolean)
-        .some((value) => normalizeScanValue(value) === normalizedScan),
-    );
+    const matchedItem = items.find((item) => matchesItemScan(item, normalizedScan));
 
     if (!matchedItem) {
       setActiveItemId(null);
@@ -178,31 +174,89 @@ export function ShippingPickingPanel({
       return false;
     }
 
-    const currentSeparated = normalizeQuantity(matchedItem.separatedQuantityValue);
-    if (currentSeparated >= matchedItem.requestedQuantity) {
+    if (matchedItem.isKit && matchedItem.kitComponents.length > 0) {
+      const matchedComponent = findMatchingKitComponent(matchedItem, normalizedScan);
+
+      if (!matchedComponent) {
+        setActiveItemId(matchedItem.id);
+        setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido não está mapeado.`, "error");
+        return false;
+      }
+
+      if (matchedComponent.separatedQuantity >= matchedComponent.requestedQuantity) {
+        setActiveItemId(matchedItem.id);
+        setFeedback(
+          `O componente ${matchedComponent.sku} já atingiu ${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}.`,
+          "error",
+        );
+        return false;
+      }
+
+      const nextComponentQuantity = matchedComponent.separatedQuantity + 1;
+      const nextTotalSeparated = matchedItem.kitComponents.reduce(
+        (sum, component) =>
+          sum +
+          (component.componentProductId === matchedComponent.componentProductId
+            ? component.separatedQuantity + 1
+            : component.separatedQuantity),
+        0,
+      );
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? {
+                ...item,
+                kitComponents: item.kitComponents.map((component) =>
+                  component.componentProductId === matchedComponent.componentProductId
+                    ? {
+                        ...component,
+                        separatedQuantity: component.separatedQuantity + 1,
+                        remainingQuantity: Math.max(
+                          component.requestedQuantity - (component.separatedQuantity + 1),
+                          0,
+                        ),
+                      }
+                    : component,
+                ),
+                separatedQuantityValue: String(nextTotalSeparated),
+              }
+            : item,
+        ),
+      );
+
       setActiveItemId(matchedItem.id);
-      setFeedback(`O item ${matchedItem.sku} já está completo para separação.`, "error");
-      return false;
+      setFeedback(
+        `Kit ${matchedItem.sku}: componente ${matchedComponent.sku} ${nextComponentQuantity}/${matchedComponent.requestedQuantity}. Total do kit: ${nextTotalSeparated}/${matchedItem.requestedQuantity}.`,
+        "success",
+      );
+    } else {
+      const currentSeparated = normalizeQuantity(matchedItem.separatedQuantityValue);
+      if (currentSeparated >= matchedItem.requestedQuantity) {
+        setActiveItemId(matchedItem.id);
+        setFeedback(`O item ${matchedItem.sku} já está completo para separação.`, "error");
+        return false;
+      }
+
+      const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
+
+      setItems((current) =>
+        current.map((item) =>
+          item.id === matchedItem.id
+            ? {
+                ...item,
+                separatedQuantityValue: String(nextSeparated),
+              }
+            : item,
+        ),
+      );
+
+      setActiveItemId(matchedItem.id);
+      setFeedback(
+        `Leitura aplicada em ${matchedItem.sku}. +1 ${matchedItem.unit.toLowerCase()} separado(a). Total: ${nextSeparated}/${matchedItem.requestedQuantity}.`,
+        "success",
+      );
     }
-
-    const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
-
-    setItems((current) =>
-      current.map((item) =>
-        item.id === matchedItem.id
-          ? {
-              ...item,
-              separatedQuantityValue: String(nextSeparated),
-            }
-          : item,
-      ),
-    );
-
-    setActiveItemId(matchedItem.id);
-    setFeedback(
-      `Leitura aplicada em ${matchedItem.sku}. +1 ${matchedItem.unit.toLowerCase()} separado(a). Total: ${nextSeparated}/${matchedItem.requestedQuantity}.`,
-      "success",
-    );
     setScanValue("");
     resetTimer();
 
@@ -489,7 +543,7 @@ export function ShippingPickingPanel({
                   }`}
                 >
                   <input type="hidden" name="itemId" value={item.id} />
-                  <input type="hidden" name="itemKitProgress" value="" />
+                  <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -532,6 +586,7 @@ export function ShippingPickingPanel({
                         step={1}
                         value={item.separatedQuantityValue}
                         onChange={(event) => updateItemQuantity(item.id, event.target.value)}
+                        readOnly={item.isKit}
                         className="h-12 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                       />
                     </label>
@@ -554,7 +609,29 @@ export function ShippingPickingPanel({
                     <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
                       Endereços sugeridos
                     </p>
-                    {item.routeLines.length ? (
+                    {item.isKit && item.kitComponents.length ? (
+                      <div className="rounded-2xl border border-primary-500/20 bg-primary-500/5 px-4 py-3 text-sm">
+                        <p className="font-bold text-slate-900 dark:text-white">Componentes do kit</p>
+                        <div className="mt-2 space-y-2">
+                          {item.kitComponents.map((component) => (
+                            <div
+                              key={`${item.id}-${component.componentProductId}`}
+                              className="flex items-center justify-between gap-3 rounded-xl bg-white/80 px-3 py-2 dark:bg-zinc-900/70"
+                            >
+                              <div>
+                                <p className="font-semibold text-slate-900 dark:text-white">{component.sku}</p>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                                  GTIN {component.barcode || "-"}
+                                </p>
+                              </div>
+                              <p className="text-xs font-bold text-primary-600 dark:text-primary-400">
+                                {component.separatedQuantity}/{component.requestedQuantity}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : item.routeLines.length ? (
                       item.routeLines.map((line) => (
                         <div
                           key={`${item.id}-${line.stockId}`}
@@ -604,7 +681,7 @@ export function ShippingPickingPanel({
                   >
                     <td className="px-5 py-5 text-slate-900 dark:text-white">
                       <input type="hidden" name="itemId" value={item.id} />
-                      <input type="hidden" name="itemKitProgress" value="" />
+                      <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
                       <div className="font-bold text-base mb-1">
                         {item.sku}
                       </div>
@@ -640,6 +717,7 @@ export function ShippingPickingPanel({
                         step={1}
                         value={item.separatedQuantityValue}
                         onChange={(event) => updateItemQuantity(item.id, event.target.value)}
+                        readOnly={item.isKit}
                         className={`h-11 w-28 rounded-xl border px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary-500/50 transition-all ${
                           isCurrentItem ? "border-primary-500/40 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white" : "border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white"
                         }`}
@@ -653,7 +731,26 @@ export function ShippingPickingPanel({
                       )}
                     </td>
                     <td className="px-5 py-5">
-                      {item.routeLines.length ? (
+                      {item.isKit && item.kitComponents.length ? (
+                        <div className="space-y-3">
+                          {item.kitComponents.map((component) => (
+                            <div
+                              key={`${item.id}-${component.componentProductId}`}
+                              className="rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/40 px-4 py-3 shadow-sm"
+                            >
+                              <div className="font-bold text-slate-900 dark:text-white mb-1">
+                                {component.sku}
+                              </div>
+                              <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 mb-2">
+                                GTIN {component.barcode || "-"}
+                              </div>
+                              <div className="inline-block rounded-lg bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-zinc-300">
+                                Bipar {component.requestedQuantity} vez(es) <span className="text-slate-300 dark:text-zinc-600 px-1">•</span> andamento {component.separatedQuantity}/{component.requestedQuantity}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : item.routeLines.length ? (
                         <div className="space-y-3">
                           {item.routeLines.map((line) => (
                             <div
@@ -760,4 +857,35 @@ function normalizeQuantity(value: string) {
   }
 
   return Math.max(0, numeric);
+}
+
+function matchesItemScan(item: PickingItemState, normalizedScan: string) {
+  return item.scanTargets
+    .filter(Boolean)
+    .some((value) => normalizeScanValue(value) === normalizedScan);
+}
+
+function findMatchingKitComponent(item: PickingItemState, normalizedScan: string) {
+  return item.kitComponents.find((component) =>
+    [component.barcode, component.sku]
+      .filter(Boolean)
+      .some((value) => normalizeScanValue(value) === normalizedScan),
+  );
+}
+
+function serializeKitProgress(item: PickingItemState) {
+  if (!item.isKit || item.kitComponents.length === 0) {
+    return "";
+  }
+
+  return JSON.stringify(
+    item.kitComponents.map((component) => ({
+      componentProductId: component.componentProductId,
+      quantityPerKit: component.quantityPerKit,
+      separatedQuantity: component.separatedQuantity,
+      sku: component.sku,
+      name: component.name,
+      barcode: component.barcode,
+    })),
+  );
 }
