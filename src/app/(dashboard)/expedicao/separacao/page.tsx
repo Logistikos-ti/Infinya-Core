@@ -4,7 +4,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { Button } from "@/components/ui/button";
 import { requireModuleAccess } from "@/lib/auth";
 import { listPickingOperatorsFromDb, listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 type ExpedicaoSeparacaoPageProps = {
@@ -38,8 +38,12 @@ export default async function ExpedicaoSeparacaoPage({
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
   const feedback = params?.feedback?.trim() ?? "";
 
-  const supabase = await createSupabaseServerClient();
-  const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
+  const supabase = createSupabaseAdminClient();
+  const { data: depositantes } = await supabase
+    .from("depositantes")
+    .select("id, nome")
+    .eq("ativo", true)
+    .order("nome");
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
 
   const [orders, operators] = await Promise.all([
