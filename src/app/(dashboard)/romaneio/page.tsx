@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FileDown, Layers3, Route, Truck } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { RomaneioFiltersForm } from "@/components/romaneio/romaneio-filters-form";
 import { requireModuleAccess } from "@/lib/auth";
 import {
   isRomaneioRecordsSchemaMissing,
@@ -44,6 +45,13 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
   const supabase = await createSupabaseServerClient();
   const { data: depositantes } = await supabase.from("depositantes").select("id, nome").order("nome");
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
+  const depositanteSelectOptions = [
+    { value: "", label: "Todos" },
+    ...depositanteOptions.map((depositante) => ({
+      value: depositante.id,
+      label: depositante.nome,
+    })),
+  ];
 
   let schemaMissing = false;
   let records = [] as Awaited<ReturnType<typeof listRomaneioRecordsFromDb>>;
@@ -112,95 +120,16 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
           </p>
         </div>
 
-        <form className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Status do romaneio
-            </span>
-            <select
-              name="status"
-              defaultValue={statusFilter}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value || "todos"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Depositante
-            </span>
-            <select
-              name="depositante"
-              defaultValue={depositanteFilter}
-              disabled={user.papel === "DEPOSITANTE"}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-            >
-              <option value="">Todos</option>
-              {depositanteOptions.map((depositante) => (
-                <option key={depositante.id} value={depositante.id}>
-                  {depositante.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Transportadora
-            </span>
-            <input
-              type="text"
-              name="transportadora"
-              defaultValue={carrierFilter}
-              placeholder="Nome da transportadora"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder:text-slate-500"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Data inicial
-            </span>
-            <input
-              type="date"
-              name="dataInicial"
-              defaultValue={dateFrom}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-            />
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Data final
-            </span>
-            <input
-              type="date"
-              name="dataFinal"
-              defaultValue={dateTo}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-            />
-          </label>
-
-          <div className="flex items-end gap-2 xl:col-span-5">
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
-            >
-              Aplicar
-            </button>
-            <Link
-              href="/romaneio"
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              Limpar
-            </Link>
-          </div>
-        </form>
+        <RomaneioFiltersForm
+          status={statusFilter}
+          depositante={depositanteFilter}
+          transportadora={carrierFilter}
+          dataInicial={dateFrom}
+          dataFinal={dateTo}
+          statusOptions={statusOptions.map((option) => ({ value: option.value, label: option.label }))}
+          depositanteOptions={depositanteSelectOptions}
+          disableDepositante={user.papel === "DEPOSITANTE"}
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

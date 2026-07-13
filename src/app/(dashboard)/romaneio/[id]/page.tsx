@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, FileDown, Truck } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { RomaneioDetailForm } from "@/components/romaneio/romaneio-detail-form";
 import { requireModuleAccess } from "@/lib/auth";
 import {
   getRomaneioRecordDetailFromDb,
@@ -30,6 +31,13 @@ export default async function RomaneioDetailPage({
     getRomaneioRecordDetailFromDb(user, id),
     listTransportadoraOptionsFromDb(),
   ]);
+  const transportadoraSelectOptions = [
+    { value: "", label: "Manter nome livre" },
+    ...transportadoras.map((item) => ({
+      value: item.id,
+      label: item.nome,
+    })),
+  ];
 
   if (!record) {
     return (
@@ -90,120 +98,19 @@ export default async function RomaneioDetailPage({
             </div>
           </div>
 
-          <form action={updateRomaneioRecordAction} className="mt-6 space-y-4">
-            <input type="hidden" name="romaneioId" value={record.id} />
-
-            <label className="space-y-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Transportadora cadastrada
-              </span>
-              <select
-                name="transportadoraId"
-                defaultValue={record.transportadoraId ?? ""}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              >
-                <option value="">Manter nome livre</option>
-                {transportadoras.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Nome exibido da transportadora
-              </span>
-              <input
-                type="text"
-                name="transportadoraNome"
-                defaultValue={record.carrierName}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
-            </label>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Motorista
-                </span>
-                <input
-                  type="text"
-                  name="motoristaNome"
-                  defaultValue={record.driverName ?? ""}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-                />
-              </label>
-
-              <label className="space-y-1.5">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Documento do motorista
-                </span>
-                <input
-                  type="text"
-                  name="motoristaDocumento"
-                  defaultValue={record.driverDocument ?? ""}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Modelo do veículo
-                </span>
-                <input
-                  type="text"
-                  name="veiculoModelo"
-                  defaultValue={record.vehicleModel ?? ""}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-                />
-              </label>
-
-              <label className="space-y-1.5">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Placa do veículo
-                </span>
-                <input
-                  type="text"
-                  name="veiculoPlaca"
-                  defaultValue={record.vehiclePlate ?? ""}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-                />
-              </label>
-            </div>
-
-            <label className="space-y-1.5">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                Observações
-              </span>
-              <textarea
-                name="observacoes"
-                rows={4}
-                defaultValue={record.notes ?? ""}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              />
-            </label>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
-              >
-                Salvar romaneio
-              </button>
-              <Link
-                href={`/api/romaneio/${record.id}/pdf`}
-                target="_blank"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <FileDown className="h-4 w-4" />
-                Emitir PDF
-              </Link>
-            </div>
-          </form>
+          <RomaneioDetailForm
+            romaneioId={record.id}
+            carrierName={record.carrierName}
+            transportadoraId={record.transportadoraId ?? ""}
+            driverName={record.driverName ?? ""}
+            driverDocument={record.driverDocument ?? ""}
+            vehicleModel={record.vehicleModel ?? ""}
+            vehiclePlate={record.vehiclePlate ?? ""}
+            notes={record.notes ?? ""}
+            transportadoraOptions={transportadoraSelectOptions}
+            pdfHref={`/api/romaneio/${record.id}/pdf`}
+            saveAction={updateRomaneioRecordAction}
+          />
         </div>
 
         <div className="space-y-6">
