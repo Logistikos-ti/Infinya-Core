@@ -514,6 +514,7 @@ export function ShippingConferencePanel({
                   >
                     <td className="px-5 py-5 text-slate-900 dark:text-white">
                       <input type="hidden" name="itemId" value={item.id} />
+                      <input type="hidden" name="itemKitProgress" value="" />
                       <div className="font-bold text-base mb-1">
                         {item.sku}
                       </div>

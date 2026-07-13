@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, CameraOff, Check, ChevronDown } from "lucide-react";
+import { Barcode, Camera, CameraOff, Check, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
+import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/product-kits";
 import { cn } from "@/lib/utils";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 
@@ -14,6 +15,7 @@ type DepositanteOption = {
 
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
+  productOptions: ProductKitComponentOption[];
   compactMode?: boolean;
   returnPath?: string;
   defaultValues?: {
@@ -24,17 +26,20 @@ type ProdutoFormProps = {
     nome?: string;
     eanGtin?: string;
     categoria?: string;
+    tipoProduto?: "SIMPLES" | "KIT";
     metodoRetirada?: "FEFO" | "FIFO" | "LIFO";
     unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
     quantidadePorEmbalagem?: number | null;
     exigeLote?: boolean;
     exigeValidade?: boolean;
     ativo?: boolean;
+    kitComponents?: ProductKitComponentDraft[];
   };
 };
 
 export function ProdutoForm({
   depositantes,
+  productOptions,
   compactMode = false,
   returnPath,
   defaultValues,
@@ -49,18 +54,25 @@ export function ProdutoForm({
   const [depositanteId, setDepositanteId] = useState(
     defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
   );
+  const [tipoProduto, setTipoProduto] = useState<"SIMPLES" | "KIT">(
+    defaultValues?.tipoProduto ?? "SIMPLES",
+  );
   const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(
     defaultValues?.metodoRetirada ?? "FEFO",
   );
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<
     "UNIDADE" | "CAIXA" | "PACK" | "PALLET"
   >(defaultValues?.unidadeEstocagem ?? "UNIDADE");
+  const [kitComponents, setKitComponents] = useState<Array<ProductKitComponentDraft & { key: string }>>(
+    buildKitRows(defaultValues?.kitComponents),
+  );
   const eanInputRef = useRef<HTMLInputElement | null>(null);
 
   const exibeQuantidadePorEmbalagem = useMemo(
     () => unidadeEstocagem === "CAIXA" || unidadeEstocagem === "PACK",
     [unidadeEstocagem],
   );
+
   const depositanteOptions = useMemo(
     () =>
       depositantes.length === 1
@@ -70,6 +82,16 @@ export function ProdutoForm({
             ...depositantes.map((item) => ({ value: item.id, label: item.nome })),
           ],
     [depositantes],
+  );
+
+  const filteredProductOptions = useMemo(
+    () =>
+      productOptions.filter(
+        (item) =>
+          (!depositanteId || item.depositanteId === depositanteId) &&
+          (!defaultValues?.id || item.id !== defaultValues.id),
+      ),
+    [defaultValues?.id, depositanteId, productOptions],
   );
 
   const handleBarcodeDetected = useCallback((code: string) => {
@@ -96,12 +118,16 @@ export function ProdutoForm({
     setDepositanteId(
       defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
     );
+    setTipoProduto(defaultValues?.tipoProduto ?? "SIMPLES");
     setMetodoRetirada(defaultValues?.metodoRetirada ?? "FEFO");
     setUnidadeEstocagem(defaultValues?.unidadeEstocagem ?? "UNIDADE");
+    setKitComponents(buildKitRows(defaultValues?.kitComponents));
   }, [
-    defaultValues?.eanGtin,
     defaultValues?.depositanteId,
+    defaultValues?.eanGtin,
+    defaultValues?.kitComponents,
     defaultValues?.metodoRetirada,
+    defaultValues?.tipoProduto,
     defaultValues?.unidadeEstocagem,
     depositantes,
   ]);
@@ -116,8 +142,8 @@ export function ProdutoForm({
           {defaultValues?.id ? "Editar produto" : "Novo produto"}
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, método de retirada, unidade de
-          estocagem e regra de embalagem.
+          Cadastro de SKU com depositante, EAN/GTIN, categoria, tipo de produto, método de retirada,
+          unidade de estocagem e regra de embalagem.
         </p>
         {compactMode ? (
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
@@ -193,6 +219,18 @@ export function ProdutoForm({
         )}
 
         <FancySelectField
+          label="Tipo de produto"
+          name="tipoProduto"
+          value={tipoProduto}
+          onChange={(value) => setTipoProduto(value as "SIMPLES" | "KIT")}
+          error={state.errors?.tipoProduto}
+          options={[
+            { value: "SIMPLES", label: "Simples" },
+            { value: "KIT", label: "Kit montado na separação" },
+          ]}
+        />
+
+        <FancySelectField
           label="Método de retirada"
           name="metodoRetirada"
           value={metodoRetirada}
@@ -234,6 +272,106 @@ export function ProdutoForm({
           <input type="hidden" name="quantidadePorEmbalagem" value="" />
         )}
       </div>
+
+      {tipoProduto === "KIT" ? (
+        <div className="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                Composição do kit
+              </h3>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Escolha os SKUs reais que o operador deve bipar para montar este kit.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setKitComponents((current) => [
+                  ...current,
+                  {
+                    key: `component-${current.length}-${Date.now()}`,
+                    componentProductId: "",
+                    quantity: 1,
+                  },
+                ])
+              }
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar componente
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {kitComponents.map((component, index) => (
+              <div
+                key={component.key}
+                className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/60 md:grid-cols-[minmax(0,1fr)_180px_48px]"
+              >
+                <FancySelectField
+                  label={`Componente ${index + 1}`}
+                  name={`kit-component-visible-${index}`}
+                  value={component.componentProductId}
+                  onChange={(value) =>
+                    setKitComponents((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index ? { ...item, componentProductId: value } : item,
+                      ),
+                    )
+                  }
+                  options={[
+                    { value: "", label: "Selecione um SKU componente" },
+                    ...filteredProductOptions.map((item) => ({
+                      value: item.id,
+                      label: `${item.nome} • ${item.sku ?? item.codigoInterno ?? item.codigoExterno ?? item.id}`,
+                    })),
+                  ]}
+                />
+
+                <Field
+                  label="Qtd por kit"
+                  name={`kit-component-quantity-visible-${index}`}
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[,.]?[0-9]*"
+                  defaultValue={String(component.quantity)}
+                  value={String(component.quantity)}
+                  onChange={(value) =>
+                    setKitComponents((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, quantity: Number(value.replace(",", ".")) || 0 }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-[52px] w-12"
+                    onClick={() =>
+                      setKitComponents((current) =>
+                        current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current,
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <input type="hidden" name="kitComponentProductId" value={component.componentProductId} />
+                <input type="hidden" name="kitComponentQuantity" value={String(component.quantity)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <CheckboxField
@@ -279,6 +417,14 @@ export function ProdutoForm({
       </div>
     </form>
   );
+}
+
+function buildKitRows(components?: ProductKitComponentDraft[]) {
+  const source = components?.length ? components : [{ componentProductId: "", quantity: 1 }];
+  return source.map((item, index) => ({
+    ...item,
+    key: `${item.componentProductId || "component"}-${index}`,
+  }));
 }
 
 type FieldProps = {

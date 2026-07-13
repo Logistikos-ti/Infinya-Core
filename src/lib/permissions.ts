@@ -11,6 +11,7 @@ export type AppModule =
   | "estoque"
   | "nfe"
   | "relatorios"
+  | "yms"
   | "configuracoes";
 
 export type ConfigSection =
@@ -29,6 +30,7 @@ export const APP_MODULES: AppModule[] = [
   "estoque",
   "nfe",
   "relatorios",
+  "yms",
   "configuracoes",
 ];
 
@@ -50,6 +52,7 @@ const roleDefaultModules: Record<AppRole, readonly AppModule[]> = {
     "estoque",
     "nfe",
     "relatorios",
+    "yms",
     "configuracoes",
   ],
   TI: [
@@ -60,6 +63,7 @@ const roleDefaultModules: Record<AppRole, readonly AppModule[]> = {
     "estoque",
     "nfe",
     "relatorios",
+    "yms",
     "configuracoes",
   ],
   OPERADOR: ["dashboard", "recebimento", "expedicao", "romaneio", "estoque", "nfe", "relatorios"],
@@ -263,6 +267,8 @@ export function getModuleLabel(module: AppModule) {
       return "NF-e";
     case "relatorios":
       return "Relatórios";
+    case "yms":
+      return "YMS";
     case "configuracoes":
       return "Configurações";
     default:

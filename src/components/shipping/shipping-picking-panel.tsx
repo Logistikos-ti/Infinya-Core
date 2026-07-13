@@ -489,6 +489,7 @@ export function ShippingPickingPanel({
                   }`}
                 >
                   <input type="hidden" name="itemId" value={item.id} />
+                  <input type="hidden" name="itemKitProgress" value="" />
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -603,6 +604,7 @@ export function ShippingPickingPanel({
                   >
                     <td className="px-5 py-5 text-slate-900 dark:text-white">
                       <input type="hidden" name="itemId" value={item.id} />
+                      <input type="hidden" name="itemKitProgress" value="" />
                       <div className="font-bold text-base mb-1">
                         {item.sku}
                       </div>

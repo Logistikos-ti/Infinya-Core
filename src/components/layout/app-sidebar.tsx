@@ -6,6 +6,7 @@ import {
   Boxes,
   FileText,
   LayoutDashboard,
+  Map,
   PackageCheck,
   Receipt,
   Settings2,
@@ -38,6 +39,7 @@ const navigation: ReadonlyArray<{
   { href: "/romaneio", label: "Romaneio", icon: FileText, module: "romaneio" },
   { href: "/nfe", label: "NF-e", icon: Receipt, module: "nfe" },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
+  { href: "/yms", label: "YMS (Docas)", icon: Map, module: "yms" },
   { href: "/configuracoes", label: "Configurações", icon: Settings2, module: "configuracoes" },
 ] as const;
 

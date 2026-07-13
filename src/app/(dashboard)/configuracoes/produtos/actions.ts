@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { normalizeProductKitDrafts } from "@/lib/product-kits";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
@@ -18,6 +19,7 @@ export type ProdutoActionState = {
       | "nome"
       | "eanGtin"
       | "categoria"
+      | "tipoProduto"
       | "metodoRetirada"
       | "unidadeEstocagem"
       | "quantidadePorEmbalagem",
@@ -34,6 +36,10 @@ export async function saveProdutoAction(
   const returnPath = normalizeRedirectPath(String(formData.get("returnPath") ?? "").trim());
 
   const quantidadePorEmbalagemRaw = String(formData.get("quantidadePorEmbalagem") ?? "").trim();
+  const kitComponentIds = formData.getAll("kitComponentProductId").map((value) => String(value));
+  const kitComponentQuantities = formData
+    .getAll("kitComponentQuantity")
+    .map((value) => String(value));
 
   const parsed = produtoFormSchema.safeParse({
     id: String(formData.get("id") ?? "").trim() || undefined,
@@ -43,6 +49,7 @@ export async function saveProdutoAction(
     nome: String(formData.get("nome") ?? "").trim(),
     eanGtin: String(formData.get("eanGtin") ?? "").trim(),
     categoria: String(formData.get("categoria") ?? "").trim(),
+    tipoProduto: String(formData.get("tipoProduto") ?? "SIMPLES"),
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
     quantidadePorEmbalagem: quantidadePorEmbalagemRaw ? Number(quantidadePorEmbalagemRaw) : undefined,
@@ -64,6 +71,7 @@ export async function saveProdutoAction(
         nome: flattened.nome?.[0] ?? "",
         eanGtin: flattened.eanGtin?.[0] ?? "",
         categoria: flattened.categoria?.[0] ?? "",
+        tipoProduto: flattened.tipoProduto?.[0] ?? "",
         metodoRetirada: flattened.metodoRetirada?.[0] ?? "",
         unidadeEstocagem: flattened.unidadeEstocagem?.[0] ?? "",
         quantidadePorEmbalagem: flattened.quantidadePorEmbalagem?.[0] ?? "",
@@ -75,6 +83,17 @@ export async function saveProdutoAction(
   const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
   const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
   const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
+  const normalizedKitComponents = normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities);
+
+  if (parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
+    return {
+      success: false,
+      message: "Adicione ao menos um componente para salvar o kit.",
+      errors: {
+        tipoProduto: "Kit precisa de componentes.",
+      },
+    };
+  }
 
   if (normalizedEan) {
     const duplicateBarcodeQuery = adminSupabase
@@ -115,6 +134,7 @@ export async function saveProdutoAction(
     sku: resolvedSku,
     nome: parsed.data.nome,
     categoria: parsed.data.categoria || null,
+    tipo_produto: parsed.data.tipoProduto,
     metodo_retirada: parsed.data.metodoRetirada,
     unidade_estocagem: parsed.data.unidadeEstocagem,
     quantidade_por_embalagem:
@@ -136,6 +156,21 @@ export async function saveProdutoAction(
       };
     }
 
+    const componentsError = await syncKitComponents(
+      adminSupabase,
+      parsed.data.id,
+      parsed.data.depositanteId,
+      parsed.data.tipoProduto,
+      normalizedKitComponents,
+    );
+
+    if (componentsError) {
+      return {
+        success: false,
+        message: componentsError,
+      };
+    }
+
     revalidatePath("/configuracoes/produtos");
     revalidatePath("/m/produtos");
     revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
@@ -150,10 +185,25 @@ export async function saveProdutoAction(
 
   const insertResult = await insertProductWithFallback(adminSupabase, payload);
 
-  if (insertResult.error) {
+  if (insertResult.error || !insertResult.data?.id) {
     return {
       success: false,
-      message: humanizeProductPersistenceError("criar", insertResult.error.message),
+      message: humanizeProductPersistenceError("criar", insertResult.error?.message ?? "Produto sem identificador retornado."),
+    };
+  }
+
+  const componentsError = await syncKitComponents(
+    adminSupabase,
+    insertResult.data.id,
+    parsed.data.depositanteId,
+    parsed.data.tipoProduto,
+    normalizedKitComponents,
+  );
+
+  if (componentsError) {
+    return {
+      success: false,
+      message: componentsError,
     };
   }
 
@@ -210,6 +260,10 @@ export async function deleteProdutoAction(formData: FormData) {
       .from("movimentacoes_estoque")
       .select("id", { count: "exact", head: true })
       .eq("produto_id", id),
+    adminSupabase
+      .from("produto_kit_componentes")
+      .select("id", { count: "exact", head: true })
+      .eq("produto_componente_id", id),
   ]);
 
   const totalDependencies = dependencyChecks.reduce((total, query) => total + (query.count ?? 0), 0);
@@ -250,13 +304,80 @@ async function insertProductWithFallback(
   adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
   payload: Record<string, unknown>,
 ) {
-  const result = await adminSupabase.from("produtos").insert(payload);
+  const result = await adminSupabase.from("produtos").insert(payload).select("id").single();
 
   if (result.error && isMissingPackagingColumnError(result.error.message)) {
-    return adminSupabase.from("produtos").insert(withoutPackagingQuantity(payload));
+    return adminSupabase
+      .from("produtos")
+      .insert(withoutPackagingQuantity(payload))
+      .select("id")
+      .single();
   }
 
   return result;
+}
+
+async function syncKitComponents(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  productId: string,
+  depositanteId: string,
+  tipoProduto: "SIMPLES" | "KIT",
+  kitComponents: Array<{ componentProductId: string; quantity: number }>,
+) {
+  const { error: clearError } = await adminSupabase
+    .from("produto_kit_componentes")
+    .delete()
+    .eq("produto_kit_id", productId);
+
+  if (clearError) {
+    return `Nao foi possivel limpar a composicao anterior do kit: ${clearError.message}`;
+  }
+
+  if (tipoProduto !== "KIT") {
+    return null;
+  }
+
+  const uniqueComponentIds = [...new Set(kitComponents.map((item) => item.componentProductId))];
+  const { data: componentProducts, error: componentProductsError } = await adminSupabase
+    .from("produtos")
+    .select("id, depositante_id, nome")
+    .in("id", uniqueComponentIds);
+
+  if (componentProductsError) {
+    return `Nao foi possivel validar os componentes do kit: ${componentProductsError.message}`;
+  }
+
+  const productsById = new Map((componentProducts ?? []).map((item) => [item.id, item]));
+
+  for (const component of kitComponents) {
+    if (component.componentProductId === productId) {
+      return "O kit nao pode apontar para ele mesmo como componente.";
+    }
+
+    const componentProduct = productsById.get(component.componentProductId);
+    if (!componentProduct) {
+      return "Um dos componentes selecionados nao foi encontrado.";
+    }
+
+    if (componentProduct.depositante_id !== depositanteId) {
+      return `O componente ${componentProduct.nome} pertence a outro depositante.`;
+    }
+  }
+
+  const payload = kitComponents.map((component) => ({
+    depositante_id: depositanteId,
+    produto_kit_id: productId,
+    produto_componente_id: component.componentProductId,
+    quantidade: component.quantity,
+  }));
+
+  const { error: insertError } = await adminSupabase.from("produto_kit_componentes").insert(payload);
+
+  if (insertError) {
+    return `Nao foi possivel salvar a composicao do kit: ${insertError.message}`;
+  }
+
+  return null;
 }
 
 function isMissingPackagingColumnError(message: string) {

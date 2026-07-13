@@ -65,19 +65,19 @@ export function AddressBulkGeneratorForm({ action }: AddressBulkGeneratorFormPro
           defaultValue=""
           placeholder="Ex.: 100"
         />
-        <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 md:mt-7 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
-          <input type="checkbox" name="ativo" defaultChecked className="h-4 w-4 rounded" />
+        <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 md:mt-7 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+          <input type="checkbox" name="ativo" defaultChecked className="h-4 w-4 rounded accent-cyan-500" />
           Gerar endereços já ativos
         </label>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         O código será montado automaticamente no padrão{" "}
         <strong>ÁREA-CORREDOR-MÓDULO-NÍVEL-POSIÇÃO</strong>, por exemplo:{" "}
         <strong>PICK-R01-M01-N01-P01</strong>.
       </div>
 
-      <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
+      <Button type="submit" size="lg" className="rounded-xl px-5 shadow-[0_8px_24px_rgba(34,211,238,0.18)]">
         Gerar endereços
       </Button>
     </form>
@@ -103,7 +103,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-white/[0.07]"
       />
     </label>
   );
@@ -123,7 +123,7 @@ function RangeField({
   defaultPrefix: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.03]">
       <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{prefixLabel}</p>
       <div className="mt-3 grid gap-3">
         <Field label="Prefixo" name={prefixName} defaultValue={defaultPrefix} placeholder={defaultPrefix} />
@@ -135,7 +135,7 @@ function RangeField({
               min={1}
               name={startName}
               defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:bg-white/[0.07]"
             />
           </label>
           <label className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
@@ -145,7 +145,7 @@ function RangeField({
               min={1}
               name={endName}
               defaultValue={1}
-              className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:bg-white/[0.07]"
             />
           </label>
         </div>

@@ -1,5 +1,12 @@
 import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
+import {
+  buildKitProgressMap,
+  calculateKitOperationalTotals,
+  isKitProduct,
+  normalizePickingKitProgress,
+  type ProductKitComponentDefinition,
+} from "@/lib/product-kits";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -15,6 +22,7 @@ type RawPickingOrderItemRow = {
   unidade: string | null;
   quantidade: number | string | null;
   quantidade_separada: number | string | null;
+  payload_origem: Record<string, unknown> | null;
   produto?: {
     codigo_externo?: string | null;
   } | null;
@@ -62,6 +70,7 @@ type RawPickingStockRow = {
         sku?: string | null;
         nome?: string | null;
         codigo_interno?: string | null;
+        codigo_externo?: string | null;
         metodo_retirada?: string | null;
       }
     | null;
@@ -92,6 +101,10 @@ export type PickingOperatorOption = {
 
 export type ShippingPickingRouteLine = {
   stockId: string;
+  productId: string;
+  componentSku: string;
+  componentName: string;
+  componentBarcode: string;
   addressCode: string;
   area: string;
   routeLabel: string;
@@ -99,6 +112,17 @@ export type ShippingPickingRouteLine = {
   expiry: string;
   quantity: number;
   available: number;
+};
+
+export type ShippingPickingKitComponent = {
+  componentProductId: string;
+  sku: string;
+  name: string;
+  barcode: string;
+  quantityPerKit: number;
+  requestedQuantity: number;
+  separatedQuantity: number;
+  remainingQuantity: number;
 };
 
 export type ShippingPickingItem = {
@@ -110,10 +134,14 @@ export type ShippingPickingItem = {
   barcode: string;
   name: string;
   unit: string;
+  isKit: boolean;
+  requestedKits: number;
   requestedQuantity: number;
   separatedQuantity: number;
   remainingQuantity: number;
   shortageQuantity: number;
+  kitComponents: ShippingPickingKitComponent[];
+  scanTargets: string[];
   routeLines: ShippingPickingRouteLine[];
 };
 
@@ -127,6 +155,7 @@ export type ShippingPickingRouteStop = {
     itemId: string;
     sku: string;
     name: string;
+    barcode: string;
     quantity: number;
     unit: string;
     lot: string;
@@ -194,7 +223,7 @@ export async function listPickingOperatorsFromDb(
     .order("nome");
 
   if (error) {
-    throw new Error(`Nï¿½o foi possï¿½vel listar os operadores: ${error.message}`);
+    throw new Error(`Não foi possível listar os operadores: ${error.message}`);
   }
 
   return ((data ?? []) as RawOperatorRow[])
@@ -246,7 +275,7 @@ export async function listShippingPickingOrdersFromDb(
   const { data: ordersData, error: ordersError } = await ordersQuery;
 
   if (ordersError) {
-    throw new Error(`Nï¿½o foi possï¿½vel listar os pedidos de separaï¿½ï¿½o: ${ordersError.message}`);
+    throw new Error(`Não foi possível listar os pedidos de separação: ${ordersError.message}`);
   }
 
   const rawOrders = (ordersData ?? []) as RawPickingOrderRow[];
@@ -279,7 +308,7 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
   const { data, error } = await buildPickingOrdersQuery(supabase).eq("id", id).maybeSingle();
 
   if (error) {
-    throw new Error(`N?o foi poss?vel carregar o pedido de separa??o: ${error.message}`);
+    throw new Error(`Não foi possível carregar o pedido de separação: ${error.message}`);
   }
 
   const rawOrder = (data as RawPickingOrderRow | null) ?? null;
@@ -328,16 +357,16 @@ function mapPickingOrder(
       order.numero_loja,
       order.codigo,
     ),
-    customer: order.cliente_nome?.trim() || "Cliente nï¿½o informado",
+    customer: order.cliente_nome?.trim() || "Cliente não informado",
     destination:
       [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-      "Destino nï¿½o informado",
+      "Destino não informado",
     status: order.status,
     statusLabel: formatShippingStatusLabel(order.status),
     depositanteId: order.depositante_id,
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
     totalItems: Number(order.quantidade_itens ?? items.length),
-    totalUnits: Number(order.quantidade_unidades ?? totalRequested),
+    totalUnits: totalRequested,
     assignedOperatorId: picking.operatorId,
     assignedOperatorName: picking.operatorName,
     startedAt: picking.startedAt,
@@ -358,7 +387,125 @@ function mapPickingItem(
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
 ) {
-  const requestedQuantity = Number(item.quantidade ?? 0);
+  const requestedKits = Number(item.quantidade ?? 0);
+  const itemCode = item.codigo_produto?.trim() || "-";
+  const itemSku = item.sku?.trim() || "-";
+  const itemBarcode = item.produto?.codigo_externo?.trim() || "-";
+  const componentDefinitions = normalizeKitComponentDefinitions(item.payload_origem);
+  const isKit = isKitProduct(isPayloadKit(item.payload_origem) ? "KIT" : "SIMPLES", componentDefinitions);
+
+  if (!isKit) {
+    return mapSimplePickingItem(depositanteId, item, stockRows, includeRouteData, {
+      requestedKits,
+      itemCode,
+      itemSku,
+      itemBarcode,
+    });
+  }
+
+  const progressMap = buildKitProgressMap(normalizePickingKitProgress(item.payload_origem));
+  const routeLines: ShippingPickingRouteLine[] = [];
+  const kitComponents: ShippingPickingKitComponent[] = [];
+  let shortageQuantity = 0;
+
+  for (const component of componentDefinitions) {
+    const requestedQuantity = requestedKits * component.quantityPerKit;
+    const separatedQuantity = Math.min(progressMap.get(component.componentProductId) ?? 0, requestedQuantity);
+    const matchedStocks = includeRouteData
+      ? stockRows
+          .filter((row) => row.depositante_id === depositanteId)
+          .filter((row) => matchesStockToKitComponent(row, component))
+          .filter((row) => getAvailableQuantity(row) > 0)
+          .sort(compareStocksForPicking)
+      : [];
+
+    let remaining = Math.max(requestedQuantity - separatedQuantity, 0);
+
+    for (const stock of matchedStocks) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const available = getAvailableQuantity(stock);
+      const quantity = Math.min(remaining, available);
+      if (quantity <= 0) {
+        continue;
+      }
+
+      remaining -= quantity;
+      routeLines.push({
+        stockId: stock.id,
+        productId: stock.produto_id,
+        componentSku: component.sku,
+        componentName: component.name,
+        componentBarcode: component.barcode,
+        addressCode: stock.endereco?.codigo?.trim() || "Sem endereço",
+        area: normalizeArea(stock.endereco?.area),
+        routeLabel: buildRouteLabel(stock.endereco),
+        lot: stock.lote?.trim() || "-",
+        expiry: formatDate(stock.validade_em),
+        quantity,
+        available,
+      });
+    }
+
+    shortageQuantity += remaining;
+    kitComponents.push({
+      componentProductId: component.componentProductId,
+      sku: component.sku,
+      name: component.name,
+      barcode: component.barcode,
+      quantityPerKit: component.quantityPerKit,
+      requestedQuantity,
+      separatedQuantity,
+      remainingQuantity: Math.max(requestedQuantity - separatedQuantity, 0),
+    });
+  }
+
+  const totals = calculateKitOperationalTotals(componentDefinitions, requestedKits, progressMap);
+
+  return {
+    id: item.id,
+    productId: item.produto_id,
+    externalReference: item.referencia_externa?.trim() || "-",
+    code: itemCode,
+    sku: itemSku,
+    barcode: itemBarcode,
+    name: item.nome,
+    unit: item.unidade?.trim() || "UN",
+    isKit: true,
+    requestedKits,
+    requestedQuantity: totals.operationalRequestedQuantity,
+    separatedQuantity: totals.operationalSeparatedQuantity,
+    remainingQuantity: Math.max(
+      totals.operationalRequestedQuantity - totals.operationalSeparatedQuantity,
+      0,
+    ),
+    shortageQuantity,
+    kitComponents,
+    scanTargets: [...new Set([
+      itemBarcode,
+      itemCode,
+      itemSku,
+      ...kitComponents.flatMap((component) => [component.barcode, component.sku]),
+    ].filter(Boolean))],
+    routeLines,
+  } satisfies ShippingPickingItem;
+}
+
+function mapSimplePickingItem(
+  depositanteId: string,
+  item: RawPickingOrderItemRow,
+  stockRows: RawPickingStockRow[],
+  includeRouteData: boolean,
+  meta: {
+    requestedKits: number;
+    itemCode: string;
+    itemSku: string;
+    itemBarcode: string;
+  },
+) {
+  const requestedQuantity = meta.requestedKits;
   const separatedQuantity = Number(item.quantidade_separada ?? 0);
   const matchedStocks = includeRouteData
     ? stockRows
@@ -385,7 +532,11 @@ function mapPickingItem(
     remaining -= quantity;
     routeLines.push({
       stockId: stock.id,
-      addressCode: stock.endereco?.codigo?.trim() || "Sem endereï¿½o",
+      productId: stock.produto_id,
+      componentSku: stock.produto?.sku?.trim() || meta.itemSku,
+      componentName: stock.produto?.nome?.trim() || item.nome,
+      componentBarcode: meta.itemBarcode,
+      addressCode: stock.endereco?.codigo?.trim() || "Sem endereço",
       area: normalizeArea(stock.endereco?.area),
       routeLabel: buildRouteLabel(stock.endereco),
       lot: stock.lote?.trim() || "-",
@@ -399,22 +550,26 @@ function mapPickingItem(
     id: item.id,
     productId: item.produto_id,
     externalReference: item.referencia_externa?.trim() || "-",
-    code: item.codigo_produto?.trim() || "-",
-    sku: item.sku?.trim() || "-",
-    barcode: item.produto?.codigo_externo?.trim() || "-",
+    code: meta.itemCode,
+    sku: meta.itemSku,
+    barcode: meta.itemBarcode,
     name: item.nome,
     unit: item.unidade?.trim() || "UN",
+    isKit: false,
+    requestedKits: meta.requestedKits,
     requestedQuantity,
     separatedQuantity,
     remainingQuantity: Math.max(requestedQuantity - separatedQuantity, 0),
     shortageQuantity: remaining,
+    kitComponents: [],
+    scanTargets: [meta.itemBarcode, meta.itemCode, meta.itemSku].filter(Boolean),
     routeLines,
   } satisfies ShippingPickingItem;
 }
 
 function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, created_at, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, produto:produtos(codigo_externo))",
+    "id, codigo, created_at, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
   );
 }
 
@@ -423,12 +578,26 @@ async function loadPickingStockRows(
   orders: RawPickingOrderRow[],
 ) {
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
+  const hasPayloadKitWithoutRealProduct = orders.some((order) =>
+    (order.itens ?? []).some((item) =>
+      normalizeKitComponentDefinitions(item.payload_origem).some(
+        (component) => !looksLikeUuid(component.componentProductId),
+      ),
+    ),
+  );
   const productIds = [
     ...new Set(
-      orders
-        .flatMap((order) => order.itens ?? [])
-        .map((item) => item.produto_id)
-        .filter((value): value is string => Boolean(value)),
+      orders.flatMap((order) =>
+        (order.itens ?? []).flatMap((item) => {
+          const componentIds = normalizeKitComponentDefinitions(item.payload_origem)
+            .filter((component) => looksLikeUuid(component.componentProductId))
+            .map(
+            (component) => component.componentProductId,
+          );
+
+          return [item.produto_id, ...componentIds].filter((value): value is string => Boolean(value));
+        }),
+      ),
     ),
   ];
 
@@ -439,19 +608,19 @@ async function loadPickingStockRows(
   let stockQuery = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, metodo_retirada)",
+      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, codigo_externo, metodo_retirada)",
     )
     .in("depositante_id", depositanteIds)
     .eq("bloqueado", false);
 
-  if (productIds.length) {
+  if (productIds.length && !hasPayloadKitWithoutRealProduct) {
     stockQuery = stockQuery.in("produto_id", productIds);
   }
 
   const { data: stockData, error: stockError } = await stockQuery;
 
   if (stockError) {
-    throw new Error(`N?o foi poss?vel montar a rota de picking: ${stockError.message}`);
+    throw new Error(`Não foi possível montar a rota de picking: ${stockError.message}`);
   }
 
   return (stockData ?? []) as RawPickingStockRow[];
@@ -477,8 +646,9 @@ function buildRouteStops(items: ShippingPickingItem[]) {
       current.totalQuantity += line.quantity;
       current.lines.push({
         itemId: item.id,
-        sku: item.sku,
-        name: item.name,
+        sku: line.componentSku,
+        name: line.componentName,
+        barcode: line.componentBarcode,
         quantity: line.quantity,
         unit: item.unit,
         lot: line.lot,
@@ -510,11 +680,39 @@ function matchesStockToItem(stock: RawPickingStockRow, item: RawPickingOrderItem
   }
 
   const itemCandidates = [item.sku, item.codigo_produto].map(normalizeText).filter(Boolean);
-  const stockCandidates = [stock.produto?.sku, stock.produto?.codigo_interno]
+  const stockCandidates = [stock.produto?.sku, stock.produto?.codigo_interno, stock.produto?.codigo_externo]
     .map(normalizeText)
     .filter(Boolean);
 
   return itemCandidates.some((candidate) => stockCandidates.includes(candidate));
+}
+
+function matchesStockToKitComponent(
+  stock: RawPickingStockRow,
+  component: ProductKitComponentDefinition,
+) {
+  if (component.componentProductId && looksLikeUuid(component.componentProductId)) {
+    if (stock.produto_id === component.componentProductId) {
+      return true;
+    }
+  }
+
+  const componentCandidates = [
+    component.sku,
+    component.internalCode,
+    component.barcode,
+  ]
+    .map(normalizeText)
+    .filter(Boolean);
+  const stockCandidates = [
+    stock.produto?.sku,
+    stock.produto?.codigo_interno,
+    stock.produto?.codigo_externo,
+  ]
+    .map(normalizeText)
+    .filter(Boolean);
+
+  return componentCandidates.some((candidate) => stockCandidates.includes(candidate));
 }
 
 function compareStocksForPicking(a: RawPickingStockRow, b: RawPickingStockRow) {
@@ -613,6 +811,8 @@ function getAreaPriority(area: string | null | undefined) {
       return 0;
     case "EXPEDICAO":
       return 1;
+    case "ARMAZENAGEM":
+      return 2;
     case "PULMAO":
       return 2;
     case "RECEBIMENTO":
@@ -651,12 +851,12 @@ function buildRouteLabel(
 ) {
   const parts = [
     endereco?.rua ? `Rua ${endereco.rua}` : null,
-    endereco?.modulo ? `M?dulo ${endereco.modulo}` : null,
-    endereco?.nivel ? `N?vel ${endereco.nivel}` : null,
-    endereco?.posicao ? `Posi??o ${endereco.posicao}` : null,
+    endereco?.modulo ? `Módulo ${endereco.modulo}` : null,
+    endereco?.nivel ? `Nível ${endereco.nivel}` : null,
+    endereco?.posicao ? `Posição ${endereco.posicao}` : null,
   ].filter(Boolean);
 
-  return parts.join(" ? ") || "Sequ?ncia n?o informada";
+  return parts.join(" • ") || "Sequência não informada";
 }
 
 function compareNullableDates(a: string | null | undefined, b: string | null | undefined) {
@@ -703,6 +903,39 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString("pt-BR");
 }
 
+function normalizeKitComponentDefinitions(payload: Record<string, unknown> | null | undefined) {
+  const source = readRecord(payload?.kit_operacional);
+  const components = readArray(source?.componentes);
+
+  return components
+    .map((entry, index) => {
+      const row = readRecord(entry);
+      const referenceId =
+        readString(row?.produtoComponenteId) ??
+        readString(row?.referenciaExterna) ??
+        `KIT_COMPONENTE_${index + 1}`;
+      const quantityPerKit = Number(row?.quantidadePorKit ?? row?.quantidade ?? 0);
+
+      if (!referenceId || quantityPerKit <= 0) {
+        return null;
+      }
+
+      return {
+        componentProductId: referenceId,
+        quantityPerKit,
+        sku: readString(row?.sku) ?? readString(row?.codigoInterno) ?? referenceId,
+        name: readString(row?.nome) ?? "Componente sem nome",
+        internalCode: readString(row?.codigoInterno) ?? readString(row?.sku) ?? referenceId,
+        barcode: readString(row?.barcode) ?? "-",
+      } satisfies ProductKitComponentDefinition;
+    })
+    .filter((item): item is ProductKitComponentDefinition => Boolean(item));
+}
+
+function isPayloadKit(payload: Record<string, unknown> | null | undefined) {
+  const source = readRecord(payload?.kit_operacional);
+  return readArray(source?.componentes).length > 0;
+}
 
 function extractRelationName(value: RelationName) {
   if (Array.isArray(value)) {
@@ -755,4 +988,18 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function readRecord(value: unknown) {
+  return isRecord(value) ? value : null;
+}
+
+function readArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function looksLikeUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }

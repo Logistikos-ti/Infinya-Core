@@ -541,6 +541,7 @@ export function MobilePickingPanel({
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
             >
               <input type="hidden" name="itemId" value={item.id} />
+              <input type="hidden" name="itemKitProgress" value="" />
 
               <div className={`flex items-start justify-between ${isCurrentItem ? "gap-4" : "gap-3"}`}>
                 <div className="min-w-0">

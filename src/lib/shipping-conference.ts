@@ -1,5 +1,12 @@
 import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
+import {
+  buildKitProgressMap,
+  calculateKitOperationalTotals,
+  isKitProduct,
+  normalizeConferenceKitProgress,
+  type ProductKitComponentDefinition,
+} from "@/lib/product-kits";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -48,6 +55,17 @@ type ConferencePayload = {
   wrongProductScans: number;
 };
 
+export type ShippingConferenceKitComponent = {
+  componentProductId: string;
+  sku: string;
+  name: string;
+  barcode: string;
+  quantityPerKit: number;
+  requestedQuantity: number;
+  confirmedQuantity: number;
+  pendingQuantity: number;
+};
+
 export type ShippingConferenceItem = {
   id: string;
   productId: string | null;
@@ -57,11 +75,15 @@ export type ShippingConferenceItem = {
   barcode: string;
   name: string;
   unit: string;
+  isKit: boolean;
+  requestedKits: number;
   requestedQuantity: number;
   separatedQuantity: number;
   confirmedQuantity: number;
   pendingQuantity: number;
   hasQuantityDivergence: boolean;
+  kitComponents: ShippingConferenceKitComponent[];
+  scanTargets: string[];
 };
 
 export type ShippingConferenceOrder = {
@@ -108,11 +130,7 @@ export async function listShippingConferenceOrdersFromDb(
   const effectiveDepositanteId =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : filters?.depositanteId;
 
-  let query = supabase
-    .from("pedidos_expedicao")
-    .select(
-      "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
-    )
+  let query = buildConferenceOrdersQuery(supabase)
     .in("status", [...activeConferenceStatuses])
     .order("created_at", { ascending: true });
 
@@ -126,7 +144,7 @@ export async function listShippingConferenceOrdersFromDb(
 
   const { data, error } = await query;
   if (error) {
-    throw new Error(`N?o foi poss?vel listar os pedidos em confer?ncia: ${error.message}`);
+    throw new Error(`Não foi possível listar os pedidos em conferência: ${error.message}`);
   }
 
   const orders = ((data ?? []) as RawConferenceOrderRow[]).map(mapConferenceOrder);
@@ -142,14 +160,10 @@ export async function listShippingConferenceOrdersFromDb(
 
 export async function getShippingConferenceOrderFromDb(user: AppUserContext, id: string) {
   const supabase = createSupabaseAdminClient();
-  const effectiveDepositanteId = user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
+  const effectiveDepositanteId =
+    user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined;
 
-  let query = supabase
-    .from("pedidos_expedicao")
-    .select(
-      "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
-    )
-    .eq("id", id);
+  let query = buildConferenceOrdersQuery(supabase).eq("id", id);
 
   if (effectiveDepositanteId) {
     query = query.eq("depositante_id", effectiveDepositanteId);
@@ -157,7 +171,7 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
 
   const { data, error } = await query.maybeSingle();
   if (error) {
-    throw new Error(`N?o foi poss?vel carregar o pedido em confer?ncia: ${error.message}`);
+    throw new Error(`Não foi possível carregar o pedido em conferência: ${error.message}`);
   }
 
   if (!data) {
@@ -165,6 +179,12 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
   }
 
   return mapConferenceOrder(data as RawConferenceOrderRow);
+}
+
+function buildConferenceOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
+  return supabase.from("pedidos_expedicao").select(
+    "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+  );
 }
 
 function mapConferenceOrder(order: RawConferenceOrderRow) {
@@ -185,16 +205,16 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
     externalNumber: extractPlatformOrderNumber(payload, order.numero_pedido, order.numero_loja, order.codigo),
-    customer: order.cliente_nome?.trim() || "Cliente nï¿½o informado",
+    customer: order.cliente_nome?.trim() || "Cliente não informado",
     destination:
       [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-      "Destino nï¿½o informado",
+      "Destino não informado",
     status: order.status,
     statusLabel: formatShippingStatusLabel(order.status),
     depositanteId: order.depositante_id,
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
     totalItems: Number(order.quantidade_itens ?? items.length),
-    totalUnits: Number(order.quantidade_unidades ?? totalRequested),
+    totalUnits: totalRequested,
     assignedOperatorId: conference.operatorId,
     assignedOperatorName: conference.operatorName,
     startedAt: conference.startedAt,
@@ -212,24 +232,114 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
 function mapConferenceItem(item: RawConferenceItemRow) {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
-  const requestedQuantity = Number(item.quantidade ?? 0);
-  const confirmedQuantity = Number(readString(conference.quantidadeConferida) ?? 0);
+  const componentDefinitions = normalizeKitComponentDefinitions(item.payload_origem);
+  const isKit = isKitProduct(isPayloadKit(item.payload_origem) ? "KIT" : "SIMPLES", componentDefinitions);
+  const requestedKits = Number(item.quantidade ?? 0);
+  const itemCode = item.codigo_produto?.trim() || "-";
+  const itemSku = item.sku?.trim() || "-";
+  const itemBarcode = item.produto?.codigo_externo?.trim() || "-";
+
+  if (!isKit) {
+    const requestedQuantity = requestedKits;
+    const confirmedQuantity = Number(readString(conference.quantidadeConferida) ?? 0);
+
+    return {
+      id: item.id,
+      productId: item.produto_id,
+      externalReference: item.referencia_externa?.trim() || "-",
+      code: itemCode,
+      sku: itemSku,
+      barcode: itemBarcode,
+      name: item.nome,
+      unit: item.unidade?.trim() || "UN",
+      isKit: false,
+      requestedKits,
+      requestedQuantity,
+      separatedQuantity: Number(item.quantidade_separada ?? 0),
+      confirmedQuantity,
+      pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
+      hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
+      kitComponents: [],
+      scanTargets: [itemBarcode, itemCode, itemSku].filter(Boolean),
+    } satisfies ShippingConferenceItem;
+  }
+
+  const progressMap = buildKitProgressMap(normalizeConferenceKitProgress(item.payload_origem));
+  const totals = calculateKitOperationalTotals(componentDefinitions, requestedKits, progressMap);
+  const kitComponents = componentDefinitions.map((component) => {
+    const requestedQuantity = requestedKits * component.quantityPerKit;
+    const confirmedQuantity = Math.min(progressMap.get(component.componentProductId) ?? 0, requestedQuantity);
+
+    return {
+      componentProductId: component.componentProductId,
+      sku: component.sku,
+      name: component.name,
+      barcode: component.barcode,
+      quantityPerKit: component.quantityPerKit,
+      requestedQuantity,
+      confirmedQuantity,
+      pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
+    } satisfies ShippingConferenceKitComponent;
+  });
 
   return {
     id: item.id,
     productId: item.produto_id,
     externalReference: item.referencia_externa?.trim() || "-",
-    code: item.codigo_produto?.trim() || "-",
-    sku: item.sku?.trim() || "-",
-    barcode: item.produto?.codigo_externo?.trim() || "-",
+    code: itemCode,
+    sku: itemSku,
+    barcode: itemBarcode,
     name: item.nome,
     unit: item.unidade?.trim() || "UN",
-    requestedQuantity,
-    separatedQuantity: Number(item.quantidade_separada ?? 0),
-    confirmedQuantity,
-    pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
-    hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
+    isKit: true,
+    requestedKits,
+    requestedQuantity: totals.operationalRequestedQuantity,
+    separatedQuantity: totals.operationalRequestedQuantity,
+    confirmedQuantity: totals.operationalSeparatedQuantity,
+    pendingQuantity: Math.max(totals.operationalRequestedQuantity - totals.operationalSeparatedQuantity, 0),
+    hasQuantityDivergence: totals.operationalSeparatedQuantity !== totals.operationalRequestedQuantity,
+    kitComponents,
+    scanTargets: [...new Set([
+      itemBarcode,
+      itemCode,
+      itemSku,
+      ...kitComponents.flatMap((component) => [component.barcode, component.sku]),
+    ].filter(Boolean))],
   } satisfies ShippingConferenceItem;
+}
+
+function normalizeKitComponentDefinitions(payload: Record<string, unknown> | null | undefined) {
+  const source = readRecord(payload?.kit_operacional);
+  const components = readArray(source?.componentes);
+
+  return components
+    .map((entry, index) => {
+      const row = readRecord(entry);
+      const referenceId =
+        readString(row?.produtoComponenteId) ??
+        readString(row?.referenciaExterna) ??
+        `KIT_COMPONENTE_${index + 1}`;
+      const quantityPerKit = Number(row?.quantidadePorKit ?? row?.quantidade ?? 0);
+
+      if (!referenceId || quantityPerKit <= 0) {
+        return null;
+      }
+
+      return {
+        componentProductId: referenceId,
+        quantityPerKit,
+        sku: readString(row?.sku) ?? readString(row?.codigoInterno) ?? referenceId,
+        name: readString(row?.nome) ?? "Componente sem nome",
+        internalCode: readString(row?.codigoInterno) ?? readString(row?.sku) ?? referenceId,
+        barcode: readString(row?.barcode) ?? "-",
+      } satisfies ProductKitComponentDefinition;
+    })
+    .filter((item): item is ProductKitComponentDefinition => Boolean(item));
+}
+
+function isPayloadKit(payload: Record<string, unknown> | null | undefined) {
+  const source = readRecord(payload?.kit_operacional);
+  return readArray(source?.componentes).length > 0;
 }
 
 function extractConferencePayload(payload: Record<string, unknown>): ConferencePayload {
@@ -292,4 +402,12 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function readRecord(value: unknown) {
+  return isRecord(value) ? value : null;
+}
+
+function readArray(value: unknown) {
+  return Array.isArray(value) ? value : [];
 }

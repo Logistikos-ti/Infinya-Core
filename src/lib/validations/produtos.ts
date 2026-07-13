@@ -33,6 +33,7 @@ export const produtoFormSchema = z
       .max(80, "A categoria deve ter no maximo 80 caracteres.")
       .optional()
       .or(z.literal("")),
+    tipoProduto: z.enum(["SIMPLES", "KIT"]).default("SIMPLES"),
     metodoRetirada: z.enum(["FEFO", "FIFO", "LIFO"]),
     unidadeEstocagem: z.enum(["UNIDADE", "CAIXA", "PACK", "PALLET"]),
     quantidadePorEmbalagem: z.coerce.number().int().positive().optional(),

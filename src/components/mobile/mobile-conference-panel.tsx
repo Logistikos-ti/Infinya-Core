@@ -597,6 +597,7 @@ export function MobileConferencePanel({
                       : "rounded-[20px] border-white/10 bg-white/5 p-3.5"
               } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-amber" : ""}`}
             >
+              <input type="hidden" name="itemKitProgress" value="" />
               <input type="hidden" name="itemId" value={item.id} />
 
               <div className={`flex items-start justify-between ${isCurrentItem ? "gap-3" : "gap-2.5"}`}>

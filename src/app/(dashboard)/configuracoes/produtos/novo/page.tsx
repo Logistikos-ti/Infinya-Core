@@ -16,6 +16,11 @@ export default async function NovoProdutoPage() {
     .select("id, nome")
     .eq("ativo", true)
     .order("nome");
+  const { data: productOptions } = await supabase
+    .from("produtos")
+    .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
+    .eq("ativo", true)
+    .order("nome");
   const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
@@ -38,7 +43,18 @@ export default async function NovoProdutoPage() {
         badge="Cadastro"
       />
 
-      <ProdutoForm depositantes={visibleDepositantes} compactMode={compactMode} />
+      <ProdutoForm
+        depositantes={visibleDepositantes}
+        productOptions={(productOptions ?? []).map((item) => ({
+          id: item.id,
+          depositanteId: item.depositante_id,
+          nome: item.nome,
+          sku: item.sku,
+          codigoInterno: item.codigo_interno,
+          codigoExterno: item.codigo_externo,
+        }))}
+        compactMode={compactMode}
+      />
     </div>
   );
 }

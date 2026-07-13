@@ -3,7 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
+import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+type KitProgressEntry = {
+  componentProductId: string;
+  quantityPerKit: number;
+  separatedQuantity: number;
+  sku: string;
+  name: string;
+  barcode: string;
+};
 
 export async function saveShippingConferenceAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
@@ -18,11 +28,12 @@ export async function saveShippingConferenceAction(formData: FormData) {
   const completeRedirectTo = String(formData.get("completeRedirectTo") ?? "").trim();
   const wrongProductScans = normalizeQuantity(String(formData.get("wrongProductScans") ?? "0"));
   const itemIds = formData.getAll("itemId").map((value) => String(value).trim()).filter(Boolean);
+  const itemKitProgressValues = formData.getAll("itemKitProgress").map((value) => String(value));
   const quantityValues = formData
     .getAll("confirmedQuantity")
     .map((value) => normalizeQuantity(String(value)));
 
-  if (!orderId || itemIds.length !== quantityValues.length) {
+  if (!orderId || itemIds.length !== quantityValues.length || itemIds.length !== itemKitProgressValues.length) {
     redirect(`${redirectBase}?feedback=erro`);
   }
 
@@ -46,6 +57,8 @@ export async function saveShippingConferenceAction(formData: FormData) {
     }>).map((item) => [item.id, item]),
   );
 
+  let canComplete = true;
+
   const itemUpdates = itemIds
     .map((itemId, index) => {
       const itemRecord = itemMap.get(itemId);
@@ -58,6 +71,44 @@ export async function saveShippingConferenceAction(formData: FormData) {
       const confirmed = Math.max(0, Math.min(quantityValues[index], requested));
       const payload = isRecord(itemRecord.payload_origem) ? itemRecord.payload_origem : {};
       const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+      const kitProgress = parseKitProgress(itemKitProgressValues[index]);
+
+      if (kitProgress.length > 0) {
+        const totals = calculateKitOperationalTotals(
+          kitProgress.map((item) => ({
+            componentProductId: item.componentProductId,
+            quantityPerKit: item.quantityPerKit,
+            sku: item.sku,
+            name: item.name,
+            internalCode: item.sku,
+            barcode: item.barcode,
+          })),
+          requested,
+          new Map(kitProgress.map((item) => [item.componentProductId, item.separatedQuantity])),
+        );
+
+        canComplete = canComplete && totals.completedKits >= requested;
+
+        return adminSupabase
+          .from("pedidos_expedicao_itens")
+          .update({
+            payload_origem: {
+              ...payload,
+              conferencia: {
+                ...currentConference,
+                quantidadeConferida: totals.completedKits,
+              },
+              ...buildConferenceKitPayload(payload, requested, kitProgress.map((item) => ({
+                componentProductId: item.componentProductId,
+                separatedQuantity: item.separatedQuantity,
+              }))),
+            },
+          })
+          .eq("id", itemId)
+          .eq("pedido_expedicao_id", orderId);
+      }
+
+      canComplete = canComplete && confirmed >= requested;
 
       return adminSupabase
         .from("pedidos_expedicao_itens")
@@ -93,9 +144,6 @@ export async function saveShippingConferenceAction(formData: FormData) {
     produtoErradoCount: wrongProductScans,
   };
 
-  const totalRequested = [...itemMap.values()].reduce((sum, item) => sum + Number(item.quantidade ?? 0), 0);
-  const totalConfirmed = quantityValues.reduce((sum, quantity) => sum + quantity, 0);
-  const canComplete = totalRequested > 0 && totalConfirmed >= totalRequested;
   const nextStatus = intent === "complete" ? (canComplete ? "CONFERIDO" : order.status) : "EM_CONFERENCIA";
 
   await adminSupabase
@@ -147,6 +195,50 @@ function normalizeQuantity(value: string) {
   }
 
   return Math.max(0, numeric);
+}
+
+function parseKitProgress(rawValue: string) {
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return null;
+        }
+
+        const componentProductId =
+          typeof entry.componentProductId === "string" ? entry.componentProductId.trim() : "";
+        const quantityPerKit = normalizeQuantity(String(entry.quantityPerKit ?? 0));
+        const separatedQuantity = normalizeQuantity(String(entry.separatedQuantity ?? 0));
+        const sku = typeof entry.sku === "string" ? entry.sku : "";
+        const name = typeof entry.name === "string" ? entry.name : "";
+        const barcode = typeof entry.barcode === "string" ? entry.barcode : "";
+
+        if (!componentProductId || quantityPerKit <= 0) {
+          return null;
+        }
+
+        return {
+          componentProductId,
+          quantityPerKit,
+          separatedQuantity,
+          sku,
+          name,
+          barcode,
+        } satisfies KitProgressEntry;
+      })
+      .filter((entry): entry is KitProgressEntry => Boolean(entry));
+  } catch {
+    return [] as KitProgressEntry[];
+  }
 }
 
 function readString(value: unknown) {

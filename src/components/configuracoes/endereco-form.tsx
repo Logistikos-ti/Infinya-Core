@@ -118,18 +118,18 @@ export function EnderecoForm({ action, defaultValues }: EnderecoFormProps) {
         placeholder="Ex.: 120"
       />
 
-      <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200">
+      <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
         <input
           type="checkbox"
           name="ativo"
           defaultChecked={defaultValues?.ativo ?? true}
-          className="h-4 w-4 rounded"
+          className="h-4 w-4 rounded accent-cyan-500"
         />
         Endereço ativo para operação
       </label>
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800">
+        <Button type="submit" size="lg" className="rounded-xl px-5 shadow-[0_8px_24px_rgba(34,211,238,0.18)]">
           {defaultValues?.id ? "Salvar alterações" : "Criar endereço"}
         </Button>
       </div>
@@ -156,7 +156,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-white/[0.07]"
       />
     </label>
   );
@@ -194,7 +194,7 @@ function BarcodeField({
             size="sm"
             onClick={onToggleCamera}
             disabled={cameraStarting}
-            className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
+            className="h-9 rounded-xl border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
           >
             {cameraEnabled ? (
               <CameraOff className="mr-2 h-4 w-4" />
@@ -203,7 +203,7 @@ function BarcodeField({
             )}
             {cameraEnabled ? "Desligar câmera" : "Ler código"}
           </Button>
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
             <Barcode className="h-3.5 w-3.5" />
             USB ou câmera
           </span>
@@ -218,17 +218,17 @@ function BarcodeField({
         value={value}
         onChange={(event) => onChange(event.target.value.toUpperCase())}
         placeholder="Ex.: PICK-01-A"
-        className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 outline-none transition focus:border-sky-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+        className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-white/[0.07]"
       />
 
-      <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+      <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular.
       </div>
 
       {(cameraEnabled || cameraStarting || cameraMessage) && (
-        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/60">
           <div className="grid gap-3 sm:grid-cols-[180px,1fr] sm:items-start">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 dark:border-slate-800">
+            <div className="overflow-hidden rounded-2xl border border-slate-200/60 bg-slate-950 dark:border-white/10">
               <video
                 ref={videoRef}
                 autoPlay
