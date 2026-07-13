@@ -625,6 +625,15 @@ function formatDateTimeInSaoPaulo(value: string | null, fallback: string) {
     return fallback;
   }
 
+  const localDateTimeMatch = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/,
+  );
+
+  if (localDateTimeMatch) {
+    const [, year, month, day, hour, minute, second] = localDateTimeMatch;
+    return `${day}/${month}/${year}, ${hour}:${minute}${second ? `:${second}` : ""}`;
+  }
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return fallback;
@@ -642,7 +651,19 @@ function formatDateOrFallback(value: string | null, fallback: string) {
     return fallback;
   }
 
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return `${day}/${month}/${year}`;
+  }
+
+  const localDateTimeMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if (localDateTimeMatch) {
+    const [, year, month, day] = localDateTimeMatch;
+    return `${day}/${month}/${year}`;
+  }
+
+  const date = new Date(value);
   return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString("pt-BR");
 }
 

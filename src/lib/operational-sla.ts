@@ -17,7 +17,7 @@ export function buildOperationalSlaMeta(value: string | null | undefined): Opera
     };
   }
 
-  const date = new Date(value);
+  const date = parseOperationalDate(value);
   if (Number.isNaN(date.getTime())) {
     return {
       createdAtIso: null,
@@ -44,12 +44,43 @@ export function buildOperationalSlaMeta(value: string | null | undefined): Opera
 
   return {
     createdAtIso: date.toISOString(),
-    createdAtLabel: new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(date),
+    createdAtLabel: formatOperationalDateLabel(value, date),
     ageLabel,
     tone,
   };
+}
+
+function parseOperationalDate(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T00:00:00-03:00`);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(value)) {
+    return new Date(`${value}-03:00`);
+  }
+
+  return new Date(value);
+}
+
+function formatOperationalDateLabel(originalValue: string, parsedDate: Date) {
+  const localDateTimeMatch = originalValue.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/,
+  );
+
+  if (localDateTimeMatch) {
+    const [, year, month, day, hour, minute] = localDateTimeMatch;
+    return `${day}/${month}/${year}, ${hour}:${minute}`;
+  }
+
+  const dateOnlyMatch = originalValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return `${day}/${month}/${year}`;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(parsedDate);
 }
