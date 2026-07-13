@@ -524,6 +524,7 @@ export function ShippingPickingPanel({
           <input type="hidden" name="orderId" value={order.id} />
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
+          <input type="hidden" name="completeRedirectTo" value={`/expedicao/conferencia/${order.id}`} />
 
           <div className="space-y-4 lg:hidden">
             {items.map((item) => {
@@ -812,12 +813,6 @@ export function ShippingPickingPanel({
               >
                 {isSubmitting ? "Processando separação..." : "Concluir Separação"}
               </Button>
-              <Link
-                href={`${orderBasePath}/${order.id}`}
-                className={`inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 text-sm font-bold text-slate-700 dark:text-zinc-300 transition-all hover:bg-slate-50 dark:hover:bg-zinc-800 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
-              >
-                Ver pedido completo
-              </Link>
             </div>
           </div>
         </form>

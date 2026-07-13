@@ -114,7 +114,7 @@ export async function savePickingProgressAction(formData: FormData) {
 
   if (itemUpdates.length) {
     const itemUpdateResults = await Promise.all(itemUpdates);
-    const firstItemError = itemUpdateResults.find((result) => result.error);
+    const firstItemError = itemUpdateResults.find((result) => result?.error);
 
     if (firstItemError?.error) {
       redirect(`${redirectBase}?feedback=erro`);
