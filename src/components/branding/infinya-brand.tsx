@@ -67,17 +67,22 @@ export function InfinyaBrand({
   if (compact) {
     return (
       <div className={cn("min-w-0", className)}>
-        <div className="flex min-w-0 items-center gap-3.5">
-          <BrandGlyph
-            className={cn("h-[52px] w-[52px] flex-shrink-0 rounded-[17px]", markClassName)}
-          />
-          <BrandLockup compact className="min-w-0 flex-1" />
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-[24px] border border-white/10 bg-[#071120]/96 px-4 py-3 shadow-[0_18px_40px_rgba(4,8,22,0.24)]",
+            markClassName,
+          )}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(110,231,255,0.14),transparent_28%),radial-gradient(circle_at_85%_82%,rgba(217,70,239,0.14),transparent_26%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
+          <div className="relative z-10">
+            <BrandLockup compact className="w-full" />
+          </div>
         </div>
 
         {subtitle ? (
           <p
             className={cn(
-              "mt-2 truncate pl-[66px] text-xs font-medium text-slate-600 dark:text-slate-300",
+              "mt-2 truncate text-xs font-medium text-slate-600 dark:text-slate-300",
               subtitleClassName,
             )}
           >
