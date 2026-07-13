@@ -113,7 +113,12 @@ export async function savePickingProgressAction(formData: FormData) {
     .filter(Boolean);
 
   if (itemUpdates.length) {
-    await Promise.all(itemUpdates);
+    const itemUpdateResults = await Promise.all(itemUpdates);
+    const firstItemError = itemUpdateResults.find((result) => result.error);
+
+    if (firstItemError?.error) {
+      redirect(`${redirectBase}?feedback=erro`);
+    }
   }
 
   const operatorName = operatorId
@@ -137,7 +142,7 @@ export async function savePickingProgressAction(formData: FormData) {
   const nextStatus =
     intent === "complete" ? (canComplete ? "SEPARADO" : order.status) : "EM_SEPARACAO";
 
-  await adminSupabase
+  const orderUpdateResult = await adminSupabase
     .from("pedidos_expedicao")
     .update({
       status: nextStatus,
@@ -147,6 +152,10 @@ export async function savePickingProgressAction(formData: FormData) {
       },
     })
     .eq("id", orderId);
+
+  if (orderUpdateResult.error) {
+    redirect(`${redirectBase}?feedback=erro`);
+  }
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/separacao");

@@ -17,7 +17,6 @@ type ShippingPickingPanelProps = {
   operators: PickingOperatorOption[];
   currentUserId: string;
   redirectBase?: string;
-  orderBasePath?: string;
 };
 
 type PickingItemState = ShippingPickingOrder["items"][number] & {
@@ -31,7 +30,6 @@ export function ShippingPickingPanel({
   operators,
   currentUserId,
   redirectBase = "/expedicao/separacao",
-  orderBasePath = "/expedicao",
 }: ShippingPickingPanelProps) {
   const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
