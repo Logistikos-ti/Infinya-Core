@@ -102,6 +102,7 @@ export type PickingOperatorOption = {
 export type ShippingPickingRouteLine = {
   stockId: string;
   productId: string;
+  imageUrl: string | null;
   componentSku: string;
   componentName: string;
   componentBarcode: string;
@@ -128,6 +129,7 @@ export type ShippingPickingKitComponent = {
 export type ShippingPickingItem = {
   id: string;
   productId: string | null;
+  imageUrl: string | null;
   externalReference: string;
   code: string;
   sku: string;
@@ -280,6 +282,7 @@ export async function listShippingPickingOrdersFromDb(
 
   const rawOrders = (ordersData ?? []) as RawPickingOrderRow[];
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
+  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
 
   const stockByDepositante = new Map<string, RawPickingStockRow[]>();
   for (const row of stockRows) {
@@ -290,7 +293,12 @@ export async function listShippingPickingOrdersFromDb(
 
   const orders = rawOrders
     .map((order) =>
-      mapPickingOrder(order, stockByDepositante.get(order.depositante_id) ?? [], includeRouteData),
+      mapPickingOrder(
+        order,
+        stockByDepositante.get(order.depositante_id) ?? [],
+        includeRouteData,
+        productImageMap,
+      ),
     )
     .filter((order) => {
       if (!filters?.operatorId) {
@@ -325,18 +333,20 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
   }
 
   const stockRows = await loadPickingStockRows(supabase, [rawOrder]);
-  return mapPickingOrder(rawOrder, stockRows, true);
+  const productImageMap = await loadProductImageMap(supabase, [rawOrder], stockRows);
+  return mapPickingOrder(rawOrder, stockRows, true, productImageMap);
 }
 
 function mapPickingOrder(
   order: RawPickingOrderRow,
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
+  productImageMap: Map<string, string>,
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
   const items = (order.itens ?? []).map((item) =>
-    mapPickingItem(order.depositante_id, item, stockRows, includeRouteData),
+    mapPickingItem(order.depositante_id, item, stockRows, includeRouteData, productImageMap),
   );
   const routeStops = includeRouteData ? buildRouteStops(items) : [];
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -386,6 +396,7 @@ function mapPickingItem(
   item: RawPickingOrderItemRow,
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
+  productImageMap: Map<string, string>,
 ) {
   const requestedKits = Number(item.quantidade ?? 0);
   const itemCode = item.codigo_produto?.trim() || "-";
@@ -395,7 +406,7 @@ function mapPickingItem(
   const isKit = isKitProduct(isPayloadKit(item.payload_origem) ? "KIT" : "SIMPLES", componentDefinitions);
 
   if (!isKit) {
-    return mapSimplePickingItem(depositanteId, item, stockRows, includeRouteData, {
+    return mapSimplePickingItem(depositanteId, item, stockRows, includeRouteData, productImageMap, {
       requestedKits,
       itemCode,
       itemSku,
@@ -436,6 +447,7 @@ function mapPickingItem(
       routeLines.push({
         stockId: stock.id,
         productId: stock.produto_id,
+        imageUrl: resolveProductImageUrl(productImageMap, stock.produto_id),
         componentSku: component.sku,
         componentName: component.name,
         componentBarcode: component.barcode,
@@ -463,10 +475,15 @@ function mapPickingItem(
   }
 
   const totals = calculateKitOperationalTotals(componentDefinitions, requestedKits, progressMap);
+  const primaryImageUrl =
+    resolveProductImageUrl(productImageMap, item.produto_id) ??
+    routeLines.find((line) => Boolean(line.imageUrl))?.imageUrl ??
+    null;
 
   return {
     id: item.id,
     productId: item.produto_id,
+    imageUrl: primaryImageUrl,
     externalReference: item.referencia_externa?.trim() || "-",
     code: itemCode,
     sku: itemSku,
@@ -498,6 +515,7 @@ function mapSimplePickingItem(
   item: RawPickingOrderItemRow,
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
+  productImageMap: Map<string, string>,
   meta: {
     requestedKits: number;
     itemCode: string;
@@ -533,6 +551,7 @@ function mapSimplePickingItem(
     routeLines.push({
       stockId: stock.id,
       productId: stock.produto_id,
+      imageUrl: resolveProductImageUrl(productImageMap, stock.produto_id),
       componentSku: stock.produto?.sku?.trim() || meta.itemSku,
       componentName: stock.produto?.nome?.trim() || item.nome,
       componentBarcode: meta.itemBarcode,
@@ -549,6 +568,10 @@ function mapSimplePickingItem(
   return {
     id: item.id,
     productId: item.produto_id,
+    imageUrl:
+      resolveProductImageUrl(productImageMap, item.produto_id) ??
+      routeLines.find((line) => Boolean(line.imageUrl))?.imageUrl ??
+      null,
     externalReference: item.referencia_externa?.trim() || "-",
     code: meta.itemCode,
     sku: meta.itemSku,
@@ -624,6 +647,40 @@ async function loadPickingStockRows(
   }
 
   return (stockData ?? []) as RawPickingStockRow[];
+}
+
+async function loadProductImageMap(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: RawPickingOrderRow[],
+  stockRows: RawPickingStockRow[],
+) {
+  const productIds = [
+    ...new Set(
+      [
+        ...orders.flatMap((order) => (order.itens ?? []).map((item) => item.produto_id)),
+        ...stockRows.map((row) => row.produto_id),
+      ].filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  if (!productIds.length) {
+    return new Map<string, string>();
+  }
+
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("id, imagem_principal_url")
+    .in("id", productIds);
+
+  if (error) {
+    return new Map<string, string>();
+  }
+
+  return new Map(
+    (data ?? [])
+      .filter((item) => typeof item.imagem_principal_url === "string" && item.imagem_principal_url.trim())
+      .map((item) => [item.id, item.imagem_principal_url as string]),
+  );
 }
 
 function buildRouteStops(items: ShippingPickingItem[]) {
@@ -971,6 +1028,17 @@ function extractPlatformOrderNumber(
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim().toLocaleLowerCase("pt-BR") ?? "";
+}
+
+function resolveProductImageUrl(
+  productImageMap: Map<string, string>,
+  productId: string | null | undefined,
+) {
+  if (!productId) {
+    return null;
+  }
+
+  return productImageMap.get(productId) ?? null;
 }
 
 function readString(value: unknown) {

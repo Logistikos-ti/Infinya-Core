@@ -5,6 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { normalizeProductKitDrafts } from "@/lib/product-kits";
+import {
+  allowedProdutoImageMimeTypes,
+  maxProdutoImageFileSizeBytes,
+  produtosImagesBucketName,
+  sanitizeFileName,
+} from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
@@ -22,7 +28,8 @@ export type ProdutoActionState = {
       | "tipoProduto"
       | "metodoRetirada"
       | "unidadeEstocagem"
-      | "quantidadePorEmbalagem",
+      | "quantidadePorEmbalagem"
+      | "imageFile",
       string
     >
   >;
@@ -84,6 +91,11 @@ export async function saveProdutoAction(
   const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
   const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
   const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
+  const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
+  const currentImageStoragePath =
+    String(formData.get("currentImageStoragePath") ?? "").trim() || null;
+  const removeImage = formData.get("removeImage") === "on";
+  const imageFile = formData.get("imageFile");
   const normalizedKitComponents = productKitsEnabled
     ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
     : [];
@@ -130,6 +142,39 @@ export async function saveProdutoAction(
     }
   }
 
+  const imageValidationError =
+    imageFile instanceof File && imageFile.size > 0 ? validateProdutoImageFile(imageFile) : null;
+
+  if (imageValidationError) {
+    return {
+      success: false,
+      message: "Revise os campos destacados e tente novamente.",
+      errors: {
+        imageFile: imageValidationError,
+      },
+    };
+  }
+
+  const imageUploadResult = await resolveProdutoImageUpload({
+    adminSupabase,
+    depositanteId: parsed.data.depositanteId,
+    productCode: resolvedInternalCode,
+    currentImageUrl,
+    currentImageStoragePath,
+    removeImage,
+    imageFile,
+  });
+
+  if (imageUploadResult.error) {
+    return {
+      success: false,
+      message: imageUploadResult.error,
+      errors: {
+        imageFile: imageUploadResult.error,
+      },
+    };
+  }
+
   const payload = {
     depositante_id: parsed.data.depositanteId,
     codigo_interno: resolvedInternalCode,
@@ -143,6 +188,8 @@ export async function saveProdutoAction(
       parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
         ? parsed.data.quantidadePorEmbalagem ?? null
         : null,
+    imagem_principal_url: imageUploadResult.imageUrl,
+    imagem_principal_storage_path: imageUploadResult.imageStoragePath,
     exige_lote: parsed.data.exigeLote,
     exige_validade: parsed.data.exigeValidade,
     ativo: parsed.data.ativo,
@@ -303,7 +350,7 @@ async function updateProductWithFallback(
   const result = await adminSupabase.from("produtos").update(payload).eq("id", id);
 
   if (result.error && isMissingPackagingColumnError(result.error.message)) {
-    return adminSupabase.from("produtos").update(withoutPackagingQuantity(payload)).eq("id", id);
+    return updateProductWithFallback(adminSupabase, id, withoutPackagingQuantity(payload));
   }
 
   return result;
@@ -316,11 +363,7 @@ async function insertProductWithFallback(
   const result = await adminSupabase.from("produtos").insert(payload).select("id").single();
 
   if (result.error && isMissingPackagingColumnError(result.error.message)) {
-    return adminSupabase
-      .from("produtos")
-      .insert(withoutPackagingQuantity(payload))
-      .select("id")
-      .single();
+    return insertProductWithFallback(adminSupabase, withoutPackagingQuantity(payload));
   }
 
   return result;
@@ -452,6 +495,13 @@ function humanizeProductPersistenceError(
     return `Nao foi possivel ${action} o produto porque o banco online ainda nao recebeu a unidade PACK. Rode a migration de PACK no Supabase e tente novamente.`;
   }
 
+  if (
+    message.includes("imagem_principal_url") ||
+    message.includes("imagem_principal_storage_path")
+  ) {
+    return `Nao foi possivel ${action} o produto porque o banco online ainda nao recebeu as colunas da foto principal. Rode a migration da imagem de produto no Supabase e tente novamente.`;
+  }
+
   return `Nao foi possivel ${action} o produto: ${message}`;
 }
 
@@ -466,4 +516,103 @@ function normalizeRedirectPath(value: string) {
 function buildRedirectWithFeedback(redirectTo: string | null, feedback: string) {
   const basePath = redirectTo || "/configuracoes/produtos";
   return `${basePath}?feedback=${feedback}`;
+}
+
+function validateProdutoImageFile(file: File) {
+  if (
+    !allowedProdutoImageMimeTypes.includes(
+      file.type as (typeof allowedProdutoImageMimeTypes)[number],
+    )
+  ) {
+    return "Envie uma imagem PNG, JPG ou WEBP.";
+  }
+
+  if (file.size > maxProdutoImageFileSizeBytes) {
+    return "A foto do produto deve ter no maximo 3 MB.";
+  }
+
+  return null;
+}
+
+async function resolveProdutoImageUpload({
+  adminSupabase,
+  depositanteId,
+  productCode,
+  currentImageUrl,
+  currentImageStoragePath,
+  removeImage,
+  imageFile,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  productCode: string;
+  currentImageUrl: string | null;
+  currentImageStoragePath: string | null;
+  removeImage: boolean;
+  imageFile: FormDataEntryValue | null;
+}) {
+  let imageUrl = currentImageUrl;
+  let imageStoragePath = currentImageStoragePath;
+
+  if (removeImage && currentImageStoragePath) {
+    await ensureProdutoImagesBucketExists(adminSupabase);
+    await adminSupabase.storage.from(produtosImagesBucketName).remove([currentImageStoragePath]);
+    imageUrl = null;
+    imageStoragePath = null;
+  }
+
+  if (!(imageFile instanceof File) || imageFile.size <= 0) {
+    return { imageUrl, imageStoragePath, error: null as string | null };
+  }
+
+  await ensureProdutoImagesBucketExists(adminSupabase);
+
+  if (currentImageStoragePath) {
+    await adminSupabase.storage.from(produtosImagesBucketName).remove([currentImageStoragePath]);
+  }
+
+  const safeFileName = sanitizeFileName(imageFile.name || "produto");
+  const extension = safeFileName.split(".").pop() || "png";
+  const storagePath = `${depositanteId}/${productCode.toLowerCase()}/${randomUUID()}.${extension}`;
+  const fileBytes = Buffer.from(await imageFile.arrayBuffer());
+
+  const uploadResult = await adminSupabase.storage.from(produtosImagesBucketName).upload(storagePath, fileBytes, {
+    contentType: imageFile.type,
+    upsert: true,
+  });
+
+  if (uploadResult.error) {
+    return {
+      imageUrl,
+      imageStoragePath,
+      error: `Nao foi possivel enviar a foto do produto: ${uploadResult.error.message}`,
+    };
+  }
+
+  const { data: publicUrlData } = adminSupabase.storage
+    .from(produtosImagesBucketName)
+    .getPublicUrl(storagePath);
+
+  return {
+    imageUrl: publicUrlData.publicUrl,
+    imageStoragePath: storagePath,
+    error: null as string | null,
+  };
+}
+
+async function ensureProdutoImagesBucketExists(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+) {
+  const { data: buckets } = await adminSupabase.storage.listBuckets();
+  const alreadyExists = buckets?.some((bucket) => bucket.id === produtosImagesBucketName);
+
+  if (alreadyExists) {
+    return;
+  }
+
+  await adminSupabase.storage.createBucket(produtosImagesBucketName, {
+    public: true,
+    fileSizeLimit: maxProdutoImageFileSizeBytes,
+    allowedMimeTypes: [...allowedProdutoImageMimeTypes],
+  });
 }

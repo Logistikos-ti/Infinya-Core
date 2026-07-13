@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, MapPinned, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
@@ -367,9 +368,12 @@ export function MobilePickingPanel({
             Item em foco (Próxima Coleta)
           </p>
           <div className="mt-4 flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-start gap-3">
+              <ProductThumb imageUrl={nextItem.imageUrl} name={nextItem.name} large />
+              <div className="min-w-0">
               <p className="text-xl font-bold text-slate-900 dark:text-white">{nextItem.sku}</p>
               <p className="mt-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">{nextItem.name}</p>
+              </div>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-3 gap-3">
@@ -602,6 +606,7 @@ export function MobilePickingPanel({
             >
               <input type="hidden" name="itemId" value={item.id} />
               <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
+              <ProductThumb imageUrl={item.imageUrl} name={item.name} />
 
               <div className={`flex items-start justify-between ${isCurrentItem ? "gap-4" : "gap-3"}`}>
                 <div className="min-w-0">
@@ -897,5 +902,42 @@ function serializeKitProgress(item: MobilePickingItem) {
       name: component.name,
       barcode: component.barcode,
     })),
+  );
+}
+
+function ProductThumb({
+  imageUrl,
+  name,
+  large = false,
+}: {
+  imageUrl: string | null;
+  name: string;
+  large?: boolean;
+}) {
+  const dimensions = large ? "h-20 w-20 rounded-3xl" : "mb-4 h-16 w-16 rounded-2xl";
+
+  if (!imageUrl) {
+    return (
+      <div
+        className={`${dimensions} flex items-center justify-center overflow-hidden border border-slate-200 bg-slate-100 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500`}
+      >
+        Sem foto
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${dimensions} overflow-hidden border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-900`}
+    >
+      <Image
+        src={imageUrl}
+        alt={`Foto do produto ${name}`}
+        width={80}
+        height={80}
+        unoptimized
+        className="h-full w-full object-cover"
+      />
+    </div>
   );
 }

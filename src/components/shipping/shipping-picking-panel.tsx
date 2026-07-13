@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, Map, ScanSearch, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
@@ -544,9 +545,12 @@ export function ShippingPickingPanel({
                 >
                   <input type="hidden" name="itemId" value={item.id} />
                   <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
+                  <ProductThumb imageUrl={item.imageUrl} name={item.name} size="mobile" />
 
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <ProductThumb imageUrl={item.imageUrl} name={item.name} size="mobile" />
+                      <div className="min-w-0">
                       <p className="text-base font-bold text-slate-900 dark:text-white">
                         {item.sku}
                       </p>
@@ -563,6 +567,7 @@ export function ShippingPickingPanel({
                         <p className="mt-1.5 text-sm font-bold text-slate-900 dark:text-white">
                           {item.barcode || "-"}
                         </p>
+                      </div>
                       </div>
                     </div>
                     <span className="shrink-0 rounded-xl bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-zinc-300">
@@ -682,6 +687,9 @@ export function ShippingPickingPanel({
                     <td className="px-5 py-5 text-slate-900 dark:text-white">
                       <input type="hidden" name="itemId" value={item.id} />
                       <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
+                      <div className="mb-4">
+                        <ProductThumb imageUrl={item.imageUrl} name={item.name} size="desktop" />
+                      </div>
                       <div className="font-bold text-base mb-1">
                         {item.sku}
                       </div>
@@ -887,5 +895,42 @@ function serializeKitProgress(item: PickingItemState) {
       name: component.name,
       barcode: component.barcode,
     })),
+  );
+}
+
+function ProductThumb({
+  imageUrl,
+  name,
+  size,
+}: {
+  imageUrl: string | null;
+  name: string;
+  size: "mobile" | "desktop";
+}) {
+  const dimensions = size === "desktop" ? "h-20 w-20 rounded-2xl" : "mb-4 h-16 w-16 rounded-2xl";
+
+  if (!imageUrl) {
+    return (
+      <div
+        className={`${dimensions} flex items-center justify-center overflow-hidden border border-slate-200 bg-slate-100 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500`}
+      >
+        Sem foto
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${dimensions} overflow-hidden border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-900`}
+    >
+      <Image
+        src={imageUrl}
+        alt={`Foto do produto ${name}`}
+        width={80}
+        height={80}
+        unoptimized
+        className="h-full w-full object-cover"
+      />
+    </div>
   );
 }

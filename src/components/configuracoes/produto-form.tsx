@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
+import Image from "next/image";
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, CameraOff, Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Barcode, Camera, CameraOff, Check, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
 import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/product-kits";
@@ -32,6 +33,8 @@ type ProdutoFormProps = {
     metodoRetirada?: "FEFO" | "FIFO" | "LIFO";
     unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
     quantidadePorEmbalagem?: number | null;
+    imagemPrincipalUrl?: string | null;
+    imagemPrincipalStoragePath?: string | null;
     exigeLote?: boolean;
     exigeValidade?: boolean;
     ativo?: boolean;
@@ -54,6 +57,8 @@ export function ProdutoForm({
 
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
+  const [removeImage, setRemoveImage] = useState(false);
   const [depositanteId, setDepositanteId] = useState(
     defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
   );
@@ -75,6 +80,7 @@ export function ProdutoForm({
     () => unidadeEstocagem === "CAIXA" || unidadeEstocagem === "PACK",
     [unidadeEstocagem],
   );
+  const hasCurrentImage = useMemo(() => Boolean(imagePreviewUrl), [imagePreviewUrl]);
 
   const depositanteOptions = useMemo(
     () =>
@@ -125,9 +131,12 @@ export function ProdutoForm({
     setMetodoRetirada(defaultValues?.metodoRetirada ?? "FEFO");
     setUnidadeEstocagem(defaultValues?.unidadeEstocagem ?? "UNIDADE");
     setKitComponents(buildKitRows(defaultValues?.kitComponents));
+    setImagePreviewUrl(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
+    setRemoveImage(false);
   }, [
     defaultValues?.depositanteId,
     defaultValues?.eanGtin,
+    defaultValues?.imagemPrincipalUrl,
     defaultValues?.kitComponents,
     defaultValues?.metodoRetirada,
     defaultValues?.tipoProduto,
@@ -155,8 +164,39 @@ export function ProdutoForm({
         ) : null}
       </div>
 
+      <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/45">
+        <div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Foto principal do produto</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Essa imagem aparece no cadastro e tambem ajuda o operador na separacao.
+          </p>
+        </div>
+        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+          {hasCurrentImage ? (
+            <Image
+              src={imagePreviewUrl}
+              alt="Preview da foto principal do produto"
+              width={80}
+              height={80}
+              unoptimized
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="px-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Sem foto
+            </span>
+          )}
+        </div>
+      </div>
+
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
       <input type="hidden" name="returnPath" value={returnPath ?? ""} />
+      <input type="hidden" name="currentImageUrl" value={defaultValues?.imagemPrincipalUrl ?? ""} />
+      <input
+        type="hidden"
+        name="currentImageStoragePath"
+        value={defaultValues?.imagemPrincipalStoragePath ?? ""}
+      />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <FancySelectField
@@ -278,6 +318,51 @@ export function ProdutoForm({
         ) : (
           <input type="hidden" name="quantidadePorEmbalagem" value="" />
         )}
+
+        <label className="block md:col-span-2">
+          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            Imagem principal
+          </span>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-cyan-500/10">
+            <Upload className="h-4 w-4 text-slate-500 dark:text-slate-300" />
+            <span>Selecionar imagem PNG, JPG ou WEBP</span>
+            <input
+              type="file"
+              name="imageFile"
+              accept=".png,.jpg,.jpeg,.webp"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) {
+                  return;
+                }
+
+                setRemoveImage(false);
+                setImagePreviewUrl(URL.createObjectURL(file));
+              }}
+            />
+          </label>
+          {state.errors?.imageFile ? (
+            <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{state.errors.imageFile}</span>
+          ) : null}
+          <label className="mt-3 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+            <input
+              type="checkbox"
+              name="removeImage"
+              checked={removeImage}
+              onChange={(event) => {
+                setRemoveImage(event.target.checked);
+                if (event.target.checked) {
+                  setImagePreviewUrl("");
+                } else {
+                  setImagePreviewUrl(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
+                }
+              }}
+              className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+            />
+            Remover foto atual
+          </label>
+        </label>
       </div>
 
       {productKitEnabled && tipoProduto === "KIT" ? (

@@ -1,5 +1,6 @@
 export const documentsBucketName = "wms-documentos";
 export const depositantesLogosBucketName = "wms-depositantes-logos";
+export const produtosImagesBucketName = "wms-produtos-imagens";
 
 export const allowedDocumentMimeTypes = [
   "application/pdf",
@@ -11,8 +12,15 @@ export const allowedDocumentMimeTypes = [
 
 export const maxDocumentFileSizeBytes = 10 * 1024 * 1024;
 export const maxDepositanteLogoFileSizeBytes = 2 * 1024 * 1024;
+export const maxProdutoImageFileSizeBytes = 3 * 1024 * 1024;
 
 export const allowedDepositanteLogoMimeTypes = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
+
+export const allowedProdutoImageMimeTypes = [
   "image/png",
   "image/jpeg",
   "image/webp",

@@ -22,12 +22,22 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
   const { id } = await params;
   const adminSupabase = createSupabaseAdminClient();
 
-  const [{ data: product }, { data: depositantes }, { data: componentOptions }] = await Promise.all([
+  const [
+    { data: product },
+    { data: productImageMeta },
+    { data: depositantes },
+    { data: componentOptions },
+  ] = await Promise.all([
     adminSupabase
       .from("produtos")
       .select(
         "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
+      .eq("id", id)
+      .maybeSingle(),
+    adminSupabase
+      .from("produtos")
+      .select("imagem_principal_url, imagem_principal_storage_path")
       .eq("id", id)
       .maybeSingle(),
     adminSupabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
@@ -97,6 +107,8 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
             quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
+            imagemPrincipalUrl: productImageMeta?.imagem_principal_url ?? null,
+            imagemPrincipalStoragePath: productImageMeta?.imagem_principal_storage_path ?? null,
             exigeLote: product.exige_lote,
             exigeValidade: product.exige_validade,
             ativo: product.ativo,
