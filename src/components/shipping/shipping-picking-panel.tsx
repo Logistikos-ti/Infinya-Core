@@ -525,7 +525,12 @@ export function ShippingPickingPanel({
           </div>
         </div>
 
-        <form action={savePickingProgressAction} className="space-y-5" aria-busy={isSubmitting}>
+        <form
+          action={savePickingProgressAction}
+          className="space-y-5"
+          aria-busy={isSubmitting}
+          onSubmit={() => setIsSubmitting(true)}
+        >
           <input type="hidden" name="orderId" value={order.id} />
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
@@ -814,7 +819,6 @@ export function ShippingPickingPanel({
                 value="complete"
                 className="h-12 rounded-xl bg-infinya-gradient text-white hover:opacity-90 shadow-md shadow-primary-500/20 transition-all font-bold px-6"
                 disabled={isSubmitting}
-                onClick={() => setIsSubmitting(true)}
               >
                 {isSubmitting ? "Processando separação..." : "Concluir Separação"}
               </Button>

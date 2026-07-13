@@ -32,6 +32,7 @@ type RawPickingOrderRow = {
   id: string;
   codigo: string;
   created_at: string;
+  data_pedido: string | null;
   origem: string;
   status: string;
   numero_pedido: string | null;
@@ -352,7 +353,7 @@ function mapPickingOrder(
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
   const totalSeparated = items.reduce((sum, item) => sum + item.separatedQuantity, 0);
   const shortageUnits = items.reduce((sum, item) => sum + item.shortageQuantity, 0);
-  const ageMeta = buildOperationalSlaMeta(order.created_at);
+  const ageMeta = buildOperationalSlaMeta(order.data_pedido ?? order.created_at);
 
   return {
     id: order.id,
@@ -592,7 +593,7 @@ function mapSimplePickingItem(
 
 function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, created_at, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
   );
 }
 

@@ -323,7 +323,12 @@ export function MobilePickingPanel({
   }
 
   return (
-    <form action={savePickingProgressAction} className="space-y-4 max-w-2xl mx-auto w-full" aria-busy={isSubmitting}>
+    <form
+      action={savePickingProgressAction}
+      className="space-y-4 max-w-2xl mx-auto w-full"
+      aria-busy={isSubmitting}
+      onSubmit={() => setIsSubmitting(true)}
+    >
       <InactivityWarningDialog
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
@@ -833,7 +838,6 @@ export function MobilePickingPanel({
             value="complete"
             className="h-14 rounded-2xl bg-infinya-gradient text-white hover:opacity-90 shadow-lg shadow-primary-500/25 transition-all text-base font-bold"
             disabled={isSubmitting}
-            onClick={() => setIsSubmitting(true)}
           >
             {isSubmitting ? "Processando separação..." : "Concluir Separação"}
           </Button>
