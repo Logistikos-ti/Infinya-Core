@@ -883,13 +883,13 @@ function normalizeQuantity(value: string) {
   return Math.max(0, numeric);
 }
 
-function matchesItemScan(item: MobileConferenceItem, normalizedScan: string) {
+function matchesItemScan(item: ConferenceItemState, normalizedScan: string) {
   return item.scanTargets
     .filter(Boolean)
     .some((value) => normalizeScan(value) === normalizedScan);
 }
 
-function findMatchingKitComponent(item: MobileConferenceItem, normalizedScan: string) {
+function findMatchingKitComponent(item: ConferenceItemState, normalizedScan: string) {
   return item.kitComponents.find((component) =>
     [component.barcode, component.sku]
       .filter(Boolean)
@@ -897,7 +897,7 @@ function findMatchingKitComponent(item: MobileConferenceItem, normalizedScan: st
   );
 }
 
-function serializeKitProgress(item: MobileConferenceItem) {
+function serializeKitProgress(item: ConferenceItemState) {
   if (!item.isKit || item.kitComponents.length === 0) {
     return "";
   }
