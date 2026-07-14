@@ -45,11 +45,31 @@ export async function reprocessRecentBlingOrdersForDepositante({
     throw new Error(`Não foi possível listar os pedidos locais do Bling: ${error.message}`);
   }
 
+  const { data: webhookOccurrences, error: occurrencesError } = await adminSupabase
+    .from("ocorrencias_operacionais")
+    .select("titulo, descricao")
+    .eq("depositante_id", depositanteId)
+    .ilike("titulo", "%Webhook Bling%")
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+
+  if (occurrencesError) {
+    throw new Error(
+      `Não foi possível listar os webhooks recentes do Bling: ${occurrencesError.message}`,
+    );
+  }
+
   const references = Array.from(
     new Set(
-      ((localOrders as Array<{ referencia_externa: string | null }> | null) ?? [])
-        .map((item) => item.referencia_externa?.trim())
-        .filter((item): item is string => Boolean(item)),
+      [
+        ...(((localOrders as Array<{ referencia_externa: string | null }> | null) ?? [])
+          .map((item) => item.referencia_externa?.trim())
+          .filter((item): item is string => Boolean(item))),
+        ...extractBlingOrderReferencesFromOccurrences(
+          (webhookOccurrences as Array<{ titulo: string | null; descricao: string | null }> | null) ??
+            [],
+        ),
+      ],
     ),
   );
 
@@ -92,6 +112,30 @@ export async function reprocessRecentBlingOrdersForDepositante({
     failed: results.filter((item) => !item.ok).length,
     results,
   };
+}
+
+function extractBlingOrderReferencesFromOccurrences(
+  occurrences: Array<{ titulo: string | null; descricao: string | null }>,
+) {
+  const references = new Set<string>();
+
+  for (const occurrence of occurrences) {
+    const haystack = [occurrence.titulo ?? "", occurrence.descricao ?? ""].join(" ");
+
+    for (const match of haystack.matchAll(/\/ id (\d+)/g)) {
+      if (match[1]) {
+        references.add(match[1]);
+      }
+    }
+
+    for (const match of haystack.matchAll(/"id":\s*(\d+)/g)) {
+      if (match[1]) {
+        references.add(match[1]);
+      }
+    }
+  }
+
+  return Array.from(references);
 }
 
 async function upsertShippingOrder({
