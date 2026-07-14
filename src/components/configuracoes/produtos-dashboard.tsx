@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, TrendingUp, AlertTriangle, Tag, Package, Search, SearchIcon, LayoutGrid, List } from "lucide-react";
+import { Box, TrendingUp, AlertTriangle, Tag, Package, Search, SearchIcon, LayoutGrid, List, PencilLine, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
+import { deleteProdutoAction, toggleProdutoStatusAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 
 const manrope = Manrope({ subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
@@ -41,7 +43,6 @@ type ProdutosDashboardProps = {
   paginationSlot?: React.ReactNode;
   filtersSlot?: React.ReactNode;
   importSlot?: React.ReactNode;
-  actionSlot?: (produto: Produto) => React.ReactNode;
 };
 
 export function ProdutosDashboard({
@@ -51,7 +52,6 @@ export function ProdutosDashboard({
   paginationSlot,
   filtersSlot,
   importSlot,
-  actionSlot,
 }: ProdutosDashboardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
@@ -591,16 +591,34 @@ export function ProdutosDashboard({
             </div>
 
             <div className="shrink-0 p-4 pt-4 border-t flex flex-wrap gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
-              {actionSlot ? actionSlot(selectedProduto as any) : (
-                <>
-                  <button className="flex-1 h-11 rounded-xl border text-[14px] font-bold cursor-pointer transition-colors" style={{ borderColor: t.border, background: t.inputBg, color: t.text }} onMouseEnter={e => e.currentTarget.style.borderColor = "#8B5CF6"} onMouseLeave={e => e.currentTarget.style.borderColor = t.border}>
-                    ✎ Editar
-                  </button>
-                  <button className="flex-[1.2] h-11 rounded-xl border-none text-[14px] font-extrabold cursor-pointer text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-[1px]" style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" }}>
-                    ⎙ Etiqueta
-                  </button>
-                </>
-              )}
+              <Link
+                href={`/configuracoes/produtos/${selectedData.id}/editar`}
+                className="flex-1 h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                style={{ textDecoration: 'none' }}
+              >
+                <PencilLine className="h-4 w-4 mr-2" />
+                Editar
+              </Link>
+              <form action={toggleProdutoStatusAction} className="flex-1">
+                <input type="hidden" name="id" value={selectedData.id} />
+                <input type="hidden" name="nextActive" value={selectedData.ativo ? "false" : "true"} />
+                <button
+                  type="submit"
+                  className="w-full h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 cursor-pointer"
+                >
+                  {selectedData.ativo ? "Desativar" : "Ativar"}
+                </button>
+              </form>
+              <form action={deleteProdutoAction} className="flex-1">
+                <input type="hidden" name="id" value={selectedData.id} />
+                <button
+                  type="submit"
+                  className="w-full h-11 flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </button>
+              </form>
             </div>
           </div>
         </div>

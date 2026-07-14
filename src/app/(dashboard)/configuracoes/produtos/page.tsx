@@ -233,37 +233,6 @@ export default async function ConfiguracoesProdutosPage({
             </>
           ) : null
         }
-        actionSlot={(produto: any) => (
-          <>
-            <Link
-              href={`/configuracoes/produtos/${produto.id}/editar`}
-              className="flex-1 h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            >
-              <PencilLine className="h-4 w-4 mr-2" />
-              Editar
-            </Link>
-            <form action={toggleProdutoStatusAction} className="flex-1">
-              <input type="hidden" name="id" value={produto.id} />
-              <input type="hidden" name="nextActive" value={produto.ativo ? "false" : "true"} />
-              <button
-                type="submit"
-                className="w-full h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                {produto.ativo ? "Desativar" : "Ativar"}
-              </button>
-            </form>
-            <form action={deleteProdutoAction} className="flex-1">
-              <input type="hidden" name="id" value={produto.id} />
-              <button
-                type="submit"
-                className="w-full h-11 flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir
-              </button>
-            </form>
-          </>
-        )}
       />
     </div>
   );
