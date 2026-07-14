@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireRoleAccess } from "@/lib/auth";
 import { reprocessRecentBlingOrdersForDepositante } from "@/lib/bling-reprocessing";
 import {
@@ -169,6 +170,10 @@ export async function syncBlingIntegrationAction(formData: FormData) {
 
     redirect(buildRedirectUrl("bling-sincronizado"));
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     redirect(
       buildRedirectUrl(
         "erro",
@@ -281,6 +286,10 @@ export async function reprocessBlingIntegrationAction(formData: FormData) {
     revalidatePath("/expedicao");
     redirect(buildRedirectUrl("bling-sincronizado", "Reprocessamento concluído com sucesso."));
   } catch (reprocessError) {
+    if (isRedirectError(reprocessError)) {
+      throw reprocessError;
+    }
+
     const failedAt = new Date().toISOString();
     const failedConfig = {
       ...config.bling,
