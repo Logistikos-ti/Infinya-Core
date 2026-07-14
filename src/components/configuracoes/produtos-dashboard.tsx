@@ -34,6 +34,7 @@ type Produto = {
   dimensoes?: string;
   peso?: string;
   fornecedor?: string;
+  imagem_principal_url?: string | null;
 };
 
 type ProdutosDashboardProps = {
@@ -344,14 +345,18 @@ export function ProdutosDashboard({
               >
                 <div className="relative h-[150px] flex items-center justify-center overflow-hidden" style={{ background: thumbBg }}>
                   <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 11px)" }} />
-                  <span className="relative text-white/90">
-                    <Package className="w-11 h-11" />
-                  </span>
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider bg-black/30 text-white backdrop-blur-sm">
+                  {p.imagem_principal_url ? (
+                    <img src={p.imagem_principal_url} alt={p.nome} className="relative z-10 w-full h-full object-cover" />
+                  ) : (
+                    <span className="relative z-10 text-white/90">
+                      <Package className="w-11 h-11" />
+                    </span>
+                  )}
+                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider bg-black/30 text-white backdrop-blur-sm z-20">
                     {p.abc}
                   </span>
                   <span
-                    className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white backdrop-blur-sm"
+                    className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white backdrop-blur-sm z-20"
                     style={{ background: ss.chipBg }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-white" />
@@ -417,8 +422,12 @@ export function ProdutosDashboard({
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white/90" style={{ background: thumbBg }}>
-                            <Package className="w-5 h-5" />
+                          <div className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white/90 overflow-hidden relative" style={{ background: thumbBg }}>
+                            {p.imagem_principal_url ? (
+                              <img src={p.imagem_principal_url} alt={p.nome} className="w-full h-full object-cover relative z-10" />
+                            ) : (
+                              <Package className="w-5 h-5 relative z-10" />
+                            )}
                           </div>
                           <div className="flex flex-col gap-0.5 min-w-0">
                             <span className="text-sm font-bold whitespace-nowrap overflow-hidden text-ellipsis max-w-[260px]">{p.nome}</span>
@@ -487,16 +496,22 @@ export function ProdutosDashboard({
             {/* hero thumb */}
             <div className="relative h-[180px] shrink-0 flex items-center justify-center overflow-hidden" style={{ background: selectedData.thumbBg }}>
               <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }} />
-              <span className="relative text-white/95">
-                <Package className="w-16 h-16" />
-              </span>
+              
+              {selectedData.imagem_principal_url ? (
+                <img src={selectedData.imagem_principal_url} alt={selectedData.nome} className="relative z-10 w-full h-full object-cover" />
+              ) : (
+                <span className="relative z-10 text-white/95">
+                  <Package className="w-16 h-16" />
+                </span>
+              )}
+
               <button
                 onClick={() => setSelectedProduto(null)}
-                className="absolute top-4 right-4 w-9 h-9 rounded-xl border-none bg-black/30 text-white text-lg cursor-pointer backdrop-blur-sm flex items-center justify-center"
+                className="absolute top-4 right-4 w-9 h-9 rounded-xl border-none bg-black/30 text-white text-lg cursor-pointer backdrop-blur-sm flex items-center justify-center z-20"
               >
                 ✕
               </button>
-              <span className="absolute bottom-4 left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] font-bold text-white backdrop-blur-sm" style={{ background: selectedData.statusChipBg }}>
+              <span className="absolute bottom-4 left-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] font-bold text-white backdrop-blur-sm z-20" style={{ background: selectedData.statusChipBg }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 {selectedData.status}
               </span>
