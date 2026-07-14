@@ -677,15 +677,15 @@ function parseNumericWebhook(value: string | number | null | undefined): number 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function extractSituacaoWebhook(
   situacaoId: number | null | undefined,
-): "ABERTO" | "ATENDIDO" | "CANCELADO" | "EM_ANDAMENTO" | "AGUARDANDO_PAGAMENTO" {
+): "ABERTO" | "ATENDIDO" | "CANCELADO" | "EM_ANDAMENTO" | "AGUARDANDO_PAGAMENTO" | null {
   const value = situacaoId;
   if (typeof value === "string") {
-    return (value as string).trim() || null as never;
+    return ((value as string).trim() || null) as "ABERTO" | "ATENDIDO" | "CANCELADO" | "EM_ANDAMENTO" | "AGUARDANDO_PAGAMENTO" | null;
   }
 
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const raw = value as Record<string, unknown>;
-    return stringifyValue(raw.valor) ?? stringifyValue(raw.id) ?? null;
+    return (stringifyValue(raw.valor) ?? stringifyValue(raw.id) ?? null) as "ABERTO" | "ATENDIDO" | "CANCELADO" | "EM_ANDAMENTO" | "AGUARDANDO_PAGAMENTO" | null;
   }
 
   return null;
