@@ -92,6 +92,8 @@ type PickingPayload = {
   startedAt: string | null;
   updatedAt: string | null;
   finishedAt: string | null;
+  cancelledAt: string | null;
+  returnReason: string | null;
 };
 
 export type PickingOperatorOption = {
@@ -406,6 +408,15 @@ function mapPickingOrder(
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
+  const effectiveStatus =
+    order.status === "EM_SEPARACAO" &&
+    !picking.operatorId &&
+    !picking.operatorName &&
+    !picking.startedAt &&
+    !picking.finishedAt &&
+    (Boolean(picking.cancelledAt) || Boolean(picking.returnReason))
+      ? "NOVO"
+      : order.status;
   const payloadContact = readRecord(payload.contato);
   const payloadCity = readString(payloadContact?.cidade);
   const payloadState = readString(payloadContact?.uf);
@@ -441,8 +452,8 @@ function mapPickingOrder(
         .filter(Boolean)
         .slice(0, 2)
         .join(" - ") || "Destino n?o informado",
-    status: order.status,
-    statusLabel: formatShippingStatusLabel(order.status),
+    status: effectiveStatus,
+    statusLabel: formatShippingStatusLabel(effectiveStatus),
     depositanteId: order.depositante_id,
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
     totalItems: Number(order.quantidade_itens ?? items.length) || items.length,
@@ -848,6 +859,8 @@ function extractPickingPayload(payload: Record<string, unknown>): PickingPayload
     startedAt: readString(picking?.iniciadaEm),
     updatedAt: readString(picking?.atualizadaEm),
     finishedAt: readString(picking?.finalizadaEm),
+    cancelledAt: readString(picking?.canceladaEm),
+    returnReason: readString(picking?.motivoRetornoFila),
   };
 }
 

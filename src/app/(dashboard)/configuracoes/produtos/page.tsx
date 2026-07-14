@@ -187,9 +187,36 @@ export default async function ConfiguracoesProdutosPage({
               >
                 ‹
               </PageLink>
-              <span className="flex items-center justify-center h-8 px-3 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold">
-                {currentPage}
-              </span>
+
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                
+                if (
+                  p === 1 || 
+                  p === totalPages || 
+                  (p >= currentPage - 1 && p <= currentPage + 1)
+                ) {
+                  return (
+                    <PageLink
+                      key={p}
+                      active={p === currentPage}
+                      href={`/configuracoes/produtos?${buildQueryString({
+                        ...baseQuery,
+                        page: String(p),
+                      })}`}
+                    >
+                      {p}
+                    </PageLink>
+                  );
+                }
+                
+                if (p === currentPage - 2 || p === currentPage + 2) {
+                  return <span key={p} className="text-slate-400 px-1">...</span>;
+                }
+                
+                return null;
+              })}
+
               <PageLink
                 disabled={currentPage >= totalPages}
                 href={`/configuracoes/produtos?${buildQueryString({
@@ -262,15 +289,25 @@ function buildQueryString(values: Record<string, string>) {
 function PageLink({
   href,
   disabled,
+  active,
   children,
 }: {
   href: string;
-  disabled: boolean;
+  disabled?: boolean;
+  active?: boolean;
   children: React.ReactNode;
 }) {
   if (disabled) {
     return (
       <span className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-sm font-medium text-slate-400 dark:border-slate-800 dark:text-slate-600">
+        {children}
+      </span>
+    );
+  }
+
+  if (active) {
+    return (
+      <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold text-sm">
         {children}
       </span>
     );

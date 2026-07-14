@@ -140,7 +140,6 @@ export async function resetPickingOrdersToQueueAction(
         payload_origem: {
           ...payload,
           separacao: {
-            ...currentPicking,
             operadorId: null,
             operadorNome: null,
             iniciadaEm: null,
