@@ -185,7 +185,8 @@ export function ProdutosDashboard({
 
   const selectedData = useMemo(() => {
     if (!selectedProduto) return null;
-    const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id) || selectedProduto as Produto;
+    const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id);
+    if (!p) return null;
     const color = getCatColor(p.category);
     const ss = statusStyle(p.status);
     const ab = abcStyle(p.abc);
