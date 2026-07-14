@@ -315,6 +315,59 @@ export async function listShippingPickingOrdersFromDb(
   return orders;
 }
 
+export async function listShippingPickingOrdersByIdsFromDb(
+  user: AppUserContext,
+  ids: string[],
+  options?: ShippingPickingQueryOptions,
+) {
+  const normalizedIds = Array.from(new Set(ids.map((item) => item.trim()).filter(Boolean)));
+
+  if (!normalizedIds.length) {
+    return [] as ShippingPickingOrder[];
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const includeRouteData = options?.includeRouteData ?? true;
+  let query = buildPickingOrdersQuery(supabase).in("id", normalizedIds);
+
+  if (user.papel === "DEPOSITANTE" && user.depositanteId) {
+    query = query.eq("depositante_id", user.depositanteId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error("N?o foi poss?vel carregar os pedidos selecionados: " + error.message);
+  }
+
+  const rawOrders = ((data ?? []) as RawPickingOrderRow[])
+    .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes));
+  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
+  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
+  const stockByDepositante = new Map<string, RawPickingStockRow[]>();
+
+  for (const row of stockRows) {
+    const current = stockByDepositante.get(row.depositante_id) ?? [];
+    current.push(row);
+    stockByDepositante.set(row.depositante_id, current);
+  }
+
+  const orderMap = new Map(
+    rawOrders.map((order) => [
+      order.id,
+      mapPickingOrder(
+        order,
+        stockByDepositante.get(order.depositante_id) ?? [],
+        includeRouteData,
+        productImageMap,
+      ),
+    ]),
+  );
+
+  return normalizedIds
+    .map((id) => orderMap.get(id) ?? null)
+    .filter((order): order is ShippingPickingOrder => Boolean(order));
+}
 export async function getShippingPickingOrderFromDb(user: AppUserContext, id: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await buildPickingOrdersQuery(supabase).eq("id", id).maybeSingle();

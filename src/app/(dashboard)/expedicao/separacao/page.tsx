@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, PackageCheck, ScanSearch, TriangleAlert, UserRound } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingPickingFiltersForm } from "@/components/shipping/shipping-picking-filters-form";
+import { ShippingPickingWaveSelector } from "@/components/shipping/shipping-picking-wave-selector";
 import { requireModuleAccess } from "@/lib/auth";
 import { listPickingOperatorsFromDb, listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -209,85 +210,7 @@ export default async function ExpedicaoSeparacaoPage({
               </div>
             </div>
 
-            {paginatedOrders.map((order) => (
-              <article
-                key={order.id}
-                className="glass-card group rounded-2xl p-5 transition-all hover:border-primary-500/30"
-              >
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wide ${
-                          order.status === "NOVO"
-                            ? "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-400"
-                            : order.status === "EM_SEPARACAO"
-                              ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        }`}
-                      >
-                        {order.statusLabel}
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                        {order.depositante}
-                      </span>
-                      <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>
-                      {order.shortageUnits > 0 ? (
-                        <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
-                          Pendentes: {order.shortageUnits} un
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <h2 className="mt-3 text-lg font-bold text-slate-900 transition-colors group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">
-                      {order.externalNumber}
-                    </h2>
-                    <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
-                      {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">-</span>{" "}
-                      {order.destination}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        Codigo int: {order.code}
-                      </span>
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        Criado em: {order.createdAt}
-                      </span>
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        {order.totalItems} item(ns)
-                      </span>
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        {order.totalUnits} unidade(s)
-                      </span>
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        {order.routeStopCount} parada(s)
-                      </span>
-                      <span className="rounded-md border border-primary-500/20 bg-primary-500/10 px-2 py-1 text-primary-600 dark:text-primary-400">
-                        {order.completionPercent}% concluido
-                      </span>
-                      <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                        Operador: {order.assignedOperatorName ?? "Nao atribuido"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Link
-                    href={
-                      order.status === "SEPARADO" || order.status === "EM_CONFERENCIA"
-                        ? `/expedicao/conferencia/${order.id}`
-                        : `/expedicao/separacao/${order.id}`
-                    }
-                    className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-600"
-                  >
-                    {order.status === "SEPARADO"
-                      ? "Iniciar Conferencia"
-                      : order.status === "EM_CONFERENCIA"
-                        ? "Continuar Conferencia"
-                        : "Iniciar Separacao"}
-                  </Link>
-                </div>
-              </article>
-            ))}
+            <ShippingPickingWaveSelector orders={paginatedOrders} />
           </>
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white/50 p-10 text-center text-sm font-medium text-slate-500 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-400">

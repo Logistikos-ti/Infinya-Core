@@ -15,6 +15,92 @@ type KitProgressEntry = {
   barcode: string;
 };
 
+type PickingOrderRecord = {
+  id: string;
+  status: string;
+  depositante_id: string;
+  payload_origem: Record<string, unknown> | null;
+  itens?: Array<{
+    id: string;
+    quantidade: number | string | null;
+    quantidade_separada?: number | string | null;
+    payload_origem: Record<string, unknown> | null;
+  }> | null;
+};
+
+export async function beginPickingWaveAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+  const orderIds = Array.from(
+    new Set(
+      formData
+        .getAll("orderId")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (!orderIds.length) {
+    redirect("/expedicao/separacao?feedback=erro");
+  }
+
+  let ordersQuery = adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, depositante_id, payload_origem")
+    .in("id", orderIds);
+
+  if (user.papel === "DEPOSITANTE" && user.depositanteId) {
+    ordersQuery = ordersQuery.eq("depositante_id", user.depositanteId);
+  }
+
+  const { data, error } = await ordersQuery;
+
+  if (error || !(data ?? []).length) {
+    redirect("/expedicao/separacao?feedback=erro");
+  }
+
+  const orders = (data ?? []) as PickingOrderRecord[];
+  const now = new Date().toISOString();
+  const updates = orders
+    .filter((order) => ["NOVO", "EM_SEPARACAO"].includes(order.status))
+    .map((order) => {
+      const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+      const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+
+      return adminSupabase
+        .from("pedidos_expedicao")
+        .update({
+          status: "EM_SEPARACAO",
+          payload_origem: {
+            ...payload,
+            separacao: {
+              ...currentPicking,
+              operadorId: readString(currentPicking.operadorId) || user.id,
+              operadorNome: readString(currentPicking.operadorNome) || user.nome,
+              iniciadaEm: readString(currentPicking.iniciadaEm) || now,
+              atualizadaEm: now,
+              finalizadaEm: null,
+            },
+          },
+        })
+        .eq("id", order.id);
+    });
+
+  if (updates.length) {
+    const results = await Promise.all(updates);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      redirect("/expedicao/separacao?feedback=erro");
+    }
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/m/separacao");
+
+  redirect(`/expedicao/separacao/lote?ids=${encodeURIComponent(orderIds.join(","))}`);
+}
+
 export async function savePickingProgressAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
@@ -176,6 +262,212 @@ export async function savePickingProgressAction(formData: FormData) {
   redirect(`${redirectBase}?feedback=${intent === "complete" ? "concluido" : "salvo"}`);
 }
 
+export async function savePickingWaveProgressAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+  const intent = String(formData.get("intent") ?? "complete").trim();
+  const returnTo =
+    String(formData.get("returnTo") ?? "/expedicao/separacao").trim() ||
+    "/expedicao/separacao";
+  const completeRedirectTo =
+    String(formData.get("completeRedirectTo") ?? "/expedicao/separacao").trim() ||
+    "/expedicao/separacao";
+
+  const orderIds = Array.from(
+    new Set(
+      formData
+        .getAll("waveOrderId")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  );
+  const itemOrderIds = formData
+    .getAll("itemOrderId")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  const itemIds = formData
+    .getAll("itemId")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  const itemKitProgressValues = formData.getAll("itemKitProgress").map((value) => String(value));
+  const quantityValues = formData
+    .getAll("separatedQuantity")
+    .map((value) => normalizeQuantity(String(value)));
+
+  if (
+    !orderIds.length ||
+    itemIds.length !== quantityValues.length ||
+    itemIds.length !== itemKitProgressValues.length ||
+    itemIds.length !== itemOrderIds.length
+  ) {
+    redirect(appendFeedback(returnTo, "erro"));
+  }
+
+  let ordersQuery = adminSupabase
+    .from("pedidos_expedicao")
+    .select(
+      "id, status, depositante_id, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, quantidade_separada, payload_origem)",
+    )
+    .in("id", orderIds);
+
+  if (user.papel === "DEPOSITANTE" && user.depositanteId) {
+    ordersQuery = ordersQuery.eq("depositante_id", user.depositanteId);
+  }
+
+  const { data, error } = await ordersQuery;
+
+  if (error || !(data ?? []).length) {
+    redirect(appendFeedback(returnTo, "erro"));
+  }
+
+  const orders = (data ?? []) as PickingOrderRecord[];
+  const orderMap = new Map(orders.map((order) => [order.id, order]));
+  const itemMap = new Map(
+    orders.flatMap((order) =>
+      (order.itens ?? []).map((item) => [`${order.id}:${item.id}`, { order, item }] as const),
+    ),
+  );
+  const orderCompletionMap = new Map(orderIds.map((orderId) => [orderId, true]));
+
+  const itemUpdates = itemIds
+    .map((itemId, index) => {
+      const orderId = itemOrderIds[index];
+      const itemRecord = itemMap.get(`${orderId}:${itemId}`);
+
+      if (!itemRecord) {
+        return null;
+      }
+
+      const requestedQuantity = Number(itemRecord.item.quantidade ?? 0);
+      const currentPayload = isRecord(itemRecord.item.payload_origem)
+        ? itemRecord.item.payload_origem
+        : {};
+      const kitProgress = parseKitProgress(itemKitProgressValues[index]);
+
+      if (kitProgress.length > 0) {
+        const totals = calculateKitOperationalTotals(
+          kitProgress.map((item) => ({
+            componentProductId: item.componentProductId,
+            quantityPerKit: item.quantityPerKit,
+            sku: item.sku,
+            name: item.name,
+            internalCode: item.sku,
+            barcode: item.barcode,
+          })),
+          requestedQuantity,
+          new Map(kitProgress.map((item) => [item.componentProductId, item.separatedQuantity])),
+        );
+
+        const completedKits = totals.completedKits;
+        orderCompletionMap.set(
+          orderId,
+          (orderCompletionMap.get(orderId) ?? true) && completedKits >= requestedQuantity,
+        );
+
+        return adminSupabase
+          .from("pedidos_expedicao_itens")
+          .update({
+            quantidade_separada: completedKits,
+            payload_origem: buildPickingKitPayload(
+              currentPayload,
+              requestedQuantity,
+              kitProgress.map((item) => ({
+                componentProductId: item.componentProductId,
+                separatedQuantity: item.separatedQuantity,
+              })),
+            ),
+          })
+          .eq("id", itemId)
+          .eq("pedido_expedicao_id", orderId);
+      }
+
+      const sanitizedQuantity = Math.max(0, Math.min(quantityValues[index], requestedQuantity));
+      orderCompletionMap.set(
+        orderId,
+        (orderCompletionMap.get(orderId) ?? true) && sanitizedQuantity >= requestedQuantity,
+      );
+
+      return adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({ quantidade_separada: sanitizedQuantity })
+        .eq("id", itemId)
+        .eq("pedido_expedicao_id", orderId);
+    })
+    .filter(Boolean);
+
+  if (itemUpdates.length) {
+    const itemUpdateResults = await Promise.all(itemUpdates);
+    const firstItemError = itemUpdateResults.find((result) => result?.error);
+
+    if (firstItemError?.error) {
+      redirect(appendFeedback(returnTo, "erro"));
+    }
+  }
+
+  const now = new Date().toISOString();
+  const orderUpdates = orderIds
+    .map((orderId) => {
+      const order = orderMap.get(orderId);
+      if (!order) {
+        return null;
+      }
+
+      const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+      const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+      const canComplete = orderCompletionMap.get(orderId) ?? false;
+
+      return adminSupabase
+        .from("pedidos_expedicao")
+        .update({
+          status: intent === "complete" ? (canComplete ? "SEPARADO" : "EM_SEPARACAO") : "EM_SEPARACAO",
+          payload_origem: {
+            ...payload,
+            separacao: {
+              ...currentPicking,
+              operadorId: readString(currentPicking.operadorId) || user.id,
+              operadorNome: readString(currentPicking.operadorNome) || user.nome,
+              iniciadaEm: readString(currentPicking.iniciadaEm) || now,
+              atualizadaEm: now,
+              finalizadaEm: intent === "complete" && canComplete ? now : null,
+            },
+          },
+        })
+        .eq("id", orderId);
+    })
+    .filter(Boolean);
+
+  if (orderUpdates.length) {
+    const orderUpdateResults = await Promise.all(orderUpdates);
+    const firstOrderError = orderUpdateResults.find((result) => result?.error);
+
+    if (firstOrderError?.error) {
+      redirect(appendFeedback(returnTo, "erro"));
+    }
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath("/m/separacao");
+  revalidatePath("/m/conferencia");
+
+  for (const orderId of orderIds) {
+    revalidatePath(`/expedicao/${orderId}`);
+    revalidatePath(`/expedicao/separacao/${orderId}`);
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath(`/m/separacao/${orderId}`);
+    revalidatePath(`/m/conferencia/${orderId}`);
+  }
+
+  const canCompleteAllOrders = orderIds.every((orderId) => orderCompletionMap.get(orderId));
+
+  if (intent === "complete" && !canCompleteAllOrders) {
+    redirect(appendFeedback(returnTo, "incompleto"));
+  }
+
+  redirect(appendFeedback(completeRedirectTo, intent === "complete" ? "concluido" : "salvo"));
+}
+
 async function resolveOperatorName(
   adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
   operatorId: string,
@@ -253,4 +545,9 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function appendFeedback(path: string, feedback: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}feedback=${feedback}`;
 }
