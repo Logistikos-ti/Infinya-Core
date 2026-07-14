@@ -348,9 +348,7 @@ export function ProdutosDashboard({
                   <div className="relative h-[150px] flex items-center justify-center overflow-hidden" style={{ background: thumbBg }}>
                     <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 11px)" }} />
                     {p.imagem_principal_url ? (
-                      <div className="relative z-10 w-[90%] h-[120px] bg-white rounded-xl overflow-hidden shadow-sm flex items-center justify-center">
-                        <img src={p.imagem_principal_url} alt={p.nome} className="w-full h-full object-contain p-2" />
-                      </div>
+                      <img src={p.imagem_principal_url} alt={p.nome} className="relative z-10 w-full h-full object-contain p-2" />
                     ) : (
                       <span className="relative z-10 text-white/90">
                         <Package className="w-11 h-11" />
@@ -508,9 +506,7 @@ export function ProdutosDashboard({
               <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }} />
               
               {selectedData.imagem_principal_url ? (
-                <div className="relative z-10 w-[240px] h-[240px] bg-white rounded-2xl shadow-lg flex items-center justify-center p-4">
-                  <img src={selectedData.imagem_principal_url} alt={selectedData.nome} className="w-full h-full object-contain" />
-                </div>
+                <img src={selectedData.imagem_principal_url} alt={selectedData.nome} className="relative z-10 w-full h-full object-contain p-4" />
               ) : (
                 <span className="relative z-10 text-white/95">
                   <Package className="w-16 h-16" />
