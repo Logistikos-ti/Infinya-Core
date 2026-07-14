@@ -222,7 +222,10 @@ export default async function ExpedicaoSeparacaoPage({
   );
 }
 
-function buildAgeBadgeClass(tone: "fresh" | "warning" | "critical") {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function buildAgeBadgeClass(ageHours: number, minAge: number, maxAge: number) {
+  const tone = ageHours > maxAge ? "critical" : ageHours > minAge ? "warning" : "fresh";
+
   if (tone === "critical") {
     return "rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-bold text-rose-600 dark:text-rose-400";
   }

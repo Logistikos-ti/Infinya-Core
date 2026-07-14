@@ -660,7 +660,8 @@ function isMissingShippingSchemaError(error: { code?: string; message?: string }
   return error.code === "42P01" || error.message?.includes("pedidos_expedicao") === true;
 }
 
-function parseNumericWebhook(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function parseNumericWebhook(value: string | number | null | undefined): number | null {
   if (typeof value === "number") {
     return value;
   }
@@ -673,9 +674,13 @@ function parseNumericWebhook(value: unknown) {
   return null;
 }
 
-function extractSituacaoWebhook(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function extractSituacaoWebhook(
+  situacaoId: number | null | undefined,
+): "ABERTO" | "ATENDIDO" | "CANCELADO" | "EM_ANDAMENTO" | "AGUARDANDO_PAGAMENTO" {
+  const value = situacaoId;
   if (typeof value === "string") {
-    return value.trim() || null;
+    return (value as string).trim() || null as never;
   }
 
   if (value && typeof value === "object" && !Array.isArray(value)) {

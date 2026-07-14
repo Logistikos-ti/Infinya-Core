@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, TrendingUp, AlertTriangle, Tag, Package, Search, SearchIcon, LayoutGrid, List, PencilLine, Trash2 } from "lucide-react";
+import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
 import { deleteProdutoAction, toggleProdutoStatusAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -135,7 +135,6 @@ export function ProdutosDashboard({
   const getCatColor = (cat: string) => catDefs[cat] || "#64748b";
 
   const kpis = useMemo(() => {
-    const ativos = enrichedProdutos.filter(p => p.ativo).length;
     const rupturas = enrichedProdutos.filter(p => p.status === "Ruptura").length;
     const baixos = enrichedProdutos.filter(p => p.status === "Estoque baixo").length;
     return [
@@ -219,6 +218,7 @@ export function ProdutosDashboard({
         { k: "Peso", v: p.weight },
       ]
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProduto, enrichedProdutos, getCatColor, t.text, t.textSub]);
 
   return (

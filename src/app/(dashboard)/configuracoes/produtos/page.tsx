@@ -1,17 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { ProductFiltersForm } from "@/components/configuracoes/product-filters-form";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
-import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { ProdutosDashboard } from "@/components/configuracoes/produtos-dashboard";
-import {
-  deleteProdutoAction,
-  toggleProdutoStatusAction,
-} from "@/app/(dashboard)/configuracoes/produtos/actions";
 
 type ConfiguracoesProdutosPageProps = {
   searchParams?: Promise<{
