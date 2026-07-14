@@ -104,9 +104,28 @@ export default async function ConfiguracoesProdutosPage({
     perPage: String(perPage),
   };
 
+  const productIds = paginatedProducts.map(p => p.id);
+  let stockData: { produto_id: string; quantidade: number }[] = [];
+  
+  if (productIds.length > 0) {
+    const { data: stockRecords } = await adminSupabase
+      .from("estoque")
+      .select("produto_id, quantidade")
+      .in("produto_id", productIds);
+      
+    stockData = stockRecords ?? [];
+  }
+
+  const stockByProduct = stockData.reduce((acc, curr) => {
+    const qty = Number(curr.quantidade) || 0;
+    acc[curr.produto_id] = (acc[curr.produto_id] || 0) + qty;
+    return acc;
+  }, {} as Record<string, number>);
+
   const mappedProducts = paginatedProducts.map((p) => ({
     ...p,
     depositante_nome: ((p.depositante as { nome?: string } | null) ?? null)?.nome ?? null,
+    estoque: stockByProduct[p.id] ?? 0,
   }));
 
   return (

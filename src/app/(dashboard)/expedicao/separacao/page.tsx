@@ -4,6 +4,10 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingPickingFiltersForm } from "@/components/shipping/shipping-picking-filters-form";
 import { ShippingPickingWaveSelector } from "@/components/shipping/shipping-picking-wave-selector";
 import { requireModuleAccess } from "@/lib/auth";
+import {
+  resetPickingOrdersForCurrentOperator,
+  resetPickingOrdersToQueue,
+} from "@/lib/shipping-picking-reset";
 import { listPickingOperatorsFromDb, listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
@@ -14,6 +18,7 @@ type ExpedicaoSeparacaoPageProps = {
     depositante?: string;
     operador?: string;
     feedback?: string;
+    ids?: string;
     page?: string;
     perPage?: string;
   }>;
@@ -35,9 +40,19 @@ export default async function ExpedicaoSeparacaoPage({
   const operatorFilter = params?.operador?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
+  const resetIds = (params?.ids ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
   const depositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
   const feedback = params?.feedback?.trim() ?? "";
+
+  if ((feedback === "inatividade" || feedback === "cancelado") && resetIds.length) {
+    await resetPickingOrdersToQueue(user, resetIds, feedback);
+  } else if (feedback === "inatividade" || feedback === "cancelado") {
+    await resetPickingOrdersForCurrentOperator(user, feedback);
+  }
 
   const supabase = createSupabaseAdminClient();
   const { data: depositantes } = await supabase

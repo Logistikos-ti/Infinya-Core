@@ -101,7 +101,7 @@ export function ShippingPickingWavePanel({
       startResetTransition(async () => {
         await resetPickingOrdersToQueueAction(orderIds, reason);
         router.replace(
-          `${expireRedirectTo}${expireRedirectTo.includes("?") ? "&" : "?"}feedback=${reason}`,
+          `${expireRedirectTo}${expireRedirectTo.includes("?") ? "&" : "?"}feedback=${reason}&ids=${encodeURIComponent(orderIds.join(","))}`,
         );
       });
     },
