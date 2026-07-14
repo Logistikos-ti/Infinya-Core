@@ -91,7 +91,7 @@ export function ProdutosDashboard({
   const enrichedProdutos = useMemo(() => {
     return produtos.map((p, idx) => {
       // Mock data for missing fields for design purposes
-      const stock = p.estoque ?? (p.ativo ? (Math.random() > 0.8 ? 0 : Math.floor(Math.random() * 800) + 10) : 0);
+      const stock = p.estoque ?? (p.ativo ? ((idx % 5 === 0) ? 0 : 10 + ((idx * 43) % 800)) : 0);
       const min = p.estoque_minimo ?? 50;
       const max = p.estoque_maximo ?? 1000;
       let status = "Ativo";
@@ -186,7 +186,7 @@ export function ProdutosDashboard({
 
   const selectedData = useMemo(() => {
     if (!selectedProduto) return null;
-    const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id) || selectedProduto as any;
+    const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id) || selectedProduto as Produto;
     const color = getCatColor(p.category);
     const ss = statusStyle(p.status);
     const ab = abcStyle(p.abc);
@@ -562,7 +562,7 @@ export function ProdutosDashboard({
 
               {/* specs */}
               <div className="grid grid-cols-2 gap-3 mb-6">
-                {selectedData.specs.map((s: any, i: number) => (
+                {selectedData.specs.map((s: {k: string, v: string}, i: number) => (
                   <div key={i} className="p-3.5 rounded-xl border flex flex-col gap-1" style={{ borderColor: t.border, background: t.cardBg }}>
                     <span className="text-[11.5px]" style={{ color: t.textSub }}>{s.k}</span>
                     <span className="text-[14.5px] font-bold">{s.v}</span>
@@ -575,7 +575,7 @@ export function ProdutosDashboard({
                 <div className="mb-6 flex flex-col gap-3">
                   <span className={`${spaceGrotesk.className} text-sm font-bold`}>Estoque por endereço</span>
                   <div className="flex flex-col gap-2">
-                    {selectedData.locs.map((l: any, i: number) => (
+                    {selectedData.locs.map((l: {code: string, qty: string}, i: number) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: t.border, background: t.cardBg }}>
                         <span className={`${spaceGrotesk.className} text-[13.5px] font-bold`}>{l.code}</span>
                         <span className="text-[13px]" style={{ color: t.textSub }}>{l.qty}</span>
@@ -589,7 +589,7 @@ export function ProdutosDashboard({
               <div className="flex flex-col gap-3.5">
                 <span className={`${spaceGrotesk.className} text-sm font-bold`}>Movimentações recentes</span>
                 <div className="flex flex-col gap-0.5">
-                  {selectedData.moves.map((m: any, i: number) => (
+                  {selectedData.moves.map((m: {title: string, sub: string, dot: string, halo: string}, i: number) => (
                     <div key={i} className="flex gap-3.5">
                       <div className="flex flex-col items-center w-3">
                         <span className="w-2.5 h-2.5 rounded-full mt-1" style={{ background: m.dot, boxShadow: `0 0 0 3px ${m.halo}` }} />

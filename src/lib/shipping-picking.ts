@@ -319,7 +319,7 @@ export async function listShippingPickingOrdersByIdsFromDb(
   user: AppUserContext,
   ids: string[],
   options?: ShippingPickingQueryOptions,
-) {
+): Promise<ShippingPickingOrder[]> {
   const normalizedIds = Array.from(new Set(ids.map((item) => item.trim()).filter(Boolean)));
 
   if (!normalizedIds.length) {
@@ -364,9 +364,13 @@ export async function listShippingPickingOrdersByIdsFromDb(
     ]),
   );
 
-  return normalizedIds
-    .map((id) => orderMap.get(id) ?? null)
-    .filter((order): order is ShippingPickingOrder => Boolean(order));
+  return normalizedIds.reduce<ShippingPickingOrder[]>((accumulator, id) => {
+    const order = orderMap.get(id);
+    if (order) {
+      accumulator.push(order);
+    }
+    return accumulator;
+  }, []);
 }
 export async function getShippingPickingOrderFromDb(user: AppUserContext, id: string) {
   const supabase = createSupabaseAdminClient();

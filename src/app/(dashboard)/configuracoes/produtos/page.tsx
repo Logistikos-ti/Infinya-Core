@@ -152,7 +152,7 @@ export default async function ConfiguracoesProdutosPage({
       )}
 
       <ProdutosDashboard
-        produtos={mappedProducts as any}
+        produtos={mappedProducts as unknown as React.ComponentProps<typeof ProdutosDashboard>["produtos"]}
         totalProducts={totalProducts}
         formSlot={
           <Link href="/configuracoes/produtos/novo">
