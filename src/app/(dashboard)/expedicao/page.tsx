@@ -191,6 +191,83 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Link
+          href="/expedicao/separacao"
+          className="group rounded-3xl border border-cyan-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 dark:bg-zinc-900/70 dark:border-cyan-500/20 dark:hover:border-cyan-400"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">
+                Operação
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-cyan-700 dark:text-white dark:group-hover:text-cyan-300">
+                Separação
+              </h2>
+              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+                Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.
+              </p>
+            </div>
+            <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-300">
+              <ListChecks className="h-6 w-6" />
+            </span>
+          </div>
+          <div className="mt-6 inline-flex items-center rounded-xl bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300">
+            Entrar em Separação
+          </div>
+        </Link>
+
+        <Link
+          href="/expedicao/conferencia"
+          className="group rounded-3xl border border-violet-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-400 hover:shadow-xl hover:shadow-violet-500/10 dark:bg-zinc-900/70 dark:border-violet-500/20 dark:hover:border-violet-400"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600 dark:text-violet-300">
+                Validação
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-violet-700 dark:text-white dark:group-hover:text-violet-300">
+                Conferência
+              </h2>
+              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+                Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.
+              </p>
+            </div>
+            <span className="rounded-2xl bg-violet-500/10 p-3 text-violet-600 dark:text-violet-300">
+              <ScanBarcode className="h-6 w-6" />
+            </span>
+          </div>
+          <div className="mt-6 inline-flex items-center rounded-xl bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-700 dark:text-violet-300">
+            Entrar em Conferência
+          </div>
+        </Link>
+
+        <Link
+          href="#painel-pedidos"
+          className="group rounded-3xl border border-primary-500/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary-500 hover:shadow-xl hover:shadow-primary-500/10 dark:bg-zinc-900/70 dark:border-primary-500/20 dark:hover:border-primary-400"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-600 dark:text-primary-300">
+                Painel
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                Pedidos
+              </h2>
+              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+                Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.
+              </p>
+            </div>
+            <span className="rounded-2xl bg-primary-500/10 p-3 text-primary-600 dark:text-primary-300">
+              <ClipboardList className="h-6 w-6" />
+            </span>
+          </div>
+          <div className="mt-6 inline-flex items-center rounded-xl bg-primary-500/10 px-4 py-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
+            Ver Pedidos
+          </div>
+        </Link>
+      </section>
+
       {/* Abas e Filtros */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-200 dark:border-zinc-800 pb-2">
         <div className="flex overflow-x-auto no-scrollbar gap-2">
@@ -247,7 +324,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       </div>
 
       {/* Main Table section */}
-      <section className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden hover:border-primary-500/30 transition-all">
+      <section
+        id="painel-pedidos"
+        className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden hover:border-primary-500/30 transition-all"
+      >
         <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Pedidos e Rotas</h3>
