@@ -10,6 +10,7 @@ type InfinyaBrandProps = {
   compact?: boolean;
   animated?: boolean;
   forceLightWordmark?: boolean;
+  isYMS?: boolean;
 };
 
 function BrandGlyph({ className }: { className?: string }) {
@@ -36,15 +37,17 @@ function BrandGlyph({ className }: { className?: string }) {
 function BrandLockup({
   compact,
   className,
+  isYMS,
 }: {
   compact?: boolean;
   className?: string;
+  isYMS?: boolean;
 }) {
   return (
     <div className={cn("relative min-w-0", className)}>
       <Image
-        src="/branding/infinoos-lockup-wms-house.png"
-        alt="Infinoos WMS"
+        src={isYMS ? "/branding/infinoos-lockup-yms.png" : "/branding/infinoos-lockup-wms-house.png"}
+        alt={isYMS ? "Infinoos YMS" : "Infinoos WMS"}
         width={compact ? 184 : 286}
         height={compact ? 58 : 90}
         priority
@@ -63,6 +66,7 @@ export function InfinyaBrand({
   subtitle,
   subtitleClassName,
   compact = false,
+  isYMS = false,
 }: InfinyaBrandProps) {
   if (compact) {
     return (
@@ -75,7 +79,7 @@ export function InfinyaBrand({
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(110,231,255,0.14),transparent_28%),radial-gradient(circle_at_85%_82%,rgba(217,70,239,0.14),transparent_26%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
           <div className="relative z-10">
-            <BrandLockup compact className="w-full" />
+            <BrandLockup compact className="w-full" isYMS={isYMS} />
           </div>
         </div>
 
@@ -105,7 +109,7 @@ export function InfinyaBrand({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(110,231,255,0.14),transparent_28%),radial-gradient(circle_at_85%_82%,rgba(217,70,239,0.14),transparent_26%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
         <div className="relative z-10 flex min-w-0 items-center gap-4.5">
           <BrandGlyph className="h-[66px] w-[66px] flex-shrink-0 rounded-[21px]" />
-          <BrandLockup className="min-w-0" />
+          <BrandLockup className="min-w-0" isYMS={isYMS} />
         </div>
       </div>
 

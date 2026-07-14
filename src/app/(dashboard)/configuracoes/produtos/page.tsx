@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProductFiltersForm } from "@/components/configuracoes/product-filters-form";
 import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { requireConfigSectionAccess } from "@/lib/auth";
 import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { ProdutosDashboard } from "@/components/configuracoes/produtos-dashboard";
 import {
   deleteProdutoAction,
   toggleProdutoStatusAction,
@@ -109,6 +109,11 @@ export default async function ConfiguracoesProdutosPage({
     perPage: String(perPage),
   };
 
+  const mappedProducts = paginatedProducts.map((p) => ({
+    ...p,
+    depositante_nome: ((p.depositante as { nome?: string } | null) ?? null)?.nome ?? null,
+  }));
+
   return (
     <div className="space-y-6">
       <Link
@@ -118,16 +123,6 @@ export default async function ConfiguracoesProdutosPage({
         <ArrowLeft className="h-4 w-4" />
         {compactMode ? "Voltar ao inicio" : "Voltar para configurações"}
       </Link>
-
-      <ModulePageHeader
-        title="Produtos"
-        description={
-          compactMode
-            ? "Ambiente de cadastro operacional para criar, revisar e manter o catalogo de produtos."
-            : "Cadastro mestre de SKU com EAN/GTIN, metodo FEFO/FIFO, unidade de estocagem e regra de embalagem."
-        }
-        badge={compactMode ? "Catalogo operacional" : "Cadastro mestre"}
-      />
 
       {feedback ? (
         <div
@@ -142,227 +137,136 @@ export default async function ConfiguracoesProdutosPage({
             : feedback === "salvo"
               ? "Produto atualizado com sucesso."
               : feedback === "excluido"
-                ? "Produto excluido com sucesso."
+                ? "Produto excluído com sucesso."
                 : feedback === "vinculos"
-                  ? "Nao foi possivel excluir este produto porque ele ja possui estoque, movimentacoes ou vinculos operacionais."
-                  : "Nao foi possivel concluir a operacao solicitada."}
+                  ? "Não foi possível excluir este produto porque ele já possui estoque, movimentações ou vínculos operacionais."
+                  : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
 
-      {showAdvancedPanels ? (
-        <section className="grid gap-6 xl:grid-cols-[1.05fr_1.3fr]">
-          <ProductImportPanel depositantes={visibleDepositantes} />
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Padrao de importacao
-            </h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                O sistema usa o <strong>codigo interno</strong> como chave principal do upsert por
-                depositante.
-              </div>
-              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                Quando a planilha nao traz SKU separado, o sistema usa o proprio codigo interno como
-                SKU operacional.
-              </div>
-              <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                EAN/GTIN e salvo no campo externo do produto. Pack e quantidade por embalagem podem
-                ser refinados manualmente apos a importacao.
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : (
+      {!showAdvancedPanels && (
         <section className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4 text-sm text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100">
-          Este acesso foi simplificado para cadastro de produtos. Campos tecnicos e operacoes mais
-          sensiveis ficam automatizados para evitar erros.
+          Este acesso foi simplificado para cadastro de produtos. Campos técnicos e operações mais
+          sensíveis ficam automatizados para evitar erros.
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Produtos cadastrados
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Base ativa para recebimento, estoque, expedicao e rastreabilidade por depositante.
-            </p>
+      <ProdutosDashboard
+        produtos={mappedProducts as any}
+        totalProducts={totalProducts}
+        formSlot={
+          <Link href="/configuracoes/produtos/novo">
+            <button className="h-11 px-5 border-none rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] flex items-center gap-2 transition-transform hover:-translate-y-[1px]">
+              <Plus className="h-4 w-4" /> Novo produto
+            </button>
+          </Link>
+        }
+        filtersSlot={
+          <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <ProductFiltersForm
+              searchTerm={searchTerm}
+              depositante={depositanteFiltroEfetivo}
+              status={statusFiltro}
+              metodo={metodoFiltro}
+              unidade={unidadeFiltro}
+              perPage={String(perPage)}
+              depositantes={visibleDepositantes.map((depositante) => ({
+                value: depositante.id,
+                label: depositante.nome,
+              }))}
+            />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-              {totalProducts} registros
+        }
+        paginationSlot={
+          <div className="flex flex-col gap-3 rounded-2xl bg-transparent px-4 py-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:justify-between">
+            <span>
+              Mostrando {visibleStart}–{visibleEnd} de {totalProducts} produtos
             </span>
-            <Link href="/configuracoes/produtos/novo">
-              <Button className="bg-slate-950 text-white hover:bg-slate-800">
-                <Plus className="h-4 w-4" />
-                Novo produto
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <PageLink
+                disabled={currentPage <= 1}
+                href={`/configuracoes/produtos?${buildQueryString({
+                  ...baseQuery,
+                  page: String(currentPage - 1),
+                })}`}
+              >
+                ‹
+              </PageLink>
+              <span className="flex items-center justify-center h-8 px-3 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold">
+                {currentPage}
+              </span>
+              <PageLink
+                disabled={currentPage >= totalPages}
+                href={`/configuracoes/produtos?${buildQueryString({
+                  ...baseQuery,
+                  page: String(currentPage + 1),
+                })}`}
+              >
+                ›
+              </PageLink>
+            </div>
           </div>
-        </div>
-
-        <ProductFiltersForm
-          searchTerm={searchTerm}
-          depositante={depositanteFiltroEfetivo}
-          status={statusFiltro}
-          metodo={metodoFiltro}
-          unidade={unidadeFiltro}
-          perPage={String(perPage)}
-          depositantes={visibleDepositantes.map((depositante) => ({
-            value: depositante.id,
-            label: depositante.nome,
-          }))}
-        />
-
-        <div className="mt-5 space-y-4">
-          {paginatedProducts.length ? (
+        }
+        importSlot={
+          showAdvancedPanels ? (
             <>
-              <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300 md:flex-row md:items-center md:justify-between">
-                <span>
-                  Exibindo {visibleStart}-{visibleEnd} de {totalProducts} produto(s)
-                </span>
-                <div className="flex items-center gap-2">
-                  <PageLink
-                    disabled={currentPage <= 1}
-                    href={`/configuracoes/produtos?${buildQueryString({
-                      ...baseQuery,
-                      page: String(currentPage - 1),
-                    })}`}
-                  >
-                    Anterior
-                  </PageLink>
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Pagina {currentPage} de {totalPages}
-                  </span>
-                  <PageLink
-                    disabled={currentPage >= totalPages}
-                    href={`/configuracoes/produtos?${buildQueryString({
-                      ...baseQuery,
-                      page: String(currentPage + 1),
-                    })}`}
-                  >
-                    Proxima
-                  </PageLink>
-                </div>
-              </div>
-
-              {paginatedProducts.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800 dark:bg-slate-950/40"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-950 dark:text-white">
-                          {item.nome}
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {(item.sku || "-") + " • " + (item.codigo_interno || "-")}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                        <p>
-                          Depositante:{" "}
-                          {((item.depositante as { nome?: string } | null) ?? null)?.nome ?? "-"}
-                        </p>
-                        <p>EAN/GTIN: {item.codigo_externo || "-"}</p>
-                        {!compactMode ? <p>Categoria: {item.categoria || "-"}</p> : null}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Badge>{item.metodo_retirada}</Badge>
-                        <Badge>{getUnidadeLabel(item.unidade_estocagem)}</Badge>
-                        <Badge>{item.exige_lote ? "Com lote" : "Sem lote"}</Badge>
-                        <Badge>{item.exige_validade ? "Com validade" : "Sem validade"}</Badge>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 lg:text-right">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                          item.ativo
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        }`}
-                      >
-                        {item.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                        Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                      <div className="flex flex-wrap gap-2 lg:justify-end">
-                        <Link
-                          href={`/configuracoes/produtos/${item.id}/editar`}
-                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                          Editar
-                        </Link>
-                        <form action={toggleProdutoStatusAction}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <input
-                            type="hidden"
-                            name="nextActive"
-                            value={item.ativo ? "false" : "true"}
-                          />
-                          <Button type="submit" variant="outline" size="sm">
-                            {item.ativo ? "Desativar" : "Ativar"}
-                          </Button>
-                        </form>
-                        <form action={deleteProdutoAction}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir
-                          </Button>
-                        </form>
-                      </div>
-                    </div>
+              <ProductImportPanel depositantes={visibleDepositantes} />
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                  Padrão de importação
+                </h2>
+                <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                    O sistema usa o <strong>código interno</strong> como chave principal do upsert
+                    por depositante.
+                  </div>
+                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                    Quando a planilha não traz SKU separado, o sistema usa o próprio código interno
+                    como SKU operacional.
+                  </div>
+                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                    EAN/GTIN é salvo no campo externo do produto. Pack e quantidade por embalagem
+                    podem ser refinados manualmente após a importação.
                   </div>
                 </div>
-              ))}
+              </div>
             </>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
-              Nenhum produto encontrado com os filtros atuais.
-            </div>
-          )}
-        </div>
-      </section>
+          ) : null
+        }
+        actionSlot={(produto: any) => (
+          <>
+            <Link
+              href={`/configuracoes/produtos/${produto.id}/editar`}
+              className="flex-1 h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <PencilLine className="h-4 w-4 mr-2" />
+              Editar
+            </Link>
+            <form action={toggleProdutoStatusAction} className="flex-1">
+              <input type="hidden" name="id" value={produto.id} />
+              <input type="hidden" name="nextActive" value={produto.ativo ? "false" : "true"} />
+              <button
+                type="submit"
+                className="w-full h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                {produto.ativo ? "Desativar" : "Ativar"}
+              </button>
+            </form>
+            <form action={deleteProdutoAction} className="flex-1">
+              <input type="hidden" name="id" value={produto.id} />
+              <button
+                type="submit"
+                className="w-full h-11 flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </button>
+            </form>
+          </>
+        )}
+      />
     </div>
   );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-      {children}
-    </span>
-  );
-}
-
-function getUnidadeLabel(value: string) {
-  switch (value) {
-    case "UNIDADE":
-      return "Unidade";
-    case "CAIXA":
-      return "Caixa";
-    case "PACK":
-      return "Pack";
-    case "PALLET":
-      return "Pallet";
-    default:
-      return value;
-  }
 }
 
 function escapeSupabaseLike(value: string) {
@@ -402,7 +306,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-400 dark:border-slate-800 dark:text-slate-600">
+      <span className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-sm font-medium text-slate-400 dark:border-slate-800 dark:text-slate-600">
         {children}
       </span>
     );
@@ -411,7 +315,7 @@ function PageLink({
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center rounded-xl border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+      className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
     >
       {children}
     </Link>
