@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, MapPinned, PackageCheck, ScanSearch, Volume2 } from "lucide-react";
-import { savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import {
+  resetPickingOrdersToQueueAction,
+  savePickingWaveProgressAction,
+} from "@/app/(dashboard)/expedicao/separacao/actions";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
@@ -15,6 +18,7 @@ type ShippingPickingWavePanelProps = {
   currentUserId: string;
   currentUserName: string;
   returnTo: string;
+  expireRedirectTo: string;
   completeRedirectTo: string;
 };
 
@@ -54,6 +58,7 @@ export function ShippingPickingWavePanel({
   currentUserId,
   currentUserName,
   returnTo,
+  expireRedirectTo,
   completeRedirectTo,
 }: ShippingPickingWavePanelProps) {
   const router = useRouter();
@@ -67,8 +72,10 @@ export function ShippingPickingWavePanel({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [operatorMode, setOperatorMode] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, startResetTransition] = useTransition();
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const orderIds = useMemo(() => orders.map((order) => order.id), [orders]);
   const {
     videoRef,
     cameraSupported,
@@ -83,11 +90,23 @@ export function ShippingPickingWavePanel({
     },
   });
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
-    disabled: isSubmitting,
+    disabled: isSubmitting || isResetting,
     onExpire: () => {
-      router.replace(`${returnTo}${returnTo.includes("?") ? "&" : "?"}feedback=inatividade`);
+      resetWaveToQueue("inatividade");
     },
   });
+
+  const resetWaveToQueue = useCallback(
+    (reason: "cancelado" | "inatividade") => {
+      startResetTransition(async () => {
+        await resetPickingOrdersToQueueAction(orderIds, reason);
+        router.replace(
+          `${expireRedirectTo}${expireRedirectTo.includes("?") ? "&" : "?"}feedback=${reason}`,
+        );
+      });
+    },
+    [expireRedirectTo, orderIds, router],
+  );
 
   const summary = useMemo(() => {
     const orderCount = orders.length;
@@ -516,7 +535,7 @@ export function ShippingPickingWavePanel({
         <form
           action={savePickingWaveProgressAction}
           className="space-y-5"
-          aria-busy={isSubmitting}
+          aria-busy={isSubmitting || isResetting}
           onSubmit={() => setIsSubmitting(true)}
         >
           {orders.map((order) => (
@@ -684,16 +703,27 @@ export function ShippingPickingWavePanel({
                 </p>
               </div>
 
-              <button
-                type="submit"
-                name="intent"
-                value="complete"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-600 disabled:cursor-progress disabled:opacity-70"
-                disabled={isSubmitting}
-              >
-                <PackageCheck className="h-4 w-4" />
-                {isSubmitting ? "Concluindo..." : "Concluir separacao"}
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => resetWaveToQueue("cancelado")}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 disabled:cursor-progress disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  disabled={isSubmitting || isResetting}
+                >
+                  {isResetting ? "Cancelando..." : "Cancelar separacao"}
+                </button>
+
+                <button
+                  type="submit"
+                  name="intent"
+                  value="complete"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary-500 px-6 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-all hover:-translate-y-0.5 hover:bg-primary-600 disabled:cursor-progress disabled:opacity-70"
+                  disabled={isSubmitting || isResetting}
+                >
+                  <PackageCheck className="h-4 w-4" />
+                  {isSubmitting ? "Concluindo..." : "Concluir separacao"}
+                </button>
+              </div>
             </div>
           </div>
         </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type UseInactivityTimeoutOptions = {
   warningAfterMs?: number;
@@ -18,80 +18,119 @@ export function useInactivityTimeout({
   disabled = false,
   onExpire,
 }: UseInactivityTimeoutOptions) {
-  const warningWindowSeconds = Math.max(
-    1,
-    Math.ceil((expireAfterMs - warningAfterMs) / 1000),
+  const warningWindowMs = Math.max(1_000, expireAfterMs - warningAfterMs);
+  const warningWindowSeconds = useMemo(
+    () => Math.max(1, Math.ceil(warningWindowMs / 1000)),
+    [warningWindowMs],
   );
+
   const [isWarningVisible, setIsWarningVisible] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(warningWindowSeconds);
-  const lastActivityRef = useRef(0);
-  const hasExpiredRef = useRef(false);
+
   const onExpireRef = useRef(onExpire);
-  const warningVisibleRef = useRef(false);
+  const warningTimeoutRef = useRef<number | null>(null);
+  const expireTimeoutRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const expireAtRef = useRef<number | null>(null);
+  const expiredRef = useRef(false);
 
   useEffect(() => {
     onExpireRef.current = onExpire;
   }, [onExpire]);
 
-  const resetTimer = useCallback(() => {
-    lastActivityRef.current = Date.now();
-    hasExpiredRef.current = false;
-    warningVisibleRef.current = false;
+  const clearTimers = useCallback(() => {
+    if (warningTimeoutRef.current !== null) {
+      window.clearTimeout(warningTimeoutRef.current);
+      warningTimeoutRef.current = null;
+    }
+
+    if (expireTimeoutRef.current !== null) {
+      window.clearTimeout(expireTimeoutRef.current);
+      expireTimeoutRef.current = null;
+    }
+
+    if (countdownIntervalRef.current !== null) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const startCountdown = useCallback(() => {
+    setIsWarningVisible(true);
+    setCountdownSeconds(warningWindowSeconds);
+    expireAtRef.current = Date.now() + warningWindowMs;
+
+    if (countdownIntervalRef.current !== null) {
+      window.clearInterval(countdownIntervalRef.current);
+    }
+
+    countdownIntervalRef.current = window.setInterval(() => {
+      const expireAt = expireAtRef.current;
+      if (!expireAt) {
+        return;
+      }
+
+      const remainingMs = expireAt - Date.now();
+      if (remainingMs <= 0) {
+        setCountdownSeconds(0);
+        if (countdownIntervalRef.current !== null) {
+          window.clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+        return;
+      }
+
+      setCountdownSeconds(Math.max(1, Math.ceil(remainingMs / 1000)));
+    }, 250);
+
+    expireTimeoutRef.current = window.setTimeout(() => {
+      expiredRef.current = true;
+      clearTimers();
+      setIsWarningVisible(false);
+      setCountdownSeconds(0);
+      onExpireRef.current();
+    }, warningWindowMs);
+  }, [clearTimers, warningWindowMs, warningWindowSeconds]);
+
+  const scheduleTimers = useCallback(() => {
+    clearTimers();
+    expiredRef.current = false;
+    expireAtRef.current = null;
     setIsWarningVisible(false);
     setCountdownSeconds(warningWindowSeconds);
-  }, [warningWindowSeconds]);
 
-  useEffect(() => {
+    warningTimeoutRef.current = window.setTimeout(() => {
+      if (expiredRef.current) {
+        return;
+      }
+
+      startCountdown();
+    }, warningAfterMs);
+  }, [clearTimers, startCountdown, warningAfterMs, warningWindowSeconds]);
+
+  const resetTimer = useCallback(() => {
     if (disabled) {
-      hasExpiredRef.current = false;
-      warningVisibleRef.current = false;
       return;
     }
 
-    lastActivityRef.current = Date.now();
-    hasExpiredRef.current = false;
-    warningVisibleRef.current = false;
+    scheduleTimers();
+  }, [disabled, scheduleTimers]);
 
-    const syncState = () => {
-      const elapsedMs = Date.now() - lastActivityRef.current;
-
-      if (elapsedMs >= expireAfterMs) {
-        if (!hasExpiredRef.current) {
-          hasExpiredRef.current = true;
-          onExpireRef.current();
-        }
-        return;
-      }
-
-      if (elapsedMs >= warningAfterMs) {
-        if (!warningVisibleRef.current) {
-          warningVisibleRef.current = true;
-          setIsWarningVisible(true);
-        }
-        setCountdownSeconds(
-          Math.max(0, Math.ceil((expireAfterMs - elapsedMs) / 1000)),
-        );
-        return;
-      }
-
-      if (warningVisibleRef.current) {
-        warningVisibleRef.current = false;
-        setIsWarningVisible(false);
-      }
+  useEffect(() => {
+    if (disabled) {
+      expiredRef.current = false;
+      clearTimers();
+      setIsWarningVisible(false);
       setCountdownSeconds(warningWindowSeconds);
-    };
+      return;
+    }
 
     const handleActivity = () => {
-      if (hasExpiredRef.current) {
+      if (expiredRef.current) {
         return;
       }
 
-      lastActivityRef.current = Date.now();
-      if (warningVisibleRef.current) {
-        warningVisibleRef.current = false;
-        setIsWarningVisible(false);
-      }
-      setCountdownSeconds(warningWindowSeconds);
+      scheduleTimers();
     };
 
     const events: Array<keyof WindowEventMap> = [
@@ -102,24 +141,16 @@ export function useInactivityTimeout({
       "scroll",
     ];
 
-    syncState();
-    const intervalId = window.setInterval(syncState, 1_000);
+    scheduleTimers();
     events.forEach((eventName) =>
       window.addEventListener(eventName, handleActivity, { passive: true }),
     );
 
     return () => {
-      window.clearInterval(intervalId);
-      events.forEach((eventName) =>
-        window.removeEventListener(eventName, handleActivity),
-      );
+      clearTimers();
+      events.forEach((eventName) => window.removeEventListener(eventName, handleActivity));
     };
-  }, [
-    disabled,
-    expireAfterMs,
-    warningAfterMs,
-    warningWindowSeconds,
-  ]);
+  }, [clearTimers, disabled, scheduleTimers, warningWindowSeconds]);
 
   return {
     isWarningVisible,

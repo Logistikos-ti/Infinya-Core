@@ -75,6 +75,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
         currentUserId={user.id}
         currentUserName={user.nome}
         returnTo={returnTo}
+        expireRedirectTo="/expedicao/separacao"
         completeRedirectTo="/expedicao/separacao"
       />
     </div>

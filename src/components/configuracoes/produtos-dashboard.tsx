@@ -325,70 +325,79 @@ export function ProdutosDashboard({
 
       {/* GALLERY VIEW */}
       {view === "gallery" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProdutos.map((p, i) => {
-            const color = getCatColor(p.category);
-            const thumbBg = `linear-gradient(140deg, ${color} 0%, ${hex2(color, 0.55)} 55%, ${hex2(color, 0.85)} 100%)`;
-            const ss = statusStyle(p.status);
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredProdutos.map((p, i) => {
+              const color = getCatColor(p.category);
+              const thumbBg = `linear-gradient(140deg, ${color} 0%, ${hex2(color, 0.55)} 55%, ${hex2(color, 0.85)} 100%)`;
+              const ss = statusStyle(p.status);
 
-            return (
-              <div
-                key={p.id}
-                onClick={() => setSelectedProduto(p)}
-                className="card-anim rounded-[18px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
-                style={{
-                  borderColor: t.border,
-                  background: t.cardBg,
-                  animationDelay: `${i * 0.05}s`,
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = t.hoverBorder)}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}
-              >
-                <div className="relative h-[150px] flex items-center justify-center overflow-hidden" style={{ background: thumbBg }}>
-                  <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 11px)" }} />
-              {p.imagem_principal_url ? (
-                <img src={p.imagem_principal_url} alt={p.nome} className="relative z-10 w-full h-full object-contain p-2 mix-blend-multiply" />
-              ) : (
-                    <span className="relative z-10 text-white/90">
-                      <Package className="w-11 h-11" />
-                    </span>
-                  )}
-                  <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider bg-black/30 text-white backdrop-blur-sm z-20">
-                    {p.abc}
-                  </span>
-                  <span
-                    className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white backdrop-blur-sm z-20"
-                    style={{ background: ss.chipBg }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                    {p.status}
-                  </span>
-                </div>
-                <div className="p-4 flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[15px] font-bold leading-snug line-clamp-2 h-[38px]">{p.nome}</span>
-                    <span className={`${spaceGrotesk.className} text-[12.5px]`} style={{ color: t.textSub }}>{p.skuStr}</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex justify-between text-[12.5px]">
-                      <span style={{ color: t.textSub }}>Estoque</span>
-                      <span className="font-bold" style={{ color: p.status === "Ruptura" ? "#EF4444" : p.status === "Estoque baixo" ? "#F59E0B" : t.text }}>
-                        {p.stock === 0 ? "0 un" : `${p.stock.toLocaleString("pt-BR")} un`}
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedProduto(p)}
+                  className="card-anim rounded-[18px] border overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
+                  style={{
+                    borderColor: t.border,
+                    background: t.cardBg,
+                    animationDelay: `${i * 0.05}s`,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = t.hoverBorder)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}
+                >
+                  <div className="relative h-[150px] flex items-center justify-center overflow-hidden" style={{ background: thumbBg }}>
+                    <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 11px)" }} />
+                    {p.imagem_principal_url ? (
+                      <div className="relative z-10 w-[90%] h-[120px] bg-white rounded-xl overflow-hidden shadow-sm flex items-center justify-center">
+                        <img src={p.imagem_principal_url} alt={p.nome} className="w-full h-full object-contain p-2" />
+                      </div>
+                    ) : (
+                      <span className="relative z-10 text-white/90">
+                        <Package className="w-11 h-11" />
                       </span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: t.barTrack }}>
-                      <div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: stockFillFor(p.status) }} />
-                    </div>
+                    )}
+                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider bg-black/30 text-white backdrop-blur-sm z-20">
+                      {p.abc}
+                    </span>
+                    <span
+                      className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white backdrop-blur-sm z-20"
+                      style={{ background: ss.chipBg }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      {p.status}
+                    </span>
                   </div>
-                  <div className="flex items-baseline justify-between pt-1.5 mt-1 border-t" style={{ borderColor: t.border }}>
-                    <span className={`${spaceGrotesk.className} text-lg font-bold`}>{p.priceStr}</span>
-                    <span className="text-xs" style={{ color: t.textSub }}>{p.stock > 0 ? "1 endereço" : "Sem estoque"}</span>
+                  <div className="p-4 flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[15px] font-bold leading-snug line-clamp-2 h-[38px]">{p.nome}</span>
+                      <span className={`${spaceGrotesk.className} text-[12.5px]`} style={{ color: t.textSub }}>{p.skuStr}</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex justify-between text-[12.5px]">
+                        <span style={{ color: t.textSub }}>Estoque</span>
+                        <span className="font-bold" style={{ color: p.status === "Ruptura" ? "#EF4444" : p.status === "Estoque baixo" ? "#F59E0B" : t.text }}>
+                          {p.stock === 0 ? "0 un" : `${p.stock.toLocaleString("pt-BR")} un`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: t.barTrack }}>
+                        <div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: stockFillFor(p.status) }} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline justify-between pt-1.5 mt-1 border-t" style={{ borderColor: t.border }}>
+                      <span className={`${spaceGrotesk.className} text-lg font-bold`}>{p.priceStr}</span>
+                      <span className="text-xs" style={{ color: t.textSub }}>{p.stock > 0 ? "1 endereço" : "Sem estoque"}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          {paginationSlot && (
+            <div className="mt-6 p-4 rounded-2xl border" style={{ borderColor: t.border, background: t.cardBg }}>
+              {paginationSlot}
+            </div>
+          )}
+        </>
       )}
 
       {/* TABLE VIEW */}
@@ -499,7 +508,9 @@ export function ProdutosDashboard({
               <div className="absolute inset-0 opacity-15" style={{ backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }} />
               
               {selectedData.imagem_principal_url ? (
-                <img src={selectedData.imagem_principal_url} alt={selectedData.nome} className="relative z-10 w-full h-full object-contain p-2 mix-blend-multiply" />
+                <div className="relative z-10 w-[240px] h-[240px] bg-white rounded-2xl shadow-lg flex items-center justify-center p-4">
+                  <img src={selectedData.imagem_principal_url} alt={selectedData.nome} className="w-full h-full object-contain" />
+                </div>
               ) : (
                 <span className="relative z-10 text-white/95">
                   <Package className="w-16 h-16" />

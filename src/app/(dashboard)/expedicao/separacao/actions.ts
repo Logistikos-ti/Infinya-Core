@@ -101,6 +101,84 @@ export async function beginPickingWaveAction(formData: FormData) {
   redirect(`/expedicao/separacao/lote?ids=${encodeURIComponent(orderIds.join(","))}`);
 }
 
+export async function resetPickingOrdersToQueueAction(
+  orderIds: string[],
+  reason: "cancelado" | "inatividade" = "cancelado",
+) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+  const normalizedIds = Array.from(new Set(orderIds.map((value) => value.trim()).filter(Boolean)));
+
+  if (!normalizedIds.length) {
+    return { success: false };
+  }
+
+  let ordersQuery = adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, depositante_id, payload_origem")
+    .in("id", normalizedIds);
+
+  if (user.papel === "DEPOSITANTE" && user.depositanteId) {
+    ordersQuery = ordersQuery.eq("depositante_id", user.depositanteId);
+  }
+
+  const { data, error } = await ordersQuery;
+
+  if (error || !(data ?? []).length) {
+    return { success: false };
+  }
+
+  const now = new Date().toISOString();
+  const updates = ((data ?? []) as PickingOrderRecord[]).map((order) => {
+    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+    const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+
+    return adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: "NOVO",
+        payload_origem: {
+          ...payload,
+          separacao: {
+            ...currentPicking,
+            operadorId: null,
+            operadorNome: null,
+            iniciadaEm: null,
+            atualizadaEm: now,
+            finalizadaEm: null,
+            canceladaEm: now,
+            motivoRetornoFila: reason,
+          },
+        },
+      })
+      .eq("id", order.id);
+  });
+
+  if (updates.length) {
+    const results = await Promise.all(updates);
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      return { success: false };
+    }
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath("/m/separacao");
+  revalidatePath("/m/conferencia");
+
+  for (const orderId of normalizedIds) {
+    revalidatePath(`/expedicao/${orderId}`);
+    revalidatePath(`/expedicao/separacao/${orderId}`);
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath(`/m/separacao/${orderId}`);
+    revalidatePath(`/m/conferencia/${orderId}`);
+  }
+
+  return { success: true };
+}
+
 export async function savePickingProgressAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();

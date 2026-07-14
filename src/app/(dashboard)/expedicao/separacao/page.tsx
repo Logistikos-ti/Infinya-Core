@@ -121,8 +121,10 @@ export default async function ExpedicaoSeparacaoPage({
             ? "Separacao concluida e pedido movido para o proximo passo."
             : feedback === "incompleto"
               ? "Ainda existem itens pendentes. O pedido voltou para a fila para nova separacao."
+              : feedback === "cancelado"
+                ? "Separacao cancelada. Os pedidos selecionados voltaram para a fila."
               : feedback === "inatividade"
-                ? "Pedido devolvido para a fila por inatividade do operador."
+                ? "Separacao interrompida por inatividade. Os pedidos voltaram para a fila."
                 : "Nao foi possivel concluir a operacao solicitada."}
         </div>
       ) : null}
