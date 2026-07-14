@@ -40,6 +40,7 @@ type RawConferenceOrderRow = {
   cliente_uf: string | null;
   quantidade_itens: number | null;
   quantidade_unidades: number | string | null;
+  observacoes?: string | null;
   payload_origem: Record<string, unknown> | null;
   depositante_id: string;
   depositante: RelationName;
@@ -147,7 +148,9 @@ export async function listShippingConferenceOrdersFromDb(
     throw new Error(`Não foi possível listar os pedidos em conferência: ${error.message}`);
   }
 
-  const orders = ((data ?? []) as RawConferenceOrderRow[]).map(mapConferenceOrder);
+  const orders = ((data ?? []) as RawConferenceOrderRow[])
+    .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes))
+    .map(mapConferenceOrder);
 
   return orders.filter((order) => {
     if (!filters?.operatorId) {
@@ -183,8 +186,12 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
 
 function buildConferenceOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
   );
+}
+
+function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
+  return observacoes?.trim() === "Pedido resumido criado a partir do webhook do Bling.";
 }
 
 function mapConferenceOrder(order: RawConferenceOrderRow) {

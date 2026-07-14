@@ -42,6 +42,7 @@ type RawPickingOrderRow = {
   cliente_uf: string | null;
   quantidade_itens: number | null;
   quantidade_unidades: number | string | null;
+  observacoes?: string | null;
   payload_origem: Record<string, unknown> | null;
   depositante_id: string;
   depositante: RelationName;
@@ -281,7 +282,9 @@ export async function listShippingPickingOrdersFromDb(
     throw new Error(`Não foi possível listar os pedidos de separação: ${ordersError.message}`);
   }
 
-  const rawOrders = (ordersData ?? []) as RawPickingOrderRow[];
+  const rawOrders = ((ordersData ?? []) as RawPickingOrderRow[]).filter(
+    (order) => !isBlingWebhookSummaryOrder(order.observacoes),
+  );
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
 
@@ -648,8 +651,12 @@ function mapSimplePickingItem(
 
 function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
   );
+}
+
+function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
+  return observacoes?.trim() === "Pedido resumido criado a partir do webhook do Bling.";
 }
 
 async function loadPickingStockRows(

@@ -27,6 +27,7 @@ type RawShippingOrderRow = {
   cliente_nome: string | null;
   cliente_cidade: string | null;
   cliente_uf: string | null;
+  observacoes?: string | null;
   payload_origem: Record<string, unknown> | null;
   depositante_id?: string;
   depositante: RelationName;
@@ -204,7 +205,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -235,7 +236,9 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
     throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
   }
 
-  const orders = ((data ?? []) as RawShippingOrderRow[]).map(mapShippingOrderSummary);
+  const orders = ((data ?? []) as RawShippingOrderRow[])
+    .filter((item) => !isBlingWebhookSummaryOrder(item.observacoes))
+    .map(mapShippingOrderSummary);
 
   return orders.filter((order) => {
     if (filters?.carrier) {
@@ -276,6 +279,10 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
 
     return true;
   });
+}
+
+function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
+  return observacoes?.trim() === "Pedido resumido criado a partir do webhook do Bling.";
 }
 
 export async function listShippingStatsFromDb(
