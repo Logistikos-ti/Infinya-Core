@@ -142,7 +142,7 @@ export function ProdutoForm({
   };
 
   return (
-    <form action={formAction} className="flex flex-col flex-1 h-full max-w-[1280px] mx-auto w-full">
+    <form action={formAction} className="flex flex-col flex-1 h-full w-full">
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
       <input type="hidden" name="returnPath" value={returnPath ?? ""} />
       <input type="hidden" name="removeImage" value={removeImage ? "true" : "false"} />
@@ -559,12 +559,6 @@ export function ProdutoForm({
                   }} 
                 />
               </label>
-
-              <div className="absolute top-4 left-4 z-10">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[11.5px] font-bold bg-[#3B5998]/40 text-white shadow-sm backdrop-blur-md">
-                  Depositante
-                </span>
-              </div>
 
               <div className="absolute top-4 right-4 z-10">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-bold text-white shadow-sm backdrop-blur-md"
