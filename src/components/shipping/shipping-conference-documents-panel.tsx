@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Download, FileCheck2, FileText, Package2, Paperclip, Route } from "lucide-react";
+import { Download, FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
 import { releaseShippingOrderToRomaneioAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
@@ -76,6 +76,7 @@ export function ShippingConferenceDocumentsPanel({
           icon={<FileCheck2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
           attachment={xmlAttachment}
           emptyLabel="NF pendente"
+          printLabel="Imprimir NF"
           unlocked={unlocked}
         />
 
@@ -85,6 +86,7 @@ export function ShippingConferenceDocumentsPanel({
           icon={<Package2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
           attachment={labelAttachment}
           emptyLabel="Etiqueta pendente"
+          printLabel="Imprimir etiqueta"
           unlocked={unlocked}
         />
       </div>
@@ -152,6 +154,7 @@ function AttachmentStatusCard({
   icon,
   attachment,
   emptyLabel,
+  printLabel,
   unlocked,
 }: {
   title: string;
@@ -159,6 +162,7 @@ function AttachmentStatusCard({
   icon: ReactNode;
   attachment?: ShippingAttachment;
   emptyLabel: string;
+  printLabel: string;
   unlocked: boolean;
 }) {
   const available = attachment?.status === "DISPONIVEL";
@@ -198,6 +202,14 @@ function AttachmentStatusCard({
             viewHref={attachment.viewHref}
             downloadHref={attachment.href}
           />
+          <a
+            href={attachment.viewHref}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            {printLabel}
+          </a>
           <a
             href={attachment.href}
             target="_blank"
