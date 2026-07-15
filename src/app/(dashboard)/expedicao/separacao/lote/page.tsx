@@ -76,7 +76,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
         currentUserName={user.nome}
         returnTo={returnTo}
         expireRedirectTo="/expedicao/separacao"
-        completeRedirectTo="/expedicao/separacao"
+        completeRedirectTo="/expedicao/conferencia"
       />
     </div>
   );

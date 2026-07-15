@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Barcode, Camera, CameraOff, Focus, MapPinned, PackageCheck, ScanSearch, Volume2 } from "lucide-react";
+import { Barcode, Camera, CameraOff, Focus, ListOrdered, MapPinned, PackageCheck, ScanSearch, Sparkles, Volume2 } from "lucide-react";
 import {
   resetPickingOrdersToQueueAction,
   savePickingWaveProgressAction,
@@ -38,6 +38,7 @@ type ConsolidatedStop = {
   area: string;
   routeLabel: string;
   totalQuantity: number;
+  pendingQuantity: number;
   lines: Array<{
     compositeId: string;
     orderExternalNumber: string;
@@ -128,6 +129,14 @@ export function ShippingPickingWavePanel({
   }, [items, orders.length]);
 
   const consolidatedStops = useMemo(() => buildConsolidatedStops(items), [items]);
+  const nextStop = useMemo(
+    () => consolidatedStops.find((stop) => stop.pendingQuantity > 0) ?? null,
+    [consolidatedStops],
+  );
+  const prioritizedItems = useMemo(
+    () => [...items].sort(compareWaveItemsForPicking),
+    [items],
+  );
 
   useEffect(() => {
     if (!operatorMode || cameraEnabled) {
@@ -497,6 +506,24 @@ export function ShippingPickingWavePanel({
           </div>
 
           <div className="glass-card rounded-3xl border border-slate-200/50 p-5 shadow-sm dark:border-zinc-800/50">
+            {nextStop ? (
+              <div className="mb-5 rounded-3xl border border-primary-500/20 bg-primary-500/10 p-4">
+                <div className="flex items-center gap-2 text-primary-700 dark:text-primary-300">
+                  <Sparkles className="h-4 w-4" />
+                  <p className="text-xs font-bold uppercase tracking-[0.22em]">Proxima coleta</p>
+                </div>
+                <div className="mt-3">
+                  <p className="text-2xl font-bold text-slate-950 dark:text-white">{nextStop.addressCode}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-300">
+                    {nextStop.area} - {nextStop.routeLabel}
+                  </p>
+                  <p className="mt-3 inline-flex rounded-xl border border-primary-500/20 bg-white/70 px-3 py-1.5 text-xs font-bold text-primary-700 dark:bg-zinc-900/60 dark:text-primary-300">
+                    {nextStop.pendingQuantity} unidade(s) pendente(s)
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
               <MapPinned className="h-5 w-5" />
               <h3 className="text-sm font-bold">Rota consolidada</h3>
@@ -507,20 +534,36 @@ export function ShippingPickingWavePanel({
                 consolidatedStops.map((stop, index) => (
                   <div
                     key={stop.key}
-                    className="rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60"
+                    className={`rounded-2xl border bg-white/60 p-4 shadow-sm dark:bg-zinc-900/60 ${
+                      nextStop?.key === stop.key
+                        ? "border-primary-500/40 ring-2 ring-primary-500/15 dark:border-primary-500/40"
+                        : "border-slate-200 dark:border-zinc-800"
+                    }`}
                   >
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
-                      Parada {index + 1}
-                    </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
+                        Parada {index + 1}
+                      </p>
+                      {nextStop?.key === stop.key ? (
+                        <span className="rounded-full bg-primary-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                          Agora
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="mt-1.5 text-lg font-bold text-slate-900 dark:text-white">
                       {stop.addressCode}
                     </p>
                     <p className="mt-0.5 text-sm font-medium text-slate-600 dark:text-zinc-400">
                       {stop.area} - {stop.routeLabel}
                     </p>
-                    <p className="mt-3 inline-block rounded-xl border border-primary-500/20 bg-primary-500/10 px-3 py-1.5 text-xs font-bold text-primary-600 dark:text-primary-400">
-                      {stop.totalQuantity} unidade(s)
-                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <p className="inline-block rounded-xl border border-primary-500/20 bg-primary-500/10 px-3 py-1.5 text-xs font-bold text-primary-600 dark:text-primary-400">
+                        {stop.totalQuantity} unidade(s)
+                      </p>
+                      <p className="inline-block rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                        {stop.pendingQuantity} pendente(s)
+                      </p>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -546,11 +589,13 @@ export function ShippingPickingWavePanel({
           <input type="hidden" name="completeRedirectTo" value={completeRedirectTo} />
 
           <div className="space-y-4">
-            {items.map((item) => {
+            {prioritizedItems.map((item, itemIndex) => {
               const missingQuantity = Math.max(
                 item.requestedQuantity - normalizeQuantity(item.separatedQuantityValue),
                 0,
               );
+              const nextRouteLine = item.routeLines.find((line) => line.quantity > 0) ?? item.routeLines[0] ?? null;
+              const isPriorityItem = itemIndex === 0 || activeItemId === item.compositeId;
 
               return (
                 <div
@@ -558,6 +603,8 @@ export function ShippingPickingWavePanel({
                   className={`rounded-3xl border p-5 shadow-sm transition-all ${
                     activeItemId === item.compositeId
                       ? "border-primary-500/40 bg-gradient-to-br from-primary-500/5 to-transparent"
+                      : isPriorityItem
+                        ? "border-sky-500/30 bg-sky-500/5"
                       : "border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
                   }`}
                 >
@@ -576,6 +623,11 @@ export function ShippingPickingWavePanel({
                           <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                             {item.orderDepositante}
                           </span>
+                          {isPriorityItem ? (
+                            <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                              Prioridade
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-3 text-base font-bold text-slate-900 dark:text-white">{item.sku}</p>
                         <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
@@ -635,6 +687,23 @@ export function ShippingPickingWavePanel({
                       </div>
                     </div>
                   </div>
+
+                  {nextRouteLine ? (
+                    <div className="mt-4 rounded-2xl border border-sky-500/20 bg-sky-500/8 px-4 py-3">
+                      <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300">
+                        <ListOrdered className="h-4 w-4" />
+                        <p className="text-[11px] font-bold uppercase tracking-[0.22em]">
+                          Proxima acao
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        Ir para {nextRouteLine.addressCode} e coletar {nextRouteLine.quantity} {item.unit}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
+                        {nextRouteLine.area} - {nextRouteLine.routeLabel}
+                      </p>
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 space-y-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
@@ -701,6 +770,17 @@ export function ShippingPickingWavePanel({
                 <p className="text-xs text-slate-500 dark:text-zinc-500">
                   Ao concluir, os pedidos seguem para a proxima etapa da expedicao.
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                  <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    {summary.orderCount} pedidos
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    {summary.itemCount} itens
+                  </span>
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-700 dark:text-emerald-300">
+                    {summary.separatedUnits} coletadas
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -761,10 +841,14 @@ function buildConsolidatedStops(items: WavePickingItemState[]) {
           area: line.area,
           routeLabel: line.routeLabel,
           totalQuantity: 0,
+          pendingQuantity: 0,
           lines: [],
         } satisfies ConsolidatedStop);
 
       current.totalQuantity += line.quantity;
+      if (item.remainingQuantity > 0) {
+        current.pendingQuantity += Math.min(line.quantity, item.remainingQuantity);
+      }
       current.lines.push({
         compositeId: item.compositeId,
         orderExternalNumber: item.orderExternalNumber,
@@ -781,7 +865,7 @@ function buildConsolidatedStops(items: WavePickingItemState[]) {
     }
   }
 
-  return [...grouped.values()].sort((a, b) => a.routeLabel.localeCompare(b.routeLabel, "pt-BR"));
+  return [...grouped.values()].sort(compareConsolidatedStops);
 }
 
 function serializeKitProgress(item: WavePickingItemState) {
@@ -831,6 +915,65 @@ function InfoMini({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{value}</p>
     </div>
   );
+}
+
+function compareWaveItemsForPicking(a: WavePickingItemState, b: WavePickingItemState) {
+  const aPending = Math.max(a.requestedQuantity - normalizeQuantity(a.separatedQuantityValue), 0);
+  const bPending = Math.max(b.requestedQuantity - normalizeQuantity(b.separatedQuantityValue), 0);
+
+  if (aPending > 0 && bPending <= 0) {
+    return -1;
+  }
+
+  if (bPending > 0 && aPending <= 0) {
+    return 1;
+  }
+
+  const firstRouteA = a.routeLines[0];
+  const firstRouteB = b.routeLines[0];
+
+  if (firstRouteA && firstRouteB) {
+    const areaCompare = firstRouteA.area.localeCompare(firstRouteB.area, "pt-BR");
+    if (areaCompare !== 0) {
+      return areaCompare;
+    }
+
+    const labelCompare = firstRouteA.routeLabel.localeCompare(firstRouteB.routeLabel, "pt-BR", {
+      numeric: true,
+      sensitivity: "base",
+    });
+    if (labelCompare !== 0) {
+      return labelCompare;
+    }
+  }
+
+  return a.orderExternalNumber.localeCompare(b.orderExternalNumber, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function compareConsolidatedStops(a: ConsolidatedStop, b: ConsolidatedStop) {
+  if (a.pendingQuantity > 0 && b.pendingQuantity <= 0) {
+    return -1;
+  }
+
+  if (b.pendingQuantity > 0 && a.pendingQuantity <= 0) {
+    return 1;
+  }
+
+  const areaCompare = a.area.localeCompare(b.area, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
+  if (areaCompare !== 0) {
+    return areaCompare;
+  }
+
+  return a.routeLabel.localeCompare(b.routeLabel, "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function ProductThumb({ imageUrl, name }: { imageUrl: string | null; name: string }) {

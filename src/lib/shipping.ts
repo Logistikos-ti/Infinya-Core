@@ -868,7 +868,7 @@ export function formatShippingStatusLabel(status: string) {
     case "EM_SEPARACAO":
       return "Em separaÃ§Ã£o";
     case "SEPARADO":
-      return "Separado";
+      return "Aguardando conferÃªncia";
     case "EM_CONFERENCIA":
       return "Em conferÃªncia";
     case "CONFERIDO":

@@ -61,43 +61,13 @@ export async function beginPickingWaveAction(formData: FormData) {
   }
 
   const orders = (data ?? []) as PickingOrderRecord[];
-  const now = new Date().toISOString();
-  const updates = orders
-    .filter((order) => ["NOVO", "EM_SEPARACAO"].includes(order.status))
-    .map((order) => {
-      const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-      const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  const hasInvalidStatus = orders.some(
+    (order) => !["NOVO", "EM_SEPARACAO"].includes(order.status),
+  );
 
-      return adminSupabase
-        .from("pedidos_expedicao")
-        .update({
-          status: "EM_SEPARACAO",
-          payload_origem: {
-            ...payload,
-            separacao: {
-              ...currentPicking,
-              operadorId: readString(currentPicking.operadorId) || user.id,
-              operadorNome: readString(currentPicking.operadorNome) || user.nome,
-              iniciadaEm: readString(currentPicking.iniciadaEm) || now,
-              atualizadaEm: now,
-              finalizadaEm: null,
-            },
-          },
-        })
-        .eq("id", order.id);
-    });
-
-  if (updates.length) {
-    const results = await Promise.all(updates);
-    const failed = results.find((result) => result.error);
-    if (failed?.error) {
-      redirect("/expedicao/separacao?feedback=erro");
-    }
+  if (hasInvalidStatus) {
+    redirect("/expedicao/separacao?feedback=erro");
   }
-
-  revalidatePath("/expedicao");
-  revalidatePath("/expedicao/separacao");
-  revalidatePath("/m/separacao");
 
   redirect(`/expedicao/separacao/lote?ids=${encodeURIComponent(orderIds.join(","))}`);
 }

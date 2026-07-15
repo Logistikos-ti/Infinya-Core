@@ -24,7 +24,7 @@ type EditarShippingOrderPageProps = {
 const statusOptions = [
   { value: "NOVO", label: "Novo" },
   { value: "EM_SEPARACAO", label: "Em separação" },
-  { value: "SEPARADO", label: "Separado" },
+  { value: "SEPARADO", label: "Aguardando conferência" },
   { value: "EM_CONFERENCIA", label: "Em conferência" },
   { value: "CONFERIDO", label: "Conferido" },
   { value: "PRONTO_ROMANEIO", label: "Pronto para romaneio" },

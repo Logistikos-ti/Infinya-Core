@@ -28,7 +28,7 @@ const statusOptions = [
   { value: "", label: "Todos" },
   { value: "NOVO", label: "Aguardando inicio" },
   { value: "EM_SEPARACAO", label: "Em separacao" },
-  { value: "SEPARADO", label: "Separado" },
+  { value: "SEPARADO", label: "Aguardando conferencia" },
 ] as const;
 
 export default async function ExpedicaoSeparacaoPage({
@@ -49,9 +49,9 @@ export default async function ExpedicaoSeparacaoPage({
   const feedback = params?.feedback?.trim() ?? "";
 
   if ((feedback === "inatividade" || feedback === "cancelado") && resetIds.length) {
-    await resetPickingOrdersToQueue(user, resetIds, feedback);
+    await resetPickingOrdersToQueue(user, resetIds, feedback, { revalidate: false });
   } else if (feedback === "inatividade" || feedback === "cancelado") {
-    await resetPickingOrdersForCurrentOperator(user, feedback);
+    await resetPickingOrdersForCurrentOperator(user, feedback, { revalidate: false });
   }
 
   const supabase = createSupabaseAdminClient();

@@ -573,7 +573,7 @@ function StatusBadge({ status }: { status: string }) {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando Separação</span>;
   }
   if (status === "EM_SEPARACAO" || status === "SEPARADO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{status === "SEPARADO" ? "Separado" : "Separando"}</span>;
+    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{status === "SEPARADO" ? "Aguardando conferência" : "Separando"}</span>;
   }
   if (status === "EM_CONFERENCIA" || status === "CONFERIDO") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">{status === "CONFERIDO" ? "Conferido" : "Em Conferência"}</span>;

@@ -3,11 +3,15 @@ import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type ResetReason = "cancelado" | "inatividade";
+type ResetPickingOptions = {
+  revalidate?: boolean;
+};
 
 export async function resetPickingOrdersToQueue(
   user: AppUserContext,
   orderIds: string[],
   reason: ResetReason = "cancelado",
+  options?: ResetPickingOptions,
 ) {
   const adminSupabase = createSupabaseAdminClient();
   const normalizedIds = Array.from(new Set(orderIds.map((value) => value.trim()).filter(Boolean)));
@@ -62,18 +66,20 @@ export async function resetPickingOrdersToQueue(
     return { success: false as const };
   }
 
-  revalidatePath("/expedicao");
-  revalidatePath("/expedicao/separacao");
-  revalidatePath("/expedicao/conferencia");
-  revalidatePath("/m/separacao");
-  revalidatePath("/m/conferencia");
+  if (options?.revalidate !== false) {
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/separacao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath("/m/separacao");
+    revalidatePath("/m/conferencia");
 
-  for (const orderId of normalizedIds) {
-    revalidatePath(`/expedicao/${orderId}`);
-    revalidatePath(`/expedicao/separacao/${orderId}`);
-    revalidatePath(`/expedicao/conferencia/${orderId}`);
-    revalidatePath(`/m/separacao/${orderId}`);
-    revalidatePath(`/m/conferencia/${orderId}`);
+    for (const orderId of normalizedIds) {
+      revalidatePath(`/expedicao/${orderId}`);
+      revalidatePath(`/expedicao/separacao/${orderId}`);
+      revalidatePath(`/expedicao/conferencia/${orderId}`);
+      revalidatePath(`/m/separacao/${orderId}`);
+      revalidatePath(`/m/conferencia/${orderId}`);
+    }
   }
 
   return { success: true as const };
@@ -82,6 +88,7 @@ export async function resetPickingOrdersToQueue(
 export async function resetPickingOrdersForCurrentOperator(
   user: AppUserContext,
   reason: ResetReason = "inatividade",
+  options?: ResetPickingOptions,
 ) {
   const adminSupabase = createSupabaseAdminClient();
 
@@ -115,7 +122,7 @@ export async function resetPickingOrdersForCurrentOperator(
     return { success: true as const, count: 0 };
   }
 
-  const result = await resetPickingOrdersToQueue(user, ids, reason);
+  const result = await resetPickingOrdersToQueue(user, ids, reason, options);
   return {
     success: result.success,
     count: ids.length,
