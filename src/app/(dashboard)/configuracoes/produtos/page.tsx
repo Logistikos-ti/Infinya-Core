@@ -130,13 +130,16 @@ export default async function ConfiguracoesProdutosPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href={compactMode ? "/m/inicio" : "/configuracoes"}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {compactMode ? "Voltar ao inicio" : "Voltar para configurações"}
-      </Link>
+      <div className="flex items-center gap-3 mb-2">
+        <Link href={compactMode ? "/m/inicio" : "/configuracoes"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
+          <span className="mr-1.5 text-slate-500 font-normal">‹</span> Configurações
+        </Link>
+        <div className="flex items-center gap-2 text-[14px] ml-1">
+          <span className="text-slate-500">Configurações</span>
+          <span className="text-slate-300 text-[12px]">›</span>
+          <span className="text-slate-900 dark:text-slate-100 font-medium">Produtos</span>
+        </div>
+      </div>
 
       {feedback ? (
         <div
@@ -157,13 +160,6 @@ export default async function ConfiguracoesProdutosPage({
                   : "Não foi possível concluir a operação solicitada."}
         </div>
       ) : null}
-
-      {!showAdvancedPanels && (
-        <section className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4 text-sm text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100">
-          Este acesso foi simplificado para cadastro de produtos. Campos técnicos e operações mais
-          sensíveis ficam automatizados para evitar erros.
-        </section>
-      )}
 
       <ProdutosDashboard
         produtos={mappedProducts as unknown as React.ComponentProps<typeof ProdutosDashboard>["produtos"]}
