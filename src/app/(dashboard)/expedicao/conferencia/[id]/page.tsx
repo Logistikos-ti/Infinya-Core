@@ -4,8 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingConferencePanel } from "@/components/shipping/shipping-conference-panel";
 import { requireModuleAccess } from "@/lib/auth";
+import { getShippingOrderDetailFromDb } from "@/lib/shipping";
 import { listPickingOperatorsFromDb } from "@/lib/shipping-picking";
 import { getShippingConferenceOrderFromDb } from "@/lib/shipping-conference";
+import { canUploadOperationalDocuments } from "@/lib/permissions";
 
 type ShippingConferenceDetailPageProps = {
   params: Promise<{
@@ -25,12 +27,13 @@ export default async function ShippingConferenceDetailPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const feedback = resolvedSearchParams?.feedback?.trim() ?? "";
 
-  const [order, operators] = await Promise.all([
+  const [order, operators, orderDetail] = await Promise.all([
     getShippingConferenceOrderFromDb(user, id),
     listPickingOperatorsFromDb(user),
+    getShippingOrderDetailFromDb(id, user),
   ]);
 
-  if (!order) {
+  if (!order || !orderDetail) {
     notFound();
   }
 
@@ -55,6 +58,15 @@ export default async function ShippingConferenceDetailPage({
         operators={operators}
         currentUserId={user.id}
         feedback={feedback}
+        documents={{
+          orderId: orderDetail.id,
+          depositanteId: orderDetail.depositanteId,
+          attachments: orderDetail.attachments,
+          isBlingOrder: orderDetail.origin === "BLING",
+          isMercadoLivreOrder: orderDetail.salesChannelCode === "MERCADO_LIVRE",
+          hasTrackingCode: orderDetail.trackingCode !== "Rastreio não informado",
+          canUploadAttachments: canUploadOperationalDocuments(user),
+        }}
       />
     </div>
   );

@@ -82,7 +82,7 @@ type RawStoredDocumentRow = {
   created_at: string;
 };
 
-type ShippingAttachment = {
+export type ShippingAttachment = {
   id: string;
   label: string;
   kind: "XML_NF" | "ETIQUETA";

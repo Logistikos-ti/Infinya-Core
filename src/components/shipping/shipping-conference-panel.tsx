@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Camera, CameraOff, Focus, ScanSearch, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
+import type { ShippingAttachment } from "@/lib/shipping";
 
 type ShippingConferencePanelProps = {
   order: ShippingConferenceOrder;
@@ -17,6 +19,15 @@ type ShippingConferencePanelProps = {
   currentUserId: string;
   feedback?: string;
   redirectBase?: string;
+  documents: {
+    orderId: string;
+    depositanteId: string;
+    attachments: ShippingAttachment[];
+    isBlingOrder: boolean;
+    isMercadoLivreOrder: boolean;
+    hasTrackingCode: boolean;
+    canUploadAttachments: boolean;
+  };
 };
 
 type ConferenceItemState = ShippingConferenceOrder["items"][number] & {
@@ -31,6 +42,7 @@ export function ShippingConferencePanel({
   currentUserId,
   feedback,
   redirectBase = "/expedicao/conferencia",
+  documents,
 }: ShippingConferencePanelProps) {
   const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
@@ -700,6 +712,17 @@ export function ShippingConferencePanel({
           </div>
         </form>
       </div>
+
+      <ShippingConferenceDocumentsPanel
+        orderId={documents.orderId}
+        depositanteId={documents.depositanteId}
+        attachments={documents.attachments}
+        isBlingOrder={documents.isBlingOrder}
+        isMercadoLivreOrder={documents.isMercadoLivreOrder}
+        hasTrackingCode={documents.hasTrackingCode}
+        canUploadAttachments={documents.canUploadAttachments}
+        unlocked={pendingUnits <= 0}
+      />
     </div>
   );
 }
