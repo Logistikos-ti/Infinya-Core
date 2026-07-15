@@ -37,7 +37,7 @@ export function MobileConferencePanel({
   feedback,
 }: MobileConferencePanelProps) {
   const router = useRouter();
-  const [selectedOperatorId, setSelectedOperatorId] = useState(
+  const [selectedOperatorId] = useState(
     order.assignedOperatorId ?? currentUserId,
   );
   const [items, setItems] = useState<ConferenceItemState[]>(
@@ -488,21 +488,9 @@ export function MobileConferencePanel({
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Operador
           </span>
-          <select
-            value={selectedOperatorId}
-            onChange={(event) => {
-              resetTimer();
-              setSelectedOperatorId(event.target.value);
-            }}
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
-          >
-            <option value="">Selecionar operador</option>
-            {operators.map((operator) => (
-              <option key={operator.id} value={operator.id}>
-                {operator.name}
-              </option>
-            ))}
-          </select>
+          <div className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold text-white">
+            {order.assignedOperatorName ?? "Operador n?o atribu?do"}
+          </div>
         </label>
 
         <div className="mt-4 space-y-2">
@@ -913,3 +901,4 @@ function serializeKitProgress(item: ConferenceItemState) {
     })),
   );
 }
+

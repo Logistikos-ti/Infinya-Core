@@ -33,7 +33,7 @@ export function MobilePickingPanel({
   currentUserId,
 }: MobilePickingPanelProps) {
   const router = useRouter();
-  const [selectedOperatorId, setSelectedOperatorId] = useState(
+  const [selectedOperatorId] = useState(
     order.assignedOperatorId ?? currentUserId,
   );
   const [items, setItems] = useState<MobilePickingItem[]>(
@@ -442,21 +442,9 @@ export function MobilePickingPanel({
           <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-zinc-400">
             Operador
           </span>
-          <select
-            value={selectedOperatorId}
-            onChange={(event) => {
-              resetTimer();
-              setSelectedOperatorId(event.target.value);
-            }}
-            className="h-12 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-          >
-            <option value="">Selecionar operador</option>
-            {operators.map((operator) => (
-              <option key={operator.id} value={operator.id}>
-                {operator.name}
-              </option>
-            ))}
-          </select>
+          <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
+            {order.assignedOperatorName ?? "Operador n?o atribu?do"}
+          </div>
         </label>
 
         <div className="mt-5 space-y-3">
@@ -945,3 +933,4 @@ function ProductThumb({
     </div>
   );
 }
+

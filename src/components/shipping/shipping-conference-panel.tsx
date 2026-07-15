@@ -38,7 +38,7 @@ type ScanFeedbackTone = "success" | "error";
 
 export function ShippingConferencePanel({
   order,
-  operators,
+  operators: _operators,
   currentUserId,
   feedback,
   redirectBase = "/expedicao/conferencia",
@@ -46,7 +46,7 @@ export function ShippingConferencePanel({
 }: ShippingConferencePanelProps) {
   const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
-  const [selectedOperatorId, setSelectedOperatorId] = useState(defaultOperatorId);
+  const [selectedOperatorId] = useState(defaultOperatorId);
   const [items, setItems] = useState<ConferenceItemState[]>(
     order.items.map((item) => ({
       ...item,
@@ -410,26 +410,14 @@ export function ShippingConferencePanel({
       <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
         <div className="space-y-5">
           <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
-            <label className="space-y-2 block">
+            <div className="space-y-2 block">
               <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-                Operador responsável
+                Operador respons?vel
               </span>
-              <select
-                value={selectedOperatorId}
-                onChange={(event) => {
-                  resetTimer();
-                  setSelectedOperatorId(event.target.value);
-                }}
-                className="h-11 w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-              >
-                <option value="">Selecionar operador</option>
-                {operators.map((operator) => (
-                  <option key={operator.id} value={operator.id}>
-                    {operator.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
+                {order.assignedOperatorName ?? "Operador n?o atribu?do"}
+              </div>
+            </div>
 
             <div className="mt-5 grid gap-3 text-sm text-slate-600 dark:text-zinc-400">
               <InfoMini label="Início" value={formatDateTime(order.startedAt) || "Ainda não iniciado"} />
