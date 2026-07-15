@@ -80,6 +80,7 @@ export function ProdutoForm({
   const [exigeLote, setExigeLote] = useState(defaultValues?.exigeLote ?? false);
   const [exigeValidade, setExigeValidade] = useState(defaultValues?.exigeValidade ?? false);
   const [ativo, setAtivo] = useState(defaultValues?.ativo ?? true);
+  const [activeStep, setActiveStep] = useState('ident');
   
   const eanInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -137,6 +138,7 @@ export function ProdutoForm({
   const ownerName = depositantes.find(d => d.id === depositanteId)?.nome || 'Depositante';
   
   const handleScrollTo = (key: string) => {
+    setActiveStep(key);
     const el = document.getElementById(key);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -169,32 +171,57 @@ export function ProdutoForm({
       )}
 
       {/* Header section */}
-      <div className="flex items-end justify-between gap-5 flex-wrap mb-2">
-        <div className="flex flex-col gap-2">
-          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center gap-1.5 text-[13px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors mb-2">
-            ‹ Voltar para produtos
+      <div className="flex flex-col gap-6 mb-8 mt-2">
+        <div className="flex items-center gap-3">
+          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center justify-center h-[34px] px-3.5 rounded-[10px] border border-slate-200 dark:border-slate-800 text-[13px] font-bold text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+            ‹ Produtos
           </a>
-          <h1 className={cn(spaceGrotesk.className, "m-0 text-[28px] font-bold text-slate-900 dark:text-slate-100")}>
+          <div className="flex items-center gap-1.5 text-[13.5px]">
+            <span className="text-slate-400">Produtos</span>
+            <span className="text-slate-300">›</span>
+            <span className="text-slate-900 dark:text-slate-100 font-bold">{defaultValues?.id ? "Editar" : "Novo"}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <h1 className={cn(spaceGrotesk.className, "m-0 text-[32px] font-bold text-[#111827] dark:text-white leading-tight")}>
             {defaultValues?.id ? "Editar produto" : "Cadastrar novo produto"}
           </h1>
-          <p className="m-0 text-[14.5px] text-slate-500">
-            Preencha as informações do SKU. Os campos marcados com <span className="text-rose-500">*</span> são obrigatórios.
+          <p className="m-0 text-[15px] text-slate-500">
+            Preencha as informações do SKU. Os campos marcados com <span className="text-rose-500 font-bold">*</span> são obrigatórios.
           </p>
         </div>
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-1.5 my-5 flex-wrap">
-        {steps.map((s, i) => (
-          <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)} 
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-full cursor-pointer border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all hover:border-violet-500"
-          >
-            <span className={cn(spaceGrotesk.className, "w-6 h-6 rounded-full flex items-center justify-center text-[12.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500")}>
-              {s.n}
-            </span>
-            <span className="text-[13px] font-bold text-slate-500">{s.label}</span>
-          </button>
-        ))}
+      <div className="flex items-center gap-2 mb-8 flex-wrap">
+        {steps.map((s, i) => {
+          const isActive = activeStep === s.key;
+          return (
+            <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)} 
+              className={cn(
+                "flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] cursor-pointer transition-all border",
+                isActive 
+                  ? "bg-[#F3E8FF] border-[#E9D5FF] dark:bg-violet-900/30 dark:border-violet-500/30" 
+                  : "bg-white border-slate-200 hover:border-slate-300 dark:bg-slate-950 dark:border-slate-800 dark:hover:border-slate-700 shadow-sm"
+              )}
+            >
+              <span className={cn(
+                spaceGrotesk.className, 
+                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[13px] font-bold shadow-sm",
+                isActive 
+                  ? "bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] text-white" 
+                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+              )}>
+                {s.n}
+              </span>
+              <span className={cn(
+                "text-[14px] font-bold",
+                isActive ? "text-[#6D28D9] dark:text-violet-300" : "text-[#4B5563] dark:text-slate-400"
+              )}>{s.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start pb-20">
