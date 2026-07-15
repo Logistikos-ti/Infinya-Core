@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Camera, CameraOff, Focus, ScanSearch, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
@@ -18,7 +17,6 @@ type ShippingConferencePanelProps = {
   currentUserId: string;
   feedback?: string;
   redirectBase?: string;
-  orderBasePath?: string;
 };
 
 type ConferenceItemState = ShippingConferenceOrder["items"][number] & {
@@ -33,7 +31,6 @@ export function ShippingConferencePanel({
   currentUserId,
   feedback,
   redirectBase = "/expedicao/conferencia",
-  orderBasePath = "/expedicao",
 }: ShippingConferencePanelProps) {
   const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
@@ -699,12 +696,6 @@ export function ShippingConferencePanel({
               >
                 {isSubmitting ? "Processando..." : "Concluir Conferência"}
               </Button>
-              <Link
-                href={`${orderBasePath}/${order.id}`}
-                className={`inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 text-sm font-bold text-slate-700 dark:text-zinc-300 transition-all hover:bg-slate-50 dark:hover:bg-zinc-800 ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
-              >
-                Ver pedido completo
-              </Link>
             </div>
           </div>
         </form>
