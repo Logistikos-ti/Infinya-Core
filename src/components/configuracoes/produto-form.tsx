@@ -150,6 +150,16 @@ export function ProdutoForm({
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
       <input type="hidden" name="returnPath" value={returnPath ?? ""} />
       <input type="hidden" name="removeImage" value={removeImage ? "true" : "false"} />
+      <input
+        type="hidden"
+        name="currentImageUrl"
+        value={defaultValues?.imagemPrincipalUrl ?? ""}
+      />
+      <input
+        type="hidden"
+        name="currentImageStoragePath"
+        value={defaultValues?.imagemPrincipalStoragePath ?? ""}
+      />
       <input type="hidden" name="categoria" value={categoria} />
       <input type="hidden" name="metodoRetirada" value={metodoRetirada} />
       <input type="hidden" name="unidadeEstocagem" value={unidadeEstocagem} />
@@ -699,7 +709,11 @@ export function ProdutoForm({
         </button>
         <Button type="submit" disabled={isPending} className={cn(spaceGrotesk.className, "h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold shadow-lg shadow-violet-500/30 hover:-translate-y-[1px] transition-all")}>
           <Check className="w-4 h-4 mr-2" />
-          {isPending ? "Salvando..." : "Cadastrar produto"}
+          {isPending
+            ? "Salvando..."
+            : defaultValues?.id
+              ? "Salvar alterações"
+              : "Cadastrar produto"}
         </Button>
       </div>
 

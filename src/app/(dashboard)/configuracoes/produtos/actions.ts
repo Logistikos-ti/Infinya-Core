@@ -61,9 +61,9 @@ export async function saveProdutoAction(
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
     quantidadePorEmbalagem: quantidadePorEmbalagemRaw ? Number(quantidadePorEmbalagemRaw) : undefined,
-    exigeLote: formData.get("exigeLote") === "on",
-    exigeValidade: formData.get("exigeValidade") === "on",
-    ativo: formData.get("ativo") === "on",
+    exigeLote: parseBooleanFormValue(formData.get("exigeLote")),
+    exigeValidade: parseBooleanFormValue(formData.get("exigeValidade")),
+    ativo: parseBooleanFormValue(formData.get("ativo"), true),
   });
 
   if (!parsed.success) {
@@ -468,6 +468,24 @@ function resolveProductSku(rawValue: string | undefined, internalCode: string) {
 function normalizeBarcode(value: string | undefined) {
   const normalized = (value ?? "").trim();
   return normalized || null;
+}
+
+function parseBooleanFormValue(value: FormDataEntryValue | null, fallback = false) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (["true", "1", "on", "yes", "sim"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "0", "off", "no", "nao", "não"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
 }
 
 function extractDepositanteName(value: unknown) {
