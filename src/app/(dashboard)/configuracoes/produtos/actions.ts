@@ -35,6 +35,10 @@ export type ProdutoActionState = {
       | "alturaCm"
       | "larguraCm"
       | "comprimentoCm"
+      | "qtdMinima"
+      | "qtdMaxima"
+      | "pontoReposicao"
+      | "custoReposicao"
       | "imageFile",
       string
     >
@@ -73,6 +77,10 @@ export async function saveProdutoAction(
     alturaCm: String(formData.get("alturaCm") ?? "").trim() || undefined,
     larguraCm: String(formData.get("larguraCm") ?? "").trim() || undefined,
     comprimentoCm: String(formData.get("comprimentoCm") ?? "").trim() || undefined,
+    qtdMinima: String(formData.get("qtdMinima") ?? "").trim() || undefined,
+    qtdMaxima: String(formData.get("qtdMaxima") ?? "").trim() || undefined,
+    pontoReposicao: String(formData.get("pontoReposicao") ?? "").trim() || undefined,
+    custoReposicao: String(formData.get("custoReposicao") ?? "").trim() || undefined,
     exigeLote: parseBooleanFormValue(formData.get("exigeLote")),
     exigeValidade: parseBooleanFormValue(formData.get("exigeValidade")),
     ativo: parseBooleanFormValue(formData.get("ativo"), true),
@@ -101,6 +109,10 @@ export async function saveProdutoAction(
         alturaCm: flattened.alturaCm?.[0] ?? "",
         larguraCm: flattened.larguraCm?.[0] ?? "",
         comprimentoCm: flattened.comprimentoCm?.[0] ?? "",
+        qtdMinima: flattened.qtdMinima?.[0] ?? "",
+        qtdMaxima: flattened.qtdMaxima?.[0] ?? "",
+        pontoReposicao: flattened.pontoReposicao?.[0] ?? "",
+        custoReposicao: flattened.custoReposicao?.[0] ?? "",
       },
     };
   }
@@ -212,6 +224,10 @@ export async function saveProdutoAction(
     altura_cm: parsed.data.alturaCm ?? null,
     largura_cm: parsed.data.larguraCm ?? null,
     comprimento_cm: parsed.data.comprimentoCm ?? null,
+    qtd_minima: parsed.data.qtdMinima ?? null,
+    qtd_maxima: parsed.data.qtdMaxima ?? null,
+    ponto_reposicao: parsed.data.pontoReposicao ?? null,
+    custo_reposicao: parsed.data.custoReposicao ?? null,
     imagem_principal_url: imageUploadResult.imageUrl,
     imagem_principal_storage_path: imageUploadResult.imageStoragePath,
     exige_lote: parsed.data.exigeLote,

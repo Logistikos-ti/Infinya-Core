@@ -46,6 +46,10 @@ type ProdutoFormProps = {
     alturaCm?: number | null;
     larguraCm?: number | null;
     comprimentoCm?: number | null;
+    qtdMinima?: number | null;
+    qtdMaxima?: number | null;
+    pontoReposicao?: number | null;
+    custoReposicao?: number | null;
     kitComponents?: ProductKitComponentDraft[];
   };
 };
@@ -81,6 +85,10 @@ export function ProdutoForm({
   const [alturaCm, setAlturaCm] = useState(defaultValues?.alturaCm?.toString() ?? "");
   const [larguraCm, setLarguraCm] = useState(defaultValues?.larguraCm?.toString() ?? "");
   const [comprimentoCm, setComprimentoCm] = useState(defaultValues?.comprimentoCm?.toString() ?? "");
+  const [qtdMinima, setQtdMinima] = useState(defaultValues?.qtdMinima?.toString() ?? "");
+  const [qtdMaxima, setQtdMaxima] = useState(defaultValues?.qtdMaxima?.toString() ?? "");
+  const [pontoReposicao, setPontoReposicao] = useState(defaultValues?.pontoReposicao?.toString() ?? "");
+  const [custoReposicao, setCustoReposicao] = useState(defaultValues?.custoReposicao?.toString() ?? "");
   const [sku, setSku] = useState(defaultValues?.sku ?? "");
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
   
@@ -182,6 +190,10 @@ export function ProdutoForm({
       <input type="hidden" name="alturaCm" value={alturaCm} />
       <input type="hidden" name="larguraCm" value={larguraCm} />
       <input type="hidden" name="comprimentoCm" value={comprimentoCm} />
+      <input type="hidden" name="qtdMinima" value={qtdMinima} />
+      <input type="hidden" name="qtdMaxima" value={qtdMaxima} />
+      <input type="hidden" name="pontoReposicao" value={pontoReposicao} />
+      <input type="hidden" name="custoReposicao" value={custoReposicao} />
 
       <input type="hidden" name="tipoProduto" value={tipoProduto} />
       {tipoProduto === "KIT" &&
@@ -461,14 +473,24 @@ export function ProdutoForm({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {[{ label: 'Estoque mínimo' }, { label: 'Estoque máximo' }, { label: 'Ponto de reposição' }].map(f => (
-                  <label key={f.label} className="flex flex-col gap-2">
-                    <span className="text-[13px] font-bold text-slate-500">{f.label}</span>
-                    <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
-                      <input placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14px] font-medium")} />
-                    </div>
-                  </label>
-                ))}
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Estoque mínimo</span>
+                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.001" value={qtdMinima} onChange={e => setQtdMinima(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Estoque máximo</span>
+                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.001" value={qtdMaxima} onChange={e => setQtdMaxima(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Ponto de reposição</span>
+                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.001" value={pontoReposicao} onChange={e => setPontoReposicao(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -496,9 +518,9 @@ export function ProdutoForm({
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Custo de reposição (R$)</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <span className="text-[14px] text-slate-400 mr-2 font-bold">R$</span>
-                    <input placeholder="0,00" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <input type="number" step="0.01" value={custoReposicao} onChange={e => setCustoReposicao(e.target.value)} placeholder="0,00" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
             </div>

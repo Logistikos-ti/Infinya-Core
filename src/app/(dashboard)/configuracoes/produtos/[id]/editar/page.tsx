@@ -29,7 +29,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     adminSupabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -89,6 +89,10 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             alturaCm: product.altura_cm ?? null,
             larguraCm: product.largura_cm ?? null,
             comprimentoCm: product.comprimento_cm ?? null,
+            qtdMinima: product.qtd_minima ?? null,
+            qtdMaxima: product.qtd_maxima ?? null,
+            pontoReposicao: product.ponto_reposicao ?? null,
+            custoReposicao: product.custo_reposicao ?? null,
             tipoProduto: "SIMPLES",
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
