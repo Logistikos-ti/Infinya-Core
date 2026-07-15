@@ -54,16 +54,6 @@ type ProdutoFormProps = {
   };
 };
 
-const THEME = {
-  appBg: "#F1F5F9",
-  cardBg: "#FFFFFF",
-  border: "#E2E8F0",
-  text: "#0F172A",
-  textSub: "#64748B",
-  inputBg: "#F8FAFC",
-  softBg: "#F1F5F9",
-};
-
 export function ProdutoForm({
   depositantes,
   productOptions,
@@ -353,12 +343,10 @@ export function ProdutoForm({
                 <div className="flex gap-2.5 flex-wrap">
                   {Object.keys(catDefs).map(cat => (
                     <button key={cat} type="button" onClick={() => setCategoria(cat)}
-                      className="h-[38px] px-3.5 rounded-xl font-bold text-[13px] cursor-pointer flex items-center gap-2 transition-all border-2"
-                      style={{
-                        borderColor: categoria === cat ? catDefs[cat] : THEME.border,
-                        background: categoria === cat ? hex2(catDefs[cat], 0.14) : THEME.inputBg,
-                        color: categoria === cat ? catDefs[cat] : THEME.text
-                      }}
+                      className={cn("h-[38px] px-3.5 rounded-xl font-bold text-[13px] cursor-pointer flex items-center gap-2 transition-all border-2",
+                        categoria === cat ? "" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                      )}
+                      style={categoria === cat ? { borderColor: catDefs[cat], background: hex2(catDefs[cat], 0.14), color: catDefs[cat] } : undefined}
                     >
                       <span className="w-2 h-2 rounded-full" style={{background: catDefs[cat]}} />
                       {cat}
@@ -428,12 +416,12 @@ export function ProdutoForm({
               </div>
 
               <div className="flex flex-col gap-2.5">
-                <span className="text-[13px] font-bold text-slate-500">Método de entrada / giro <span className="text-rose-500">*</span></span>
+                <span className="text-[13px] font-bold text-slate-500">Método de entrada <span className="text-rose-500">*</span></span>
                 <div className="flex gap-2 flex-wrap">
                   {["FEFO", "FIFO", "LIFO"].map(m => (
                     <button key={m} type="button" onClick={() => setMetodoRetirada(m as "FEFO" | "FIFO" | "LIFO")}
                       className={cn(spaceGrotesk.className, "h-[42px] px-4 rounded-xl font-bold text-[13.5px] cursor-pointer transition-all border-2",
-                        metodoRetirada === m ? "border-violet-500 bg-violet-500/10 text-violet-600" : "border-slate-200 bg-slate-50 text-slate-600"
+                        metodoRetirada === m ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-400" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
                       )}
                     >
                       {m}
@@ -444,16 +432,13 @@ export function ProdutoForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-[13px] font-bold text-slate-500">Unidade de estocagem <span className="text-rose-500">*</span></span>
+                  <span className="text-[13px] font-bold text-slate-500">Método de estocagem <span className="text-rose-500">*</span></span>
                   <div className="flex gap-2 flex-wrap">
                     {["UNIDADE", "CAIXA", "PACK", "PALLET"].map(u => (
                       <button key={u} type="button" onClick={() => setUnidadeEstocagem(u as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
-                        className="h-[42px] px-4 rounded-xl font-bold text-[13px] cursor-pointer transition-all border-2"
-                        style={{
-                          borderColor: unidadeEstocagem === u ? '#8B5CF6' : THEME.border,
-                          background: unidadeEstocagem === u ? 'rgba(139,92,246,0.14)' : THEME.inputBg,
-                          color: unidadeEstocagem === u ? '#8B5CF6' : THEME.text
-                        }}
+                        className={cn("h-[42px] px-4 rounded-xl font-bold text-[13px] cursor-pointer transition-all border-2",
+                          unidadeEstocagem === u ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-400" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
+                        )}
                       >
                         {u.charAt(0) + u.slice(1).toLowerCase()}
                       </button>
@@ -463,8 +448,9 @@ export function ProdutoForm({
 
                 <label className="flex flex-col gap-2.5" style={{ opacity: isUnit ? 0.5 : 1 }}>
                   <span className="text-[13px] font-bold text-slate-500">{isUnit ? 'Qtd. por embalagem' : 'Qtd. por ' + unidadeEstocagem.toLowerCase()}</span>
-                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus-within:border-violet-500"
-                       style={{ background: isUnit ? THEME.softBg : THEME.inputBg }}>
+                  <div className={cn("flex items-center h-[42px] px-3 rounded-xl border-2 focus-within:border-violet-500",
+                       isUnit ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  )}>
                     <input name="quantidadePorEmbalagem" value={quantidadePorEmbalagem} onChange={e => setQuantidadePorEmbalagem(e.target.value)}
                       placeholder={isUnit ? 'N/A p/ unidade' : 'Ex: 12'} disabled={isUnit}
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
@@ -538,29 +524,31 @@ export function ProdutoForm({
             <div className="p-5 flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button type="button" onClick={() => setExigeValidade(!exigeValidade)}
-                  className="flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all"
-                  style={{ borderColor: exigeValidade ? '#8B5CF6' : THEME.border, background: exigeValidade ? 'rgba(139,92,246,0.10)' : THEME.inputBg }}
+                  className={cn("flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all",
+                    exigeValidade ? "border-violet-500 bg-violet-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  )}
                 >
-                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: exigeValidade ? 'rgba(139,92,246,0.18)' : THEME.softBg, color: exigeValidade ? '#A78BFA' : THEME.textSub }}><Calendar className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", exigeValidade ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Calendar className="w-5 h-5"/></span>
                   <div className="flex flex-col flex-1 gap-1">
                     <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de validade</span>
                     <span className="text-[12px] text-slate-500 leading-snug">Exige data de vencimento em cada entrada e aplica giro FEFO.</span>
                   </div>
-                  <div className="w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center" style={{ borderColor: exigeValidade ? '#8B5CF6' : THEME.border, background: exigeValidade ? '#8B5CF6' : 'transparent' }}>
+                  <div className={cn("w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center", exigeValidade ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
                     {exigeValidade && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </button>
 
                 <button type="button" onClick={() => setExigeLote(!exigeLote)}
-                  className="flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all"
-                  style={{ borderColor: exigeLote ? '#8B5CF6' : THEME.border, background: exigeLote ? 'rgba(139,92,246,0.10)' : THEME.inputBg }}
+                  className={cn("flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all",
+                    exigeLote ? "border-violet-500 bg-violet-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  )}
                 >
-                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: exigeLote ? 'rgba(139,92,246,0.18)' : THEME.softBg, color: exigeLote ? '#A78BFA' : THEME.textSub }}><Layers className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", exigeLote ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Layers className="w-5 h-5"/></span>
                   <div className="flex flex-col flex-1 gap-1">
                     <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de lote</span>
                     <span className="text-[12px] text-slate-500 leading-snug">Rastreia nº de lote para recall e rastreabilidade completa.</span>
                   </div>
-                  <div className="w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center" style={{ borderColor: exigeLote ? '#8B5CF6' : THEME.border, background: exigeLote ? '#8B5CF6' : 'transparent' }}>
+                  <div className={cn("w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center", exigeLote ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
                     {exigeLote && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </button>
@@ -568,15 +556,15 @@ export function ProdutoForm({
 
               <div className="h-[1px] bg-slate-200 dark:bg-slate-800 my-1" />
 
-              <div className="flex items-center justify-between p-4 rounded-[14px] border-2" style={{ borderColor: ativo ? 'transparent' : THEME.border, background: ativo ? 'rgba(16,185,129,0.06)' : THEME.inputBg }}>
+              <div className={cn("flex items-center justify-between p-4 rounded-[14px] border-2", ativo ? "border-transparent bg-emerald-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900")}>
                 <div className="flex items-center gap-3.5">
-                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: ativo ? 'rgba(16,185,129,0.16)' : THEME.softBg, color: ativo ? '#10B981' : THEME.textSub }}><Archive className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", ativo ? "bg-emerald-500/20 text-emerald-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Archive className="w-5 h-5"/></span>
                   <div className="flex flex-col">
                     <span className="text-[14.5px] font-bold text-slate-900 dark:text-slate-100">Status: {ativo ? 'Ativo' : 'Inativo'}</span>
                     <span className="text-[12.5px] text-slate-500">{ativo ? 'Disponível para recebimento, picking e venda.' : 'Oculto das operações - não recebe nem separa.'}</span>
                   </div>
                 </div>
-                <button type="button" onClick={() => setAtivo(!ativo)} className="relative w-[52px] h-[30px] rounded-full transition-all" style={{ background: ativo ? 'linear-gradient(92deg,#10B981,#34D399)' : THEME.border }}>
+                <button type="button" onClick={() => setAtivo(!ativo)} className={cn("relative w-[52px] h-[30px] rounded-full transition-all", ativo ? "bg-gradient-to-r from-emerald-500 to-emerald-400" : "bg-slate-200 dark:bg-slate-700")}>
                   <span className="absolute top-[3px] left-[3px] w-6 h-6 rounded-full bg-white shadow-sm transition-all" style={{ transform: ativo ? 'translateX(22px)' : 'translateX(0)' }} />
                 </button>
               </div>
@@ -691,10 +679,10 @@ export function ProdutoForm({
 
             <div className="p-5 flex flex-col bg-white dark:bg-slate-950">
               <div className="flex gap-2 flex-wrap mb-4">
-                <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-blue-50 text-blue-500">
+                <span className="px-3 py-1 rounded-full text-[11.5px] font-bold" style={{ backgroundColor: hex2(catColor, 0.15), color: catColor }}>
                   {categoria || 'Seco / Ambiente'}
                 </span>
-                <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-slate-100 text-slate-500">
+                <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                   {metodoRetirada || 'FEFO'}
                 </span>
               </div>
@@ -717,7 +705,7 @@ export function ProdutoForm({
 
               <div className="flex items-center justify-between">
                 <span className={cn(spaceGrotesk.className, "text-[16px] font-bold text-slate-900 dark:text-slate-100")}>
-                  Custo <span className="text-slate-300 ml-1">—</span>
+                  Custo {custoReposicao && parseFloat(custoReposicao) > 0 ? `R$ ${parseFloat(custoReposicao).toFixed(2).replace('.', ',')}` : <span className="text-slate-300 dark:text-slate-700 ml-1">—</span>}
                 </span>
                 <span className="text-[12.5px] text-slate-500">
                   {isUnit ? 'Unidade' : `${unidadeEstocagem}`}
