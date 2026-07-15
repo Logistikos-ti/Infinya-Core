@@ -350,7 +350,7 @@ export function MobilePickingPanel({
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary-500">
               Separação em andamento
             </p>
-            <h1 className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{order.externalNumber}</h1>
+            <h1 className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{order.displayNumber}</h1>
             <p className="mt-1 text-sm font-medium text-slate-500 dark:text-zinc-400">
               {order.customer} • {order.destination}
             </p>

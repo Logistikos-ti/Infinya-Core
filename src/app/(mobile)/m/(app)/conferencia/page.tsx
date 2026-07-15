@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
@@ -72,21 +72,21 @@ export default async function MobileConferenceQueuePage({
         </section>
       ) : feedback === "incompleto" ? (
         <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Ainda existem itens pendentes. O pedido voltou para a fila para nova conferência.
+          Ainda existem itens pendentes. O pedido voltou para a fila para nova conferÃªncia.
         </section>
       ) : feedback === "concluido" ? (
         <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-          Conferência concluída com sucesso.
+          ConferÃªncia concluÃ­da com sucesso.
         </section>
       ) : null}
 
       <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
-          Conferência
+          ConferÃªncia
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Fila de validação</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-white">Fila de validaÃ§Ã£o</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Abra o pedido, escaneie item a item e confirme antes da expedição.
+          Abra o pedido, escaneie item a item e confirme antes da expediÃ§Ã£o.
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -100,9 +100,9 @@ export default async function MobileConferenceQueuePage({
           <div className="flex gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
-              <p className="font-semibold">Atenção na fila</p>
+              <p className="font-semibold">AtenÃ§Ã£o na fila</p>
               <p className="mt-1">
-                Existem {divergenceCount} divergência(s) de quantidade em pedidos já iniciados.
+                Existem {divergenceCount} divergÃªncia(s) de quantidade em pedidos jÃ¡ iniciados.
               </p>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default async function MobileConferenceQueuePage({
                 Anterior
               </PageLink>
               <span className="text-xs font-medium text-slate-400">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               <PageLink
                 disabled={currentPage >= totalPages}
@@ -137,7 +137,7 @@ export default async function MobileConferenceQueuePage({
                   page: String(currentPage + 1),
                 })}`}
               >
-                Próxima
+                PrÃ³xima
               </PageLink>
             </div>
             <div className="flex gap-2">
@@ -155,7 +155,7 @@ export default async function MobileConferenceQueuePage({
                       : "border-white/10 bg-white/5 text-slate-300"
                   }`}
                 >
-                  {value}/página
+                  {value}/pÃ¡gina
                 </Link>
               ))}
             </div>
@@ -187,9 +187,9 @@ export default async function MobileConferenceQueuePage({
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-lg font-semibold text-white">{order.externalNumber}</p>
+                  <p className="text-lg font-semibold text-white">{order.displayNumber}</p>
                   <p className="line-clamp-2 text-sm leading-6 text-slate-200">
-                    {order.customer} • {order.destination}
+                    {order.customer} â€¢ {order.destination}
                   </p>
                 </div>
 
@@ -200,7 +200,7 @@ export default async function MobileConferenceQueuePage({
                   {order.quantityDivergentItems > 0 ? (
                     <InlineChip
                       icon={TriangleAlert}
-                      text={`${order.quantityDivergentItems} divergência(s)`}
+                      text={`${order.quantityDivergentItems} divergÃªncia(s)`}
                       danger
                     />
                   ) : null}
@@ -211,7 +211,7 @@ export default async function MobileConferenceQueuePage({
                   <QueueInfo label="Unidades" value={`${order.totalUnits}`} tone={tone.stat} />
                   <QueueInfo label="Conferido" value={`${order.completionPercent}%`} tone={tone.stat} />
                   <QueueInfo
-                    label="Divergência"
+                    label="DivergÃªncia"
                     value={order.quantityDivergentItems ? String(order.quantityDivergentItems) : "0"}
                     tone={tone.stat}
                   />
@@ -221,9 +221,9 @@ export default async function MobileConferenceQueuePage({
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                        Código interno
+                        Plataforma
                       </p>
-                      <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                      <p className="truncate text-sm font-medium text-slate-100">{order.externalNumber}</p>
                       <p className="mt-1 text-[11px] text-slate-400">Criado em {order.createdAt}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
@@ -233,7 +233,7 @@ export default async function MobileConferenceQueuePage({
 
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-300">
-                      Toque para abrir a validação do pedido e conferir item por item.
+                      Toque para abrir a validaÃ§Ã£o do pedido e conferir item por item.
                     </p>
                     <span
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold ${tone.cta}`}
@@ -248,7 +248,7 @@ export default async function MobileConferenceQueuePage({
           })
         ) : (
           <div className="rounded-[24px] border border-dashed border-white/15 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
-            Nenhum pedido disponível para conferência no momento.
+            Nenhum pedido disponÃ­vel para conferÃªncia no momento.
           </div>
         )}
       </section>
@@ -381,3 +381,4 @@ function PageLink({
     </Link>
   );
 }
+

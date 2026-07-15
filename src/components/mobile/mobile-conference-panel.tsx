@@ -413,7 +413,7 @@ export function MobileConferencePanel({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
               Conferência em andamento
             </p>
-            <h1 className="mt-2 text-xl font-semibold text-white">{order.externalNumber}</h1>
+            <h1 className="mt-2 text-xl font-semibold text-white">{order.displayNumber}</h1>
             <p className="mt-1 text-sm text-slate-300">
               {order.customer} • {order.destination}
             </p>

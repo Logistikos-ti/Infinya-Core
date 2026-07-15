@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { ArrowRight, Package2, ScanLine, UserRound } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
@@ -64,17 +64,17 @@ export default async function MobilePickingQueuePage({
         </section>
       ) : feedback === "incompleto" ? (
         <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Ainda existem itens pendentes. O pedido voltou para a fila para nova separação.
+          Ainda existem itens pendentes. O pedido voltou para a fila para nova separaÃ§Ã£o.
         </section>
       ) : feedback === "concluido" ? (
         <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-          Separação concluída com sucesso.
+          SeparaÃ§Ã£o concluÃ­da com sucesso.
         </section>
       ) : null}
 
       <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
-          Separação
+          SeparaÃ§Ã£o
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Fila operacional</h1>
         <p className="mt-2 text-sm text-slate-300">
@@ -105,7 +105,7 @@ export default async function MobilePickingQueuePage({
                 Anterior
               </PageLink>
               <span className="text-xs font-medium text-slate-400">
-                Página {currentPage} de {totalPages}
+                PÃ¡gina {currentPage} de {totalPages}
               </span>
               <PageLink
                 disabled={currentPage >= totalPages}
@@ -115,7 +115,7 @@ export default async function MobilePickingQueuePage({
                   page: String(currentPage + 1),
                 })}`}
               >
-                Próxima
+                PrÃ³xima
               </PageLink>
             </div>
             <div className="flex gap-2">
@@ -133,7 +133,7 @@ export default async function MobilePickingQueuePage({
                       : "border-white/10 bg-white/5 text-slate-300"
                   }`}
                 >
-                  {value}/página
+                  {value}/pÃ¡gina
                 </Link>
               ))}
             </div>
@@ -165,9 +165,9 @@ export default async function MobilePickingQueuePage({
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-lg font-semibold text-white">{order.externalNumber}</p>
+                  <p className="text-lg font-semibold text-white">{order.displayNumber}</p>
                   <p className="line-clamp-2 text-sm leading-6 text-slate-200">
-                    {order.customer} • {order.destination}
+                    {order.customer} â€¢ {order.destination}
                   </p>
                 </div>
 
@@ -180,16 +180,16 @@ export default async function MobilePickingQueuePage({
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <QueueInfo label="Itens" value={`${order.totalItems}`} tone={tone.stat} />
                   <QueueInfo label="Unidades" value={`${order.totalUnits}`} tone={tone.stat} />
-                  <QueueInfo label="Concluído" value={`${order.completionPercent}%`} tone={tone.stat} />
+                  <QueueInfo label="ConcluÃ­do" value={`${order.completionPercent}%`} tone={tone.stat} />
                 </div>
 
                 <div className="mt-4 border-t border-white/10 pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                        Código interno
+                        Plataforma
                       </p>
-                      <p className="truncate text-sm font-medium text-slate-100">{order.code}</p>
+                      <p className="truncate text-sm font-medium text-slate-100">{order.externalNumber}</p>
                       <p className="mt-1 text-[11px] text-slate-400">Criado em {order.createdAt}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">
@@ -214,7 +214,7 @@ export default async function MobilePickingQueuePage({
           })
         ) : (
           <div className="rounded-[24px] border border-dashed border-white/15 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
-            Nenhum pedido disponível para separação no momento.
+            Nenhum pedido disponÃ­vel para separaÃ§Ã£o no momento.
           </div>
         )}
       </section>
@@ -286,11 +286,11 @@ function getMobileShippingOrderHref(status: string, orderId: string) {
 
 function getMobileShippingOrderCta(status: string) {
   if (["EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
-    return "Continuar conferência";
+    return "Continuar conferÃªncia";
   }
 
   if (status === "SEPARADO") {
-    return "Iniciar conferência";
+    return "Iniciar conferÃªncia";
   }
 
   if (status === "EM_SEPARACAO") {
@@ -306,7 +306,7 @@ function getMobileShippingOrderHelp(status: string) {
   }
 
   if (status === "SEPARADO") {
-    return "Pedido separado. Toque para iniciar a conferência e validar os itens.";
+    return "Pedido separado. Toque para iniciar a conferÃªncia e validar os itens.";
   }
 
   if (status === "EM_SEPARACAO") {
@@ -379,3 +379,4 @@ function PageLink({
     </Link>
   );
 }
+

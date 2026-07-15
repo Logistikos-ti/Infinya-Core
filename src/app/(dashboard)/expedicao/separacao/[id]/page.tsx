@@ -36,7 +36,7 @@ export default async function PickingOrderDetailPage({ params }: PickingOrderDet
       </Link>
 
       <ModulePageHeader
-        title={`Separação do pedido ${order.externalNumber}`}
+        title={`Separação do pedido ${order.displayNumber}`}
         description="Execução operacional completa da separação, com leitura, rota sugerida e apontamento item a item."
         badge={order.depositante}
       />

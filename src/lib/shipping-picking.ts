@@ -7,6 +7,7 @@ import {
   normalizePickingKitProgress,
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -31,6 +32,7 @@ type RawPickingOrderItemRow = {
 type RawPickingOrderRow = {
   id: string;
   codigo: string;
+  numero_wms: number | string | null;
   created_at: string;
   data_pedido: string | null;
   origem: string;
@@ -172,6 +174,8 @@ export type ShippingPickingRouteStop = {
 export type ShippingPickingOrder = {
   id: string;
   code: string;
+  internalNumber: number | null;
+  displayNumber: string;
   createdAtIso: string | null;
   createdAt: string;
   ageLabel: string;
@@ -436,6 +440,8 @@ function mapPickingOrder(
   return {
     id: order.id,
     code: order.codigo,
+    internalNumber: normalizeInternalOrderNumber(order.numero_wms),
+    displayNumber: formatWmsOrderNumber(order.numero_wms, order.codigo),
     createdAtIso: ageMeta.createdAtIso,
     createdAt: ageMeta.createdAtLabel,
     ageLabel: ageMeta.ageLabel,
@@ -719,7 +725,7 @@ function mapSimplePickingItem(
 
 function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, numero_wms, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
   );
 }
 
@@ -1154,6 +1160,11 @@ function extractPlatformOrderNumber(
 
 function normalizeText(value: string | null | undefined) {
   return value?.trim().toLocaleLowerCase("pt-BR") ?? "";
+}
+
+function normalizeInternalOrderNumber(value: number | string | null | undefined) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? Math.trunc(numericValue) : null;
 }
 
 function resolveProductImageUrl(

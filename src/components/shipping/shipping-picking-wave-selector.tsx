@@ -116,7 +116,7 @@ export function ShippingPickingWaveSelector({
                   </div>
 
                   <h2 className="mt-3 text-lg font-bold text-slate-900 transition-colors group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">
-                    {order.externalNumber}
+                    {order.displayNumber}
                   </h2>
                   <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
                     {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">-</span>{" "}
@@ -124,7 +124,10 @@ export function ShippingPickingWaveSelector({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
                     <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                      Codigo int: {order.code}
+                      Plataforma: {order.externalNumber}
+                    </span>
+                    <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
+                      Código técnico: {order.code}
                     </span>
                     <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
                       Criado em: {order.createdAt}

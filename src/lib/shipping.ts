@@ -1,5 +1,6 @@
 ﻿import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import {
   detectSalesChannelFromPayload,
   readManualSalesChannelCode,
@@ -13,6 +14,7 @@ type RelationName = { nome?: string } | { nome?: string }[] | null;
 type RawShippingOrderRow = {
   id: string;
   codigo: string;
+  numero_wms: number | string | null;
   origem: string;
   status: string;
   numero_pedido: string | null;
@@ -47,6 +49,7 @@ type RawShippingOrderItemRow = {
 type RawShippingOrderDetailRow = {
   id: string;
   codigo: string;
+  numero_wms: number | string | null;
   referencia_externa: string;
   origem: string;
   canal: string;
@@ -94,6 +97,8 @@ type ShippingAttachment = {
 export type ShippingOrderSummary = {
   id: string;
   code: string;
+  internalNumber: number | null;
+  displayNumber: string;
   depositanteId?: string;
   depositante: string;
   origin: string;
@@ -138,6 +143,8 @@ export type ShippingQueueSummary = {
 export type ShippingOrderDetail = {
   id: string;
   code: string;
+  internalNumber: number | null;
+  displayNumber: string;
   depositanteId: string;
   externalReference: string;
   origin: string;
@@ -205,7 +212,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -257,7 +264,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
 
     if (filters?.orderSearch) {
       const orderNeedle = filters.orderSearch.trim().toLocaleLowerCase("pt-BR");
-      const haystack = [order.externalNumber, order.code, order.storeNumber, order.storeDisplay]
+      const haystack = [order.displayNumber, order.externalNumber, order.code, order.storeNumber, order.storeDisplay]
         .join(" ")
         .toLocaleLowerCase("pt-BR");
 
@@ -362,7 +369,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -424,6 +431,8 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   return {
     id: order.id,
     code: order.codigo,
+    internalNumber: normalizeInternalOrderNumber(order.numero_wms),
+    displayNumber: formatWmsOrderNumber(order.numero_wms, order.codigo),
     depositanteId: order.depositante_id,
     externalReference: order.referencia_externa,
     origin: order.origem,
@@ -570,6 +579,8 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   return {
     id: item.id,
     code: item.codigo,
+    internalNumber: normalizeInternalOrderNumber(item.numero_wms),
+    displayNumber: formatWmsOrderNumber(item.numero_wms, item.codigo),
     depositanteId: item.depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
     origin: item.origem,
@@ -604,6 +615,11 @@ function extractRelationName(value: RelationName) {
   }
 
   return null;
+}
+
+function normalizeInternalOrderNumber(value: number | string | null | undefined) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? Math.trunc(numericValue) : null;
 }
 
 function formatCurrency(value: number | string | null | undefined) {

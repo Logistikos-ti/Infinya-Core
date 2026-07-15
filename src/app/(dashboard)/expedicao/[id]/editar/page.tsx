@@ -59,7 +59,7 @@ export default async function EditarShippingOrderPage({
       </Link>
 
       <ModulePageHeader
-        title={`Editar pedido ${order.externalNumber}`}
+        title={`Editar pedido ${order.displayNumber}`}
         description="Ajuste dados operacionais do pedido sem perder o histórico de integração."
         badge="Administração"
       />

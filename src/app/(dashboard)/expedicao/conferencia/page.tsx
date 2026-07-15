@@ -248,12 +248,13 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
                       ) : null}
                     </div>
 
-                    <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">Pedido {order.externalNumber}</h2>
+                    <h2 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">Pedido {order.displayNumber}</h2>
                     <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
                       {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">•</span> {order.destination}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Cód int {order.code}</span>
+                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Plataforma {order.externalNumber}</span>
+                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Código técnico {order.code}</span>
                       <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Criado em {order.createdAt}</span>
                       <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">{order.totalItems} itens / {order.totalUnits} un</span>
                       <span className="bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 px-2 py-1.5 rounded-lg">{order.completionPercent}% conferido</span>

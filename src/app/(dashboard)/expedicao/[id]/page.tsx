@@ -56,7 +56,7 @@ export default async function ShippingOrderDetailPage({
       </Link>
 
       <ModulePageHeader
-        title={`Pedido ${order.externalNumber}`}
+        title={`Pedido ${order.displayNumber}`}
         description="Visualização completa do pedido de expedição, com dados comerciais, logísticos e rastreabilidade."
         badge={order.statusLabel}
       />
@@ -90,8 +90,9 @@ export default async function ShippingOrderDetailPage({
               Resumo operacional
             </h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <InfoCard label="Código interno" value={order.code} />
-              <InfoCard label="Número do pedido" value={order.externalNumber} />
+              <InfoCard label="Pedido WMS" value={order.displayNumber} />
+              <InfoCard label="Pedido da plataforma" value={order.externalNumber} />
+              <InfoCard label="Código técnico" value={order.code} />
               <InfoCard label="Tipo de pedido" value={order.orderType} />
               <InfoCard label="Depositante" value={order.depositante} />
               <InfoCard label="Status de origem" value={order.sourceStatus || "-"} />

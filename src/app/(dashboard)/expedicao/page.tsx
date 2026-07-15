@@ -386,9 +386,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                 <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition group">
                   <td className="px-6 py-4">
                     <Link href={`/expedicao/${order.id}`} className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
-                      {order.externalNumber}
+                      {order.displayNumber}
                     </Link>
-                    <div className="text-xs text-slate-500 mt-0.5">Código int.: {order.code || '-'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Plataforma: {order.externalNumber || '-'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Código técnico: {order.code || '-'}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Criado em: {order.createdAt}</div>
                     <div className="mt-1">
                       <span className={buildAgeBadgeClass(order.ageTone)}>{order.ageLabel}</span>

@@ -45,7 +45,7 @@ export default async function ShippingConferenceDetailPage({
       </Link>
 
       <ModulePageHeader
-        title={`Conferência do pedido ${order.externalNumber}`}
+        title={`Conferência do pedido ${order.displayNumber}`}
         description="Validação item a item do pedido já separado, antes da liberação final para expedição."
         badge={order.depositante}
       />
