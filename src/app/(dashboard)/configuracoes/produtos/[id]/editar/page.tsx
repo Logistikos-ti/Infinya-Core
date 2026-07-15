@@ -69,7 +69,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col gap-6 w-full max-w-[1280px] mx-auto">
+      <section className="flex flex-col gap-6 w-full">
         <ProdutoForm
           key={formKey}
           depositantes={visibleDepositantes}
