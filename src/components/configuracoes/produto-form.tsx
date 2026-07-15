@@ -708,7 +708,7 @@ export function ProdutoForm({
       </div>
 
       {/* Fixed Footer Actions */}
-      <div className="fixed bottom-0 right-0 z-50 w-full lg:w-[calc(100%-18rem)] flex items-center gap-4 px-6 py-4 sm:py-5 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.05)] flex-wrap">
+      <div className="fixed bottom-0 right-0 z-50 w-full lg:w-[calc(100vw-var(--sidebar-width,288px))] flex items-center gap-4 px-6 py-4 sm:py-5 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.05)] flex-wrap">
         <span className="text-[13px] text-slate-400 hidden sm:block">Rascunho salvo automaticamente</span>
         <div className="flex-1" />
         <a href={returnPath || "/configuracoes/produtos"} className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>

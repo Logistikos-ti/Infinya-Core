@@ -49,10 +49,36 @@ const navigation: ReadonlyArray<{
 type AppSidebarProps = {
   user: AppUserContext;
   currentPath: string;
+  isCollapsed?: boolean;
+  setIsCollapsed?: (collapsed: boolean) => void;
+  sidebarWidth?: number;
+  setSidebarWidth?: (width: number) => void;
 };
 
-export function AppSidebar({ user, currentPath }: AppSidebarProps) {
+export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sidebarWidth, setSidebarWidth }: AppSidebarProps) {
   const isYMS = currentPath.startsWith("/yms");
+  const dragRef = useRef<boolean>(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragRef.current) return;
+    let newWidth = e.clientX;
+    if (newWidth < 200) newWidth = 200;
+    if (newWidth > 500) newWidth = 500;
+    if (setSidebarWidth) setSidebarWidth(newWidth);
+  };
+
+  const handleMouseUp = () => {
+    dragRef.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
 
   const visibleNavigation = isProductCatalogOnlyUser(user)
     ? [
@@ -97,9 +123,29 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
   });
 
   return (
-    <aside className="glass-card infinya-border-glow sticky top-0 z-10 m-3 flex min-h-screen w-72 flex-shrink-0 flex-col justify-between rounded-[28px] p-4 theme-transition shadow-xl">
+    <aside 
+      style={{ width: isCollapsed ? 80 : sidebarWidth, transition: dragRef.current ? 'none' : 'width 0.3s ease-in-out' }}
+      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/80 p-4 dark:border-white/10"
+    >
+      {/* Drag handle */}
+      {!isCollapsed && setSidebarWidth && (
+        <div 
+          onMouseDown={handleMouseDown}
+          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-violet-500/50 active:bg-violet-500 z-50 transition-colors"
+        />
+      )}
+
       <div>
-        <ModuleSwitcher currentPath={currentPath} />
+        <div className={cn("flex items-center mb-6", isCollapsed ? "justify-center" : "justify-between gap-2")}>
+          {!isCollapsed && <div className="flex-1 min-w-0"><ModuleSwitcher currentPath={currentPath} /></div>}
+          <button 
+            onClick={() => setIsCollapsed?.(!isCollapsed)}
+            className="p-2 rounded-xl bg-slate-100/50 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 transition-colors flex-shrink-0"
+            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            {isCollapsed ? <ChevronDown className="w-5 h-5 -rotate-90" /> : <ChevronDown className="w-5 h-5 rotate-90" />}
+          </button>
+        </div>
 
         <nav className="space-y-1.5">
           {currentNavItems.map((item) => {
@@ -110,30 +156,36 @@ export function AppSidebar({ user, currentPath }: AppSidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                title={isCollapsed ? item.label : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-colors",
+                  isCollapsed && "justify-center px-0",
                   isActive
                     ? "border border-cyan-300/25 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300"
                     : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      <div className="mt-4 border-t border-slate-200/80 px-2 py-3 pt-4 dark:border-white/10">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Sessão ativa
-        </p>
-        <div className="flex items-center justify-between gap-3">
-          <div className="overflow-hidden">
-            <p className="truncate text-sm font-bold text-slate-950 dark:text-white">{user.nome}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{getRoleLabel(user.papel)}</p>
-          </div>
+      <div className={cn("mt-4 border-t border-slate-200/80 pt-4 dark:border-white/10", isCollapsed ? "px-0 flex flex-col items-center gap-4" : "px-2 py-3")}>
+        {!isCollapsed && (
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Sessão ativa
+          </p>
+        )}
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between gap-3")}>
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <p className="truncate text-sm font-bold text-slate-950 dark:text-white">{user.nome}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{getRoleLabel(user.papel)}</p>
+            </div>
+          )}
           <LogoutButton />
         </div>
       </div>
@@ -157,7 +209,7 @@ function ModuleSwitcher({ currentPath }: { currentPath: string }) {
   }, []);
 
   return (
-    <div className="relative mb-6 px-1 py-2" ref={ref}>
+    <div className="relative px-1" ref={ref}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center justify-between rounded-2xl border border-transparent p-1.5 transition-colors hover:bg-slate-100/50 dark:hover:bg-white/5"
