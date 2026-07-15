@@ -6,7 +6,7 @@ import {
   Barcode, Camera, CameraOff, Check, Plus, Trash2, Upload,
   Box, Calendar, Package, Tag, Archive, ShieldCheck, Layers, DollarSign
 } from "lucide-react";
-import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
+import { saveProdutoAction, deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
 import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/product-kits";
 import { cn } from "@/lib/utils";
@@ -235,6 +235,16 @@ export function ProdutoForm({
             </button>
           );
         })}
+        {defaultValues?.id && (
+          <button
+            formAction={deleteProdutoAction}
+            type="submit"
+            title="Excluir Produto"
+            className="w-[42px] h-[42px] ml-1 rounded-full flex items-center justify-center border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm bg-white dark:bg-slate-950 dark:border-rose-900/50 dark:hover:bg-rose-900/20"
+          >
+            <Trash2 className="w-[18px] h-[18px]" />
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 pb-20">

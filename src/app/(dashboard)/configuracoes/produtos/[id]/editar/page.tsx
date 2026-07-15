@@ -102,25 +102,6 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             codigoExterno: item.codigo_externo,
           }))}
         />
-
-        <div className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-500/30 dark:bg-slate-950/70">
-          <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Zona de exclusão</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            A exclusão fica liberada somente para produtos sem estoque, sem movimentações e sem uso
-            em recebimento ou expedição.
-          </p>
-          <form action={deleteProdutoAction} className="mt-4">
-            <input type="hidden" name="id" value={product.id} />
-            <Button
-              type="submit"
-              variant="outline"
-              className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-200 dark:hover:bg-rose-500/10"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir produto
-            </Button>
-          </form>
-        </div>
       </section>
     </div>
   );
