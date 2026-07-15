@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, Map, ScanSearch, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
@@ -926,13 +925,11 @@ function ProductThumb({
     <div
       className={`${dimensions} overflow-hidden border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-900`}
     >
-      <Image
+      <img
         src={imageUrl}
         alt={`Foto do produto ${name}`}
-        width={80}
-        height={80}
-        unoptimized
         className="h-full w-full object-cover"
+        loading="lazy"
       />
     </div>
   );

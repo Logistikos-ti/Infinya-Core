@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, ListOrdered, MapPinned, PackageCheck, ScanSearch, Sparkles, Volume2 } from "lucide-react";
 import {
@@ -980,7 +979,7 @@ function ProductThumb({ imageUrl, name }: { imageUrl: string | null; name: strin
   if (imageUrl) {
     return (
       <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-        <Image src={imageUrl} alt={name} fill className="object-cover" sizes="64px" />
+        <img src={imageUrl} alt={name} className="h-full w-full object-cover" loading="lazy" />
       </div>
     );
   }
