@@ -8,7 +8,7 @@ import {
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
-import { formatShippingStatusLabel } from "@/lib/shipping";
+import { extractMarketplace, formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
@@ -181,6 +181,7 @@ export type ShippingPickingOrder = {
   ageLabel: string;
   ageTone: OperationalSlaTone;
   externalNumber: string;
+  marketplace: string;
   customer: string;
   destination: string;
   status: string;
@@ -452,6 +453,7 @@ function mapPickingOrder(
       order.numero_loja,
       order.codigo,
     ),
+    marketplace: extractMarketplace(payload),
     customer: order.cliente_nome?.trim() || readString(payloadContact?.nome) || "Cliente n?o informado",
     destination:
       [order.cliente_cidade?.trim(), order.cliente_uf?.trim(), payloadCity, payloadState]
