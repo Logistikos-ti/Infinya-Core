@@ -1,19 +1,21 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import Image from "next/image";
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, CameraOff, Check, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { useActionState, useMemo, useRef, useState } from "react";
+import {
+  Barcode, Camera, CameraOff, Check, Plus, Trash2, Upload,
+  Box, Calendar, Package, Tag, Archive, ShieldCheck, Layers, DollarSign
+} from "lucide-react";
 import { saveProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { Button } from "@/components/ui/button";
 import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/product-kits";
 import { cn } from "@/lib/utils";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { Space_Grotesk } from "next/font/google";
 
-type DepositanteOption = {
-  id: string;
-  nome: string;
-};
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
+
+type DepositanteOption = { id: string; nome: string };
 
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
@@ -42,55 +44,52 @@ type ProdutoFormProps = {
   };
 };
 
+const THEME = {
+  appBg: "#F1F5F9",
+  cardBg: "#FFFFFF",
+  border: "#E2E8F0",
+  text: "#0F172A",
+  textSub: "#64748B",
+  inputBg: "#F8FAFC",
+  softBg: "#F1F5F9",
+};
+
 export function ProdutoForm({
   depositantes,
   productOptions,
   productKitEnabled = false,
-  compactMode = false,
   returnPath,
   defaultValues,
 }: ProdutoFormProps) {
-  const initialState = {
-    success: false,
-    message: null,
-  };
-
+  const initialState = { success: false, message: null };
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
+
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
   const [imagePreviewUrl, setImagePreviewUrl] = useState(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
   const [removeImage, setRemoveImage] = useState(false);
-  const [depositanteId, setDepositanteId] = useState(
-    defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
-  );
-  const [tipoProduto, setTipoProduto] = useState<"SIMPLES" | "KIT">(
-    defaultValues?.tipoProduto ?? "SIMPLES",
-  );
-  const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(
-    defaultValues?.metodoRetirada ?? "FEFO",
-  );
-  const [unidadeEstocagem, setUnidadeEstocagem] = useState<
-    "UNIDADE" | "CAIXA" | "PACK" | "PALLET"
-  >(defaultValues?.unidadeEstocagem ?? "UNIDADE");
-  const [kitComponents, setKitComponents] = useState<Array<ProductKitComponentDraft & { key: string }>>(
-    buildKitRows(defaultValues?.kitComponents),
-  );
+  const [depositanteId, setDepositanteId] = useState(defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""));
+  const [nome, setNome] = useState(defaultValues?.nome ?? "");
+  const [sku, setSku] = useState(defaultValues?.sku ?? "");
+  const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
+  
+  const [categoria, setCategoria] = useState(defaultValues?.categoria ?? "Seco / Ambiente");
+  const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(defaultValues?.metodoRetirada ?? "FEFO");
+  const [unidadeEstocagem, setUnidadeEstocagem] = useState<"UNIDADE" | "CAIXA" | "PACK" | "PALLET">(defaultValues?.unidadeEstocagem ?? "UNIDADE");
+  const [quantidadePorEmbalagem, setQuantidadePorEmbalagem] = useState(defaultValues?.quantidadePorEmbalagem?.toString() ?? "");
+  
+  const [exigeLote, setExigeLote] = useState(defaultValues?.exigeLote ?? false);
+  const [exigeValidade, setExigeValidade] = useState(defaultValues?.exigeValidade ?? false);
+  const [ativo, setAtivo] = useState(defaultValues?.ativo ?? true);
+  
   const eanInputRef = useRef<HTMLInputElement | null>(null);
 
-  const exibeQuantidadePorEmbalagem = useMemo(
-    () => unidadeEstocagem === "CAIXA" || unidadeEstocagem === "PACK",
-    [unidadeEstocagem],
-  );
-  const hasCurrentImage = useMemo(() => Boolean(imagePreviewUrl), [imagePreviewUrl]);
-
-  const depositanteOptions = useMemo(
-    () =>
-      depositantes.length === 1
-        ? depositantes.map((item) => ({ value: item.id, label: item.nome }))
-        : [
-            { value: "", label: "Selecione um depositante" },
-            ...depositantes.map((item) => ({ value: item.id, label: item.nome })),
-          ],
-    [depositantes],
+  const [tipoProduto, setTipoProduto] = useState<"SIMPLES" | "KIT">(defaultValues?.tipoProduto ?? "SIMPLES");
+  const buildKitRows = (drafts?: ProductKitComponentDraft[]) => {
+    if (!drafts || drafts.length === 0) return [];
+    return drafts.map((d, i) => ({ ...d, key: `init-${i}` }));
+  };
+  const [kitComponents, setKitComponents] = useState<Array<ProductKitComponentDraft & { key: string }>>(
+    buildKitRows(defaultValues?.kitComponents)
   );
 
   const filteredProductOptions = useMemo(
@@ -103,710 +102,540 @@ export function ProdutoForm({
     [defaultValues, depositanteId, productOptions],
   );
 
-  const handleBarcodeDetected = useCallback((code: string) => {
-    setEanGtinValue(code);
-    requestAnimationFrame(() => {
-      eanInputRef.current?.focus();
-      eanInputRef.current?.select();
-    });
-  }, []);
+  const isUnit = unidadeEstocagem === "UNIDADE";
+  const hasCurrentImage = Boolean(imagePreviewUrl);
 
-  const {
-    videoRef,
-    cameraSupported,
-    cameraEnabled,
-    cameraStarting,
-    cameraMessage,
-    toggleCamera,
-  } = useCameraBarcodeScanner({
-    onDetected: handleBarcodeDetected,
+  const { videoRef, cameraSupported, cameraEnabled, toggleCamera } = useCameraBarcodeScanner({
+    onDetected: (code) => {
+      setEanGtinValue(code);
+      requestAnimationFrame(() => {
+        eanInputRef.current?.focus();
+        eanInputRef.current?.select();
+      });
+    },
   });
 
-  useEffect(() => {
-    setEanGtinValue(defaultValues?.eanGtin ?? "");
-    setDepositanteId(
-      defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""),
-    );
-    setTipoProduto(defaultValues?.tipoProduto ?? "SIMPLES");
-    setMetodoRetirada(defaultValues?.metodoRetirada ?? "FEFO");
-    setUnidadeEstocagem(defaultValues?.unidadeEstocagem ?? "UNIDADE");
-    setKitComponents(buildKitRows(defaultValues?.kitComponents));
-    setImagePreviewUrl(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
-    setRemoveImage(false);
-  }, [
-    defaultValues?.depositanteId,
-    defaultValues?.eanGtin,
-    defaultValues?.imagemPrincipalUrl,
-    defaultValues?.kitComponents,
-    defaultValues?.metodoRetirada,
-    defaultValues?.tipoProduto,
-    defaultValues?.unidadeEstocagem,
-    depositantes,
-  ]);
+  const catDefs: Record<string, string> = {
+    'Seco / Ambiente': '#3B82F6', 'Refrigerado': '#06B6D4', 'Congelado': '#6366F1',
+    'Frágil': '#EC4899', 'Perigoso (DG)': '#EF4444', 'Alto Valor': '#F59E0B', 'Volumoso': '#10B981'
+  };
+
+  const hex2 = (h: string, a: number) => {
+    if (!h) return "transparent";
+    const n = parseInt(h.slice(1), 16);
+    return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')';
+  };
+
+  const steps = [
+    { n: '1', label: 'Identificação', key: 'ident' },
+    { n: '2', label: 'Logística', key: 'log' },
+    { n: '3', label: 'Custos', key: 'cost' },
+    { n: '4', label: 'Controles', key: 'ctrl' }
+  ];
+
+  const catColor = catDefs[categoria] || '#64748B';
+  const ownerName = depositantes.find(d => d.id === depositanteId)?.nome || 'Depositante';
+  
+  const handleScrollTo = (key: string) => {
+    const el = document.getElementById(key);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
-    <form
-      action={formAction}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70"
-    >
-      <div>
-        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
-          {defaultValues?.id ? "Editar produto" : "Novo produto"}
-        </h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Cadastro de SKU com depositante, EAN/GTIN, categoria, tipo de produto, método de retirada,
-          unidade de estocagem e regra de embalagem.
-        </p>
-        {compactMode ? (
-          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
-            Modo de cadastro rápido com identificação técnica preservada automaticamente.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/45">
-        <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Foto principal do produto</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Essa imagem aparece no cadastro e tambem ajuda o operador na separacao.
-          </p>
-        </div>
-        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          {hasCurrentImage ? (
-            <Image
-              src={imagePreviewUrl}
-              alt="Preview da foto principal do produto"
-              width={80}
-              height={80}
-              unoptimized
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="px-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Sem foto
-            </span>
-          )}
-        </div>
-      </div>
-
+    <form action={formAction} className="flex flex-col flex-1 h-full max-w-[1280px] mx-auto w-full">
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
       <input type="hidden" name="returnPath" value={returnPath ?? ""} />
-      <input type="hidden" name="currentImageUrl" value={defaultValues?.imagemPrincipalUrl ?? ""} />
-      <input
-        type="hidden"
-        name="currentImageStoragePath"
-        value={defaultValues?.imagemPrincipalStoragePath ?? ""}
-      />
+      <input type="hidden" name="removeImage" value={removeImage ? "true" : "false"} />
+      <input type="hidden" name="categoria" value={categoria} />
+      <input type="hidden" name="metodoRetirada" value={metodoRetirada} />
+      <input type="hidden" name="unidadeEstocagem" value={unidadeEstocagem} />
+      <input type="hidden" name="exigeLote" value={exigeLote ? "true" : "false"} />
+      <input type="hidden" name="exigeValidade" value={exigeValidade ? "true" : "false"} />
+      <input type="hidden" name="ativo" value={ativo ? "true" : "false"} />
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <FancySelectField
-          label="Depositante"
-          name="depositanteId"
-          value={depositanteId}
-          onChange={setDepositanteId}
-          error={state.errors?.depositanteId}
-          options={depositanteOptions}
-        />
-
-        {compactMode ? (
-          <>
-            <input type="hidden" name="codigoInterno" value={defaultValues?.codigoInterno ?? ""} />
-            <input type="hidden" name="sku" value={defaultValues?.sku ?? ""} />
-          </>
-        ) : (
-          <>
-            <Field
-              label="Código interno"
-              name="codigoInterno"
-              defaultValue={defaultValues?.codigoInterno ?? ""}
-              error={state.errors?.codigoInterno}
-            />
-            <Field
-              label="SKU"
-              name="sku"
-              defaultValue={defaultValues?.sku ?? ""}
-              error={state.errors?.sku}
-            />
-          </>
-        )}
-
-        <Field
-          label="Nome do produto"
-          name="nome"
-          defaultValue={defaultValues?.nome ?? ""}
-          error={state.errors?.nome}
-        />
-
-        <BarcodeField
-          value={eanGtinValue}
-          error={state.errors?.eanGtin}
-          inputRef={eanInputRef}
-          onChange={setEanGtinValue}
-          videoRef={videoRef}
-          cameraSupported={cameraSupported}
-          cameraEnabled={cameraEnabled}
-          cameraStarting={cameraStarting}
-          cameraMessage={cameraMessage}
-          onToggleCamera={toggleCamera}
-        />
-
-        {compactMode ? (
-          <input type="hidden" name="categoria" value={defaultValues?.categoria ?? ""} />
-        ) : (
-          <Field
-            label="Categoria"
-            name="categoria"
-            defaultValue={defaultValues?.categoria ?? ""}
-            error={state.errors?.categoria}
-          />
-        )}
-
-        {productKitEnabled ? (
-          <FancySelectField
-            label="Tipo de produto"
-            name="tipoProduto"
-            value={tipoProduto}
-            onChange={(value) => setTipoProduto(value as "SIMPLES" | "KIT")}
-            error={state.errors?.tipoProduto}
-            options={[
-              { value: "SIMPLES", label: "Simples" },
-              { value: "KIT", label: "Kit montado na separação" },
-            ]}
-          />
-        ) : (
-          <input type="hidden" name="tipoProduto" value="SIMPLES" />
-        )}
-
-        <FancySelectField
-          label="Método de retirada"
-          name="metodoRetirada"
-          value={metodoRetirada}
-          onChange={(value) => setMetodoRetirada(value as "FEFO" | "FIFO" | "LIFO")}
-          error={state.errors?.metodoRetirada}
-          options={[
-            { value: "FEFO", label: "FEFO" },
-            { value: "FIFO", label: "FIFO" },
-            { value: "LIFO", label: "LIFO" },
-          ]}
-        />
-
-        <FancySelectField
-          label="Unidade de estocagem"
-          name="unidadeEstocagem"
-          value={unidadeEstocagem}
-          onChange={(value) => setUnidadeEstocagem(value as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
-          error={state.errors?.unidadeEstocagem}
-          options={[
-            { value: "UNIDADE", label: "Unidade" },
-            { value: "CAIXA", label: "Caixa" },
-            { value: "PACK", label: "Pack" },
-            { value: "PALLET", label: "Pallet" },
-          ]}
-        />
-
-        {exibeQuantidadePorEmbalagem ? (
-          <Field
-            label={`Quantidade por ${unidadeEstocagem === "PACK" ? "pack" : "caixa"}`}
-            name="quantidadePorEmbalagem"
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            defaultValue={String(defaultValues?.quantidadePorEmbalagem ?? "")}
-            error={state.errors?.quantidadePorEmbalagem}
-            helperText="Informe quantas unidades deste SKU existem dentro da embalagem."
-          />
-        ) : (
-          <input type="hidden" name="quantidadePorEmbalagem" value="" />
-        )}
-
-        <label className="block md:col-span-2">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-            Imagem principal
-          </span>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-cyan-500/10">
-            <Upload className="h-4 w-4 text-slate-500 dark:text-slate-300" />
-            <span>Selecionar imagem PNG, JPG ou WEBP</span>
-            <input
-              type="file"
-              name="imageFile"
-              accept=".png,.jpg,.jpeg,.webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) {
-                  return;
-                }
-
-                setRemoveImage(false);
-                setImagePreviewUrl(URL.createObjectURL(file));
-              }}
-            />
-          </label>
-          {state.errors?.imageFile ? (
-            <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{state.errors.imageFile}</span>
-          ) : null}
-          <label className="mt-3 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-            <input
-              type="checkbox"
-              name="removeImage"
-              checked={removeImage}
-              onChange={(event) => {
-                setRemoveImage(event.target.checked);
-                if (event.target.checked) {
-                  setImagePreviewUrl("");
-                } else {
-                  setImagePreviewUrl(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
-                }
-              }}
-              className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-            />
-            Remover foto atual
-          </label>
-        </label>
-      </div>
-
-      {productKitEnabled && tipoProduto === "KIT" ? (
-        <div className="mt-6 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/10">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                Composição do kit
-              </h3>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Escolha os SKUs reais que o operador deve bipar para montar este kit.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                setKitComponents((current) => [
-                  ...current,
-                  {
-                    key: `component-${current.length}-${Date.now()}`,
-                    componentProductId: "",
-                    quantity: 1,
-                  },
-                ])
-              }
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar componente
-            </Button>
+      <input type="hidden" name="tipoProduto" value={tipoProduto} />
+      {tipoProduto === "KIT" &&
+        kitComponents.map((comp, i) => (
+          <div key={comp.key}>
+            <input type="hidden" name={`kitComponents[${i}].componentProductId`} value={comp.componentProductId} />
+            <input type="hidden" name={`kitComponents[${i}].quantity`} value={comp.quantity} />
           </div>
+        ))}
 
-          <div className="mt-4 space-y-3">
-            {kitComponents.map((component, index) => (
-              <div
-                key={component.key}
-                className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/60 md:grid-cols-[minmax(0,1fr)_180px_48px]"
-              >
-                <FancySelectField
-                  label={`Componente ${index + 1}`}
-                  name={`kit-component-visible-${index}`}
-                  value={component.componentProductId}
-                  onChange={(value) =>
-                    setKitComponents((current) =>
-                      current.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, componentProductId: value } : item,
-                      ),
-                    )
-                  }
-                  options={[
-                    { value: "", label: "Selecione um SKU componente" },
-                    ...filteredProductOptions.map((item) => ({
-                      value: item.id,
-                      label: `${item.nome} • ${item.sku ?? item.codigoInterno ?? item.codigoExterno ?? item.id}`,
-                    })),
-                  ]}
-                />
-
-                <Field
-                  label="Qtd por kit"
-                  name={`kit-component-quantity-visible-${index}`}
-                  type="text"
-                  inputMode="decimal"
-                  pattern="[0-9]*[,.]?[0-9]*"
-                  defaultValue={String(component.quantity)}
-                  value={String(component.quantity)}
-                  onChange={(value) =>
-                    setKitComponents((current) =>
-                      current.map((item, itemIndex) =>
-                        itemIndex === index
-                          ? { ...item, quantity: Number(value.replace(",", ".")) || 0 }
-                          : item,
-                      ),
-                    )
-                  }
-                />
-
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-[52px] w-12"
-                    onClick={() =>
-                      setKitComponents((current) =>
-                        current.length > 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current,
-                      )
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <input type="hidden" name="kitComponentProductId" value={component.componentProductId} />
-                <input type="hidden" name="kitComponentQuantity" value={String(component.quantity)} />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <CheckboxField
-          name="exigeLote"
-          label="Controlar lote"
-          description="Exige rastreabilidade de lote nas operações do produto."
-          defaultChecked={defaultValues?.exigeLote ?? false}
-        />
-        <CheckboxField
-          name="exigeValidade"
-          label="Controlar validade"
-          description="Ativa controle de validade e suporte ao FEFO quando necessário."
-          defaultChecked={defaultValues?.exigeValidade ?? false}
-        />
-        <CheckboxField
-          name="ativo"
-          label="Produto ativo"
-          description="Mantém o SKU disponível para recebimento, estoque e expedição."
-          defaultChecked={defaultValues?.ativo ?? true}
-        />
-      </div>
-
-      {state.message ? (
-        <div
-          className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-            state.success
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-              : "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
-          }`}
-        >
+      {state.message && (
+        <div className={cn("mb-6 rounded-xl p-4 text-sm font-medium", state.success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
           {state.message}
-        </div>
-      ) : null}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-        >
-          {isPending ? "Salvando..." : defaultValues?.id ? "Salvar alterações" : "Criar produto"}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function buildKitRows(components?: ProductKitComponentDraft[]) {
-  const source = components?.length ? components : [{ componentProductId: "", quantity: 1 }];
-  return source.map((item, index) => ({
-    ...item,
-    key: `${item.componentProductId || "component"}-${index}`,
-  }));
-}
-
-type FieldProps = {
-  label: string;
-  name: string;
-  defaultValue: string;
-  error?: string;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
-  value?: string;
-  onChange?: (value: string) => void;
-  type?: "text" | "number";
-  min?: number;
-  step?: number;
-  helperText?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  pattern?: string;
-};
-
-function Field({
-  label,
-  name,
-  defaultValue,
-  error,
-  inputRef,
-  value,
-  onChange,
-  type = "text",
-  min,
-  step,
-  helperText,
-  inputMode,
-  pattern,
-}: FieldProps) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-        {label}
-      </span>
-      <input
-        ref={inputRef ?? undefined}
-        type={type}
-        min={min}
-        step={step}
-        inputMode={inputMode}
-        pattern={pattern}
-        name={name}
-        defaultValue={value === undefined ? defaultValue : undefined}
-        value={value}
-        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
-        onWheel={type === "number" ? (event) => event.currentTarget.blur() : undefined}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
-      />
-      {helperText ? (
-        <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">{helperText}</span>
-      ) : null}
-      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
-    </label>
-  );
-}
-
-type FancySelectFieldProps = {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-  options: { value: string; label: string }[];
-};
-
-function FancySelectField({
-  label,
-  name,
-  value,
-  onChange,
-  error,
-  options,
-}: FancySelectFieldProps) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const selectedOption = options.find((option) => option.value === value) ?? options[0];
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    window.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
-
-  return (
-    <div className="block" ref={containerRef}>
-      <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-        {label}
-      </span>
-      <input type="hidden" name={name} value={value} />
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className={cn(
-          "flex h-[52px] w-full items-center justify-between rounded-2xl border bg-white px-4 text-left text-sm text-slate-950 outline-none transition",
-          "border-slate-300 shadow-[0_10px_35px_rgba(15,23,42,0.04)] hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)]",
-          "focus-visible:border-cyan-400 focus-visible:ring-2 focus-visible:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus-visible:ring-cyan-900/40",
-        )}
-      >
-        <span className="truncate">{selectedOption?.label ?? "Selecionar"}</span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-slate-500 transition-transform dark:text-slate-300",
-            open ? "rotate-180" : "",
-          )}
-        />
-      </button>
-
-      {open ? (
-        <div className="relative">
-          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950">
-            {options.map((option) => {
-              const selected = option.value === value;
-
-              return (
-                <button
-                  key={`${name}-${option.value}`}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition",
-                    selected
-                      ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-200"
-                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900",
-                  )}
-                >
-                  <span>{option.label}</span>
-                  {selected ? <Check className="h-4 w-4" /> : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
-    </div>
-  );
-}
-
-type CheckboxFieldProps = {
-  name: string;
-  label: string;
-  description: string;
-  defaultChecked: boolean;
-};
-
-function CheckboxField({
-  name,
-  label,
-  description,
-  defaultChecked,
-}: CheckboxFieldProps) {
-  return (
-    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
-      <input
-        type="checkbox"
-        name={name}
-        defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-      />
-      <span>
-        <span className="font-medium text-slate-950 dark:text-slate-100">{label}</span>
-        <span className="mt-1 block text-slate-500 dark:text-slate-400">{description}</span>
-      </span>
-    </label>
-  );
-}
-
-type BarcodeFieldProps = {
-  value: string;
-  error?: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  onChange: (value: string) => void;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  cameraSupported: boolean;
-  cameraEnabled: boolean;
-  cameraStarting: boolean;
-  cameraMessage: string | null;
-  onToggleCamera: () => void;
-};
-
-function BarcodeField({
-  value,
-  error,
-  inputRef,
-  onChange,
-  videoRef,
-  cameraSupported,
-  cameraEnabled,
-  cameraStarting,
-  cameraMessage,
-  onToggleCamera,
-}: BarcodeFieldProps) {
-  return (
-    <div className="block md:col-span-2">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-          EAN/GTIN
-        </span>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onToggleCamera}
-            disabled={cameraStarting}
-            className="h-9 rounded-xl border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
-          >
-            {cameraEnabled ? (
-              <CameraOff className="mr-2 h-4 w-4" />
-            ) : (
-              <Camera className="mr-2 h-4 w-4" />
-            )}
-            {cameraEnabled ? "Desligar câmera" : "Ler código"}
-          </Button>
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-            <Barcode className="h-3.5 w-3.5" />
-            USB ou câmera
-          </span>
-        </div>
-      </div>
-
-      <input
-        ref={inputRef}
-        name="eanGtin"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Digite ou leia o código de barras"
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-sky-900/40"
-      />
-
-      <div className="mt-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
-        Funciona com leitor USB conectado ao teclado ou com câmera do notebook/celular.
-      </div>
-
-      {(cameraEnabled || cameraStarting || cameraMessage) && (
-        <div className="mt-3 max-w-xl rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-          <div className="grid gap-3 sm:grid-cols-[200px,1fr] sm:items-start">
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 dark:border-slate-800">
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="aspect-[4/3] h-full w-full object-cover"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Leitura por câmera
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                {cameraMessage ??
-                  "Aponte a câmera para o código. Quando a leitura ocorrer, o EAN/GTIN será preenchido automaticamente."}
-              </p>
-              {!cameraSupported ? (
-                <p className="text-xs text-amber-600 dark:text-amber-300">
-                  Seu navegador não liberou a câmera. Se estiver no celular, teste pelo Chrome ou
-                  Safari atualizados.
-                </p>
-              ) : null}
-            </div>
-          </div>
         </div>
       )}
 
-      {error ? <span className="mt-2 block text-xs text-rose-600 dark:text-rose-300">{error}</span> : null}
-    </div>
+      {/* Header section */}
+      <div className="flex items-end justify-between gap-5 flex-wrap mb-2">
+        <div className="flex flex-col gap-2">
+          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center gap-1.5 text-[13px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors mb-2">
+            ‹ Voltar para produtos
+          </a>
+          <h1 className={cn(spaceGrotesk.className, "m-0 text-[28px] font-bold text-slate-900 dark:text-slate-100")}>
+            {defaultValues?.id ? "Editar produto" : "Cadastrar novo produto"}
+          </h1>
+          <p className="m-0 text-[14.5px] text-slate-500">
+            Preencha as informações do SKU. Os campos marcados com <span className="text-rose-500">*</span> são obrigatórios.
+          </p>
+        </div>
+      </div>
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-1.5 my-5 flex-wrap">
+        {steps.map((s, i) => (
+          <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)} 
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded-full cursor-pointer border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all hover:border-violet-500"
+          >
+            <span className={cn(spaceGrotesk.className, "w-6 h-6 rounded-full flex items-center justify-center text-[12.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500")}>
+              {s.n}
+            </span>
+            <span className="text-[13px] font-bold text-slate-500">{s.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start pb-20">
+        
+        {/* FORM COLUMN */}
+        <div className="flex flex-col gap-5 min-w-0">
+          
+          {/* Identificação */}
+          <div id="ident" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
+            <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10 text-blue-500"><Tag className="w-4 h-4"/></span>
+              <div className="flex flex-col">
+                <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Identificação</span>
+                <span className="text-[12.5px] text-slate-500">Nome, códigos, depositante e categoria</span>
+              </div>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-[13px] font-bold text-slate-500">Nome do produto <span className="text-rose-500">*</span></span>
+                <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                  <input name="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Ração Golden Formula Cães Adultos 15kg" 
+                    className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                </div>
+              </label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">SKU <span className="text-rose-500">*</span></span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <input name="sku" value={sku} onChange={e => setSku(e.target.value)} placeholder="GLD-15KG-AD" 
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Cód. Interno</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <input name="codigoInterno" value={codigoInterno} onChange={e => setCodigoInterno(e.target.value)} placeholder="Opcional" 
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">EAN / GTIN</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <Barcode className="w-4 h-4 text-slate-400 mr-2" />
+                    <input ref={eanInputRef} name="eanGtin" value={eanGtinValue} onChange={e => setEanGtinValue(e.target.value)} placeholder="0000000000000" 
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    {cameraSupported && (
+                      <button type="button" onClick={toggleCamera} className={cn("ml-2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors", cameraEnabled && "text-violet-600 bg-violet-100")}>
+                        {cameraEnabled ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
+                </label>
+              </div>
+
+              {cameraEnabled && (
+                <div className="w-full max-w-[300px] h-[200px] rounded-xl overflow-hidden bg-slate-900 relative">
+                  <video ref={videoRef} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 border-2 border-dashed border-white/50 m-6 rounded-lg pointer-events-none" />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Depositante <span className="text-rose-500">*</span></span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <select name="depositanteId" value={depositanteId} onChange={e => setDepositanteId(e.target.value)} 
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
+                      <option value="">Selecione...</option>
+                      {depositantes.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                    </select>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-2.5 mt-2">
+                <span className="text-[13px] font-bold text-slate-500">Categoria operacional <span className="text-rose-500">*</span></span>
+                <div className="flex gap-2.5 flex-wrap">
+                  {Object.keys(catDefs).map(cat => (
+                    <button key={cat} type="button" onClick={() => setCategoria(cat)}
+                      className="h-[38px] px-3.5 rounded-xl font-bold text-[13px] cursor-pointer flex items-center gap-2 transition-all border-2"
+                      style={{
+                        borderColor: categoria === cat ? catDefs[cat] : THEME.border,
+                        background: categoria === cat ? hex2(catDefs[cat], 0.14) : THEME.inputBg,
+                        color: categoria === cat ? catDefs[cat] : THEME.text
+                      }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{background: catDefs[cat]}} />
+                      {cat}
+                    </button>
+                  ))}
+                  <div className="flex items-center h-[38px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input value={Object.keys(catDefs).includes(categoria) ? "" : categoria} onChange={e => setCategoria(e.target.value)} placeholder="Outra..." 
+                      className="w-[100px] border-none outline-none bg-transparent text-[13px] font-bold" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Logística */}
+          <div id="log" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
+            <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-500/10 text-violet-500"><Box className="w-4 h-4"/></span>
+              <div className="flex flex-col">
+                <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Logística & estocagem</span>
+                <span className="text-[12.5px] text-slate-500">Dimensões, método de entrada e unidade de manuseio</span>
+              </div>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "Largura", unit: "cm" }, { label: "Altura", unit: "cm" }, 
+                  { label: "Profund.", unit: "cm" }, { label: "Peso", unit: "kg" }
+                ].map(d => (
+                  <label key={d.label} className="flex flex-col gap-2">
+                    <span className="text-[13px] font-bold text-slate-500">{d.label}</span>
+                    <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                      <input placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                      <span className="text-[12px] text-slate-400">{d.unit}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <span className="text-[13px] font-bold text-slate-500">Método de entrada / giro <span className="text-rose-500">*</span></span>
+                <div className="flex gap-2 flex-wrap">
+                  {["FEFO", "FIFO", "LIFO"].map(m => (
+                    <button key={m} type="button" onClick={() => setMetodoRetirada(m as "FEFO" | "FIFO" | "LIFO")}
+                      className={cn(spaceGrotesk.className, "h-[42px] px-4 rounded-xl font-bold text-[13.5px] cursor-pointer transition-all border-2",
+                        metodoRetirada === m ? "border-violet-500 bg-violet-500/10 text-violet-600" : "border-slate-200 bg-slate-50 text-slate-600"
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-[13px] font-bold text-slate-500">Unidade de estocagem <span className="text-rose-500">*</span></span>
+                  <div className="flex gap-2 flex-wrap">
+                    {["UNIDADE", "CAIXA", "PACK", "PALLET"].map(u => (
+                      <button key={u} type="button" onClick={() => setUnidadeEstocagem(u as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
+                        className="h-[42px] px-4 rounded-xl font-bold text-[13px] cursor-pointer transition-all border-2"
+                        style={{
+                          borderColor: unidadeEstocagem === u ? '#8B5CF6' : THEME.border,
+                          background: unidadeEstocagem === u ? 'rgba(139,92,246,0.14)' : THEME.inputBg,
+                          color: unidadeEstocagem === u ? '#8B5CF6' : THEME.text
+                        }}
+                      >
+                        {u.charAt(0) + u.slice(1).toLowerCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex flex-col gap-2.5" style={{ opacity: isUnit ? 0.5 : 1 }}>
+                  <span className="text-[13px] font-bold text-slate-500">{isUnit ? 'Qtd. por embalagem' : 'Qtd. por ' + unidadeEstocagem.toLowerCase()}</span>
+                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus-within:border-violet-500"
+                       style={{ background: isUnit ? THEME.softBg : THEME.inputBg }}>
+                    <input name="quantidadePorEmbalagem" value={quantidadePorEmbalagem} onChange={e => setQuantidadePorEmbalagem(e.target.value)}
+                      placeholder={isUnit ? 'N/A p/ unidade' : 'Ex: 12'} disabled={isUnit}
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {[{ label: 'Estoque mínimo' }, { label: 'Estoque máximo' }, { label: 'Ponto de reposição' }].map(f => (
+                  <label key={f.label} className="flex flex-col gap-2">
+                    <span className="text-[13px] font-bold text-slate-500">{f.label}</span>
+                    <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                      <input placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14px] font-medium")} />
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Custos (Visual Only for now) */}
+          <div id="cost" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
+            <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-500"><DollarSign className="w-4 h-4"/></span>
+              <div className="flex flex-col">
+                <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Custos & Fornecimento</span>
+                <span className="text-[12.5px] text-slate-500">Valor base para relatórios e ressuprimento</span>
+              </div>
+            </div>
+            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+               <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Fornecedor principal</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <input placeholder="Nome da empresa" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Custo de reposição (R$)</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <span className="text-[14px] text-slate-400 mr-2 font-bold">R$</span>
+                    <input placeholder="0,00" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </label>
+            </div>
+          </div>
+
+          {/* Controles */}
+          <div id="ctrl" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
+            <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-teal-500/10 text-teal-500"><ShieldCheck className="w-4 h-4"/></span>
+              <div className="flex flex-col">
+                <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Controles de operação</span>
+                <span className="text-[12.5px] text-slate-500">Lote, validade e status do SKU</span>
+              </div>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button type="button" onClick={() => setExigeValidade(!exigeValidade)}
+                  className="flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all"
+                  style={{ borderColor: exigeValidade ? '#8B5CF6' : THEME.border, background: exigeValidade ? 'rgba(139,92,246,0.10)' : THEME.inputBg }}
+                >
+                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: exigeValidade ? 'rgba(139,92,246,0.18)' : THEME.softBg, color: exigeValidade ? '#A78BFA' : THEME.textSub }}><Calendar className="w-5 h-5"/></span>
+                  <div className="flex flex-col flex-1 gap-1">
+                    <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de validade</span>
+                    <span className="text-[12px] text-slate-500 leading-snug">Exige data de vencimento em cada entrada e aplica giro FEFO.</span>
+                  </div>
+                  <div className="w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center" style={{ borderColor: exigeValidade ? '#8B5CF6' : THEME.border, background: exigeValidade ? '#8B5CF6' : 'transparent' }}>
+                    {exigeValidade && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                </button>
+
+                <button type="button" onClick={() => setExigeLote(!exigeLote)}
+                  className="flex items-start gap-3.5 p-4 rounded-[14px] border-2 text-left cursor-pointer transition-all"
+                  style={{ borderColor: exigeLote ? '#8B5CF6' : THEME.border, background: exigeLote ? 'rgba(139,92,246,0.10)' : THEME.inputBg }}
+                >
+                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: exigeLote ? 'rgba(139,92,246,0.18)' : THEME.softBg, color: exigeLote ? '#A78BFA' : THEME.textSub }}><Layers className="w-5 h-5"/></span>
+                  <div className="flex flex-col flex-1 gap-1">
+                    <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de lote</span>
+                    <span className="text-[12px] text-slate-500 leading-snug">Rastreia nº de lote para recall e rastreabilidade completa.</span>
+                  </div>
+                  <div className="w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center" style={{ borderColor: exigeLote ? '#8B5CF6' : THEME.border, background: exigeLote ? '#8B5CF6' : 'transparent' }}>
+                    {exigeLote && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                </button>
+              </div>
+
+              <div className="h-[1px] bg-slate-200 dark:bg-slate-800 my-1" />
+
+              <div className="flex items-center justify-between p-4 rounded-[14px] border-2" style={{ borderColor: ativo ? 'transparent' : THEME.border, background: ativo ? 'rgba(16,185,129,0.06)' : THEME.inputBg }}>
+                <div className="flex items-center gap-3.5">
+                  <span className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: ativo ? 'rgba(16,185,129,0.16)' : THEME.softBg, color: ativo ? '#10B981' : THEME.textSub }}><Archive className="w-5 h-5"/></span>
+                  <div className="flex flex-col">
+                    <span className="text-[14.5px] font-bold text-slate-900 dark:text-slate-100">Status: {ativo ? 'Ativo' : 'Inativo'}</span>
+                    <span className="text-[12.5px] text-slate-500">{ativo ? 'Disponível para recebimento, picking e venda.' : 'Oculto das operações - não recebe nem separa.'}</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setAtivo(!ativo)} className="relative w-[52px] h-[30px] rounded-full transition-all" style={{ background: ativo ? 'linear-gradient(92deg,#10B981,#34D399)' : THEME.border }}>
+                  <span className="absolute top-[3px] left-[3px] w-6 h-6 rounded-full bg-white shadow-sm transition-all" style={{ transform: ativo ? 'translateX(22px)' : 'translateX(0)' }} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Kits (Composição) */}
+          {productKitEnabled && (
+            <div id="kit" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
+              <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-500/10 text-indigo-500"><Layers className="w-4 h-4"/></span>
+                <div className="flex flex-col flex-1">
+                  <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Composição (Kit)</span>
+                  <span className="text-[12.5px] text-slate-500">Agrupe vários SKUs para formar um novo produto</span>
+                </div>
+                <div className="flex items-center gap-2">
+                   <button type="button" onClick={() => setTipoProduto("SIMPLES")} className={cn("px-3 py-1.5 rounded-lg text-[13px] font-bold transition-all", tipoProduto === "SIMPLES" ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Simples</button>
+                   <button type="button" onClick={() => setTipoProduto("KIT")} className={cn("px-3 py-1.5 rounded-lg text-[13px] font-bold transition-all", tipoProduto === "KIT" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Produto Kit</button>
+                </div>
+              </div>
+              
+              {tipoProduto === "KIT" && (
+                <div className="p-5 flex flex-col gap-4 bg-indigo-50/30 dark:bg-indigo-900/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-bold text-slate-600 dark:text-slate-400">SKUs que compõem este kit</span>
+                    <button type="button" onClick={() => setKitComponents(c => [...c, { key: `comp-${Date.now()}`, componentProductId: "", quantity: 1 }])}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[12.5px] font-bold text-indigo-600 hover:border-indigo-300 transition-colors">
+                      <Plus className="w-3.5 h-3.5" /> Adicionar SKU
+                    </button>
+                  </div>
+                  
+                  {kitComponents.length === 0 && (
+                    <div className="p-6 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                      <span className="text-[13px] font-bold text-slate-400">Nenhum componente adicionado.</span>
+                    </div>
+                  )}
+
+                  {kitComponents.map((comp, idx) => (
+                    <div key={comp.key} className="flex gap-3 items-center p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SKU Componente {idx + 1}</span>
+                        <select value={comp.componentProductId} onChange={e => setKitComponents(c => c.map((x, i) => i === idx ? { ...x, componentProductId: e.target.value } : x))}
+                          className={cn(spaceGrotesk.className, "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-10 px-3 rounded-xl text-[13.5px] font-bold outline-none focus:border-indigo-500")}>
+                          <option value="">Selecione o produto...</option>
+                          {filteredProductOptions.map(o => <option key={o.id} value={o.id}>{o.codigoInterno ? `[${o.codigoInterno}] ` : ""}{o.nome}</option>)}
+                        </select>
+                      </div>
+                      <div className="w-[100px] flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Qtd</span>
+                        <input type="number" min="1" value={comp.quantity} onChange={e => setKitComponents(c => c.map((x, i) => i === idx ? { ...x, quantity: parseInt(e.target.value) || 1 } : x))}
+                          className={cn(spaceGrotesk.className, "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-10 px-3 rounded-xl text-[14px] font-bold outline-none focus:border-indigo-500")} />
+                      </div>
+                      <div className="pt-5">
+                        <button type="button" onClick={() => setKitComponents(c => c.filter((_, i) => i !== idx))}
+                          className="w-10 h-10 flex items-center justify-center rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* FIM DA COLUNA FORM */}
+        </div>
+
+        {/* PREVIEW COLUMN */}
+        <div className="w-[340px] shrink-0 sticky top-6 flex flex-col gap-4">
+          <div className="rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-xl shadow-slate-200/40 dark:shadow-none">
+            <div className="relative h-[160px] flex items-center justify-center overflow-hidden transition-all" 
+                 style={{ background: `linear-gradient(140deg, ${catColor} 0%, ${hex2(catColor, 0.6)} 100%)` }}>
+              <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)' }} />
+              
+              {hasCurrentImage ? (
+                 <img src={imagePreviewUrl} alt="Product preview" className="relative z-10 w-full h-full object-cover" />
+              ) : (
+                <span className="relative z-10 text-white/90 drop-shadow-md">
+                  <Package className="w-16 h-16"/>
+                </span>
+              )}
+              
+              <div className="absolute top-4 right-4 z-20">
+                <label className="flex items-center justify-center w-9 h-9 rounded-xl bg-black/30 backdrop-blur-md text-white cursor-pointer hover:bg-black/50 transition-colors">
+                  <Upload className="w-4 h-4" />
+                  <input type="file" name="imageFile" className="hidden" accept="image/png, image/jpeg, image/webp" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImagePreviewUrl(URL.createObjectURL(e.target.files[0]));
+                        setRemoveImage(false);
+                      }
+                    }} 
+                  />
+                </label>
+              </div>
+
+              <span className="absolute bottom-4 left-5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11.5px] font-bold text-white backdrop-blur-md z-20 shadow-sm"
+                    style={{ background: ativo ? 'rgba(16,185,129,0.92)' : 'rgba(100,116,139,0.9)' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                {ativo ? 'Ativo' : 'Inativo'}
+              </span>
+            </div>
+
+            <div className="p-5 flex flex-col">
+              <div className="flex flex-col gap-1.5 mb-5">
+                <span className="text-[12px] font-bold" style={{ color: catColor }}>{categoria}</span>
+                <span className={cn(spaceGrotesk.className, "text-[20px] font-bold leading-tight text-slate-900 dark:text-slate-100")}>{nome || 'Nome do produto'}</span>
+                <span className={cn(spaceGrotesk.className, "text-[12.5px] text-slate-500")}>{sku || 'SKU-0000'} · EAN {eanGtinValue || '---'}</span>
+              </div>
+
+              <div className="flex gap-2 flex-wrap mb-5">
+                {exigeValidade && <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold bg-amber-500/15 text-amber-600 flex items-center gap-1"><Calendar className="w-3 h-3"/> Validade</span>}
+                {exigeLote && <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold bg-violet-500/15 text-violet-600 flex items-center gap-1"><Layers className="w-3 h-3"/> Lote</span>}
+              </div>
+
+              <div className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12.5px] font-bold text-slate-500">Depositante</span>
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-slate-100">{ownerName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12.5px] font-bold text-slate-500">Unidade</span>
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-slate-100">{isUnit ? 'Unidade' : `${unidadeEstocagem} · ${quantidadePorEmbalagem || 0} un`}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12.5px] font-bold text-slate-500">Giro</span>
+                  <span className="text-[13px] font-bold text-slate-900 dark:text-slate-100">{metodoRetirada}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Checklist inside sticky wrapper */}
+            <div className="mt-4 p-5 rounded-[18px] bg-slate-50 dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[13px] font-bold text-slate-900 dark:text-slate-100">Preenchimento</span>
+                <span className={cn("text-[13px] font-bold", [
+                  !!nome && !!sku && !!depositanteId && !!categoria && (isUnit || !!quantidadePorEmbalagem) ? "text-emerald-500" : "text-slate-900 dark:text-slate-100"
+                ])}>
+                  {Math.round([!!nome, !!sku, !!depositanteId, !!categoria, isUnit || !!quantidadePorEmbalagem].filter(Boolean).length / 5 * 100)}%
+                </span>
+              </div>
+              {[
+                { label: 'Nome preenchido', ok: !!nome },
+                { label: 'SKU definido', ok: !!sku },
+                { label: 'Depositante informado', ok: !!depositanteId },
+                { label: 'Categoria informada', ok: !!categoria },
+                { label: 'Módulo de estocagem', ok: isUnit || !!quantidadePorEmbalagem }
+              ].map((c, idx) => (
+                <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-200 dark:border-slate-800 last:border-0">
+                  <span className={cn("text-[12.5px]", c.ok ? "text-slate-900 dark:text-slate-100 font-medium" : "text-slate-400")}>{c.label}</span>
+                  <span className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold", c.ok ? "bg-emerald-500/20 text-emerald-500" : "bg-slate-200 dark:bg-slate-800 text-slate-400")}>
+                    {c.ok ? "✓" : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* Sticky Footer Actions */}
+      <div className="sticky bottom-0 z-40 -mx-6 -mb-6 mt-8 flex items-center gap-4 px-6 py-5 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md flex-wrap rounded-b-2xl">
+        <span className="text-[13px] text-slate-400 hidden sm:block">Rascunho salvo automaticamente</span>
+        <div className="flex-1" />
+        <a href={returnPath || "/configuracoes/produtos"} className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>
+          Cancelar
+        </a>
+        <button type="button" className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>
+          Salvar rascunho
+        </button>
+        <Button type="submit" disabled={isPending} className={cn(spaceGrotesk.className, "h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold shadow-lg shadow-violet-500/30 hover:-translate-y-[1px] transition-all")}>
+          <Check className="w-4 h-4 mr-2" />
+          {isPending ? "Salvando..." : "Cadastrar produto"}
+        </Button>
+      </div>
+
+    </form>
   );
 }

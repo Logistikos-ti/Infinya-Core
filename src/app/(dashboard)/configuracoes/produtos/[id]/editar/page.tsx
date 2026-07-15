@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
+import { Trash2 } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
@@ -71,25 +69,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/configuracoes/produtos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para produtos
-      </Link>
-
-      <ModulePageHeader
-        title={`Editar ${product.nome}`}
-        description={
-          compactMode
-            ? "Atualize nome, código de barras, depositante e regras operacionais do produto."
-            : "Atualize identificação, categoria, método de retirada, embalagem e status operacional do SKU."
-        }
-        badge="Cadastro"
-      />
-
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="flex flex-col gap-6 w-full max-w-[1280px] mx-auto">
         <ProdutoForm
           key={formKey}
           depositantes={visibleDepositantes}

@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
@@ -25,23 +22,7 @@ export default async function NovoProdutoPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/configuracoes/produtos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para produtos
-      </Link>
-
-      <ModulePageHeader
-        title="Novo produto"
-        description={
-          compactMode
-            ? "Cadastre um novo produto com depositante, nome, código de barras e regras operacionais."
-            : "Cadastre um novo SKU com identificação, categoria, EAN/GTIN, método de retirada e unidade."
-        }
-        badge="Cadastro"
-      />
+      {/* Header and Back button are now inside ProdutoForm */}
 
       <ProdutoForm
         depositantes={visibleDepositantes}
