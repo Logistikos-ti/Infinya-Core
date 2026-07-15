@@ -40,6 +40,7 @@ type ProdutoFormProps = {
     exigeLote?: boolean;
     exigeValidade?: boolean;
     ativo?: boolean;
+    descricao?: string;
     kitComponents?: ProductKitComponentDraft[];
   };
 };
@@ -69,6 +70,7 @@ export function ProdutoForm({
   const [removeImage, setRemoveImage] = useState(false);
   const [depositanteId, setDepositanteId] = useState(defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""));
   const [nome, setNome] = useState(defaultValues?.nome ?? "");
+  const [descricao, setDescricao] = useState(defaultValues?.descricao ?? "");
   const [sku, setSku] = useState(defaultValues?.sku ?? "");
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
   
@@ -154,6 +156,7 @@ export function ProdutoForm({
       <input type="hidden" name="exigeLote" value={exigeLote ? "true" : "false"} />
       <input type="hidden" name="exigeValidade" value={exigeValidade ? "true" : "false"} />
       <input type="hidden" name="ativo" value={ativo ? "true" : "false"} />
+      <input type="hidden" name="descricao" value={descricao} />
 
       <input type="hidden" name="tipoProduto" value={tipoProduto} />
       {tipoProduto === "KIT" &&
@@ -224,7 +227,7 @@ export function ProdutoForm({
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start pb-20">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 pb-20">
         
         {/* FORM COLUMN */}
         <div className="flex flex-col gap-5 min-w-0">
@@ -320,6 +323,18 @@ export function ProdutoForm({
                   </div>
                 </div>
               </div>
+              
+              {/* Descrição */}
+              <div className="flex flex-col gap-2.5 mt-4">
+                <span className="text-[13px] font-bold text-slate-500">Descrição do produto</span>
+                <textarea 
+                  value={descricao} 
+                  onChange={e => setDescricao(e.target.value)} 
+                  placeholder="Informações adicionais do produto..."
+                  className={cn(spaceGrotesk.className, "w-full min-h-[100px] p-3.5 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all outline-none resize-y text-[14px] font-medium")}
+                />
+              </div>
+
             </div>
           </div>
 
@@ -553,8 +568,9 @@ export function ProdutoForm({
         </div>
 
         {/* PREVIEW COLUMN */}
-        <div className="w-[340px] shrink-0 sticky top-6 flex flex-col gap-4">
-          <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase mb-[-4px]">PRÉ-VISUALIZAÇÃO</span>
+        <div className="w-full shrink-0">
+          <div className="sticky top-6 flex flex-col gap-4">
+            <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase mb-[-4px]">PRÉ-VISUALIZAÇÃO</span>
           
           <div className="rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm">
             <div className="relative h-[180px] flex flex-col items-center justify-center transition-all group" 
