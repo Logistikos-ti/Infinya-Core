@@ -173,13 +173,13 @@ export function ProdutoForm({
       {/* Header section */}
       <div className="flex flex-col gap-6 mb-8 mt-2">
         <div className="flex items-center gap-3">
-          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center justify-center h-[34px] px-3.5 rounded-[10px] border border-slate-200 dark:border-slate-800 text-[13px] font-bold text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-            ‹ Produtos
+          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
+            <span className="mr-1.5 text-slate-500 font-normal">‹</span> Produtos
           </a>
-          <div className="flex items-center gap-1.5 text-[13.5px]">
-            <span className="text-slate-400">Produtos</span>
-            <span className="text-slate-300">›</span>
-            <span className="text-slate-900 dark:text-slate-100 font-bold">{defaultValues?.id ? "Editar" : "Novo"}</span>
+          <div className="flex items-center gap-2 text-[14px] ml-1">
+            <span className="text-slate-500">Produtos</span>
+            <span className="text-slate-300 text-[12px]">›</span>
+            <span className="text-slate-900 dark:text-slate-100 font-medium">{defaultValues?.id ? "Editar" : "Novo"}</span>
           </div>
         </div>
 
@@ -200,15 +200,15 @@ export function ProdutoForm({
           return (
             <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)} 
               className={cn(
-                "flex items-center gap-2.5 px-4 py-2.5 rounded-[14px] cursor-pointer transition-all border",
+                "flex items-center gap-3 px-5 py-2.5 rounded-full cursor-pointer transition-all border",
                 isActive 
-                  ? "bg-[#F3E8FF] border-[#E9D5FF] dark:bg-violet-900/30 dark:border-violet-500/30" 
+                  ? "bg-[#F3E8FF] border-transparent dark:bg-violet-900/40" 
                   : "bg-white border-slate-200 hover:border-slate-300 dark:bg-slate-950 dark:border-slate-800 dark:hover:border-slate-700 shadow-sm"
               )}
             >
               <span className={cn(
                 spaceGrotesk.className, 
-                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[13px] font-bold shadow-sm",
+                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[13.5px] font-bold shadow-sm",
                 isActive 
                   ? "bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] text-white" 
                   : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
@@ -216,7 +216,7 @@ export function ProdutoForm({
                 {s.n}
               </span>
               <span className={cn(
-                "text-[14px] font-bold",
+                "text-[14.5px] font-bold",
                 isActive ? "text-[#6D28D9] dark:text-violet-300" : "text-[#4B5563] dark:text-slate-400"
               )}>{s.label}</span>
             </button>
