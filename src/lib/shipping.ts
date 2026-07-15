@@ -5,6 +5,7 @@ import {
   detectSalesChannelFromPayload,
   readManualSalesChannelCode,
   readMarketplaceDisplay,
+  readMarketplaceFlagDisplay,
   readStoreDisplay,
 } from "@/lib/sales-channels";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -700,7 +701,7 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
   }
 
   if (originFallback === "MANUAL" || manualChannel) {
-    return readMarketplaceDisplay(payload) === "Sim" ? "Pedido de marketplace" : "Pedido manual";
+    return readMarketplaceFlagDisplay(payload) === "Sim" ? "Pedido de marketplace" : "Pedido manual";
   }
 
   if (intermediador) {

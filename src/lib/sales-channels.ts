@@ -117,7 +117,7 @@ export function detectSalesChannelFromPayload(payload: Record<string, unknown>) 
   return null;
 }
 
-export function readMarketplaceDisplay(payload: Record<string, unknown>) {
+export function readMarketplaceFlagDisplay(payload: Record<string, unknown>) {
   const manualCommercial = readManualCommercial(payload);
 
   if (typeof manualCommercial?.marketplace === "boolean") {
@@ -126,6 +126,22 @@ export function readMarketplaceDisplay(payload: Record<string, unknown>) {
 
   const detected = detectSalesChannelFromPayload(payload);
   return detected?.marketplace ? "Sim" : "NÃ£o";
+}
+
+export function readMarketplaceDisplay(payload: Record<string, unknown>) {
+  const manualCommercial = readManualCommercial(payload);
+  const manualChannelLabel = getSalesChannelLabel(manualCommercial?.salesChannelCode);
+
+  if (manualChannelLabel) {
+    return manualChannelLabel;
+  }
+
+  const detected = detectSalesChannelFromPayload(payload);
+  if (detected?.label) {
+    return detected.label;
+  }
+
+  return readMarketplaceFlagDisplay(payload) === "Sim" ? "Marketplace" : "NÃ£o";
 }
 
 export function readStoreDisplay(
