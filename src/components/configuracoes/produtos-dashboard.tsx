@@ -124,12 +124,14 @@ export function ProdutosDashboard({
   }, [produtos]);
 
   const catDefs: Record<string, string> = {
-    Eletrônicos: "#3B82F6",
-    "Casa & Cozinha": "#10B981",
-    Moda: "#EC4899",
-    Beleza: "#A855F7",
-    Esporte: "#F59E0B",
-    Geral: "#64748b",
+    "Seco / Ambiente": "#3B82F6",
+    "Refrigerado": "#06B6D4",
+    "Congelado": "#6366F1",
+    "Frágil": "#EC4899",
+    "Perigoso (DG)": "#EF4444",
+    "Alto Valor": "#F59E0B",
+    "Volumoso": "#10B981",
+    "Geral": "#64748b",
   };
 
   const getCatColor = (cat: string) => catDefs[cat] || "#64748b";
@@ -291,9 +293,11 @@ export function ProdutosDashboard({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1.3fr] gap-6 mb-6">
-        {importSlot}
-      </div>
+      {importSlot && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1.3fr] gap-6 mb-6">
+          {importSlot}
+        </div>
+      )}
 
       {/* category chips */}
       <div className="flex items-center gap-2.5 mb-5 flex-wrap">
