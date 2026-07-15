@@ -714,16 +714,9 @@ function extractPlatformOrderNumber(
   numeroLoja: string | null,
   fallbackCode: string,
 ) {
-  const salesChannelCode =
-    readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
   const orderNumber = readString(numeroPedido);
   const storeNumber = readString(numeroLoja);
-
-  if (salesChannelCode === "MERCADO_LIVRE" && storeNumber) {
-    return storeNumber;
-  }
-
-  return orderNumber ?? storeNumber ?? fallbackCode;
+  return storeNumber ?? orderNumber ?? fallbackCode;
 }
 
 function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: string | null) {

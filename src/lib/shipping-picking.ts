@@ -7,10 +7,6 @@ import {
   normalizePickingKitProgress,
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
-import {
-  detectSalesChannelFromPayload,
-  readManualSalesChannelCode,
-} from "@/lib/sales-channels";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -1153,14 +1149,7 @@ function extractPlatformOrderNumber(
   const orderNumber = readString(numeroPedido);
   const storeNumber = readString(numeroLoja);
   const mercadoLivreOrderId = readString(mercadoLivre?.orderId);
-  const salesChannelCode =
-    readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
-
-  if (salesChannelCode === "MERCADO_LIVRE" && storeNumber) {
-    return storeNumber;
-  }
-
-  return mercadoLivreOrderId ?? orderNumber ?? storeNumber ?? fallbackCode;
+  return mercadoLivreOrderId ?? storeNumber ?? orderNumber ?? fallbackCode;
 }
 
 function normalizeText(value: string | null | undefined) {
