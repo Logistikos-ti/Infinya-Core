@@ -693,12 +693,16 @@ export function ProdutoForm({
               </div>
 
               <div className="flex gap-2 flex-wrap mb-5">
-                <span className={cn("px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1", exigeValidade ? "bg-amber-500/15 text-amber-600" : "bg-slate-100 text-slate-300")}>
-                  <Calendar className="w-3 h-3"/> Validade
-                </span>
-                <span className={cn("px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1", exigeLote ? "bg-violet-500/15 text-violet-600" : "bg-slate-100 text-slate-300")}>
-                  <Layers className="w-3 h-3"/> Lote
-                </span>
+                {exigeValidade && (
+                  <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1 bg-amber-500/15 text-amber-600">
+                    <Calendar className="w-3 h-3"/> Validade
+                  </span>
+                )}
+                {exigeLote && (
+                  <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1 bg-violet-500/15 text-violet-600 dark:text-violet-400">
+                    <Layers className="w-3 h-3"/> Lote
+                  </span>
+                )}
               </div>
 
               <hr className="border-t border-slate-100 dark:border-slate-800 mb-4" />
