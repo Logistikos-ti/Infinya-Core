@@ -247,7 +247,7 @@ export function ProdutoForm({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 pb-20">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 pb-32">
         
         {/* FORM COLUMN */}
         <div className="flex flex-col gap-5 min-w-0">
@@ -707,8 +707,8 @@ export function ProdutoForm({
         </div>
       </div>
 
-      {/* Sticky Footer Actions */}
-      <div className="sticky bottom-0 z-40 -mx-6 -mb-6 mt-8 flex items-center gap-4 px-6 py-5 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md flex-wrap rounded-b-2xl">
+      {/* Fixed Footer Actions */}
+      <div className="fixed bottom-0 right-0 z-50 w-full lg:w-[calc(100%-18rem)] flex items-center gap-4 px-6 py-4 sm:py-5 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.05)] flex-wrap">
         <span className="text-[13px] text-slate-400 hidden sm:block">Rascunho salvo automaticamente</span>
         <div className="flex-1" />
         <a href={returnPath || "/configuracoes/produtos"} className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>
