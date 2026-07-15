@@ -682,6 +682,17 @@ export function ShippingConferencePanel({
             </table>
           </div>
 
+          <ShippingConferenceDocumentsPanel
+            orderId={documents.orderId}
+            depositanteId={documents.depositanteId}
+            attachments={documents.attachments}
+            isBlingOrder={documents.isBlingOrder}
+            isMercadoLivreOrder={documents.isMercadoLivreOrder}
+            hasTrackingCode={documents.hasTrackingCode}
+            canUploadAttachments={documents.canUploadAttachments}
+            unlocked={pendingUnits <= 0}
+          />
+
           {/* Sticky Desktop Actions */}
           <div className="sticky bottom-4 z-20 mt-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-xl backdrop-blur-xl transition-all">
             <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
@@ -714,17 +725,6 @@ export function ShippingConferencePanel({
           </div>
         </form>
       </div>
-
-      <ShippingConferenceDocumentsPanel
-        orderId={documents.orderId}
-        depositanteId={documents.depositanteId}
-        attachments={documents.attachments}
-        isBlingOrder={documents.isBlingOrder}
-        isMercadoLivreOrder={documents.isMercadoLivreOrder}
-        hasTrackingCode={documents.hasTrackingCode}
-        canUploadAttachments={documents.canUploadAttachments}
-        unlocked={pendingUnits <= 0}
-      />
     </div>
   );
 }
