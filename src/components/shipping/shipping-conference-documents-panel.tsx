@@ -6,17 +6,12 @@ import { releaseShippingOrderToRomaneioAction } from "@/app/(dashboard)/expedica
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
-import { ShippingMercadoLivreSyncPanel } from "@/components/shipping/shipping-mercado-livre-sync-panel";
-import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import type { ShippingAttachment } from "@/lib/shipping";
 
 type ShippingConferenceDocumentsPanelProps = {
   orderId: string;
   depositanteId: string;
   attachments: ShippingAttachment[];
-  isBlingOrder: boolean;
-  isMercadoLivreOrder: boolean;
-  hasTrackingCode: boolean;
   canUploadAttachments: boolean;
   unlocked: boolean;
 };
@@ -25,16 +20,11 @@ export function ShippingConferenceDocumentsPanel({
   orderId,
   depositanteId,
   attachments,
-  isBlingOrder,
-  isMercadoLivreOrder,
-  hasTrackingCode,
   canUploadAttachments,
   unlocked,
 }: ShippingConferenceDocumentsPanelProps) {
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
   const labelAttachment = attachments.find((attachment) => attachment.kind === "ETIQUETA");
-  const xmlPending = xmlAttachment?.status === "PENDENTE";
-  const labelPending = labelAttachment?.status === "PENDENTE";
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
   const canReleaseToRomaneio = unlocked && hasInvoiceXml && hasShippingLabel;
@@ -101,22 +91,10 @@ export function ShippingConferenceDocumentsPanel({
 
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="space-y-4">
-          <ShippingXmlSyncPanel
-            orderId={orderId}
-            xmlPending={Boolean(xmlPending)}
-            isBlingOrder={isBlingOrder}
-          />
           <ShippingDanfePanel orderId={orderId} />
         </div>
 
         <div className="space-y-4">
-          <ShippingMercadoLivreSyncPanel
-            orderId={orderId}
-            isMercadoLivreOrder={isMercadoLivreOrder}
-            hasPendingLabel={Boolean(labelPending)}
-            hasTrackingCode={hasTrackingCode}
-          />
-
           {canUploadAttachments ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
               <div className="flex items-center gap-2">
