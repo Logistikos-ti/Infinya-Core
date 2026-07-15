@@ -27,6 +27,12 @@ export const produtoFormSchema = z
       .max(20, "O EAN/GTIN deve ter no maximo 20 caracteres.")
       .optional()
       .or(z.literal("")),
+    fornecedor: z
+      .string()
+      .trim()
+      .max(160, "O fornecedor deve ter no maximo 160 caracteres.")
+      .optional()
+      .or(z.literal("")),
     categoria: z
       .string()
       .trim()

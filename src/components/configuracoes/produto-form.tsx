@@ -31,6 +31,7 @@ type ProdutoFormProps = {
     nome?: string;
     eanGtin?: string;
     categoria?: string;
+    fornecedor?: string;
     tipoProduto?: "SIMPLES" | "KIT";
     metodoRetirada?: "FEFO" | "FIFO" | "LIFO";
     unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
@@ -70,6 +71,7 @@ export function ProdutoForm({
   const [removeImage, setRemoveImage] = useState(false);
   const [depositanteId, setDepositanteId] = useState(defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""));
   const [nome, setNome] = useState(defaultValues?.nome ?? "");
+  const [fornecedor, setFornecedor] = useState(defaultValues?.fornecedor ?? "");
   const [descricao, setDescricao] = useState(defaultValues?.descricao ?? "");
   const [sku, setSku] = useState(defaultValues?.sku ?? "");
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
@@ -150,6 +152,7 @@ export function ProdutoForm({
       <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
       <input type="hidden" name="returnPath" value={returnPath ?? ""} />
       <input type="hidden" name="removeImage" value={removeImage ? "true" : "false"} />
+      <input type="hidden" name="fornecedor" value={fornecedor} />
       <input
         type="hidden"
         name="currentImageUrl"
@@ -455,7 +458,12 @@ export function ProdutoForm({
                <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Fornecedor principal</span>
                   <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-                    <input placeholder="Nome da empresa" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <input 
+                      placeholder="Nome da empresa" 
+                      value={fornecedor}
+                      onChange={(e) => setFornecedor(e.target.value)}
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} 
+                    />
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">

@@ -24,6 +24,7 @@ export type ProdutoActionState = {
       | "sku"
       | "nome"
       | "eanGtin"
+      | "fornecedor"
       | "categoria"
       | "tipoProduto"
       | "metodoRetirada"
@@ -56,6 +57,7 @@ export async function saveProdutoAction(
     sku: String(formData.get("sku") ?? "").trim().toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     eanGtin: String(formData.get("eanGtin") ?? "").trim(),
+    fornecedor: String(formData.get("fornecedor") ?? "").trim(),
     categoria: String(formData.get("categoria") ?? "").trim(),
     tipoProduto: String(formData.get("tipoProduto") ?? "SIMPLES"),
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
@@ -78,6 +80,7 @@ export async function saveProdutoAction(
         sku: flattened.sku?.[0] ?? "",
         nome: flattened.nome?.[0] ?? "",
         eanGtin: flattened.eanGtin?.[0] ?? "",
+        fornecedor: flattened.fornecedor?.[0] ?? "",
         categoria: flattened.categoria?.[0] ?? "",
         tipoProduto: flattened.tipoProduto?.[0] ?? "",
         metodoRetirada: flattened.metodoRetirada?.[0] ?? "",
@@ -181,6 +184,7 @@ export async function saveProdutoAction(
     codigo_externo: normalizedEan,
     sku: resolvedSku,
     nome: parsed.data.nome,
+    fornecedor: parsed.data.fornecedor || null,
     categoria: parsed.data.categoria || null,
     metodo_retirada: parsed.data.metodoRetirada,
     unidade_estocagem: parsed.data.unidadeEstocagem,
