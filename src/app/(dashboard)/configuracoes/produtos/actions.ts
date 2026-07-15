@@ -30,6 +30,11 @@ export type ProdutoActionState = {
       | "metodoRetirada"
       | "unidadeEstocagem"
       | "quantidadePorEmbalagem"
+      | "descricao"
+      | "pesoKg"
+      | "alturaCm"
+      | "larguraCm"
+      | "comprimentoCm"
       | "imageFile",
       string
     >
@@ -63,6 +68,11 @@ export async function saveProdutoAction(
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
     quantidadePorEmbalagem: quantidadePorEmbalagemRaw ? Number(quantidadePorEmbalagemRaw) : undefined,
+    descricao: String(formData.get("descricao") ?? "").trim(),
+    pesoKg: String(formData.get("pesoKg") ?? "").trim() || undefined,
+    alturaCm: String(formData.get("alturaCm") ?? "").trim() || undefined,
+    larguraCm: String(formData.get("larguraCm") ?? "").trim() || undefined,
+    comprimentoCm: String(formData.get("comprimentoCm") ?? "").trim() || undefined,
     exigeLote: parseBooleanFormValue(formData.get("exigeLote")),
     exigeValidade: parseBooleanFormValue(formData.get("exigeValidade")),
     ativo: parseBooleanFormValue(formData.get("ativo"), true),
@@ -86,6 +96,11 @@ export async function saveProdutoAction(
         metodoRetirada: flattened.metodoRetirada?.[0] ?? "",
         unidadeEstocagem: flattened.unidadeEstocagem?.[0] ?? "",
         quantidadePorEmbalagem: flattened.quantidadePorEmbalagem?.[0] ?? "",
+        descricao: flattened.descricao?.[0] ?? "",
+        pesoKg: flattened.pesoKg?.[0] ?? "",
+        alturaCm: flattened.alturaCm?.[0] ?? "",
+        larguraCm: flattened.larguraCm?.[0] ?? "",
+        comprimentoCm: flattened.comprimentoCm?.[0] ?? "",
       },
     };
   }
@@ -192,6 +207,11 @@ export async function saveProdutoAction(
       parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
         ? parsed.data.quantidadePorEmbalagem ?? null
         : null,
+    descricao: parsed.data.descricao || null,
+    peso_kg: parsed.data.pesoKg ?? null,
+    altura_cm: parsed.data.alturaCm ?? null,
+    largura_cm: parsed.data.larguraCm ?? null,
+    comprimento_cm: parsed.data.comprimentoCm ?? null,
     imagem_principal_url: imageUploadResult.imageUrl,
     imagem_principal_storage_path: imageUploadResult.imageStoragePath,
     exige_lote: parsed.data.exigeLote,

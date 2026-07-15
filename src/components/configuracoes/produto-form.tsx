@@ -42,6 +42,10 @@ type ProdutoFormProps = {
     exigeValidade?: boolean;
     ativo?: boolean;
     descricao?: string;
+    pesoKg?: number | null;
+    alturaCm?: number | null;
+    larguraCm?: number | null;
+    comprimentoCm?: number | null;
     kitComponents?: ProductKitComponentDraft[];
   };
 };
@@ -73,6 +77,10 @@ export function ProdutoForm({
   const [nome, setNome] = useState(defaultValues?.nome ?? "");
   const [fornecedor, setFornecedor] = useState(defaultValues?.fornecedor ?? "");
   const [descricao, setDescricao] = useState(defaultValues?.descricao ?? "");
+  const [pesoKg, setPesoKg] = useState(defaultValues?.pesoKg?.toString() ?? "");
+  const [alturaCm, setAlturaCm] = useState(defaultValues?.alturaCm?.toString() ?? "");
+  const [larguraCm, setLarguraCm] = useState(defaultValues?.larguraCm?.toString() ?? "");
+  const [comprimentoCm, setComprimentoCm] = useState(defaultValues?.comprimentoCm?.toString() ?? "");
   const [sku, setSku] = useState(defaultValues?.sku ?? "");
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
   
@@ -170,6 +178,10 @@ export function ProdutoForm({
       <input type="hidden" name="exigeValidade" value={exigeValidade ? "true" : "false"} />
       <input type="hidden" name="ativo" value={ativo ? "true" : "false"} />
       <input type="hidden" name="descricao" value={descricao} />
+      <input type="hidden" name="pesoKg" value={pesoKg} />
+      <input type="hidden" name="alturaCm" value={alturaCm} />
+      <input type="hidden" name="larguraCm" value={larguraCm} />
+      <input type="hidden" name="comprimentoCm" value={comprimentoCm} />
 
       <input type="hidden" name="tipoProduto" value={tipoProduto} />
       {tipoProduto === "KIT" &&
@@ -373,18 +385,34 @@ export function ProdutoForm({
             
             <div className="p-5 flex flex-col gap-5">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: "Largura", unit: "cm" }, { label: "Altura", unit: "cm" }, 
-                  { label: "Profund.", unit: "cm" }, { label: "Peso", unit: "kg" }
-                ].map(d => (
-                  <label key={d.label} className="flex flex-col gap-2">
-                    <span className="text-[13px] font-bold text-slate-500">{d.label}</span>
-                    <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
-                      <input placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
-                      <span className="text-[12px] text-slate-400">{d.unit}</span>
-                    </div>
-                  </label>
-                ))}
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Largura</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.01" value={larguraCm} onChange={e => setLarguraCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <span className="text-[12px] text-slate-400">cm</span>
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Altura</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.01" value={alturaCm} onChange={e => setAlturaCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <span className="text-[12px] text-slate-400">cm</span>
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Profund.</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.01" value={comprimentoCm} onChange={e => setComprimentoCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <span className="text-[12px] text-slate-400">cm</span>
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">Peso</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input type="number" step="0.001" value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                    <span className="text-[12px] text-slate-400">kg</span>
+                  </div>
+                </label>
               </div>
 
               <div className="flex flex-col gap-2.5">

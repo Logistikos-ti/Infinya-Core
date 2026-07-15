@@ -29,7 +29,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     adminSupabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, fornecedor, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -83,6 +83,12 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             nome: product.nome,
             eanGtin: product.codigo_externo ?? "",
             categoria: product.categoria ?? "",
+            fornecedor: product.fornecedor ?? "",
+            descricao: product.descricao ?? "",
+            pesoKg: product.peso_kg ?? null,
+            alturaCm: product.altura_cm ?? null,
+            larguraCm: product.largura_cm ?? null,
+            comprimentoCm: product.comprimento_cm ?? null,
             tipoProduto: "SIMPLES",
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
