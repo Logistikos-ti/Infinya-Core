@@ -23,7 +23,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
   const isCatalogOnly = isProductCatalogOnlyUser(user);
 
   return (
-    <div className="theme-transition flex min-h-screen w-full overflow-hidden bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] text-zinc-100 lg:bg-[linear-gradient(180deg,#eef4ff_0%,#f7fbff_55%,#ffffff_100%)] lg:text-slate-900 dark:bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] dark:text-zinc-100">
+    <div className="theme-transition flex h-screen h-[100dvh] w-full overflow-hidden bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] text-zinc-100 lg:bg-[linear-gradient(180deg,#eef4ff_0%,#f7fbff_55%,#ffffff_100%)] lg:text-slate-900 dark:bg-[linear-gradient(180deg,#040816_0%,#050b19_60%,#071120_100%)] dark:text-zinc-100">
       
       {/* Background Decoration */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
