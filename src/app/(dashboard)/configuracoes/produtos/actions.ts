@@ -205,6 +205,14 @@ export async function saveProdutoAction(
       };
     }
 
+    if (!updateResult.data?.id) {
+      return {
+        success: false,
+        message:
+          "Nao foi possivel confirmar a atualizacao do produto. Ele pode ter sido removido ou ficado indisponivel durante a edicao. Atualize a lista e tente novamente.",
+      };
+    }
+
     if (productKitsEnabled) {
       const componentsError = await syncKitComponents(
         adminSupabase,
@@ -347,7 +355,12 @@ async function updateProductWithFallback(
   id: string,
   payload: Record<string, unknown>,
 ) {
-  const result = await adminSupabase.from("produtos").update(payload).eq("id", id);
+  const result = await adminSupabase
+    .from("produtos")
+    .update(payload)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (result.error && isMissingPackagingColumnError(result.error.message)) {
     return updateProductWithFallback(adminSupabase, id, withoutPackagingQuantity(payload));
