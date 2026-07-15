@@ -330,6 +330,8 @@ export function ShippingConferencePanel({
             ? "Conferência concluída e pedido movido para o próximo passo."
             : feedback === "incompleto"
               ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
+              : feedback === "documentos-pendentes"
+                ? "Finalize os documentos obrigatórios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
               : feedback === "inatividade"
                 ? "Pedido devolvido para a fila por inatividade do operador."
                 : "Não foi possível concluir a operação solicitada."}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
+import { listShippingOrderDocumentTypes } from "@/lib/operational-documents";
 import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -173,6 +174,68 @@ export async function saveShippingConferenceAction(formData: FormData) {
   }
 
   redirect(`${redirectBase}/${orderId}?feedback=${intent === "complete" ? "concluido" : "salvo"}`);
+}
+
+export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "/expedicao?status=PRONTO_ROMANEIO").trim() ||
+    "/expedicao?status=PRONTO_ROMANEIO";
+  const fallbackRedirect =
+    String(formData.get("fallbackRedirect") ?? "").trim() || `/expedicao/conferencia/${orderId}`;
+
+  if (!orderId) {
+    redirect("/expedicao/conferencia?feedback=erro");
+  }
+
+  const { data: order, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, itens:pedidos_expedicao_itens(id, quantidade, payload_origem)")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error || !order) {
+    redirect(`${fallbackRedirect}?feedback=erro`);
+  }
+
+  const itemRows =
+    ((order.itens ?? []) as Array<{
+      id: string;
+      quantidade: number | string | null;
+      payload_origem: Record<string, unknown> | null;
+    }>) ?? [];
+
+  const allItemsConfirmed = itemRows.every((item) => {
+    const requested = Number(item.quantidade ?? 0);
+    const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
+    const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
+    const confirmed = Number(readString(conference.quantidadeConferida) ?? 0);
+    return confirmed >= requested;
+  });
+
+  const documentTypes = await listShippingOrderDocumentTypes(adminSupabase, orderId);
+  const hasInvoiceXml = documentTypes.has("NF");
+  const hasShippingLabel = documentTypes.has("ETIQUETA");
+
+  if (!allItemsConfirmed || !hasInvoiceXml || !hasShippingLabel) {
+    redirect(`${fallbackRedirect}?feedback=documentos-pendentes`);
+  }
+
+  await adminSupabase
+    .from("pedidos_expedicao")
+    .update({ status: "PRONTO_ROMANEIO" })
+    .eq("id", orderId);
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath(`/expedicao/conferencia/${orderId}`);
+  revalidatePath("/romaneio");
+  revalidatePath("/m/romaneio");
+
+  redirect(redirectTo);
 }
 
 async function resolveOperatorName(

@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Download, FileCheck2, FileText, Package2, Paperclip } from "lucide-react";
+import { Download, FileCheck2, FileText, Package2, Paperclip, Route } from "lucide-react";
+import { releaseShippingOrderToRomaneioAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -34,6 +35,17 @@ export function ShippingConferenceDocumentsPanel({
   const labelAttachment = attachments.find((attachment) => attachment.kind === "ETIQUETA");
   const xmlPending = xmlAttachment?.status === "PENDENTE";
   const labelPending = labelAttachment?.status === "PENDENTE";
+  const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
+  const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
+  const canReleaseToRomaneio = unlocked && hasInvoiceXml && hasShippingLabel;
+
+  const releaseHelp = !unlocked
+    ? "Finalize 100% da conferência para liberar o pedido."
+    : !hasInvoiceXml
+      ? "Anexe ou sincronize o XML da nota fiscal antes de enviar para romaneio."
+      : !hasShippingLabel
+        ? "Anexe ou sincronize a etiqueta de envio antes de enviar para romaneio."
+        : "Pedido pronto para seguir ao romaneio.";
 
   return (
     <div className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80">
@@ -122,6 +134,34 @@ export function ShippingConferenceDocumentsPanel({
               />
             </div>
           ) : null}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Route className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+              <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">
+                Liberação para romaneio
+              </h4>
+            </div>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{releaseHelp}</p>
+          </div>
+
+          <form action={releaseShippingOrderToRomaneioAction}>
+            <input type="hidden" name="orderId" value={orderId} />
+            <input type="hidden" name="redirectTo" value="/expedicao?status=PRONTO_ROMANEIO" />
+            <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
+            <button
+              type="submit"
+              disabled={!canReleaseToRomaneio}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+            >
+              <Route className="h-4 w-4" />
+              Liberar para romaneio
+            </button>
+          </form>
         </div>
       </div>
     </div>
