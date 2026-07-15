@@ -65,7 +65,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
           </div>
           
           <div className="flex items-center gap-4 ml-4">
-            {/* O ThemeToggle ficava aqui e foi movido para o fixed bottom */}
+            <ThemeToggle />
           </div>
         </header>
 
@@ -112,13 +112,6 @@ export function AppChrome({ children, user }: AppChromeProps) {
       </div>
 
       {/* Floating Theme Toggle no canto inferior direito */}
-      <div className="fixed bottom-6 right-6 z-[100] hidden lg:block">
-        <div className="rounded-full bg-infinya-gradient p-[2px] shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 transition-all hover:-translate-y-1">
-          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-full overflow-hidden">
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
 
       <FirstAccessPasswordDialog isVisible={user.forcePasswordReset} userName={user.nome} />
     </div>
