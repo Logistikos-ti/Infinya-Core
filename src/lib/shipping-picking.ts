@@ -7,6 +7,10 @@ import {
   normalizePickingKitProgress,
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
+import {
+  detectSalesChannelFromPayload,
+  readManualSalesChannelCode,
+} from "@/lib/sales-channels";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -1146,11 +1150,11 @@ function extractPlatformOrderNumber(
   fallbackCode: string,
 ) {
   const mercadoLivre = isRecord(payload.mercadoLivre) ? payload.mercadoLivre : null;
-  const manualCommercial = isRecord(payload.comercial) ? payload.comercial : null;
   const orderNumber = readString(numeroPedido);
   const storeNumber = readString(numeroLoja);
   const mercadoLivreOrderId = readString(mercadoLivre?.orderId);
-  const salesChannelCode = readString(manualCommercial?.canal);
+  const salesChannelCode =
+    readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
 
   if (salesChannelCode === "MERCADO_LIVRE" && storeNumber) {
     return storeNumber;
