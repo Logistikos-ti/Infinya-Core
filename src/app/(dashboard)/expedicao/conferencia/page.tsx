@@ -253,7 +253,7 @@ export default async function ShippingConferencePage({ searchParams }: ShippingC
                       {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">•</span> {order.destination}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">
-                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Marketplace {order.marketplace}</span>
+                      <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Marketplace {(order as any).marketplace || 'N/A'}</span>
                       <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Código técnico {order.code}</span>
                       <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">Criado em {order.createdAt}</span>
                       <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1.5 rounded-lg border border-slate-100 dark:border-zinc-800">{order.totalItems} itens / {order.totalUnits} un</span>

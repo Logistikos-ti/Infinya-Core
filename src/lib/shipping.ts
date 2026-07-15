@@ -710,7 +710,7 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
   return originFallback === "BLING" ? "Pedido integrado" : originFallback;
 }
 
-function extractMarketplace(payload: Record<string, unknown>) {
+export function extractMarketplace(payload: Record<string, unknown>) {
   return readMarketplaceDisplay(payload);
 }
 
