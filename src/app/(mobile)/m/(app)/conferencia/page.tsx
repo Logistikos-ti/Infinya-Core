@@ -221,9 +221,9 @@ export default async function MobileConferenceQueuePage({
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                        Plataforma
+                        Marketplace
                       </p>
-                      <p className="truncate text-sm font-medium text-slate-100">{order.externalNumber}</p>
+                      <p className="truncate text-sm font-medium text-slate-100">{order.marketplace}</p>
                       <p className="mt-1 text-[11px] text-slate-400">Criado em {order.createdAt}</p>
                     </div>
                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200">

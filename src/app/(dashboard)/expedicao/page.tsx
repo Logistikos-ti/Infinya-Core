@@ -388,7 +388,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                     <Link href={`/expedicao/${order.id}`} className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
                       {order.displayNumber}
                     </Link>
-                    <div className="text-xs text-slate-500 mt-0.5">Plataforma: {order.externalNumber || '-'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">Marketplace: {order.marketplace || '-'}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Código técnico: {order.code || '-'}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Criado em: {order.createdAt}</div>
                     <div className="mt-1">

@@ -124,7 +124,7 @@ export function ShippingPickingWaveSelector({
                   </p>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
                     <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
-                      Plataforma: {order.externalNumber}
+                      Marketplace: {order.marketplace}
                     </span>
                     <span className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 dark:border-zinc-800 dark:bg-zinc-800/50">
                       Código técnico: {order.code}
