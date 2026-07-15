@@ -564,7 +564,7 @@ export function ShippingConferencePanel({
 
         <form
           action={saveShippingConferenceAction}
-          className="space-y-5 pb-40"
+          className="space-y-5"
           aria-busy={isSubmitting}
           onSubmit={() => {
             resetTimer();
@@ -694,7 +694,7 @@ export function ShippingConferencePanel({
           />
 
           {/* Sticky Desktop Actions */}
-          <div className="fixed bottom-4 left-1/2 z-40 w-[min(1100px,calc(100vw-2rem))] -translate-x-1/2 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/92 dark:bg-zinc-900/92 p-5 shadow-2xl backdrop-blur-xl transition-all">
+          <div className="mt-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-xl backdrop-blur-xl transition-all">
             <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
               <span className="rounded-xl bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 font-bold text-primary-700 dark:text-primary-400">
                 {completionPercent}% conferido
