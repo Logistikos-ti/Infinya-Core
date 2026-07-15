@@ -568,8 +568,7 @@ export function ProdutoForm({
         </div>
 
         {/* PREVIEW COLUMN */}
-        <div className="w-full shrink-0">
-          <div className="sticky top-6 flex flex-col gap-4">
+        <div className="w-full shrink-0 sticky top-6 self-start flex flex-col gap-4">
             <span className="text-[12px] font-bold text-slate-500 tracking-wider uppercase mb-[-4px]">PRÉ-VISUALIZAÇÃO</span>
           
           <div className="rounded-[20px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm">
@@ -684,7 +683,6 @@ export function ProdutoForm({
                 </div>
               ))}
             </div>
-          </div>
           </div>
         </div>
       </div>
