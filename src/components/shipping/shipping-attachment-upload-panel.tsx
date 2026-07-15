@@ -84,7 +84,7 @@ export function ShippingAttachmentUploadPanel({
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_auto]">
+      <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
         <div className="space-y-2">
           <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Tipo do anexo
@@ -149,12 +149,12 @@ export function ShippingAttachmentUploadPanel({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-cyan-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500 dark:hover:bg-slate-800"
+            className="flex min-h-[72px] w-full items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-cyan-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500 dark:hover:bg-slate-800"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
               {arquivo ? <Paperclip className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {arquivo ? arquivo.name : "Selecionar arquivo"}
               </p>
@@ -166,17 +166,17 @@ export function ShippingAttachmentUploadPanel({
             </div>
           </button>
         </div>
+      </div>
 
-        <div className="flex items-end">
-          <button
-            type="submit"
-            disabled={!arquivo || isUploading}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
-          >
-            <UploadCloud className="h-4 w-4" />
-            {isUploading ? "Enviando..." : "Anexar documento"}
-          </button>
-        </div>
+      <div className="flex justify-start xl:justify-end">
+        <button
+          type="submit"
+          disabled={!arquivo || isUploading}
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 xl:w-auto dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+        >
+          <UploadCloud className="h-4 w-4" />
+          {isUploading ? "Enviando..." : "Anexar documento"}
+        </button>
       </div>
 
       {message ? (
