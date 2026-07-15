@@ -26,33 +26,48 @@ export function ThemeToggle() {
       title="Alternar tema"
       aria-label="Alternar tema"
       className={cn(
-        "relative w-[68px] h-[32px] p-0 rounded-full cursor-pointer transition-colors duration-300 ease-in-out border",
+        "relative w-[68px] h-[32px] p-0 rounded-full cursor-pointer transition-all duration-300 ease-in-out border",
         isDark 
-          ? "bg-slate-800 border-slate-700 shadow-[inset_0_1px_3px_rgba(0,0,0,0.4)]" 
-          : "bg-slate-200 border-slate-300 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)]"
+          ? "bg-[#0A1120] border-[#1E293B] shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)]" 
+          : "bg-slate-100 border-slate-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)]"
       )}
     >
+      {/* Background Track Icons */}
       <Moon 
         className={cn(
-          "absolute top-1/2 left-[12px] -translate-y-1/2 w-3 h-3 transition-colors duration-300 ease-in-out",
-          isDark ? "text-slate-400" : "text-slate-400/40"
+          "absolute top-1/2 left-[12px] -translate-y-1/2 w-[14px] h-[14px] transition-all duration-300 ease-in-out",
+          isDark ? "opacity-0" : "text-slate-400 opacity-100"
         )} 
       />
       <Sun 
         className={cn(
-          "absolute top-1/2 right-[12px] -translate-y-1/2 w-3 h-3 transition-colors duration-300 ease-in-out",
-          !isDark ? "text-amber-500" : "text-slate-400/40"
+          "absolute top-1/2 right-[12px] -translate-y-1/2 w-[14px] h-[14px] transition-all duration-300 ease-in-out",
+          !isDark ? "opacity-0" : "text-slate-600 opacity-100"
         )} 
       />
+
+      {/* Sliding Knob */}
       <div 
         className={cn(
-          "absolute top-[3px] left-[3px] w-[24px] h-[24px] flex items-center justify-center rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.35)] transition-transform duration-[320ms] ease-[cubic-bezier(0.4,1.3,0.5,1)]",
+          "absolute top-[3px] left-[3px] w-[24px] h-[24px] flex items-center justify-center rounded-full transition-all duration-[320ms] ease-[cubic-bezier(0.4,1.3,0.5,1)]",
           isDark 
-            ? "translate-x-[36px] bg-slate-900 text-slate-200" 
-            : "translate-x-0 bg-white text-slate-600"
+            ? "translate-x-0 bg-[#131E32] shadow-[0_1px_4px_rgba(0,0,0,0.5)] border border-white/5" 
+            : "translate-x-[36px] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.15)] border border-slate-100"
         )}
       >
-        {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+        {/* Knob Icons */}
+        <Moon 
+          className={cn(
+            "absolute w-3.5 h-3.5 transition-all duration-300",
+            isDark ? "text-blue-500 opacity-100 scale-100" : "text-transparent opacity-0 scale-50"
+          )} 
+        />
+        <Sun 
+          className={cn(
+            "absolute w-3.5 h-3.5 transition-all duration-300",
+            !isDark ? "text-amber-500 opacity-100 scale-100" : "text-transparent opacity-0 scale-50"
+          )} 
+        />
       </div>
     </button>
   );
