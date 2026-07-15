@@ -109,6 +109,18 @@ export function ShippingConferencePanel({
     return () => window.clearTimeout(focusTimer);
   }, [cameraEnabled, operatorMode]);
 
+  useEffect(() => {
+    if (!isSubmitting) {
+      return;
+    }
+
+    const submitTimeout = window.setTimeout(() => {
+      setIsSubmitting(false);
+    }, 15000);
+
+    return () => window.clearTimeout(submitTimeout);
+  }, [isSubmitting]);
+
   function focusScanInput() {
     requestAnimationFrame(() => {
       scanInputRef.current?.focus();
@@ -539,11 +551,20 @@ export function ShippingConferencePanel({
           </div>
         </div>
 
-        <form action={saveShippingConferenceAction} className="space-y-5" aria-busy={isSubmitting}>
+        <form
+          action={saveShippingConferenceAction}
+          className="space-y-5"
+          aria-busy={isSubmitting}
+          onSubmit={() => {
+            resetTimer();
+            setIsSubmitting(true);
+          }}
+        >
           <input type="hidden" name="orderId" value={order.id} />
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
+          <input type="hidden" name="completeRedirectTo" value={`${redirectBase}?feedback=concluido`} />
 
           <div className="overflow-x-auto rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm">
             <table className="min-w-full text-left text-sm">
@@ -675,7 +696,6 @@ export function ShippingConferencePanel({
                 value="complete"
                 className={`h-12 rounded-xl bg-infinya-gradient text-white hover:opacity-90 shadow-md shadow-primary-500/20 transition-all font-bold px-6 ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
                 disabled={isSubmitting}
-                onClick={() => setIsSubmitting(true)}
               >
                 {isSubmitting ? "Processando..." : "Concluir Conferência"}
               </Button>
