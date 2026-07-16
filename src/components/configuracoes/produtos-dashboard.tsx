@@ -587,46 +587,12 @@ export function ProdutosDashboard({
                   </div>
                 ))}
               </div>
-
-              {/* stock by location */}
-              {selectedData.stock > 0 && (
-                <div className="mb-6 flex flex-col gap-3">
-                  <span className={`${spaceGrotesk.className} text-sm font-bold`}>Estoque por endereço</span>
-                  <div className="flex flex-col gap-2">
-                    {selectedData.locs.map((l: {code: string, qty: string}, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: t.border, background: t.cardBg }}>
-                        <span className={`${spaceGrotesk.className} text-[13.5px] font-bold`}>{l.code}</span>
-                        <span className="text-[13px]" style={{ color: t.textSub }}>{l.qty}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* movements */}
-              <div className="flex flex-col gap-3.5">
-                <span className={`${spaceGrotesk.className} text-sm font-bold`}>Movimentações recentes</span>
-                <div className="flex flex-col gap-0.5">
-                  {selectedData.moves.map((m: {title: string, sub: string, dot: string, halo: string}, i: number) => (
-                    <div key={i} className="flex gap-3.5">
-                      <div className="flex flex-col items-center w-3">
-                        <span className="w-2.5 h-2.5 rounded-full mt-1" style={{ background: m.dot, boxShadow: `0 0 0 3px ${m.halo}` }} />
-                        <span className="flex-1 w-[2px]" style={{ background: t.border }} />
-                      </div>
-                      <div className="flex flex-col gap-0.5 pb-4">
-                        <span className="text-[13.5px] font-bold">{m.title}</span>
-                        <span className="text-[12.5px]" style={{ color: t.textSub }}>{m.sub}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="shrink-0 p-4 pt-4 border-t flex flex-wrap gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
               <Link
                 href={`/configuracoes/produtos/${selectedData.id}/editar`}
-                className="flex-1 h-11 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex-1 h-11 flex items-center justify-center rounded-xl border-none bg-slate-900 text-[14px] font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
                 style={{ textDecoration: 'none' }}
               >
                 <PencilLine className="h-4 w-4 mr-2" />
