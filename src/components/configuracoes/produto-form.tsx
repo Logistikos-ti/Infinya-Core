@@ -814,6 +814,20 @@ export function ProdutoForm({
                 />
               </label>
 
+              {hasCurrentImage ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImagePreviewUrl("");
+                    setRemoveImage(true);
+                  }}
+                  className="absolute bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-xl border border-rose-200/70 bg-white/92 px-3 py-2 text-[12.5px] font-bold text-rose-600 shadow-sm backdrop-blur-md transition hover:border-rose-300 hover:bg-white dark:border-rose-500/30 dark:bg-slate-950/90 dark:text-rose-300 dark:hover:border-rose-400/40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remover foto
+                </button>
+              ) : null}
+
               <div className="absolute top-4 right-4 z-10">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-bold text-white shadow-sm backdrop-blur-md"
                       style={{ background: ativo ? '#10B981' : 'rgba(100,116,139,0.9)' }}>
