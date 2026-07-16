@@ -7,6 +7,10 @@ import {
   normalizeConferenceKitProgress,
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
+import {
+  resolveCommercialKitMatch,
+  type CommercialKitRuleDefinition,
+} from "@/lib/commercial-kit-rules";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { extractMarketplace, formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -153,9 +157,19 @@ export async function listShippingConferenceOrdersFromDb(
     throw new Error(`Não foi possível listar os pedidos em conferência: ${error.message}`);
   }
 
-  const orders = ((data ?? []) as RawConferenceOrderRow[])
-    .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes))
-    .map(mapConferenceOrder);
+  const rawOrders = ((data ?? []) as RawConferenceOrderRow[]).filter(
+    (order) => !isBlingWebhookSummaryOrder(order.observacoes),
+  );
+  const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(
+    supabase,
+    rawOrders,
+  );
+  const orders = rawOrders.map((order) =>
+    mapConferenceOrder(
+      order,
+      resolveCommercialKitRulesForOrder(order.depositante_id, commercialKitRulesByDepositante),
+    ),
+  );
 
   return orders.filter((order) => {
     if (!filters?.operatorId) {
@@ -186,7 +200,16 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
     return null;
   }
 
-  return mapConferenceOrder(data as RawConferenceOrderRow);
+  const rawOrder = data as RawConferenceOrderRow;
+  const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(
+    supabase,
+    [rawOrder],
+  );
+
+  return mapConferenceOrder(
+    rawOrder,
+    resolveCommercialKitRulesForOrder(rawOrder.depositante_id, commercialKitRulesByDepositante),
+  );
 }
 
 function buildConferenceOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
@@ -199,10 +222,13 @@ function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
   return observacoes?.trim() === "Pedido resumido criado a partir do webhook do Bling.";
 }
 
-function mapConferenceOrder(order: RawConferenceOrderRow) {
+function mapConferenceOrder(
+  order: RawConferenceOrderRow,
+  commercialKitRules: CommercialKitRuleDefinition[],
+) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const conference = extractConferencePayload(payload);
-  const items = (order.itens ?? []).map(mapConferenceItem);
+  const items = (order.itens ?? []).map((item) => mapConferenceItem(item, commercialKitRules));
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
   const totalConfirmed = items.reduce((sum, item) => sum + item.confirmedQuantity, 0);
   const pendingUnits = items.reduce((sum, item) => sum + item.pendingQuantity, 0);
@@ -244,33 +270,43 @@ function mapConferenceOrder(order: RawConferenceOrderRow) {
   } satisfies ShippingConferenceOrder;
 }
 
-function mapConferenceItem(item: RawConferenceItemRow) {
-  const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
-  const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
-  const componentDefinitions = normalizeKitComponentDefinitions(item.payload_origem);
-  const isKit = isKitProduct(isPayloadKit(item.payload_origem) ? "KIT" : "SIMPLES", componentDefinitions);
+function mapConferenceItem(
+  item: RawConferenceItemRow,
+  commercialKitRules: CommercialKitRuleDefinition[],
+) {
+  const hydratedItem = hydrateConferenceItemWithCommercialKit(item, commercialKitRules);
+  const payload: Record<string, unknown> = isRecord(hydratedItem.payload_origem)
+    ? hydratedItem.payload_origem
+    : {};
+  const conferenceSource = payload["conferencia"];
+  const conference = isRecord(conferenceSource) ? conferenceSource : {};
+  const componentDefinitions = normalizeKitComponentDefinitions(hydratedItem.payload_origem);
+  const isKit = isKitProduct(
+    isPayloadKit(hydratedItem.payload_origem) ? "KIT" : "SIMPLES",
+    componentDefinitions,
+  );
   const requestedKits = Number(item.quantidade ?? 0);
-  const itemCode = item.codigo_produto?.trim() || "-";
-  const itemSku = item.sku?.trim() || "-";
-  const itemBarcode = item.produto?.codigo_externo?.trim() || "-";
+  const itemCode = hydratedItem.codigo_produto?.trim() || "-";
+  const itemSku = hydratedItem.sku?.trim() || "-";
+  const itemBarcode = hydratedItem.produto?.codigo_externo?.trim() || "-";
 
   if (!isKit) {
     const requestedQuantity = requestedKits;
     const confirmedQuantity = Number(readString(conference.quantidadeConferida) ?? 0);
 
     return {
-      id: item.id,
-      productId: item.produto_id,
-      externalReference: item.referencia_externa?.trim() || "-",
+      id: hydratedItem.id,
+      productId: hydratedItem.produto_id,
+      externalReference: hydratedItem.referencia_externa?.trim() || "-",
       code: itemCode,
       sku: itemSku,
       barcode: itemBarcode,
-      name: item.nome,
-      unit: item.unidade?.trim() || "UN",
+      name: hydratedItem.nome,
+      unit: hydratedItem.unidade?.trim() || "UN",
       isKit: false,
       requestedKits,
       requestedQuantity,
-      separatedQuantity: Number(item.quantidade_separada ?? 0),
+      separatedQuantity: Number(hydratedItem.quantidade_separada ?? 0),
       confirmedQuantity,
       pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
       hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
@@ -298,14 +334,14 @@ function mapConferenceItem(item: RawConferenceItemRow) {
   });
 
   return {
-    id: item.id,
-    productId: item.produto_id,
-    externalReference: item.referencia_externa?.trim() || "-",
+    id: hydratedItem.id,
+    productId: hydratedItem.produto_id,
+    externalReference: hydratedItem.referencia_externa?.trim() || "-",
     code: itemCode,
     sku: itemSku,
     barcode: itemBarcode,
-    name: item.nome,
-    unit: item.unidade?.trim() || "UN",
+    name: hydratedItem.nome,
+    unit: hydratedItem.unidade?.trim() || "UN",
     isKit: true,
     requestedKits,
     requestedQuantity: totals.operationalRequestedQuantity,
@@ -350,6 +386,126 @@ function normalizeKitComponentDefinitions(payload: Record<string, unknown> | nul
       } satisfies ProductKitComponentDefinition;
     })
     .filter((item): item is ProductKitComponentDefinition => Boolean(item));
+}
+
+async function loadCommercialKitRulesByDepositante(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: RawConferenceOrderRow[],
+) {
+  if (!orders.length) {
+    return new Map<string, CommercialKitRuleDefinition[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("produto_kit_comercial_regras")
+    .select(
+      "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo)",
+    )
+    .eq("ativo", true);
+
+  if (error) {
+    throw new Error(
+      `NÃ£o foi possÃ­vel carregar as regras comerciais de kit para conferÃªncia: ${error.message}`,
+    );
+  }
+
+  const grouped = new Map<string, CommercialKitRuleDefinition[]>();
+
+  for (const entry of ((data ?? []) as Array<{
+    id: string;
+    depositante_id: string;
+    produto_base_id: string;
+    texto_gatilho: string;
+    quantidade_operacional: number | string;
+    ativo: boolean;
+    produto:
+      | Array<{
+          id: string;
+          nome: string;
+          sku: string | null;
+          codigo_interno: string | null;
+          codigo_externo: string | null;
+        }>
+      | {
+          id: string;
+          nome: string;
+          sku: string | null;
+          codigo_interno: string | null;
+          codigo_externo: string | null;
+        }
+      | null;
+  }>)) {
+    const produto = Array.isArray(entry.produto) ? (entry.produto[0] ?? null) : entry.produto;
+    if (!produto) {
+      continue;
+    }
+
+    const rule = {
+      id: entry.id,
+      depositanteId: entry.depositante_id,
+      productId: entry.produto_base_id,
+      productName: produto.nome ?? "",
+      productSku: produto.sku ?? null,
+      productInternalCode: produto.codigo_interno ?? null,
+      productBarcode: produto.codigo_externo ?? null,
+      matchText: entry.texto_gatilho,
+      operationalQuantity: Number(entry.quantidade_operacional ?? 0),
+      active: entry.ativo,
+    } satisfies CommercialKitRuleDefinition;
+
+    const current = grouped.get(entry.depositante_id) ?? [];
+    current.push(rule);
+    grouped.set(entry.depositante_id, current);
+  }
+
+  return grouped;
+}
+
+function resolveCommercialKitRulesForOrder(
+  orderDepositanteId: string,
+  groupedRules: Map<string, CommercialKitRuleDefinition[]>,
+) {
+  const preferredRules = groupedRules.get(orderDepositanteId) ?? [];
+  const fallbackRules = [...groupedRules.entries()]
+    .filter(([depositanteId]) => depositanteId !== orderDepositanteId)
+    .flatMap(([, rules]) => rules);
+
+  return [...preferredRules, ...fallbackRules];
+}
+
+function hydrateConferenceItemWithCommercialKit(
+  item: RawConferenceItemRow,
+  commercialKitRules: CommercialKitRuleDefinition[],
+) {
+  const currentPayload = isRecord(item.payload_origem) ? item.payload_origem : {};
+  const resolvedMatch = resolveCommercialKitMatch({
+    itemCode: item.codigo_produto,
+    itemDescription: item.nome,
+    existingPayload: currentPayload,
+    matchedProductByCode: null,
+    rules: commercialKitRules,
+  });
+
+  if (!resolvedMatch.usesCommercialKitRule) {
+    return item;
+  }
+
+  return {
+    ...item,
+    produto_id: item.produto_id ?? resolvedMatch.matchedProduct?.id ?? null,
+    sku:
+      item.sku?.trim() ||
+      resolvedMatch.matchedProduct?.sku ||
+      resolvedMatch.matchedProduct?.codigo_interno ||
+      item.sku,
+    payload_origem: resolvedMatch.payload,
+    produto: {
+      codigo_externo:
+        item.produto?.codigo_externo?.trim() ||
+        resolvedMatch.matchedProduct?.codigo_externo ||
+        null,
+    },
+  } satisfies RawConferenceItemRow;
 }
 
 function normalizeInternalOrderNumber(value: number | string | null | undefined) {
