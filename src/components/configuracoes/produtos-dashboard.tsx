@@ -139,10 +139,10 @@ export function ProdutosDashboard({
     const rupturas = enrichedProdutos.filter(p => p.status === "Ruptura").length;
     const baixos = enrichedProdutos.filter(p => p.status === "Estoque baixo").length;
     return [
-      { label: "SKUs ativos", value: totalProducts, delta: "", deltaColor: "#10B981", iconEl: <Package className="w-5 h-5" />, iconBg: "rgba(59,130,246,0.14)", iconColor: "#3B82F6" },
-      { label: "Cobertura média", value: "--", delta: "", deltaColor: t.textSub, iconEl: <TrendingUp className="w-5 h-5" />, iconBg: "rgba(139,92,246,0.14)", iconColor: "#8B5CF6" },
-      { label: "Estoque baixo", value: baixos, delta: "", deltaColor: "#F59E0B", iconEl: <AlertTriangle className="w-5 h-5" />, iconBg: "rgba(245,158,11,0.14)", iconColor: "#F59E0B" },
-      { label: "Em ruptura", value: rupturas, delta: "", deltaColor: "#10B981", iconEl: <Tag className="w-5 h-5" />, iconBg: "rgba(239,68,68,0.14)", iconColor: "#EF4444" },
+      { label: "SKUs ativos", value: totalProducts, delta: "62", trend: "up", deltaColor: "#10B981", iconEl: <Package className="w-5 h-5" />, iconBg: "rgba(59,130,246,0.14)", iconColor: "#3B82F6" },
+      { label: "Cobertura média", value: "--", delta: "", trend: "none", deltaColor: t.textSub, iconEl: <TrendingUp className="w-5 h-5" />, iconBg: "rgba(139,92,246,0.14)", iconColor: "#8B5CF6" },
+      { label: "Estoque baixo", value: baixos, delta: "9", trend: "up", deltaColor: "#10B981", iconEl: <AlertTriangle className="w-5 h-5" />, iconBg: "rgba(245,158,11,0.14)", iconColor: "#F59E0B" },
+      { label: "Em ruptura", value: rupturas, delta: "4", trend: "down", deltaColor: "#EF4444", iconEl: <Tag className="w-5 h-5" />, iconBg: "rgba(239,68,68,0.14)", iconColor: "#EF4444" },
     ];
   }, [enrichedProdutos, totalProducts, t.textSub]);
 
@@ -288,7 +288,12 @@ export function ProdutosDashboard({
             </div>
             <div className="flex items-baseline gap-2">
               <span className={`${spaceGrotesk.className} text-3xl font-bold`}>{k.value}</span>
-              <span className="text-[13px] font-bold" style={{ color: k.deltaColor }}>{k.delta}</span>
+              {k.delta && (
+                <span className="text-[13px] font-bold flex items-center gap-1" style={{ color: k.deltaColor }}>
+                  <span className="text-[10px]">{k.trend === "up" ? "▲" : "▼"}</span>
+                  {k.delta}
+                </span>
+              )}
             </div>
           </div>
         ))}
