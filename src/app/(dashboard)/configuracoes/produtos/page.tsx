@@ -88,6 +88,32 @@ export default async function ConfiguracoesProdutosPage({
 
   const [{ data: products, count }] = await Promise.all([productsQuery]);
 
+  // Calculate global KPIs for active products
+  const { data: allActiveProducts } = await adminSupabase
+    .from("produtos")
+    .select("id, estoque_minimo")
+    .eq("ativo", true);
+
+  const { data: allStock } = await adminSupabase
+    .from("estoque")
+    .select("produto_id, quantidade");
+
+  const globalStockMap = (allStock || []).reduce((acc, curr) => {
+    const qty = Number(curr.quantidade) || 0;
+    acc[curr.produto_id] = (acc[curr.produto_id] || 0) + qty;
+    return acc;
+  }, {} as Record<string, number>);
+
+  let globalBaixos = 0;
+  let globalRupturas = 0;
+
+  (allActiveProducts || []).forEach(p => {
+    const s = globalStockMap[p.id] || 0;
+    const min = p.estoque_minimo || 0;
+    if (s === 0) globalRupturas++;
+    else if (min > 0 && s < min) globalBaixos++;
+  });
+
   const totalProducts = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
   const currentPage = Math.min(page, totalPages);
@@ -162,8 +188,10 @@ export default async function ConfiguracoesProdutosPage({
       ) : null}
 
       <ProdutosDashboard
-        produtos={mappedProducts as unknown as React.ComponentProps<typeof ProdutosDashboard>["produtos"]}
+        produtos={mappedProducts}
         totalProducts={totalProducts}
+        globalBaixos={globalBaixos}
+        globalRupturas={globalRupturas}
         formSlot={
           <Link href="/configuracoes/produtos/novo">
             <button className="h-11 px-5 border-none rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] flex items-center gap-2 transition-transform hover:-translate-y-[1px]">
