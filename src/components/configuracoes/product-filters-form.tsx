@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   FancySelectInput,
@@ -38,21 +38,24 @@ export function ProductFiltersForm({
     <form
       method="get"
       action="/configuracoes/produtos"
-      className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/50"
+      className="p-5 rounded-[20px] bg-white/60 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 shadow-sm backdrop-blur-md flex flex-col gap-4"
     >
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_0.9fr_auto]">
-        <label className="space-y-1">
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Busca
+      <div className="flex items-center gap-2 text-[14px] font-bold text-slate-900 dark:text-slate-100 mb-1">
+        <Filter className="w-4 h-4 text-violet-500" /> Filtros e Busca
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.6fr_1fr_0.8fr_0.8fr_0.9fr_auto] items-end">
+        <label className="space-y-1.5 flex-1">
+          <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Busca rápida
           </span>
-          <div className="flex h-[52px] items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-[0_10px_35px_rgba(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-950">
+          <div className="flex h-[52px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 dark:bg-slate-950/50 px-3 transition-colors focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 dark:border-slate-800">
             <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             <input
               type="text"
               name="q"
               defaultValue={searchTerm}
               placeholder="Nome, SKU, codigo interno ou EAN"
-              className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="w-full border-0 bg-transparent text-[14px] font-medium outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-600"
             />
           </div>
         </label>
@@ -116,12 +119,12 @@ export function ProductFiltersForm({
               { value: "50", label: "50 / pagina" },
             ]}
           />
-          <Button type="submit" className="h-[52px] bg-slate-950 px-5 text-white hover:bg-slate-800">
+          <Button type="submit" className="h-[52px] rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 font-bold text-white hover:from-violet-700 hover:to-indigo-700 border-0 shadow-sm shadow-violet-500/20">
             Filtrar
           </Button>
           <Link
             href="/configuracoes/produtos"
-            className="inline-flex h-[52px] items-center justify-center rounded-2xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+            className="inline-flex h-[52px] items-center justify-center rounded-2xl border border-slate-200/60 bg-white/50 px-5 text-[14px] font-bold text-slate-700 transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200 dark:hover:bg-slate-800 shadow-sm"
           >
             Limpar
           </Link>

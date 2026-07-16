@@ -172,20 +172,18 @@ export default async function ConfiguracoesProdutosPage({
           </Link>
         }
         filtersSlot={
-          <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <ProductFiltersForm
-              searchTerm={searchTerm}
-              depositante={depositanteFiltroEfetivo}
-              status={statusFiltro}
-              metodo={metodoFiltro}
-              unidade={unidadeFiltro}
-              perPage={String(perPage)}
-              depositantes={visibleDepositantes.map((depositante) => ({
-                value: depositante.id,
-                label: depositante.nome,
-              }))}
-            />
-          </div>
+          <ProductFiltersForm
+            searchTerm={searchTerm}
+            depositante={depositanteFiltroEfetivo}
+            status={statusFiltro}
+            metodo={metodoFiltro}
+            unidade={unidadeFiltro}
+            perPage={String(perPage)}
+            depositantes={visibleDepositantes.map((depositante) => ({
+              value: depositante.id,
+              label: depositante.nome,
+            }))}
+          />
         }
         paginationSlot={
           <div className="flex flex-col gap-3 rounded-2xl bg-transparent px-4 py-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:justify-between">

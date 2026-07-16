@@ -275,6 +275,8 @@ export function ProdutosDashboard({
         </div>
       </div>
 
+      {filtersSlot && <div className="mb-6">{filtersSlot}</div>}
+
       {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {kpis.map((k, i) => (
@@ -324,8 +326,6 @@ export function ProdutosDashboard({
           );
         })}
       </div>
-
-      {filtersSlot && <div className="mb-6">{filtersSlot}</div>}
 
       {/* GALLERY VIEW */}
       {view === "gallery" && (
