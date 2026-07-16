@@ -221,7 +221,7 @@ export function ProdutosDashboard({
       setSelectedData(data);
 
       fetchProdutoDrawerDetails(p.id).then(({ locs, moves }) => {
-        setSelectedData(prev => prev ? { ...prev, locs, moves } : null);
+        setSelectedData((prev: any) => prev ? { ...prev, locs, moves } : null);
       });
     } else {
       setSelectedData(null);
