@@ -15,15 +15,19 @@ type MobileEditarProdutoPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    returnPath?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function MobileEditarProdutoPage({ params }: MobileEditarProdutoPageProps) {
+export default async function MobileEditarProdutoPage({ params, searchParams }: MobileEditarProdutoPageProps) {
   noStore();
   const user = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(user);
   const { id } = await params;
+  const { returnPath } = await searchParams;
   const supabase = createSupabaseAdminClient();
 
   const [
@@ -104,7 +108,7 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
         productKitEnabled={false}
         commercialKitEnabled
         compactMode={compactMode}
-        returnPath="/m/produtos"
+        returnPath={returnPath ?? "/m/produtos"}
         defaultValues={{
           id: product.id,
           depositanteId: product.depositante_id,

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -60,6 +61,8 @@ export function ProdutosDashboard({
 }: ProdutosDashboardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [view, setView] = useState<"gallery" | "table">("gallery");
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
@@ -632,7 +635,7 @@ export function ProdutosDashboard({
 
             <div className="shrink-0 p-4 pt-4 border-t grid grid-cols-2 gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
               <Link
-                href={`/configuracoes/produtos/${selectedData.id}/editar`}
+                href={`/configuracoes/produtos/${selectedData.id}/editar?returnPath=${encodeURIComponent(pathname + (searchParams.toString() ? "?" + searchParams.toString() : ""))}`}
                 prefetch={false}
                 className="flex items-center justify-center h-11 rounded-[10px] border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}

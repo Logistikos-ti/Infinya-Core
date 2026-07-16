@@ -30,6 +30,11 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
   const statusFiltro = params?.status?.trim() ?? "ativos";
   const supabase = createSupabaseAdminClient();
 
+  const searchParamsEntries = new URLSearchParams();
+  if (searchTerm) searchParamsEntries.set("q", searchTerm);
+  if (depositanteFiltro) searchParamsEntries.set("depositante", depositanteFiltro);
+  if (statusFiltro && statusFiltro !== "ativos") searchParamsEntries.set("status", statusFiltro);
+
   const { data: rawDepositantes } = await supabase
     .from("depositantes")
     .select("id, nome")
@@ -206,7 +211,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
           produtos.map((produto) => (
             <Link
               key={produto.id}
-              href={`/m/produtos/${produto.id}/editar`}
+              href={`/m/produtos/${produto.id}/editar?returnPath=${encodeURIComponent("/m/produtos" + (searchParamsEntries.toString() ? "?" + searchParamsEntries.toString() : ""))}`}
               prefetch={false}
               className="mobile-action-card block rounded-[28px] p-4 transition hover:-translate-y-0.5"
             >

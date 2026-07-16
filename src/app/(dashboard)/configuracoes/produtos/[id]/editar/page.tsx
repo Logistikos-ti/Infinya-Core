@@ -14,15 +14,19 @@ type EditarProdutoPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    returnPath?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function EditarProdutoPage({ params }: EditarProdutoPageProps) {
+export default async function EditarProdutoPage({ params, searchParams }: EditarProdutoPageProps) {
   noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(currentUser);
   const { id } = await params;
+  const { returnPath } = await searchParams;
   const adminSupabase = createSupabaseAdminClient();
 
   const [
@@ -136,6 +140,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             codigoExterno: item.codigo_externo,
           }))}
           commercialKitEnabled
+          returnPath={returnPath}
         />
       </section>
     </div>
