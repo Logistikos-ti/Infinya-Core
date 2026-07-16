@@ -396,6 +396,130 @@ export function ProdutoForm({
           </div>
 
           {/* Logística */}
+          {commercialKitEnabled && (
+            <div className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
+              <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-fuchsia-500/10 text-fuchsia-500">
+                  <Package className="w-4 h-4" />
+                </span>
+                <div className="flex flex-col">
+                  <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>
+                    Regra comercial de kit
+                  </span>
+                  <span className="text-[12.5px] text-slate-500">
+                    Transforma um item comercial em múltiplas bipagens do produto unitário.
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-5 flex flex-col gap-4">
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 px-4 py-3 text-[13px] text-slate-600 dark:text-slate-300">
+                  Use este bloco quando o marketplace ou ERP vender um kit, mas a operação separar o item unitário.
+                  Exemplo: <strong>&quot;kit c/ 2 caldo culinário&quot;</strong> com <strong>2</strong> bipagens.
+                </div>
+
+                {commercialKitRules.length === 0 ? (
+                  <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 px-5 py-6 text-center text-[13px] font-medium text-slate-400">
+                    Nenhuma regra comercial cadastrada.
+                  </div>
+                ) : null}
+
+                {commercialKitRules.map((rule, index) => (
+                  <div
+                    key={rule.key}
+                    className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:grid-cols-[minmax(0,1fr)_150px_52px]"
+                  >
+                    <label className="flex flex-col gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Texto que chega no pedido
+                      </span>
+                      <input
+                        type="text"
+                        value={rule.matchText}
+                        onChange={(event) =>
+                          setCommercialKitRules((current) =>
+                            current.map((item, currentIndex) =>
+                              currentIndex === index ? { ...item, matchText: event.target.value } : item,
+                            ),
+                          )
+                        }
+                        placeholder="Ex: kit c/ 2 caldo culinário de legumes sem gluten"
+                        className={cn(
+                          spaceGrotesk.className,
+                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-medium outline-none focus:border-fuchsia-500",
+                        )}
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Bipagens do unitário
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={rule.operationalQuantity}
+                        onChange={(event) =>
+                          setCommercialKitRules((current) =>
+                            current.map((item, currentIndex) =>
+                              currentIndex === index
+                                ? {
+                                    ...item,
+                                    operationalQuantity: Math.max(1, Number(event.target.value) || 1),
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className={cn(
+                          spaceGrotesk.className,
+                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-bold outline-none focus:border-fuchsia-500",
+                        )}
+                      />
+                    </label>
+
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCommercialKitRules((current) =>
+                            current.filter((_, currentIndex) => currentIndex !== index),
+                          )
+                        }
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:hover:bg-rose-950/30"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCommercialKitRules((current) => [
+                        ...current,
+                        {
+                          id: `new-${Date.now()}`,
+                          key: `new-${Date.now()}`,
+                          matchText: "",
+                          operationalQuantity: 2,
+                        },
+                      ])
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-[13px] font-bold text-fuchsia-700 transition-colors hover:bg-fuchsia-100 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/20 dark:text-fuchsia-300 dark:hover:bg-fuchsia-950/30"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar regra comercial
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+
           <div id="log" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
             <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
               <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-500/10 text-violet-500"><Box className="w-4 h-4"/></span>
@@ -652,129 +776,6 @@ export function ProdutoForm({
             </div>
           )}
 
-          {commercialKitEnabled && (
-            <div className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
-              <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-fuchsia-500/10 text-fuchsia-500">
-                  <Package className="w-4 h-4" />
-                </span>
-                <div className="flex flex-col">
-                  <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>
-                    Regra comercial de kit
-                  </span>
-                  <span className="text-[12.5px] text-slate-500">
-                    Transforma um item comercial em múltiplas bipagens do produto unitário.
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-5 flex flex-col gap-4">
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 px-4 py-3 text-[13px] text-slate-600 dark:text-slate-300">
-                  Use este bloco quando o marketplace ou ERP vender um kit, mas a operação separar o item unitário.
-                  Exemplo: <strong>&quot;kit c/ 2 caldo culinário&quot;</strong> com <strong>2</strong> bipagens.
-                </div>
-
-                {commercialKitRules.length === 0 ? (
-                  <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 px-5 py-6 text-center text-[13px] font-medium text-slate-400">
-                    Nenhuma regra comercial cadastrada.
-                  </div>
-                ) : null}
-
-                {commercialKitRules.map((rule, index) => (
-                  <div
-                    key={rule.key}
-                    className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 md:grid-cols-[minmax(0,1fr)_150px_52px]"
-                  >
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Texto que chega no pedido
-                      </span>
-                      <input
-                        type="text"
-                        value={rule.matchText}
-                        onChange={(event) =>
-                          setCommercialKitRules((current) =>
-                            current.map((item, currentIndex) =>
-                              currentIndex === index ? { ...item, matchText: event.target.value } : item,
-                            ),
-                          )
-                        }
-                        placeholder="Ex: kit c/ 2 caldo culinário de legumes sem gluten"
-                        className={cn(
-                          spaceGrotesk.className,
-                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-medium outline-none focus:border-fuchsia-500",
-                        )}
-                      />
-                    </label>
-
-                    <label className="flex flex-col gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Bipagens do unitário
-                      </span>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={rule.operationalQuantity}
-                        onChange={(event) =>
-                          setCommercialKitRules((current) =>
-                            current.map((item, currentIndex) =>
-                              currentIndex === index
-                                ? {
-                                    ...item,
-                                    operationalQuantity: Math.max(1, Number(event.target.value) || 1),
-                                  }
-                                : item,
-                            ),
-                          )
-                        }
-                        className={cn(
-                          spaceGrotesk.className,
-                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-bold outline-none focus:border-fuchsia-500",
-                        )}
-                      />
-                    </label>
-
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCommercialKitRules((current) =>
-                            current.filter((_, currentIndex) => currentIndex !== index),
-                          )
-                        }
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:hover:bg-rose-950/30"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCommercialKitRules((current) => [
-                        ...current,
-                        {
-                          id: `new-${Date.now()}`,
-                          key: `new-${Date.now()}`,
-                          matchText: "",
-                          operationalQuantity: 2,
-                        },
-                      ])
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-[13px] font-bold text-fuchsia-700 transition-colors hover:bg-fuchsia-100 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/20 dark:text-fuchsia-300 dark:hover:bg-fuchsia-950/30"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar regra comercial
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
           {/* FIM DA COLUNA FORM */}
         </div>
 
