@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
@@ -17,6 +18,7 @@ type MobileEditarProdutoPageProps = {
 };
 
 export default async function MobileEditarProdutoPage({ params }: MobileEditarProdutoPageProps) {
+  noStore();
   const user = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(user);
   const { id } = await params;

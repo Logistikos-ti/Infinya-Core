@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { ArrowRight, Package2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ type MobileProdutosPageProps = {
 };
 
 export default async function MobileProdutosPage({ searchParams }: MobileProdutosPageProps) {
+  noStore();
   const user = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(user);
   const params = searchParams ? await searchParams : undefined;
@@ -105,7 +107,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
         </div>
 
         <div className="mt-4">
-          <Link href="/m/produtos/novo">
+          <Link href="/m/produtos/novo" prefetch={false}>
             <Button className="h-12 w-full rounded-2xl bg-infinya-gradient text-slate-950 hover:opacity-95">
               <Plus className="h-4 w-4" />
               Novo produto
@@ -222,6 +224,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
             <Link
               key={produto.id}
               href={`/m/produtos/${produto.id}/editar`}
+              prefetch={false}
               className="mobile-action-card block rounded-[28px] p-4 transition hover:-translate-y-0.5"
             >
               <div className="flex items-start justify-between gap-3">

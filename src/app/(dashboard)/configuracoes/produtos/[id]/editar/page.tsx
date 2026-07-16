@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
@@ -16,6 +17,7 @@ type EditarProdutoPageProps = {
 };
 
 export default async function EditarProdutoPage({ params }: EditarProdutoPageProps) {
+  noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(currentUser);
   const { id } = await params;

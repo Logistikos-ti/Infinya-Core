@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
 import { ProductFiltersForm } from "@/components/configuracoes/product-filters-form";
@@ -24,6 +25,7 @@ type ConfiguracoesProdutosPageProps = {
 export default async function ConfiguracoesProdutosPage({
   searchParams,
 }: ConfiguracoesProdutosPageProps) {
+  noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(currentUser);
   const showAdvancedPanels = isAdminUser(currentUser);

@@ -633,6 +633,7 @@ export function ProdutosDashboard({
             <div className="shrink-0 p-4 pt-4 border-t grid grid-cols-2 gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
               <Link
                 href={`/configuracoes/produtos/${selectedData.id}/editar`}
+                prefetch={false}
                 className="flex items-center justify-center h-11 rounded-[10px] border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}
               >

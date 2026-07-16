@@ -131,7 +131,7 @@ export async function saveProdutoAction(
   const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
   const currentImageStoragePath =
     String(formData.get("currentImageStoragePath") ?? "").trim() || null;
-  const removeImage = formData.get("removeImage") === "on";
+  const removeImage = parseBooleanFormValue(formData.get("removeImage"));
   const imageFile = formData.get("imageFile");
   const normalizedKitComponents = productKitsEnabled
     ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
@@ -663,7 +663,8 @@ function normalizeRedirectPath(value: string) {
 
 function buildRedirectWithFeedback(redirectTo: string | null, feedback: string) {
   const basePath = redirectTo || "/configuracoes/produtos";
-  return `${basePath}?feedback=${feedback}`;
+  const separator = basePath.includes("?") ? "&" : "?";
+  return `${basePath}${separator}feedback=${feedback}&ts=${Date.now()}`;
 }
 
 function validateProdutoImageFile(file: File) {
@@ -720,8 +721,9 @@ async function resolveProdutoImageUpload({
   }
 
   const safeFileName = sanitizeFileName(imageFile.name || "produto");
+  const safeProductFolder = sanitizeFileName(productCode.toLowerCase()).replaceAll(".", "-");
   const extension = safeFileName.split(".").pop() || "png";
-  const storagePath = `${depositanteId}/${productCode.toLowerCase()}/${randomUUID()}.${extension}`;
+  const storagePath = `${depositanteId}/${safeProductFolder}/${randomUUID()}.${extension}`;
   const fileBytes = Buffer.from(await imageFile.arrayBuffer());
 
   const uploadResult = await adminSupabase.storage.from(produtosImagesBucketName).upload(storagePath, fileBytes, {
