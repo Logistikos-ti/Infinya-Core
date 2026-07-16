@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2, MoveRight } from "lucide-react";
@@ -63,6 +63,7 @@ export function ProdutosDashboard({
 
   const [view, setView] = useState<"gallery" | "table">("gallery");
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
+  const [selectedData, setSelectedData] = useState<any>(null);
 
   // Theme variables
   const t = dark
@@ -186,21 +187,6 @@ export function ProdutosDashboard({
     return "linear-gradient(90deg,#3B82F6,#8B5CF6)";
   };
 
-  const selectedData = useMemo(() => {
-    if (!selectedProduto) return null;
-    const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id);
-    if (!p) return null;
-    const color = getCatColor(p.category);
-    const ss = statusStyle(p.status);
-    const ab = abcStyle(p.abc);
-    return {
-      ...p,
-      thumbBg: `linear-gradient(140deg, ${color} 0%, ${hex2(color, 0.55)} 55%, ${hex2(color, 0.85)} 100%)`,
-      catChipBg: hex2(color, 0.15),
-      catColor: color,
-      abcBg: ab.bg,
-      abcColor: ab.color,
-      statusChipBg: ss.chipBg,
   useEffect(() => {
     if (selectedProduto) {
       const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id);
