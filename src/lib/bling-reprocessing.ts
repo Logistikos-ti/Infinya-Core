@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  type CommercialKitRuleDefinition,
+  resolveCommercialKitMatch,
+  type ProductLookupForCommercialKit,
+} from "@/lib/commercial-kit-rules";
+import {
   type BlingOAuthTokens,
   type BlingSaleOrderPayload,
   downloadBlingInvoiceXml,
@@ -163,6 +168,7 @@ async function upsertShippingOrder({
   }
 
   const productsByCode = await loadProductsByCode(adminSupabase, depositanteId, saleOrder.itens);
+  const commercialKitRules = await loadCommercialKitRules(adminSupabase, depositanteId);
   const preservedStatus = resolveShippingStatus({
     currentStatus: (existingOrder as { status?: string | null } | null)?.status ?? null,
     eventName,
@@ -214,7 +220,15 @@ async function upsertShippingOrder({
 
   if (saleOrder.itens.length) {
     const itemsPayload = saleOrder.itens.map((item, index) => {
-      const matchedProduct = matchProductByCode(productsByCode, item.codigo);
+      const matchedProductByCode = matchProductByCode(productsByCode, item.codigo);
+      const resolvedMatch = resolveCommercialKitMatch({
+        itemCode: item.codigo,
+        itemDescription: item.descricao,
+        existingPayload: item.payload,
+        matchedProductByCode,
+        rules: commercialKitRules,
+      });
+      const matchedProduct = resolvedMatch.matchedProduct;
 
       return {
         pedido_expedicao_id: savedOrder.id,
@@ -223,11 +237,11 @@ async function upsertShippingOrder({
         produto_id: matchedProduct?.id ?? null,
         codigo_produto: item.codigo,
         sku: matchedProduct?.sku ?? item.codigo,
-        nome: matchedProduct?.nome ?? item.descricao ?? `Item ${index + 1}`,
+        nome: item.descricao ?? matchedProduct?.nome ?? `Item ${index + 1}`,
         unidade: item.unidade,
         quantidade: item.quantidade,
         quantidade_separada: 0,
-        payload_origem: item.payload,
+        payload_origem: resolvedMatch.payload,
       };
     });
 
@@ -356,7 +370,7 @@ async function loadProductsByCode(
   );
 
   if (!candidateCodes.length) {
-    return [] as ProductLookupRow[];
+    return [] as ProductLookupForCommercialKit[];
   }
 
   const [internalCodes, externalCodes, skuCodes] = await Promise.all([
@@ -388,10 +402,65 @@ async function loadProductsByCode(
     uniqueMap.set(item.id, item);
   });
 
-  return Array.from(uniqueMap.values());
+  return Array.from(uniqueMap.values()) as ProductLookupForCommercialKit[];
 }
 
-function matchProductByCode(products: ProductLookupRow[], code: string | null) {
+async function loadCommercialKitRules(
+  adminSupabase: SupabaseClient,
+  depositanteId: string,
+) {
+  const { data, error } = await adminSupabase
+    .from("produto_kit_comercial_regras")
+    .select(
+      "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo)",
+    )
+    .eq("depositante_id", depositanteId)
+    .eq("ativo", true);
+
+  if (error) {
+    throw new Error(`Nao foi possivel carregar as regras comerciais de kit: ${error.message}`);
+  }
+
+  return ((data ?? []) as Array<{
+    id: string;
+    depositante_id: string;
+    produto_base_id: string;
+    texto_gatilho: string;
+    quantidade_operacional: number | string;
+    ativo: boolean;
+    produto:
+      | Array<{
+          id: string;
+          nome: string;
+          sku: string | null;
+          codigo_interno: string | null;
+          codigo_externo: string | null;
+        }>
+      | null;
+  }>)
+    .map((rule) => ({
+      ...rule,
+      produto: Array.isArray(rule.produto) ? (rule.produto[0] ?? null) : rule.produto,
+    }))
+    .filter((rule) => Boolean(rule.produto))
+    .map(
+      (rule) =>
+        ({
+          id: rule.id,
+          depositanteId: rule.depositante_id,
+          productId: rule.produto_base_id,
+          productName: rule.produto?.nome ?? "",
+          productSku: rule.produto?.sku ?? null,
+          productInternalCode: rule.produto?.codigo_interno ?? null,
+          productBarcode: rule.produto?.codigo_externo ?? null,
+          matchText: rule.texto_gatilho,
+          operationalQuantity: Number(rule.quantidade_operacional ?? 0),
+          active: rule.ativo,
+        }) satisfies CommercialKitRuleDefinition,
+    );
+}
+
+function matchProductByCode(products: ProductLookupForCommercialKit[], code: string | null) {
   if (!code) {
     return null;
   }

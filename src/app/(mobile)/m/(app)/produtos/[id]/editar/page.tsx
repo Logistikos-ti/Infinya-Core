@@ -5,6 +5,7 @@ import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import type { ProductCommercialKitRuleOption } from "@/lib/commercial-kit-rules";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
@@ -26,6 +27,7 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
     { data: productImageMeta },
     { data: depositantes },
     { data: componentOptions },
+    { data: commercialRules },
   ] = await Promise.all([
     supabase
       .from("produtos")
@@ -45,6 +47,12 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
       .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
       .eq("ativo", true)
       .order("nome"),
+    supabase
+      .from("produto_kit_comercial_regras")
+      .select("id, texto_gatilho, quantidade_operacional")
+      .eq("produto_base_id", id)
+      .eq("ativo", true)
+      .order("created_at"),
   ]);
 
   if (!product) {
@@ -90,6 +98,7 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
         key={formKey}
         depositantes={visibleDepositantes}
         productKitEnabled={false}
+        commercialKitEnabled
         compactMode={compactMode}
         returnPath="/m/produtos"
         defaultValues={{
@@ -109,6 +118,18 @@ export default async function MobileEditarProdutoPage({ params }: MobileEditarPr
           exigeLote: product.exige_lote,
           exigeValidade: product.exige_validade,
           ativo: product.ativo,
+          commercialKitRules: ((commercialRules ?? []) as Array<{
+            id: string;
+            texto_gatilho: string;
+            quantidade_operacional: number | string;
+          }>).map(
+            (rule) =>
+              ({
+                id: rule.id,
+                matchText: rule.texto_gatilho,
+                operationalQuantity: Number(rule.quantidade_operacional ?? 0),
+              }) satisfies ProductCommercialKitRuleOption,
+          ),
         }}
         productOptions={(componentOptions ?? []).map((item) => ({
           id: item.id,

@@ -3,6 +3,7 @@ import { Trash2 } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import type { ProductCommercialKitRuleOption } from "@/lib/commercial-kit-rules";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
@@ -25,6 +26,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
     { data: productImageMeta },
     { data: depositantes },
     { data: componentOptions },
+    { data: commercialRules },
   ] = await Promise.all([
     adminSupabase
       .from("produtos")
@@ -44,6 +46,12 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
       .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
       .eq("ativo", true)
       .order("nome"),
+    adminSupabase
+      .from("produto_kit_comercial_regras")
+      .select("id, texto_gatilho, quantidade_operacional")
+      .eq("produto_base_id", id)
+      .eq("ativo", true)
+      .order("created_at"),
   ]);
 
   if (!product) {
@@ -102,6 +110,18 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             exigeLote: product.exige_lote,
             exigeValidade: product.exige_validade,
             ativo: product.ativo,
+            commercialKitRules: ((commercialRules ?? []) as Array<{
+              id: string;
+              texto_gatilho: string;
+              quantidade_operacional: number | string;
+            }>).map(
+              (rule) =>
+                ({
+                  id: rule.id,
+                  matchText: rule.texto_gatilho,
+                  operationalQuantity: Number(rule.quantidade_operacional ?? 0),
+                }) satisfies ProductCommercialKitRuleOption,
+            ),
           }}
           productOptions={(componentOptions ?? []).map((item) => ({
             id: item.id,
@@ -111,6 +131,7 @@ export default async function EditarProdutoPage({ params }: EditarProdutoPagePro
             codigoInterno: item.codigo_interno,
             codigoExterno: item.codigo_externo,
           }))}
+          commercialKitEnabled
         />
       </section>
     </div>

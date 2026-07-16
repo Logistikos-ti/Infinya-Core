@@ -47,6 +47,7 @@ export default async function MobileNovoProdutoPage() {
       <ProdutoForm
         depositantes={visibleDepositantes}
         productKitEnabled={false}
+        commercialKitEnabled
         productOptions={(productOptions ?? []).map((item) => ({
           id: item.id,
           depositanteId: item.depositante_id,

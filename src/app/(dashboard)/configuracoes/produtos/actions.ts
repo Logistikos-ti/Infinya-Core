@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { normalizeCommercialKitRuleDrafts } from "@/lib/commercial-kit-rules";
 import { normalizeProductKitDrafts } from "@/lib/product-kits";
 import {
   allowedProdutoImageMimeTypes,
@@ -57,6 +58,12 @@ export async function saveProdutoAction(
   const kitComponentIds = formData.getAll("kitComponentProductId").map((value) => String(value));
   const kitComponentQuantities = formData
     .getAll("kitComponentQuantity")
+    .map((value) => String(value));
+  const commercialKitMatchTexts = formData
+    .getAll("commercialKitMatchText")
+    .map((value) => String(value));
+  const commercialKitQuantities = formData
+    .getAll("commercialKitQuantity")
     .map((value) => String(value));
 
   const parsed = produtoFormSchema.safeParse({
@@ -129,6 +136,10 @@ export async function saveProdutoAction(
   const normalizedKitComponents = productKitsEnabled
     ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
     : [];
+  const normalizedCommercialKitRules = normalizeCommercialKitRuleDrafts(
+    commercialKitMatchTexts,
+    commercialKitQuantities,
+  );
 
   if (productKitsEnabled && parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
     return {
@@ -270,6 +281,20 @@ export async function saveProdutoAction(
       }
     }
 
+    const commercialRulesError = await syncCommercialKitRules(
+      adminSupabase,
+      parsed.data.id,
+      parsed.data.depositanteId,
+      normalizedCommercialKitRules,
+    );
+
+    if (commercialRulesError) {
+      return {
+        success: false,
+        message: commercialRulesError,
+      };
+    }
+
     revalidatePath("/configuracoes/produtos");
     revalidatePath("/m/produtos");
     revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
@@ -306,6 +331,20 @@ export async function saveProdutoAction(
         message: componentsError,
       };
     }
+  }
+
+  const commercialRulesError = await syncCommercialKitRules(
+    adminSupabase,
+    insertResult.data.id,
+    parsed.data.depositanteId,
+    normalizedCommercialKitRules,
+  );
+
+  if (commercialRulesError) {
+    return {
+      success: false,
+      message: commercialRulesError,
+    };
   }
 
   revalidatePath("/configuracoes/produtos");
@@ -480,6 +519,44 @@ async function syncKitComponents(
 
   if (insertError) {
     return `Nao foi possivel salvar a composicao do kit: ${insertError.message}`;
+  }
+
+  return null;
+}
+
+async function syncCommercialKitRules(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  productId: string,
+  depositanteId: string,
+  rules: Array<{ matchText: string; operationalQuantity: number }>,
+) {
+  const { error: clearError } = await adminSupabase
+    .from("produto_kit_comercial_regras")
+    .delete()
+    .eq("produto_base_id", productId);
+
+  if (clearError) {
+    return `Nao foi possivel limpar as regras comerciais do produto: ${clearError.message}`;
+  }
+
+  if (!rules.length) {
+    return null;
+  }
+
+  const payload = rules.map((rule) => ({
+    depositante_id: depositanteId,
+    produto_base_id: productId,
+    texto_gatilho: rule.matchText,
+    quantidade_operacional: rule.operationalQuantity,
+    ativo: true,
+  }));
+
+  const { error: insertError } = await adminSupabase
+    .from("produto_kit_comercial_regras")
+    .insert(payload);
+
+  if (insertError) {
+    return `Nao foi possivel salvar as regras comerciais do produto: ${insertError.message}`;
   }
 
   return null;
