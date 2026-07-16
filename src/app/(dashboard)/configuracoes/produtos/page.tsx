@@ -91,7 +91,7 @@ export default async function ConfiguracoesProdutosPage({
   // Calculate global KPIs for active products
   const { data: allActiveProducts } = await adminSupabase
     .from("produtos")
-    .select("id, estoque_minimo")
+    .select("id, qtd_minima")
     .eq("ativo", true);
 
   const { data: allStock } = await adminSupabase
@@ -109,7 +109,7 @@ export default async function ConfiguracoesProdutosPage({
 
   (allActiveProducts || []).forEach(p => {
     const s = globalStockMap[p.id] || 0;
-    const min = p.estoque_minimo || 0;
+    const min = p.qtd_minima || 0;
     if (s === 0) globalRupturas++;
     else if (min > 0 && s < min) globalBaixos++;
   });
