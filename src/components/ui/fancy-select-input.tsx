@@ -53,7 +53,7 @@ export function FancySelectInput({
   }, []);
 
   return (
-    <div className="space-y-1" ref={containerRef}>
+    <div className="flex flex-col gap-1 relative" ref={containerRef}>
       <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {label}
       </span>
@@ -85,32 +85,30 @@ export function FancySelectInput({
       </button>
 
       {open ? (
-        <div className="relative">
-          <div className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950">
-            {options.map((option) => {
-              const selected = option.value === value;
+        <div className="absolute z-50 left-0 right-0 top-full mt-2 max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950">
+          {options.map((option) => {
+            const selected = option.value === value;
 
-              return (
-                <button
-                  key={`${name}-${option.value || "empty"}`}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition",
-                    selected
-                      ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-200"
-                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900",
-                  )}
-                >
-                  <span>{option.label}</span>
-                  {selected ? <Check className="h-4 w-4" /> : null}
-                </button>
-              );
-            })}
-          </div>
+            return (
+              <button
+                key={`${name}-${option.value || "empty"}`}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition",
+                  selected
+                    ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-200"
+                    : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900",
+                )}
+              >
+                <span>{option.label}</span>
+                {selected ? <Check className="h-4 w-4" /> : null}
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </div>
