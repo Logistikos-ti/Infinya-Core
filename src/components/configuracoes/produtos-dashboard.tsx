@@ -90,19 +90,18 @@ export function ProdutosDashboard({
   // Enriched Data
   const enrichedProdutos = useMemo(() => {
     return produtos.map((p, idx) => {
-      // Mock data for missing fields for design purposes
-      const stock = p.estoque ?? (p.ativo ? ((idx % 5 === 0) ? 0 : 10 + ((idx * 43) % 800)) : 0);
-      const min = p.estoque_minimo ?? 50;
-      const max = p.estoque_maximo ?? 1000;
+      const stock = p.estoque ?? 0;
+      const min = p.estoque_minimo ?? 0;
+      const max = p.estoque_maximo ?? 1; // avoid division by zero
       let status = "Ativo";
       if (!p.ativo) status = "Inativo";
       else if (stock === 0) status = "Ruptura";
-      else if (stock < min) status = "Estoque baixo";
+      else if (min > 0 && stock < min) status = "Estoque baixo";
 
-      const pct = Math.min(100, Math.max(0, Math.round((stock / max) * 100)));
+      const pct = max > 0 ? Math.min(100, Math.max(0, Math.round((stock / max) * 100))) : 0;
       
       const category = p.categoria || "Geral";
-      const abc = p.curva_abc || (stock > 300 ? "A" : stock > 100 ? "B" : "C");
+      const abc = p.curva_abc || "--";
 
       return {
         ...p,
