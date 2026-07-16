@@ -550,6 +550,7 @@ export function ShippingConferencePanel({
           </div>
         </div>
 
+        <div className="space-y-5">
         <form
           action={saveShippingConferenceAction}
           className="space-y-5"
@@ -709,6 +710,7 @@ export function ShippingConferencePanel({
           canUploadAttachments={documents.canUploadAttachments}
           unlocked={pendingUnits <= 0}
         />
+        </div>
       </div>
     </div>
   );
