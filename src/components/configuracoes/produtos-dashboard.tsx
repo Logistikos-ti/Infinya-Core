@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2, ArrowRightLeft } from "lucide-react";
+import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
 import { deleteProdutoAction, toggleProdutoStatusAction, fetchProdutoDrawerDetails } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -636,7 +636,7 @@ export function ProdutosDashboard({
                 className="flex items-center justify-center h-11 rounded-[10px] border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}
               >
-                <PencilLine className="h-[15px] w-[15px] mr-2" strokeWidth={2.5} />
+                <Pencil className="h-[14px] w-[14px] mr-2" strokeWidth={2.5} fill="currentColor" />
                 Editar
               </Link>
               <Link
