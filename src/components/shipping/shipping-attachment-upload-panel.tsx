@@ -1,8 +1,9 @@
 "use client";
 
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
 import { ChevronDown, FileUp, Paperclip, UploadCloud } from "lucide-react";
+import { uploadShippingAttachmentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 
 type ShippingAttachmentUploadPanelProps = {
   depositanteId: string;
@@ -27,63 +28,36 @@ export function ShippingAttachmentUploadPanel({
   const [tipo, setTipo] = useState<(typeof attachmentTypes)[number]["value"]>("NF");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [arquivo, setArquivo] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
+  const [state, formAction, isUploading] = useActionState(uploadShippingAttachmentAction, {
+    ok: false,
+    message: null,
+    uploadedKind: null,
+  });
 
   const selectedType = useMemo(
     () => attachmentTypes.find((item) => item.value === tipo) ?? attachmentTypes[0],
     [tipo],
   );
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!arquivo) {
-      setIsError(true);
-      setMessage("Selecione um arquivo antes de anexar.");
+  useEffect(() => {
+    if (!state.message || !state.ok) {
       return;
     }
 
-    setIsUploading(true);
-    setIsError(false);
-    setMessage(null);
-
-    try {
-      const formData = new FormData();
-      formData.append("depositanteId", depositanteId);
-      formData.append("pedidoExpedicaoId", pedidoExpedicaoId);
-      formData.append("tipo", tipo);
-      formData.append("arquivo", arquivo);
-
-      const response = await fetch("/api/documentos", {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setIsError(true);
-        setMessage(payload.error ?? "Falha ao enviar o anexo.");
-        return;
-      }
-
-      setIsError(false);
-      setMessage(payload.message ?? "Anexo enviado com sucesso.");
-      setArquivo(null);
-      event.currentTarget.reset();
-      router.refresh();
-    } catch {
-      setIsError(true);
-      setMessage("Falha de comunicação com a API de documentos.");
-    } finally {
-      setIsUploading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.dispatchEvent(new Event("change", { bubbles: true }));
     }
-  }
+
+    router.refresh();
+  }, [router, state]);
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+    <form action={formAction} className="mt-4 space-y-4">
+      <input type="hidden" name="depositanteId" value={depositanteId} />
+      <input type="hidden" name="pedidoExpedicaoId" value={pedidoExpedicaoId} />
+      <input type="hidden" name="tipo" value={tipo} />
+
       <div className="grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]">
         <div className="space-y-2">
           <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
@@ -141,6 +115,7 @@ export function ShippingAttachmentUploadPanel({
           <input
             ref={fileInputRef}
             type="file"
+            name="arquivo"
             accept=".xml,.pdf,.png,.jpg,.jpeg"
             onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
             className="hidden"
@@ -159,9 +134,7 @@ export function ShippingAttachmentUploadPanel({
                 {arquivo ? arquivo.name : "Selecionar arquivo"}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {arquivo
-                  ? "Arquivo pronto para envio."
-                  : "Aceita XML, PDF, PNG e JPG."}
+                {arquivo ? "Arquivo pronto para envio." : "Aceita XML, PDF, PNG e JPG."}
               </p>
             </div>
           </button>
@@ -179,15 +152,15 @@ export function ShippingAttachmentUploadPanel({
         </button>
       </div>
 
-      {message ? (
+      {state.message ? (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm ${
-            isError
-              ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+            state.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+              : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
           }`}
         >
-          {message}
+          {state.message}
         </div>
       ) : null}
     </form>

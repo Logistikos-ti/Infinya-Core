@@ -3,9 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
-import { listShippingOrderDocumentTypes } from "@/lib/operational-documents";
+import {
+  listShippingOrderDocumentTypes,
+  storeOperationalDocumentFromBuffer,
+} from "@/lib/operational-documents";
 import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
+import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
+import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 
 type KitProgressEntry = {
   componentProductId: string;
@@ -15,6 +21,14 @@ type KitProgressEntry = {
   name: string;
   barcode: string;
 };
+
+type ShippingAttachmentUploadState = {
+  ok: boolean;
+  message: string | null;
+  uploadedKind: "NF" | "ETIQUETA" | null;
+};
+
+const allowedShippingAttachmentTypes = new Set(["NF", "ETIQUETA"]);
 
 export async function saveShippingConferenceAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
@@ -236,6 +250,141 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
   revalidatePath("/m/romaneio");
 
   redirect(redirectTo);
+}
+
+export async function uploadShippingAttachmentAction(
+  _previousState: ShippingAttachmentUploadState,
+  formData: FormData,
+): Promise<ShippingAttachmentUploadState> {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+
+  if (!canUploadOperationalDocuments(user)) {
+    return {
+      ok: false,
+      message: "Seu perfil pode consultar documentos, mas não pode enviar novos arquivos.",
+      uploadedKind: null,
+    };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const orderId = String(formData.get("pedidoExpedicaoId") ?? "").trim();
+  const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+  const tipo = String(formData.get("tipo") ?? "").trim().toUpperCase();
+  const file = formData.get("arquivo");
+
+  if (!orderId) {
+    return { ok: false, message: "Pedido de expedição não informado.", uploadedKind: null };
+  }
+
+  if (!depositanteId) {
+    return { ok: false, message: "Selecione o depositante do documento.", uploadedKind: null };
+  }
+
+  if (!allowedShippingAttachmentTypes.has(tipo)) {
+    return { ok: false, message: "Tipo de documento inválido.", uploadedKind: null };
+  }
+
+  if (!(file instanceof File)) {
+    return { ok: false, message: "Selecione um arquivo para upload.", uploadedKind: null };
+  }
+
+  if (!file.name || file.size <= 0) {
+    return { ok: false, message: "O arquivo enviado está vazio ou inválido.", uploadedKind: null };
+  }
+
+  if (file.size > maxDocumentFileSizeBytes) {
+    return { ok: false, message: "O arquivo excede o limite de 10 MB.", uploadedKind: null };
+  }
+
+  if (!allowedDocumentMimeTypes.includes(file.type as (typeof allowedDocumentMimeTypes)[number])) {
+    return {
+      ok: false,
+      message: "Formato não suportado. Envie PDF, XML, PNG ou JPG.",
+      uploadedKind: null,
+    };
+  }
+
+  const scopeError = ensureUserCanAccessDepositante(user, depositanteId);
+  if (scopeError) {
+    return {
+      ok: false,
+      message: "Seu perfil não pode anexar documentos para este depositante.",
+      uploadedKind: null,
+    };
+  }
+
+  const { data: order, error: orderError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, depositante_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderError) {
+    return {
+      ok: false,
+      message: `Não foi possível validar o pedido: ${orderError.message}`,
+      uploadedKind: null,
+    };
+  }
+
+  if (!order || order.depositante_id !== depositanteId) {
+    return {
+      ok: false,
+      message: "O pedido informado não pertence a este depositante.",
+      uploadedKind: null,
+    };
+  }
+
+  try {
+    const bytes = Buffer.from(await file.arrayBuffer());
+
+    await storeOperationalDocumentFromBuffer({
+      adminSupabase,
+      depositanteId,
+      tipo,
+      fileName: file.name,
+      mimeType: file.type,
+      bytes,
+      pedidoExpedicaoId: orderId,
+      enviadoPor: user.id,
+    });
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath(`/expedicao/${orderId}`);
+    revalidatePath("/m/conferencia");
+    revalidatePath(`/m/conferencia/${orderId}`);
+
+    return {
+      ok: true,
+      message:
+        tipo === "ETIQUETA"
+          ? "Etiqueta anexada com sucesso ao pedido."
+          : "XML da nota fiscal anexado com sucesso ao pedido.",
+      uploadedKind: tipo as "NF" | "ETIQUETA",
+    };
+  } catch (error) {
+    const typedError =
+      error && typeof error === "object" && "message" in error
+        ? (error as { message?: string; code?: string })
+        : null;
+
+    if (typedError?.code === "42703") {
+      return {
+        ok: false,
+        message:
+          "O banco ainda não recebeu a atualização de anexos da expedição. Rode a migration pendente antes de anexar arquivos ao pedido.",
+        uploadedKind: null,
+      };
+    }
+
+    return {
+      ok: false,
+      message: `Falha ao registrar documento no banco: ${typedError?.message ?? "erro desconhecido"}`,
+      uploadedKind: null,
+    };
+  }
 }
 
 async function resolveOperatorName(
