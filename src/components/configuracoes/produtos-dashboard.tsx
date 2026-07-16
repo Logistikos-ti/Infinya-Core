@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2 } from "lucide-react";
+import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2, MoveRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
-import { deleteProdutoAction, toggleProdutoStatusAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
+import { deleteProdutoAction, toggleProdutoStatusAction, fetchProdutoDrawerDetails } from "@/app/(dashboard)/configuracoes/produtos/actions";
 
 const manrope = Manrope({ subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
@@ -201,29 +201,46 @@ export function ProdutosDashboard({
       abcBg: ab.bg,
       abcColor: ab.color,
       statusChipBg: ss.chipBg,
-      statusColor: ss.color,
-      stockW: `${p.pct}%`,
-      stockFill: stockFillFor(p.status),
-      stockColor: p.status === "Ruptura" ? "#EF4444" : p.status === "Estoque baixo" ? "#F59E0B" : t.text,
-      stockLabel: p.stock === 0 ? "0 un" : `${p.stock.toLocaleString("pt-BR")} un`,
-      locs: [
-        { code: "A-01-03-02", qty: `${Math.floor(p.stock * 0.6)} un` },
-        { code: "B-04-02-01", qty: `${Math.floor(p.stock * 0.4)} un` }
-      ],
-      moves: [
-        { title: p.status === "Ruptura" ? "Saída — pedido separado" : "Entrada de recebimento", sub: "Hoje · 10:24 · NF 48.210", dot: "#10B981", halo: "rgba(16,185,129,0.2)" },
-        { title: "Separação (picking)", sub: "Hoje · 08:12 · Coletor #03", dot: "#3B82F6", halo: "rgba(59,130,246,0.2)" },
-        { title: "Cadastro atualizado", sub: "10/07 · 09:05 · Sistema", dot: t.textSub, halo: "transparent" }
-      ],
-      specs: [
-        { k: "EAN", v: p.ean },
-        { k: "Fornecedor", v: p.supplier },
-        { k: "Dimensões", v: p.dim },
-        { k: "Peso", v: p.weight },
-      ]
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProduto, enrichedProdutos, getCatColor, t.text, t.textSub]);
+  useEffect(() => {
+    if (selectedProduto) {
+      const p = enrichedProdutos.find(ep => ep.id === selectedProduto.id);
+      if (!p) return;
+      const color = getCatColor(p.category);
+      const ss = statusStyle(p.status);
+      const ab = abcStyle(p.abc);
+      
+      const data = {
+        ...p,
+        thumbBg: `linear-gradient(140deg, ${color} 0%, ${hex2(color, 0.55)} 55%, ${hex2(color, 0.85)} 100%)`,
+        catChipBg: hex2(color, 0.15),
+        catColor: color,
+        abcBg: ab.bg,
+        abcColor: ab.color,
+        statusChipBg: ss.chipBg,
+        statusColor: ss.color,
+        stockW: `${p.pct}%`,
+        stockFill: stockFillFor(p.status),
+        stockColor: p.status === "Ruptura" ? "#EF4444" : p.status === "Estoque baixo" ? "#F59E0B" : t.text,
+        stockLabel: p.stock === 0 ? "0 un" : `${p.stock.toLocaleString("pt-BR")} un`,
+        locs: [],
+        moves: [],
+        specs: [
+          { k: "EAN", v: p.ean },
+          { k: "Fornecedor", v: p.supplier },
+          { k: "Dimensões", v: p.dim },
+          { k: "Peso", v: p.weight },
+        ]
+      };
+      
+      setSelectedData(data);
+
+      fetchProdutoDrawerDetails(p.id).then(({ locs, moves }) => {
+        setSelectedData(prev => prev ? { ...prev, locs, moves } : null);
+      });
+    } else {
+      setSelectedData(null);
+    }
+  }, [selectedProduto, enrichedProdutos, t.text, t.textSub]);
 
   return (
     <div className={`${manrope.className} space-y-6 animate-in fade-in duration-500`}>
@@ -587,18 +604,64 @@ export function ProdutosDashboard({
                   </div>
                 ))}
               </div>
+
+              {/* stock by location */}
+              {selectedData.stock > 0 && (
+                <div className="mb-6 flex flex-col gap-3">
+                  <span className={`${spaceGrotesk.className} text-sm font-bold`}>Estoque por endereço</span>
+                  <div className="flex flex-col gap-2">
+                    {selectedData.locs.length > 0 ? selectedData.locs.map((l: {code: string, qty: string}, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: t.border, background: t.cardBg }}>
+                        <span className={`${spaceGrotesk.className} text-[13.5px] font-bold`}>{l.code}</span>
+                        <span className="text-[13px]" style={{ color: t.textSub }}>{l.qty}</span>
+                      </div>
+                    )) : (
+                      <span className="text-[13px] py-2" style={{ color: t.textSub }}>Carregando endereços...</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* movements */}
+              <div className="flex flex-col gap-3.5">
+                <span className={`${spaceGrotesk.className} text-sm font-bold`}>Movimentações recentes</span>
+                <div className="flex flex-col gap-0.5">
+                  {selectedData.moves.length > 0 ? selectedData.moves.map((m: {title: string, sub: string, dot: string, halo: string}, i: number) => (
+                    <div key={i} className="flex gap-3.5">
+                      <div className="flex flex-col items-center w-3">
+                        <span className="w-2.5 h-2.5 rounded-full mt-1" style={{ background: m.dot, boxShadow: `0 0 0 3px ${m.halo}` }} />
+                        <span className="flex-1 w-[2px]" style={{ background: t.border }} />
+                      </div>
+                      <div className="flex flex-col gap-0.5 pb-4">
+                        <span className="text-[13.5px] font-bold">{m.title}</span>
+                        <span className="text-[12.5px]" style={{ color: t.textSub }}>{m.sub}</span>
+                      </div>
+                    </div>
+                  )) : (
+                    <span className="text-[13px] py-2" style={{ color: t.textSub }}>Sem movimentações recentes.</span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="shrink-0 p-4 pt-4 border-t flex flex-wrap gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
+            <div className="shrink-0 p-4 pt-4 border-t grid grid-cols-2 gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
               <Link
                 href={`/configuracoes/produtos/${selectedData.id}/editar`}
-                className="flex-1 h-11 flex items-center justify-center rounded-xl border-none bg-slate-900 text-[14px] font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                className="flex items-center justify-center h-11 rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}
               >
                 <PencilLine className="h-4 w-4 mr-2" />
                 Editar
               </Link>
-              <form action={toggleProdutoStatusAction} className="flex-1">
+              <Link
+                href={`/estoque/movimentacao-interna?produto=${selectedData.id}`}
+                className="flex items-center justify-center h-11 rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                style={{ textDecoration: 'none' }}
+              >
+                <MoveRight className="h-4 w-4 mr-2" />
+                Movimentar
+              </Link>
+              <form action={toggleProdutoStatusAction} className="flex">
                 <input type="hidden" name="id" value={selectedData.id} />
                 <input type="hidden" name="nextActive" value={selectedData.ativo ? "false" : "true"} />
                 <button
@@ -608,7 +671,7 @@ export function ProdutosDashboard({
                   {selectedData.ativo ? "Desativar" : "Ativar"}
                 </button>
               </form>
-              <form action={deleteProdutoAction} className="flex-1">
+              <form action={deleteProdutoAction} className="flex">
                 <input type="hidden" name="id" value={selectedData.id} />
                 <button
                   type="submit"

@@ -764,3 +764,55 @@ async function ensureProdutoImagesBucketExists(
     allowedMimeTypes: [...allowedProdutoImageMimeTypes],
   });
 }
+
+export async function fetchProdutoDrawerDetails(produtoId: string) {
+  const adminSupabase = createSupabaseAdminClient();
+  
+  // 1. Fetch locs
+  const { data: stockRecords } = await adminSupabase
+    .from("estoque")
+    .select("quantidade, enderecos(codigo)")
+    .eq("produto_id", produtoId)
+    .gt("quantidade", 0);
+    
+  const locs = (stockRecords || []).map((s: any) => ({
+    code: s.enderecos?.codigo || "Sem endereço",
+    qty: `${s.quantidade} un`
+  }));
+
+  // 2. Fetch moves
+  const { data: moveRecords } = await adminSupabase
+    .from("movimentacoes_estoque")
+    .select("tipo, quantidade, created_at, observacoes")
+    .eq("produto_id", produtoId)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const moves = (moveRecords || []).map((m: any) => {
+    let title = "";
+    let dot = "";
+    let halo = "";
+    
+    if (m.tipo === "ENTRADA" || m.tipo === "RECEBIMENTO") {
+      title = "Entrada de estoque";
+      dot = "#10B981"; // green
+      halo = "rgba(16,185,129,0.2)";
+    } else if (m.tipo === "SAIDA" || m.tipo === "EXPEDICAO" || m.tipo === "SEPARACAO") {
+      title = "Saída de estoque";
+      dot = "#EF4444"; // red
+      halo = "rgba(239,68,68,0.2)";
+    } else {
+      title = "Movimentação interna";
+      dot = "#3B82F6"; // blue
+      halo = "rgba(59,130,246,0.2)";
+    }
+
+    const dateObj = new Date(m.created_at);
+    const dateStr = dateObj.toLocaleDateString("pt-BR") + " às " + dateObj.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+    const sub = `${dateStr}${m.observacoes ? ` • ${m.observacoes}` : ""}`;
+
+    return { title, sub, dot, halo };
+  });
+
+  return { locs, moves };
+}
