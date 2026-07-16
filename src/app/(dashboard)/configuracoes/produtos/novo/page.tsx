@@ -1,10 +1,14 @@
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
+import { unstable_noStore as noStore } from "next/cache";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
+export const dynamic = "force-dynamic";
+
 export default async function NovoProdutoPage() {
+  noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(currentUser);
   const supabase = createSupabaseAdminClient();

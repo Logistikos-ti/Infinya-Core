@@ -17,6 +17,8 @@ type MobileEditarProdutoPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function MobileEditarProdutoPage({ params }: MobileEditarProdutoPageProps) {
   noStore();
   const user = await requireConfigSectionAccess("produtos");

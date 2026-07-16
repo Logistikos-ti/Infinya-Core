@@ -17,6 +17,8 @@ type MobileProdutosPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function MobileProdutosPage({ searchParams }: MobileProdutosPageProps) {
   noStore();
   const user = await requireConfigSectionAccess("produtos");

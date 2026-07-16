@@ -301,10 +301,10 @@ export async function saveProdutoAction(
     revalidatePath(`/m/produtos/${parsed.data.id}/editar`);
     if (returnPath) {
       revalidatePath(returnPath);
-      redirect(`${returnPath}?feedback=salvo`);
+      redirect(buildRedirectWithFeedback(returnPath, "salvo"));
     }
 
-    redirect("/configuracoes/produtos?feedback=salvo");
+    redirect(buildRedirectWithFeedback("/configuracoes/produtos", "salvo"));
   }
 
   const insertResult = await insertProductWithFallback(adminSupabase, payload);
@@ -350,10 +350,10 @@ export async function saveProdutoAction(
   revalidatePath("/configuracoes/produtos");
   if (returnPath) {
     revalidatePath(returnPath);
-    redirect(`${returnPath}?feedback=criado`);
+    redirect(buildRedirectWithFeedback(returnPath, "criado"));
   }
 
-  redirect("/configuracoes/produtos?feedback=criado");
+  redirect(buildRedirectWithFeedback("/configuracoes/produtos", "criado"));
 }
 
 export async function toggleProdutoStatusAction(formData: FormData) {
