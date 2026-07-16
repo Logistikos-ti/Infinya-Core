@@ -7,6 +7,10 @@ import {
   normalizePickingKitProgress,
   type ProductKitComponentDefinition,
 } from "@/lib/product-kits";
+import {
+  resolveCommercialKitMatch,
+  type CommercialKitRuleDefinition,
+} from "@/lib/commercial-kit-rules";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { extractMarketplace, formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -294,6 +298,7 @@ export async function listShippingPickingOrdersFromDb(
   );
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
+  const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
 
   const stockByDepositante = new Map<string, RawPickingStockRow[]>();
   for (const row of stockRows) {
@@ -309,6 +314,7 @@ export async function listShippingPickingOrdersFromDb(
         stockByDepositante.get(order.depositante_id) ?? [],
         includeRouteData,
         productImageMap,
+        commercialKitRulesByDepositante.get(order.depositante_id) ?? [],
       ),
     )
     .filter((order) => {
@@ -351,6 +357,7 @@ export async function listShippingPickingOrdersByIdsFromDb(
     .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes));
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
+  const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
   const stockByDepositante = new Map<string, RawPickingStockRow[]>();
 
   for (const row of stockRows) {
@@ -367,6 +374,7 @@ export async function listShippingPickingOrdersByIdsFromDb(
         stockByDepositante.get(order.depositante_id) ?? [],
         includeRouteData,
         productImageMap,
+        commercialKitRulesByDepositante.get(order.depositante_id) ?? [],
       ),
     ]),
   );
@@ -402,7 +410,14 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
 
   const stockRows = await loadPickingStockRows(supabase, [rawOrder]);
   const productImageMap = await loadProductImageMap(supabase, [rawOrder], stockRows);
-  return mapPickingOrder(rawOrder, stockRows, true, productImageMap);
+  const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, [rawOrder]);
+  return mapPickingOrder(
+    rawOrder,
+    stockRows,
+    true,
+    productImageMap,
+    commercialKitRulesByDepositante.get(rawOrder.depositante_id) ?? [],
+  );
 }
 
 function mapPickingOrder(
@@ -410,6 +425,7 @@ function mapPickingOrder(
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
   productImageMap: Map<string, string>,
+  commercialKitRules: CommercialKitRuleDefinition[],
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
@@ -430,7 +446,14 @@ function mapPickingOrder(
       ? order.itens
       : buildFallbackPickingItemsFromPayload(payload, order.id, order.depositante_id);
   const items = rawItems.map((item) =>
-    mapPickingItem(order.depositante_id, item, stockRows, includeRouteData, productImageMap),
+    mapPickingItem(
+      order.depositante_id,
+      item,
+      stockRows,
+      includeRouteData,
+      productImageMap,
+      commercialKitRules,
+    ),
   );
   const routeStops = includeRouteData ? buildRouteStops(items) : [];
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
@@ -532,16 +555,21 @@ function mapPickingItem(
   stockRows: RawPickingStockRow[],
   includeRouteData: boolean,
   productImageMap: Map<string, string>,
+  commercialKitRules: CommercialKitRuleDefinition[],
 ) {
+  const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
   const requestedKits = Number(item.quantidade ?? 0);
-  const itemCode = item.codigo_produto?.trim() || "-";
-  const itemSku = item.sku?.trim() || "-";
-  const itemBarcode = item.produto?.codigo_externo?.trim() || "-";
-  const componentDefinitions = normalizeKitComponentDefinitions(item.payload_origem);
-  const isKit = isKitProduct(isPayloadKit(item.payload_origem) ? "KIT" : "SIMPLES", componentDefinitions);
+  const itemCode = hydratedItem.codigo_produto?.trim() || "-";
+  const itemSku = hydratedItem.sku?.trim() || "-";
+  const itemBarcode = hydratedItem.produto?.codigo_externo?.trim() || "-";
+  const componentDefinitions = normalizeKitComponentDefinitions(hydratedItem.payload_origem);
+  const isKit = isKitProduct(
+    isPayloadKit(hydratedItem.payload_origem) ? "KIT" : "SIMPLES",
+    componentDefinitions,
+  );
 
   if (!isKit) {
-    return mapSimplePickingItem(depositanteId, item, stockRows, includeRouteData, productImageMap, {
+    return mapSimplePickingItem(depositanteId, hydratedItem, stockRows, includeRouteData, productImageMap, {
       requestedKits,
       itemCode,
       itemSku,
@@ -549,7 +577,7 @@ function mapPickingItem(
     });
   }
 
-  const progressMap = buildKitProgressMap(normalizePickingKitProgress(item.payload_origem));
+  const progressMap = buildKitProgressMap(normalizePickingKitProgress(hydratedItem.payload_origem));
   const routeLines: ShippingPickingRouteLine[] = [];
   const kitComponents: ShippingPickingKitComponent[] = [];
   let shortageQuantity = 0;
@@ -611,20 +639,20 @@ function mapPickingItem(
 
   const totals = calculateKitOperationalTotals(componentDefinitions, requestedKits, progressMap);
   const primaryImageUrl =
-    resolveProductImageUrl(productImageMap, item.produto_id) ??
+    resolveProductImageUrl(productImageMap, hydratedItem.produto_id) ??
     routeLines.find((line) => Boolean(line.imageUrl))?.imageUrl ??
     null;
 
   return {
-    id: item.id,
-    productId: item.produto_id,
+    id: hydratedItem.id,
+    productId: hydratedItem.produto_id,
     imageUrl: primaryImageUrl,
-    externalReference: item.referencia_externa?.trim() || "-",
+    externalReference: hydratedItem.referencia_externa?.trim() || "-",
     code: itemCode,
     sku: itemSku,
     barcode: itemBarcode,
-    name: item.nome,
-    unit: item.unidade?.trim() || "UN",
+    name: hydratedItem.nome,
+    unit: hydratedItem.unidade?.trim() || "UN",
     isKit: true,
     requestedKits,
     requestedQuantity: totals.operationalRequestedQuantity,
@@ -820,6 +848,110 @@ async function loadProductImageMap(
       .filter((item) => typeof item.imagem_principal_url === "string" && item.imagem_principal_url.trim())
       .map((item) => [item.id, item.imagem_principal_url as string]),
   );
+}
+
+async function loadCommercialKitRulesByDepositante(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: RawPickingOrderRow[],
+) {
+  const depositanteIds = [...new Set(orders.map((order) => order.depositante_id).filter(Boolean))];
+
+  if (!depositanteIds.length) {
+    return new Map<string, CommercialKitRuleDefinition[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("produto_kit_comercial_regras")
+    .select(
+      "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo)",
+    )
+    .in("depositante_id", depositanteIds)
+    .eq("ativo", true);
+
+  if (error) {
+    throw new Error(`Não foi possível carregar as regras comerciais de kit para separação: ${error.message}`);
+  }
+
+  const grouped = new Map<string, CommercialKitRuleDefinition[]>();
+  for (const entry of ((data ?? []) as Array<{
+    id: string;
+    depositante_id: string;
+    produto_base_id: string;
+    texto_gatilho: string;
+    quantidade_operacional: number | string;
+    ativo: boolean;
+    produto:
+      | Array<{
+          id: string;
+          nome: string;
+          sku: string | null;
+          codigo_interno: string | null;
+          codigo_externo: string | null;
+        }>
+      | {
+          id: string;
+          nome: string;
+          sku: string | null;
+          codigo_interno: string | null;
+          codigo_externo: string | null;
+        }
+      | null;
+  }>)) {
+    const produto = Array.isArray(entry.produto) ? (entry.produto[0] ?? null) : entry.produto;
+    if (!produto) {
+      continue;
+    }
+
+    const rule = {
+      id: entry.id,
+      depositanteId: entry.depositante_id,
+      productId: entry.produto_base_id,
+      productName: produto.nome ?? "",
+      productSku: produto.sku ?? null,
+      productInternalCode: produto.codigo_interno ?? null,
+      productBarcode: produto.codigo_externo ?? null,
+      matchText: entry.texto_gatilho,
+      operationalQuantity: Number(entry.quantidade_operacional ?? 0),
+      active: entry.ativo,
+    } satisfies CommercialKitRuleDefinition;
+
+    const current = grouped.get(entry.depositante_id) ?? [];
+    current.push(rule);
+    grouped.set(entry.depositante_id, current);
+  }
+
+  return grouped;
+}
+
+function hydratePickingItemWithCommercialKit(
+  item: RawPickingOrderItemRow,
+  commercialKitRules: CommercialKitRuleDefinition[],
+) {
+  const currentPayload = isRecord(item.payload_origem) ? item.payload_origem : {};
+  const resolvedMatch = resolveCommercialKitMatch({
+    itemCode: item.codigo_produto,
+    itemDescription: item.nome,
+    existingPayload: currentPayload,
+    matchedProductByCode: null,
+    rules: commercialKitRules,
+  });
+
+  if (!resolvedMatch.usesCommercialKitRule) {
+    return item;
+  }
+
+  return {
+    ...item,
+    produto_id: item.produto_id ?? resolvedMatch.matchedProduct?.id ?? null,
+    sku: item.sku?.trim() || resolvedMatch.matchedProduct?.sku || resolvedMatch.matchedProduct?.codigo_interno || item.sku,
+    payload_origem: resolvedMatch.payload,
+    produto: {
+      codigo_externo:
+        item.produto?.codigo_externo?.trim() ||
+        resolvedMatch.matchedProduct?.codigo_externo ||
+        null,
+    },
+  } satisfies RawPickingOrderItemRow;
 }
 
 function buildRouteStops(items: ShippingPickingItem[]) {
