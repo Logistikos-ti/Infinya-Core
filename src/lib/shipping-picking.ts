@@ -300,21 +300,17 @@ export async function listShippingPickingOrdersFromDb(
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
 
-  const stockByDepositante = new Map<string, RawPickingStockRow[]>();
-  for (const row of stockRows) {
-    const current = stockByDepositante.get(row.depositante_id) ?? [];
-    current.push(row);
-    stockByDepositante.set(row.depositante_id, current);
-  }
-
   const orders = rawOrders
     .map((order) =>
       mapPickingOrder(
         order,
-        stockByDepositante.get(order.depositante_id) ?? [],
+        stockRows,
         includeRouteData,
         productImageMap,
-        commercialKitRulesByDepositante.get(order.depositante_id) ?? [],
+        resolveCommercialKitRulesForOrder(
+          order.depositante_id,
+          commercialKitRulesByDepositante,
+        ),
       ),
     )
     .filter((order) => {
@@ -358,23 +354,18 @@ export async function listShippingPickingOrdersByIdsFromDb(
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
-  const stockByDepositante = new Map<string, RawPickingStockRow[]>();
-
-  for (const row of stockRows) {
-    const current = stockByDepositante.get(row.depositante_id) ?? [];
-    current.push(row);
-    stockByDepositante.set(row.depositante_id, current);
-  }
-
   const orderMap = new Map(
     rawOrders.map((order) => [
       order.id,
       mapPickingOrder(
         order,
-        stockByDepositante.get(order.depositante_id) ?? [],
+        stockRows,
         includeRouteData,
         productImageMap,
-        commercialKitRulesByDepositante.get(order.depositante_id) ?? [],
+        resolveCommercialKitRulesForOrder(
+          order.depositante_id,
+          commercialKitRulesByDepositante,
+        ),
       ),
     ]),
   );
@@ -416,7 +407,10 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
     stockRows,
     true,
     productImageMap,
-    commercialKitRulesByDepositante.get(rawOrder.depositante_id) ?? [],
+    resolveCommercialKitRulesForOrder(
+      rawOrder.depositante_id,
+      commercialKitRulesByDepositante,
+    ),
   );
 }
 
@@ -586,8 +580,7 @@ function mapPickingItem(
     const requestedQuantity = requestedKits * component.quantityPerKit;
     const separatedQuantity = Math.min(progressMap.get(component.componentProductId) ?? 0, requestedQuantity);
     const matchedStocks = includeRouteData
-      ? stockRows
-          .filter((row) => row.depositante_id === depositanteId)
+        ? stockRows
           .filter((row) => matchesStockToKitComponent(row, component))
           .filter((row) => getAvailableQuantity(row) > 0)
           .sort(compareStocksForPicking)
@@ -800,11 +793,12 @@ async function loadPickingStockRows(
     .select(
       "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, codigo_externo, metodo_retirada)",
     )
-    .in("depositante_id", depositanteIds)
     .eq("bloqueado", false);
 
   if (productIds.length && !hasPayloadKitWithoutRealProduct) {
     stockQuery = stockQuery.in("produto_id", productIds);
+  } else {
+    stockQuery = stockQuery.in("depositante_id", depositanteIds);
   }
 
   const { data: stockData, error: stockError } = await stockQuery;
@@ -854,9 +848,7 @@ async function loadCommercialKitRulesByDepositante(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   orders: RawPickingOrderRow[],
 ) {
-  const depositanteIds = [...new Set(orders.map((order) => order.depositante_id).filter(Boolean))];
-
-  if (!depositanteIds.length) {
+  if (!orders.length) {
     return new Map<string, CommercialKitRuleDefinition[]>();
   }
 
@@ -865,7 +857,6 @@ async function loadCommercialKitRulesByDepositante(
     .select(
       "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo)",
     )
-    .in("depositante_id", depositanteIds)
     .eq("ativo", true);
 
   if (error) {
@@ -921,6 +912,18 @@ async function loadCommercialKitRulesByDepositante(
   }
 
   return grouped;
+}
+
+function resolveCommercialKitRulesForOrder(
+  orderDepositanteId: string,
+  groupedRules: Map<string, CommercialKitRuleDefinition[]>,
+) {
+  const preferredRules = groupedRules.get(orderDepositanteId) ?? [];
+  const fallbackRules = [...groupedRules.entries()]
+    .filter(([depositanteId]) => depositanteId !== orderDepositanteId)
+    .flatMap(([, rules]) => rules);
+
+  return [...preferredRules, ...fallbackRules];
 }
 
 function hydratePickingItemWithCommercialKit(
