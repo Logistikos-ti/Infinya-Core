@@ -25,7 +25,9 @@ type ShippingOrderCandidate = {
 };
 
 export async function POST(request: Request) {
-  const auth = await requireApiModuleAccess("nfe");
+  const formData = await request.formData();
+  const explicitPedidoExpedicaoId = String(formData.get("pedidoExpedicaoId") ?? "").trim() || null;
+  const auth = await requireApiModuleAccess(explicitPedidoExpedicaoId ? "expedicao" : "nfe");
 
   if (auth.response) {
     return auth.response;
@@ -40,9 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData();
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
-  const explicitPedidoExpedicaoId = String(formData.get("pedidoExpedicaoId") ?? "").trim() || null;
   const tipo = String(formData.get("tipo") ?? "").trim().toUpperCase();
   const file = formData.get("arquivo");
 
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
   const bytes = Buffer.from(await file.arrayBuffer());
 
   try {
-    const insertedDocument = await storeOperationalDocumentFromBuffer({
+    let insertedDocument = await storeOperationalDocumentFromBuffer({
       adminSupabase,
       depositanteId,
       tipo,
@@ -129,6 +129,28 @@ export async function POST(request: Request) {
       pedidoExpedicaoId: linkedPedidoExpedicaoId,
       enviadoPor: auth.user.id,
     });
+
+    if (explicitPedidoExpedicaoId && insertedDocument.pedido_expedicao_id !== explicitPedidoExpedicaoId) {
+      const { data: repairedDocument, error: repairError } = await adminSupabase
+        .from("documentos_armazenados")
+        .update({
+          pedido_expedicao_id: explicitPedidoExpedicaoId,
+        })
+        .eq("id", insertedDocument.id)
+        .select("id, tipo, nome_arquivo, created_at, pedido_expedicao_id")
+        .single();
+
+      if (repairError) {
+        return NextResponse.json(
+          {
+            error: `O arquivo foi enviado, mas não foi possível vinculá-lo ao pedido de expedição: ${repairError.message}`,
+          },
+          { status: 500 },
+        );
+      }
+
+      insertedDocument = repairedDocument;
+    }
 
     const wasAutoLinked = Boolean(!explicitPedidoExpedicaoId && insertedDocument.pedido_expedicao_id);
     const message = wasAutoLinked
