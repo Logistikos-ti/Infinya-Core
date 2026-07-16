@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PwaRegister } from "@/components/pwa/pwa-register";
+import { Toaster } from "@/components/ui/sonner";
+import { FeedbackToast } from "@/components/ui/feedback-toast";
 import "./globals.css";
 
 const inter = Inter({
@@ -62,6 +64,8 @@ export default function RootLayout({
           disableTransitionOnChange={false}
         >
           {children}
+          <Toaster position="top-right" />
+          <FeedbackToast />
         </ThemeProvider>
       </body>
     </html>

@@ -118,25 +118,6 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
         </div>
       </section>
 
-      {feedback ? (
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
-              : "border border-amber-500/20 bg-amber-500/10 text-amber-200"
-          }`}
-        >
-          {feedback === "criado"
-            ? "Produto criado com sucesso."
-            : feedback === "salvo"
-              ? "Produto atualizado com sucesso."
-              : feedback === "excluido"
-                ? "Produto excluído com sucesso."
-                : feedback === "vinculos"
-                  ? "Não foi possível excluir este produto porque ele já possui vínculos operacionais."
-                  : "Não foi possível concluir a operação solicitada."}
-        </div>
-      ) : null}
 
       {!compactMode ? (
         <form method="get" action="/m/produtos" className="mobile-glass-card rounded-[28px] p-4">

@@ -171,25 +171,7 @@ export default async function ConfiguracoesProdutosPage({
         </div>
       </div>
 
-      {feedback ? (
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
-          }`}
-        >
-          {feedback === "criado"
-            ? "Produto criado com sucesso."
-            : feedback === "salvo"
-              ? "Produto atualizado com sucesso."
-              : feedback === "excluido"
-                ? "Produto excluído com sucesso."
-                : feedback === "vinculos"
-                  ? "Não foi possível excluir este produto porque ele já possui estoque, movimentações ou vínculos operacionais."
-                  : "Não foi possível concluir a operação solicitada."}
-        </div>
-      ) : null}
+
 
       <ProdutosDashboard
         produtos={mappedProducts}
