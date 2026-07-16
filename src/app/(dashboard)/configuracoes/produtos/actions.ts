@@ -124,150 +124,203 @@ export async function saveProdutoAction(
     };
   }
 
-  const adminSupabase = createSupabaseAdminClient();
-  const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
-  const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
-  const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
-  const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
-  const currentImageStoragePath =
-    String(formData.get("currentImageStoragePath") ?? "").trim() || null;
-  const removeImage = parseBooleanFormValue(formData.get("removeImage"));
-  const imageFile = formData.get("imageFile");
-  const normalizedKitComponents = productKitsEnabled
-    ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
-    : [];
-  const normalizedCommercialKitRules = normalizeCommercialKitRuleDrafts(
-    commercialKitMatchTexts,
-    commercialKitQuantities,
-  );
+  try {
+    const adminSupabase = createSupabaseAdminClient();
+    const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
+    const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
+    const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
+    const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
+    const currentImageStoragePath =
+      String(formData.get("currentImageStoragePath") ?? "").trim() || null;
+    const removeImage = parseBooleanFormValue(formData.get("removeImage"));
+    const imageFile = formData.get("imageFile");
+    const normalizedKitComponents = productKitsEnabled
+      ? normalizeProductKitDrafts(kitComponentIds, kitComponentQuantities)
+      : [];
+    const normalizedCommercialKitRules = normalizeCommercialKitRuleDrafts(
+      commercialKitMatchTexts,
+      commercialKitQuantities,
+    );
 
-  if (productKitsEnabled && parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
-    return {
-      success: false,
-      message: "Adicione ao menos um componente para salvar o kit.",
-      errors: {
-        tipoProduto: "Kit precisa de componentes.",
-      },
-    };
-  }
-
-  if (normalizedEan) {
-    const duplicateBarcodeQuery = adminSupabase
-      .from("produtos")
-      .select("id, nome, depositante:depositantes(nome)")
-      .eq("codigo_externo", normalizedEan)
-      .limit(1);
-
-    if (parsed.data.id) {
-      duplicateBarcodeQuery.neq("id", parsed.data.id);
-    }
-
-    const { data: duplicateBarcode, error: duplicateBarcodeError } = await duplicateBarcodeQuery.maybeSingle();
-
-    if (duplicateBarcodeError) {
+    if (productKitsEnabled && parsed.data.tipoProduto === "KIT" && normalizedKitComponents.length === 0) {
       return {
         success: false,
-        message: `Nao foi possivel validar o EAN/GTIN: ${duplicateBarcodeError.message}`,
-      };
-    }
-
-    if (duplicateBarcode) {
-      const depositanteNome = extractDepositanteName(duplicateBarcode.depositante);
-      return {
-        success: false,
-        message: `Ja existe um produto com esse EAN/GTIN${depositanteNome ? ` no depositante ${depositanteNome}` : ""}: ${duplicateBarcode.nome}.`,
+        message: "Adicione ao menos um componente para salvar o kit.",
         errors: {
-          eanGtin: "Este EAN/GTIN ja esta cadastrado.",
+          tipoProduto: "Kit precisa de componentes.",
         },
       };
     }
-  }
 
-  const imageValidationError =
-    imageFile instanceof File && imageFile.size > 0 ? validateProdutoImageFile(imageFile) : null;
+    if (normalizedEan) {
+      const duplicateBarcodeQuery = adminSupabase
+        .from("produtos")
+        .select("id, nome, depositante:depositantes(nome)")
+        .eq("codigo_externo", normalizedEan)
+        .limit(1);
 
-  if (imageValidationError) {
-    return {
-      success: false,
-      message: "Revise os campos destacados e tente novamente.",
-      errors: {
-        imageFile: imageValidationError,
-      },
-    };
-  }
+      if (parsed.data.id) {
+        duplicateBarcodeQuery.neq("id", parsed.data.id);
+      }
 
-  const imageUploadResult = await resolveProdutoImageUpload({
-    adminSupabase,
-    depositanteId: parsed.data.depositanteId,
-    productCode: resolvedInternalCode,
-    currentImageUrl,
-    currentImageStoragePath,
-    removeImage,
-    imageFile,
-  });
+      const { data: duplicateBarcode, error: duplicateBarcodeError } = await duplicateBarcodeQuery.maybeSingle();
 
-  if (imageUploadResult.error) {
-    return {
-      success: false,
-      message: imageUploadResult.error,
-      errors: {
-        imageFile: imageUploadResult.error,
-      },
-    };
-  }
+      if (duplicateBarcodeError) {
+        return {
+          success: false,
+          message: `Nao foi possivel validar o EAN/GTIN: ${duplicateBarcodeError.message}`,
+        };
+      }
 
-  const payload = {
-    depositante_id: parsed.data.depositanteId,
-    codigo_interno: resolvedInternalCode,
-    codigo_externo: normalizedEan,
-    sku: resolvedSku,
-    nome: parsed.data.nome,
-    fornecedor: parsed.data.fornecedor || null,
-    categoria: parsed.data.categoria || null,
-    metodo_retirada: parsed.data.metodoRetirada,
-    unidade_estocagem: parsed.data.unidadeEstocagem,
-    quantidade_por_embalagem:
-      parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
-        ? parsed.data.quantidadePorEmbalagem ?? null
-        : null,
-    descricao: parsed.data.descricao || null,
-    peso_kg: parsed.data.pesoKg ?? null,
-    altura_cm: parsed.data.alturaCm ?? null,
-    largura_cm: parsed.data.larguraCm ?? null,
-    comprimento_cm: parsed.data.comprimentoCm ?? null,
-    qtd_minima: parsed.data.qtdMinima ?? null,
-    qtd_maxima: parsed.data.qtdMaxima ?? null,
-    ponto_reposicao: parsed.data.pontoReposicao ?? null,
-    custo_reposicao: parsed.data.custoReposicao ?? null,
-    imagem_principal_url: imageUploadResult.imageUrl,
-    imagem_principal_storage_path: imageUploadResult.imageStoragePath,
-    exige_lote: parsed.data.exigeLote,
-    exige_validade: parsed.data.exigeValidade,
-    ativo: parsed.data.ativo,
-  };
+      if (duplicateBarcode) {
+        const depositanteNome = extractDepositanteName(duplicateBarcode.depositante);
+        return {
+          success: false,
+          message: `Ja existe um produto com esse EAN/GTIN${depositanteNome ? ` no depositante ${depositanteNome}` : ""}: ${duplicateBarcode.nome}.`,
+          errors: {
+            eanGtin: "Este EAN/GTIN ja esta cadastrado.",
+          },
+        };
+      }
+    }
 
-  if (parsed.data.id) {
-    const updateResult = await updateProductWithFallback(adminSupabase, parsed.data.id, payload);
+    const imageValidationError =
+      imageFile instanceof File && imageFile.size > 0 ? validateProdutoImageFile(imageFile) : null;
 
-    if (updateResult.error) {
+    if (imageValidationError) {
       return {
         success: false,
-        message: humanizeProductPersistenceError("atualizar", updateResult.error.message),
+        message: "Revise os campos destacados e tente novamente.",
+        errors: {
+          imageFile: imageValidationError,
+        },
       };
     }
 
-    if (!updateResult.data?.id) {
+    const imageUploadResult = await resolveProdutoImageUpload({
+      adminSupabase,
+      depositanteId: parsed.data.depositanteId,
+      productCode: resolvedInternalCode,
+      currentImageUrl,
+      currentImageStoragePath,
+      removeImage,
+      imageFile,
+    });
+
+    if (imageUploadResult.error) {
       return {
         success: false,
-        message:
-          "Nao foi possivel confirmar a atualizacao do produto. Ele pode ter sido removido ou ficado indisponivel durante a edicao. Atualize a lista e tente novamente.",
+        message: imageUploadResult.error,
+        errors: {
+          imageFile: imageUploadResult.error,
+        },
+      };
+    }
+
+    const payload = {
+      depositante_id: parsed.data.depositanteId,
+      codigo_interno: resolvedInternalCode,
+      codigo_externo: normalizedEan,
+      sku: resolvedSku,
+      nome: parsed.data.nome,
+      fornecedor: parsed.data.fornecedor || null,
+      categoria: parsed.data.categoria || null,
+      metodo_retirada: parsed.data.metodoRetirada,
+      unidade_estocagem: parsed.data.unidadeEstocagem,
+      quantidade_por_embalagem:
+        parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
+          ? parsed.data.quantidadePorEmbalagem ?? null
+          : null,
+      descricao: parsed.data.descricao || null,
+      peso_kg: parsed.data.pesoKg ?? null,
+      altura_cm: parsed.data.alturaCm ?? null,
+      largura_cm: parsed.data.larguraCm ?? null,
+      comprimento_cm: parsed.data.comprimentoCm ?? null,
+      qtd_minima: parsed.data.qtdMinima ?? null,
+      qtd_maxima: parsed.data.qtdMaxima ?? null,
+      ponto_reposicao: parsed.data.pontoReposicao ?? null,
+      custo_reposicao: parsed.data.custoReposicao ?? null,
+      imagem_principal_url: imageUploadResult.imageUrl,
+      imagem_principal_storage_path: imageUploadResult.imageStoragePath,
+      exige_lote: parsed.data.exigeLote,
+      exige_validade: parsed.data.exigeValidade,
+      ativo: parsed.data.ativo,
+    };
+
+    if (parsed.data.id) {
+      const updateResult = await updateProductWithFallback(adminSupabase, parsed.data.id, payload);
+
+      if (updateResult.error) {
+        return {
+          success: false,
+          message: humanizeProductPersistenceError("atualizar", updateResult.error.message),
+        };
+      }
+
+      if (!updateResult.data?.id) {
+        return {
+          success: false,
+          message:
+            "Nao foi possivel confirmar a atualizacao do produto. Ele pode ter sido removido ou ficado indisponivel durante a edicao. Atualize a lista e tente novamente.",
+        };
+      }
+
+      if (productKitsEnabled) {
+        const componentsError = await syncKitComponents(
+          adminSupabase,
+          parsed.data.id,
+          parsed.data.depositanteId,
+          parsed.data.tipoProduto,
+          normalizedKitComponents,
+        );
+
+        if (componentsError) {
+          return {
+            success: false,
+            message: componentsError,
+          };
+        }
+      }
+
+      const commercialRulesError = await syncCommercialKitRules(
+        adminSupabase,
+        parsed.data.id,
+        parsed.data.depositanteId,
+        normalizedCommercialKitRules,
+      );
+
+      if (commercialRulesError) {
+        return {
+          success: false,
+          message: commercialRulesError,
+        };
+      }
+
+      revalidatePath("/configuracoes/produtos");
+      revalidatePath("/m/produtos");
+      revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
+      revalidatePath(`/m/produtos/${parsed.data.id}/editar`);
+      if (returnPath) {
+        revalidatePath(returnPath);
+        redirect(buildRedirectWithFeedback(returnPath, "salvo"));
+      }
+
+      redirect(buildRedirectWithFeedback("/configuracoes/produtos", "salvo"));
+    }
+
+    const insertResult = await insertProductWithFallback(adminSupabase, payload);
+
+    if (insertResult.error || !insertResult.data?.id) {
+      return {
+        success: false,
+        message: humanizeProductPersistenceError("criar", insertResult.error?.message ?? "Produto sem identificador retornado."),
       };
     }
 
     if (productKitsEnabled) {
       const componentsError = await syncKitComponents(
         adminSupabase,
-        parsed.data.id,
+        insertResult.data.id,
         parsed.data.depositanteId,
         parsed.data.tipoProduto,
         normalizedKitComponents,
@@ -283,7 +336,7 @@ export async function saveProdutoAction(
 
     const commercialRulesError = await syncCommercialKitRules(
       adminSupabase,
-      parsed.data.id,
+      insertResult.data.id,
       parsed.data.depositanteId,
       normalizedCommercialKitRules,
     );
@@ -296,64 +349,27 @@ export async function saveProdutoAction(
     }
 
     revalidatePath("/configuracoes/produtos");
-    revalidatePath("/m/produtos");
-    revalidatePath(`/configuracoes/produtos/${parsed.data.id}/editar`);
-    revalidatePath(`/m/produtos/${parsed.data.id}/editar`);
     if (returnPath) {
       revalidatePath(returnPath);
-      redirect(buildRedirectWithFeedback(returnPath, "salvo"));
+      redirect(buildRedirectWithFeedback(returnPath, "criado"));
     }
 
-    redirect(buildRedirectWithFeedback("/configuracoes/produtos", "salvo"));
-  }
-
-  const insertResult = await insertProductWithFallback(adminSupabase, payload);
-
-  if (insertResult.error || !insertResult.data?.id) {
-    return {
-      success: false,
-      message: humanizeProductPersistenceError("criar", insertResult.error?.message ?? "Produto sem identificador retornado."),
-    };
-  }
-
-  if (productKitsEnabled) {
-    const componentsError = await syncKitComponents(
-      adminSupabase,
-      insertResult.data.id,
-      parsed.data.depositanteId,
-      parsed.data.tipoProduto,
-      normalizedKitComponents,
-    );
-
-    if (componentsError) {
-      return {
-        success: false,
-        message: componentsError,
-      };
+    redirect(buildRedirectWithFeedback("/configuracoes/produtos", "criado"));
+  } catch (error) {
+    if (isNextRedirectError(error)) {
+      throw error;
     }
-  }
 
-  const commercialRulesError = await syncCommercialKitRules(
-    adminSupabase,
-    insertResult.data.id,
-    parsed.data.depositanteId,
-    normalizedCommercialKitRules,
-  );
+    const message =
+      error instanceof Error ? error.message : "Erro inesperado ao salvar o produto.";
 
-  if (commercialRulesError) {
+    console.error("[saveProdutoAction]", error);
+
     return {
       success: false,
-      message: commercialRulesError,
+      message: `Nao foi possivel salvar o produto: ${message}`,
     };
   }
-
-  revalidatePath("/configuracoes/produtos");
-  if (returnPath) {
-    revalidatePath(returnPath);
-    redirect(buildRedirectWithFeedback(returnPath, "criado"));
-  }
-
-  redirect(buildRedirectWithFeedback("/configuracoes/produtos", "criado"));
 }
 
 export async function toggleProdutoStatusAction(formData: FormData) {
@@ -665,6 +681,16 @@ function buildRedirectWithFeedback(redirectTo: string | null, feedback: string) 
   const basePath = redirectTo || "/configuracoes/produtos";
   const separator = basePath.includes("?") ? "&" : "?";
   return `${basePath}${separator}feedback=${feedback}&ts=${Date.now()}`;
+}
+
+function isNextRedirectError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof (error as { digest?: unknown }).digest === "string" &&
+      (error as { digest: string }).digest.includes("NEXT_REDIRECT"),
+  );
 }
 
 function validateProdutoImageFile(file: File) {
