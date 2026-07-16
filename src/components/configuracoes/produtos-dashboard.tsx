@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2, MoveRight } from "lucide-react";
+import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, PencilLine, Trash2, ArrowRightLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import React from "react";
 import { deleteProdutoAction, toggleProdutoStatusAction, fetchProdutoDrawerDetails } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -633,18 +633,18 @@ export function ProdutosDashboard({
             <div className="shrink-0 p-4 pt-4 border-t grid grid-cols-2 gap-2.5" style={{ borderColor: t.border, background: t.drawerBg }}>
               <Link
                 href={`/configuracoes/produtos/${selectedData.id}/editar`}
-                className="flex items-center justify-center h-11 rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex items-center justify-center h-11 rounded-[10px] border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}
               >
-                <PencilLine className="h-4 w-4 mr-2" />
+                <PencilLine className="h-[15px] w-[15px] mr-2" strokeWidth={2.5} />
                 Editar
               </Link>
               <Link
                 href={`/estoque/movimentacao-interna?produto=${selectedData.id}`}
-                className="flex items-center justify-center h-11 rounded-xl border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex items-center justify-center h-11 rounded-[10px] border border-slate-300 bg-slate-50 text-[14px] font-bold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                 style={{ textDecoration: 'none' }}
               >
-                <MoveRight className="h-4 w-4 mr-2" />
+                <ArrowRightLeft className="h-[15px] w-[15px] mr-2" strokeWidth={2.5} />
                 Movimentar
               </Link>
               <form action={toggleProdutoStatusAction} className="flex">
