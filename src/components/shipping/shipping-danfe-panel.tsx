@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Printer, ReceiptText } from "lucide-react";
+import { ReceiptText } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 
 type ShippingDanfePanelProps = {
@@ -29,23 +29,9 @@ export function ShippingDanfePanel({ orderId }: ShippingDanfePanelProps) {
             label="DANFE simplificada"
             viewHref={previewHref}
             downloadHref={downloadHref}
+            printLabel="Imprimir DANFE"
+            downloadLabel="Baixar DANFE"
           />
-          <a
-            href={previewHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Imprimir DANFE
-          </a>
-          <a
-            href={downloadHref}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Baixar DANFE
-          </a>
         </div>
       </div>
     </div>

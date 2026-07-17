@@ -517,6 +517,7 @@ function buildDefaultShippingAttachments(
     buildAttachment(
       "XML_NF",
       nfDocument,
+      orderId,
       invoice !== "Ainda nÃ£o vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
       "Anexe aqui o XML da nota fiscal quando o documento estiver disponÃ­vel no fluxo fiscal.",
       origin === "BLING" ? `/api/expedicao/${orderId}/nota-fiscal-preview` : null,
@@ -524,6 +525,7 @@ function buildDefaultShippingAttachments(
     buildAttachment(
       "ETIQUETA",
       labelDocument,
+      orderId,
       "Etiqueta do marketplace",
       "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logÃ­stico.",
       null,
@@ -534,6 +536,7 @@ function buildDefaultShippingAttachments(
 function buildAttachment(
   kind: ShippingAttachment["kind"],
   document: RawStoredDocumentRow | undefined,
+  orderId: string,
   pendingLabel: string,
   help: string,
   customViewHref: string | null,
@@ -552,13 +555,17 @@ function buildAttachment(
     };
   }
 
+  const attachmentRouteKind = kind === "XML_NF" ? "xml-nf" : "etiqueta";
+
   return {
     id: document.id,
     label: kind === "XML_NF" ? "XML da nota fiscal" : "Etiqueta do marketplace",
     kind,
     status: "DISPONIVEL",
-    href: `/api/documentos/${document.id}/download`,
-    viewHref: customViewHref ?? `/api/documentos/${document.id}/download?disposition=inline`,
+    href: `/api/expedicao/${orderId}/anexos/${attachmentRouteKind}`,
+    viewHref:
+      customViewHref ??
+      `/api/expedicao/${orderId}/anexos/${attachmentRouteKind}?disposition=inline`,
     fileName: document.nome_arquivo,
     uploadedAt: formatDateTimeInSaoPaulo(document.created_at, "Sem data"),
     help,

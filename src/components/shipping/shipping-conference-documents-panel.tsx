@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Download, FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
+import { FileCheck2, FileText, Package2, Paperclip, Route } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -54,7 +54,8 @@ export function ShippingConferenceDocumentsPanel({
             </h3>
           </div>
           <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
-            Depois da bipagem, revise os documentos e escolha obrigatoriamente se o pedido seguirá para romaneio ou será liberado sem romaneio.
+            Depois da bipagem, revise os documentos e escolha obrigatoriamente se o pedido seguirá
+            para romaneio ou será liberado sem romaneio.
           </p>
         </div>
 
@@ -71,7 +72,8 @@ export function ShippingConferenceDocumentsPanel({
 
       {!unlocked ? (
         <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-4 text-sm text-amber-700 dark:text-amber-300">
-          Finalize a bipagem de todos os itens para liberar a NF, a DANFE simplificada, a etiqueta e a destinação final do pedido.
+          Finalize a bipagem de todos os itens para liberar a NF, a DANFE simplificada, a etiqueta
+          e a destinação final do pedido.
         </div>
       ) : null}
 
@@ -83,6 +85,7 @@ export function ShippingConferenceDocumentsPanel({
           attachment={xmlAttachment}
           emptyLabel="NF pendente"
           printLabel="Imprimir NF"
+          downloadLabel="Baixar NF"
           unlocked={unlocked}
         />
 
@@ -93,6 +96,7 @@ export function ShippingConferenceDocumentsPanel({
           attachment={labelAttachment}
           emptyLabel="Etiqueta pendente"
           printLabel="Imprimir etiqueta"
+          downloadLabel="Baixar etiqueta"
           unlocked={unlocked}
         />
       </div>
@@ -112,7 +116,8 @@ export function ShippingConferenceDocumentsPanel({
                 </h4>
               </div>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Use esta área para anexar manualmente o XML da NF ou a etiqueta de envio quando o pedido não vier completo pela integração.
+                Use esta área para anexar manualmente o XML da NF ou a etiqueta de envio quando o
+                pedido não vier completo pela integração.
               </p>
               <ShippingAttachmentUploadPanel
                 depositanteId={depositanteId}
@@ -168,8 +173,9 @@ export function ShippingConferenceDocumentsPanel({
               Liberar pedido sem romaneio?
             </h4>
             <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
-              Essa ação mantém o pedido como <strong>Conferido</strong>, mas o libera fora do fluxo de romaneio.
-              Use somente quando a operação não precisar consolidar esse pedido em romaneio.
+              Essa ação mantém o pedido como <strong>Conferido</strong>, mas o libera fora do fluxo
+              de romaneio. Use somente quando a operação não precisar consolidar esse pedido em
+              romaneio.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -205,6 +211,7 @@ function AttachmentStatusCard({
   attachment,
   emptyLabel,
   printLabel,
+  downloadLabel,
   unlocked,
 }: {
   title: string;
@@ -213,6 +220,7 @@ function AttachmentStatusCard({
   attachment?: ShippingAttachment;
   emptyLabel: string;
   printLabel: string;
+  downloadLabel: string;
   unlocked: boolean;
 }) {
   const available = attachment?.status === "DISPONIVEL";
@@ -246,28 +254,14 @@ function AttachmentStatusCard({
       </div>
 
       {unlocked && attachment?.viewHref && attachment.href ? (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4">
           <ShippingAttachmentPreviewDialog
             label={attachment.label}
             viewHref={attachment.viewHref}
             downloadHref={attachment.href}
+            printLabel={printLabel}
+            downloadLabel={downloadLabel}
           />
-          <a
-            href={attachment.viewHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            {printLabel}
-          </a>
-          <a
-            href={attachment.href}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Baixar
-          </a>
         </div>
       ) : null}
     </div>
