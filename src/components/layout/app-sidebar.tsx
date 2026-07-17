@@ -2,16 +2,30 @@
 
 import { useState, useRef, useEffect } from "react";
 
+import { Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import {
+  Activity,
+  Archive,
   BarChart3,
   Boxes,
+  ClipboardList,
+  Cpu,
+  FileCode2,
   FileText,
+  Layers,
   LayoutDashboard,
   Map,
+  MapPin,
   PackageCheck,
+  PackageOpen,
+  PieChart,
   Receipt,
+  Route,
+  ScrollText,
+  Send,
   Settings2,
+  SlidersHorizontal,
   Truck,
   ChevronDown,
 } from "lucide-react";
@@ -29,21 +43,23 @@ import {
 } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
+
 const navigation: ReadonlyArray<{
   href: string;
   label: string;
   icon: LucideIcon;
   module: AppModule;
 }> = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, module: "dashboard" },
-  { href: "/recebimento", label: "Recebimento", icon: PackageCheck, module: "recebimento" },
-  { href: "/expedicao", label: "Expedição", icon: Truck, module: "expedicao" },
-  { href: "/estoque", label: "Estoque", icon: Boxes, module: "estoque" },
-  { href: "/romaneio", label: "Romaneio", icon: FileText, module: "romaneio" },
-  { href: "/nfe", label: "NF-e", icon: Receipt, module: "nfe" },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3, module: "relatorios" },
-  { href: "/yms", label: "YMS (Docas)", icon: Map, module: "yms" },
-  { href: "/configuracoes", label: "Configurações", icon: Settings2, module: "configuracoes" },
+  { href: "/dashboard", label: "Dashboard", icon: Activity, module: "dashboard" },
+  { href: "/recebimento", label: "Recebimento", icon: PackageOpen, module: "recebimento" },
+  { href: "/expedicao", label: "Expedição", icon: Send, module: "expedicao" },
+  { href: "/estoque", label: "Estoque", icon: Layers, module: "estoque" },
+  { href: "/romaneio", label: "Romaneio", icon: ClipboardList, module: "romaneio" },
+  { href: "/nfe", label: "NF-e", icon: FileCode2, module: "nfe" },
+  { href: "/relatorios", label: "Relatórios", icon: PieChart, module: "relatorios" },
+  { href: "/yms", label: "YMS (Docas)", icon: Route, module: "yms" },
+  { href: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, module: "configuracoes" },
 ] as const;
 
 type AppSidebarProps = {
@@ -85,29 +101,29 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
         {
           href: "/configuracoes/produtos",
           label: "Produtos",
-          icon: Settings2,
+          icon: SlidersHorizontal,
           module: "configuracoes" as AppModule,
         },
       ]
     : isCatalogAndStockOperatorUser(user)
       ? [
           ...(canAccessModule(user, "estoque")
-            ? [{ href: "/estoque", label: "Estoque", icon: Boxes, module: "estoque" as AppModule }]
+            ? [{ href: "/estoque", label: "Estoque", icon: Layers, module: "estoque" as AppModule }]
             : []),
           ...(canAccessModule(user, "expedicao")
-            ? [{ href: "/expedicao", label: "Expedição", icon: Truck }]
+            ? [{ href: "/expedicao", label: "Expedição", icon: Send }]
             : []),
           ...(canAccessModule(user, "romaneio")
-            ? [{ href: "/romaneio", label: "Romaneio", icon: FileText, module: "romaneio" as AppModule }]
+            ? [{ href: "/romaneio", label: "Romaneio", icon: ClipboardList, module: "romaneio" as AppModule }]
             : []),
           {
             href: "/configuracoes/produtos",
             label: "Produtos",
-            icon: Settings2,
+            icon: SlidersHorizontal,
             module: "configuracoes" as AppModule,
           },
           ...(canAccessConfigSection(user, "enderecos")
-            ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: Settings2 }]
+            ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: SlidersHorizontal }]
             : []),
         ]
       : navigation.filter((item) => canAccessModule(user, item.module));
@@ -124,19 +140,19 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
 
   return (
     <aside 
-      style={{ width: isCollapsed ? 80 : sidebarWidth, transition: dragRef.current ? 'none' : 'width 0.3s ease-in-out' }}
-      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/80 p-4 dark:border-white/10"
+      style={{ width: isCollapsed ? 80 : sidebarWidth, transition: dragRef.current ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/50 bg-white/60 p-4 backdrop-blur-xl dark:border-white/5 dark:bg-[#060d18]/70"
     >
       {/* Drag handle */}
       {!isCollapsed && setSidebarWidth && (
         <div 
           onMouseDown={handleMouseDown}
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-violet-500/50 active:bg-violet-500 z-50 transition-colors"
+          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 z-50 transition-colors"
         />
       )}
 
       <div>
-        <div className={cn("flex items-center mb-6", isCollapsed ? "justify-center" : "justify-between gap-2")}>
+        <div className={cn("flex items-center mb-8", isCollapsed ? "justify-center" : "justify-between gap-2")}>
           {!isCollapsed && <div className="flex-1 min-w-0"><ModuleSwitcher currentPath={currentPath} /></div>}
           <button 
             onClick={() => setIsCollapsed?.(!isCollapsed)}
@@ -158,14 +174,18 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
                 href={item.href}
                 title={isCollapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-colors",
+                  "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-300",
+                  spaceGrotesk.className,
                   isCollapsed && "justify-center px-0",
                   isActive
-                    ? "border border-cyan-300/25 bg-cyan-400/10 text-cyan-700 dark:text-cyan-300"
-                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white",
+                    ? "bg-gradient-to-r from-cyan-500/10 to-transparent text-cyan-700 dark:from-cyan-400/10 dark:text-cyan-300"
+                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white",
                 )}
               >
-                <Icon className="h-5 w-5 flex-shrink-0" />
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 h-2/3 w-[3px] -translate-y-1/2 rounded-r-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:bg-cyan-400 dark:shadow-[0_0_12px_rgba(34,211,238,0.6)]" />
+                )}
+                <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]")} />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
