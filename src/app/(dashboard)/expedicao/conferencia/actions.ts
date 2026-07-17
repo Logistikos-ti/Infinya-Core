@@ -211,13 +211,18 @@ export async function saveShippingConferenceAction(formData: FormData) {
     nextStatus = canComplete ? "CONFERIDO" : order.status;
   }
 
-  await adminSupabase
+  const { error: updateError } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
       status: nextStatus,
       payload_origem: nextPayload,
     })
     .eq("id", orderId);
+
+  if (updateError) {
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    redirect(`${redirectBase}/${orderId}?feedback=erro`);
+  }
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/conferencia");

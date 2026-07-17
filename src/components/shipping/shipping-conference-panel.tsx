@@ -331,6 +331,12 @@ export function ShippingConferencePanel({
         >
           {feedback === "concluido"
             ? "ConferÃªncia concluÃ­da. Revise os documentos e escolha se o pedido vai para romaneio ou se serÃ¡ liberado sem romaneio."
+            : feedback === "liberado-romaneio"
+              ? "Pedido liberado para romaneio com sucesso."
+              : feedback === "liberado-sem-romaneio"
+                ? "Pedido liberado sem romaneio com sucesso."
+                : feedback === "salvo"
+                  ? "ConferÃªncia atualizada com sucesso."
             : feedback === "incompleto"
               ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferÃªncia."
               : feedback === "documentos-pendentes"
