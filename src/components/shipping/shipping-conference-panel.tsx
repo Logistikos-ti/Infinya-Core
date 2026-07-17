@@ -569,6 +569,24 @@ export function ShippingConferencePanel({
             name="completeRedirectTo"
             value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`}
           />
+          <button
+            id="shipping-conference-form-release-romaneio"
+            type="submit"
+            name="intent"
+            value="release-romaneio"
+            className="hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+          <button
+            id="shipping-conference-form-release-sem-romaneio"
+            type="submit"
+            name="intent"
+            value="release-sem-romaneio"
+            className="hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
 
           <div className="overflow-x-auto rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm">
             <table className="min-w-full text-left text-sm">
