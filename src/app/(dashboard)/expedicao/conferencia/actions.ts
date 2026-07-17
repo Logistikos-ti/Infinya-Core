@@ -154,7 +154,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
   const isCompletingConference =
     intent === "complete" || isReleaseToRomaneio || isReleaseWithoutRomaneio;
 
-  const nextConferencePayload = {
+  const nextConferencePayload: Record<string, unknown> = {
     ...currentConference,
     operadorId: operatorId || readString(currentConference.operadorId) || user.id,
     operadorNome: operatorName || readString(currentConference.operadorNome) || user.nome,
