@@ -156,8 +156,10 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
       )}
 
       <div>
-        <div className={cn("flex items-center mb-8", isCollapsed ? "justify-center" : "justify-between gap-2")}>
-          {!isCollapsed && <div className="flex-1 min-w-0"><ModuleSwitcher currentPath={currentPath} /></div>}
+        <div className={cn("flex items-center mb-8", isCollapsed ? "flex-col gap-4" : "justify-between gap-2")}>
+          <div className={cn(isCollapsed ? "flex justify-center" : "flex-1 min-w-0")}>
+            <ModuleSwitcher currentPath={currentPath} isCollapsed={!!isCollapsed} />
+          </div>
           <button 
             onClick={() => setIsCollapsed?.(!isCollapsed)}
             className="p-2 rounded-xl bg-slate-100/50 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 transition-colors flex-shrink-0"
@@ -217,7 +219,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
   );
 }
 
-function ModuleSwitcher({ currentPath }: { currentPath: string }) {
+function ModuleSwitcher({ currentPath, isCollapsed }: { currentPath: string; isCollapsed: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isYMS = currentPath.startsWith("/yms");
@@ -236,14 +238,23 @@ function ModuleSwitcher({ currentPath }: { currentPath: string }) {
     <div className="relative px-1" ref={ref}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-2xl border border-transparent p-1.5 transition-colors hover:bg-slate-100/50 dark:hover:bg-white/5"
+        className={cn(
+          "flex w-full items-center justify-between rounded-2xl border border-transparent p-1.5 transition-colors hover:bg-slate-100/50 dark:hover:bg-white/5",
+          isCollapsed && "justify-center p-0 hover:bg-transparent dark:hover:bg-transparent"
+        )}
       >
-        <InfinyaBrand compact isYMS={isYMS} />
-        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        {isCollapsed ? (
+          <InfinyaBrand glyphOnly className="w-10 h-10" />
+        ) : (
+          <>
+            <InfinyaBrand compact naked isYMS={isYMS} />
+            <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          </>
+        )}
       </button>
 
-      {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#071120]">
+      {isOpen && !isCollapsed && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0a1128]">
           <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Módulos Disponíveis
           </p>

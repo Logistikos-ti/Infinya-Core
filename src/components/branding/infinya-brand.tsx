@@ -11,9 +11,11 @@ type InfinyaBrandProps = {
   animated?: boolean;
   forceLightWordmark?: boolean;
   isYMS?: boolean;
+  naked?: boolean;
+  glyphOnly?: boolean;
 };
 
-function BrandGlyph({ className }: { className?: string }) {
+export function BrandGlyph({ className }: { className?: string }) {
   return (
     <div
       className={cn(
@@ -67,7 +69,21 @@ export function InfinyaBrand({
   subtitleClassName,
   compact = false,
   isYMS = false,
+  naked = false,
+  glyphOnly = false,
 }: InfinyaBrandProps) {
+  if (glyphOnly) {
+    return <BrandGlyph className={className} />;
+  }
+
+  if (naked) {
+    return (
+      <div className={cn("min-w-0 flex items-center justify-center", className)}>
+        <BrandLockup compact={compact} className="w-full" isYMS={isYMS} />
+      </div>
+    );
+  }
+
   if (compact) {
     return (
       <div className={cn("min-w-0", className)}>
