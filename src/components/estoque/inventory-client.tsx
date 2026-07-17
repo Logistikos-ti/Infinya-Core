@@ -51,19 +51,32 @@ export function InventoryClient({ data }: { data: any }) {
           <div style={{ display: "flex", padding: "4px", gap: "4px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg }}>
             <button 
               onClick={() => setIsBySku(true)}
-              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: isBySku ? (isDark ? "#1E293B" : "#F1F5F9") : "transparent", color: isBySku ? t.text : t.textSub, transition: "all 0.2s ease" }}
+              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: isBySku ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent", color: isBySku ? "#fff" : t.textSub, transition: "all 0.2s ease" }}
             >
               ☰ Por SKU
             </button>
             <button 
               onClick={() => setIsBySku(false)}
-              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: !isBySku ? (isDark ? "#1E293B" : "#F1F5F9") : "transparent", color: !isBySku ? t.text : t.textSub, transition: "all 0.2s ease" }}
+              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: !isBySku ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent", color: !isBySku ? "#fff" : t.textSub, transition: "all 0.2s ease" }}
             >
               ⬚ Por Lote
             </button>
           </div>
-          <button style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>⭳ Estoque inicial</button>
-          <button style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px" }}>⇄ Ajuste de estoque</button>
+          
+          <button 
+            style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease" }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}
+          >
+            <span style={{ color: "#3B82F6", display: "flex" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </span>
+            Estoque inicial
+          </button>
+          
+          <button style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
+            ⇄ Ajuste de estoque
+          </button>
         </div>
       </div>
 
