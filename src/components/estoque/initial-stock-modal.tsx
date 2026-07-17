@@ -4,31 +4,54 @@
 import { useState } from "react";
 import { X, Download, Layers, ScanBarcode, CheckCircle2, RotateCcw } from "lucide-react";
 
-export function InitialStockModal({ t, onClose }: { t: any; onClose: () => void }) {
+export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any; onClose: () => void; produtos: any[]; enderecos: any[] }) {
   const [skuInput, setSkuInput] = useState("");
-  const [productData, setProductData] = useState<{ name: string; requiresLot: boolean } | null>(null);
+  const [productData, setProductData] = useState<{ name: string; requiresLot: boolean; requiresVal: boolean; id: string } | null>(null);
+  const [skuError, setSkuError] = useState("");
   
   const [locInput, setLocInput] = useState("");
-  const [locationData, setLocationData] = useState<{ name: string } | null>(null);
+  const [locationData, setLocationData] = useState<{ name: string; id: string } | null>(null);
+  const [locError, setLocError] = useState("");
 
   // Simulates barcode scanner hitting Enter
   const handleSkuKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && skuInput.trim() !== "") {
-      // Mocked product fetch
-      const isControlled = skuInput.includes("LOT") || skuInput.includes("789");
-      setProductData({
-        name: isControlled ? "Whey Protein Concentrado 900g" : "Caixa de Papelão Padrão",
-        requiresLot: isControlled
-      });
+      const q = skuInput.trim().toLowerCase();
+      const found = produtos.find(p => 
+        p.sku?.toLowerCase() === q || 
+        p.codigoInterno?.toLowerCase() === q || 
+        p.codigoExterno?.toLowerCase() === q ||
+        p.id === q
+      );
+      
+      if (found) {
+        setProductData({
+          id: found.id,
+          name: found.nome,
+          requiresLot: found.exigeLote,
+          requiresVal: found.exigeValidade
+        });
+        setSkuError("");
+      } else {
+        setSkuError("Produto não encontrado.");
+      }
     }
   };
 
   const handleLocKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && locInput.trim() !== "") {
-      // Mocked location fetch
-      setLocationData({
-        name: locInput.toUpperCase()
-      });
+      const q = locInput.trim().toLowerCase();
+      const found = enderecos.find(ed => ed.codigo?.toLowerCase() === q || ed.id === q);
+      
+      if (found) {
+        setLocationData({
+          id: found.id,
+          name: found.codigo
+        });
+        setLocError("");
+      } else {
+        setLocError("Endereço não encontrado.");
+      }
     }
   };
 
@@ -70,12 +93,12 @@ export function InitialStockModal({ t, onClose }: { t: any; onClose: () => void 
                   type="text" 
                   autoFocus
                   value={skuInput}
-                  onChange={(e) => setSkuInput(e.target.value)}
+                  onChange={(e) => { setSkuInput(e.target.value); setSkuError(""); }}
                   onKeyDown={handleSkuKeyDown}
                   placeholder="Aguardando bipe do código de barras..." 
-                  style={{ width: "100%", height: "48px", padding: "0 16px 0 42px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
-                  onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
-                  onBlur={(e) => e.target.style.borderColor = t.border}
+                  style={{ width: "100%", height: "48px", padding: "0 16px 0 42px", borderRadius: "12px", border: `1px solid ${skuError ? "#EF4444" : t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
+                  onFocus={(e) => e.target.style.borderColor = skuError ? "#EF4444" : "#3B82F6"}
+                  onBlur={(e) => e.target.style.borderColor = skuError ? "#EF4444" : t.border}
                 />
               </div>
             ) : (
@@ -102,12 +125,12 @@ export function InitialStockModal({ t, onClose }: { t: any; onClose: () => void 
                   <input 
                     type="text" 
                     value={locInput}
-                    onChange={(e) => setLocInput(e.target.value)}
+                    onChange={(e) => { setLocInput(e.target.value); setLocError(""); }}
                     onKeyDown={handleLocKeyDown}
                     placeholder="Bipe o endereço..." 
-                    style={{ width: "100%", height: "48px", padding: "0 16px 0 42px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
-                    onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
-                    onBlur={(e) => e.target.style.borderColor = t.border}
+                    style={{ width: "100%", height: "48px", padding: "0 16px 0 42px", borderRadius: "12px", border: `1px solid ${locError ? "#EF4444" : t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
+                    onFocus={(e) => e.target.style.borderColor = locError ? "#EF4444" : "#3B82F6"}
+                    onBlur={(e) => e.target.style.borderColor = locError ? "#EF4444" : t.border}
                   />
                 </div>
               ) : (
@@ -136,28 +159,32 @@ export function InitialStockModal({ t, onClose }: { t: any; onClose: () => void 
           </div>
 
           {/* Conditional Lote & Validade */}
-          {productData?.requiresLot && (
+          {(productData?.requiresLot || productData?.requiresVal) && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", animation: "modalScale 0.2s ease" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Lote</label>
-                <input 
-                  type="text" 
-                  placeholder="Informar lote..." 
-                  style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
-                  onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
-                  onBlur={(e) => e.target.style.borderColor = t.border}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Validade</label>
-                <input 
-                  type="text" 
-                  placeholder="dd/mm/aa" 
-                  style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
-                  onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
-                  onBlur={(e) => e.target.style.borderColor = t.border}
-                />
-              </div>
+              {productData.requiresLot && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Lote <span style={{ color: "#EF4444" }}>*</span></label>
+                  <input 
+                    type="text" 
+                    placeholder="Informar lote..." 
+                    style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
+                    onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
+                    onBlur={(e) => e.target.style.borderColor = t.border}
+                  />
+                </div>
+              )}
+              {productData.requiresVal && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Validade <span style={{ color: "#EF4444" }}>*</span></label>
+                  <input 
+                    type="text" 
+                    placeholder="dd/mm/aa" 
+                    style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
+                    onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
+                    onBlur={(e) => e.target.style.borderColor = t.border}
+                  />
+                </div>
+              )}
             </div>
           )}
 

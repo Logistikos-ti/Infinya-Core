@@ -99,7 +99,12 @@ export function InventoryClient({ data }: { data: any }) {
       )}
 
       {showInitial && (
-        <InitialStockModal t={t} onClose={() => setShowInitial(false)} />
+        <InitialStockModal 
+          t={t} 
+          onClose={() => setShowInitial(false)} 
+          produtos={data.produtosInventario || []} 
+          enderecos={data.enderecosInventario || []} 
+        />
       )}
     </div>
   );
