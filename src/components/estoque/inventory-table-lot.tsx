@@ -76,9 +76,35 @@ export function InventoryTableLot({ t, balances }: { t: any; balances: any[] }) 
             style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: currentPage === 1 ? t.border : t.textSub, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: "13px" }}
           >‹</button>
           
-          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", cursor: "default", fontSize: "13px", fontWeight: 700 }}>
-            {currentPage}
-          </button>
+          {Array.from({ length: Math.min(5, totalPages) }).map((_, idx) => {
+            // Logic to show pages around current page
+            let pageNum = idx + 1;
+            if (totalPages > 5 && currentPage > 3) {
+              pageNum = currentPage - 2 + idx;
+              if (pageNum > totalPages) pageNum = totalPages - (4 - idx);
+            }
+            
+            const isActive = pageNum === currentPage;
+            return (
+              <button 
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                style={{ 
+                  width: "34px", 
+                  height: "34px", 
+                  borderRadius: "8px", 
+                  border: isActive ? "none" : `1px solid ${t.border}`, 
+                  background: isActive ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : t.inputBg, 
+                  color: isActive ? "#fff" : t.text, 
+                  cursor: isActive ? "default" : "pointer", 
+                  fontSize: "13px", 
+                  fontWeight: isActive ? 700 : 500 
+                }}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
           
           <button 
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}

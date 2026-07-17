@@ -45,7 +45,7 @@ export function ShippingConferenceDocumentsPanel({
       id="documentos-impressao"
       className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80"
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-start 2xl:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Paperclip className="h-4 w-4 text-slate-500 dark:text-slate-400" />
@@ -77,7 +77,7 @@ export function ShippingConferenceDocumentsPanel({
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido para consulta e impressão fiscal."
@@ -101,7 +101,7 @@ export function ShippingConferenceDocumentsPanel({
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <div className="space-y-4">
           <ShippingDanfePanel orderId={orderId} />
         </div>
@@ -129,7 +129,7 @@ export function ShippingConferenceDocumentsPanel({
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <Route className="h-4 w-4 text-slate-500 dark:text-slate-400" />
@@ -227,15 +227,15 @@ function AttachmentStatusCard({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
             {icon}
             <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">{title}</h4>
           </div>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{subtitle}</p>
           {attachment?.fileName ? (
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-2 break-words text-xs text-slate-500 dark:text-slate-400">
               {attachment.fileName}
               {attachment.uploadedAt ? ` • ${attachment.uploadedAt}` : ""}
             </p>
@@ -243,7 +243,7 @@ function AttachmentStatusCard({
         </div>
 
         <span
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+          className={`w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold ${
             available
               ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
               : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
