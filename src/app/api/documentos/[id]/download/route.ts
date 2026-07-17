@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { gunzipSync } from "node:zlib";
-import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { ensureUserCanAccessDepositante, requireApiUser } from "@/lib/api-auth";
+import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { documentsBucketName } from "@/lib/storage";
@@ -12,7 +13,7 @@ type RouteProps = {
 };
 
 export async function GET(request: Request, { params }: RouteProps) {
-  const auth = await requireApiModuleAccess("nfe");
+  const auth = await requireApiUser();
 
   if (auth.response) {
     return auth.response;
@@ -25,7 +26,7 @@ export async function GET(request: Request, { params }: RouteProps) {
 
   const { data: document } = await supabase
     .from("documentos_armazenados")
-    .select("id, nome_arquivo, caminho_storage, depositante_id, mime_type")
+    .select("id, nome_arquivo, caminho_storage, depositante_id, mime_type, pedido_expedicao_id, pedido_recebimento_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -37,6 +38,18 @@ export async function GET(request: Request, { params }: RouteProps) {
 
   if (scopeError) {
     return scopeError;
+  }
+
+  const allowedByModule =
+    (Boolean(document.pedido_expedicao_id) && canAccessModule(auth.user, "expedicao")) ||
+    (Boolean(document.pedido_recebimento_id) && canAccessModule(auth.user, "recebimento")) ||
+    canAccessModule(auth.user, "nfe");
+
+  if (!allowedByModule) {
+    return NextResponse.json(
+      { error: "Seu perfil não tem acesso a este documento." },
+      { status: 403 },
+    );
   }
 
   const adminSupabase = createSupabaseAdminClient();

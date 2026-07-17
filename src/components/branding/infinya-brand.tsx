@@ -19,11 +19,11 @@ export function BrandGlyph({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[20px] border border-white/10 bg-[#071120] shadow-[0_18px_40px_rgba(4,8,22,0.24)]",
+        "relative overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#071120] dark:shadow-[0_18px_40px_rgba(4,8,22,0.24)]",
         className,
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_18%,rgba(110,231,255,0.16),transparent_30%),radial-gradient(circle_at_84%_82%,rgba(217,70,239,0.14),transparent_28%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
+      <div className="hidden dark:block absolute inset-0 bg-[radial-gradient(circle_at_26%_18%,rgba(110,231,255,0.16),transparent_30%),radial-gradient(circle_at_84%_82%,rgba(217,70,239,0.14),transparent_28%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
       <Image
         src="/branding/infinoos-icon-wms.svg"
         alt="Infinoos WMS"
@@ -54,7 +54,7 @@ function BrandLockup({
         height={compact ? 58 : 90}
         priority
         className={cn(
-          "h-auto w-auto max-w-full object-contain",
+          "h-auto w-auto max-w-full object-contain dark:invert-0 dark:hue-rotate-0 invert hue-rotate-180",
           compact ? "max-h-[54px]" : "max-h-[86px]",
         )}
       />
