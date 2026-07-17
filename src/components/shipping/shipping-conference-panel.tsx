@@ -581,7 +581,7 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
-          <input ref={conferenceIntentInputRef} type="hidden" name="intent" value="save" />
+          <input ref={conferenceIntentInputRef} type="hidden" name="intent" defaultValue="save" />
           <input
             type="hidden"
             name="completeRedirectTo"
