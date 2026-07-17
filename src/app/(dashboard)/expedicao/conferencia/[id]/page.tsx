@@ -57,6 +57,7 @@ export default async function ShippingConferenceDetailPage({
         order={order}
         operators={operators}
         currentUserId={user.id}
+        currentUserName={user.nome}
         feedback={feedback}
         documents={{
           orderId: orderDetail.id,

@@ -16,6 +16,7 @@ type ShippingConferencePanelProps = {
   order: ShippingConferenceOrder;
   operators: PickingOperatorOption[];
   currentUserId: string;
+  currentUserName: string;
   feedback?: string;
   redirectBase?: string;
   documents: {
@@ -39,12 +40,14 @@ export function ShippingConferencePanel({
   order,
   operators: _operators,
   currentUserId,
+  currentUserName,
   feedback,
   redirectBase = "/expedicao/conferencia",
   documents,
 }: ShippingConferencePanelProps) {
   const router = useRouter();
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
+  const operatorDisplayName = order.assignedOperatorName?.trim() || currentUserName;
   const [selectedOperatorId] = useState(defaultOperatorId);
   const [items, setItems] = useState<ConferenceItemState[]>(
     order.items.map((item) => ({
@@ -62,6 +65,8 @@ export function ShippingConferencePanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const conferenceFormRef = useRef<HTMLFormElement | null>(null);
+  const conferenceIntentInputRef = useRef<HTMLInputElement | null>(null);
   const {
     videoRef,
     cameraSupported,
@@ -307,6 +312,17 @@ export function ShippingConferencePanel({
     applyScannedCode(scanValue);
   }
 
+  function submitConferenceIntent(intent: "release-romaneio" | "release-sem-romaneio") {
+    if (!conferenceFormRef.current || !conferenceIntentInputRef.current) {
+      return;
+    }
+
+    conferenceIntentInputRef.current.value = intent;
+    resetTimer();
+    setIsSubmitting(true);
+    conferenceFormRef.current.requestSubmit();
+  }
+
   return (
     <div className="space-y-6">
       <InactivityWarningDialog
@@ -414,7 +430,7 @@ export function ShippingConferencePanel({
                 Operador respons?vel
               </span>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
-                {order.assignedOperatorName ?? "Operador n?o atribu?do"}
+                {operatorDisplayName}
               </div>
             </div>
 
@@ -552,6 +568,7 @@ export function ShippingConferencePanel({
         <div className="space-y-5">
         <form
           id="shipping-conference-form"
+          ref={conferenceFormRef}
           action={saveShippingConferenceAction}
           className="space-y-5"
           aria-busy={isSubmitting}
@@ -564,28 +581,11 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
+          <input ref={conferenceIntentInputRef} type="hidden" name="intent" value="save" />
           <input
             type="hidden"
             name="completeRedirectTo"
             value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`}
-          />
-          <button
-            id="shipping-conference-form-release-romaneio"
-            type="submit"
-            name="intent"
-            value="release-romaneio"
-            className="hidden"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-          <button
-            id="shipping-conference-form-release-sem-romaneio"
-            type="submit"
-            name="intent"
-            value="release-sem-romaneio"
-            className="hidden"
-            tabIndex={-1}
-            aria-hidden="true"
           />
 
           <div className="overflow-x-auto rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm">
@@ -722,6 +722,7 @@ export function ShippingConferencePanel({
           attachments={documents.attachments}
           canUploadAttachments={documents.canUploadAttachments}
           unlocked={pendingUnits <= 0}
+          onSubmitIntent={submitConferenceIntent}
         />
         </div>
       </div>

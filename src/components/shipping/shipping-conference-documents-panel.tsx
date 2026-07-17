@@ -14,7 +14,7 @@ type ShippingConferenceDocumentsPanelProps = {
   attachments: ShippingAttachment[];
   canUploadAttachments: boolean;
   unlocked: boolean;
-  formId?: string;
+  onSubmitIntent: (intent: "release-romaneio" | "release-sem-romaneio") => void;
 };
 
 export function ShippingConferenceDocumentsPanel({
@@ -23,7 +23,7 @@ export function ShippingConferenceDocumentsPanel({
   attachments,
   canUploadAttachments,
   unlocked,
-  formId = "shipping-conference-form",
+  onSubmitIntent,
 }: ShippingConferenceDocumentsPanelProps) {
   const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
@@ -39,22 +39,6 @@ export function ShippingConferenceDocumentsPanel({
       : !hasShippingLabel
         ? "Anexe a etiqueta de envio antes de enviar para romaneio."
         : "Pedido pronto para destinação final.";
-
-  function submitConferenceIntent(intent: "release-romaneio" | "release-sem-romaneio") {
-    const form = document.getElementById(formId) as HTMLFormElement | null;
-    const submitter = document.getElementById(`${formId}-${intent}`) as HTMLButtonElement | null;
-
-    if (!form) {
-      return;
-    }
-
-    if (submitter) {
-      form.requestSubmit(submitter);
-      return;
-    }
-
-    form.requestSubmit();
-  }
 
   return (
     <div
@@ -160,7 +144,7 @@ export function ShippingConferenceDocumentsPanel({
             <button
               type="button"
               disabled={!canReleaseToRomaneio}
-              onClick={() => submitConferenceIntent("release-romaneio")}
+              onClick={() => onSubmitIntent("release-romaneio")}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
             >
               <Route className="h-4 w-4" />
@@ -203,7 +187,10 @@ export function ShippingConferenceDocumentsPanel({
 
               <button
                 type="button"
-                onClick={() => submitConferenceIntent("release-sem-romaneio")}
+                onClick={() => {
+                  setConfirmReleaseWithoutRomaneio(false);
+                  onSubmitIntent("release-sem-romaneio");
+                }}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 Confirmar liberação
