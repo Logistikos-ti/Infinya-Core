@@ -27,6 +27,7 @@ export type ProdutoActionState = {
       | "eanGtin"
       | "fornecedor"
       | "categoria"
+      | "tamanho"
       | "tipoProduto"
       | "metodoRetirada"
       | "unidadeEstocagem"
@@ -75,6 +76,7 @@ export async function saveProdutoAction(
     eanGtin: String(formData.get("eanGtin") ?? "").trim(),
     fornecedor: String(formData.get("fornecedor") ?? "").trim(),
     categoria: String(formData.get("categoria") ?? "").trim(),
+    tamanho: String(formData.get("tamanho") ?? "").trim(),
     tipoProduto: String(formData.get("tipoProduto") ?? "SIMPLES"),
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
@@ -107,6 +109,7 @@ export async function saveProdutoAction(
         eanGtin: flattened.eanGtin?.[0] ?? "",
         fornecedor: flattened.fornecedor?.[0] ?? "",
         categoria: flattened.categoria?.[0] ?? "",
+        tamanho: flattened.tamanho?.[0] ?? "",
         tipoProduto: flattened.tipoProduto?.[0] ?? "",
         metodoRetirada: flattened.metodoRetirada?.[0] ?? "",
         unidadeEstocagem: flattened.unidadeEstocagem?.[0] ?? "",
@@ -225,6 +228,7 @@ export async function saveProdutoAction(
       nome: parsed.data.nome,
       fornecedor: parsed.data.fornecedor || null,
       categoria: parsed.data.categoria || null,
+      tamanho: parsed.data.tamanho || null,
       metodo_retirada: parsed.data.metodoRetirada,
       unidade_estocagem: parsed.data.unidadeEstocagem,
       quantidade_por_embalagem:

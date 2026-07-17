@@ -87,6 +87,7 @@ export function ProdutoForm({
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
   
   const [categoria, setCategoria] = useState(defaultValues?.categoria ?? "Seco / Ambiente");
+  const [tamanho, setTamanho] = useState((defaultValues as any)?.tamanho ?? "");
   const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(defaultValues?.metodoRetirada ?? "FEFO");
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<"UNIDADE" | "CAIXA" | "PACK" | "PALLET">(defaultValues?.unidadeEstocagem ?? "UNIDADE");
   const [quantidadePorEmbalagem, setQuantidadePorEmbalagem] = useState(defaultValues?.quantidadePorEmbalagem?.toString() ?? "");
@@ -140,7 +141,8 @@ export function ProdutoForm({
 
   const catDefs: Record<string, string> = {
     'Seco / Ambiente': '#3B82F6', 'Refrigerado': '#06B6D4', 'Congelado': '#6366F1',
-    'Frágil': '#EC4899', 'Perigoso (DG)': '#EF4444', 'Alto Valor': '#F59E0B', 'Volumoso': '#10B981'
+    'Frágil': '#EC4899', 'Perigoso (DG)': '#EF4444', 'Alto Valor': '#F59E0B', 'Volumoso': '#10B981',
+    'Vestuário': '#8B5CF6'
   };
 
   const hex2 = (h: string, a: number) => {
@@ -187,6 +189,7 @@ export function ProdutoForm({
       <input type="hidden" name="exigeLote" value={exigeLote ? "true" : "false"} />
       <input type="hidden" name="exigeValidade" value={exigeValidade ? "true" : "false"} />
       <input type="hidden" name="ativo" value={ativo ? "true" : "false"} />
+      <input type="hidden" name="tamanho" value={tamanho} />
       <input type="hidden" name="descricao" value={descricao} />
       <input type="hidden" name="pesoKg" value={pesoKg} />
       <input type="hidden" name="alturaCm" value={alturaCm} />
@@ -380,6 +383,16 @@ export function ProdutoForm({
                   </div>
                 </div>
               </div>
+
+              {categoria === "Vestuário" && (
+                <div className="flex flex-col gap-2.5 mt-2">
+                  <span className="text-[13px] font-bold text-slate-500">Tamanho da peça (Vestuário) <span className="text-rose-500">*</span></span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all max-w-[200px]">
+                    <input name="tamanho" value={tamanho} onChange={e => setTamanho(e.target.value)} placeholder="Ex: M, G, GG, 42..." 
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
+                  </div>
+                </div>
+              )}
               
               {/* Descrição */}
               <div className="flex flex-col gap-2.5 mt-4">
