@@ -2,16 +2,26 @@
 "use client";
 
 import { useState } from "react";
-import { X, Download, Layers, ScanBarcode, CheckCircle2, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, Download, Layers, ScanBarcode, CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
 
 export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any; onClose: () => void; produtos: any[]; enderecos: any[] }) {
+  const router = useRouter();
+
   const [skuInput, setSkuInput] = useState("");
-  const [productData, setProductData] = useState<{ name: string; requiresLot: boolean; requiresVal: boolean; id: string } | null>(null);
+  const [productData, setProductData] = useState<{ name: string; requiresLot: boolean; requiresVal: boolean; id: string; depositanteId: string; } | null>(null);
   const [skuError, setSkuError] = useState("");
   
   const [locInput, setLocInput] = useState("");
   const [locationData, setLocationData] = useState<{ name: string; id: string } | null>(null);
   const [locError, setLocError] = useState("");
+
+  const [quantidade, setQuantidade] = useState("");
+  const [lote, setLote] = useState("");
+  const [validadeEm, setValidadeEm] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Simulates barcode scanner hitting Enter
   const handleSkuKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -27,11 +37,13 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
       if (found) {
         setProductData({
           id: found.id,
+          depositanteId: found.depositanteId,
           name: found.nome,
           requiresLot: found.exigeLote,
           requiresVal: found.exigeValidade
         });
         setSkuError("");
+        setFeedback(null);
       } else {
         setSkuError("Produto não encontrado.");
       }
@@ -49,9 +61,66 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
           name: found.codigo
         });
         setLocError("");
+        setFeedback(null);
       } else {
         setLocError("Endereço não encontrado.");
       }
+    }
+  };
+
+  const handleSubmit = async () => {
+    setFeedback(null);
+    if (!productData || !locationData) return;
+    
+    if (!quantidade.trim() || Number(quantidade) <= 0) {
+      setFeedback({ type: "error", message: "Informe uma quantidade maior que zero." });
+      return;
+    }
+
+    if (productData.requiresLot && !lote.trim()) {
+      setFeedback({ type: "error", message: "Este produto exige lote." });
+      return;
+    }
+    
+    if (productData.requiresVal && !validadeEm.trim()) {
+      setFeedback({ type: "error", message: "Este produto exige validade." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/estoque", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          depositanteId: productData.depositanteId,
+          enderecoCodigo: locationData.name, // The backend uses enderecoCodigo to find the address
+          produtoCodigo: skuInput.trim(), // The backend uses produtoCodigo to find the product
+          quantidade,
+          lote: lote.trim(),
+          validadeEm: validadeEm.trim(),
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        setFeedback({ type: "error", message: payload.error ?? "Não foi possível lançar o saldo inicial." });
+      } else {
+        setFeedback({ type: "success", message: payload.message ?? "Saldo inicial lançado com sucesso." });
+        setSkuInput("");
+        setProductData(null);
+        setLocInput("");
+        setLocationData(null);
+        setQuantidade("");
+        setLote("");
+        setValidadeEm("");
+        router.refresh();
+        setTimeout(() => onClose(), 2000); // close after 2s on success
+      }
+    } catch {
+      setFeedback({ type: "error", message: "Falha de comunicação ao salvar." });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,6 +219,8 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
               <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Quantidade <span style={{ color: "#EF4444" }}>*</span></label>
               <input 
                 type="number" 
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
                 placeholder="0" 
                 style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
                 onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
@@ -166,6 +237,8 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
                   <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Lote <span style={{ color: "#EF4444" }}>*</span></label>
                   <input 
                     type="text" 
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
                     placeholder="Informar lote..." 
                     style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
                     onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
@@ -178,6 +251,8 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
                   <label style={{ fontSize: "13.5px", fontWeight: 700, color: t.textSub }}>Validade <span style={{ color: "#EF4444" }}>*</span></label>
                   <input 
                     type="text" 
+                    value={validadeEm}
+                    onChange={(e) => setValidadeEm(e.target.value)}
                     placeholder="dd/mm/aa" 
                     style={{ width: "100%", height: "48px", padding: "0 16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.appBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14.5px", outline: "none", transition: "border-color 0.2s ease" }}
                     onFocus={(e) => e.target.style.borderColor = "#3B82F6"}
@@ -197,25 +272,34 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
             </span>
           </div>
           
+          {feedback && (
+            <div style={{ marginTop: "16px", padding: "12px 16px", borderRadius: "8px", fontSize: "14px", fontWeight: 600, color: feedback.type === "error" ? "#EF4444" : "#10B981", background: feedback.type === "error" ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)", border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
+              {feedback.message}
+            </div>
+          )}
+          
         </div>
 
         {/* Footer */}
         <div style={{ padding: "20px 28px", borderTop: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", background: t.headBg }}>
           <button 
             onClick={onClose}
-            style={{ height: "44px", padding: "0 24px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = t.rowHover; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = t.cardBg; }}
+            disabled={isSubmitting}
+            style={{ height: "44px", padding: "0 24px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting ? 0.6 : 1, transition: "all 0.2s ease" }}
+            onMouseEnter={(e) => { if (!isSubmitting) e.currentTarget.style.background = t.rowHover; }}
+            onMouseLeave={(e) => { if (!isSubmitting) e.currentTarget.style.background = t.cardBg; }}
           >
             Cancelar
           </button>
           <button 
-            disabled={!productData || !locationData}
-            style={{ height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: (!productData || !locationData) ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!productData || !locationData) ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: (!productData || !locationData) ? "not-allowed" : "pointer", boxShadow: (!productData || !locationData) ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
-            onMouseEnter={(e) => { if(productData && locationData) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
-            onMouseLeave={(e) => { if(productData && locationData) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
+            disabled={!productData || !locationData || isSubmitting}
+            onClick={handleSubmit}
+            style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: (!productData || !locationData || isSubmitting) ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!productData || !locationData || isSubmitting) ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: (!productData || !locationData || isSubmitting) ? "not-allowed" : "pointer", boxShadow: (!productData || !locationData || isSubmitting) ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
+            onMouseEnter={(e) => { if(productData && locationData && !isSubmitting) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
+            onMouseLeave={(e) => { if(productData && locationData && !isSubmitting) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
           >
-            Lançar entrada
+            {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
+            {isSubmitting ? "Lançando..." : "Lançar entrada"}
           </button>
         </div>
 
