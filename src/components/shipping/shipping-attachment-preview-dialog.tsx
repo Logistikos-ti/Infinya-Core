@@ -58,7 +58,7 @@ export function ShippingAttachmentPreviewDialog({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={openPreview}
@@ -93,15 +93,15 @@ export function ShippingAttachmentPreviewDialog({
               isLabelPreview ? "h-[72vh] max-w-4xl" : "h-[88vh] max-w-6xl"
             }`}
           >
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <div>
+            <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 sm:px-5">
+              <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">{label}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Visualização do documento sem sair do pedido.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -131,7 +131,7 @@ export function ShippingAttachmentPreviewDialog({
               </div>
             </div>
 
-            <div className={`min-h-0 flex-1 bg-slate-100 dark:bg-slate-900 ${isLabelPreview ? "p-3" : ""}`}>
+            <div className={`min-h-0 flex-1 bg-slate-100 dark:bg-slate-900 ${isLabelPreview ? "p-2 sm:p-3" : ""}`}>
               <iframe
                 ref={iframeRef}
                 src={viewHref}

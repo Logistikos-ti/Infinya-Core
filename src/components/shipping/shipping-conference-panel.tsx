@@ -406,7 +406,7 @@ export function ShippingConferencePanel({
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid gap-5 2xl:grid-cols-[340px_minmax(0,1fr)]">
         <div className="space-y-5">
           <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
             <div className="space-y-2 block">
