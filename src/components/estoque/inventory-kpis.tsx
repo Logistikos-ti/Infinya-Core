@@ -9,7 +9,7 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
     {
       label: stats[0]?.label || "Total físico",
       value: stats[0]?.value || "0",
-      delta: "", // or stats[0]?.help if we want
+      delta: "", 
       deltaColor: t.textSub,
       iconEl: <Package size={18} />,
       iconBg: "rgba(59,130,246,0.14)",
@@ -31,7 +31,7 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
       cursor: "default",
     },
     {
-      label: "Lotes vencendo",
+      label: stats[2]?.label || "Lotes vencendo",
       value: stats[2]?.value || "0",
       delta: stats[2]?.help || "Atenção necessária",
       deltaColor: "#EF4444",
@@ -43,9 +43,9 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
       cursor: "pointer",
     },
     {
-      label: "Disponível (pronto)",
-      value: "N/A", // Calculated or fetched
-      delta: "Estoque livre",
+      label: stats[3]?.label || "Disponível (pronto)",
+      value: stats[3]?.value || "0", 
+      delta: stats[3]?.help || "Estoque livre",
       deltaColor: "#10B981",
       iconEl: <CheckCircle2 size={18} />,
       iconBg: "rgba(16,185,129,0.14)",

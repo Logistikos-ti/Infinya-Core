@@ -1,4 +1,4 @@
-﻿import type { AppUserContext } from "@/lib/auth";
+import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
@@ -43,6 +43,7 @@ type RawStockRow = {
   bloqueado_em?: string | null;
   lote: string | null;
   validade_em: string | null;
+  quantidade_reservada?: number | string | null;
   created_at: string;
   depositante: DepositanteRelation;
   produto: ProductRelation;
@@ -96,6 +97,7 @@ export type StockBalance = {
   id: string;
   protocol: string;
   sku: string;
+  sku: string;
   productName: string;
   internalCode: string;
   depositanteId: string;
@@ -104,6 +106,10 @@ export type StockBalance = {
   area: string;
   lote: string;
   saldo: string;
+  reserved: string;
+  available: string;
+  rawQuantidade: number;
+  rawReserved: number;
   validade: string;
   status: string;
   blockReason: string;
@@ -134,6 +140,8 @@ export type StockTraceabilityProtocol = {
   lote: string;
   validade: string;
   saldo: string;
+  reserved: string;
+  available: string;
   createdAt: string;
   status: string;
   withdrawalMethod: WithdrawalMethod;
@@ -220,7 +228,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -274,6 +282,8 @@ export async function listStockTraceabilityProtocolsFromDb(
         lote: item.lote,
         validade: item.validade,
         saldo: item.saldo,
+        reserved: item.reserved,
+        available: item.available,
         createdAt: item.createdAt,
         status: item.status,
         withdrawalMethod: item.withdrawalMethod,
@@ -339,13 +349,15 @@ export async function listStockExpiryAlertsFromDb(
   sourceBalances?: StockBalance[],
 ) {
   const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
-  const today = startOfToday();
+  const today = new Date();
 
   return balances
     .filter((item) => item.validade !== "-")
     .map((item) => {
-      const expiryDate = parseDateOnly(item.validade);
-      const daysToExpiry = expiryDate ? diffInDays(today, expiryDate) : Number.MAX_SAFE_INTEGER;
+      const [day, month, year] = item.validade.split("/");
+      const expiryDate = new Date(`${year}-${month}-${day}T00:00:00`);
+      const diffTime = expiryDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       return {
         id: item.id,
@@ -358,14 +370,14 @@ export async function listStockExpiryAlertsFromDb(
         lote: item.lote,
         saldo: item.saldo,
         expiryDate: item.validade,
-        daysToExpiry,
-        severity: daysToExpiry <= 7 ? "critico" : "atencao",
+        daysToExpiry: diffDays,
+        severity: diffDays <= 7 ? "critico" : "atencao",
         severityLabel:
-          daysToExpiry < 0
-            ? `Vencido há ${Math.abs(daysToExpiry)} dia(s)`
-            : daysToExpiry === 0
+          diffDays < 0
+            ? `Vencido há ${Math.abs(diffDays)} dia(s)`
+            : diffDays === 0
               ? "Vence hoje"
-              : `Vence em ${daysToExpiry} dia(s)`,
+              : `Vence em ${diffDays} dia(s)`,
       } satisfies StockExpiryAlert;
     })
     .filter((item) => item.daysToExpiry <= daysAhead)
@@ -497,29 +509,36 @@ export async function listStockStatsFromDb(
   const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
   const expiryAlerts = sourceExpiryAlerts ?? (await listStockExpiryAlertsFromDb(filters, 30, balances));
 
+  let totalFisico = 0;
+  let totalReservado = 0;
+  
+  for (const b of balances) {
+    totalFisico += b.rawQuantidade;
+    totalReservado += b.rawReserved;
+  }
+  
+  const totalDisponivel = totalFisico - totalReservado;
+
   return [
     {
-      label: user.papel === "DEPOSITANTE" ? "Saldos visíveis" : "Linhas de estoque",
-      value: String(balances.length),
-      help:
-        user.papel === "DEPOSITANTE"
-          ? "Linhas de estoque disponíveis para o seu depositante."
-          : "Saldos já lançados no armazém.",
+      label: "Total físico",
+      value: totalFisico.toLocaleString("pt-BR"),
+      help: "Saldo total físico",
     },
     {
-      label: "Lotes bloqueados",
-      value: String(balances.filter((item) => item.status === "Bloqueado").length),
-      help: "Itens bloqueados no ambiente visível.",
+      label: "Reservado",
+      value: totalReservado.toLocaleString("pt-BR"),
+      help: "Saldo reservado",
     },
     {
-      label: "Com validade",
-      value: String(balances.filter((item) => item.validade !== "-").length),
-      help: "Linhas com controle de validade.",
-    },
-    {
-      label: "Próximos ao vencimento",
+      label: "Lotes vencendo",
       value: String(expiryAlerts.length),
-      help: "Lotes com vencimento em até 30 dias dentro do filtro aplicado.",
+      help: "Atenção necessária",
+    },
+    {
+      label: "Disponível (pronto)",
+      value: totalDisponivel.toLocaleString("pt-BR"),
+      help: "Estoque livre",
     },
   ] as const;
 }
@@ -529,20 +548,28 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
   const createdAt = item.created_at;
   const expiryDate = item.validade_em;
 
+  const rawQuantidade = Number(item.quantidade ?? 0);
+  const rawReserved = Number((item as any).quantidade_reservada ?? 0);
+  const available = Math.max(0, rawQuantidade - rawReserved);
+
   return {
     id: item.id,
     protocol: buildTraceabilityProtocol(item),
     sku: extractProductField(item.produto, "sku") ?? "SKU",
-    productName: extractProductField(item.produto, "nome") ?? "Produto sem descriÃ§Ã£o",
+    productName: extractProductField(item.produto, "nome") ?? "Produto sem descrição",
     internalCode: extractProductField(item.produto, "codigo_interno") ?? "",
     depositanteId: item.depositante_id,
     depositante: extractDepositanteName(item.depositante) ?? "Sem depositante",
-    endereco: extractEnderecoField(item.endereco, "codigo") ?? "Sem endereÃ§o",
-    area: extractEnderecoField(item.endereco, "area") ?? "Sem Ã¡rea",
+    endereco: extractEnderecoField(item.endereco, "codigo") ?? "Sem endereço",
+    area: extractEnderecoField(item.endereco, "area") ?? "Sem área",
     lote: item.lote ?? "-",
-    saldo: Number(item.quantidade ?? 0).toLocaleString("pt-BR"),
+    saldo: rawQuantidade.toLocaleString("pt-BR"),
+    reserved: rawReserved.toLocaleString("pt-BR"),
+    available: available.toLocaleString("pt-BR"),
+    rawQuantidade,
+    rawReserved,
     validade: expiryDate ? formatDate(expiryDate) : "-",
-    status: item.bloqueado ? "Bloqueado" : "DisponÃ­vel",
+    status: item.bloqueado ? "Bloqueado" : "Disponível",
     blockReason: item.bloqueio_motivo?.trim() || "",
     blockedAt: item.bloqueado_em ? formatDateTimePtBr(item.bloqueado_em) : null,
     createdAt: formatDateTimePtBr(createdAt),
