@@ -435,7 +435,10 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
                     <div className="text-xs text-slate-500 mt-0.5">{order.itemCount} Itens</div>
                   </td>
                   <td className="px-6 py-4">
-                    <StatusBadge status={order.status} />
+                    <StatusBadge
+                      status={order.status}
+                      releasedWithoutRomaneio={order.releasedWithoutRomaneio}
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">
@@ -597,7 +600,13 @@ function buildQueryString(query: Record<string, string>) {
   return params.toString();
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+  releasedWithoutRomaneio = false,
+}: {
+  status: string;
+  releasedWithoutRomaneio?: boolean;
+}) {
   if (status === "NOVO") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">Aguardando Separação</span>;
   }
@@ -605,7 +614,7 @@ function StatusBadge({ status }: { status: string }) {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{status === "SEPARADO" ? "Aguardando conferência" : "Separando"}</span>;
   }
   if (status === "EM_CONFERENCIA" || status === "CONFERIDO") {
-    return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">{status === "CONFERIDO" ? "Conferido" : "Em Conferência"}</span>;
+    return <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${releasedWithoutRomaneio ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"}`}>{status === "CONFERIDO" ? (releasedWithoutRomaneio ? "Finalizado sem romaneio" : "Conferido") : "Em Conferência"}</span>;
   }
   if (status === "PRONTO_ROMANEIO") {
     return <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">Pronto p/ Romaneio</span>;

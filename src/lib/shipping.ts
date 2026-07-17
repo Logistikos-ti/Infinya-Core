@@ -304,7 +304,8 @@ export async function listShippingStatsFromDb(
   const orders = sourceOrders ?? (await listShippingOrdersFromDb());
   const aguardando = orders.filter((item) => item.status === "NOVO").length;
   const emSeparacao = orders.filter((item) =>
-    ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA", "CONFERIDO"].includes(item.status),
+    ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(item.status) ||
+    (item.status === "CONFERIDO" && !item.releasedWithoutRomaneio),
   ).length;
   const prontos = orders.filter((item) => item.status === "PRONTO_ROMANEIO").length;
   const expedidos = orders.filter((item) => item.status === "EXPEDIDO").length;
@@ -916,7 +917,7 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
     case "EM_CONFERENCIA":
       return "Em conferÃªncia";
     case "CONFERIDO":
-      return isOrderReleasedWithoutRomaneio(normalizedPayload) ? "Conferido (sem romaneio)" : "Conferido";
+      return isOrderReleasedWithoutRomaneio(normalizedPayload) ? "Finalizado sem romaneio" : "Conferido";
     case "PRONTO_ROMANEIO":
       return "Liberado para romaneio";
     case "EXPEDIDO":
