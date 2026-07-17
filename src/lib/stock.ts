@@ -97,7 +97,6 @@ export type StockBalance = {
   id: string;
   protocol: string;
   sku: string;
-  sku: string;
   productName: string;
   internalCode: string;
   depositanteId: string;
