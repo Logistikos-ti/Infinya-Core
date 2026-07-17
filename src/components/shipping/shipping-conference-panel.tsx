@@ -6,7 +6,6 @@ import { AlertTriangle, Barcode, Camera, CameraOff, Focus, ScanSearch, Volume2 }
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
-import { Button } from "@/components/ui/button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -62,6 +61,7 @@ export function ShippingConferencePanel({
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
+  const autoCompleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const {
     videoRef,
@@ -129,6 +129,19 @@ export function ShippingConferencePanel({
 
     return () => window.clearTimeout(submitTimeout);
   }, [isSubmitting]);
+
+  useEffect(() => {
+    if (pendingUnits > 0 || isSubmitting || feedback === "concluido") {
+      return;
+    }
+
+    const submitTimer = window.setTimeout(() => {
+      setIsSubmitting(true);
+      autoCompleteButtonRef.current?.click();
+    }, 450);
+
+    return () => window.clearTimeout(submitTimer);
+  }, [feedback, isSubmitting, pendingUnits]);
 
   function focusScanInput() {
     requestAnimationFrame(() => {
@@ -675,7 +688,6 @@ export function ShippingConferencePanel({
             </table>
           </div>
 
-          {/* Sticky Desktop Actions */}
           <div className="mt-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-xl backdrop-blur-xl transition-all">
             <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
               <span className="rounded-xl bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 font-bold text-primary-700 dark:text-primary-400">
@@ -692,18 +704,20 @@ export function ShippingConferencePanel({
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="submit"
-                name="intent"
-                value="complete"
-                className={`h-12 rounded-xl bg-infinya-gradient text-white hover:opacity-90 shadow-md shadow-primary-500/20 transition-all font-bold px-6 ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Processando..." : "Concluir ConferÃªncia"}
-              </Button>
+            <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-500 dark:text-zinc-500">
+              <span>A conferência é concluída automaticamente quando todos os itens estiverem bipados.</span>
+              {isSubmitting ? <span className="font-bold text-primary-600 dark:text-primary-400">Processando conclusão...</span> : null}
             </div>
+            <button
+              ref={autoCompleteButtonRef}
+              type="submit"
+              name="intent"
+              value="complete"
+              className="hidden"
+              disabled={isSubmitting}
+              aria-hidden="true"
+              tabIndex={-1}
+            />
           </div>
         </form>
 

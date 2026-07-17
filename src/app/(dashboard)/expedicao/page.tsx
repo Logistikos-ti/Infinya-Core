@@ -191,7 +191,32 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+        <Link
+          href="#painel-pedidos"
+          className="group rounded-3xl border border-primary-500/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary-500 hover:shadow-xl hover:shadow-primary-500/10 dark:bg-zinc-900/70 dark:border-primary-500/20 dark:hover:border-primary-400"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-600 dark:text-primary-300">
+                Painel
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                Pedidos
+              </h2>
+              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+                Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.
+              </p>
+            </div>
+            <span className="rounded-2xl bg-primary-500/10 p-3 text-primary-600 dark:text-primary-300">
+              <ClipboardList className="h-6 w-6" />
+            </span>
+          </div>
+          <div className="mt-6 inline-flex items-center rounded-xl bg-primary-500/10 px-4 py-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
+            Ver Pedidos
+          </div>
+        </Link>
+
         <Link
           href="/expedicao/separacao"
           className="group rounded-3xl border border-cyan-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 dark:bg-zinc-900/70 dark:border-cyan-500/20 dark:hover:border-cyan-400"
@@ -243,33 +268,6 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </Link>
 
         <Link
-          href="#painel-pedidos"
-          className="group rounded-3xl border border-primary-500/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary-500 hover:shadow-xl hover:shadow-primary-500/10 dark:bg-zinc-900/70 dark:border-primary-500/20 dark:hover:border-primary-400"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-600 dark:text-primary-300">
-                Painel
-              </p>
-              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
-                Pedidos
-              </h2>
-              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
-                Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.
-              </p>
-            </div>
-            <span className="rounded-2xl bg-primary-500/10 p-3 text-primary-600 dark:text-primary-300">
-              <ClipboardList className="h-6 w-6" />
-            </span>
-          </div>
-          <div className="mt-6 inline-flex items-center rounded-xl bg-primary-500/10 px-4 py-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
-            Ver Pedidos
-          </div>
-        </Link>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-1">
-        <Link
           href="/expedicao/conferidos"
           className="group rounded-3xl border border-emerald-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 dark:bg-zinc-900/70 dark:border-emerald-500/20 dark:hover:border-emerald-400"
         >
@@ -281,7 +279,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
               <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-300">
                 Conferidos
               </h2>
-              <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-zinc-300">
+              <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
                 Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.
               </p>
             </div>
