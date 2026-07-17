@@ -5,7 +5,11 @@ import {
   ensureValidBlingAccessToken,
   fetchBlingInvoice,
 } from "@/lib/bling";
-import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
+import {
+  parseDepositanteConfiguracoes,
+  type DepositanteBlingConfig,
+  updateDepositanteBlingConfig,
+} from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RouteProps = {
@@ -49,7 +53,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
 
   if (order.origem !== "BLING") {
     return NextResponse.json(
-      { error: "A pré-visualização em DANFE está disponível apenas para pedidos integrados ao Bling." },
+      { error: "A pré-visualização da NF está disponível apenas para pedidos integrados ao Bling." },
       { status: 409 },
     );
   }
@@ -96,6 +100,18 @@ export async function GET(_request: Request, { params }: RouteProps) {
 
   try {
     const tokenResult = await ensureValidBlingAccessToken(config.bling);
+
+    if (tokenResult.tokens) {
+      const nextBlingConfig = mergeBlingTokensIntoConfig(config.bling, tokenResult.tokens);
+
+      await adminSupabase
+        .from("depositantes")
+        .update({
+          configuracoes: updateDepositanteBlingConfig(rawConfig, nextBlingConfig),
+        })
+        .eq("id", order.depositante_id);
+    }
+
     const invoice = await fetchBlingInvoice(tokenResult.accessToken, invoiceId);
 
     if (!invoice.chaveAcesso) {
@@ -122,16 +138,47 @@ export async function GET(_request: Request, { params }: RouteProps) {
       },
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar a pré-visualização da nota fiscal.",
-      },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível carregar a pré-visualização da nota fiscal.";
+
+    if (message.includes("invalid_grant")) {
+      return NextResponse.json(
+        {
+          error:
+            "A conexão do Bling expirou ou foi revogada. Reconecte a integração do depositante para voltar a visualizar a NF.",
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function mergeBlingTokensIntoConfig(
+  config: DepositanteBlingConfig,
+  tokens: {
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+    expires_in: number;
+    scope: string;
+  },
+): DepositanteBlingConfig {
+  return {
+    ...config,
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    tokenType: tokens.token_type || config.tokenType,
+    expiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+    scopes: tokens.scope
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+    lastSyncAt: new Date().toISOString(),
+  };
 }
 
 function readString(value: unknown) {
