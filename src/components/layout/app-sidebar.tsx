@@ -74,11 +74,13 @@ type AppSidebarProps = {
 
 export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sidebarWidth, setSidebarWidth }: AppSidebarProps) {
   const isYMS = currentPath.startsWith("/yms");
+  const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<boolean>(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     dragRef.current = true;
+    setIsDragging(true);
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   };
@@ -93,6 +95,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
 
   const handleMouseUp = () => {
     dragRef.current = false;
+    setIsDragging(false);
     document.removeEventListener("mousemove", handleMouseMove);
     document.removeEventListener("mouseup", handleMouseUp);
   };
@@ -141,7 +144,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
 
   return (
     <aside 
-      style={{ width: isCollapsed ? 80 : sidebarWidth, transition: dragRef.current ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+      style={{ width: isCollapsed ? 80 : sidebarWidth, transition: isDragging ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
       className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/50 bg-white/40 p-4 backdrop-blur-2xl dark:border-white/5 dark:bg-[#0a1128]/50"
     >
       {/* Drag handle */}

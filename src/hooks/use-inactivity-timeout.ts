@@ -120,7 +120,9 @@ export function useInactivityTimeout({
     if (disabled) {
       expiredRef.current = false;
       clearTimers();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsWarningVisible(false);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCountdownSeconds(warningWindowSeconds);
       return;
     }
