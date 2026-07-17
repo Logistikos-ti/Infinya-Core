@@ -1,0 +1,89 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import { PackageOpen } from "lucide-react";
+
+export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balances: any[]; onSelectSku: (sku: any) => void }) {
+  // We can group by SKU here if needed, or just display the balances
+  const columns = ["PRODUTO & SKU", "DEPOSITANTE", "FÍSICO", "RESERVADO", "DISPONÍVEL", "LOCAIS", "VENCIMENTO", "STATUS"];
+
+  return (
+    <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden", marginBottom: "24px" }}>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
+          <thead>
+            <tr style={{ textAlign: "left" }}>
+              {columns.map((c, i) => (
+                <th key={i} style={{ padding: "13px 20px", fontSize: "12px", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: t.textSub, background: t.headBg, borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {balances.map((r, i) => {
+              // Parse saldo to number to show available/reserved if we don't have it explicit
+              const total = r.saldo || "0";
+              const reserved = r.status === "Reservado" ? total : "0";
+              const available = r.status === "Disponível" ? total : "0";
+              const availColor = available !== "0" ? "#10B981" : t.textSub;
+              const statusBg = r.status === "Disponível" ? "rgba(16,185,129,0.14)" : "rgba(245,158,11,0.14)";
+              const statusColor = r.status === "Disponível" ? "#10B981" : "#F59E0B";
+              const expLabel = r.validade ? new Date(r.validade).toLocaleDateString() : "—";
+              
+              return (
+                <tr
+                  key={r.id || i}
+                  onClick={() => onSelectSku(r)}
+                  style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = t.rowHover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <td style={{ padding: "13px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
+                      <div style={{ width: "42px", height: "42px", flexShrink: 0, borderRadius: "10px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>
+                        <PackageOpen size={20} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+                        <span style={{ fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px", color: t.text }}>
+                          {r.productName || r.sku}
+                        </span>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "12px", color: t.textSub }}>{r.sku}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{ padding: "13px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "150px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.depositante || "-"}</td>
+                  <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.text }}>{total}</td>
+                  <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", color: t.textSub }}>{reserved}</td>
+                  <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: availColor }}>{available}</td>
+                  <td style={{ padding: "13px 20px", fontSize: "13.5px", color: t.textSub }}>{r.endereco || "1 local"}</td>
+                  <td style={{ padding: "13px 20px" }}>
+                    {r.validade ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(16,185,129,0.14)", color: "#10B981" }}>{expLabel}</span>
+                    ) : (
+                      <span style={{ fontSize: "13px", color: t.textFaint }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: "13px 20px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700, background: statusBg, color: statusColor }}>
+                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: statusColor }}></span>
+                      {r.status || "Disponível"}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderTop: `1px solid ${t.border}`, flexWrap: "wrap", gap: "12px" }}>
+        <span style={{ fontSize: "13px", color: t.textSub }}>Mostrando 1–{balances.length} de {balances.length} SKUs</span>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer", fontSize: "13px" }}>‹</button>
+          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", cursor: "pointer", fontSize: "13px", fontWeight: 700 }}>1</button>
+          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer", fontSize: "13px" }}>›</button>
+        </div>
+      </div>
+    </div>
+  );
+}

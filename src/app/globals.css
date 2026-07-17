@@ -797,3 +797,13 @@ a {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
 .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+
+
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
