@@ -220,12 +220,20 @@ export async function saveProdutoAction(
       };
     }
 
+    let finalNome = parsed.data.nome;
+    if (parsed.data.categoria === "Vestuário" && parsed.data.tamanho) {
+      const sizeSuffix = `(${parsed.data.tamanho})`;
+      if (!finalNome.endsWith(sizeSuffix)) {
+        finalNome = `${finalNome.trim()} ${sizeSuffix}`;
+      }
+    }
+
     const payload = {
       depositante_id: parsed.data.depositanteId,
       codigo_interno: resolvedInternalCode,
       codigo_externo: normalizedEan,
       sku: resolvedSku,
-      nome: parsed.data.nome,
+      nome: finalNome,
       fornecedor: parsed.data.fornecedor || null,
       categoria: parsed.data.categoria || null,
       tamanho: parsed.data.tamanho || null,
