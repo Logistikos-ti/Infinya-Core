@@ -66,7 +66,6 @@ export function ShippingConferencePanel({
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const conferenceFormRef = useRef<HTMLFormElement | null>(null);
-  const conferenceIntentInputRef = useRef<HTMLInputElement | null>(null);
   const {
     videoRef,
     cameraSupported,
@@ -310,17 +309,6 @@ export function ShippingConferencePanel({
   function handleScanSubmit(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     applyScannedCode(scanValue);
-  }
-
-  function submitConferenceIntent(intent: "release-romaneio" | "release-sem-romaneio") {
-    if (!conferenceFormRef.current || !conferenceIntentInputRef.current) {
-      return;
-    }
-
-    conferenceIntentInputRef.current.value = intent;
-    resetTimer();
-    setIsSubmitting(true);
-    conferenceFormRef.current.requestSubmit();
   }
 
   return (
@@ -581,7 +569,6 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
-          <input ref={conferenceIntentInputRef} type="hidden" name="intent" defaultValue="save" />
           <input
             type="hidden"
             name="completeRedirectTo"
@@ -722,7 +709,7 @@ export function ShippingConferencePanel({
           attachments={documents.attachments}
           canUploadAttachments={documents.canUploadAttachments}
           unlocked={pendingUnits <= 0}
-          onSubmitIntent={submitConferenceIntent}
+          formId="shipping-conference-form"
         />
         </div>
       </div>

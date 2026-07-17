@@ -14,7 +14,7 @@ type ShippingConferenceDocumentsPanelProps = {
   attachments: ShippingAttachment[];
   canUploadAttachments: boolean;
   unlocked: boolean;
-  onSubmitIntent: (intent: "release-romaneio" | "release-sem-romaneio") => void;
+  formId: string;
 };
 
 export function ShippingConferenceDocumentsPanel({
@@ -23,7 +23,7 @@ export function ShippingConferenceDocumentsPanel({
   attachments,
   canUploadAttachments,
   unlocked,
-  onSubmitIntent,
+  formId,
 }: ShippingConferenceDocumentsPanelProps) {
   const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
@@ -142,9 +142,11 @@ export function ShippingConferenceDocumentsPanel({
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
             <button
-              type="button"
+              type="submit"
+              form={formId}
+              name="intent"
+              value="release-romaneio"
               disabled={!canReleaseToRomaneio}
-              onClick={() => onSubmitIntent("release-romaneio")}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
             >
               <Route className="h-4 w-4" />
@@ -186,11 +188,10 @@ export function ShippingConferenceDocumentsPanel({
               </button>
 
               <button
-                type="button"
-                onClick={() => {
-                  setConfirmReleaseWithoutRomaneio(false);
-                  onSubmitIntent("release-sem-romaneio");
-                }}
+                type="submit"
+                form={formId}
+                name="intent"
+                value="release-sem-romaneio"
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
               >
                 Confirmar liberação
