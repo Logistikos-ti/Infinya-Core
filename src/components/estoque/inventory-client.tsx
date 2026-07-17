@@ -9,6 +9,7 @@ import { InventoryTableSku } from "./inventory-table-sku";
 import { InventoryTableLot } from "./inventory-table-lot";
 import { InventoryAlerts } from "./inventory-alerts";
 import { InventoryDetailDrawer } from "./inventory-detail-drawer";
+import { InitialStockModal } from "./initial-stock-modal";
 
 export function InventoryClient({ data }: { data: any }) {
   const { theme } = useTheme();
@@ -16,6 +17,7 @@ export function InventoryClient({ data }: { data: any }) {
 
   const [isBySku, setIsBySku] = useState(true);
   const [selectedSku, setSelectedSku] = useState<any>(null);
+  const [showInitial, setShowInitial] = useState(false);
   
   // Base themes to match the exact HTML visual prototype
   const t = {
@@ -64,6 +66,7 @@ export function InventoryClient({ data }: { data: any }) {
           </div>
           
           <button 
+            onClick={() => setShowInitial(true)}
             style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease" }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}
@@ -93,6 +96,10 @@ export function InventoryClient({ data }: { data: any }) {
 
       {selectedSku && (
         <InventoryDetailDrawer t={t} sku={selectedSku} onClose={() => setSelectedSku(null)} />
+      )}
+
+      {showInitial && (
+        <InitialStockModal t={t} onClose={() => setShowInitial(false)} />
       )}
     </div>
   );
