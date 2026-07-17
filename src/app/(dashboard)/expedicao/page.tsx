@@ -268,6 +268,33 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </Link>
       </section>
 
+      <section className="grid gap-4 lg:grid-cols-1">
+        <Link
+          href="/expedicao/conferidos"
+          className="group rounded-3xl border border-emerald-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 dark:bg-zinc-900/70 dark:border-emerald-500/20 dark:hover:border-emerald-400"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
+                Pós-conferência
+              </p>
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-300">
+                Conferidos
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-zinc-300">
+                Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.
+              </p>
+            </div>
+            <span className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-300">
+              <FileText className="h-6 w-6" />
+            </span>
+          </div>
+          <div className="mt-6 inline-flex items-center rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+            Ver Conferidos
+          </div>
+        </Link>
+      </section>
+
       {/* Abas e Filtros */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-slate-200 dark:border-zinc-800 pb-2">
         <div className="flex overflow-x-auto no-scrollbar gap-2">
@@ -282,6 +309,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
           </Link>
           <Link href="/expedicao?status=PRONTO_ROMANEIO" className={`px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg ${statusFilter === 'PRONTO_ROMANEIO' ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}>
             Embarque / Doca
+          </Link>
+          <Link href="/expedicao/conferidos" className="px-4 py-2 font-medium text-sm whitespace-nowrap rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800">
+            Conferidos
           </Link>
         </div>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -191,7 +191,7 @@ export function ShippingConferencePanel({
     const normalizedScan = normalizeScanValue(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Informe ou leia um código para localizar o item.", "error");
+      setFeedback("Informe ou leia um cÃ³digo para localizar o item.", "error");
       return false;
     }
 
@@ -200,7 +200,7 @@ export function ShippingConferencePanel({
     if (!matchedItem) {
       setActiveItemId(null);
       setWrongProductScans((current) => current + 1);
-      setFeedback("Código não encontrado neste pedido.", "error");
+      setFeedback("CÃ³digo nÃ£o encontrado neste pedido.", "error");
       return false;
     }
 
@@ -210,14 +210,14 @@ export function ShippingConferencePanel({
       if (!matchedComponent) {
         setActiveItemId(matchedItem.id);
         setWrongProductScans((current) => current + 1);
-        setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido não está mapeado.`, "error");
+        setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido nÃ£o estÃ¡ mapeado.`, "error");
         return false;
       }
 
       if (matchedComponent.confirmedQuantity >= matchedComponent.requestedQuantity) {
         setActiveItemId(matchedItem.id);
         setFeedback(
-          `O componente ${matchedComponent.sku} já foi totalmente conferido (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`,
+          `O componente ${matchedComponent.sku} jÃ¡ foi totalmente conferido (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`,
           "error",
         );
         return false;
@@ -265,7 +265,7 @@ export function ShippingConferencePanel({
       const currentConfirmed = normalizeQuantity(matchedItem.confirmedQuantityValue);
       if (currentConfirmed >= matchedItem.requestedQuantity) {
         setActiveItemId(matchedItem.id);
-        setFeedback(`O item ${matchedItem.sku} já foi totalmente conferido.`, "error");
+        setFeedback(`O item ${matchedItem.sku} jÃ¡ foi totalmente conferido.`, "error");
         return false;
       }
 
@@ -284,7 +284,7 @@ export function ShippingConferencePanel({
 
       setActiveItemId(matchedItem.id);
       setFeedback(
-        `Conferência aplicada em ${matchedItem.sku}. Total conferido: ${nextConfirmed}/${matchedItem.requestedQuantity}.`,
+        `ConferÃªncia aplicada em ${matchedItem.sku}. Total conferido: ${nextConfirmed}/${matchedItem.requestedQuantity}.`,
         "success",
       );
     }
@@ -313,9 +313,9 @@ export function ShippingConferencePanel({
       <InactivityWarningDialog
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
-        title="Conferência pausada por inatividade"
-        description="O operador ficou sem interação nesta conferência. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
-        mobileDescription="Sem interação na conferência. Retome agora ou o pedido volta para a fila."
+        title="ConferÃªncia pausada por inatividade"
+        description="O operador ficou sem interaÃ§Ã£o nesta conferÃªncia. Se a atividade nÃ£o for retomada, o pedido serÃ¡ devolvido automaticamente para a fila."
+        mobileDescription="Sem interaÃ§Ã£o na conferÃªncia. Retome agora ou o pedido volta para a fila."
       />
 
       {feedback ? (
@@ -327,14 +327,14 @@ export function ShippingConferencePanel({
           }`}
         >
           {feedback === "concluido"
-            ? "Conferência concluída e pedido movido para o próximo passo."
+            ? "ConferÃªncia concluÃ­da. Revise os documentos e escolha se o pedido vai para romaneio ou se serÃ¡ liberado sem romaneio."
             : feedback === "incompleto"
-              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
+              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferÃªncia."
               : feedback === "documentos-pendentes"
-                ? "Finalize os documentos obrigatórios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
+                ? "Finalize os documentos obrigatÃ³rios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
               : feedback === "inatividade"
                 ? "Pedido devolvido para a fila por inatividade do operador."
-                : "Não foi possível concluir a operação solicitada."}
+                : "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o solicitada."}
         </div>
       ) : null}
 
@@ -345,12 +345,12 @@ export function ShippingConferencePanel({
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="space-y-1.5 pt-1">
-              <p className="font-bold text-amber-800 dark:text-amber-400 text-base">Alertas de divergência na conferência</p>
+              <p className="font-bold text-amber-800 dark:text-amber-400 text-base">Alertas de divergÃªncia na conferÃªncia</p>
               {wrongProductScans > 0 ? (
-                <p className="font-medium text-amber-700 dark:text-amber-300">Produto errado lido: <span className="font-bold">{wrongProductScans}</span> ocorrência(s).</p>
+                <p className="font-medium text-amber-700 dark:text-amber-300">Produto errado lido: <span className="font-bold">{wrongProductScans}</span> ocorrÃªncia(s).</p>
               ) : null}
               {quantityDivergentItems > 0 ? (
-                <p className="font-medium text-amber-700 dark:text-amber-300">Itens com divergência de quantidade: <span className="font-bold">{quantityDivergentItems}</span>.</p>
+                <p className="font-medium text-amber-700 dark:text-amber-300">Itens com divergÃªncia de quantidade: <span className="font-bold">{quantityDivergentItems}</span>.</p>
               ) : null}
             </div>
           </div>
@@ -385,11 +385,11 @@ export function ShippingConferencePanel({
 
             <h2 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white">{order.displayNumber}</h2>
             <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
-              {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">•</span> {order.destination}
+              {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">â€¢</span> {order.destination}
             </p>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
               <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Marketplace {order.marketplace}</span>
-              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Código técnico {order.code}</span>
+              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">CÃ³digo tÃ©cnico {order.code}</span>
               <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalItems} item(ns)</span>
               <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalUnits} unidade(s)</span>
             </div>
@@ -400,8 +400,8 @@ export function ShippingConferencePanel({
             <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{completionPercent}%</p>
             <p className={`mt-2 text-[11px] font-bold tracking-wide uppercase ${quantityDivergentItems > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
               {quantityDivergentItems
-                ? `${quantityDivergentItems} item(ns) com divergência`
-                : "Sem divergência de quantidade"}
+                ? `${quantityDivergentItems} item(ns) com divergÃªncia`
+                : "Sem divergÃªncia de quantidade"}
             </p>
           </div>
         </div>
@@ -420,9 +420,9 @@ export function ShippingConferencePanel({
             </div>
 
             <div className="mt-5 grid gap-3 text-sm text-slate-600 dark:text-zinc-400">
-              <InfoMini label="Início" value={formatDateTime(order.startedAt) || "Ainda não iniciado"} />
+              <InfoMini label="InÃ­cio" value={formatDateTime(order.startedAt) || "Ainda nÃ£o iniciado"} />
               <InfoMini
-                label="Última atualização"
+                label="Ãšltima atualizaÃ§Ã£o"
                 value={formatDateTime(order.updatedAt) || "Sem apontamento"}
               />
             </div>
@@ -431,7 +431,7 @@ export function ShippingConferencePanel({
           <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
             <form onSubmit={handleScanSubmit} className="space-y-3">
               <span className="block text-sm font-bold text-slate-700 dark:text-zinc-300">
-                Leitura de código de barras
+                Leitura de cÃ³digo de barras
               </span>
               <div className="flex items-center gap-2 rounded-2xl border-2 border-primary-500/30 bg-white dark:bg-zinc-900 p-2 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all shadow-inner">
                 <Barcode className="h-5 w-5 ml-2 text-primary-500" />
@@ -461,7 +461,7 @@ export function ShippingConferencePanel({
                 </button>
               </div>
               <p className="text-xs font-medium text-slate-500 dark:text-zinc-500 leading-relaxed">
-                Faça a leitura item a item para validar o pedido real antes da expedição.
+                FaÃ§a a leitura item a item para validar o pedido real antes da expediÃ§Ã£o.
               </p>
               {scanMessage ? (
                 <div className={`mt-2 rounded-xl border px-3 py-2 text-sm font-medium ${
@@ -487,10 +487,10 @@ export function ShippingConferencePanel({
               >
                 {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
                 {cameraStarting
-                  ? "Abrindo câmera..."
+                  ? "Abrindo cÃ¢mera..."
                   : cameraEnabled
-                    ? "Desligar câmera"
-                    : "Ler pela câmera"}
+                    ? "Desligar cÃ¢mera"
+                    : "Ler pela cÃ¢mera"}
               </button>
 
               <div className="flex w-full gap-2 mt-1">
@@ -544,8 +544,8 @@ export function ShippingConferencePanel({
             <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500 dark:text-zinc-500">
               {cameraMessage ??
                 (cameraSupported
-                  ? "Compatível com celular e notebook. Abra a câmera e escaneie o EAN/GTIN do item."
-                  : "Seu navegador atual não liberou leitura por câmera. O leitor USB e o campo manual continuam disponíveis.")}
+                  ? "CompatÃ­vel com celular e notebook. Abra a cÃ¢mera e escaneie o EAN/GTIN do item."
+                  : "Seu navegador atual nÃ£o liberou leitura por cÃ¢mera. O leitor USB e o campo manual continuam disponÃ­veis.")}
             </p>
           </div>
         </div>
@@ -564,7 +564,11 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
-          <input type="hidden" name="completeRedirectTo" value={`${redirectBase}?feedback=concluido`} />
+          <input
+            type="hidden"
+            name="completeRedirectTo"
+            value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`}
+          />
 
           <div className="overflow-x-auto rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm">
             <table className="min-w-full text-left text-sm">
@@ -599,7 +603,7 @@ export function ShippingConferencePanel({
                         {item.name}
                       </div>
                       <div className="mt-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
-                        Cod. {item.code} <span className="px-1">•</span> Ref. {item.externalReference || "-"}
+                        Cod. {item.code} <span className="px-1">â€¢</span> Ref. {item.externalReference || "-"}
                       </div>
                       <div className="mt-4 inline-block rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 px-4 py-2.5">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
@@ -618,7 +622,7 @@ export function ShippingConferencePanel({
                             >
                               <p className="text-sm font-bold text-slate-900 dark:text-white">{component.sku}</p>
                               <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-                                GTIN {component.barcode || "-"} • {component.confirmedQuantity}/{component.requestedQuantity}
+                                GTIN {component.barcode || "-"} â€¢ {component.confirmedQuantity}/{component.requestedQuantity}
                               </p>
                             </div>
                           ))}
@@ -638,7 +642,7 @@ export function ShippingConferencePanel({
                     <td className="px-5 py-5">
                       {isDivergent ? (
                         <div className="mb-3 inline-flex items-center rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-                          Divergência
+                          DivergÃªncia
                         </div>
                       ) : null}
                       <input
@@ -697,7 +701,7 @@ export function ShippingConferencePanel({
                 className={`h-12 rounded-xl bg-infinya-gradient text-white hover:opacity-90 shadow-md shadow-primary-500/20 transition-all font-bold px-6 ${isSubmitting ? "opacity-70 pointer-events-none" : ""}`}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Processando..." : "Concluir Conferência"}
+                {isSubmitting ? "Processando..." : "Concluir ConferÃªncia"}
               </Button>
             </div>
           </div>
@@ -785,3 +789,4 @@ function serializeKitProgress(item: ConferenceItemState) {
     })),
   );
 }
+

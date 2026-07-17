@@ -1,8 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Download, FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
-import { releaseShippingOrderToRomaneioAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import {
+  releaseShippingOrderToRomaneioAction,
+  releaseShippingOrderWithoutRomaneioAction,
+} from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -23,6 +27,7 @@ export function ShippingConferenceDocumentsPanel({
   canUploadAttachments,
   unlocked,
 }: ShippingConferenceDocumentsPanelProps) {
+  const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
   const labelAttachment = attachments.find((attachment) => attachment.kind === "ETIQUETA");
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
@@ -38,7 +43,10 @@ export function ShippingConferenceDocumentsPanel({
         : "Pedido pronto para seguir ao romaneio.";
 
   return (
-    <div className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80">
+    <div
+      id="documentos-impressao"
+      className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80"
+    >
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -129,21 +137,69 @@ export function ShippingConferenceDocumentsPanel({
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{releaseHelp}</p>
           </div>
 
-          <form action={releaseShippingOrderToRomaneioAction}>
-            <input type="hidden" name="orderId" value={orderId} />
-            <input type="hidden" name="redirectTo" value="/expedicao?status=PRONTO_ROMANEIO" />
-            <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+            <form action={releaseShippingOrderToRomaneioAction}>
+              <input type="hidden" name="orderId" value={orderId} />
+              <input type="hidden" name="redirectTo" value="/expedicao/conferidos?feedback=liberado-romaneio" />
+              <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
+              <button
+                type="submit"
+                disabled={!canReleaseToRomaneio}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+              >
+                <Route className="h-4 w-4" />
+                Liberar para romaneio
+              </button>
+            </form>
+
             <button
-              type="submit"
-              disabled={!canReleaseToRomaneio}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+              type="button"
+              disabled={!unlocked}
+              onClick={() => setConfirmReleaseWithoutRomaneio(true)}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:disabled:border-zinc-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
             >
-              <Route className="h-4 w-4" />
-              Liberar para romaneio
+              <FileCheck2 className="h-4 w-4" />
+              Liberar sem romaneio
             </button>
-          </form>
+          </div>
         </div>
       </div>
+
+      {confirmReleaseWithoutRomaneio ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+            <h4 className="text-lg font-bold text-slate-950 dark:text-white">
+              Liberar pedido sem romaneio?
+            </h4>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
+              Essa ação mantém o pedido como <strong>Conferido</strong>, mas o libera fora do fluxo de romaneio.
+              Use somente quando a operação não precisar consolidar esse pedido em romaneio.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmReleaseWithoutRomaneio(false)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                Cancelar
+              </button>
+
+              <form action={releaseShippingOrderWithoutRomaneioAction}>
+                <input type="hidden" name="orderId" value={orderId} />
+                <input type="hidden" name="redirectTo" value="/expedicao/conferidos?feedback=liberado-sem-romaneio" />
+                <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
+                <button
+                  type="submit"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+                >
+                  Confirmar liberação
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

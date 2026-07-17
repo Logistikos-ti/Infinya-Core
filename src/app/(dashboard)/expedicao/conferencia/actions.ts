@@ -238,9 +238,27 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
     redirect(`${fallbackRedirect}?feedback=documentos-pendentes`);
   }
 
+  const { data: currentOrder } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("payload_origem")
+    .eq("id", orderId)
+    .maybeSingle();
+  const payload = isRecord(currentOrder?.payload_origem) ? currentOrder.payload_origem : {};
+  const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+
   await adminSupabase
     .from("pedidos_expedicao")
-    .update({ status: "PRONTO_ROMANEIO" })
+    .update({
+      status: "PRONTO_ROMANEIO",
+      payload_origem: {
+        ...payload,
+        conferencia: {
+          ...currentConference,
+          liberadoParaRomaneioEm: new Date().toISOString(),
+          liberadoSemRomaneioEm: null,
+        },
+      },
+    })
     .eq("id", orderId);
 
   revalidatePath("/expedicao");
@@ -248,6 +266,77 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
   revalidatePath(`/expedicao/conferencia/${orderId}`);
   revalidatePath("/romaneio");
   revalidatePath("/m/romaneio");
+
+  redirect(redirectTo);
+}
+
+export async function releaseShippingOrderWithoutRomaneioAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "/expedicao/conferidos").trim() ||
+    "/expedicao/conferidos";
+  const fallbackRedirect =
+    String(formData.get("fallbackRedirect") ?? "").trim() || `/expedicao/conferencia/${orderId}`;
+
+  if (!orderId) {
+    redirect("/expedicao/conferencia?feedback=erro");
+  }
+
+  const { data: order, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, payload_origem)")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error || !order) {
+    redirect(`${fallbackRedirect}?feedback=erro`);
+  }
+
+  const itemRows =
+    ((order.itens ?? []) as Array<{
+      id: string;
+      quantidade: number | string | null;
+      payload_origem: Record<string, unknown> | null;
+    }>) ?? [];
+
+  const allItemsConfirmed = itemRows.every((item) => {
+    const requested = Number(item.quantidade ?? 0);
+    const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
+    const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
+    const confirmed = Number(readString(conference.quantidadeConferida) ?? 0);
+    return confirmed >= requested;
+  });
+
+  if (!allItemsConfirmed) {
+    redirect(`${fallbackRedirect}?feedback=incompleto`);
+  }
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+
+  await adminSupabase
+    .from("pedidos_expedicao")
+    .update({
+      status: "CONFERIDO",
+      payload_origem: {
+        ...payload,
+        conferencia: {
+          ...currentConference,
+          liberadoSemRomaneioEm: new Date().toISOString(),
+          liberadoParaRomaneioEm: null,
+        },
+      },
+    })
+    .eq("id", orderId);
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath("/expedicao/conferidos");
+  revalidatePath(`/expedicao/conferencia/${orderId}`);
+  revalidatePath(`/expedicao/${orderId}`);
 
   redirect(redirectTo);
 }

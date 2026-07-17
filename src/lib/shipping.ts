@@ -121,6 +121,8 @@ export type ShippingOrderSummary = {
   ageLabel: string;
   ageTone: OperationalSlaTone;
   syncedAt: string;
+  releasedWithoutRomaneio: boolean;
+  releasedToRomaneio: boolean;
 };
 
 type ShippingOrderFilters = {
@@ -178,6 +180,8 @@ export type ShippingOrderDetail = {
   carrierName: string;
   shippingService: string;
   trackingCode: string;
+  releasedWithoutRomaneio: boolean;
+  releasedToRomaneio: boolean;
   suppliesTotalCost: string;
   suppliesTotalCostRaw: number;
   notes: string;
@@ -411,6 +415,8 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const supplies = extractSupplies(payload);
   const suppliesTotalCostRaw = supplies.reduce((accumulator, item) => accumulator + item.totalCostRaw, 0);
   const attachments = await listShippingAttachments(order.id, invoice, order.origem);
+  const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
+  const releasedToRomaneio = isOrderReleasedToRomaneio(payload, order.status);
   const items = (order.itens ?? []).map((item) => {
     const quantityRaw = Number(item.quantidade ?? 0);
     const separatedQuantityRaw = Number(item.quantidade_separada ?? 0);
@@ -439,7 +445,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     origin: order.origem,
     channel: order.canal,
     status: order.status,
-    statusLabel: formatShippingStatusLabel(order.status),
+    statusLabel: formatShippingStatusLabel(order.status, payload),
     sourceStatus: order.status_origem,
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
     customer,
@@ -466,6 +472,8 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     carrierName,
     shippingService,
     trackingCode,
+    releasedWithoutRomaneio,
+    releasedToRomaneio,
     suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
     suppliesTotalCostRaw,
     notes: order.observacoes?.trim() || "Sem observaÃ§Ãµes.",
@@ -576,6 +584,8 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino nÃ£o informado";
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
+  const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
+  const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
 
   return {
     id: item.id,
@@ -594,7 +604,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     marketplace,
     carrierName,
     status: item.status,
-    statusLabel: formatShippingStatusLabel(item.status),
+    statusLabel: formatShippingStatusLabel(item.status, payload),
     total: formatCurrency(item.valor_total),
     units: Number(item.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     itemCount: Number(item.quantidade_itens ?? 0),
@@ -603,6 +613,8 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda nÃ£o sincronizado"),
+    releasedWithoutRomaneio,
+    releasedToRomaneio,
   };
 }
 
@@ -713,6 +725,20 @@ function extractOrderType(payload: Record<string, unknown>, originFallback: stri
 
 export function extractMarketplace(payload: Record<string, unknown>) {
   return readMarketplaceDisplay(payload);
+}
+
+function isOrderReleasedWithoutRomaneio(payload: Record<string, unknown>) {
+  const conferencia = isRecord(payload.conferencia) ? payload.conferencia : null;
+  return readString(conferencia?.liberadoSemRomaneioEm) !== null;
+}
+
+function isOrderReleasedToRomaneio(payload: Record<string, unknown>, status: string) {
+  if (status === "PRONTO_ROMANEIO") {
+    return true;
+  }
+
+  const conferencia = isRecord(payload.conferencia) ? payload.conferencia : null;
+  return readString(conferencia?.liberadoParaRomaneioEm) !== null;
 }
 
 function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
@@ -871,7 +897,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-export function formatShippingStatusLabel(status: string) {
+export function formatShippingStatusLabel(status: string, payload?: Record<string, unknown> | null) {
+  const normalizedPayload = isRecord(payload) ? payload : {};
   switch (status) {
     case "NOVO":
       return "Novo";
@@ -882,9 +909,9 @@ export function formatShippingStatusLabel(status: string) {
     case "EM_CONFERENCIA":
       return "Em conferÃªncia";
     case "CONFERIDO":
-      return "Conferido";
+      return isOrderReleasedWithoutRomaneio(normalizedPayload) ? "Conferido (sem romaneio)" : "Conferido";
     case "PRONTO_ROMANEIO":
-      return "Pronto para romaneio";
+      return "Liberado para romaneio";
     case "EXPEDIDO":
       return "Expedido";
     case "CANCELADO":
