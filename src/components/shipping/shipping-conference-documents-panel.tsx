@@ -3,10 +3,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Download, FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
-import {
-  releaseShippingOrderToRomaneioAction,
-  releaseShippingOrderWithoutRomaneioAction,
-} from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -18,6 +14,7 @@ type ShippingConferenceDocumentsPanelProps = {
   attachments: ShippingAttachment[];
   canUploadAttachments: boolean;
   unlocked: boolean;
+  formId?: string;
 };
 
 export function ShippingConferenceDocumentsPanel({
@@ -26,6 +23,7 @@ export function ShippingConferenceDocumentsPanel({
   attachments,
   canUploadAttachments,
   unlocked,
+  formId = "shipping-conference-form",
 }: ShippingConferenceDocumentsPanelProps) {
   const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
@@ -37,10 +35,10 @@ export function ShippingConferenceDocumentsPanel({
   const releaseHelp = !unlocked
     ? "Finalize 100% da conferência para liberar o pedido."
     : !hasInvoiceXml
-      ? "Anexe ou sincronize o XML da nota fiscal antes de enviar para romaneio."
+      ? "Anexe o XML da nota fiscal antes de enviar para romaneio."
       : !hasShippingLabel
-        ? "Anexe ou sincronize a etiqueta de envio antes de enviar para romaneio."
-        : "Pedido pronto para seguir ao romaneio.";
+        ? "Anexe a etiqueta de envio antes de enviar para romaneio."
+        : "Pedido pronto para destinação final.";
 
   return (
     <div
@@ -56,7 +54,7 @@ export function ShippingConferenceDocumentsPanel({
             </h3>
           </div>
           <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
-            Após a conferência, a operação pode validar NF, emitir a DANFE simplificada e visualizar a etiqueta de envio sem sair desta etapa.
+            Depois da bipagem, revise os documentos e escolha obrigatoriamente se o pedido seguirá para romaneio ou será liberado sem romaneio.
           </p>
         </div>
 
@@ -67,13 +65,13 @@ export function ShippingConferenceDocumentsPanel({
               : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
           }`}
         >
-          {unlocked ? "Impressão liberada" : "Libera após 100% da conferência"}
+          {unlocked ? "Destinação liberada" : "Libera após 100% da conferência"}
         </span>
       </div>
 
       {!unlocked ? (
         <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-4 text-sm text-amber-700 dark:text-amber-300">
-          Finalize a bipagem de todos os itens para liberar a visualização e impressão da NF, DANFE simplificada e etiqueta de envio.
+          Finalize a bipagem de todos os itens para liberar a NF, a DANFE simplificada, a etiqueta e a destinação final do pedido.
         </div>
       ) : null}
 
@@ -131,26 +129,24 @@ export function ShippingConferenceDocumentsPanel({
             <div className="flex items-center gap-2">
               <Route className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">
-                Liberação para romaneio
+                Destinação do pedido
               </h4>
             </div>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{releaseHelp}</p>
           </div>
 
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-            <form action={releaseShippingOrderToRomaneioAction}>
-              <input type="hidden" name="orderId" value={orderId} />
-              <input type="hidden" name="redirectTo" value="/expedicao/conferidos?feedback=liberado-romaneio" />
-              <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
-              <button
-                type="submit"
-                disabled={!canReleaseToRomaneio}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-              >
-                <Route className="h-4 w-4" />
-                Liberar para romaneio
-              </button>
-            </form>
+            <button
+              type="submit"
+              form={formId}
+              name="intent"
+              value="release-romaneio"
+              disabled={!canReleaseToRomaneio}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+            >
+              <Route className="h-4 w-4" />
+              Liberar para romaneio
+            </button>
 
             <button
               type="button"
@@ -185,17 +181,15 @@ export function ShippingConferenceDocumentsPanel({
                 Cancelar
               </button>
 
-              <form action={releaseShippingOrderWithoutRomaneioAction}>
-                <input type="hidden" name="orderId" value={orderId} />
-                <input type="hidden" name="redirectTo" value="/expedicao/conferidos?feedback=liberado-sem-romaneio" />
-                <input type="hidden" name="fallbackRedirect" value={`/expedicao/conferencia/${orderId}`} />
-                <button
-                  type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
-                >
-                  Confirmar liberação
-                </button>
-              </form>
+              <button
+                type="submit"
+                form={formId}
+                name="intent"
+                value="release-sem-romaneio"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+              >
+                Confirmar liberação
+              </button>
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ import {
   Send,
   Settings2,
   SlidersHorizontal,
+  Tag,
   Truck,
   ChevronDown,
 } from "lucide-react";
@@ -101,7 +102,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
         {
           href: "/configuracoes/produtos",
           label: "Produtos",
-          icon: SlidersHorizontal,
+          icon: Tag,
           module: "configuracoes" as AppModule,
         },
       ]
@@ -119,11 +120,11 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
           {
             href: "/configuracoes/produtos",
             label: "Produtos",
-            icon: SlidersHorizontal,
+            icon: Tag,
             module: "configuracoes" as AppModule,
           },
           ...(canAccessConfigSection(user, "enderecos")
-            ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: SlidersHorizontal }]
+            ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: MapPin }]
             : []),
         ]
       : navigation.filter((item) => canAccessModule(user, item.module));
@@ -141,7 +142,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
   return (
     <aside 
       style={{ width: isCollapsed ? 80 : sidebarWidth, transition: dragRef.current ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/50 bg-white/60 p-4 backdrop-blur-xl dark:border-white/5 dark:bg-[#060d18]/70"
+      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/50 bg-white/40 p-4 backdrop-blur-2xl dark:border-white/5 dark:bg-[#0a1128]/50"
     >
       {/* Drag handle */}
       {!isCollapsed && setSidebarWidth && (
@@ -178,14 +179,14 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
                   spaceGrotesk.className,
                   isCollapsed && "justify-center px-0",
                   isActive
-                    ? "bg-gradient-to-r from-cyan-500/10 to-transparent text-cyan-700 dark:from-cyan-400/10 dark:text-cyan-300"
+                    ? "bg-gradient-to-r from-cyan-500/10 to-transparent text-cyan-700 dark:from-cyan-400/15 dark:text-cyan-300"
                     : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white",
                 )}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 h-2/3 w-[3px] -translate-y-1/2 rounded-r-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:bg-cyan-400 dark:shadow-[0_0_12px_rgba(34,211,238,0.6)]" />
+                  <div className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.6)] dark:bg-cyan-400 dark:shadow-[0_0_16px_rgba(34,211,238,0.7)]" />
                 )}
-                <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]")} />
+                <Icon className={cn("h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110", isActive && "drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]")} />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );

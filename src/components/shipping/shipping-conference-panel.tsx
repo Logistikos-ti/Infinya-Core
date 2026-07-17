@@ -61,7 +61,6 @@ export function ShippingConferencePanel({
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
-  const autoCompleteButtonRef = useRef<HTMLButtonElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const {
     videoRef,
@@ -129,19 +128,6 @@ export function ShippingConferencePanel({
 
     return () => window.clearTimeout(submitTimeout);
   }, [isSubmitting]);
-
-  useEffect(() => {
-    if (pendingUnits > 0 || isSubmitting || feedback === "concluido") {
-      return;
-    }
-
-    const submitTimer = window.setTimeout(() => {
-      setIsSubmitting(true);
-      autoCompleteButtonRef.current?.click();
-    }, 450);
-
-    return () => window.clearTimeout(submitTimer);
-  }, [feedback, isSubmitting, pendingUnits]);
 
   function focusScanInput() {
     requestAnimationFrame(() => {
@@ -565,6 +551,7 @@ export function ShippingConferencePanel({
 
         <div className="space-y-5">
         <form
+          id="shipping-conference-form"
           action={saveShippingConferenceAction}
           className="space-y-5"
           aria-busy={isSubmitting}
@@ -705,19 +692,9 @@ export function ShippingConferencePanel({
               />
             </div>
             <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-500 dark:text-zinc-500">
-              <span>A conferência é concluída automaticamente quando todos os itens estiverem bipados.</span>
-              {isSubmitting ? <span className="font-bold text-primary-600 dark:text-primary-400">Processando conclusão...</span> : null}
+              <span>Ao atingir 100%, a conferência fica pronta para destinação. O pedido só fecha quando o operador liberar com ou sem romaneio.</span>
+              {isSubmitting ? <span className="font-bold text-primary-600 dark:text-primary-400">Processando ação...</span> : null}
             </div>
-            <button
-              ref={autoCompleteButtonRef}
-              type="submit"
-              name="intent"
-              value="complete"
-              className="hidden"
-              disabled={isSubmitting}
-              aria-hidden="true"
-              tabIndex={-1}
-            />
           </div>
         </form>
 
