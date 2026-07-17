@@ -39,7 +39,7 @@ export function InventoryClient({ data }: { data: any }) {
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSub }}>
-            <span>Operação</span>
+            <span>WMS</span>
             <span>›</span>
             <span style={{ color: t.text, fontWeight: 600 }}>Estoque</span>
           </div>

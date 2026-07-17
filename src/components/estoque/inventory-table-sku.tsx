@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useState } from "react";
 import { PackageOpen } from "lucide-react";
 
 export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balances: any[]; onSelectSku: (sku: any) => void }) {
-  // We can group by SKU here if needed, or just display the balances
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  const totalPages = Math.ceil(balances.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentItems = balances.slice(startIndex, startIndex + itemsPerPage);
+
   const columns = ["PRODUTO & SKU", "DEPOSITANTE", "FÍSICO", "RESERVADO", "DISPONÍVEL", "LOCAIS", "VENCIMENTO", "STATUS"];
 
   return (
@@ -21,7 +28,7 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
             </tr>
           </thead>
           <tbody>
-            {balances.map((r, i) => {
+            {currentItems.map((r, i) => {
               // Parse saldo to number to show available/reserved if we don't have it explicit
               const total = r.saldo || "0";
               const reserved = r.status === "Reservado" ? total : "0";
@@ -77,11 +84,25 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
         </table>
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderTop: `1px solid ${t.border}`, flexWrap: "wrap", gap: "12px" }}>
-        <span style={{ fontSize: "13px", color: t.textSub }}>Mostrando 1–{balances.length} de {balances.length} SKUs</span>
+        <span style={{ fontSize: "13px", color: t.textSub }}>
+          Mostrando {balances.length > 0 ? startIndex + 1 : 0}–{Math.min(startIndex + itemsPerPage, balances.length)} de {balances.length} SKUs
+        </span>
         <div style={{ display: "flex", gap: "6px" }}>
-          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer", fontSize: "13px" }}>‹</button>
-          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", cursor: "pointer", fontSize: "13px", fontWeight: 700 }}>1</button>
-          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer", fontSize: "13px" }}>›</button>
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: currentPage === 1 ? t.border : t.textSub, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: "13px" }}
+          >‹</button>
+          
+          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", cursor: "default", fontSize: "13px", fontWeight: 700 }}>
+            {currentPage}
+          </button>
+          
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: currentPage === totalPages ? t.border : t.textSub, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: "13px" }}
+          >›</button>
         </div>
       </div>
     </div>

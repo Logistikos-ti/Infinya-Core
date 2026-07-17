@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useState } from "react";
+
 export function InventoryTableLot({ t, balances }: { t: any; balances: any[] }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
+  const totalPages = Math.ceil(balances.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentItems = balances.slice(startIndex, startIndex + itemsPerPage);
+
   const lotColumns = ["LOTE", "PRODUTO & SKU", "QTD", "LOCAL", "FABRICAÇÃO", "VENCIMENTO", "VIDA ÚTIL (%)"];
 
   return (
@@ -18,7 +27,7 @@ export function InventoryTableLot({ t, balances }: { t: any; balances: any[] }) 
             </tr>
           </thead>
           <tbody>
-            {balances.map((l, i) => {
+            {currentItems.map((l, i) => {
               const expColor = l.validade ? (new Date(l.validade) < new Date() ? "#EF4444" : "#F59E0B") : t.text;
               const expiry = l.validade ? new Date(l.validade).toLocaleDateString() : "—";
               const manuf = "—"; // Not provided by default backend yet
@@ -54,6 +63,29 @@ export function InventoryTableLot({ t, balances }: { t: any; balances: any[] }) 
             })}
           </tbody>
         </table>
+      </div>
+      
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderTop: `1px solid ${t.border}`, flexWrap: "wrap", gap: "12px" }}>
+        <span style={{ fontSize: "13px", color: t.textSub }}>
+          Mostrando {balances.length > 0 ? startIndex + 1 : 0}–{Math.min(startIndex + itemsPerPage, balances.length)} de {balances.length} lotes
+        </span>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: currentPage === 1 ? t.border : t.textSub, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: "13px" }}
+          >‹</button>
+          
+          <button style={{ width: "34px", height: "34px", borderRadius: "8px", border: "none", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", cursor: "default", fontSize: "13px", fontWeight: 700 }}>
+            {currentPage}
+          </button>
+          
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            style={{ width: "34px", height: "34px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: currentPage === totalPages ? t.border : t.textSub, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: "13px" }}
+          >›</button>
+        </div>
       </div>
     </div>
   );
