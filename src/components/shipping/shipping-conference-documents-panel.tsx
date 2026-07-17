@@ -255,6 +255,7 @@ function AttachmentStatusCard({
           <a
             href={attachment.viewHref}
             target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <Printer className="h-3.5 w-3.5" />
@@ -262,7 +263,6 @@ function AttachmentStatusCard({
           </a>
           <a
             href={attachment.href}
-            target="_blank"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <Download className="h-3.5 w-3.5" />
