@@ -25,15 +25,32 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(operations, 130, 350, 70, 29, "SERIE", "1");
   boxedField(operations, 204, 350, 70, 29, "TIPO", parsed.direction === "SAIDA" ? "SAIDA" : "ENTRADA");
 
-  boxedField(operations, 14, 311, 260, 31, "DESTINATARIO", truncate(safeAscii(parsed.recipientName), 43));
-  boxedField(operations, 14, 272, 260, 31, "ENDERECO DO DESTINATARIO", truncate(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 43));
-  boxedField(operations, 14, 233, 260, 31, "EMITENTE / CNPJ DO DEPOSITANTE", parsed.supplierDocument ?? "NAO INFORMADO");
+  boxedField(
+    operations,
+    14,
+    300,
+    260,
+    42,
+    "DESTINATARIO",
+    truncate(safeAscii(parsed.recipientName), 43),
+    truncate(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 48),
+  );
+  boxedField(
+    operations,
+    14,
+    252,
+    260,
+    42,
+    "EMITENTE",
+    truncate(safeAscii(parsed.supplierName), 43),
+    `CNPJ: ${parsed.supplierDocument ?? "NAO INFORMADO"}`,
+  );
 
-  text(operations, 14, 219, "ITENS DA NOTA", 7, BLACK, true);
-  line(operations, 14, 214, 274, 214, BLACK, 0.8);
-  tableHeader(operations, 14, 196, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
+  text(operations, 14, 236, "ITENS DA NOTA", 7, BLACK, true);
+  line(operations, 14, 231, 274, 231, BLACK, 0.8);
+  tableHeader(operations, 14, 213, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
   const visibleItems = parsed.items.slice(0, 5);
-  let itemY = 181;
+  let itemY = 198;
   visibleItems.forEach((item, index) => {
     if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 14, LIGHT);
     text(operations, 21, itemY, String(index + 1), 6.5, DARK, false);
@@ -70,10 +87,13 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   return createSimplePdf(operations.join("\n"));
 }
 
-function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string) {
+function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string) {
   strokeRect(operations, x, y, width, height, BLACK, 0.7);
   text(operations, x + 5, y + height - 10, label, 5.7, GRAY, true);
-  text(operations, x + 5, y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
+  text(operations, x + 5, secondary ? y + 18 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
+  if (secondary) {
+    text(operations, x + 5, y + 7, truncate(safeAscii(secondary), Math.max(8, Math.floor(width / 4.1))), 6.4, DARK, false);
+  }
 }
 
 function tableHeader(operations: string[], x: number, y: number, widths: number[], labels: string[]) {
