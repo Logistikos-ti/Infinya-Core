@@ -33,9 +33,7 @@ export function InventoryAlerts({ t, alerts }: { t: any; alerts: any[] }) {
       </div>
       <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
         {alerts.map((e, i) => {
-          // Parse how many days left
-          const diffTime = new Date(e.validade).getTime() - new Date().getTime();
-          const daysNum = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const daysNum = e.daysToExpiry;
           const displayDays = Math.abs(daysNum);
           
           let eBorder = t.border;
@@ -74,7 +72,7 @@ export function InventoryAlerts({ t, alerts }: { t: any; alerts: any[] }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-end" }}>
                 <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>{e.saldo || "0"}</span>
-                <span style={{ fontSize: "11.5px", color: t.textSub }}>vence {new Date(e.validade).toLocaleDateString()}</span>
+                <span style={{ fontSize: "11.5px", color: t.textSub }}>vence {e.expiryDate}</span>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: tagBg, color: tagColor }}>
                 {tagLabel}
