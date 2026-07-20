@@ -8,16 +8,17 @@ const BLACK = [0, 0, 0] as const;
 const DARK = [0.12, 0.12, 0.12] as const;
 const GRAY = [0.45, 0.45, 0.45] as const;
 const LIGHT = [0.93, 0.93, 0.93] as const;
+const LOGO_JPEG_BASE64 = "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";
 
 export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const parsed = parseNfeXml(xml);
   const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
-  drawLogo(operations, 14, 386, 54, 38);
-  text(operations, 78, 412, "INFINOOS", 13, BLACK, true);
-  text(operations, 78, 399, "WMS", 8, BLACK, true);
-  text(operations, 119, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
+  drawJpeg(operations, 14, 387, 38, 38);
+  text(operations, 58, 412, "INFINOOS", 13, BLACK, true);
+  text(operations, 58, 399, "WMS", 8, BLACK, true);
+  text(operations, 96, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
   line(operations, MARGIN, 387, PAGE_WIDTH - MARGIN, 387, BLACK, 1.2);
 
   boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
@@ -80,29 +81,8 @@ function tableHeader(operations: string[], x: number, y: number, widths: number[
   });
 }
 
-function drawLogo(operations: string[], x: number, y: number, width: number, height: number) {
-  const sx = width / 60;
-  const sy = height / 40;
-  const px = (value: number) => x + value * sx;
-  const py = (value: number) => y + value * sy;
-  const black = `${BLACK[0]} ${BLACK[1]} ${BLACK[2]}`;
-
-  // Use explicit closed polylines. This avoids open PDF paths leaking into the page.
-  polyline(operations, [
-    [px(2), py(20)], [px(7), py(9)], [px(17), py(5)], [px(30), py(20)],
-    [px(43), py(35)], [px(53), py(31)], [px(58), py(20)], [px(53), py(9)],
-    [px(43), py(5)], [px(30), py(20)], [px(17), py(35)], [px(7), py(31)], [px(2), py(20)],
-  ], black, 2.4);
-
-  operations.push(`${black} rg`, `${px(23)} ${py(35)} m ${px(23)} ${py(12)} l ${px(30)} ${py(5)} l ${px(37)} ${py(12)} l ${px(37)} ${py(35)} l ${px(23)} ${py(35)} f`);
-  polyline(operations, [[px(26), py(35)], [px(26), py(19)], [px(34), py(19)], [px(34), py(35)]], "1 1 1", 1.1);
-}
-
-function polyline(operations: string[], points: Array<[number, number]>, color: string, lineWidth: number) {
-  const [first, ...rest] = points;
-  operations.push(`${color} RG`, `${lineWidth} w`, `${first[0]} ${first[1]} m`);
-  rest.forEach(([pointX, pointY]) => operations.push(`${pointX} ${pointY} l`));
-  operations.push("S");
+function drawJpeg(operations: string[], x: number, y: number, width: number, height: number) {
+  operations.push("q", `${width} 0 0 ${height} ${x} ${y} cm`, "/Im1 Do", "Q");
 }
 
 function drawCode128(operations: string[], value: string, x: number, y: number, width: number, height: number) {
@@ -137,9 +117,10 @@ function createSimplePdf(contentStream: string) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 6 0 R >> >> /Contents 5 0 R >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`,
+    createJpegObject(),
   ];
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [0];
@@ -152,6 +133,11 @@ function createSimplePdf(contentStream: string) {
   for (let index = 1; index <= objects.length; index += 1) pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
   return Buffer.from(pdf, "latin1");
+}
+
+function createJpegObject() {
+  const image = Buffer.from(LOGO_JPEG_BASE64, "base64");
+  return `<< /Type /XObject /Subtype /Image /Width 84 /Height 84 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n${image.toString("latin1")}\nendstream`;
 }
 
 function text(operations: string[], x: number, y: number, value: string, size: number, color: readonly [number, number, number], _bold: boolean) {
