@@ -24,6 +24,9 @@ export type ParsedNfe = {
   recipientDocument: string | null;
   issuedAt: string | null;
   volumeCount: number;
+  carrierName: string | null;
+  grossWeight: number | null;
+  additionalInfo: string | null;
   totalValue: number;
   protocolNumber: string | null;
   protocolStatusCode: string | null;
@@ -70,6 +73,8 @@ export function parseNfeXml(xml: string): ParsedNfe {
     (sum, volume) => sum + toPositiveNumber(volume?.qVol ?? 0),
     0,
   );
+  const carrier = (transp.transporta ?? {}) as Record<string, unknown>;
+  const firstVolume = ensureArray(transp.vol)[0] as Record<string, unknown> | undefined;
 
   return {
     accessKey: cleanString(protNFe?.chNFe) ?? extractAccessKeyFromId(infNFe.Id),
@@ -81,6 +86,9 @@ export function parseNfeXml(xml: string): ParsedNfe {
     recipientDocument: cleanString(dest.CNPJ) ?? cleanString(dest.CPF),
     issuedAt: normalizeDateTime(ide.dhEmi ?? ide.dEmi ?? null),
     volumeCount,
+    carrierName: cleanString(carrier.xNome),
+    grossWeight: firstVolume?.pesoB != null ? toPositiveNumber(firstVolume.pesoB) : null,
+    additionalInfo: cleanString(infNFe.infAdic?.infCpl),
     totalValue: toPositiveNumber(total.vNF ?? 0),
     protocolNumber: cleanString(protNFe?.nProt),
     protocolStatusCode: cleanString(protNFe?.cStat),

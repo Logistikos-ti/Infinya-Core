@@ -45,13 +45,23 @@ export function InventoryAlerts({ t, alerts }: { t: any; alerts: any[] }) {
           let tagLabel = "Monitorar";
           let animation = "none";
 
-          if (daysNum <= 15) {
+          if (daysNum < 0) {
+            // Vencido: Purple/Dark Violet, no animation
+            eBorder = "rgba(124,58,237,0.4)";
+            rowBg = "rgba(124,58,237,0.06)";
+            badgeBg = "#7C3AED";
+            tagBg = "rgba(124,58,237,0.15)";
+            tagColor = "#7C3AED";
+            tagLabel = "Vencido";
+            animation = "none";
+          } else if (daysNum <= 15) {
+            // Crítico: Red, blinking animation
             eBorder = "rgba(239,68,68,0.8)";
             rowBg = "rgba(239,68,68,0.08)";
             badgeBg = "#EF4444";
             tagBg = "rgba(239,68,68,0.15)";
             tagColor = "#EF4444";
-            tagLabel = daysNum < 0 ? "Vencido" : "Crítico";
+            tagLabel = "Crítico";
             animation = "pulseCritical 2s infinite";
           } else if (daysNum <= 45) {
             badgeBg = "#F59E0B";

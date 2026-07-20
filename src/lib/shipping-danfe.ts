@@ -46,21 +46,24 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
     itemY -= 14;
   }
 
+  const volumeTotal = Math.max(1, parsed.volumeCount);
   boxedField(operations, 14, 113, 84, 28, "TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-  boxedField(operations, 102, 113, 84, 28, "VOLUMES", parsed.volumeCount.toLocaleString("pt-BR"));
-  boxedField(operations, 190, 113, 84, 28, "EMISSAO", formatDateTime(parsed.issuedAt));
+  boxedField(operations, 102, 113, 84, 28, "VOLUME", `1/${volumeTotal}`);
+  boxedField(operations, 190, 113, 84, 28, "ENVIO", parsed.carrierName ?? "NAO INFORMADO");
 
-  text(operations, 14, 99, "CHAVE DE ACESSO - BIPAR PARA LIBERAR ROMANEIO", 6.2, BLACK, true);
+  text(operations, 14, 99, `PESO BRUTO: ${parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO"}`, 5.8, DARK, false);
+  text(operations, 14, 90, `DADOS: ${truncate(safeAscii(parsed.additionalInfo ?? "Sem informacoes adicionais"), 54)}`, 5.8, DARK, false);
+  text(operations, 14, 79, "CHAVE DE ACESSO - BIPAR PARA LIBERAR ROMANEIO", 6.2, BLACK, true);
   if (accessKey.length === 44) {
-    drawCode128(operations, accessKey, 14, 58, 260, 34);
-    text(operations, 14, 48, accessKey, 6.2, BLACK, false);
+    drawCode128(operations, accessKey, 14, 40, 260, 34);
+    text(operations, 14, 31, accessKey, 6.2, BLACK, false);
   } else {
-    text(operations, 14, 72, "CHAVE NAO INFORMADA NO XML", 8, BLACK, true);
+    text(operations, 14, 53, "CHAVE NAO INFORMADA NO XML", 8, BLACK, true);
   }
 
-  line(operations, MARGIN, 35, PAGE_WIDTH - MARGIN, 35, BLACK, 0.8);
-  text(operations, 14, 22, `NF ${safeAscii(parsed.noteNumber)} | Documento operacional`, 6.3, GRAY, false);
-  text(operations, 206, 22, "4 x 6", 6.3, GRAY, false);
+  line(operations, MARGIN, 25, PAGE_WIDTH - MARGIN, 25, BLACK, 0.8);
+  text(operations, 14, 13, `NF ${safeAscii(parsed.noteNumber)} | Documento operacional`, 6.3, GRAY, false);
+  text(operations, 206, 13, "4 x 6", 6.3, GRAY, false);
 
   return createSimplePdf(operations.join("\n"));
 }
