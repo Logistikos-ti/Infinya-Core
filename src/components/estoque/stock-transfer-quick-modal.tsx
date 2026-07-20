@@ -125,7 +125,7 @@ export function StockTransferQuickModal({ sku, allBalances, allAddresses, onClos
                   { value: "", label: "Selecione o destino..." },
                   ...allAddresses.map((a) => ({
                     value: a.id,
-                    label: a.name,
+                    label: a.codigo,
                   }))
                 ]}
               />
