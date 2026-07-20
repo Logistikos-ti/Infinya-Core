@@ -1,157 +1,112 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
 import { Search, X } from "lucide-react";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
-export function InventoryToolbar({ t, data }: { t: any; data: any }) {
-  const [q, setQ] = useState("");
-  const [owner, setOwner] = useState("");
-  const [cat, setCat] = useState("");
-
+export function InventoryToolbar({
+  t,
+  data,
+  q,
+  setQ,
+  owner,
+  setOwner,
+  cat,
+  setCat,
+}: {
+  t: any;
+  data: any;
+  q: string;
+  setQ: (v: string) => void;
+  owner: string;
+  setOwner: (v: string) => void;
+  cat: string;
+  setCat: (v: string) => void;
+}) {
   const hasActiveFilter = q || owner || cat;
+
+  const depositanteOptions = [
+    { value: "", label: "Todos" },
+    ...(data.depositanteOptions || []).map((o: any) => ({
+      value: o.id,
+      label: o.nome,
+    })),
+  ];
+
+  const areaOptions = [
+    { value: "", label: "Todas" },
+    ...(data.enderecosInventario || []).map((o: any) => ({
+      value: o.area,
+      label: o.area,
+    })),
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            height: "44px",
-            flex: 1,
-            minWidth: "240px",
-            padding: "0 16px",
-            borderRadius: "11px",
-            border: `1.5px solid ${t.border}`,
-            background: t.inputBg,
-            transition: "all 0.2s ease",
-          }}
-        >
-          <Search size={16} color={t.textSub} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Filtrar por produto ou SKU nesta lista..."
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: t.text,
-              fontFamily: "'Manrope', sans-serif",
-              fontSize: "14px",
-            }}
-          />
-        </div>
+        
+        <label className="space-y-1.5 flex-1 min-w-[240px]">
+          <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Busca rápida
+          </span>
+          <div className="flex h-[52px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 dark:bg-slate-950/50 px-3 transition-colors focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 dark:border-slate-800">
+            <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Filtrar por produto ou SKU nesta lista..."
+              className="w-full border-0 bg-transparent text-[14px] font-medium outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-600"
+            />
+          </div>
+        </label>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: "44px",
-            padding: "0 14px",
-            borderRadius: "11px",
-            border: `1.5px solid ${t.border}`,
-            background: t.inputBg,
-            minWidth: "180px",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: t.textSub, marginRight: "8px" }}>Depositante</span>
-          <select
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: t.text,
-              fontFamily: "'Manrope', sans-serif",
-              fontSize: "13.5px",
-              fontWeight: 700,
-              cursor: "pointer",
-              appearance: "none",
-            }}
-          >
-            <option value="">Todos</option>
-            {data.depositanteOptions.map((o: any) => (
-              <option key={o.id} value={o.id}>
-                {o.nome}
-              </option>
-            ))}
-          </select>
-          <span style={{ color: t.textSub, fontSize: "11px", pointerEvents: "none" }}>▾</span>
-        </div>
+        <FancySelectInput
+          label="Depositante"
+          name="owner"
+          value={owner}
+          onChange={setOwner}
+          options={depositanteOptions}
+        />
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: "44px",
-            padding: "0 14px",
-            borderRadius: "11px",
-            border: `1.5px solid ${t.border}`,
-            background: t.inputBg,
-            minWidth: "150px",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: t.textSub, marginRight: "8px" }}>Área</span>
-          <select
-            value={cat}
-            onChange={(e) => setCat(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: t.text,
-              fontFamily: "'Manrope', sans-serif",
-              fontSize: "13.5px",
-              fontWeight: 700,
-              cursor: "pointer",
-              appearance: "none",
-            }}
-          >
-            <option value="">Todas</option>
-            {data.enderecosInventario.map((o: any) => (
-              <option key={o.id} value={o.area}>
-                {o.area}
-              </option>
-            ))}
-          </select>
-          <span style={{ color: t.textSub, fontSize: "11px", pointerEvents: "none" }}>▾</span>
-        </div>
+        <FancySelectInput
+          label="Área"
+          name="area"
+          value={cat}
+          onChange={setCat}
+          options={areaOptions}
+        />
 
         {hasActiveFilter && (
-          <button
-            onClick={() => {
-              setQ("");
-              setOwner("");
-              setCat("");
-            }}
-            style={{
-              height: "44px",
-              padding: "0 16px",
-              borderRadius: "11px",
-              border: `1px solid ${t.border}`,
-              background: "transparent",
-              color: t.textSub,
-              fontFamily: "'Manrope', sans-serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <X size={14} /> Limpar
-          </button>
+          <div className="flex items-end gap-2 pb-[1px]">
+            <button
+              onClick={() => {
+                setQ("");
+                setOwner("");
+                setCat("");
+              }}
+              style={{
+                height: "52px",
+                padding: "0 16px",
+                borderRadius: "16px",
+                border: `1px solid ${t.border}`,
+                background: "transparent",
+                color: t.textSub,
+                fontFamily: "'Manrope', sans-serif",
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = t.textSub)}
+            >
+              <X size={16} /> Limpar
+            </button>
+          </div>
         )}
       </div>
 

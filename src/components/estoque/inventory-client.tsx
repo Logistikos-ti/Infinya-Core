@@ -19,6 +19,10 @@ export function InventoryClient({ data }: { data: any }) {
   const [selectedSku, setSelectedSku] = useState<any>(null);
   const [showInitial, setShowInitial] = useState(false);
   
+  const [q, setQ] = useState("");
+  const [owner, setOwner] = useState("");
+  const [cat, setCat] = useState("");
+
   // Base themes to match the exact HTML visual prototype
   const t = {
     appBg: isDark ? "#0B1120" : "#F8FAFC",
@@ -34,6 +38,18 @@ export function InventoryClient({ data }: { data: any }) {
     softBg: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9",
     textFaint: isDark ? "#475569" : "#CBD5E1",
   };
+
+  const filteredBalances = (data.stockBalances || []).filter((b: any) => {
+    if (owner && b.depositanteId !== owner) return false;
+    if (cat && b.area !== cat) return false;
+    if (q) {
+      const search = q.toLowerCase();
+      if (!b.sku?.toLowerCase().includes(search) && !b.productName?.toLowerCase().includes(search)) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 40px 32px", display: "flex", flexDirection: "column" }}>
@@ -84,12 +100,12 @@ export function InventoryClient({ data }: { data: any }) {
       </div>
 
       <InventoryKpis t={t} stats={data.stockStatsCards} />
-      <InventoryToolbar t={t} data={data} />
+      <InventoryToolbar t={t} data={data} q={q} setQ={setQ} owner={owner} setOwner={setOwner} cat={cat} setCat={setCat} />
 
       {isBySku ? (
-        <InventoryTableSku t={t} balances={data.stockBalances} onSelectSku={setSelectedSku} />
+        <InventoryTableSku t={t} balances={filteredBalances} onSelectSku={setSelectedSku} />
       ) : (
-        <InventoryTableLot t={t} balances={data.stockBalances} />
+        <InventoryTableLot t={t} balances={filteredBalances} />
       )}
 
       <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
