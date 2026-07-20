@@ -1,4 +1,4 @@
-﻿import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
 export type CycleCountSummary = {
@@ -72,6 +72,7 @@ type CreateCycleCountInput = {
   titulo: string;
   observacoes?: string;
   blindCount?: boolean;
+  skuId?: string;
 };
 
 type UpdateCycleCountItemInput = {
@@ -334,6 +335,10 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     quantidade: number | string;
     endereco: { area?: string } | Array<{ area?: string }> | null;
   }>).filter((row) => {
+    if (input.skuId && row.produto_id !== input.skuId) {
+      return false;
+    }
+
     if (!input.area) {
       return true;
     }

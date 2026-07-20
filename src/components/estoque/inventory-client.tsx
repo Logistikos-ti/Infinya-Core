@@ -150,6 +150,8 @@ export function InventoryClient({ data }: { data: any }) {
         <InventoryDetailDrawer
           t={t}
           sku={selectedSku}
+          allBalances={data.stockBalances}
+          allAddresses={data.enderecosInventario}
           onClose={() => setSelectedSku(null)}
         />
       )}

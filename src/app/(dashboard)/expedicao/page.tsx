@@ -22,6 +22,7 @@ import {
 } from "@/lib/shipping";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { ExpedicaoReferenceDashboard } from "@/components/shipping/expedicao-reference-dashboard";
 
 type ExpedicaoPageProps = {
   searchParams?: Promise<{
@@ -96,6 +97,24 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     marketplace: marketplaceFilter,
     perPage: String(perPage),
   };
+
+  return (
+    <ExpedicaoReferenceDashboard
+      orders={paginatedOrders}
+      stats={shippingStats}
+      queues={shippingQueues}
+      totalOrders={totalOrders}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      perPage={perPage}
+      statusFilter={statusFilter}
+      depositanteFilter={effectiveDepositanteFilter}
+      orderSearchFilter={orderSearchFilter}
+      depositantes={depositanteOptions}
+      canManageTenants={canManageMultipleTenants(user)}
+      baseQuery={baseQuery}
+    />
+  );
 
   return (
     <div className="expedicao-page space-y-7 pb-4">

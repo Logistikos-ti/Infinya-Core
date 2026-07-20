@@ -4,8 +4,15 @@
 import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: any; sku: any; movements?: any[]; onClose: () => void }) {
+import { StockTransferQuickModal } from "./stock-transfer-quick-modal";
+import { StockAdjustmentModal } from "./stock-adjustment-modal";
+import { StockInventoryModal } from "./stock-inventory-modal";
+
+export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses = [], movements = [], onClose }: { t: any; sku: any; allBalances?: any[]; allAddresses?: any[]; movements?: any[]; onClose: () => void }) {
   const [barWidth, setBarWidth] = useState("0%");
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [showAdjustment, setShowAdjustment] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   
   const total = sku.saldo || "0";
   const reserved = sku.status === "Reservado" ? total : "0";
@@ -157,17 +164,56 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
 
         {/* Footer Actions */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, background: t.drawerBg, display: "flex", gap: "12px", zIndex: 10 }}>
-          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+          <button onClick={() => setShowAdjustment(true)} style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
             <ArrowRightLeft size={16} /> Ajustar
           </button>
-          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+          <button onClick={() => setShowTransfer(true)} style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
             <ArrowRight size={16} /> Transferir
           </button>
-          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 14px rgba(99,102,241,0.25)" }}>
+          <button onClick={() => setShowInventory(true)} style={{ flex: 1, height: "46px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 14px rgba(99,102,241,0.25)" }}>
             <RotateCcw size={16} /> Inventariar
           </button>
         </div>
       </div>
+
+      {showTransfer && (
+        <StockTransferQuickModal
+          sku={sku}
+          allBalances={allBalances}
+          allAddresses={allAddresses}
+          t={t}
+          onClose={() => setShowTransfer(false)}
+          onSuccess={() => {
+            setShowTransfer(false);
+            window.location.reload(); // Quick fix to refresh balances, ideal approach is to mutate parent state
+          }}
+        />
+      )}
+
+      {showAdjustment && (
+        <StockAdjustmentModal
+          sku={sku}
+          allBalances={allBalances}
+          t={t}
+          onClose={() => setShowAdjustment(false)}
+          onSuccess={() => {
+            setShowAdjustment(false);
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {showInventory && (
+        <StockInventoryModal
+          sku={sku}
+          allBalances={allBalances}
+          t={t}
+          onClose={() => setShowInventory(false)}
+          onSuccess={() => {
+            setShowInventory(false);
+          }}
+        />
+      )}
     </div>
   );
 }
