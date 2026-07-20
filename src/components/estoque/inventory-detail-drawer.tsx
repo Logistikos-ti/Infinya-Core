@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PackageOpen, X } from "lucide-react";
+import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: any; sku: any; movements?: any[]; onClose: () => void }) {
@@ -73,18 +73,6 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
                 {sku.productName || sku.sku}
               </span>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{sku.sku}</span>
-            </div>
-            
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
-                Ajustar
-              </button>
-              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
-                Transferir
-              </button>
-              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
-                Inventariar
-              </button>
             </div>
           </div>
 
@@ -165,6 +153,19 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
             </div>
           )}
           
+        </div>
+
+        {/* Footer Actions */}
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, background: t.drawerBg, display: "flex", gap: "12px", zIndex: 10 }}>
+          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+            <ArrowRightLeft size={16} /> Ajustar
+          </button>
+          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+            <ArrowRight size={16} /> Transferir
+          </button>
+          <button style={{ flex: 1, height: "46px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 14px rgba(99,102,241,0.25)" }}>
+            <RotateCcw size={16} /> Inventariar
+          </button>
         </div>
       </div>
     </div>
