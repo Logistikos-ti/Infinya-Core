@@ -45,7 +45,7 @@ export function InventoryToolbar({
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         
-        <label className="space-y-1.5 flex-1 min-w-[240px]">
+        <label className="space-y-1.5 flex-[0.8] min-w-[180px]">
           <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Busca rápida
           </span>
@@ -55,27 +55,31 @@ export function InventoryToolbar({
               type="text"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Filtrar por produto ou SKU nesta lista..."
+              placeholder="Filtrar nesta lista..."
               className="w-full border-0 bg-transparent text-[14px] font-medium outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-600"
             />
           </div>
         </label>
 
-        <FancySelectInput
-          label="Depositante"
-          name="owner"
-          value={owner}
-          onChange={setOwner}
-          options={depositanteOptions}
-        />
+        <div className="flex-[1.2] min-w-[220px]">
+          <FancySelectInput
+            label="Depositante"
+            name="owner"
+            value={owner}
+            onChange={setOwner}
+            options={depositanteOptions}
+          />
+        </div>
 
-        <FancySelectInput
-          label="Área"
-          name="area"
-          value={cat}
-          onChange={setCat}
-          options={areaOptions}
-        />
+        <div className="flex-[1.2] min-w-[200px]">
+          <FancySelectInput
+            label="Área"
+            name="area"
+            value={cat}
+            onChange={setCat}
+            options={areaOptions}
+          />
+        </div>
 
         {hasActiveFilter && (
           <div className="flex items-end gap-2 pb-[1px]">
