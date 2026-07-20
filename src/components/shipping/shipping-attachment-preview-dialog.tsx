@@ -48,7 +48,7 @@ export function ShippingAttachmentPreviewDialog({
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <button
           type="button"
-          onClick={(event) => {
+          onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
             openPreview();
@@ -61,7 +61,7 @@ export function ShippingAttachmentPreviewDialog({
 
         <button
           type="button"
-          onClick={(event) => {
+          onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
             openPrint();

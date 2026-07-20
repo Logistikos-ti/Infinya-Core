@@ -1,125 +1,104 @@
 import { parseNfeXml } from "@/lib/nfe-import";
 
-const PAGE_WIDTH = 595;
-const PAGE_HEIGHT = 842;
-const MARGIN = 32;
-const NAVY = [0.035, 0.075, 0.17] as const;
-const BLUE = [0.04, 0.62, 0.88] as const;
-const PURPLE = [0.48, 0.25, 0.92] as const;
-const INK = [0.08, 0.11, 0.18] as const;
-const MUTED = [0.32, 0.38, 0.48] as const;
-const LINE = [0.82, 0.86, 0.92] as const;
-const PALE = [0.95, 0.97, 0.99] as const;
+// 4 x 6 inches at 72 dpi, suitable for thermal label printers.
+const PAGE_WIDTH = 288;
+const PAGE_HEIGHT = 432;
+const MARGIN = 14;
+const BLACK = [0, 0, 0] as const;
+const DARK = [0.12, 0.12, 0.12] as const;
+const GRAY = [0.45, 0.45, 0.45] as const;
+const LIGHT = [0.93, 0.93, 0.93] as const;
 
 export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const parsed = parseNfeXml(xml);
   const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
-  // Header and document identity.
-  fillRect(operations, 0, PAGE_HEIGHT - 92, PAGE_WIDTH, 92, NAVY);
-  fillRect(operations, 0, PAGE_HEIGHT - 96, PAGE_WIDTH, 4, BLUE);
-  fillRect(operations, PAGE_WIDTH - 145, PAGE_HEIGHT - 92, 145, 92, PURPLE);
-  text(operations, MARGIN, 792, "INFINOOS WMS", 19, [1, 1, 1], true);
-  text(operations, MARGIN, 772, "DOCUMENTO AUXILIAR DA NF-E", 8, [0.72, 0.84, 1], true);
-  text(operations, 465, 797, "DANFE", 17, [1, 1, 1], true);
-  text(operations, 465, 779, "SIMPLIFICADA", 8, [0.88, 0.91, 1], true);
-  text(operations, 465, 753, `NF ${safeAscii(parsed.noteNumber)}`, 11, [1, 1, 1], true);
+  drawLogo(operations, 14, 395, 34, 28);
+  text(operations, 57, 411, "INFINOOS WMS", 13, BLACK, true);
+  text(operations, 57, 398, "DANFE SIMPLIFICADA", 7, BLACK, true);
+  line(operations, MARGIN, 387, PAGE_WIDTH - MARGIN, 387, BLACK, 1.2);
 
-  sectionTitle(operations, 32, 724, "IDENTIFICACAO DA NOTA");
-  field(operations, 32, 682, 168, 34, "NUMERO DA NF-E", parsed.noteNumber);
-  field(operations, 208, 682, 168, 34, "DIRECAO", parsed.direction === "SAIDA" ? "SAIDA" : "ENTRADA");
-  field(operations, 384, 682, 179, 34, "EMISSAO", formatDateTime(parsed.issuedAt));
+  boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
+  boxedField(operations, 130, 350, 70, 29, "SERIE", "1");
+  boxedField(operations, 204, 350, 70, 29, "TIPO", parsed.direction === "SAIDA" ? "SAIDA" : "ENTRADA");
 
-  sectionTitle(operations, 32, 650, "PARTICIPANTES");
-  field(operations, 32, 592, 257, 48, "EMITENTE", parsed.supplierName, parsed.supplierDocument);
-  field(operations, 306, 592, 257, 48, "DESTINATARIO", parsed.recipientName, parsed.recipientDocument);
+  boxedField(operations, 14, 311, 260, 31, "DESTINATARIO", truncate(safeAscii(parsed.recipientName), 43));
+  boxedField(operations, 14, 272, 260, 31, "EMITENTE", truncate(safeAscii(parsed.supplierName), 43));
 
-  sectionTitle(operations, 32, 560, "INFORMACOES FISCAIS");
-  field(operations, 32, 510, 257, 40, "PROTOCOLO SEFAZ", parsed.protocolNumber ?? "NAO INFORMADO");
-  field(operations, 306, 510, 257, 40, "STATUS", parsed.protocolStatusLabel ?? "NAO INFORMADO");
-  field(operations, 32, 460, 531, 40, "CHAVE DE ACESSO", accessKey || "NAO INFORMADA");
-
-  if (accessKey.length === 44) {
-    text(operations, 32, 444, "LEITURA PARA LIBERACAO DO ROMANEIO", 7, MUTED, true);
-    drawCode128(operations, accessKey, 32, 396, 531, 38);
-    text(operations, 32, 383, accessKey, 8, INK, false);
-  }
-
-  sectionTitle(operations, 32, 356, "ITENS DA NOTA");
-  tableHeader(operations, 32, 332, [30, 112, 251, 58, 80], ["#", "CODIGO / EAN", "DESCRICAO", "QTD", "NCM"]);
-  const visibleItems = parsed.items.slice(0, 7);
-  let itemY = 308;
+  text(operations, 14, 258, "ITENS DA NOTA", 7, BLACK, true);
+  line(operations, 14, 253, 274, 253, BLACK, 0.8);
+  tableHeader(operations, 14, 235, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
+  const visibleItems = parsed.items.slice(0, 5);
+  let itemY = 220;
   visibleItems.forEach((item, index) => {
-    const rowHeight = 27;
-    if (index % 2 === 0) fillRect(operations, 32, itemY - 7, 531, rowHeight, [0.98, 0.985, 0.995]);
-    const code = safeAscii(item.codigo ?? item.ean ?? "-");
-    text(operations, 42, itemY, String(index + 1), 8, INK, false);
-    text(operations, 67, itemY, truncate(code, 22), 8, INK, false);
-    text(operations, 183, itemY, truncate(safeAscii(item.descricao), 43), 8, INK, false);
-    text(operations, 438, itemY, item.quantidade.toLocaleString("pt-BR"), 8, INK, false);
-    text(operations, 496, itemY, truncate(safeAscii(item.ncm ?? "-"), 10), 8, INK, false);
-    line(operations, 32, itemY - 8, 563, itemY - 8, LINE, 0.35);
-    itemY -= rowHeight;
+    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 19, LIGHT);
+    text(operations, 21, itemY, String(index + 1), 6.5, DARK, false);
+    text(operations, 43, itemY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 11), 6.5, DARK, false);
+    text(operations, 89, itemY, truncate(safeAscii(item.descricao), 26), 6.5, DARK, false);
+    text(operations, 244, itemY, item.quantidade.toLocaleString("pt-BR"), 6.5, DARK, false);
+    line(operations, 14, itemY - 6, 274, itemY - 6, [0.75, 0.75, 0.75], 0.3);
+    itemY -= 19;
   });
   if (parsed.items.length > visibleItems.length) {
-    text(operations, 32, itemY, `+ ${parsed.items.length - visibleItems.length} item(ns) nao exibido(s)`, 8, MUTED, false);
-    itemY -= 22;
+    text(operations, 14, itemY, `+${parsed.items.length - visibleItems.length} item(ns)`, 6.5, GRAY, false);
+    itemY -= 14;
   }
 
-  const totalsY = Math.max(92, itemY - 18);
-  sectionTitle(operations, 32, totalsY + 30, "TOTAIS E TRANSPORTE");
-  field(operations, 32, totalsY - 10, 168, 40, "VALOR TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-  field(operations, 208, totalsY - 10, 168, 40, "VOLUMES", parsed.volumeCount.toLocaleString("pt-BR"));
-  field(operations, 384, totalsY - 10, 179, 40, "ITENS", parsed.items.length.toLocaleString("pt-BR"));
+  boxedField(operations, 14, 113, 84, 28, "TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+  boxedField(operations, 102, 113, 84, 28, "VOLUMES", parsed.volumeCount.toLocaleString("pt-BR"));
+  boxedField(operations, 190, 113, 84, 28, "EMISSAO", formatDateTime(parsed.issuedAt));
 
-  fillRect(operations, 32, 39, 531, 30, PALE);
-  text(operations, 42, 51, "Documento operacional gerado pelo InfinOOs WMS. Consulte o XML para a escrituracao fiscal completa.", 7, MUTED, false);
+  text(operations, 14, 99, "CHAVE DE ACESSO - BIPAR PARA LIBERAR ROMANEIO", 6.2, BLACK, true);
+  if (accessKey.length === 44) {
+    drawCode128(operations, accessKey, 14, 58, 260, 34);
+    text(operations, 14, 48, accessKey, 6.2, BLACK, false);
+  } else {
+    text(operations, 14, 72, "CHAVE NAO INFORMADA NO XML", 8, BLACK, true);
+  }
+
+  line(operations, MARGIN, 35, PAGE_WIDTH - MARGIN, 35, BLACK, 0.8);
+  text(operations, 14, 22, `NF ${safeAscii(parsed.noteNumber)} | Documento operacional`, 6.3, GRAY, false);
+  text(operations, 206, 22, "4 x 6", 6.3, GRAY, false);
 
   return createSimplePdf(operations.join("\n"));
 }
 
-function sectionTitle(operations: string[], x: number, y: number, label: string) {
-  text(operations, x, y, label, 8, BLUE, true);
-  line(operations, x, y - 7, PAGE_WIDTH - MARGIN, y - 7, LINE, 0.7);
-}
-
-function field(
-  operations: string[],
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  label: string,
-  value: string,
-  secondary?: string | null,
-) {
-  fillRect(operations, x, y, width, height, PALE);
-  strokeRect(operations, x, y, width, height, LINE, 0.7);
-  text(operations, x + 9, y + height - 14, label, 7, MUTED, true);
-  text(operations, x + 9, y + height - 28, truncate(safeAscii(value), Math.floor(width / 5.8)), 9, INK, true);
-  if (secondary) text(operations, x + 9, y + 7, `DOC: ${safeAscii(secondary)}`, 7, MUTED, false);
+function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string) {
+  strokeRect(operations, x, y, width, height, BLACK, 0.7);
+  text(operations, x + 5, y + height - 10, label, 5.7, GRAY, true);
+  text(operations, x + 5, y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
 }
 
 function tableHeader(operations: string[], x: number, y: number, widths: number[], labels: string[]) {
-  fillRect(operations, x, y, widths.reduce((sum, width) => sum + width, 0), 20, NAVY);
+  fillRect(operations, x, y, widths.reduce((sum, width) => sum + width, 0), 14, BLACK);
   let currentX = x;
   labels.forEach((label, index) => {
-    text(operations, currentX + 8, y + 7, label, 7, [1, 1, 1], true);
+    text(operations, currentX + 5, y + 4, label, 5.8, [1, 1, 1], true);
     currentX += widths[index];
   });
 }
 
+function drawLogo(operations: string[], x: number, y: number, width: number, height: number) {
+  const sx = width / 60;
+  const sy = height / 40;
+  const px = (value: number) => x + value * sx;
+  const py = (value: number) => y + value * sy;
+  operations.push(`${BLACK[0]} ${BLACK[1]} ${BLACK[2]} RG`, "2.5 w", `${px(2)} ${py(20)} m ${px(2)} ${py(5)} c ${px(2)} ${py(0)} ${px(18)} ${py(0)} ${px(30)} ${py(20)} c ${px(42)} ${py(40)} ${px(58)} ${py(40)} ${px(58)} ${py(20)} c ${px(58)} ${py(5)} ${px(42)} ${py(5)} ${px(30)} ${py(20)} c ${px(18)} ${py(35)} ${px(2)} ${py(35)} ${px(2)} ${py(20)} S`);
+  operations.push(`${BLACK[0]} ${BLACK[1]} ${BLACK[2]} rg`, `${px(23)} ${py(35)} m ${px(23)} ${py(11)} l ${px(30)} ${py(5)} l ${px(37)} ${py(11)} l ${px(37)} ${py(35)} l h f`);
+  operations.push(`${[1, 1, 1][0]} ${[1, 1, 1][1]} ${[1, 1, 1][2]} RG`, "1 w", `${px(26)} ${py(35)} m ${px(26)} ${py(18)} l ${px(34)} ${py(18)} l ${px(34)} ${py(35)} S`);
+}
+
 function drawCode128(operations: string[], value: string, x: number, y: number, width: number, height: number) {
-  const encoded = encodeCode128C(value);
-  const totalModules = encoded.reduce((sum, pattern) => sum + pattern.split("").reduce((a, n) => a + Number(n), 0), 0);
-  const moduleWidth = Math.min(1.65, width / totalModules);
+  const patterns = encodeCode128C(value);
+  const totalModules = patterns.reduce((sum, pattern) => sum + pattern.split("").reduce((a, n) => a + Number(n), 0), 0);
+  const moduleWidth = Math.min(1.05, width / totalModules);
   let cursor = x;
-  encoded.forEach((pattern) => {
+  patterns.forEach((pattern) => {
     let black = true;
     for (const character of pattern) {
       const barWidth = Number(character) * moduleWidth;
-      if (black) fillRect(operations, cursor, y, barWidth, height, [0, 0, 0]);
+      if (black) fillRect(operations, cursor, y, barWidth, height, BLACK);
       cursor += barWidth;
       black = !black;
     }
@@ -142,7 +121,7 @@ function createSimplePdf(contentStream: string) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`,
   ];
@@ -159,7 +138,7 @@ function createSimplePdf(contentStream: string) {
   return Buffer.from(pdf, "latin1");
 }
 
-function text(operations: string[], x: number, y: number, value: string, size: number, color: readonly [number, number, number], bold: boolean) {
+function text(operations: string[], x: number, y: number, value: string, size: number, color: readonly [number, number, number], _bold: boolean) {
   operations.push(`${color[0]} ${color[1]} ${color[2]} rg`, "BT", `/F1 ${size} Tf`, `${x} ${y} Td`, `(${escapePdfString(value)}) Tj`, "ET");
 }
 
