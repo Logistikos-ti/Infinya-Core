@@ -22,6 +22,7 @@ export function InventoryClient({ data }: { data: any }) {
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
   const [cat, setCat] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
 
   // Base themes to match the exact HTML visual prototype
   const t = {
@@ -39,6 +40,17 @@ export function InventoryClient({ data }: { data: any }) {
     textFaint: isDark ? "#475569" : "#CBD5E1",
   };
 
+  const countComSaldo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0).length;
+  const countBloqueado = (data.stockBalances || []).filter((b: any) => b.status === "Bloqueado").length;
+  const countAVencer = (data.stockBalances || []).filter((b: any) => {
+    if (b.validade === "-") return false;
+    const [day, month, year] = b.validade.split("/");
+    const expiryDate = new Date(`${year}-${month}-${day}T00:00:00`);
+    const diffTime = expiryDate.getTime() - new Date().getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 30;
+  }).length;
+
   const filteredBalances = (data.stockBalances || []).filter((b: any) => {
     if (owner && b.depositanteId !== owner) return false;
     if (cat && b.area !== cat) return false;
@@ -47,6 +59,16 @@ export function InventoryClient({ data }: { data: any }) {
       if (!b.sku?.toLowerCase().includes(search) && !b.productName?.toLowerCase().includes(search)) {
         return false;
       }
+    }
+    if (statusFilter === "com_saldo" && b.rawQuantidade <= 0) return false;
+    if (statusFilter === "bloqueado" && b.status !== "Bloqueado") return false;
+    if (statusFilter === "a_vencer") {
+      if (b.validade === "-") return false;
+      const [day, month, year] = b.validade.split("/");
+      const expiryDate = new Date(`${year}-${month}-${day}T00:00:00`);
+      const diffTime = expiryDate.getTime() - new Date().getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 30) return false;
     }
     return true;
   });
@@ -100,7 +122,21 @@ export function InventoryClient({ data }: { data: any }) {
       </div>
 
       <InventoryKpis t={t} stats={data.stockStatsCards} />
-      <InventoryToolbar t={t} data={data} q={q} setQ={setQ} owner={owner} setOwner={setOwner} cat={cat} setCat={setCat} />
+      <InventoryToolbar 
+        t={t} 
+        data={data} 
+        q={q} 
+        setQ={setQ} 
+        owner={owner} 
+        setOwner={setOwner} 
+        cat={cat} 
+        setCat={setCat} 
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        countComSaldo={countComSaldo}
+        countAVencer={countAVencer}
+        countBloqueado={countBloqueado}
+      />
 
       {isBySku ? (
         <InventoryTableSku t={t} balances={filteredBalances} onSelectSku={setSelectedSku} />

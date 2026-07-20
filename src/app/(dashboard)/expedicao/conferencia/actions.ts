@@ -10,6 +10,7 @@ import {
 import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
 import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { validateShippingDanfeScan } from "@/lib/shipping-danfe-validation";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -42,6 +43,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
     "/expedicao/conferencia";
   const completeRedirectTo = String(formData.get("completeRedirectTo") ?? "").trim();
   const wrongProductScans = normalizeQuantity(String(formData.get("wrongProductScans") ?? "0"));
+  const danfeScanCode = String(formData.get("danfeScanCode") ?? "").trim();
   const itemIds = formData.getAll("itemId").map((value) => String(value).trim()).filter(Boolean);
   const itemKitProgressValues = formData.getAll("itemKitProgress").map((value) => String(value));
   const quantityValues = formData
@@ -173,7 +175,14 @@ export async function saveShippingConferenceAction(formData: FormData) {
       ? await listShippingOrderDocumentTypes(adminSupabase, orderId)
       : new Set<string>();
   const hasInvoiceXml = documentTypes.has("NF");
-  const hasShippingLabel = documentTypes.has("ETIQUETA");
+
+  if (isReleaseToRomaneio) {
+    const danfeValidation = await validateShippingDanfeScan(adminSupabase, orderId, danfeScanCode);
+    if (!danfeValidation.valid) {
+      revalidatePath(`/expedicao/conferencia/${orderId}`);
+      redirect(`${redirectBase}/${orderId}?feedback=danfe-pendente`);
+    }
+  }
 
   let nextStatus = "EM_CONFERENCIA";
   let nextPayload = {
@@ -182,7 +191,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
   };
 
   if (isReleaseToRomaneio) {
-    if (!canComplete || !hasInvoiceXml || !hasShippingLabel) {
+    if (!canComplete || !hasInvoiceXml) {
       revalidatePath(`/expedicao/conferencia/${orderId}`);
       redirect(`${redirectBase}/${orderId}?feedback=documentos-pendentes`);
     }

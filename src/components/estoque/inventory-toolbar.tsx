@@ -13,6 +13,11 @@ export function InventoryToolbar({
   setOwner,
   cat,
   setCat,
+  statusFilter,
+  setStatusFilter,
+  countComSaldo,
+  countAVencer,
+  countBloqueado,
 }: {
   t: any;
   data: any;
@@ -22,6 +27,11 @@ export function InventoryToolbar({
   setOwner: (v: string) => void;
   cat: string;
   setCat: (v: string) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  countComSaldo: number;
+  countAVencer: number;
+  countBloqueado: number;
 }) {
   const hasActiveFilter = q || owner || cat;
 
@@ -39,6 +49,13 @@ export function InventoryToolbar({
       value: o.area,
       label: o.area,
     })),
+  ];
+
+  const statusOptions = [
+    { id: "todos", label: "Todos os status" },
+    ...(countComSaldo > 0 ? [{ id: "com_saldo", label: "Com saldo", count: countComSaldo, color: "#3B82F6", bg: "rgba(59,130,246,0.14)" }] : []),
+    ...(countAVencer > 0 ? [{ id: "a_vencer", label: "A vencer", count: countAVencer, color: "#F59E0B", bg: "rgba(245,158,11,0.14)" }] : []),
+    ...(countBloqueado > 0 ? [{ id: "bloqueado", label: "Bloqueado", count: countBloqueado, color: "#EF4444", bg: "rgba(239,68,68,0.14)" }] : []),
   ];
 
   return (
@@ -115,13 +132,46 @@ export function InventoryToolbar({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-        {/* Chips for active filters if any, or static status filters */}
-        <button style={{ height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: 700, cursor: "pointer", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px" }}>
-          Todos os status
-        </button>
-        <button style={{ height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: 700, cursor: "pointer", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px" }}>
-          Com saldo <span style={{ padding: "1px 8px", borderRadius: "999px", fontSize: "11px", background: "rgba(59,130,246,0.14)", color: "#3B82F6" }}>{data.stockBalances.length}</span>
-        </button>
+        {statusOptions.map((opt) => {
+          const isActive = statusFilter === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setStatusFilter(opt.id)}
+              style={{
+                height: "36px",
+                padding: "0 15px",
+                borderRadius: "9px",
+                fontFamily: "'Manrope', sans-serif",
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                border: isActive ? "none" : `1px solid ${t.border}`,
+                background: isActive ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+                color: isActive ? "#fff" : t.textSub,
+                transition: "all 0.18s ease",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              {opt.label}
+              {"count" in opt && opt.count !== undefined && (
+                <span
+                  style={{
+                    padding: "1px 8px",
+                    borderRadius: "999px",
+                    fontSize: "11px",
+                    background: isActive ? "rgba(255,255,255,0.2)" : opt.bg,
+                    color: isActive ? "#fff" : opt.color,
+                  }}
+                >
+                  {opt.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
