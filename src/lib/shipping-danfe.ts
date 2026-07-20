@@ -46,11 +46,11 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
     `CNPJ: ${parsed.supplierDocument ?? "NAO INFORMADO"}`,
   );
 
-  text(operations, 14, 222, "ITENS DA NOTA", 7, BLACK, true);
-  line(operations, 14, 217, 274, 217, BLACK, 0.8);
-  tableHeader(operations, 14, 199, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
+  text(operations, 14, 232, "ITENS DA NOTA", 7, BLACK, true);
+  line(operations, 14, 227, 274, 227, BLACK, 0.8);
+  tableHeader(operations, 14, 209, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
   const visibleItems = parsed.items.slice(0, 5);
-  let itemY = 184;
+  let itemY = 194;
   visibleItems.forEach((item, index) => {
     if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 13, LIGHT);
     text(operations, 21, itemY, String(index + 1), 6.1, DARK, false);
