@@ -91,7 +91,7 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
               <span style={{ fontWeight: 700, color: t.text }}>mín {min} · máx {max}</span>
             </div>
             <div style={{ position: "relative", height: "10px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", transformOrigin: "left", transition: "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)" }}></div>
+              <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", transformOrigin: "left", transition: "width 0.8s ease-out" }}></div>
             </div>
           </div>
 
@@ -99,9 +99,9 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Distribuição por endereço</span>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, width: "96px", color: t.text }}>{sku.endereco || "N/A"}</span>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, flexBasis: "auto", maxWidth: "140px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: t.text }} title={sku.endereco || "N/A"}>{sku.endereco || "N/A"}</span>
                 <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)", transition: "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)" }}></div>
+                  <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)", transition: "width 0.8s ease-out" }}></div>
                 </div>
                 <span style={{ fontSize: "13px", fontWeight: 700, width: "60px", textAlign: "right", color: t.text }}>{total}</span>
               </div>

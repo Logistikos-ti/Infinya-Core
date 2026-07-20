@@ -252,7 +252,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   return sortBalancesByWithdrawalMethod(filteredBalances);
 }
 
-export async function listStockMovementsFromDb(filters?: StockFilters) {
+export async function listStockMovementsFromDb(filters?: StockFilters, limit: number = 8) {
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("movimentacoes_estoque")
@@ -260,7 +260,7 @@ export async function listStockMovementsFromDb(filters?: StockFilters) {
       "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
     )
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(limit);
 
   if (filters?.depositanteId) {
     query = query.eq("depositante_id", filters.depositanteId);

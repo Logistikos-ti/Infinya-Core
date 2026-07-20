@@ -76,7 +76,7 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
 
   const [stockBalances, stockMovements] = await Promise.all([
     listStockBalancesFromDb(filters),
-    listStockMovementsFromDb(filters),
+    listStockMovementsFromDb(filters, 250),
   ]);
   const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards] = await Promise.all([
     listStockExpiryAlertsFromDb(filters, 30, stockBalances),
