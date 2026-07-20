@@ -45,7 +45,7 @@ export function InventoryToolbar({
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         
-        <label className="space-y-1.5 flex-[0.8] min-w-[180px]">
+        <label className="space-y-1.5 flex-1 min-w-[220px]">
           <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Busca rápida
           </span>
@@ -61,7 +61,7 @@ export function InventoryToolbar({
           </div>
         </label>
 
-        <div className="flex-[1.2] min-w-[220px]">
+        <div className="flex-1 min-w-[200px]">
           <FancySelectInput
             label="Depositante"
             name="owner"
@@ -71,7 +71,7 @@ export function InventoryToolbar({
           />
         </div>
 
-        <div className="flex-[1.2] min-w-[200px]">
+        <div className="flex-1 min-w-[180px]">
           <FancySelectInput
             label="Área"
             name="area"
