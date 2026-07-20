@@ -63,7 +63,7 @@ export function InventoryToolbar({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap" }}>
         
         <label className="space-y-1.5 flex-1 min-w-[220px]">
           <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -102,7 +102,7 @@ export function InventoryToolbar({
         </div>
 
         {hasActiveFilter && (
-          <div className="flex items-end gap-2 pb-[1px]">
+          <div className="flex items-end gap-2">
             <button
               onClick={() => {
                 setQ("");
