@@ -48,8 +48,12 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
                 >
                   <td style={{ padding: "13px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
-                      <div style={{ width: "42px", height: "42px", flexShrink: 0, borderRadius: "10px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>
-                        <PackageOpen size={20} />
+                      <div style={{ width: "42px", height: "42px", flexShrink: 0, borderRadius: "10px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
+                        {r.imageUrl ? (
+                          <img src={r.imageUrl} alt={r.sku} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <PackageOpen size={20} />
+                        )}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
                         <span style={{ fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px", color: t.text }}>

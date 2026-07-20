@@ -8,12 +8,16 @@ type ProductRelation =
       nome?: string;
       codigo_interno?: string;
       metodo_retirada?: string;
+      imagem_principal_url?: string | null;
+      qtd_minima?: number | null;
     }
   | Array<{
       sku?: string;
       nome?: string;
       codigo_interno?: string;
       metodo_retirada?: string;
+      imagem_principal_url?: string | null;
+      qtd_minima?: number | null;
     }>
   | null;
 
@@ -117,6 +121,8 @@ export type StockBalance = {
   withdrawalMethod: WithdrawalMethod;
   withdrawalLabel: string;
   withdrawalRank: number;
+  imageUrl?: string | null;
+  minQuantity?: number | null;
 };
 
 export type StockMovement = {
@@ -227,7 +233,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -247,7 +253,7 @@ export async function listStockMovementsFromDb(filters?: StockFilters) {
   let query = supabase
     .from("movimentacoes_estoque")
     .select(
-      "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
+      "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
     )
     .order("created_at", { ascending: false })
     .limit(8);
@@ -313,7 +319,7 @@ export async function listDepositProtocolsByReceivingOrderId(receivingOrderId: s
   const { data: stockRows, error: stockError } = await supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, bloqueado, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, depositante_id, quantidade, bloqueado, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco:enderecos(codigo, area)",
     )
     .in("id", stockIds)
     .order("created_at", { ascending: false });
@@ -389,7 +395,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
   const { data: stockRow } = await supabase
     .from("estoque")
     .select(
-      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, fabricacao_em, created_at, depositante_id, produto_id, endereco_id, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco:enderecos(codigo, area)",
+      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, fabricacao_em, created_at, depositante_id, produto_id, endereco_id, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco:enderecos(codigo, area)",
     )
     .eq("id", stockId)
     .maybeSingle();
@@ -403,7 +409,7 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
   const { data: movementRows } = await supabase
     .from("movimentacoes_estoque")
     .select(
-      "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
+      "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
     )
     .eq("estoque_id", stock.id)
     .order("created_at", { ascending: true });
@@ -575,6 +581,8 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     withdrawalMethod,
     withdrawalLabel: formatWithdrawalLabel(withdrawalMethod, expiryDate, createdAt),
     withdrawalRank: buildWithdrawalRank(withdrawalMethod, expiryDate, createdAt),
+    imageUrl: extractProductField(item.produto, "imagem_principal_url") as string | null,
+    minQuantity: Number(extractProductField(item.produto, "qtd_minima") ?? 0) || null,
   };
 }
 
@@ -671,14 +679,14 @@ function sortBalancesByWithdrawalMethod(balances: StockBalance[]) {
 
 function extractProductField(
   value: ProductRelation,
-  field: "sku" | "nome" | "codigo_interno" | "metodo_retirada",
-) {
+  field: "sku" | "nome" | "codigo_interno" | "metodo_retirada" | "imagem_principal_url" | "qtd_minima",
+): any {
   if (Array.isArray(value)) {
-    return typeof value[0]?.[field] === "string" ? value[0][field] : null;
+    return value[0]?.[field] !== undefined ? value[0][field] : null;
   }
 
-  if (value && typeof value[field] === "string") {
-    return value[field] as string;
+  if (value && typeof value[field] !== "undefined") {
+    return value[field];
   }
 
   return null;

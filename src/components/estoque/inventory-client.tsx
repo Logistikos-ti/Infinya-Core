@@ -42,7 +42,7 @@ export function InventoryClient({ data }: { data: any }) {
 
   const countComSaldo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0).length;
   const countBloqueado = (data.stockBalances || []).filter((b: any) => b.status === "Bloqueado").length;
-  const countEstoqueBaixo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0 && b.rawQuantidade <= (b.qtd_minima || 0)).length;
+  const countEstoqueBaixo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0 && b.rawQuantidade <= (b.minQuantity || 0)).length;
   const countAVencer = (data.stockBalances || []).filter((b: any) => {
     if (b.validade === "-") return false;
     const [day, month, year] = b.validade.split("/");
@@ -62,7 +62,7 @@ export function InventoryClient({ data }: { data: any }) {
       }
     }
     if (statusFilter === "com_saldo" && b.rawQuantidade <= 0) return false;
-    if (statusFilter === "estoque_baixo" && (b.rawQuantidade <= 0 || b.rawQuantidade > (b.qtd_minima || 0))) return false;
+    if (statusFilter === "estoque_baixo" && (b.rawQuantidade <= 0 || b.rawQuantidade > (b.minQuantity || 0))) return false;
     if (statusFilter === "bloqueado" && b.status !== "Bloqueado") return false;
     if (statusFilter === "a_vencer") {
       if (b.validade === "-") return false;
