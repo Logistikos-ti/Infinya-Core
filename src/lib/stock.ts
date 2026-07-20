@@ -132,6 +132,10 @@ export type StockMovement = {
   lot: string;
   expiry: string;
   reference: string;
+  sku: string;
+  type: string;
+  quantity: number;
+  createdAt: string;
 };
 
 export type StockTraceabilityProtocol = {
@@ -604,6 +608,10 @@ function mapMovementSummary(item: RawMovementRow): StockMovement {
     lot,
     expiry,
     reference: formatReference(item.referencia_tipo, item.referencia_id, item.observacoes),
+    sku,
+    type: item.tipo,
+    quantity: Number(item.quantidade ?? 0),
+    createdAt: item.created_at,
   };
 }
 

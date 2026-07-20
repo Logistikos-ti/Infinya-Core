@@ -150,7 +150,11 @@ export function InventoryClient({ data }: { data: any }) {
       <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
 
       {selectedSku && (
-        <InventoryDetailDrawer t={t} sku={selectedSku} onClose={() => setSelectedSku(null)} />
+        <InventoryDetailDrawer
+          t={t}
+          sku={selectedSku}
+          onClose={() => setSelectedSku(null)}
+        />
       )}
 
       {showInitial && (

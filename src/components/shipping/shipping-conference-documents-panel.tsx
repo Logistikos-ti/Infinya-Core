@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { FileCheck2, FileText, Package2, Paperclip, Route } from "lucide-react";
+import { FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -36,6 +36,7 @@ export function ShippingConferenceDocumentsPanel({
   }>({ valid: false, noteNumber: null, recipientName: null, message: "" });
   const [validatingDanfe, setValidatingDanfe] = useState(false);
   const [confirmMissingLabel, setConfirmMissingLabel] = useState(false);
+  const [printMessage, setPrintMessage] = useState("");
   const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
   const labelAttachment = attachments.find((attachment) => attachment.kind === "ETIQUETA");
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
@@ -57,11 +58,17 @@ export function ShippingConferenceDocumentsPanel({
 
   function openForPrinting(href: string) {
     const printWindow = window.open(href, "_blank", "width=900,height=700");
-    if (!printWindow) return;
+    if (!printWindow) {
+      setPrintMessage("O navegador bloqueou a janela. Permita pop-ups para este site e tente novamente.");
+      return;
+    }
+    setPrintMessage("");
     window.setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 1500);
+      if (!printWindow.closed) {
+        printWindow.focus();
+        printWindow.print();
+      }
+    }, 2200);
   }
 
   async function validateDanfe() {
@@ -192,10 +199,11 @@ export function ShippingConferenceDocumentsPanel({
             <button
               type="button"
               disabled={!unlocked || !hasInvoiceXml}
-              onClick={() => {
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setPrintMessage("");
                 setPreparationOpen(true);
-                openForPrinting(danfeHref);
-                if (hasShippingLabel) openForPrinting(labelHref);
               }}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary-500/30 bg-primary-500/10 px-4 text-sm font-semibold text-primary-700 transition hover:bg-primary-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-primary-300"
             >
@@ -230,6 +238,39 @@ export function ShippingConferenceDocumentsPanel({
             <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
               A DANFE foi aberta para impressão. Bipe agora o código de barras da DANFE simplificada para confirmar a NF e o destinatário.
             </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  openForPrinting(danfeHref);
+                }}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white transition hover:bg-primary-700"
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir DANFE
+              </button>
+              {hasShippingLabel ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openForPrinting(labelHref);
+                  }}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir etiqueta
+                </button>
+              ) : null}
+            </div>
+            {printMessage ? (
+              <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                {printMessage}
+              </p>
+            ) : null}
             <div className="mt-5 flex gap-2">
               <input
                 autoFocus
@@ -246,7 +287,11 @@ export function ShippingConferenceDocumentsPanel({
               />
               <button
                 type="button"
-                onClick={() => void validateDanfe()}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void validateDanfe();
+                }}
                 disabled={validatingDanfe || !danfeScanCode.trim()}
                 className="h-12 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white disabled:opacity-50"
               >

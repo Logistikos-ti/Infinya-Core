@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Download, Eye, Printer, X } from "lucide-react";
 
 type ShippingAttachmentPreviewDialogProps = {
@@ -33,19 +33,6 @@ export function ShippingAttachmentPreviewDialog({
     frame.contentWindow?.print();
   }, []);
 
-  useEffect(() => {
-    if (!open || !autoPrint) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      handlePrint();
-      setAutoPrint(false);
-    }, 350);
-
-    return () => window.clearTimeout(timer);
-  }, [autoPrint, handlePrint, open]);
-
   const openPreview = () => {
     setAutoPrint(false);
     setOpen(true);
@@ -61,7 +48,11 @@ export function ShippingAttachmentPreviewDialog({
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <button
           type="button"
-          onClick={openPreview}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openPreview();
+          }}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <Eye className="h-3.5 w-3.5" />
@@ -70,7 +61,11 @@ export function ShippingAttachmentPreviewDialog({
 
         <button
           type="button"
-          onClick={openPrint}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openPrint();
+          }}
           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <Printer className="h-3.5 w-3.5" />
@@ -104,7 +99,11 @@ export function ShippingAttachmentPreviewDialog({
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <button
                   type="button"
-                  onClick={handlePrint}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    handlePrint();
+                  }}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   <Printer className="h-3.5 w-3.5" />
@@ -119,7 +118,9 @@ export function ShippingAttachmentPreviewDialog({
                 </a>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
                     setAutoPrint(false);
                     setOpen(false);
                   }}
@@ -136,6 +137,14 @@ export function ShippingAttachmentPreviewDialog({
                 ref={iframeRef}
                 src={viewHref}
                 title={label}
+                onLoad={() => {
+                  if (autoPrint) {
+                    window.setTimeout(() => {
+                      handlePrint();
+                      setAutoPrint(false);
+                    }, 250);
+                  }
+                }}
                 className={`border-0 bg-white ${isLabelPreview ? "mx-auto h-full w-full rounded-xl" : "h-full w-full"}`}
               />
             </div>

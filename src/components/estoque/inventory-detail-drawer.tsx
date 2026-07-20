@@ -4,11 +4,42 @@
 import { PackageOpen, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function InventoryDetailDrawer({ t, sku, onClose }: { t: any; sku: any; onClose: () => void }) {
+export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: any; sku: any; movements?: any[]; onClose: () => void }) {
+  const [barWidth, setBarWidth] = useState("0%");
+  
   const total = sku.saldo || "0";
   const reserved = sku.status === "Reservado" ? total : "0";
   const available = sku.status === "Disponível" ? total : "0";
   const availColor = available !== "0" ? "#10B981" : t.textSub;
+
+  const skuMovements = movements.filter((m) => m.sku === sku.sku).slice(0, 5);
+
+  const min = sku.minQuantity || 10;
+  const max = 500; // Mock max
+  const numericTotal = Number(total.replace(/\./g, '').replace(',', '.'));
+  const pct = Math.min(100, Math.round((numericTotal / max) * 100));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBarWidth(`${pct}%`);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [pct]);
+
+  const formatType = (type: string) => {
+    if (type.includes("ENTRADA")) return "Entrada de estoque";
+    if (type.includes("SAIDA")) return "Saída de estoque";
+    if (type.includes("RESERVA")) return "Reserva de estoque";
+    if (type.includes("AJUSTE") || type.includes("INVENTARIO")) return "Ajuste de inventário";
+    return type;
+  };
+
+  const getColors = (type: string) => {
+    if (type.includes("ENTRADA")) return { dot: "#10B981", halo: "rgba(16,185,129,0.2)", qtyColor: "#10B981", sign: "+" };
+    if (type.includes("SAIDA")) return { dot: "#EF4444", halo: "rgba(239,68,68,0.2)", qtyColor: "#EF4444", sign: "-" };
+    if (type.includes("RESERVA")) return { dot: "#F59E0B", halo: "rgba(245,158,11,0.2)", qtyColor: "#F59E0B", sign: "-" };
+    return { dot: t.textSub, halo: "transparent", qtyColor: "#10B981", sign: "+" };
+  };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
@@ -57,10 +88,10 @@ export function InventoryDetailDrawer({ t, sku, onClose }: { t: any; sku: any; o
           <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
               <span style={{ color: t.textSub }}>Nível de estoque</span>
-              <span style={{ fontWeight: 700, color: t.text }}>mín 10 · máx 500</span>
+              <span style={{ fontWeight: 700, color: t.text }}>mín {min} · máx {max}</span>
             </div>
             <div style={{ position: "relative", height: "10px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: "45%", borderRadius: "999px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", transformOrigin: "left" }}></div>
+              <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", transformOrigin: "left", transition: "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)" }}></div>
             </div>
           </div>
 
@@ -70,7 +101,7 @@ export function InventoryDetailDrawer({ t, sku, onClose }: { t: any; sku: any; o
               <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
                 <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, width: "96px", color: t.text }}>{sku.endereco || "N/A"}</span>
                 <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "100%", borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)" }}></div>
+                  <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)", transition: "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)" }}></div>
                 </div>
                 <span style={{ fontSize: "13px", fontWeight: 700, width: "60px", textAlign: "right", color: t.text }}>{total}</span>
               </div>
@@ -89,6 +120,29 @@ export function InventoryDetailDrawer({ t, sku, onClose }: { t: any; sku: any; o
                   </div>
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "#10B981" }}>{total}</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {skuMovements.length > 0 && (
+            <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Últimas movimentações</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {skuMovements.map((m, i) => {
+                  const colors = getColors(m.type);
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                      <div style={{ width: "32px", height: "32px", flexShrink: 0, borderRadius: "50%", background: colors.halo, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: colors.dot }}></span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1 }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{formatType(m.type)}</span>
+                        <span style={{ fontSize: "11.5px", color: t.textSub }}>{new Date(m.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, color: colors.qtyColor }}>{colors.sign}{m.quantity}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
