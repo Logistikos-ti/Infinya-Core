@@ -1,4 +1,6 @@
 import { parseNfeXml } from "@/lib/nfe-import";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // 4 x 6 inches at 72 dpi, suitable for thermal label printers.
 const PAGE_WIDTH = 288;
@@ -15,10 +17,7 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
-  drawJpeg(operations, 14, 392, 28, 28);
-  text(operations, 48, 412, "INFINOOS", 13, BLACK, true);
-  text(operations, 48, 399, "WMS", 8, BLACK, true);
-  text(operations, 86, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
+  drawJpeg(operations, 14, 386, 110, 41);
   line(operations, MARGIN, 382, PAGE_WIDTH - MARGIN, 382, BLACK, 1.2);
 
   boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
@@ -136,8 +135,8 @@ function createSimplePdf(contentStream: string) {
 }
 
 function createJpegObject() {
-  const image = Buffer.from(LOGO_JPEG_BASE64, "base64");
-  return `<< /Type /XObject /Subtype /Image /Width 84 /Height 84 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n${image.toString("latin1")}\nendstream`;
+  const image = readFileSync(join(process.cwd(), "public", "infinoos-lockup-gray.jpg"));
+  return `<< /Type /XObject /Subtype /Image /Width 110 /Height 41 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n${image.toString("latin1")}\nendstream`;
 }
 
 function text(operations: string[], x: number, y: number, value: string, size: number, color: readonly [number, number, number], _bold: boolean) {
