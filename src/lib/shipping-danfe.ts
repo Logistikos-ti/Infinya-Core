@@ -14,9 +14,10 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
-  drawLogo(operations, 14, 395, 34, 28);
-  text(operations, 57, 411, "INFINOOS WMS", 13, BLACK, true);
-  text(operations, 57, 398, "DANFE SIMPLIFICADA", 7, BLACK, true);
+  drawLogo(operations, 14, 386, 54, 38);
+  text(operations, 78, 412, "INFINOOS", 13, BLACK, true);
+  text(operations, 78, 399, "WMS", 8, BLACK, true);
+  text(operations, 119, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
   line(operations, MARGIN, 387, PAGE_WIDTH - MARGIN, 387, BLACK, 1.2);
 
   boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
