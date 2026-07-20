@@ -56,7 +56,7 @@ export function ShippingConferenceDocumentsPanel({
   const labelHref = `/api/expedicao/${orderId}/anexos/etiqueta?disposition=inline`;
 
   function openForPrinting(href: string) {
-    const printWindow = window.open(href, "_blank", "noopener,noreferrer,width=900,height=700");
+    const printWindow = window.open(href, "_blank", "width=900,height=700");
     if (!printWindow) return;
     window.setTimeout(() => {
       printWindow.focus();
@@ -284,7 +284,7 @@ export function ShippingConferenceDocumentsPanel({
               <button type="button" onClick={() => setConfirmMissingLabel(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:text-zinc-200">
                 Cancelar
               </button>
-              <button type="submit" form={formId} name="intent" value="release-romaneio" onClick={() => setConfirmMissingLabel(false)} className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-slate-950">
+              <button type="submit" form={formId} name="intent" value="release-romaneio" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-slate-950">
                 Confirmar e liberar
               </button>
             </div>

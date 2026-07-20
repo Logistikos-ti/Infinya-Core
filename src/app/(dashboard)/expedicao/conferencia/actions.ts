@@ -44,6 +44,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
   const completeRedirectTo = String(formData.get("completeRedirectTo") ?? "").trim();
   const wrongProductScans = normalizeQuantity(String(formData.get("wrongProductScans") ?? "0"));
   const danfeScanCode = String(formData.get("danfeScanCode") ?? "").trim();
+  const semEtiquetaConfirmada = String(formData.get("semEtiquetaConfirmada") ?? "") === "true";
   const itemIds = formData.getAll("itemId").map((value) => String(value).trim()).filter(Boolean);
   const itemKitProgressValues = formData.getAll("itemKitProgress").map((value) => String(value));
   const quantityValues = formData
@@ -181,6 +182,11 @@ export async function saveShippingConferenceAction(formData: FormData) {
     if (!danfeValidation.valid) {
       revalidatePath(`/expedicao/conferencia/${orderId}`);
       redirect(`${redirectBase}/${orderId}?feedback=danfe-pendente`);
+    }
+
+    if (!documentTypes.has("ETIQUETA") && !semEtiquetaConfirmada) {
+      revalidatePath(`/expedicao/conferencia/${orderId}`);
+      redirect(`${redirectBase}/${orderId}?feedback=etiqueta-confirmacao`);
     }
   }
 
