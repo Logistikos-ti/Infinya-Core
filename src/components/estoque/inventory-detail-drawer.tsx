@@ -111,28 +111,56 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Distribuição por endereço</span>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, flexBasis: "auto", maxWidth: "140px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: t.text }} title={sku.endereco || "N/A"}>{sku.endereco || "N/A"}</span>
-                <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: barWidth, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)", transition: "width 0.8s ease-out" }}></div>
-                </div>
-                <span style={{ fontSize: "13px", fontWeight: 700, width: "60px", textAlign: "right", color: t.text }}>{total}</span>
-              </div>
+              {skuBalances
+                .filter(b => b.rawQuantidade > 0)
+                .reduce((acc, curr) => {
+                  const existing = acc.find((e: any) => e.endereco === curr.endereco);
+                  if (existing) {
+                    existing.rawQuantidade += curr.rawQuantidade;
+                  } else {
+                    acc.push({ ...curr });
+                  }
+                  return acc;
+                }, [])
+                .map((b: any, i: number) => {
+                  const percentage = totalNum > 0 ? (b.rawQuantidade / totalNum) * 100 : 0;
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, flexBasis: "auto", maxWidth: "140px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: t.text }} title={b.endereco || "N/A"}>{b.endereco || "N/A"}</span>
+                      <div style={{ flex: 1, height: "6px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${percentage}%`, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)", transition: "width 0.8s ease-out" }}></div>
+                      </div>
+                      <span style={{ fontSize: "13px", fontWeight: 700, width: "60px", textAlign: "right", color: t.text }}>{b.rawQuantidade.toLocaleString("pt-BR")}</span>
+                    </div>
+                  );
+                })
+              }
             </div>
           </div>
           
-          {sku.validade && (
+          {skuBalances.some((b) => b.validade && b.validade !== "-") && (
             <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Lotes ativos (FEFO)</span>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: "#10B981" }}></span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1 }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{sku.lote || "N/A"}</span>
-                    <span style={{ fontSize: "11.5px", color: t.textSub }}>Vence {sku.validade}</span>
-                  </div>
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#10B981" }}>{total}</span>
-                </div>
+                {skuBalances
+                  .filter((b) => b.rawQuantidade > 0)
+                  .sort((a, b) => {
+                    const aDate = a.validade === "-" ? 9999999999999 : new Date(a.validade.split("/").reverse().join("-")).getTime();
+                    const bDate = b.validade === "-" ? 9999999999999 : new Date(b.validade.split("/").reverse().join("-")).getTime();
+                    return aDate - bDate;
+                  })
+                  .map((b) => (
+                    <div key={b.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: "#10B981" }}></span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1 }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>
+                          {b.lote || "N/A"} <span style={{ color: t.textSub, fontWeight: 500, fontSize: "11.5px" }}>({b.endereco})</span>
+                        </span>
+                        <span style={{ fontSize: "11.5px", color: t.textSub }}>Vence {b.validade}</span>
+                      </div>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#10B981" }}>{b.saldo}</span>
+                    </div>
+                  ))}
               </div>
             </div>
           )}

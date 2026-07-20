@@ -8,11 +8,57 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
-  const totalPages = Math.ceil(balances.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = balances.slice(startIndex, startIndex + itemsPerPage);
+  const groupedBalances = Object.values(
+    balances.reduce((acc, curr) => {
+      const key = curr.productId || curr.sku;
+      if (!acc[key]) {
+        acc[key] = { ...curr, _rawItems: [] };
+      }
+      acc[key]._rawItems.push(curr);
+      return acc;
+    }, {} as Record<string, any>)
+  ).map((group: any) => {
+    let total = 0;
+    let reserved = 0;
+    const enderecos = new Set<string>();
+    let earliestExpiryDate: Date | null = null;
+    let earliestValidade = "-";
 
-  const columns = ["PRODUTO & SKU", "DEPOSITANTE", "FÍSICO", "RESERVADO", "DISPONÍVEL", "LOCAIS", "VENCIMENTO", "STATUS"];
+    group._rawItems.forEach((item: any) => {
+      total += item.rawQuantidade || 0;
+      reserved += item.rawReserved || 0;
+      
+      if (item.endereco && item.endereco !== "Sem endereço") {
+        enderecos.add(item.endereco);
+      }
+
+      if (item.validade && item.validade !== "-") {
+        const [day, month, year] = item.validade.split("/");
+        const expDate = new Date(`${year}-${month}-${day}T00:00:00`);
+        if (!earliestExpiryDate || expDate < earliestExpiryDate) {
+          earliestExpiryDate = expDate;
+          earliestValidade = item.validade;
+        }
+      }
+    });
+
+    const available = total - reserved;
+
+    return {
+      ...group,
+      saldo: total.toLocaleString("pt-BR"),
+      status: available > 0 ? "Disponível" : "Sem saldo",
+      locaisCount: enderecos.size,
+      validade: earliestValidade,
+      earliestExpiryDate,
+    };
+  });
+
+  const totalPages = Math.ceil(groupedBalances.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentItems = groupedBalances.slice(startIndex, startIndex + itemsPerPage);
+
+  const columns = ["PRODUTO & SKU", "DEPOSITANTE", "FÍSICO", "RESERVADO", "DISPONÍVEL", "ENDEREÇOS", "VENCIMENTO", "STATUS"];
 
   return (
     <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden", marginBottom: "24px" }}>
@@ -29,22 +75,42 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
           </thead>
           <tbody>
             {currentItems.map((r, i) => {
-              // Parse saldo to number to show available/reserved if we don't have it explicit
               const total = r.saldo || "0";
               const reserved = r.status === "Reservado" ? total : "0";
               const available = r.status === "Disponível" ? total : "0";
               const availColor = available !== "0" ? "#10B981" : t.textSub;
               const statusBg = r.status === "Disponível" ? "rgba(16,185,129,0.14)" : "rgba(245,158,11,0.14)";
               const statusColor = r.status === "Disponível" ? "#10B981" : "#F59E0B";
-              let isExpired = false;
-              if (r.validade && r.validade !== "-") {
-                const [day, month, year] = r.validade.split("/");
-                const expDate = new Date(`${year}-${month}-${day}T00:00:00`);
-                isExpired = expDate.getTime() < new Date().getTime();
+
+              let diffDays = null;
+              if (r.earliestExpiryDate) {
+                const diffTime = r.earliestExpiryDate.getTime() - new Date().getTime();
+                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               }
-              const expBg = r.validade && r.validade !== "-" ? (isExpired ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)") : "transparent";
-              const expColor = r.validade && r.validade !== "-" ? (isExpired ? "#EF4444" : "#F59E0B") : t.textSub;
-              const expLabel = r.validade && r.validade !== "-" ? r.validade : "-";
+
+              let expBg = "transparent";
+              let expColor = t.textSub;
+              let expLabel = "—";
+
+              if (diffDays !== null) {
+                if (diffDays < 0) {
+                  expBg = "rgba(139,92,246,0.15)";
+                  expColor = "#8B5CF6";
+                  expLabel = `${diffDays} dias`;
+                } else if (diffDays <= 15) {
+                  expBg = "rgba(239,68,68,0.15)";
+                  expColor = "#EF4444";
+                  expLabel = `${diffDays} dias`;
+                } else if (diffDays <= 45) {
+                  expBg = "rgba(245,158,11,0.15)";
+                  expColor = "#F59E0B";
+                  expLabel = `${diffDays} dias`;
+                } else {
+                  expBg = "rgba(16,185,129,0.15)";
+                  expColor = "#10B981";
+                  expLabel = `${diffDays} dias`;
+                }
+              }
               
               return (
                 <tr
@@ -75,13 +141,13 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
                   <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.text }}>{total}</td>
                   <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", color: t.textSub }}>{reserved}</td>
                   <td style={{ padding: "13px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: availColor }}>{available}</td>
-                  <td style={{ padding: "13px 20px", fontSize: "13.5px", color: t.textSub }}>{r.endereco || "1 local"}</td>
+                  <td style={{ padding: "13px 20px", fontSize: "13.5px", color: t.textSub }}>
+                    {r.locaisCount === 1 ? "1 endereço" : `${r.locaisCount} endereços`}
+                  </td>
                   <td style={{ padding: "13px 20px" }}>
-                    {r.validade ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(16,185,129,0.14)", color: "#10B981" }}>{expLabel}</span>
-                    ) : (
-                      <span style={{ fontSize: "13px", color: t.textFaint }}>—</span>
-                    )}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 11px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: expBg, color: expColor }}>
+                      {expLabel}
+                    </span>
                   </td>
                   <td style={{ padding: "13px 20px" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: 700, background: statusBg, color: statusColor }}>
