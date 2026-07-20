@@ -19,7 +19,7 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   text(operations, 48, 412, "INFINOOS", 13, BLACK, true);
   text(operations, 48, 399, "WMS", 8, BLACK, true);
   text(operations, 86, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
-  line(operations, MARGIN, 387, PAGE_WIDTH - MARGIN, 387, BLACK, 1.2);
+  line(operations, MARGIN, 382, PAGE_WIDTH - MARGIN, 382, BLACK, 1.2);
 
   boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
   boxedField(operations, 130, 350, 70, 29, "SERIE", "1");
