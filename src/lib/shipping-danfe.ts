@@ -92,10 +92,13 @@ function boxedField(operations: string[], x: number, y: number, width: number, h
   text(operations, x + 5, y + height - 10, label, 5.7, GRAY, true);
   text(operations, x + 5, secondary ? y + height - 23 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.2, BLACK, true);
   if (secondary) {
-    const lines = Array.isArray(secondary) ? secondary : [secondary];
-    lines.slice(0, 3).forEach((lineValue, index) => {
-      text(operations, x + 5, y + 16 - index * 8, lineValue, 5.8, DARK, false);
-    });
+    if (Array.isArray(secondary)) {
+      secondary.slice(0, 3).forEach((lineValue, index) => {
+        text(operations, x + 5, y + 16 - index * 8, lineValue, 5.8, DARK, false);
+      });
+    } else {
+      text(operations, x + 5, y + 7, truncate(safeAscii(secondary), Math.max(8, Math.floor(width / 4.1))), 5.8, DARK, false);
+    }
   }
 }
 
