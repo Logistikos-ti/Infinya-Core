@@ -16,6 +16,7 @@ import {
   ListChecks,
   Scan,
   FileCheck2
+} from "lucide-react";
 
 export function ExpedicaoClient({ data }: { data: any }) {
   const { theme } = useTheme();
