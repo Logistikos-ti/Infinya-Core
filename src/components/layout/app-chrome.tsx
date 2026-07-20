@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { PackageSearch, Search, Settings2, Users, Warehouse } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
@@ -24,6 +24,29 @@ export function AppChrome({ children, user }: AppChromeProps) {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(288);
+  const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
+
+  useEffect(() => {
+    const storedCollapsed = window.localStorage.getItem("infinoos-sidebar-collapsed");
+    const storedWidth = window.localStorage.getItem("infinoos-sidebar-width");
+
+    if (storedCollapsed !== null) {
+      setIsCollapsed(storedCollapsed === "true");
+    }
+
+    const parsedWidth = storedWidth ? Number(storedWidth) : NaN;
+    if (Number.isFinite(parsedWidth) && parsedWidth >= 200 && parsedWidth <= 500) {
+      setSidebarWidth(parsedWidth);
+    }
+
+    setSidebarPreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarPreferenceLoaded) return;
+    window.localStorage.setItem("infinoos-sidebar-collapsed", String(isCollapsed));
+    window.localStorage.setItem("infinoos-sidebar-width", String(sidebarWidth));
+  }, [isCollapsed, sidebarPreferenceLoaded, sidebarWidth]);
 
   const style = {
     '--sidebar-width': isCollapsed ? '80px' : `${sidebarWidth}px`
