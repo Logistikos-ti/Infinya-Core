@@ -12,8 +12,10 @@ import {
   Clock,
   CheckCircle2,
   Box,
-  Truck
-} from "lucide-react";
+  Truck,
+  ListChecks,
+  Scan,
+  FileCheck2
 
 export function ExpedicaoClient({ data }: { data: any }) {
   const { theme } = useTheme();
@@ -55,17 +57,17 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO").length;
 
   const kpis = [
-    { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
-    { label: "Em conferência", value: data.stats[2]?.value || 0, delta: "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
-    { label: "Aguardando separação", value: data.stats[1]?.value || 0, delta: "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
-    { label: "Expedidos hoje", value: data.stats[3]?.value || 0, delta: "▲ 12%", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", deltaColor: "#10B981" }
+    { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: data.stats[0]?.delta || "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
+    { label: "Em conferência", value: data.stats[2]?.value || 0, delta: data.stats[2]?.delta || "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
+    { label: "Aguardando separação", value: data.stats[1]?.value || 0, delta: data.stats[1]?.delta || "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
+    { label: "Expedidos hoje", value: data.stats[3]?.value || 0, delta: data.stats[3]?.delta || "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", deltaColor: "#10B981" }
   ];
 
   const flowCards = [
-    { href: "#", kicker: "STEP 1", iconEl: "1", iconBg: "rgba(148,163,184,0.15)", accent: "#64748B", title: "Integração", desc: "Sincronização de pedidos", btnBg: t.softBg, btnColor: t.textSub, cta: "Fila: " + (data.queues[0]?.value || 0) },
-    { href: "#", kicker: "STEP 2", iconEl: "2", iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Picking por zona/onda", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Aguardando: " + (data.queues[1]?.value || 0) },
-    { href: "#", kicker: "STEP 3", iconEl: "3", iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Conferência", desc: "Bipagem de saída", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Fila: " + (data.queues[2]?.value || 0) },
-    { href: "#", kicker: "STEP 4", iconEl: "4", iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Expedido", desc: "Despacho final", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Prontos: " + (data.queues[3]?.value || 0) },
+    { href: "#", kicker: "PAINEL", iconEl: <ClipboardList size={20} className="animated-icon" />, iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Pedidos", desc: "Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Ver Pedidos" },
+    { href: "#", kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" },
+    { href: "#", kicker: "VALIDAÇÃO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" },
+    { href: "#", kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
   ];
 
   const tableFilters = [
@@ -119,7 +121,16 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   return (
     <div className="w-full relative opacity-95">
-
+      <style>{`
+        @keyframes icon-pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1); }
+        }
+        .animated-icon {
+          animation: icon-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
 
       {/*<!-- title row -->*/}
       <div style={{display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px"}}>
@@ -149,7 +160,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
             </div>
             <div style={{display: "flex", alignItems: "baseline", gap: "8px"}}>
               <span style={{fontFamily: "'Space Grotesk', sans-serif", fontSize: "30px", fontWeight: "700"}}>{k.value }</span>
-              <span style={{fontSize: "13px", fontWeight: "700", color: `${k.deltaColor }`}}>{k.delta }</span>
+              { k.delta ? <span style={{fontSize: "13px", fontWeight: "700", color: `${k.deltaColor }`}}>{k.delta }</span> : null }
             </div>
           </div>
         </React.Fragment>)}
