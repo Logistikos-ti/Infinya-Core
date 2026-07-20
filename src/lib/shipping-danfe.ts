@@ -85,9 +85,24 @@ function drawLogo(operations: string[], x: number, y: number, width: number, hei
   const sy = height / 40;
   const px = (value: number) => x + value * sx;
   const py = (value: number) => y + value * sy;
-  operations.push(`${BLACK[0]} ${BLACK[1]} ${BLACK[2]} RG`, "2.5 w", `${px(2)} ${py(20)} m ${px(2)} ${py(5)} c ${px(2)} ${py(0)} ${px(18)} ${py(0)} ${px(30)} ${py(20)} c ${px(42)} ${py(40)} ${px(58)} ${py(40)} ${px(58)} ${py(20)} c ${px(58)} ${py(5)} ${px(42)} ${py(5)} ${px(30)} ${py(20)} c ${px(18)} ${py(35)} ${px(2)} ${py(35)} ${px(2)} ${py(20)} S`);
-  operations.push(`${BLACK[0]} ${BLACK[1]} ${BLACK[2]} rg`, `${px(23)} ${py(35)} m ${px(23)} ${py(11)} l ${px(30)} ${py(5)} l ${px(37)} ${py(11)} l ${px(37)} ${py(35)} l h f`);
-  operations.push(`${[1, 1, 1][0]} ${[1, 1, 1][1]} ${[1, 1, 1][2]} RG`, "1 w", `${px(26)} ${py(35)} m ${px(26)} ${py(18)} l ${px(34)} ${py(18)} l ${px(34)} ${py(35)} S`);
+  const black = `${BLACK[0]} ${BLACK[1]} ${BLACK[2]}`;
+
+  // Use explicit closed polylines. This avoids open PDF paths leaking into the page.
+  polyline(operations, [
+    [px(2), py(20)], [px(7), py(9)], [px(17), py(5)], [px(30), py(20)],
+    [px(43), py(35)], [px(53), py(31)], [px(58), py(20)], [px(53), py(9)],
+    [px(43), py(5)], [px(30), py(20)], [px(17), py(35)], [px(7), py(31)], [px(2), py(20)],
+  ], black, 2.4);
+
+  operations.push(`${black} rg`, `${px(23)} ${py(35)} m ${px(23)} ${py(12)} l ${px(30)} ${py(5)} l ${px(37)} ${py(12)} l ${px(37)} ${py(35)} l ${px(23)} ${py(35)} f`);
+  polyline(operations, [[px(26), py(35)], [px(26), py(19)], [px(34), py(19)], [px(34), py(35)]], "1 1 1", 1.1);
+}
+
+function polyline(operations: string[], points: Array<[number, number]>, color: string, lineWidth: number) {
+  const [first, ...rest] = points;
+  operations.push(`${color} RG`, `${lineWidth} w`, `${first[0]} ${first[1]} m`);
+  rest.forEach(([pointX, pointY]) => operations.push(`${pointX} ${pointY} l`));
+  operations.push("S");
 }
 
 function drawCode128(operations: string[], value: string, x: number, y: number, width: number, height: number) {
