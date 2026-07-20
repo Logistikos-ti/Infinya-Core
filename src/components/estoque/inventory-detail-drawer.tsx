@@ -14,6 +14,10 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   
+  const skuIdToFind = sku.productId || sku.sku;
+  const skuBalances = allBalances.filter((b: any) => (b.productId || b.sku) === skuIdToFind);
+  const totalNum = skuBalances.reduce((acc: number, curr: any) => acc + (curr.rawQuantidade || 0), 0);
+
   const total = sku.saldo || "0";
   const reserved = sku.status === "Reservado" ? total : "0";
   const available = sku.status === "Disponível" ? total : "0";
@@ -112,8 +116,8 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Distribuição por endereço</span>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {skuBalances
-                .filter(b => b.rawQuantidade > 0)
-                .reduce((acc, curr) => {
+                .filter((b: any) => b.rawQuantidade > 0)
+                .reduce((acc: any[], curr: any) => {
                   const existing = acc.find((e: any) => e.endereco === curr.endereco);
                   if (existing) {
                     existing.rawQuantidade += curr.rawQuantidade;
@@ -138,18 +142,18 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
             </div>
           </div>
           
-          {skuBalances.some((b) => b.validade && b.validade !== "-") && (
+          {skuBalances.some((b: any) => b.validade && b.validade !== "-") && (
             <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Lotes ativos (FEFO)</span>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {skuBalances
-                  .filter((b) => b.rawQuantidade > 0)
-                  .sort((a, b) => {
+                  .filter((b: any) => b.rawQuantidade > 0)
+                  .sort((a: any, b: any) => {
                     const aDate = a.validade === "-" ? 9999999999999 : new Date(a.validade.split("/").reverse().join("-")).getTime();
                     const bDate = b.validade === "-" ? 9999999999999 : new Date(b.validade.split("/").reverse().join("-")).getTime();
                     return aDate - bDate;
                   })
-                  .map((b) => (
+                  .map((b: any) => (
                     <div key={b.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
                       <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: "#10B981" }}></span>
                       <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1 }}>
