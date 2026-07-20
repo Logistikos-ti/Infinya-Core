@@ -198,7 +198,7 @@ export function ShippingConferenceDocumentsPanel({
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
             <button
               type="button"
-              disabled={!unlocked || !hasInvoiceXml}
+              disabled={!unlocked}
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -238,6 +238,11 @@ export function ShippingConferenceDocumentsPanel({
             <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
               A DANFE foi aberta para impressão. Bipe agora o código de barras da DANFE simplificada para confirmar a NF e o destinatário.
             </p>
+            {!hasInvoiceXml ? (
+              <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                O XML da nota fiscal ainda não está disponível. Anexe o XML no card de documentos antes da liberação final para o romaneio.
+              </p>
+            ) : null}
             <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"
