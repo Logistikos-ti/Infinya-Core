@@ -28,9 +28,9 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(
     operations,
     14,
-    284,
+    296,
     260,
-    58,
+    46,
     "DESTINATARIO",
     truncate(safeAscii(parsed.recipientName), 43),
     wrapText(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 46),
@@ -38,9 +38,9 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(
     operations,
     14,
-    232,
+    246,
     260,
-    46,
+    40,
     "EMITENTE",
     truncate(safeAscii(parsed.supplierName), 43),
     `CNPJ: ${parsed.supplierDocument ?? "NAO INFORMADO"}`,
