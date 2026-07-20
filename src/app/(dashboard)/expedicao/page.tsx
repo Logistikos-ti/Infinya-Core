@@ -22,7 +22,6 @@ import {
 } from "@/lib/shipping";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { ExpedicaoReferenceDashboard } from "@/components/shipping/expedicao-reference-dashboard";
 
 type ExpedicaoPageProps = {
   searchParams?: Promise<{
@@ -99,50 +98,20 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   };
 
   return (
-    <ExpedicaoReferenceDashboard
-      orders={paginatedOrders}
-      stats={shippingStats}
-      queues={shippingQueues}
-      totalOrders={totalOrders}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      perPage={perPage}
-      statusFilter={statusFilter}
-      depositanteFilter={effectiveDepositanteFilter}
-      orderSearchFilter={orderSearchFilter}
-      depositantes={depositanteOptions}
-      canManageTenants={canManageMultipleTenants(user)}
-      baseQuery={baseQuery}
-    />
-  );
-
-  return (
-    <div className="expedicao-page space-y-7 pb-4">
+    <div className="space-y-8 relative opacity-95">
       
       {/* Header with Title and Quick Actions */}
-      <div className="flex flex-col gap-5 border-b border-slate-200/80 pb-6 dark:border-slate-800/80 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>Operação</span><span>›</span><span className="text-slate-900 dark:text-slate-100">Expedição</span>
-          </div>
-          <h1 className="font-space text-3xl font-bold tracking-tight text-slate-950 dark:text-slate-50">Expedição</h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Conferência de saída, carregamento por doca e despacho de pedidos.
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+            Expedição (Outbound)
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
+            Gestão de separação (picking), conferência de saída e carregamento.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white/70 p-1 dark:border-slate-800 dark:bg-slate-950/40">
-            <Link href="/expedicao" className="rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-violet-500/15">Pedidos</Link>
-            <Link href="/expedicao/separacao" className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">Separação</Link>
-            <Link href="/expedicao/conferencia" className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">Conferência</Link>
-            <Link href="/expedicao/conferidos" className="rounded-lg px-4 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">Conferidos</Link>
-          </div>
-          <Link href="/expedicao/novo" className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5">
-            <Plus className="h-4 w-4" /> Novo pedido
-          </Link>
-        </div>
-        <div className="hidden flex-wrap gap-3">
+        
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/expedicao/separacao"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 text-sm font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
@@ -170,7 +139,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       {/* KPIs Principais */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* KPI 1 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-400/70 hover:shadow-lg dark:border-slate-800 dark:bg-[#101b30]">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-primary-500/40 dark:border-primary-500/30 border-l-4 border-l-primary-500 hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/20 transition-all group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[0].label}</p>
             <span className="p-2 bg-primary-500/10 text-primary-500 rounded-lg">
@@ -182,7 +151,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
 
         {/* KPI 2 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400/70 hover:shadow-lg dark:border-slate-800 dark:bg-[#101b30]">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-amber-500/40 dark:border-amber-500/30 border-l-4 border-l-amber-500 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/20 transition-all group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[1].label}</p>
             <span className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
@@ -196,7 +165,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
 
         {/* KPI 3 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400/70 hover:shadow-lg dark:border-slate-800 dark:bg-[#101b30]">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-purple-500/40 dark:border-purple-500/30 border-l-4 border-l-purple-500 hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/20 transition-all group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[2].label}</p>
             <span className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
@@ -210,7 +179,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
         </div>
 
         {/* KPI 4 */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400/70 hover:shadow-lg dark:border-slate-800 dark:bg-[#101b30]">
+        <div className="p-5 rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-rose-500/40 dark:border-rose-500/30 border-l-4 border-l-rose-500 hover:border-rose-500 hover:shadow-lg hover:shadow-rose-500/20 transition-all group">
           <div className="flex justify-between items-start mb-2">
             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">{shippingStats[3].label}</p>
             <span className="p-2 bg-rose-500/10 text-rose-500 rounded-lg">
@@ -225,100 +194,100 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <Link
           href="#painel-pedidos"
-          className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10 dark:border-slate-800 dark:bg-[#101b30] dark:hover:border-blue-400"
+          className="group rounded-3xl border border-primary-500/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary-500 hover:shadow-xl hover:shadow-primary-500/10 dark:bg-zinc-900/70 dark:border-primary-500/20 dark:hover:border-primary-400"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-blue-500 dark:text-blue-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary-600 dark:text-primary-300">
                 Painel
               </p>
-              <h2 className="font-space mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
                 Pedidos
               </h2>
               <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
                 Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.
               </p>
             </div>
-            <span className="rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-300">
+            <span className="rounded-2xl bg-primary-500/10 p-3 text-primary-600 dark:text-primary-300">
               <ClipboardList className="h-6 w-6" />
             </span>
           </div>
-          <div className="mt-5 inline-flex items-center rounded-xl bg-blue-500/10 px-4 py-2 text-sm font-bold text-blue-700 dark:text-blue-300">
+          <div className="mt-6 inline-flex items-center rounded-xl bg-primary-500/10 px-4 py-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
             Ver Pedidos
           </div>
         </Link>
 
         <Link
           href="/expedicao/separacao"
-          className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 dark:border-slate-800 dark:bg-[#101b30] dark:hover:border-cyan-400"
+          className="group rounded-3xl border border-cyan-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-cyan-400 hover:shadow-xl hover:shadow-cyan-500/10 dark:bg-zinc-900/70 dark:border-cyan-500/20 dark:hover:border-cyan-400"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">
                 Operação
               </p>
-              <h2 className="font-space mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-cyan-700 dark:text-white dark:group-hover:text-cyan-300">
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-cyan-700 dark:text-white dark:group-hover:text-cyan-300">
                 Separação
               </h2>
               <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
                 Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.
               </p>
             </div>
-            <span className="rounded-xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-300">
+            <span className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-600 dark:text-cyan-300">
               <ListChecks className="h-6 w-6" />
             </span>
           </div>
-          <div className="mt-5 inline-flex items-center rounded-xl bg-cyan-500/10 px-4 py-2 text-sm font-bold text-cyan-700 dark:text-cyan-300">
+          <div className="mt-6 inline-flex items-center rounded-xl bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300">
             Entrar em Separação
           </div>
         </Link>
 
         <Link
           href="/expedicao/conferencia"
-          className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-400 hover:shadow-xl hover:shadow-violet-500/10 dark:border-slate-800 dark:bg-[#101b30] dark:hover:border-violet-400"
+          className="group rounded-3xl border border-violet-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-violet-400 hover:shadow-xl hover:shadow-violet-500/10 dark:bg-zinc-900/70 dark:border-violet-500/20 dark:hover:border-violet-400"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-violet-600 dark:text-violet-300">
                 Validação
               </p>
-              <h2 className="font-space mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-violet-700 dark:text-white dark:group-hover:text-violet-300">
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-violet-700 dark:text-white dark:group-hover:text-violet-300">
                 Conferência
               </h2>
               <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
                 Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.
               </p>
             </div>
-            <span className="rounded-xl bg-violet-500/10 p-3 text-violet-600 dark:text-violet-300">
+            <span className="rounded-2xl bg-violet-500/10 p-3 text-violet-600 dark:text-violet-300">
               <ScanBarcode className="h-6 w-6" />
             </span>
           </div>
-          <div className="mt-5 inline-flex items-center rounded-xl bg-violet-500/10 px-4 py-2 text-sm font-bold text-violet-700 dark:text-violet-300">
+          <div className="mt-6 inline-flex items-center rounded-xl bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-700 dark:text-violet-300">
             Entrar em Conferência
           </div>
         </Link>
 
         <Link
           href="/expedicao/conferidos"
-          className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 dark:border-slate-800 dark:bg-[#101b30] dark:hover:border-emerald-400"
+          className="group rounded-3xl border border-emerald-400/30 bg-white/80 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 dark:bg-zinc-900/70 dark:border-emerald-500/20 dark:hover:border-emerald-400"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
                 Pós-conferência
               </p>
-              <h2 className="font-space mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-300">
+              <h2 className="mt-3 text-2xl font-bold text-slate-950 transition-colors group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-300">
                 Conferidos
               </h2>
               <p className="mt-3 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
                 Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.
               </p>
             </div>
-            <span className="rounded-xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-300">
+            <span className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-300">
               <FileText className="h-6 w-6" />
             </span>
           </div>
-          <div className="mt-5 inline-flex items-center rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+          <div className="mt-6 inline-flex items-center rounded-xl bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
             Ver Conferidos
           </div>
         </Link>

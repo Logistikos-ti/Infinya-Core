@@ -165,34 +165,6 @@ a {
 
 /* Glassmorphism Classes */
 @layer utilities {
-  .font-space {
-    font-family: "Space Grotesk", "Manrope", var(--font-sans), Arial, sans-serif;
-  }
-
-  .expedicao-page {
-    font-family: "Manrope", var(--font-sans), Arial, sans-serif;
-  }
-
-  .expedicao-page h1,
-  .expedicao-page h2,
-  .expedicao-page h3,
-  .expedicao-page th,
-  .expedicao-page td:first-child {
-    font-family: "Space Grotesk", "Manrope", var(--font-sans), Arial, sans-serif;
-  }
-
-  .expedicao-page input,
-  .expedicao-page select,
-  .expedicao-page button {
-    font-family: "Manrope", var(--font-sans), Arial, sans-serif;
-  }
-
-  @media (min-width: 1024px) {
-    .expedicao-page {
-      padding-left: 4px;
-      padding-right: 4px;
-    }
-  }
   .glass-dark {
     background: rgba(24, 24, 27, 0.65);
     backdrop-filter: blur(12px);
