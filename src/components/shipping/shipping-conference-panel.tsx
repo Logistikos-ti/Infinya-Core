@@ -335,6 +335,8 @@ export function ShippingConferencePanel({
               ? "Pedido liberado para romaneio com sucesso."
               : feedback === "liberado-sem-romaneio"
                 ? "Pedido liberado sem romaneio com sucesso."
+                : feedback === "romaneio-obrigatorio"
+                  ? "Todos os pedidos devem ser liberados obrigatoriamente para romaneio."
                 : feedback === "salvo"
                   ? "ConferÃªncia atualizada com sucesso."
             : feedback === "incompleto"

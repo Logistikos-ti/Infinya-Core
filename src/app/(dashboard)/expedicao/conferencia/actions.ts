@@ -151,8 +151,12 @@ export async function saveShippingConferenceAction(formData: FormData) {
   const now = new Date().toISOString();
   const isReleaseToRomaneio = intent === "release-romaneio";
   const isReleaseWithoutRomaneio = intent === "release-sem-romaneio";
+  if (isReleaseWithoutRomaneio) {
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    redirect(`${redirectBase}/${orderId}?feedback=romaneio-obrigatorio`);
+  }
   const isCompletingConference =
-    intent === "complete" || isReleaseToRomaneio || isReleaseWithoutRomaneio;
+    intent === "complete" || isReleaseToRomaneio;
 
   const nextConferencePayload: Record<string, unknown> = {
     ...currentConference,
@@ -192,21 +196,6 @@ export async function saveShippingConferenceAction(formData: FormData) {
         liberadoSemRomaneioEm: null,
       },
     };
-  } else if (isReleaseWithoutRomaneio) {
-    if (!canComplete) {
-      revalidatePath(`/expedicao/conferencia/${orderId}`);
-      redirect(`${redirectBase}/${orderId}?feedback=incompleto`);
-    }
-
-    nextStatus = "CONFERIDO";
-    nextPayload = {
-      ...payload,
-      conferencia: {
-        ...nextConferencePayload,
-        liberadoSemRomaneioEm: now,
-        liberadoParaRomaneioEm: null,
-      },
-    };
   } else if (intent === "complete") {
     nextStatus = canComplete ? "CONFERIDO" : order.status;
   }
@@ -242,9 +231,6 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect("/expedicao/conferidos?feedback=liberado-romaneio");
   }
 
-  if (isReleaseWithoutRomaneio) {
-    redirect("/expedicao/conferidos?feedback=liberado-sem-romaneio");
-  }
 
   if (intent === "complete" && completeRedirectTo) {
     redirect(completeRedirectTo);

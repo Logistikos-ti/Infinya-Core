@@ -54,8 +54,7 @@ export function ShippingConferenceDocumentsPanel({
             </h3>
           </div>
           <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
-            Depois da bipagem, revise os documentos e escolha obrigatoriamente se o pedido seguirá
-            para romaneio ou será liberado sem romaneio.
+            Depois da bipagem, revise os documentos e libere obrigatoriamente o pedido para romaneio.
           </p>
         </div>
 
@@ -153,15 +152,6 @@ export function ShippingConferenceDocumentsPanel({
               Liberar para romaneio
             </button>
 
-            <button
-              type="button"
-              disabled={!unlocked}
-              onClick={() => setConfirmReleaseWithoutRomaneio(true)}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:disabled:border-zinc-800 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
-            >
-              <FileCheck2 className="h-4 w-4" />
-              Liberar sem romaneio
-            </button>
           </div>
         </div>
       </div>
