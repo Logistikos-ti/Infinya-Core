@@ -28,17 +28,17 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(
     operations,
     14,
-    300,
+    284,
     260,
-    42,
+    58,
     "DESTINATARIO",
     truncate(safeAscii(parsed.recipientName), 43),
-    truncate(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 48),
+    wrapText(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 46),
   );
   boxedField(
     operations,
     14,
-    252,
+    236,
     260,
     42,
     "EMITENTE",
@@ -46,19 +46,19 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
     `CNPJ: ${parsed.supplierDocument ?? "NAO INFORMADO"}`,
   );
 
-  text(operations, 14, 236, "ITENS DA NOTA", 7, BLACK, true);
-  line(operations, 14, 231, 274, 231, BLACK, 0.8);
-  tableHeader(operations, 14, 213, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
+  text(operations, 14, 222, "ITENS DA NOTA", 7, BLACK, true);
+  line(operations, 14, 217, 274, 217, BLACK, 0.8);
+  tableHeader(operations, 14, 199, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
   const visibleItems = parsed.items.slice(0, 5);
-  let itemY = 198;
+  let itemY = 184;
   visibleItems.forEach((item, index) => {
-    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 14, LIGHT);
-    text(operations, 21, itemY, String(index + 1), 6.5, DARK, false);
-    text(operations, 43, itemY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 11), 6.5, DARK, false);
-    text(operations, 89, itemY, truncate(safeAscii(item.descricao), 26), 6.5, DARK, false);
-    text(operations, 244, itemY, item.quantidade.toLocaleString("pt-BR"), 6.5, DARK, false);
+    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 13, LIGHT);
+    text(operations, 21, itemY, String(index + 1), 6.1, DARK, false);
+    text(operations, 43, itemY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 11), 6.1, DARK, false);
+    text(operations, 89, itemY, truncate(safeAscii(item.descricao), 26), 6.1, DARK, false);
+    text(operations, 244, itemY, item.quantidade.toLocaleString("pt-BR"), 6.1, DARK, false);
     line(operations, 14, itemY - 6, 274, itemY - 6, [0.75, 0.75, 0.75], 0.3);
-    itemY -= 14;
+    itemY -= 13;
   });
   if (parsed.items.length > visibleItems.length) {
     text(operations, 14, itemY, `+${parsed.items.length - visibleItems.length} item(ns)`, 6.5, GRAY, false);
@@ -87,13 +87,33 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   return createSimplePdf(operations.join("\n"));
 }
 
-function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string) {
+function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string | string[]) {
   strokeRect(operations, x, y, width, height, BLACK, 0.7);
   text(operations, x + 5, y + height - 10, label, 5.7, GRAY, true);
-  text(operations, x + 5, secondary ? y + 18 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
+  text(operations, x + 5, secondary ? y + height - 24 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
   if (secondary) {
-    text(operations, x + 5, y + 7, truncate(safeAscii(secondary), Math.max(8, Math.floor(width / 4.1))), 6.4, DARK, false);
+    const lines = Array.isArray(secondary) ? secondary : [secondary];
+    lines.slice(0, 3).forEach((lineValue, index) => {
+      text(operations, x + 5, y + 16 - index * 8, lineValue, 5.8, DARK, false);
+    });
   }
+}
+
+function wrapText(value: string, maxLength: number) {
+  const words = value.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxLength && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length ? lines : ["NAO INFORMADO"];
 }
 
 function tableHeader(operations: string[], x: number, y: number, widths: number[], labels: string[]) {
