@@ -31,8 +31,8 @@ export async function POST(request: Request) {
   }
 
   const depositanteAccess = ensureUserCanAccessDepositante(auth.user, depositanteId);
-  if (depositanteAccess.error) {
-    return Response.json({ error: depositanteAccess.error }, { status: 403 });
+  if (depositanteAccess) {
+    return depositanteAccess;
   }
 
   try {

@@ -29,8 +29,8 @@ export async function POST(request: Request) {
   const depositanteId = auth.user.depositanteId ?? String(payload.depositanteId ?? "").trim();
 
   const depositanteAccess = ensureUserCanAccessDepositante(auth.user, depositanteId);
-  if (depositanteAccess.error) {
-    return Response.json({ error: depositanteAccess.error }, { status: 403 });
+  if (depositanteAccess) {
+    return depositanteAccess;
   }
 
   try {
