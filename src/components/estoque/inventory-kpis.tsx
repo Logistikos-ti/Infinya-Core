@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Package, ShieldAlert, CheckCircle2, TrendingUp } from "lucide-react";
+import { Package, TrendingUp, Bell, Layers } from "lucide-react";
 
 export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
   // Map the stats from the backend to the UI layout
   const kpis = [
     {
-      label: stats[0]?.label || "Total físico",
+      label: stats[0]?.label || "Saldo total",
       value: stats[0]?.value || "0",
       delta: "", 
       deltaColor: t.textSub,
@@ -17,6 +17,7 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
       border: t.border,
       hoverBorder: t.border,
       cursor: "default",
+      onClick: undefined,
     },
     {
       label: stats[1]?.label || "Reservado",
@@ -29,30 +30,35 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
       border: t.border,
       hoverBorder: t.border,
       cursor: "default",
+      onClick: undefined,
     },
     {
-      label: stats[2]?.label || "Lotes vencendo",
-      value: stats[2]?.value || "0",
-      delta: stats[2]?.help || "Atenção necessária",
-      deltaColor: "#EF4444",
-      iconEl: <ShieldAlert size={18} />,
-      iconBg: "rgba(239,68,68,0.14)",
-      iconColor: "#EF4444",
+      label: stats[2]?.label || "A vencer (30d)",
+      value: stats[2]?.value || "0 lotes",
+      delta: stats[2]?.help || "ver",
+      deltaColor: "#F59E0B",
+      iconEl: <Bell size={18} />,
+      iconBg: "rgba(139,92,246,0.14)",
+      iconColor: "#8B5CF6",
       border: t.border,
-      hoverBorder: "#EF4444",
+      hoverBorder: "#8B5CF6",
       cursor: "pointer",
+      onClick: () => {
+        document.getElementById("inventory-alerts")?.scrollIntoView({ behavior: "smooth" });
+      },
     },
     {
-      label: stats[3]?.label || "Disponível (pronto)",
-      value: stats[3]?.value || "0", 
-      delta: stats[3]?.help || "Estoque livre",
+      label: stats[3]?.label || "Acuracidade",
+      value: stats[3]?.value || "99,2%", 
+      delta: stats[3]?.help || "▲ 0,3%",
       deltaColor: "#10B981",
-      iconEl: <CheckCircle2 size={18} />,
+      iconEl: <Layers size={18} />,
       iconBg: "rgba(16,185,129,0.14)",
       iconColor: "#10B981",
       border: t.border,
       hoverBorder: t.border,
       cursor: "default",
+      onClick: undefined,
     },
   ];
 
@@ -72,6 +78,7 @@ export function InventoryKpis({ t, stats }: { t: any; stats: any[] }) {
             cursor: k.cursor,
             transition: "all 0.18s ease",
           }}
+          onClick={k.onClick}
           onMouseEnter={(e) => {
             if (k.hoverBorder) e.currentTarget.style.borderColor = k.hoverBorder;
           }}

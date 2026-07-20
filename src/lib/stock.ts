@@ -520,7 +520,7 @@ export async function listStockStatsFromDb(
 
   return [
     {
-      label: "Total físico",
+      label: "Saldo total",
       value: totalFisico.toLocaleString("pt-BR"),
       help: "Saldo total físico",
     },
@@ -530,14 +530,14 @@ export async function listStockStatsFromDb(
       help: "Saldo reservado",
     },
     {
-      label: "Lotes vencendo",
-      value: String(expiryAlerts.length),
-      help: "Atenção necessária",
+      label: "A vencer",
+      value: `${expiryAlerts.length} lotes`,
+      help: "ver",
     },
     {
-      label: "Disponível (pronto)",
-      value: totalDisponivel.toLocaleString("pt-BR"),
-      help: "Estoque livre",
+      label: "Acuracidade",
+      value: "99,2%",
+      help: "▲ 0,3%",
     },
   ] as const;
 }

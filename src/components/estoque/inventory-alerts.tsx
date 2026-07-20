@@ -7,7 +7,7 @@ export function InventoryAlerts({ t, alerts }: { t: any; alerts: any[] }) {
   if (!alerts || alerts.length === 0) return null;
 
   return (
-    <div style={{ marginTop: "24px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden", scrollMarginTop: "16px" }}>
+    <div id="inventory-alerts" style={{ marginTop: "24px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden", scrollMarginTop: "16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
         <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(245,158,11,0.14)", color: "#F59E0B" }}>
           <ShieldAlert size={18} />
