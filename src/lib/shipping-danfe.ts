@@ -15,10 +15,10 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
-  drawJpeg(operations, 14, 387, 38, 38);
-  text(operations, 58, 412, "INFINOOS", 13, BLACK, true);
-  text(operations, 58, 399, "WMS", 8, BLACK, true);
-  text(operations, 96, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
+  drawJpeg(operations, 14, 392, 28, 28);
+  text(operations, 48, 412, "INFINOOS", 13, BLACK, true);
+  text(operations, 48, 399, "WMS", 8, BLACK, true);
+  text(operations, 86, 399, "DANFE SIMPLIFICADA", 6.4, GRAY, true);
   line(operations, MARGIN, 387, PAGE_WIDTH - MARGIN, 387, BLACK, 1.2);
 
   boxedField(operations, 14, 350, 112, 29, "NF-E", parsed.noteNumber);
