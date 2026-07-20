@@ -22,6 +22,7 @@ export type ParsedNfe = {
   supplierDocument: string | null;
   recipientName: string;
   recipientDocument: string | null;
+  recipientAddress: string | null;
   issuedAt: string | null;
   volumeCount: number;
   carrierName: string | null;
@@ -84,6 +85,7 @@ export function parseNfeXml(xml: string): ParsedNfe {
     supplierDocument: cleanString(emit.CNPJ) ?? cleanString(emit.CPF),
     recipientName: cleanString(dest.xNome) ?? "Destinatario nao informado",
     recipientDocument: cleanString(dest.CNPJ) ?? cleanString(dest.CPF),
+    recipientAddress: formatNfeAddress(dest.enderDest ?? dest.endereco ?? dest),
     issuedAt: normalizeDateTime(ide.dhEmi ?? ide.dEmi ?? null),
     volumeCount,
     carrierName: cleanString(carrier.xNome),
@@ -95,6 +97,17 @@ export function parseNfeXml(xml: string): ParsedNfe {
     protocolStatusLabel: cleanString(protNFe?.xMotivo),
     items,
   };
+}
+
+function formatNfeAddress(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const address = value as Record<string, unknown>;
+  const street = [cleanString(address.xLgr), cleanString(address.nro)].filter(Boolean).join(", ");
+  const neighborhood = cleanString(address.xBairro);
+  const city = [cleanString(address.xMun), cleanString(address.UF)].filter(Boolean).join(" - ");
+  const cep = cleanString(address.CEP);
+  const parts = [street, neighborhood, city, cep ? `CEP ${cep}` : null].filter(Boolean);
+  return parts.length ? parts.join(" | ") : null;
 }
 
 export function matchNfeProductsToCatalog(

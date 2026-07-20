@@ -26,21 +26,22 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(operations, 204, 350, 70, 29, "TIPO", parsed.direction === "SAIDA" ? "SAIDA" : "ENTRADA");
 
   boxedField(operations, 14, 311, 260, 31, "DESTINATARIO", truncate(safeAscii(parsed.recipientName), 43));
-  boxedField(operations, 14, 272, 260, 31, "EMITENTE", truncate(safeAscii(parsed.supplierName), 43));
+  boxedField(operations, 14, 272, 260, 31, "ENDERECO DO DESTINATARIO", truncate(safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"), 43));
+  boxedField(operations, 14, 233, 260, 31, "EMITENTE / CNPJ DO DEPOSITANTE", parsed.supplierDocument ?? "NAO INFORMADO");
 
-  text(operations, 14, 258, "ITENS DA NOTA", 7, BLACK, true);
-  line(operations, 14, 253, 274, 253, BLACK, 0.8);
-  tableHeader(operations, 14, 235, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
+  text(operations, 14, 219, "ITENS DA NOTA", 7, BLACK, true);
+  line(operations, 14, 214, 274, 214, BLACK, 0.8);
+  tableHeader(operations, 14, 196, [25, 62, 143, 30], ["#", "CODIGO", "DESCRICAO", "QTD"]);
   const visibleItems = parsed.items.slice(0, 5);
-  let itemY = 220;
+  let itemY = 181;
   visibleItems.forEach((item, index) => {
-    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 19, LIGHT);
+    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 14, LIGHT);
     text(operations, 21, itemY, String(index + 1), 6.5, DARK, false);
     text(operations, 43, itemY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 11), 6.5, DARK, false);
     text(operations, 89, itemY, truncate(safeAscii(item.descricao), 26), 6.5, DARK, false);
     text(operations, 244, itemY, item.quantidade.toLocaleString("pt-BR"), 6.5, DARK, false);
     line(operations, 14, itemY - 6, 274, itemY - 6, [0.75, 0.75, 0.75], 0.3);
-    itemY -= 19;
+    itemY -= 14;
   });
   if (parsed.items.length > visibleItems.length) {
     text(operations, 14, itemY, `+${parsed.items.length - visibleItems.length} item(ns)`, 6.5, GRAY, false);
