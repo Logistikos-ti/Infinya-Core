@@ -38,9 +38,9 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   boxedField(
     operations,
     14,
-    236,
+    232,
     260,
-    42,
+    46,
     "EMITENTE",
     truncate(safeAscii(parsed.supplierName), 43),
     `CNPJ: ${parsed.supplierDocument ?? "NAO INFORMADO"}`,
@@ -90,7 +90,7 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
 function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string | string[]) {
   strokeRect(operations, x, y, width, height, BLACK, 0.7);
   text(operations, x + 5, y + height - 10, label, 5.7, GRAY, true);
-  text(operations, x + 5, secondary ? y + height - 24 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.5, BLACK, true);
+  text(operations, x + 5, secondary ? y + height - 23 : y + 7, truncate(safeAscii(value), Math.max(8, Math.floor(width / 4.4))), 7.2, BLACK, true);
   if (secondary) {
     const lines = Array.isArray(secondary) ? secondary : [secondary];
     lines.slice(0, 3).forEach((lineValue, index) => {
