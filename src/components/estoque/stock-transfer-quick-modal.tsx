@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, ArrowRight, Loader2 } from "lucide-react";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
 type StockTransferQuickModalProps = {
   sku: any;
@@ -96,42 +97,38 @@ export function StockTransferQuickModal({ sku, allBalances, allAddresses, onClos
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 600, color: t.textSub }}>Endereço de Origem / Lote</label>
-            <select
-              required
-              value={sourceStockId}
-              onChange={(e) => {
-                setSourceStockId(e.target.value);
-                setQuantity("");
-              }}
-              style={{ padding: "12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "14px", outline: "none" }}
-            >
-              <option value="">Selecione a origem...</option>
-              {skuBalances.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.enderecoNome || "Sem endereço"} {b.lote ? `(Lote: ${b.lote})` : ""} - Disponível: {b.rawQuantidade} un
-                </option>
-              ))}
-            </select>
-          </div>
+          <FancySelectInput
+            label="Endereço de Origem / Lote"
+            name="sourceStockId"
+            value={sourceStockId}
+            onChange={(val) => {
+              setSourceStockId(val);
+              setQuantity("");
+            }}
+            options={[
+              { value: "", label: "Selecione a origem..." },
+              ...skuBalances.map((b) => ({
+                value: b.id,
+                label: `${b.enderecoNome || "Sem endereço"} ${b.lote ? `(Lote: ${b.lote})` : ""} - Disponível: ${b.rawQuantidade} un`,
+              }))
+            ]}
+          />
 
           <div style={{ display: "flex", gap: "16px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 2 }}>
-              <label style={{ fontSize: "13px", fontWeight: 600, color: t.textSub }}>Endereço de Destino</label>
-              <select
-                required
+            <div style={{ flex: 2 }}>
+              <FancySelectInput
+                label="Endereço de Destino"
+                name="destinationAddressId"
                 value={destinationAddressId}
-                onChange={(e) => setDestinationAddressId(e.target.value)}
-                style={{ padding: "12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "14px", outline: "none" }}
-              >
-                <option value="">Selecione o destino...</option>
-                {allAddresses.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setDestinationAddressId}
+                options={[
+                  { value: "", label: "Selecione o destino..." },
+                  ...allAddresses.map((a) => ({
+                    value: a.id,
+                    label: a.name,
+                  }))
+                ]}
+              />
             </div>
             
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, ArrowRightLeft, Loader2 } from "lucide-react";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
 type StockAdjustmentModalProps = {
   sku: any;
@@ -92,25 +93,22 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <label style={{ fontSize: "13px", fontWeight: 600, color: t.textSub }}>Endereço / Lote a ajustar</label>
-            <select
-              required
-              value={sourceStockId}
-              onChange={(e) => {
-                setSourceStockId(e.target.value);
-                setNewQuantity("");
-              }}
-              style={{ padding: "12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "14px", outline: "none" }}
-            >
-              <option value="">Selecione o endereço...</option>
-              {skuBalances.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.enderecoNome || "Sem endereço"} {b.lote ? `(Lote: ${b.lote})` : ""} - Atual: {b.rawQuantidade} un
-                </option>
-              ))}
-            </select>
-          </div>
+          <FancySelectInput
+            label="Endereço / Lote a ajustar"
+            name="sourceStockId"
+            value={sourceStockId}
+            onChange={(val) => {
+              setSourceStockId(val);
+              setNewQuantity("");
+            }}
+            options={[
+              { value: "", label: "Selecione o endereço..." },
+              ...skuBalances.map((b) => ({
+                value: b.id,
+                label: `${b.enderecoNome || "Sem endereço"} ${b.lote ? `(Lote: ${b.lote})` : ""} - Atual: ${b.rawQuantidade} un`,
+              }))
+            ]}
+          />
 
           <div style={{ display: "flex", gap: "16px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
