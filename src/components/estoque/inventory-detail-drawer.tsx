@@ -51,9 +51,13 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
 
         <div style={{ position: "relative", height: "150px", flexShrink: 0, background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, opacity: 0.14, backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }}></div>
-          <span style={{ position: "relative", color: "rgba(255,255,255,0.95)", display: "flex" }}>
-            <PackageOpen size={48} />
-          </span>
+          {sku.imageUrl ? (
+            <img src={sku.imageUrl} alt={sku.sku} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <span style={{ position: "relative", color: "rgba(255,255,255,0.95)", display: "flex" }}>
+              <PackageOpen size={48} />
+            </span>
+          )}
           <button onClick={onClose} style={{ position: "absolute", top: "16px", right: "16px", width: "36px", height: "36px", borderRadius: "10px", border: "none", background: "rgba(0,0,0,0.32)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backdropFilter: "blur(4px)" }}>
             <X size={18} />
           </button>
