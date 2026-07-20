@@ -16,6 +16,7 @@ export function InventoryToolbar({
   statusFilter,
   setStatusFilter,
   countComSaldo,
+  countEstoqueBaixo,
   countAVencer,
   countBloqueado,
 }: {
@@ -30,6 +31,7 @@ export function InventoryToolbar({
   statusFilter: string;
   setStatusFilter: (v: string) => void;
   countComSaldo: number;
+  countEstoqueBaixo: number;
   countAVencer: number;
   countBloqueado: number;
 }) {
@@ -54,6 +56,7 @@ export function InventoryToolbar({
   const statusOptions = [
     { id: "todos", label: "Todos os status" },
     ...(countComSaldo > 0 ? [{ id: "com_saldo", label: "Com saldo", count: countComSaldo, color: "#3B82F6", bg: "rgba(59,130,246,0.14)" }] : []),
+    { id: "estoque_baixo", label: "Estoque baixo", count: countEstoqueBaixo, color: "#8B5CF6", bg: "rgba(139,92,246,0.14)" },
     ...(countAVencer > 0 ? [{ id: "a_vencer", label: "A vencer", count: countAVencer, color: "#F59E0B", bg: "rgba(245,158,11,0.14)" }] : []),
     ...(countBloqueado > 0 ? [{ id: "bloqueado", label: "Bloqueado", count: countBloqueado, color: "#EF4444", bg: "rgba(239,68,68,0.14)" }] : []),
   ];
