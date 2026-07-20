@@ -116,7 +116,7 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0, background: "#10B981" }}></span>
                   <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1 }}>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{sku.lote || "N/A"}</span>
-                    <span style={{ fontSize: "11.5px", color: t.textSub }}>Vence {new Date(sku.validade).toLocaleDateString()}</span>
+                    <span style={{ fontSize: "11.5px", color: t.textSub }}>Vence {sku.validade}</span>
                   </div>
                   <span style={{ fontSize: "13px", fontWeight: 700, color: "#10B981" }}>{total}</span>
                 </div>

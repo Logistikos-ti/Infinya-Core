@@ -36,7 +36,15 @@ export function InventoryTableSku({ t, balances, onSelectSku }: { t: any; balanc
               const availColor = available !== "0" ? "#10B981" : t.textSub;
               const statusBg = r.status === "Disponível" ? "rgba(16,185,129,0.14)" : "rgba(245,158,11,0.14)";
               const statusColor = r.status === "Disponível" ? "#10B981" : "#F59E0B";
-              const expLabel = r.validade ? new Date(r.validade).toLocaleDateString() : "—";
+              let isExpired = false;
+              if (r.validade && r.validade !== "-") {
+                const [day, month, year] = r.validade.split("/");
+                const expDate = new Date(`${year}-${month}-${day}T00:00:00`);
+                isExpired = expDate.getTime() < new Date().getTime();
+              }
+              const expBg = r.validade && r.validade !== "-" ? (isExpired ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)") : "transparent";
+              const expColor = r.validade && r.validade !== "-" ? (isExpired ? "#EF4444" : "#F59E0B") : t.textSub;
+              const expLabel = r.validade && r.validade !== "-" ? r.validade : "-";
               
               return (
                 <tr

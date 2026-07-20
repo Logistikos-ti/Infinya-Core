@@ -28,12 +28,18 @@ export function InventoryTableLot({ t, balances }: { t: any; balances: any[] }) 
           </thead>
           <tbody>
             {currentItems.map((l, i) => {
-              const expColor = l.validade ? (new Date(l.validade) < new Date() ? "#EF4444" : "#F59E0B") : t.text;
-              const expiry = l.validade ? new Date(l.validade).toLocaleDateString() : "—";
-              const manuf = "—"; // Not provided by default backend yet
-              const lifeW = l.validade ? "60%" : "100%"; // Mock calc for now
-              const lifeFill = l.validade ? (new Date(l.validade) < new Date() ? "#EF4444" : "linear-gradient(90deg, #F59E0B, #10B981)") : "#10B981";
-              const days = l.validade ? "60d" : "—";
+              let isExpired = false;
+              if (l.validade && l.validade !== "-") {
+                const [day, month, year] = l.validade.split("/");
+                const expDate = new Date(`${year}-${month}-${day}T00:00:00`);
+                isExpired = expDate.getTime() < new Date().getTime();
+              }
+              const expColor = l.validade && l.validade !== "-" ? (isExpired ? "#EF4444" : "#F59E0B") : t.text;
+              const expiry = l.validade && l.validade !== "-" ? l.validade : "-";
+              const manuf = "-"; // Not provided by default backend yet
+              const lifeW = l.validade && l.validade !== "-" ? "60%" : "100%"; // Mock calc for now
+              const lifeFill = l.validade && l.validade !== "-" ? (isExpired ? "#EF4444" : "linear-gradient(90deg, #F59E0B, #10B981)") : "#10B981";
+              const days = l.validade && l.validade !== "-" ? "60d" : "-";
 
               return (
                 <tr key={l.id || i} style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease" }} onMouseEnter={(e) => (e.currentTarget.style.background = t.rowHover)} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
