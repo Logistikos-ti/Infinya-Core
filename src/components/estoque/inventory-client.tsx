@@ -117,9 +117,6 @@ export function InventoryClient({ data }: { data: any }) {
             Estoque inicial
           </button>
           
-          <button style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
-            ⇄ Ajuste de estoque
-          </button>
         </div>
       </div>
 

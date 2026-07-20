@@ -63,11 +63,25 @@ export function InventoryDetailDrawer({ t, sku, movements = [], onClose }: { t: 
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "22px 24px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "20px" }}>
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "21px", fontWeight: 700, lineHeight: 1.2, textWrap: "pretty", color: t.text }}>
-              {sku.productName || sku.sku}
-            </span>
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{sku.sku}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "21px", fontWeight: 700, lineHeight: 1.2, textWrap: "pretty", color: t.text }}>
+                {sku.productName || sku.sku}
+              </span>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{sku.sku}</span>
+            </div>
+            
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+                Ajustar
+              </button>
+              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+                Transferir
+              </button>
+              <button style={{ height: "32px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+                Inventariar
+              </button>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "20px" }}>
