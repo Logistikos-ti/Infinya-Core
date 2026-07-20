@@ -12,9 +12,10 @@ const GRAY = [0.45, 0.45, 0.45] as const;
 const LIGHT = [0.93, 0.93, 0.93] as const;
 const LOGO_JPEG_BASE64 = "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";
 
-export function buildSimplifiedDanfePdfFromXml(xml: string) {
+export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierName?: string | null }) {
   const parsed = parseNfeXml(xml);
   const accessKey = digitsOnly(parsed.accessKey);
+  const carrierName = options?.carrierName?.trim() || parsed.carrierName || "NAO INFORMADO";
   const operations: string[] = [];
 
   drawJpeg(operations, 14, 386, 110, 41);
@@ -49,7 +50,7 @@ export function buildSimplifiedDanfePdfFromXml(xml: string) {
   const volumeTotal = Math.max(1, parsed.volumeCount);
   boxedField(operations, 14, 113, 84, 28, "TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
   boxedField(operations, 102, 113, 84, 28, "VOLUME", `1/${volumeTotal}`);
-  boxedField(operations, 190, 113, 84, 28, "ENVIO", parsed.carrierName ?? "NAO INFORMADO");
+  boxedField(operations, 190, 113, 84, 28, "ENVIO", carrierName);
 
   text(operations, 14, 99, `PESO BRUTO: ${parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO"}`, 5.8, DARK, false);
   text(operations, 14, 90, `DADOS: ${truncate(safeAscii(parsed.additionalInfo ?? "Sem informacoes adicionais"), 54)}`, 5.8, DARK, false);
@@ -139,7 +140,7 @@ function createSimplePdf(contentStream: string) {
 
 function createJpegObject() {
   const image = readFileSync(join(process.cwd(), "public", "infinoos-lockup-gray.jpg"));
-  return `<< /Type /XObject /Subtype /Image /Width 110 /Height 41 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n${image.toString("latin1")}\nendstream`;
+  return `<< /Type /XObject /Subtype /Image /Width 440 /Height 161 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n${image.toString("latin1")}\nendstream`;
 }
 
 function text(operations: string[], x: number, y: number, value: string, size: number, color: readonly [number, number, number], _bold: boolean) {

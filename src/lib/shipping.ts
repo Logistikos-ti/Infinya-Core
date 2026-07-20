@@ -774,7 +774,7 @@ function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: str
   return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsÃ£o");
 }
 
-function extractCarrierName(payload: Record<string, unknown>) {
+export function extractCarrierName(payload: Record<string, unknown>) {
   const transporte = isRecord(payload.transporte) ? payload.transporte : null;
   const transportadorContato = transporte && isRecord(transporte.contato) ? transporte.contato : null;
   const transportadorCadastro = transporte && isRecord(transporte.transportador) ? transporte.transportador : null;

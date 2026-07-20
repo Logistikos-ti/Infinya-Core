@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { gunzipSync } from "node:zlib";
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
+import { extractCarrierName } from "@/lib/shipping";
 import { documentsBucketName } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -24,7 +25,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, codigo, depositante_id, origem")
+    .select("id, codigo, depositante_id, origem, payload_origem")
     .eq("id", id)
     .maybeSingle();
 
@@ -84,7 +85,10 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const pdfBytes = buildSimplifiedDanfePdfFromXml(xmlBytes.toString("utf-8"));
+    const carrierName = order.payload_origem && typeof order.payload_origem === "object"
+      ? extractCarrierName(order.payload_origem as Record<string, unknown>)
+      : null;
+    const pdfBytes = buildSimplifiedDanfePdfFromXml(xmlBytes.toString("utf-8"), { carrierName });
 
     return new NextResponse(new Uint8Array(pdfBytes), {
       headers: {
