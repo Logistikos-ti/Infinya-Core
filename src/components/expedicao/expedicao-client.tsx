@@ -42,12 +42,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
 
   const vt = {
-    ordersBg: isOrders ? "rgba(59,130,246,0.15)" : "transparent",
-    ordersColor: isOrders ? "#3B82F6" : t.textSub,
-    divBg: isDivergence ? "rgba(239, 68, 68, 0.15)" : "transparent",
-    divColor: isDivergence ? "#EF4444" : t.textSub,
-    divCountBg: isDivergence ? "#EF4444" : t.border,
-    divCountColor: isDivergence ? "#fff" : t.text
+    ordersBg: isOrders ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+    ordersColor: isOrders ? "#FFF" : t.textSub,
+    divBg: isDivergence ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+    divColor: isDivergence ? "#FFF" : t.textSub,
+    divCountBg: isDivergence ? "#FFF" : "rgba(239, 68, 68, 0.15)",
+    divCountColor: "#EF4444"
   };
 
   const showAdd = true;
@@ -55,10 +55,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO").length;
 
   const kpis = [
-    { label: "A expedir hoje", value: "146", delta: "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
-    { label: "Em conferência", value: "32", delta: "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
-    { label: "Aguardando separação", value: "48", delta: "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
-    { label: "Expedidos hoje", value: "284", delta: "▲ 12%", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", deltaColor: "#10B981" }
+    { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
+    { label: "Em conferência", value: data.stats[2]?.value || 0, delta: "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
+    { label: "Aguardando separação", value: data.stats[1]?.value || 0, delta: "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
+    { label: "Expedidos hoje", value: data.stats[3]?.value || 0, delta: "▲ 12%", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", deltaColor: "#10B981" }
   ];
 
   const flowCards = [
