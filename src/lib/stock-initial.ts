@@ -10,13 +10,25 @@ type RegisterInitialStockInput = {
   validadeEm?: string | null;
 };
 
+function parseDateString(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (match) {
+    let [_, day, month, year] = match;
+    if (year.length === 2) year = "20" + year;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  return dateStr;
+}
+
 export async function registerInitialStock(input: RegisterInitialStockInput) {
   const supabase = createSupabaseAdminClient();
 
   const enderecoCodigo = input.enderecoCodigo.trim();
   const produtoCodigo = input.produtoCodigo.trim();
   const lote = input.lote?.trim() || null;
-  const validadeEm = input.validadeEm?.trim() || null;
+  const validadeEm = parseDateString(input.validadeEm?.trim() || null);
 
   const { data: endereco, error: enderecoError } = await supabase
     .from("enderecos")
