@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Clock, CheckCircle2, X, Waves, ClipboardList, Box } from "lucide-react";
+import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, Plus } from "lucide-react";
 
 export function ShippingPickingWavesView({ 
   orders,
@@ -170,19 +170,19 @@ export function ShippingPickingWavesView({
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "800", color: t.text, margin: 0 }}>Ondas de Separação</h1>
           <span style={{ fontSize: "14.5px", color: t.textSub }}>Gerencie filas de picking agrupadas e otimize o trajeto no armazém.</span>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: "8px", height: "46px", padding: "0 22px", borderRadius: "12px", border: "none", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", transition: "transform 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-          + Nova onda
+        <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: "none", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", transition: "transform 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
+          <Plus size={18} /> Nova onda
         </button>
       </div>
 
       {/* KPIS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
         {kpis.map((k, i) => (
-          <div key={i} style={{ padding: "18px 24px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "42px", height: "42px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: k.iconBg, color: k.iconColor }}>{k.iconEl}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
-              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "24px", fontWeight: "800", color: t.text, lineHeight: 1.1 }}>{k.value}</span>
-              <span style={{ fontSize: "12.5px", color: t.textSub, fontWeight: "500", marginTop: "2px" }}>{k.label}</span>
+          <div key={i} style={{ padding: "24px", minHeight: "108px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", alignItems: "center", gap: "18px" }}>
+            <div style={{ width: "48px", height: "48px", borderRadius: "12px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: k.iconBg, color: k.iconColor }}>{k.iconEl}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "800", color: t.text, lineHeight: 1 }}>{k.value}</span>
+              <span style={{ fontSize: "13.5px", color: t.textSub, fontWeight: "500", marginTop: "2px" }}>{k.label}</span>
             </div>
           </div>
         ))}
