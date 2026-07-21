@@ -622,7 +622,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe || "NF " + sel.code.replace(/D/g,'') },
+          { k: "Nota fiscal", v: sel.raw.nfe && !sel.raw.nfe.includes("Ainda") ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
@@ -808,7 +808,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe && sel.raw.nfe !== "Ainda não vinculada" ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
+          { k: "Nota fiscal", v: sel.raw.nfe && !sel.raw.nfe.includes("Ainda") ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
           { k: "Corte (SLA)", v: sel.sla }
         ];
 

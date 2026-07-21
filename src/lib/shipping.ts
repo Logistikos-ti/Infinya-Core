@@ -408,10 +408,10 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  const customer = order.cliente_nome?.trim() || "Cliente nÃ£o informado";
+  const customer = order.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-    "Destino nÃ£o informado";
+    "Destino não informado";
   const marketplace = extractMarketplace(payload);
   const invoice = extractInvoice(payload);
   const orderType = extractOrderType(payload, order.origem);
@@ -476,7 +476,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     orderDate: formatBusinessDateTimeOrFallback(order.data_pedido, "Sem data"),
     shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsÃ£o"),
     expectedDate,
-    syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda nÃ£o sincronizado"),
+    syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda não sincronizado"),
     marketplace,
     invoice,
     carrierName,
@@ -528,7 +528,7 @@ function buildDefaultShippingAttachments(
       "XML_NF",
       nfDocument,
       orderId,
-      invoice !== "Ainda nÃ£o vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
+      invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
       "Anexe aqui o XML da nota fiscal quando o documento estiver disponÃ­vel no fluxo fiscal.",
       origin === "BLING" ? `/api/expedicao/${orderId}/nota-fiscal-preview` : null,
     ),
@@ -596,10 +596,10 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const storeDisplay = extractStore(payload, item.numero_loja);
   const marketplace = extractMarketplace(payload);
   const carrierName = extractCarrierName(payload);
-  const customer = item.cliente_nome?.trim() || "Cliente nÃ£o informado";
+  const customer = item.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
-    "Destino nÃ£o informado";
+    "Destino não informado";
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
@@ -776,7 +776,7 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
 function extractInvoice(payload: Record<string, unknown>) {
   const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
 
-  return readString(notaFiscal?.numero) ?? "Ainda nÃ£o vinculada";
+  return readString(notaFiscal?.numero) ?? "Ainda não vinculada";
 }
 
 function extractPlatformOrderNumber(
@@ -810,7 +810,7 @@ export function extractCarrierName(payload: Record<string, unknown>) {
     readString(transportadorCadastro?.nome) ??
     readString(transportadorContato?.nome) ??
     inferCarrierNameFromService(serviceName, trackingCode, salesChannelCode) ??
-    "Transportadora nÃ£o informada"
+    "Transportadora não informada"
   );
 }
 
@@ -820,8 +820,8 @@ function extractShippingService(payload: Record<string, unknown>) {
   const firstVolume = volumes.find((item) => isRecord(item));
 
   return firstVolume && isRecord(firstVolume)
-    ? readString(firstVolume.servico) ?? "ServiÃ§o nÃ£o informado"
-    : "ServiÃ§o nÃ£o informado";
+    ? readString(firstVolume.servico) ?? "Serviço não informado"
+    : "Serviço não informado";
 }
 
 function extractTrackingCode(payload: Record<string, unknown>) {
@@ -830,8 +830,8 @@ function extractTrackingCode(payload: Record<string, unknown>) {
   const firstVolume = volumes.find((item) => isRecord(item));
 
   return firstVolume && isRecord(firstVolume)
-    ? readString(firstVolume.codigoRastreamento) ?? "Rastreio nÃ£o informado"
-    : "Rastreio nÃ£o informado";
+    ? readString(firstVolume.codigoRastreamento) ?? "Rastreio não informado"
+    : "Rastreio não informado";
 }
 
 function inferCarrierNameFromService(
