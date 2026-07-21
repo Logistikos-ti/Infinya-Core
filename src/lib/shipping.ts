@@ -119,6 +119,7 @@ export type ShippingOrderSummary = {
   itemCount: number;
   createdAtIso: string | null;
   createdAt: string;
+  orderDate: string;
   ageLabel: string;
   ageTone: OperationalSlaTone;
   syncedAt: string;
@@ -632,6 +633,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     itemCount: Number(item.quantidade_itens ?? 0),
     createdAtIso: ageMeta.createdAtIso,
     createdAt: ageMeta.createdAtLabel,
+    orderDate: formatDateTimeInSaoPaulo(item.data_pedido, "Hoje"),
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
