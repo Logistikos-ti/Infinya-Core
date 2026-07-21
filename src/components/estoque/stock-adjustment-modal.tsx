@@ -18,12 +18,16 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isNewLot, setIsNewLot] = useState(false);
+  const [newLotAddress, setNewLotAddress] = useState("");
+  const [newLotCode, setNewLotCode] = useState("");
+  const [newLotValidade, setNewLotValidade] = useState("");
 
   const skuBalances = allBalances.filter((b) => b.productId === sku.productId);
   const selectedBalance = skuBalances.find((b) => b.id === sourceStockId);
   const currentQty = selectedBalance ? selectedBalance.rawQuantidade : 0;
   
-  const quantityDiff = selectedBalance && newQuantity !== "" ? Number(newQuantity) - currentQty : 0;
+  const quantityDiff = (selectedBalance || isNewLot) && newQuantity !== "" ? Number(newQuantity) - currentQty : 0;
   const isPositive = quantityDiff > 0;
   const isNegative = quantityDiff < 0;
 
@@ -40,15 +44,35 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
     setError("");
 
     try {
-      const response = await fetch("/api/estoque/ajuste", {
+      let endpoint = "/api/estoque/ajuste";
+      let bodyData: any = {
+        stockId: sourceStockId,
+        quantityDiff,
+        reason,
+        depositanteId: selectedBalance?.depositanteId || sku.depositanteId || skuBalances[0]?.depositanteId,
+      };
+
+      if (isNewLot) {
+        if (!newLotAddress.trim()) {
+          setError("O código do endereço é obrigatório para um novo lote.");
+          setIsSubmitting(false);
+          return;
+        }
+        endpoint = "/api/estoque";
+        bodyData = {
+          depositanteId: sku.depositanteId || skuBalances[0]?.depositanteId,
+          enderecoCodigo: newLotAddress.trim(),
+          produtoCodigo: sku.sku,
+          quantidade: quantityDiff,
+          lote: newLotCode.trim(),
+          validadeEm: newLotValidade.trim(),
+        };
+      }
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stockId: sourceStockId,
-          quantityDiff,
-          reason,
-          depositanteId: selectedBalance?.depositanteId,
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       if (!response.ok) {
@@ -99,16 +123,38 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
             value={sourceStockId}
             onChange={(val) => {
               setSourceStockId(val);
+              setIsNewLot(val === "NEW_LOT");
               setNewQuantity("");
+              setNewLotAddress("");
+              setNewLotCode("");
+              setNewLotValidade("");
             }}
             options={[
               { value: "", label: "Selecione o endereço..." },
+              { value: "NEW_LOT", label: "+ Cadastrar novo endereço/lote" },
               ...skuBalances.map((b) => ({
                 value: b.id,
                 label: `${b.enderecoNome || "Sem endereço"} ${b.lote ? `(Lote: ${b.lote})` : ""} - Atual: ${b.rawQuantidade} un`,
               }))
             ]}
           />
+
+          {isNewLot && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", padding: "16px", background: "rgba(59,130,246,0.05)", borderRadius: "12px", border: `1px dashed #3B82F6` }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: t.textSub }}>Endereço (Código) *</label>
+                <input required type="text" value={newLotAddress} onChange={(e) => setNewLotAddress(e.target.value)} placeholder="Ex: A1-01" style={{ padding: "10px", borderRadius: "6px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: t.textSub }}>Lote</label>
+                <input type="text" value={newLotCode} onChange={(e) => setNewLotCode(e.target.value)} placeholder="Ex: L123" style={{ padding: "10px", borderRadius: "6px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: t.textSub }}>Validade (DD/MM/AA)</label>
+                <input type="text" value={newLotValidade} onChange={(e) => setNewLotValidade(e.target.value)} placeholder="Ex: 31/12/26" style={{ padding: "10px", borderRadius: "6px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }} />
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: "16px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
