@@ -1,0 +1,1345 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="774d93d0-1763-4fec-a77a-b086c5f20421"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <meta charset="utf-8" />
+        <title>Infinoos WMS — Pedidos</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossorigin=""
+        />
+        <style>
+          /* cyrillic-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("a13a3ec3-2483-4b6a-be3b-a0fb269a2ba0") format("woff2");
+            unicode-range:
+              U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F,
+              U+FE2E-FE2F;
+          }
+          /* cyrillic */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("d244c6c8-2918-4450-986f-5fbe42fcc6bd") format("woff2");
+            unicode-range:
+              U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+          }
+          /* greek */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("f16890af-4b1e-4204-ad38-bb080fb7abad") format("woff2");
+            unicode-range:
+              U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1,
+              U+03A3-03FF;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("0dc0b638-9289-49fd-9a2e-bd8e6df00317") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("96328c2a-3b65-4b5a-865e-cb0a13079440") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("5142c6b3-8678-4992-b2aa-cb8df6ee5250") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* cyrillic-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("a13a3ec3-2483-4b6a-be3b-a0fb269a2ba0") format("woff2");
+            unicode-range:
+              U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F,
+              U+FE2E-FE2F;
+          }
+          /* cyrillic */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("d244c6c8-2918-4450-986f-5fbe42fcc6bd") format("woff2");
+            unicode-range:
+              U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+          }
+          /* greek */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("f16890af-4b1e-4204-ad38-bb080fb7abad") format("woff2");
+            unicode-range:
+              U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1,
+              U+03A3-03FF;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("0dc0b638-9289-49fd-9a2e-bd8e6df00317") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("96328c2a-3b65-4b5a-865e-cb0a13079440") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("5142c6b3-8678-4992-b2aa-cb8df6ee5250") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* cyrillic-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("a13a3ec3-2483-4b6a-be3b-a0fb269a2ba0") format("woff2");
+            unicode-range:
+              U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F,
+              U+FE2E-FE2F;
+          }
+          /* cyrillic */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("d244c6c8-2918-4450-986f-5fbe42fcc6bd") format("woff2");
+            unicode-range:
+              U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+          }
+          /* greek */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("f16890af-4b1e-4204-ad38-bb080fb7abad") format("woff2");
+            unicode-range:
+              U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1,
+              U+03A3-03FF;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("0dc0b638-9289-49fd-9a2e-bd8e6df00317") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("96328c2a-3b65-4b5a-865e-cb0a13079440") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("5142c6b3-8678-4992-b2aa-cb8df6ee5250") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* cyrillic-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("a13a3ec3-2483-4b6a-be3b-a0fb269a2ba0") format("woff2");
+            unicode-range:
+              U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F,
+              U+FE2E-FE2F;
+          }
+          /* cyrillic */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("d244c6c8-2918-4450-986f-5fbe42fcc6bd") format("woff2");
+            unicode-range:
+              U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+          }
+          /* greek */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("f16890af-4b1e-4204-ad38-bb080fb7abad") format("woff2");
+            unicode-range:
+              U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1,
+              U+03A3-03FF;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("0dc0b638-9289-49fd-9a2e-bd8e6df00317") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("96328c2a-3b65-4b5a-865e-cb0a13079440") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("5142c6b3-8678-4992-b2aa-cb8df6ee5250") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* cyrillic-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("a13a3ec3-2483-4b6a-be3b-a0fb269a2ba0") format("woff2");
+            unicode-range:
+              U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F,
+              U+FE2E-FE2F;
+          }
+          /* cyrillic */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("d244c6c8-2918-4450-986f-5fbe42fcc6bd") format("woff2");
+            unicode-range:
+              U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+          }
+          /* greek */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("f16890af-4b1e-4204-ad38-bb080fb7abad") format("woff2");
+            unicode-range:
+              U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1,
+              U+03A3-03FF;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("0dc0b638-9289-49fd-9a2e-bd8e6df00317") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("96328c2a-3b65-4b5a-865e-cb0a13079440") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Manrope";
+            font-style: normal;
+            font-weight: 800;
+            font-display: swap;
+            src: url("5142c6b3-8678-4992-b2aa-cb8df6ee5250") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("6a882fd4-978f-4b24-8312-ae4411d7d010") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("ffde99ee-70d3-4274-a114-9dc69f26a07d") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("73b66ba3-8fc3-420b-ab75-685ad7f27b79") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("6a882fd4-978f-4b24-8312-ae4411d7d010") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("ffde99ee-70d3-4274-a114-9dc69f26a07d") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("73b66ba3-8fc3-420b-ab75-685ad7f27b79") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+          /* vietnamese */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("6a882fd4-978f-4b24-8312-ae4411d7d010") format("woff2");
+            unicode-range:
+              U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1,
+              U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323,
+              U+0329, U+1EA0-1EF9, U+20AB;
+          }
+          /* latin-ext */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("ffde99ee-70d3-4274-a114-9dc69f26a07d") format("woff2");
+            unicode-range:
+              U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+              U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
+              U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+          }
+          /* latin */
+          @font-face {
+            font-family: "Space Grotesk";
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url("73b66ba3-8fc3-420b-ab75-685ad7f27b79") format("woff2");
+            unicode-range:
+              U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+              U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+              U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+          }
+        </style>
+        <style>
+          html,
+          body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+          }
+          body {
+            font-family: "Manrope", sans-serif;
+          }
+          a {
+            color: #8b5cf6;
+            text-decoration: none;
+          }
+          a:hover {
+            color: #a78bfa;
+          }
+          input::placeholder {
+            color: #94a3b8;
+            opacity: 0.7;
+          }
+          ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          @keyframes drawerIn {
+            from {
+              transform: translateX(40px);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          @keyframes overlayFade {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+        </style>
+      </helmet>
+
+      <div
+        data-screen-label="Pedidos"
+        style="display: flex; width: 100vw; height: 100vh; overflow: hidden; background: {{ t.appBg }}; color: {{ t.text }}; transition: background 0.35s ease, color 0.35s ease"
+      >
+        <!-- SIDEBAR -->
+        <aside
+          style="width: 248px; flex-shrink: 0; display: flex; flex-direction: column; background: {{ t.sideBg }}; border-right: 1px solid {{ t.border }}; transition: background 0.35s ease"
+        >
+          <div
+            style="padding: 24px 22px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid {{ t.border }}"
+          >
+            <span
+              style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.4em; color: {{ t.textSub }}"
+              >INFINOOS</span
+            >
+            <span
+              style="
+                font-family: &quot;Space Grotesk&quot;, sans-serif;
+                font-size: 22px;
+                font-weight: 700;
+                line-height: 1;
+                background: linear-gradient(90deg, #60a5fa, #a78bfa);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+              "
+              >WMS</span
+            >
+          </div>
+          <nav
+            style="
+              flex: 1;
+              overflow-y: auto;
+              padding: 16px 12px;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            "
+          >
+            <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="10">
+              <a
+                href="{{ item.href }}"
+                style="text-decoration: none; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; cursor: pointer; font-size: 14.5px; font-weight: {{ item.weight }}; color: {{ item.color }}; background: {{ item.bg }}; transition: all 0.18s ease"
+                style-hover="background: {{ t.navHover }}"
+              >
+                <span
+                  style="width: 19px; height: 19px; display: flex; align-items: center; justify-content: center; opacity: {{ item.iconOpacity }}"
+                  >{{ item.iconEl }}</span
+                >
+                <span>{{ item.label }}</span>
+              </a>
+            </sc-for>
+          </nav>
+          <div
+            style="padding: 14px 16px; border-top: 1px solid {{ t.border }}; display: flex; align-items: center; gap: 11px"
+          >
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                flex-shrink: 0;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #fff;
+                font-weight: 700;
+                font-size: 14px;
+              "
+            >
+              RA
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0">
+              <span
+                style="
+                  font-size: 13.5px;
+                  font-weight: 700;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                "
+                >Rafael Alves</span
+              >
+              <span style="font-size: 12px; color: {{ t.textSub }}"
+                >Supervisor · CD Cajamar</span
+              >
+            </div>
+          </div>
+        </aside>
+
+        <!-- MAIN -->
+        <div
+          style="
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          "
+        >
+          <header
+            style="flex-shrink: 0; height: 68px; display: flex; align-items: center; gap: 16px; padding: 0 28px; border-bottom: 1px solid {{ t.border }}; background: {{ t.barBg }}; transition: background 0.35s ease"
+          >
+            <a
+              href="Expedicao%20Infinoos%20WMS.dc.html"
+              style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 13.5px; font-weight: 700; cursor: pointer; text-decoration: none"
+              style-hover="border-color: #8B5CF6"
+              >‹ Expedição</a
+            >
+            <div
+              style="display: flex; align-items: center; gap: 10px; height: 42px; flex: 1; max-width: 420px; padding: 0 16px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}"
+            >
+              <span style="color: {{ t.textSub }}; font-size: 15px">⌕</span>
+              <input
+                value="{{ f.q }}"
+                sc-camel-on-input="{{ setQ }}"
+                placeholder="Buscar pedido, cliente, NF, marketplace..."
+                style="flex: 1; border: none; outline: none; background: transparent; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px"
+              />
+            </div>
+            <div style="flex: 1"></div>
+            <button
+              sc-camel-on-click="{{ toggleTheme }}"
+              title="Alternar tema"
+              aria-label="Alternar tema"
+              style="position: relative; width: 68px; height: 32px; padding: 0; border-radius: 999px; border: 1px solid {{ tog.border }}; background: {{ tog.track }}; cursor: pointer; transition: background 0.3s ease, border-color 0.3s ease; box-shadow: inset 0 1px 3px {{ tog.inset }}"
+            >
+              <span
+                style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackMoon }}; transition: color 0.3s ease"
+                >☾</span
+              >
+              <span
+                style="position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackSun }}; transition: color 0.3s ease"
+                >☀</span
+              >
+              <span
+                style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: {{ tog.knob }}; box-shadow: 0 1px 4px rgba(0,0,0,0.35); transform: translateX({{ tog.knobX }}); transition: transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease; font-size: 13px; color: {{ tog.knobIconColor }}"
+                >{{ tog.knobIcon }}</span
+              >
+            </button>
+          </header>
+
+          <main style="flex: 1; overflow-y: auto; padding: 28px 32px 40px 32px">
+            <div
+              style="
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-between;
+                gap: 20px;
+                flex-wrap: wrap;
+                margin-bottom: 24px;
+              "
+            >
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <div
+                  style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{ t.textSub }}"
+                >
+                  <span>Expedição</span><span>›</span
+                  ><span style="color: {{ t.text }}; font-weight: 600"
+                    >Pedidos</span
+                  >
+                </div>
+                <h1
+                  style="
+                    margin: 0;
+                    font-family: &quot;Space Grotesk&quot;, sans-serif;
+                    font-size: 28px;
+                    font-weight: 700;
+                  "
+                >
+                  Pedidos
+                </h1>
+                <p style="margin: 0; font-size: 14.5px; color: {{ t.textSub }}">
+                  Listagem completa da fila de expedição por etapa do fluxo.
+                </p>
+              </div>
+              <button
+                style="
+                  height: 44px;
+                  padding: 0 20px;
+                  border: none;
+                  border-radius: 11px;
+                  background: linear-gradient(92deg, #3b82f6, #8b5cf6);
+                  color: #fff;
+                  font-family: &quot;Manrope&quot;, sans-serif;
+                  font-size: 14px;
+                  font-weight: 800;
+                  cursor: pointer;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+                style-hover="transform: translateY(-1px)"
+              >
+                + Novo pedido
+              </button>
+            </div>
+
+            <!-- pipeline stages -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 12px;
+                margin-bottom: 24px;
+              "
+            >
+              <sc-for list="{{ stages }}" as="s" hint-placeholder-count="6">
+                <button
+                  sc-camel-on-click="{{ s.pick }}"
+                  style="text-align: left; padding: 16px; border-radius: 14px; cursor: pointer; border: 1px solid {{ s.border }}; background: {{ s.bg }}; display: flex; flex-direction: column; gap: 10px; transition: all 0.18s ease"
+                  style-hover="border-color: {{ s.accent }}"
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                    "
+                  >
+                    <span
+                      style="width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{ s.iconBg }}; color: {{ s.accent }}"
+                      >{{ s.iconEl }}</span
+                    >
+                    <span
+                      style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: {{ s.countColor }}"
+                      >{{ s.count }}</span
+                    >
+                  </div>
+                  <span
+                    style="font-size: 12.5px; font-weight: 700; color: {{ s.labelColor }}"
+                    >{{ s.label }}</span
+                  >
+                </button>
+              </sc-for>
+            </div>
+
+            <!-- table -->
+            <div
+              style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; overflow: hidden"
+            >
+              <div
+                style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid {{ t.border }}; flex-wrap: wrap"
+              >
+                <span
+                  style="
+                    font-family: &quot;Space Grotesk&quot;, sans-serif;
+                    font-size: 15px;
+                    font-weight: 700;
+                  "
+                  >{{ activeStageLabel }}</span
+                >
+                <div style="flex: 1"></div>
+                <span style="font-size: 13px; color: {{ t.textSub }}"
+                  >{{ ordersCount }} pedidos</span
+                >
+              </div>
+              <div style="overflow-x: auto">
+                <sc-raw-table
+                  style="
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 980px;
+                  "
+                >
+                  <sc-raw-thead>
+                    <sc-raw-tr style="text-align: left">
+                      <sc-for
+                        list="{{ columns }}"
+                        as="c"
+                        hint-placeholder-count="8"
+                      >
+                        <sc-raw-th
+                          style="padding: 13px 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: {{ t.textSub }}; background: {{ t.headBg }}; border-bottom: 1px solid {{ t.border }}; white-space: nowrap"
+                          >{{ c }}</sc-raw-th
+                        >
+                      </sc-for>
+                    </sc-raw-tr>
+                  </sc-raw-thead>
+                  <sc-raw-tbody>
+                    <sc-for
+                      list="{{ orders }}"
+                      as="o"
+                      hint-placeholder-count="9"
+                    >
+                      <sc-raw-tr
+                        sc-camel-on-click="{{ o.open }}"
+                        style="border-bottom: 1px solid {{ t.border }}; cursor: pointer; transition: background 0.15s ease"
+                        style-hover="background: {{ t.rowHover }}"
+                      >
+                        <sc-raw-td style="padding: 14px 20px"
+                          ><span
+                            style="
+                              font-family:
+                                &quot;Space Grotesk&quot;, sans-serif;
+                              font-weight: 700;
+                              font-size: 14.5px;
+                            "
+                            >{{ o.code }}</span
+                          ></sc-raw-td
+                        >
+                        <sc-raw-td style="padding: 14px 20px">
+                          <div
+                            style="
+                              display: flex;
+                              flex-direction: column;
+                              gap: 2px;
+                            "
+                          >
+                            <span
+                              style="
+                                font-size: 14px;
+                                font-weight: 600;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                max-width: 190px;
+                              "
+                              >{{ o.customer }}</span
+                            >
+                            <span
+                              style="font-size: 12px; color: {{ t.textSub }}"
+                              >{{ o.city }}</span
+                            >
+                          </div>
+                        </sc-raw-td>
+                        <sc-raw-td
+                          style="
+                            padding: 14px 20px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            max-width: 170px;
+                          "
+                          >{{ o.owner }}</sc-raw-td
+                        >
+                        <sc-raw-td style="padding: 14px 20px"
+                          ><span
+                            style="
+                              display: inline-flex;
+                              align-items: center;
+                              gap: 8px;
+                              font-size: 13.5px;
+                              font-weight: 600;
+                            "
+                            ><span
+                              style="width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: {{ o.carrierBg }}; color: {{ o.carrierColor }}"
+                              >{{ o.carrierInit }}</span
+                            >{{ o.carrier }}</span
+                          ></sc-raw-td
+                        >
+                        <sc-raw-td
+                          style="
+                            padding: 14px 20px;
+                            font-family: &quot;Space Grotesk&quot;, sans-serif;
+                            font-size: 14px;
+                            font-weight: 600;
+                          "
+                          >{{ o.itemsLabel }}</sc-raw-td
+                        >
+                        <sc-raw-td
+                          style="padding: 14px 20px; font-size: 13px; font-weight: 700; color: {{ o.slaColor }}"
+                          >{{ o.sla }}</sc-raw-td
+                        >
+                        <sc-raw-td style="padding: 14px 20px"
+                          ><span
+                            style="display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: {{ o.statusBg }}; color: {{ o.statusColor }}"
+                            ><span
+                              style="width: 7px; height: 7px; border-radius: 50%; background: {{ o.statusDot }}"
+                            ></span
+                            >{{ o.status }}</span
+                          ></sc-raw-td
+                        >
+                        <sc-raw-td style="padding: 14px 20px; text-align: right"
+                          ><span
+                            style="color: {{ t.textSub }}; font-weight: 700"
+                            style-hover="color: #8B5CF6"
+                            >›</span
+                          ></sc-raw-td
+                        >
+                      </sc-raw-tr>
+                    </sc-for>
+                  </sc-raw-tbody>
+                </sc-raw-table>
+              </div>
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid {{ t.border }}; flex-wrap: wrap; gap: 12px"
+              >
+                <span style="font-size: 13px; color: {{ t.textSub }}"
+                  >{{ ordersCount }} pedidos nesta etapa</span
+                >
+                <div style="display: flex; gap: 6px">
+                  <button
+                    style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; cursor: pointer; font-size: 13px"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    style="
+                      width: 34px;
+                      height: 34px;
+                      border-radius: 8px;
+                      border: none;
+                      background: linear-gradient(92deg, #3b82f6, #8b5cf6);
+                      color: #fff;
+                      cursor: pointer;
+                      font-size: 13px;
+                      font-weight: 700;
+                    "
+                  >
+                    1
+                  </button>
+                  <button
+                    style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; cursor: pointer; font-size: 13px"
+                  >
+                    2
+                  </button>
+                  <button
+                    style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; cursor: pointer; font-size: 13px"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <!-- DRAWER -->
+        <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+          <div
+            style="
+              position: fixed;
+              inset: 0;
+              z-index: 50;
+              display: flex;
+              justify-content: flex-end;
+            "
+          >
+            <div
+              sc-camel-on-click="{{ closeDrawer }}"
+              style="
+                position: absolute;
+                inset: 0;
+                background: rgba(6, 10, 20, 0.55);
+                backdrop-filter: blur(3px);
+                animation: overlayFade 0.25s ease;
+              "
+            ></div>
+            <div
+              style="position: relative; width: 440px; max-width: 92vw; height: 100%; background: {{ t.drawerBg }}; border-left: 1px solid {{ t.border }}; box-shadow: -24px 0 60px rgba(0,0,0,0.35); display: flex; flex-direction: column; animation: drawerIn 0.32s cubic-bezier(.3,1,.4,1); overflow: hidden"
+            >
+              <div
+                style="position: relative; padding: 24px; border-bottom: 1px solid {{ t.border }}; overflow: hidden"
+              >
+                <div
+                  style="
+                    position: absolute;
+                    width: 240px;
+                    height: 240px;
+                    right: -80px;
+                    top: -110px;
+                    border-radius: 50%;
+                    background: radial-gradient(
+                      circle,
+                      rgba(139, 92, 246, 0.28),
+                      transparent 70%
+                    );
+                    pointer-events: none;
+                  "
+                ></div>
+                <div
+                  style="
+                    position: relative;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 12px;
+                  "
+                >
+                  <div style="display: flex; flex-direction: column; gap: 8px">
+                    <span
+                      style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: {{ t.textSub }}"
+                      >PEDIDO</span
+                    >
+                    <span
+                      style="
+                        font-family: &quot;Space Grotesk&quot;, sans-serif;
+                        font-size: 26px;
+                        font-weight: 700;
+                        line-height: 1;
+                      "
+                      >{{ sel.code }}</span
+                    >
+                    <span
+                      style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: {{ sel.statusBg }}; color: {{ sel.statusColor }}"
+                      ><span
+                        style="width: 7px; height: 7px; border-radius: 50%; background: {{ sel.statusDot }}"
+                      ></span
+                      >{{ sel.status }}</span
+                    >
+                  </div>
+                  <button
+                    sc-camel-on-click="{{ closeDrawer }}"
+                    style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; font-size: 16px; cursor: pointer"
+                    style-hover="color: #8B5CF6"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div style="flex: 1; overflow-y: auto; padding: 24px">
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 3px;
+                    margin-bottom: 20px;
+                  "
+                >
+                  <span style="font-size: 15px; font-weight: 700"
+                    >{{ sel.customer }}</span
+                  >
+                  <span style="font-size: 12.5px; color: {{ t.textSub }}"
+                    >{{ sel.owner }} · {{ sel.city }}</span
+                  >
+                </div>
+                <!-- progress steps -->
+                <div
+                  style="
+                    margin-bottom: 22px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                  "
+                >
+                  <sc-for
+                    list="{{ sel.steps }}"
+                    as="st"
+                    hint-placeholder-count="4"
+                  >
+                    <div style="display: flex; gap: 14px">
+                      <div
+                        style="
+                          display: flex;
+                          flex-direction: column;
+                          align-items: center;
+                          width: 12px;
+                        "
+                      >
+                        <span
+                          style="width: 12px; height: 12px; border-radius: 50%; background: {{ st.dot }}; box-shadow: 0 0 0 3px {{ st.halo }}; margin-top: 3px"
+                        ></span>
+                        <span
+                          style="flex: 1; width: 2px; background: {{ st.line }}"
+                        ></span>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          flex-direction: column;
+                          gap: 2px;
+                          padding-bottom: 16px;
+                        "
+                      >
+                        <span
+                          style="font-size: 13.5px; font-weight: 700; color: {{ st.titleColor }}"
+                          >{{ st.title }}</span
+                        >
+                        <span style="font-size: 12px; color: {{ t.textSub }}"
+                          >{{ st.sub }}</span
+                        >
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                  "
+                >
+                  <sc-for
+                    list="{{ sel.specs }}"
+                    as="s"
+                    hint-placeholder-count="4"
+                  >
+                    <div
+                      style="padding: 14px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 5px"
+                    >
+                      <span style="font-size: 11.5px; color: {{ t.textSub }}"
+                        >{{ s.k }}</span
+                      >
+                      <span style="font-size: 14.5px; font-weight: 700"
+                        >{{ s.v }}</span
+                      >
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div
+                style="flex-shrink: 0; padding: 16px 24px; border-top: 1px solid {{ t.border }}; display: flex; gap: 10px; background: {{ t.drawerBg }}"
+              >
+                <button
+                  style="flex: 1; height: 46px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer"
+                  style-hover="border-color: #8B5CF6"
+                >
+                  ⎙ Romaneio
+                </button>
+                <a
+                  href="Separacao%20Infinoos%20WMS.dc.html"
+                  style="
+                    flex: 1.4;
+                    height: 46px;
+                    border: none;
+                    border-radius: 11px;
+                    background: linear-gradient(92deg, #3b82f6, #8b5cf6);
+                    color: #fff;
+                    font-family: &quot;Manrope&quot;, sans-serif;
+                    font-size: 14px;
+                    font-weight: 800;
+                    cursor: pointer;
+                    box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-decoration: none;
+                  "
+                  >Iniciar separação</a
+                >
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script=""
+      data-props='{"defaultTheme": {"editor": "enum", "options": ["dark", "light"], "default": "dark", "tsType": "&apos;dark&apos; | &apos;light&apos;", "section": "Tema"}}'
+    >
+      class Component extends DCLogic {
+        state = { theme: null, selected: null, stage: 'all', f: { q: '' } };
+
+        componentDidMount() {
+          const saved = localStorage.getItem('infinoos-theme');
+          if (saved === 'light' || saved === 'dark') this.setState({ theme: saved });
+        }
+
+        renderVals() {
+          const theme = this.state.theme ?? this.props.defaultTheme ?? 'dark';
+          const dark = theme === 'dark';
+
+          const t = dark ? {
+            appBg: '#0A1120', sideBg: '#0C1424', barBg: '#0C1424', cardBg: '#101B30',
+            headBg: '#0E1728', inputBg: '#101B30', softBg: 'rgba(148,163,184,0.06)',
+            border: 'rgba(148,163,184,0.14)', navHover: 'rgba(148,163,184,0.08)',
+            rowHover: 'rgba(148,163,184,0.05)', barTrack: 'rgba(148,163,184,0.16)',
+            text: '#F1F5F9', textSub: '#8695AD', drawerBg: '#0C1526'
+          } : {
+            appBg: '#F5F7FB', sideBg: '#FFFFFF', barBg: '#FFFFFF', cardBg: '#FFFFFF',
+            headBg: '#F8FAFC', inputBg: '#F8FAFC', softBg: 'rgba(100,116,139,0.05)',
+            border: 'rgba(100,116,139,0.16)', navHover: 'rgba(100,116,139,0.07)',
+            rowHover: 'rgba(100,116,139,0.04)', barTrack: 'rgba(100,116,139,0.14)',
+            text: '#0F172A', textSub: '#64748B', drawerBg: '#FFFFFF'
+          };
+          const tog = dark ? {
+            track: '#0E1729', border: 'rgba(96,165,250,0.30)', inset: 'rgba(0,0,0,0.5)',
+            knob: '#0B1220', knobX: '0px', knobIcon: '☾', knobIconColor: '#3B82F6', trackMoon: 'transparent', trackSun: '#3B4763'
+          } : {
+            track: '#F4F5F8', border: 'rgba(100,116,139,0.18)', inset: 'rgba(0,0,0,0.06)',
+            knob: '#FFFFFF', knobX: '36px', knobIcon: '☀', knobIconColor: '#F6A623', trackMoon: '#B4BCC9', trackSun: 'transparent'
+          };
+
+          const P = (d, i) => React.createElement('path', { d, key: 'p' + i });
+          const C = (cx, cy, r, i) => React.createElement('circle', { cx, cy, r, key: 'c' + i });
+          const R = (x, y, w, h, rx, i) => React.createElement('rect', { x, y, width: w, height: h, rx, key: 'r' + i });
+          const mk = (children, size) => React.createElement('svg', { width: size || 19, height: size || 19, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }, children);
+          const gl = {
+            dashboard: [R(3,3,7,7,1.5,1), R(14,3,7,7,1.5,2), R(14,14,7,7,1.5,3), R(3,14,7,7,1.5,4)],
+            inbound: [P('M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5',1), P('M12 3v10',2), P('M8 9l4 4 4-4',3)],
+            stock: [P('M12 2 2 7l10 5 10-5-10-5z',1), P('M2 12l10 5 10-5',2), P('M2 17l10 5 10-5',3)],
+            package: [P('M12 2 3 7v10l9 5 9-5V7z',1), P('M3 7l9 5 9-5',2), P('M12 12v10',3)],
+            pin: [P('M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z',1), C(12,10,2.4,2)],
+            picking: [R(5,4,14,17,2,1), P('M9 3h6v3H9z',2), P('M8.5 13l2.2 2.2L15.5 11',3)],
+            outbound: [P('M3 7h11v9H3z',1), P('M14 10h3.5l3.5 3.5V16h-7z',2), C(7,18.5,1.6,3), C(17.5,18.5,1.6,4)],
+            manifest: [P('M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2',1), R(8,2,8,4,1.5,2), P('M8.5 11h7',3), P('M8.5 15h5',4)],
+            inventory: [P('M20.5 12a8.5 8.5 0 1 1-2.6-6.1',1), P('M20.5 4v5h-5',2)],
+            reports: [P('M3 21h18',1), P('M6 21V11',2), P('M12 21V4',3), P('M18 21v-7',4)],
+            list: [P('M8 6h13',1), P('M8 12h13',2), P('M8 18h13',3), P('M3 6h.01',4), P('M3 12h.01',5), P('M3 18h.01',6)],
+            clock: [C(12,12,9,1), P('M12 7.5v5l3 2',2)],
+            scan: [P('M4 7V5a1 1 0 0 1 1-1h2',1), P('M17 4h2a1 1 0 0 1 1 1v2',2), P('M20 17v2a1 1 0 0 1-1 1h-2',3), P('M7 20H5a1 1 0 0 1-1-1v-2',4), P('M4 12h16',5)],
+            check2: [P('M9 12l2 2 4-4',1), C(12,12,9,2)],
+            truck: [P('M3 7h11v9H3z',1), P('M14 10h3.5l3.5 3.5V16h-7z',2), C(7,18.5,1.6,3), C(17.5,18.5,1.6,4)],
+            alert: [P('M10.3 4.3 2.4 18a1.8 1.8 0 0 0 1.6 2.7h16a1.8 1.8 0 0 0 1.6-2.7L13.7 4.3a1.8 1.8 0 0 0-3.4 0z',1), P('M12 9v5',2), P('M12 17.5h.01',3)]
+          };
+
+          const FILES = {
+            package: 'Produtos%20Infinoos%20WMS.dc.html', pin: 'Enderecos%20Infinoos%20WMS.dc.html',
+            stock: 'Estoque%20Infinoos%20WMS.dc.html', outbound: 'Expedicao%20Infinoos%20WMS.dc.html',
+            manifest: 'Romaneio%20Infinoos%20WMS.dc.html'
+          };
+          const navDef = [
+            { key: 'dashboard', label: 'Dashboard' }, { key: 'inbound', label: 'Recebimento' },
+            { key: 'stock', label: 'Estoque' }, { key: 'package', label: 'Produtos' },
+            { key: 'pin', label: 'Endereços' }, { key: 'picking', label: 'Separação' },
+            { key: 'outbound', label: 'Expedição', active: true }, { key: 'manifest', label: 'Romaneio' },
+            { key: 'inventory', label: 'Inventário' }, { key: 'reports', label: 'Relatórios' }
+          ];
+          const navItems = navDef.map(n => ({
+            iconEl: mk(gl[n.key]), label: n.label, href: FILES[n.key] || '#',
+            weight: n.active ? 700 : 600,
+            color: n.active ? (dark ? '#C4B5FD' : '#7C3AED') : t.textSub,
+            bg: n.active ? 'rgba(139,92,246,0.14)' : 'transparent',
+            iconOpacity: n.active ? 1 : 0.75
+          }));
+
+          const hex2 = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; };
+
+          const stageDefs = [
+            { key: 'all', label: 'Todos', icon: 'list', accent: '#64748B', count: 146 },
+            { key: 'Aguardando', label: 'Aguardando', icon: 'clock', accent: '#F59E0B', count: 63 },
+            { key: 'Em separação', label: 'Em separação', icon: 'picking', accent: '#3B82F6', count: 24 },
+            { key: 'Em conferência', label: 'Em conferência', icon: 'scan', accent: '#8B5CF6', count: 32 },
+            { key: 'Conferido', label: 'Conferido', icon: 'check2', accent: '#10B981', count: 22 },
+            { key: 'Expedido', label: 'Expedido', icon: 'truck', accent: '#3B82F6', count: 5 }
+          ];
+          const stageActive = this.state.stage;
+          const stages = stageDefs.map(s => {
+            const on = s.key === stageActive;
+            return {
+              label: s.label, count: s.count, accent: s.accent, iconEl: mk(gl[s.icon], 17),
+              border: on ? s.accent : t.border,
+              bg: on ? hex2(s.accent, 0.08) : t.cardBg,
+              iconBg: hex2(s.accent, 0.14),
+              countColor: on ? s.accent : t.text,
+              labelColor: on ? s.accent : t.textSub,
+              pick: () => this.setState({ stage: s.key })
+            };
+          });
+          const activeStageLabel = (stageDefs.find(s => s.key === stageActive) || {}).label + ' · fila de pedidos';
+
+          const columns = ['Pedido', 'Cliente', 'Depositante', 'Marketplace', 'Itens', 'SLA', 'Status', ''];
+          const carriers = { 'Mercado Livre': '#2D3277', 'Shopee': '#EE4D2D', 'Amazon': '#FF9900', 'Magalu': '#0086FF', 'Shein': '#111827', 'Site Próprio': '#8B5CF6' };
+          const statusStyle = (s) => {
+            if (s === 'Aguardando') return { statusBg: hex2('#F59E0B', 0.16), statusColor: '#F59E0B', statusDot: '#F59E0B' };
+            if (s === 'Em separação') return { statusBg: hex2('#3B82F6', 0.14), statusColor: '#3B82F6', statusDot: '#3B82F6' };
+            if (s === 'Em conferência') return { statusBg: hex2('#8B5CF6', 0.16), statusColor: '#A78BFA', statusDot: '#8B5CF6' };
+            if (s === 'Conferido') return { statusBg: hex2('#10B981', 0.14), statusColor: '#10B981', statusDot: '#10B981' };
+            if (s === 'Expedido') return { statusBg: hex2('#3B82F6', 0.14), statusColor: '#3B82F6', statusDot: '#3B82F6' };
+            if (s === 'Atrasado') return { statusBg: hex2('#EF4444', 0.14), statusColor: '#EF4444', statusDot: '#EF4444' };
+            return { statusBg: t.softBg, statusColor: t.textSub, statusDot: t.textSub };
+          };
+          const raw = [
+            { code: '#EC-48219', customer: 'Marina Costa', city: 'São Paulo · SP', owner: 'Loja Alpha Comércio', carrier: 'Mercado Livre', vol: 3, sla: '11:30', status: 'Em conferência', late: false },
+            { code: '#EC-48220', customer: 'Bruno Almeida', city: 'Campinas · SP', owner: 'Beta Store', carrier: 'Shopee', vol: 1, sla: '12:00', status: 'Em separação', late: false },
+            { code: '#EC-48221', customer: 'Loja Alpha Ltda', city: 'Guarulhos · SP', owner: 'Gamma Distribuidora', carrier: 'Amazon', vol: 8, sla: '14:00', status: 'Aguardando', late: false },
+            { code: '#EC-48222', customer: 'Carla Menezes', city: 'Rio de Janeiro · RJ', owner: 'Loja Alpha Comércio', carrier: 'Magalu', vol: 2, sla: '10:45', status: 'Conferido', late: false },
+            { code: '#EC-48223', customer: 'Diego Ferreira', city: 'Belo Horizonte · MG', owner: 'Delta E-commerce', carrier: 'Shein', vol: 5, sla: '09:30', status: 'Atrasado', late: true },
+            { code: '#EC-48224', customer: 'Patrícia Lima', city: 'Curitiba · PR', owner: 'Beta Store', carrier: 'Shopee', vol: 1, sla: '15:00', status: 'Em conferência', late: false },
+            { code: '#EC-48225', customer: 'Renato Souza', city: 'Osasco · SP', owner: 'Gamma Distribuidora', carrier: 'Site Próprio', vol: 4, sla: '16:30', status: 'Aguardando', late: false },
+            { code: '#EC-48226', customer: 'Fernanda Dias', city: 'Santos · SP', owner: 'Loja Alpha Comércio', carrier: 'Mercado Livre', vol: 2, sla: '13:15', status: 'Expedido', late: false },
+            { code: '#EC-48227', customer: 'João Pereira', city: 'Barueri · SP', owner: 'Beta Store', carrier: 'Amazon', vol: 6, sla: '12:40', status: 'Em separação', late: false }
+          ];
+          const q = this.state.f.q.trim().toLowerCase();
+          const filtered = raw.filter(o =>
+            (stageActive === 'all' || o.status === stageActive || (stageActive === 'Aguardando' && o.status === 'Atrasado')) &&
+            (!q || o.code.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q) || o.owner.toLowerCase().includes(q) || o.carrier.toLowerCase().includes(q))
+          );
+          const build = (o) => {
+            const ss = statusStyle(o.status);
+            const cc = carriers[o.carrier] || '#64748B';
+            const stepStates = ['Aguardando', 'Em separação', 'Em conferência', 'Expedido'];
+            const order = { 'Aguardando': 0, 'Atrasado': 0, 'Em separação': 1, 'Em conferência': 2, 'Conferido': 2, 'Expedido': 3 }[o.status];
+            const stepMeta = [
+              { title: 'Pedido recebido', sub: 'Integração e-commerce' },
+              { title: 'Em separação', sub: 'Picking no armazém' },
+              { title: 'Conferência', sub: 'Validação de saída' },
+              { title: 'Expedido', sub: 'Despacho / coleta' }
+            ];
+            const steps = stepMeta.map((s, i) => {
+              const done = i < order, cur = i === order;
+              return {
+                title: s.title, sub: cur ? 'Em andamento' : (done ? 'Concluído' : s.sub),
+                dot: done || cur ? (cur ? '#8B5CF6' : '#10B981') : t.barTrack,
+                halo: cur ? 'rgba(139,92,246,0.2)' : (done ? 'rgba(16,185,129,0.18)' : 'transparent'),
+                line: i < order ? '#10B981' : t.border,
+                titleColor: done || cur ? t.text : t.textSub
+              };
+            });
+            return {
+              ...o, ...ss, carrierColor: cc, carrierBg: hex2(cc, 0.15), carrierInit: o.carrier.slice(0, 2).toUpperCase(),
+              itemsLabel: o.vol + (o.vol === 1 ? ' item' : ' itens'),
+              slaColor: o.late ? '#EF4444' : t.text,
+              steps,
+              specs: [
+                { k: 'Marketplace', v: o.carrier }, { k: 'Depositante', v: o.owner },
+                { k: 'Nota fiscal', v: 'NF ' + o.code.replace('#EC-', '') }, { k: 'Corte (SLA)', v: 'Hoje · ' + o.sla }
+              ]
+            };
+          };
+          const orders = filtered.map(o => { const d = build(o); return { ...d, open: () => this.setState({ selected: d }) }; });
+
+          const sel = this.state.selected;
+
+          return {
+            t, tog, navItems, stages, columns, orders, f: this.state.f,
+            activeStageLabel, ordersCount: filtered.length,
+            hasSelection: !!sel, sel: sel || {},
+            setQ: e => this.setState(s => ({ f: { ...s.f, q: e.target.value } })),
+            closeDrawer: () => this.setState({ selected: null }),
+            toggleTheme: () => { const next = dark ? 'light' : 'dark'; localStorage.setItem('infinoos-theme', next); this.setState({ theme: next }); }
+          };
+        }
+      }
+    </script>
+  </body>
+</html>

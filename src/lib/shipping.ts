@@ -1,4 +1,4 @@
-﻿import type { AppUserContext } from "@/lib/auth";
+import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import {
@@ -34,6 +34,7 @@ type RawShippingOrderRow = {
   payload_origem: Record<string, unknown> | null;
   depositante_id?: string;
   depositante: RelationName;
+  itens?: RawShippingOrderItemRow[] | null;
 };
 
 type RawShippingOrderItemRow = {
@@ -123,6 +124,12 @@ export type ShippingOrderSummary = {
   syncedAt: string;
   releasedWithoutRomaneio: boolean;
   releasedToRomaneio: boolean;
+  items?: {
+    name: string;
+    sku: string;
+    quantity: number;
+    separatedQuantity: number;
+  }[];
 };
 
 type ShippingOrderFilters = {
@@ -217,7 +224,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -594,6 +601,13 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
+  
+  const items = (item.itens ?? []).map((it) => ({
+    name: it.nome,
+    sku: it.sku || it.codigo_produto || "",
+    quantity: Number(it.quantidade ?? 1),
+    separatedQuantity: Number(it.quantidade_separada ?? 0)
+  }));
 
   return {
     id: item.id,
@@ -620,9 +634,10 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     createdAt: ageMeta.createdAtLabel,
     ageLabel: ageMeta.ageLabel,
     ageTone: ageMeta.tone,
-    syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda nÃ£o sincronizado"),
+    syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
     releasedWithoutRomaneio,
     releasedToRomaneio,
+    items,
   };
 }
 
