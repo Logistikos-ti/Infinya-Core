@@ -25,7 +25,7 @@ export function StockCycleCountCreateForm({
   const [depositanteId, setDepositanteId] = useState(
     defaultDepositanteId || (depositantes.length === 1 ? depositantes[0]?.value ?? "" : ""),
   );
-  const [area, setArea] = useState("");
+  const [area, setÁrea] = useState("");
   const [title, setTitle] = useState("");
   const [observations, setObservations] = useState("");
   const [blindCount, setBlindCount] = useState(true);
@@ -144,7 +144,7 @@ export function StockCycleCountCreateForm({
             label="Área"
             name="area"
             value={area}
-            onChange={setArea}
+            onChange={setÁrea}
             options={[{ value: "", label: "Todas as áreas" }, ...areas]}
           />
           <label className="space-y-1">

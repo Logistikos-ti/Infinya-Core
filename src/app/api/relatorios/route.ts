@@ -9,7 +9,7 @@ type StockExportRow = {
   SKU: string;
   Produto: string;
   CodigoInterno: string;
-  Area: string;
+  Área: string;
   Endereco: string;
   Lote: string;
   Saldo: string;
@@ -93,7 +93,7 @@ async function exportStockBalanceReport(
     SKU: item.sku,
     Produto: item.productName,
     CodigoInterno: item.internalCode || "-",
-    Area: formatAreaLabel(item.area),
+    Área: formatÁreaLabel(item.area),
     Endereco: item.endereco,
     Lote: item.lote,
     Saldo: item.saldo,
@@ -263,7 +263,7 @@ function escapeXml(value: string) {
     .replaceAll("'", "&apos;");
 }
 
-function formatAreaLabel(value: string) {
+function formatÁreaLabel(value: string) {
   switch (value) {
     case "RECEBIMENTO":
       return "Recebimento";

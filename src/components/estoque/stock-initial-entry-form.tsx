@@ -323,7 +323,7 @@ export function StockInitialEntryForm({
             <p className="font-medium text-slate-700 dark:text-slate-200">Endereço localizado</p>
             <p className="mt-1 text-slate-600 dark:text-slate-300">
               {matchedEndereco
-                ? `${matchedEndereco.codigo} - ${formatAreaLabel(matchedEndereco.area)}`
+                ? `${matchedEndereco.codigo} - ${formatÁreaLabel(matchedEndereco.area)}`
                 : "Aguardando leitura do endereço."}
             </p>
           </div>
@@ -551,7 +551,7 @@ function normalizeCode(value: string | null | undefined) {
   return value?.trim().toLocaleLowerCase("pt-BR") ?? "";
 }
 
-function formatAreaLabel(value: string) {
+function formatÁreaLabel(value: string) {
   switch (value) {
     case "RECEBIMENTO":
       return "Recebimento";

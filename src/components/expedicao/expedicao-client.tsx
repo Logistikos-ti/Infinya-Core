@@ -24,6 +24,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const [activeTab, setActiveTab] = useState("orders");
   const [activeFilter, setActiveFilter] = useState("todos");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -90,7 +91,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
       countBg: active ? "rgba(255,255,255,0.2)" : (f.isAlert && f.count > 0 ? "rgba(239, 68, 68, 0.15)" : (isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9")),
       countColor: active ? "#fff" : (f.isAlert && f.count > 0 ? "#EF4444" : (isDark ? "#94A3B8" : "#64748B")),
       countFw: f.isAlert && f.count > 0 ? "800" : "600",
-      action: () => setActiveFilter(f.id)
+      action: () => {
+        setActiveFilter(f.id);
+        setCurrentPage(1);
+      }
     };
   });
 
@@ -133,7 +137,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return true;
   });
 
-  const orders = filteredDataOrders.map((o: any) => {
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(filteredDataOrders.length / ITEMS_PER_PAGE) || 1;
+  const paginatedOrders = filteredDataOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const orders = paginatedOrders.map((o: any) => {
     const ss = getStatusStyle(o.status);
     const carrierRaw = o.carrierName || o.channel || o.marketplace || "N/A";
     const cs = getCarrierStyle(carrierRaw);

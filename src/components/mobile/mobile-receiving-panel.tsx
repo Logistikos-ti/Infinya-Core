@@ -225,7 +225,7 @@ export function MobileReceivingPanel({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "NÃ£o foi possÃ­vel salvar a conferÃªncia.");
+        setError(result.error ?? "NÃ£o foi possÃ­vel salvar a conferência.");
         playFeedbackTone("error");
         return;
       }
@@ -299,7 +299,7 @@ export function MobileReceivingPanel({
           >
             {addresses.map((address) => (
               <option key={address.id} value={address.id}>
-                {address.codigo} â€¢ {formatArea(address.area)}
+                {address.codigo} â€¢ {formatÁrea(address.area)}
               </option>
             ))}
           </select>
@@ -474,7 +474,7 @@ export function MobileReceivingPanel({
             disabled={isSaving || !enderecoId}
             className="h-11 bg-slate-100 text-slate-950 hover:bg-white"
           >
-            {isSaving ? "Salvando..." : "Salvar conferÃªncia"}
+            {isSaving ? "Salvando..." : "Salvar conferência"}
           </Button>
           <Button
             type="button"
@@ -508,7 +508,7 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatArea(area: string) {
+function formatÁrea(area: string) {
   switch (area) {
     case "RECEBIMENTO":
       return "Recebimento";

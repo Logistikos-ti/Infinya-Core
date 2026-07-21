@@ -249,7 +249,7 @@ export default async function ConfiguracoesPage() {
                   enderecos.map((address) => (
                     <tr key={address.id} className="border-b border-slate-100 last:border-b-0 dark:border-white/5">
                       <td className="py-3 font-medium text-slate-900 dark:text-slate-100">{address.codigo}</td>
-                      <td className="py-3 text-slate-600 dark:text-slate-300">{formatArea(address.area)}</td>
+                      <td className="py-3 text-slate-600 dark:text-slate-300">{formatÁrea(address.area)}</td>
                       <td className="py-3 text-slate-600 dark:text-slate-300">{address.capacidade_maxima ?? "-"}</td>
                       <td className="py-3">
                         <span
@@ -329,7 +329,7 @@ function getPreferredMethod(methods: Array<string | null | undefined>) {
   return mostFrequent ?? "Sem produtos";
 }
 
-function formatArea(value: string) {
+function formatÁrea(value: string) {
   switch (value) {
     case "RECEBIMENTO":
       return "Recebimento";

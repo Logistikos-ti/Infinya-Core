@@ -394,7 +394,7 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
       </div>
 
       <div className="mt-4">
-        <TextAreaField
+        <TextÁreaField
           label="Observações"
           name="observacoes"
           rows={4}
@@ -456,7 +456,7 @@ function Field({ label, name, defaultValue, error, type = "text" }: FieldProps) 
   );
 }
 
-type TextAreaFieldProps = {
+type TextÁreaFieldProps = {
   label: string;
   name: string;
   rows: number;
@@ -465,14 +465,14 @@ type TextAreaFieldProps = {
   placeholder?: string;
 };
 
-function TextAreaField({
+function TextÁreaField({
   label,
   name,
   rows,
   defaultValue,
   error,
   placeholder,
-}: TextAreaFieldProps) {
+}: TextÁreaFieldProps) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>

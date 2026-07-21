@@ -431,7 +431,7 @@ export function ReceivingConferencePanel({
           >
             {addresses.map((address) => (
               <option key={address.id} value={address.id}>
-                {address.codigo} - {formatArea(address.area)}
+                {address.codigo} - {formatÁrea(address.area)}
               </option>
             ))}
           </select>
@@ -679,7 +679,7 @@ export function ReceivingConferencePanel({
   );
 }
 
-function formatArea(area: string) {
+function formatÁrea(area: string) {
   switch (area) {
     case "RECEBIMENTO":
       return "Recebimento";

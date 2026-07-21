@@ -317,8 +317,8 @@ export function ShippingConferencePanel({
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
         title="ConferÃªncia pausada por inatividade"
-        description="O operador ficou sem interaÃ§Ã£o nesta conferÃªncia. Se a atividade nÃ£o for retomada, o pedido serÃ¡ devolvido automaticamente para a fila."
-        mobileDescription="Sem interaÃ§Ã£o na conferÃªncia. Retome agora ou o pedido volta para a fila."
+        description="O operador ficou sem interaÃ§Ã£o nesta conferência. Se a atividade nÃ£o for retomada, o pedido serÃ¡ devolvido automaticamente para a fila."
+        mobileDescription="Sem interaÃ§Ã£o na conferência. Retome agora ou o pedido volta para a fila."
       />
 
       {feedback ? (
@@ -344,7 +344,7 @@ export function ShippingConferencePanel({
                 : feedback === "salvo"
                   ? "ConferÃªncia atualizada com sucesso."
             : feedback === "incompleto"
-              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferÃªncia."
+              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
               : feedback === "documentos-pendentes"
                 ? "Finalize os documentos obrigatÃ³rios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
               : feedback === "inatividade"
@@ -360,7 +360,7 @@ export function ShippingConferencePanel({
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="space-y-1.5 pt-1">
-              <p className="font-bold text-amber-800 dark:text-amber-400 text-base">Alertas de divergÃªncia na conferÃªncia</p>
+              <p className="font-bold text-amber-800 dark:text-amber-400 text-base">Alertas de divergÃªncia na conferência</p>
               {wrongProductScans > 0 ? (
                 <p className="font-medium text-amber-700 dark:text-amber-300">Produto errado lido: <span className="font-bold">{wrongProductScans}</span> ocorrÃªncia(s).</p>
               ) : null}

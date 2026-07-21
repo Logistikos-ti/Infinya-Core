@@ -156,7 +156,7 @@ export async function generateEnderecosAction(formData: FormData) {
   const moduloWidth = Math.max(2, String(parsed.data.moduloFim).length);
   const nivelWidth = Math.max(2, String(parsed.data.nivelFim).length);
   const posicaoWidth = Math.max(2, String(parsed.data.posicaoFim).length);
-  const areaCode = getAreaCode(parsed.data.area);
+  const areaCode = getÁreaCode(parsed.data.area);
 
   const payload: Array<Record<string, string | number | boolean | null>> = [];
 
@@ -218,7 +218,7 @@ export async function generateEnderecosAction(formData: FormData) {
   redirect(`/configuracoes/enderecos?feedback=gerado&total=${payload.length}`);
 }
 
-function getAreaCode(area: string) {
+function getÁreaCode(area: string) {
   switch (area) {
     case "RECEBIMENTO":
       return "REC";

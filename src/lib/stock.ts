@@ -664,10 +664,10 @@ function matchesMovementFilters(item: RawMovementRow, filters?: StockFilters) {
   }
 
   if (filters.area) {
-    const originArea = extractEnderecoField(item.endereco_origem, "area");
-    const destinationArea = extractEnderecoField(item.endereco_destino, "area");
+    const originÁrea = extractEnderecoField(item.endereco_origem, "area");
+    const destinationÁrea = extractEnderecoField(item.endereco_destino, "area");
 
-    if (originArea !== filters.area && destinationArea !== filters.area) {
+    if (originÁrea !== filters.area && destinationÁrea !== filters.area) {
       return false;
     }
   }

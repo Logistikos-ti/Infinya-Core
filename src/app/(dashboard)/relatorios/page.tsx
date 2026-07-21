@@ -122,7 +122,7 @@ export default async function RelatoriosPage({ searchParams }: RelatoriosPagePro
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Exporte o saldo filtrado do estoque em Excel ou CSV, pronto para anÃ¡lise, envio ao
-              cliente e conferÃªncia externa.
+              cliente e conferência externa.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -57,7 +57,7 @@ export function StockTransferForm({
         .filter((item) => item.value !== selectedSource?.enderecoId)
         .map((item) => ({
           value: item.value,
-          label: `${item.label} • ${formatAreaLabel(item.area)}`,
+          label: `${item.label} • ${formatÁreaLabel(item.area)}`,
         })),
     [addresses, selectedSource],
   );
@@ -240,7 +240,7 @@ export function StockTransferForm({
   );
 }
 
-function formatAreaLabel(area: string) {
+function formatÁreaLabel(area: string) {
   switch (area) {
     case "RECEBIMENTO":
       return "Recebimento";

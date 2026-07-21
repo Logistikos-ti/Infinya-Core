@@ -286,11 +286,11 @@ function getMobileShippingOrderHref(status: string, orderId: string) {
 
 function getMobileShippingOrderCta(status: string) {
   if (["EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
-    return "Continuar conferÃªncia";
+    return "Continuar conferência";
   }
 
   if (status === "SEPARADO") {
-    return "Iniciar conferÃªncia";
+    return "Iniciar conferência";
   }
 
   if (status === "EM_SEPARACAO") {
@@ -306,7 +306,7 @@ function getMobileShippingOrderHelp(status: string) {
   }
 
   if (status === "SEPARADO") {
-    return "Pedido separado. Toque para iniciar a conferÃªncia e validar os itens.";
+    return "Pedido separado. Toque para iniciar a conferência e validar os itens.";
   }
 
   if (status === "EM_SEPARACAO") {

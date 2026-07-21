@@ -608,7 +608,7 @@ function mapPickingItem(
         componentName: component.name,
         componentBarcode: component.barcode,
         addressCode: stock.endereco?.codigo?.trim() || "Sem endereço",
-        area: normalizeArea(stock.endereco?.area),
+        area: normalizeÁrea(stock.endereco?.area),
         routeLabel: buildRouteLabel(stock.endereco),
         lot: stock.lote?.trim() || "-",
         expiry: formatDate(stock.validade_em),
@@ -712,7 +712,7 @@ function mapSimplePickingItem(
       componentName: stock.produto?.nome?.trim() || item.nome,
       componentBarcode: meta.itemBarcode,
       addressCode: stock.endereco?.codigo?.trim() || "Sem endereço",
-      area: normalizeArea(stock.endereco?.area),
+      area: normalizeÁrea(stock.endereco?.area),
       routeLabel: buildRouteLabel(stock.endereco),
       lot: stock.lote?.trim() || "-",
       expiry: formatDate(stock.validade_em),
@@ -1049,7 +1049,7 @@ function matchesStockToKitComponent(
 }
 
 function compareStocksForPicking(a: RawPickingStockRow, b: RawPickingStockRow) {
-  const areaDiff = getAreaPriority(a.endereco?.area) - getAreaPriority(b.endereco?.area);
+  const areaDiff = getÁreaPriority(a.endereco?.area) - getÁreaPriority(b.endereco?.area);
   if (areaDiff !== 0) {
     return areaDiff;
   }
@@ -1082,7 +1082,7 @@ function compareStocksForPicking(a: RawPickingStockRow, b: RawPickingStockRow) {
 }
 
 function compareRouteStops(a: ShippingPickingRouteStop, b: ShippingPickingRouteStop) {
-  const areaDiff = getAreaPriority(a.area) - getAreaPriority(b.area);
+  const areaDiff = getÁreaPriority(a.area) - getÁreaPriority(b.area);
   if (areaDiff !== 0) {
     return areaDiff;
   }
@@ -1138,8 +1138,8 @@ function getAvailableQuantity(stock: RawPickingStockRow) {
   return Math.max(Number(stock.quantidade ?? 0) - Number(stock.quantidade_reservada ?? 0), 0);
 }
 
-function getAreaPriority(area: string | null | undefined) {
-  switch (normalizeArea(area)) {
+function getÁreaPriority(area: string | null | undefined) {
+  switch (normalizeÁrea(area)) {
     case "PICKING":
       return 0;
     case "EXPEDICAO":
@@ -1167,7 +1167,7 @@ function normalizeWithdrawalMethod(value: string | null | undefined) {
   return "FIFO";
 }
 
-function normalizeArea(area: string | null | undefined) {
+function normalizeÁrea(area: string | null | undefined) {
   return area?.trim().toUpperCase() || "SEM_AREA";
 }
 

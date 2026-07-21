@@ -405,7 +405,7 @@ async function loadCommercialKitRulesByDepositante(
 
   if (error) {
     throw new Error(
-      `NÃ£o foi possÃ­vel carregar as regras comerciais de kit para conferÃªncia: ${error.message}`,
+      `NÃ£o foi possÃ­vel carregar as regras comerciais de kit para conferência: ${error.message}`,
     );
   }
 

@@ -14,7 +14,7 @@ export function AddressFiltersForm({ area, areas }: AddressFiltersFormProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [areaValue, setAreaValue] = useState(area);
+  const [areaValue, setÁreaValue] = useState(area);
   const hasFilters = useMemo(() => Boolean(areaValue), [areaValue]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -31,7 +31,7 @@ export function AddressFiltersForm({ area, areas }: AddressFiltersFormProps) {
   }
 
   function handleClear() {
-    setAreaValue("");
+    setÁreaValue("");
     router.push(pathname);
   }
 
@@ -42,7 +42,7 @@ export function AddressFiltersForm({ area, areas }: AddressFiltersFormProps) {
           label="Área"
           name="area"
           value={areaValue}
-          onChange={setAreaValue}
+          onChange={setÁreaValue}
           options={areas}
         />
       </div>

@@ -913,9 +913,9 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
     case "EM_SEPARACAO":
       return "Em separaÃ§Ã£o";
     case "SEPARADO":
-      return "Aguardando conferÃªncia";
+      return "Aguardando conferência";
     case "EM_CONFERENCIA":
-      return "Em conferÃªncia";
+      return "Em conferência";
     case "CONFERIDO":
       return isOrderReleasedWithoutRomaneio(normalizedPayload) ? "Finalizado sem romaneio" : "Conferido";
     case "PRONTO_ROMANEIO":

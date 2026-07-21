@@ -29,7 +29,7 @@ export function StockFiltersForm({
   areas,
 }: StockFiltersFormProps) {
   const [depositanteValue, setDepositanteValue] = useState(depositante);
-  const [areaValue, setAreaValue] = useState(area);
+  const [areaValue, setÁreaValue] = useState(area);
 
   return (
     <form
@@ -67,7 +67,7 @@ export function StockFiltersForm({
           label="Área"
           name="area"
           value={areaValue}
-          onChange={setAreaValue}
+          onChange={setÁreaValue}
           options={areas}
         />
 

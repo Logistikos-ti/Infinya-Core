@@ -24,7 +24,7 @@ export function MobileAddressList({ addresses }: MobileAddressListProps) {
     }
 
     return addresses.filter((item) => {
-      const haystack = [item.codigo, item.descricao ?? "", formatArea(item.area)]
+      const haystack = [item.codigo, item.descricao ?? "", formatÁrea(item.area)]
         .map(normalizeSearch)
         .join(" ");
 
@@ -60,7 +60,7 @@ export function MobileAddressList({ addresses }: MobileAddressListProps) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-white">{item.codigo}</p>
-                  <p className="mt-1 text-sm text-slate-300">{formatArea(item.area)}</p>
+                  <p className="mt-1 text-sm text-slate-300">{formatÁrea(item.area)}</p>
                   {item.descricao ? (
                     <p className="mt-1 text-xs text-slate-400">{item.descricao}</p>
                   ) : null}
@@ -93,7 +93,7 @@ function normalizeSearch(value: string) {
     .trim();
 }
 
-function formatArea(value: string) {
+function formatÁrea(value: string) {
   switch (value) {
     case "RECEBIMENTO":
       return "Recebimento";

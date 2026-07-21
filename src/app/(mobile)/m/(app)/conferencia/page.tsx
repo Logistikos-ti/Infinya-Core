@@ -72,7 +72,7 @@ export default async function MobileConferenceQueuePage({
         </section>
       ) : feedback === "incompleto" ? (
         <section className="rounded-[24px] border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Ainda existem itens pendentes. O pedido voltou para a fila para nova conferÃªncia.
+          Ainda existem itens pendentes. O pedido voltou para a fila para nova conferência.
         </section>
       ) : feedback === "concluido" ? (
         <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
@@ -248,7 +248,7 @@ export default async function MobileConferenceQueuePage({
           })
         ) : (
           <div className="rounded-[24px] border border-dashed border-white/15 bg-white/5 px-4 py-8 text-center text-sm text-slate-300">
-            Nenhum pedido disponÃ­vel para conferÃªncia no momento.
+            Nenhum pedido disponÃ­vel para conferência no momento.
           </div>
         )}
       </section>

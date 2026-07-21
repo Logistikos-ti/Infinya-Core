@@ -23,7 +23,7 @@ const unidadeOptions: FancySelectOption[] = [
 ];
 
 export function AddressBulkGeneratorForm({ action }: AddressBulkGeneratorFormProps) {
-  const [area, setArea] = useState("PULMAO");
+  const [area, setÁrea] = useState("PULMAO");
   const [unidadePadrao, setUnidadePadrao] = useState("CAIXA");
 
   return (
@@ -33,7 +33,7 @@ export function AddressBulkGeneratorForm({ action }: AddressBulkGeneratorFormPro
           label="Área"
           name="area"
           value={area}
-          onChange={setArea}
+          onChange={setÁrea}
           options={areaOptions}
         />
         <Field

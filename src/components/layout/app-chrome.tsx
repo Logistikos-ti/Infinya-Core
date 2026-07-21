@@ -73,7 +73,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
         />
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content Área */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-8 lg:border-none lg:border-slate-200/80 dark:border-white/10">
           <div className="flex w-full max-w-3xl items-center gap-4">
