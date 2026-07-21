@@ -586,7 +586,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       )}
 
       {/* ============ DETAIL DRAWER (NEW COMPLEX ONE) ============ */}
-      {selectedOrder && activeTab === "visao_geral" && (() => {
+      {selectedOrder && activeTab === "orders" && (() => {
         const sel = selectedOrder;
         
         // Timeline moves logic (matching infinoos-wms-pedidos.html)
@@ -616,7 +616,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
           });
         };
 
-        const moves = getTimelineSteps(sel.raw.status, sel);
+        
+
+const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
@@ -797,6 +799,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
           });
         };
 
+        let btnText = "Ver detalhes";
+        if (sel.raw.status === "NOVO" || sel.raw.status === "EM_SEPARACAO") btnText = "Iniciar separação";
+        else if (sel.raw.status === "SEPARADO" || sel.raw.status === "EM_CONFERENCIA") btnText = "Iniciar conferência";
+        else if (sel.raw.status === "CONFERIDO" || sel.raw.status === "PRONTO_ROMANEIO") btnText = "Iniciar despacho";
+        else btnText = "Pedido expedido";
         const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
@@ -884,32 +891,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   ))}
                 </div>
 
-                {/* packing list (items) */}
-                <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Itens do pedido</span>
-                    <span style={{ fontSize: "12.5px", color: t.textSub }}>{sel.itemsLabel}</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {itemsToUse.map((it: any, i: number) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
-                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
-                        </div>
-                        <span style={{ fontSize: "13px", fontWeight: "700", color: t.textSub }}>{it.qty}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </div>
 
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
-                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.drawerBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path></svg>
-                  Romaneio
-                </button>
-                <button style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>Iniciar separação</button>
+                <button style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
               </div>
             </div>
           </div>
