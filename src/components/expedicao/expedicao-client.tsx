@@ -94,8 +94,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const flowCards = [
     { onClick: () => setActiveTab("pedidos_full"), kicker: "PAINEL", iconEl: <ClipboardList size={20} className="animated-icon" />, iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Pedidos", desc: "Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Ver Pedidos" },
     { 
-      onClick: () => setActiveTab("waves"), 
-      kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Ver Ondas de Separação" 
+      onClick: () => {
+        const orderToPick = data.orders.find((o: any) => o.status === "NOVO" || o.status === "EM_SEPARACAO");
+        if (orderToPick) {
+          router.push(`/expedicao/separacao/${orderToPick.id}`);
+        } else {
+          alert("Nenhum pedido aguardando separação no momento.");
+        }
+      }, 
+      kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" 
     },
     { 
       onClick: () => {
@@ -596,55 +603,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </div>
               </div>
             </div>
-        </div>
-      )}
-
-      {/* ============ WAVES VIEW ============ */}
-      {isWaves && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "18px" }}>
-          {data.orders.filter((o: any) => o.status === "NOVO" || o.status === "EM_SEPARACAO").length === 0 ? (
-            <div style={{ gridColumn: "1 / -1", padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500", background: t.cardBg, borderRadius: "16px", border: `1px solid ${t.border}` }}>
-              Nenhuma onda/pedido aguardando separação no momento.
-            </div>
-          ) : (
-            data.orders.filter((o: any) => o.status === "NOVO" || o.status === "EM_SEPARACAO").map((w: any, i: number) => {
-              const pct = w.status === "EM_SEPARACAO" ? "50%" : "0%";
-              return (
-                <div key={i} style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderBottom: `1px solid ${t.border}` }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700" }}>{w.code || `WAVE-${i+1}`}</span>
-                      <span style={{ fontSize: "12.5px", color: t.textSub }}>{w.customer} · {w.depositante_nome || "Expedição"}</span>
-                    </div>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: w.status === "EM_SEPARACAO" ? "rgba(245,158,11,0.15)" : "rgba(59,130,246,0.15)", color: w.status === "EM_SEPARACAO" ? "#F59E0B" : "#3B82F6" }}>
-                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: w.status === "EM_SEPARACAO" ? "#F59E0B" : "#3B82F6" }}></span>{w.status}
-                    </span>
-                  </div>
-                  <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}><span style={{ color: t.textSub }}>Progresso</span><span style={{ fontWeight: "700" }}>{pct}</span></div>
-                      <div style={{ height: "8px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: pct, borderRadius: "999px", background: "linear-gradient(90deg,#3B82F6,#8B5CF6)" }}></div></div>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "10px 12px", borderRadius: "11px", background: t.softBg }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700", color: t.text }}>{w.totalItems || 0}</span>
-                        <span style={{ fontSize: "11.5px", color: t.textSub }}>Itens</span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "10px 12px", borderRadius: "11px", background: t.softBg }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700", color: "#10B981" }}>0</span>
-                        <span style={{ fontSize: "11.5px", color: t.textSub }}>Coletados</span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "10px 12px", borderRadius: "11px", background: t.softBg }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700", color: "#3B82F6" }}>{w.totalItems || 0}</span>
-                        <span style={{ fontSize: "11.5px", color: t.textSub }}>Restantes</span>
-                      </div>
-                    </div>
-                    <button onClick={() => router.push(`/expedicao/separacao/${w.id}`)} style={{ height: "42px", border: `1px solid ${t.border}`, borderRadius: "11px", background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>Abrir onda</button>
-                  </div>
-                </div>
-              );
-            })
-          )}
         </div>
       )}
 
