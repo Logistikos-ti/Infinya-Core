@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Box, Clock, CheckCircle2, PackageSearch, X } from "lucide-react";
+import { Clock, CheckCircle2, X, Waves, ClipboardList, Box } from "lucide-react";
 
 export function ShippingPickingWavesView({ 
   orders,
@@ -104,8 +104,8 @@ export function ShippingPickingWavesView({
   }, [orders]);
 
   const kpis = [
-    { label: 'Ondas ativas', value: activeWaves.filter(w => w.id !== 'aguardando' && w.status !== 'Concluída').length, iconEl: <Box size={20} />, iconBg: hex2('#3B82F6', 0.14), iconColor: '#3B82F6' },
-    { label: 'Pedidos em separação', value: orders.filter(o => o.status === 'EM_SEPARACAO').length, iconEl: <PackageSearch size={20} />, iconBg: hex2('#8B5CF6', 0.14), iconColor: '#8B5CF6' },
+    { label: 'Ondas ativas', value: activeWaves.filter(w => w.id !== 'aguardando' && w.status !== 'Concluída').length, iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.14), iconColor: '#3B82F6' },
+    { label: 'Pedidos em separação', value: orders.filter(o => o.status === 'EM_SEPARACAO').length, iconEl: <ClipboardList size={20} />, iconBg: hex2('#8B5CF6', 0.14), iconColor: '#8B5CF6' },
     { label: 'Aguardando onda', value: orders.filter(o => o.status === 'NOVO').length, iconEl: <Clock size={20} />, iconBg: hex2('#F59E0B', 0.14), iconColor: '#F59E0B' },
     { label: 'Concluídas hoje', value: orders.filter(o => o.status === 'SEPARADO').length, iconEl: <CheckCircle2 size={20} />, iconBg: hex2('#10B981', 0.14), iconColor: '#10B981' }
   ];
@@ -148,9 +148,9 @@ export function ShippingPickingWavesView({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", opacity: 0.95 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px", opacity: 0.95 }}>
       {/* BREADCRUMB / BACK BUTTON */}
-      <div className="flex items-center gap-3 mb-2 mt-2">
+      <div className="flex items-center gap-3">
         <button 
           onClick={() => router.push("/expedicao")}
           className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm cursor-pointer"
@@ -165,7 +165,7 @@ export function ShippingPickingWavesView({
       </div>
 
       {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", marginBottom: "8px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "800", color: t.text, margin: 0 }}>Ondas de Separação</h1>
           <span style={{ fontSize: "14.5px", color: t.textSub }}>Gerencie filas de picking agrupadas e otimize o trajeto no armazém.</span>
@@ -178,11 +178,11 @@ export function ShippingPickingWavesView({
       {/* KPIS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
         {kpis.map((k, i) => (
-          <div key={i} style={{ padding: "20px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "48px", height: "48px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", background: k.iconBg, color: k.iconColor }}>{k.iconEl}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "26px", fontWeight: "800", color: t.text }}>{k.value}</span>
-              <span style={{ fontSize: "13px", color: t.textSub, fontWeight: "500" }}>{k.label}</span>
+          <div key={i} style={{ padding: "18px 24px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ width: "42px", height: "42px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: k.iconBg, color: k.iconColor }}>{k.iconEl}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "24px", fontWeight: "800", color: t.text, lineHeight: 1.1 }}>{k.value}</span>
+              <span style={{ fontSize: "12.5px", color: t.textSub, fontWeight: "500", marginTop: "2px" }}>{k.label}</span>
             </div>
           </div>
         ))}
