@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Loader2, 
   PackageSearch,
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 
 export function ExpedicaoClient({ data }: { data: any }) {
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -91,9 +93,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const flowCards = [
     { onClick: () => setActiveTab("pedidos_full"), kicker: "PAINEL", iconEl: <ClipboardList size={20} className="animated-icon" />, iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Pedidos", desc: "Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Ver Pedidos" },
-    { onClick: () => {}, kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" },
-    { onClick: () => {}, kicker: "VALIDAÇÃO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" },
-    { onClick: () => {}, kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
+    { onClick: () => router.push("/expedicao/separacao"), kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" },
+    { onClick: () => router.push("/expedicao/conferencia"), kicker: "VALIDAÇÃO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" },
+    { onClick: () => router.push("/expedicao/conferidos"), kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
   ];
 
   const tableFiltersDef = [
@@ -893,7 +895,12 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 </div>
 
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
-                <button style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
+                <button 
+                  onClick={() => {
+                    if (sel.raw.status === "NOVO" || sel.raw.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
+                    else if (sel.raw.status === "SEPARADO" || sel.raw.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
+                  }}
+                  style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
               </div>
             </div>
           </div>
