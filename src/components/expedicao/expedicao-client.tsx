@@ -433,49 +433,24 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
       {/* ----------------- PEDIDOS FULL VIEW (infinoos-wms-pedidos) ----------------- */}
       {isPedidosFull && (
-        <div style={{ display: "flex", flexDirection: "column", minHeight: "80vh", background: t.appBg, margin: "-24px", paddingBottom: "40px" }}>
-          {/* Header */}
-          <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
-            <button
-              onClick={() => setActiveTab('orders')}
-              style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer" }}
-            >
-              <ChevronLeft size={16}/> Expedição
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "42px", flex: 1, maxWidth: "420px", padding: "0 16px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg }}>
-              <Search size={18} color={t.textSub}/>
-              <input
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                placeholder="Buscar pedido, cliente, NF, marketplace..."
-                style={{ flex: 1, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px" }}
-              />
+        <div style={{ display: "flex", flexDirection: "column", animation: "drawerIn 0.35s cubic-bezier(0.3, 1, 0.4, 1)" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <button
+                onClick={() => setActiveTab('orders')}
+                style={{ display: "flex", alignItems: "center", gap: "4px", padding: 0, border: "none", background: "transparent", color: t.textSub, fontSize: "13px", fontWeight: "600", cursor: "pointer", marginBottom: "4px" }}
+              >
+                <ChevronLeft size={14}/> Voltar para Dashboard de Expedição
+              </button>
+              <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "700" }}>Pedidos</h1>
+              <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
             </div>
-            <div style={{ flex: 1 }}></div>
-            <button
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              title="Alternar tema"
-              style={{ position: "relative", width: "68px", height: "32px", padding: 0, borderRadius: "999px", border: `1px solid ${tog.border}`, background: tog.track, cursor: "pointer", transition: "background 0.3s ease, border-color 0.3s ease", boxShadow: `inset 0 1px 3px ${tog.inset}` }}
-            >
-              <span style={{ position: "absolute", top: "50%", left: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackMoon, transition: "color 0.3s ease" }}>☾</span>
-              <span style={{ position: "absolute", top: "50%", right: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackSun, transition: "color 0.3s ease" }}>☀</span>
-              <span style={{ position: "absolute", top: "3px", left: "3px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: tog.knob, boxShadow: "0 1px 4px rgba(0,0,0,0.35)", transform: `translateX(${tog.knobX})`, transition: "transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease", fontSize: "13px", color: tog.knobIconColor }}>{tog.knobIcon}</span>
-            </button>
-          </header>
-
-          <main style={{ flex: 1, padding: "28px 32px 40px 32px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSub }}>
-                  <span>Expedição</span><span>›</span><span style={{ color: t.text, fontWeight: "600" }}>Pedidos</span>
-                </div>
-                <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "700" }}>Pedidos</h1>
-                <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
                 + Novo pedido
               </button>
             </div>
+          </div>
 
             {/* pipeline stages */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px", marginBottom: "24px" }}>
@@ -496,8 +471,19 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
             {/* table */}
             <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border}`, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px", fontWeight: "700" }}>{stagesDefs.find(x => x.id === activeFilter)?.label || "Pedidos"}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border}`, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px", fontWeight: "700" }}>{stagesDefs.find(x => x.id === activeFilter)?.label || "Pedidos"}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "36px", width: "320px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg }}>
+                    <Search size={16} color={t.textSub}/>
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                      placeholder="Buscar pedido, cliente, NF, marketplace..."
+                      style={{ flex: 1, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px" }}
+                    />
+                  </div>
+                </div>
                 <div style={{ flex: 1 }}></div>
                 <span style={{ fontSize: "13px", color: t.textSub }}>{ordersCount} pedidos</span>
               </div>
@@ -558,7 +544,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </div>
               </div>
             </div>
-          </main>
         </div>
       )}
 
