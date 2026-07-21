@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next/themes";
+import { useTheme } from "next-themes";
 import { Box, Clock, CheckCircle2, PackageSearch, X } from "lucide-react";
 
 export function ShippingPickingWavesView({ 

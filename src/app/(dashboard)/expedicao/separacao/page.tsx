@@ -35,7 +35,7 @@ export default async function ExpedicaoSeparacaoPage({
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
 
-  const [orders, operators] = await Promise.all([
+  const [orders] = await Promise.all([
     listShippingPickingOrdersFromDb(user, {
       status: statusFilter || undefined,
       operatorId: operatorFilter || undefined,
