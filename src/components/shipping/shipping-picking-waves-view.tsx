@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Box, Clock, CheckCircle2, PackageSearch, X } from "lucide-react";
+import { Box, Clock, CheckCircle2, PackageSearch, X, ArrowLeft } from "lucide-react";
 
 export function ShippingPickingWavesView({ 
   orders,
@@ -149,6 +149,31 @@ export function ShippingPickingWavesView({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", opacity: 0.95 }}>
+      {/* BACK BUTTON */}
+      <div>
+        <button 
+          onClick={() => router.push("/expedicao")}
+          style={{ 
+            display: "inline-flex", 
+            alignItems: "center", 
+            gap: "8px", 
+            background: "transparent",
+            border: "none",
+            color: t.textSub, 
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: "14px", 
+            fontWeight: "600",
+            cursor: "pointer",
+            transition: "color 0.2s"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = "#8B5CF6"}
+          onMouseLeave={(e) => e.currentTarget.style.color = t.textSub}
+        >
+          <ArrowLeft size={16} />
+          Voltar para expedição
+        </button>
+      </div>
+
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
