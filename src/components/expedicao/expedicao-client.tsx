@@ -586,7 +586,188 @@ export function ExpedicaoClient({ data }: { data: any }) {
       )}
 
       {/* ============ DETAIL DRAWER (NEW COMPLEX ONE) ============ */}
-      {selectedOrder && (() => {
+      {selectedOrder && activeTab === "visao_geral" && (() => {
+        const sel = selectedOrder;
+        
+        // Timeline moves logic (matching infinoos-wms-pedidos.html)
+        const getTimelineSteps = (status: string, o: any) => {
+          let orderIdx = 0;
+          if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
+          if (status === 'EM_CONFERENCIA' || status === 'CONFERIDO') orderIdx = 2;
+          if (status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+
+          const stepMeta = [
+            { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
+            { title: 'Em separação', sub: 'Picking no armazém' },
+            { title: 'Conferência', sub: 'Validação de saída' },
+            { title: 'Expedido', sub: 'Despacho / coleta' }
+          ];
+
+          return stepMeta.map((s, i) => {
+            const done = i < orderIdx, cur = i === orderIdx;
+            return {
+              title: s.title,
+              sub: cur ? 'Em andamento' : (done ? 'Concluído' : s.sub),
+              dot: done || cur ? (cur ? '#8B5CF6' : '#10B981') : t.barTrack,
+              halo: cur ? 'rgba(139,92,246,0.2)' : (done ? 'rgba(16,185,129,0.18)' : 'transparent'),
+              line: i < orderIdx ? '#10B981' : t.border,
+              titleColor: done || cur ? t.text : t.textSub
+            };
+          });
+        };
+
+        const moves = getTimelineSteps(sel.raw.status, sel);
+        const specs = [
+          { k: "Canal", v: sel.carrier },
+          { k: "Depositante", v: sel.owner },
+          { k: "Nota fiscal", v: sel.raw.nfe || "NF " + sel.code.replace(/D/g,'') },
+          { k: "Corte (SLA)", v: sel.sla }
+        ];
+
+        const ring = {
+          c1: '#3B82F6', c2: '#8B5CF6',
+          circ: 289,
+          offset: 289 - (289 * sel.confN) / 100
+        };
+
+        // Try to map real items if they exist
+        const realItems = sel.raw.items || [];
+        const nItems = Math.max(1, realItems.length > 0 ? realItems.length : (sel.raw.itemCount || 3));
+        const doneItems = Math.round(nItems * sel.confN / 100);
+        const itemsToUse = [];
+        for (let i = 0; i < nItems; i++) {
+          const r = realItems[i] || {};
+          const isDone = i < doneItems;
+          itemsToUse.push({
+            name: r.name || r.productName || `Produto Genérico ${i+1}`,
+            sku: r.sku || r.productSku || `SKU-100${i}`,
+            qty: (r.quantity || 1) + ' un',
+            qtyColor: isDone ? '#10B981' : t.textSub,
+            mark: isDone ? '✓' : '',
+            checkBorder: isDone ? '#10B981' : t.border,
+            checkBg: isDone ? '#10B981' : 'transparent'
+          });
+        }
+
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
+            <div
+              onClick={() => setSelectedOrder(null)}
+              style={{ position: "absolute", inset: 0, background: "rgba(6, 10, 20, 0.55)", backdropFilter: "blur(3px)", animation: "overlayFade 0.25s ease" }}
+            ></div>
+            <div style={{ position: "relative", width: "460px", maxWidth: "92vw", height: "100%", background: t.drawerBg, borderLeft: `1px solid ${t.border}`, boxShadow: "-24px 0 60px rgba(0,0,0,0.35)", display: "flex", flexDirection: "column", animation: "drawerIn 0.32s cubic-bezier(.3,1,.4,1)", overflow: "hidden" }}>
+              <div style={{ position: "relative", padding: "24px 24px 20px 24px", borderBottom: `1px solid ${t.border}`, overflow: "hidden" }}>
+                <div style={{ position: "absolute", width: "260px", height: "260px", right: "-80px", top: "-120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139, 92, 246, 0.28), transparent 70%)", pointerEvents: "none" }}></div>
+                <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "0.12em", color: t.textSub }}>PEDIDO</span>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "26px", fontWeight: "700", lineHeight: "1" }}>{sel.code}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", alignSelf: "flex-start", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: sel.statusBg, color: sel.statusColor }}>
+                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: sel.statusDot }}></span>{sel.statusLabel}
+                    </span>
+                  </div>
+                  <button onClick={() => setSelectedOrder(null)} style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+                {/* conference ring + volumes */}
+                <div style={{ display: "flex", alignItems: "center", gap: "22px", padding: "20px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: "20px" }}>
+                  <div style={{ position: "relative", width: "108px", height: "108px", flexShrink: 0 }}>
+                    <svg width="108" height="108" viewBox="0 0 108 108" style={{ transform: "rotate(-90deg)" }}>
+                      <circle cx="54" cy="54" r="46" fill="none" stroke={t.barTrack} strokeWidth="11"></circle>
+                      <circle cx="54" cy="54" r="46" fill="none" stroke="url(#confGrad)" strokeWidth="11" strokeLinecap="round" strokeDasharray={ring.circ} style={{ animation: "fillRing 1s cubic-bezier(0.3, 1, 0.4, 1) forwards", "--ring-offset": ring.offset } as React.CSSProperties}></circle>
+                      <defs>
+                        <linearGradient id="confGrad" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0" stopColor={ring.c1}></stop>
+                          <stop offset="1" stopColor={ring.c2}></stop>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "22px", fontWeight: "700" }}>{sel.conf}</span>
+                      <span style={{ fontSize: "10.5px", color: t.textSub }}>conferido</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                      <span style={{ fontSize: "12px", color: t.textSub }}>Cliente</span>
+                      <span style={{ fontSize: "15px", fontWeight: "700", lineHeight: "1.3" }}>{sel.customer}</span>
+                      <span style={{ fontSize: "12.5px", color: t.textSub }}>{sel.city}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "18px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.itemsLabel.split(' ')[0]}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>itens</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.raw.weight || "0,8 kg"}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>peso</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* carrier + dock + specs */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
+                  {specs.map((s: any, i: number) => (
+                    <div key={i} style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
+                      <span style={{ fontSize: "14.5px", fontWeight: "700" }}>{s.v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* packing list */}
+                <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Itens do pedido</span>
+                    <span style={{ fontSize: "12.5px", color: t.textSub }}>{doneItems} de {nItems} conferidos</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {itemsToUse.map((it: any, i: number) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                        <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
+                        </div>
+                        <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* timeline */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Histórico</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    {moves.map((m: any, i: number) => (
+                      <div key={i} style={{ display: "flex", gap: "14px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
+                          <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
+                          <span style={{ flex: 1, width: "2px", background: m.line }}></span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "16px" }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: "700" }}>{m.title}</span>
+                          <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
+                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>⎙ Romaneio</button>
+                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>✓ Conferir</button>
+                <button style={{ flex: 1.2, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>⇢ Despachar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+
+      {selectedOrder && activeTab === "pedidos_full" && (() => {
         const sel = selectedOrder;
         
         // Timeline moves logic (matching infinoos-wms-pedidos.html)
