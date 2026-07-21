@@ -23,7 +23,8 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
   const [newLotCode, setNewLotCode] = useState("");
   const [newLotValidade, setNewLotValidade] = useState("");
 
-  const skuBalances = allBalances.filter((b) => b.productId === sku.productId);
+  const skuIdToFind = sku.productId || sku.sku;
+  const skuBalances = allBalances.filter((b) => (b.productId || b.sku) === skuIdToFind);
   const selectedBalance = skuBalances.find((b) => b.id === sourceStockId);
   const currentQty = selectedBalance ? selectedBalance.rawQuantidade : 0;
   
