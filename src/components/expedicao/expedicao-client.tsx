@@ -270,7 +270,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const alertIcon = <AlertTriangle size={20} />;
   const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO");
   const ordersCount = searchedOrders.length;
-  const columns = ["Pedido", "Cliente", "Depositante", "Marketplace", "Itens", "Conferência", "SLA", "Status", ""];
+  const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
 
   return (
@@ -589,26 +589,36 @@ export function ExpedicaoClient({ data }: { data: any }) {
       {selectedOrder && (() => {
         const sel = selectedOrder;
         
-        // Timeline moves logic
+        // Timeline moves logic (matching infinoos-wms-pedidos.html)
         const getTimelineSteps = (status: string, o: any) => {
-          const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(status);
-          const isConf = status === "EM_CONFERENCIA" || isExpedido;
-          const isSep = ["EM_SEPARACAO", "SEPARADO"].includes(status) || isConf;
-          
-          const timePedido = o.raw.orderDate || "Hoje";
-          const timeSinc = o.raw.syncedAt || "";
-          
-          return [
-            { title: isExpedido ? 'Pedido despachado' : 'Conferência de saída', sub: (isConf ? 'Finalizado' : 'Aguardando'), dot: isConf ? '#10B981' : t.textSub, halo: isConf ? 'rgba(16,185,129,0.2)' : 'transparent', line: t.border },
-            { title: 'Separação concluída', sub: isSep ? 'Onda finalizada' : 'Na fila de separação', dot: isSep ? '#3B82F6' : t.textSub, halo: isSep ? 'rgba(59,130,246,0.2)' : 'transparent', line: t.border },
-            { title: 'Pedido liberado', sub: timeSinc, dot: '#8B5CF6', halo: 'rgba(139,92,246,0.2)', line: t.border },
-            { title: 'Pedido recebido', sub: timePedido, dot: '#64748B', halo: 'transparent', line: t.border }
+          let orderIdx = 0;
+          if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
+          if (status === 'EM_CONFERENCIA' || status === 'CONFERIDO') orderIdx = 2;
+          if (status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+
+          const stepMeta = [
+            { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
+            { title: 'Em separação', sub: 'Picking no armazém' },
+            { title: 'Conferência', sub: 'Validação de saída' },
+            { title: 'Expedido', sub: 'Despacho / coleta' }
           ];
+
+          return stepMeta.map((s, i) => {
+            const done = i < orderIdx, cur = i === orderIdx;
+            return {
+              title: s.title,
+              sub: cur ? 'Em andamento' : (done ? 'Concluído' : s.sub),
+              dot: done || cur ? (cur ? '#8B5CF6' : '#10B981') : t.barTrack,
+              halo: cur ? 'rgba(139,92,246,0.2)' : (done ? 'rgba(16,185,129,0.18)' : 'transparent'),
+              line: i < orderIdx ? '#10B981' : t.border,
+              titleColor: done || cur ? t.text : t.textSub
+            };
+          });
         };
 
         const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
-          { k: "Marketplace", v: sel.carrier },
+          { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
           { k: "Nota fiscal", v: sel.raw.nfe || "NF " + sel.code.replace(/D/g,'') },
           { k: "Corte (SLA)", v: sel.sla }
