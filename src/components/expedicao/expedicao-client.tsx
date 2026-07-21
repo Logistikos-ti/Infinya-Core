@@ -100,7 +100,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: 'todos', label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
     { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, hasCount: true, isAlert: false },
     { id: 'conferencia', label: "Em conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA").length, hasCount: true, isAlert: false },
-    { id: 'carregando', label: "Carregando", count: data.orders.filter((o: any) => ["EM_SEPARACAO", "SEPARADO", "PRONTO_ROMANEIO"].includes(o.status)).length, hasCount: true, isAlert: false },
     { id: 'atrasados', label: "Atrasados", count: data.orders.filter((o: any) => o.ageTone === "LATE").length, hasCount: true, isAlert: true }
   ];
 
@@ -622,7 +621,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe && !sel.raw.nfe.includes("Ainda") ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
+          { k: "Nota fiscal", v: sel.raw.nfe },
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
@@ -808,7 +807,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe && !sel.raw.nfe.includes("Ainda") ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
+          { k: "Nota fiscal", v: sel.raw.nfe },
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
