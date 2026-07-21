@@ -67,8 +67,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const flowCards = [
     { href: "#", kicker: "PAINEL", iconEl: <ClipboardList size={20} className="animated-icon" />, iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Pedidos", desc: "Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Ver Pedidos" },
-    { href: "#", kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" },
-    { href: "#", kicker: "VALIDAÇÃO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" },
+    { href: "#", kicker: "OPERAÇíO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" },
+    { href: "#", kicker: "VALIDAÇíO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" },
     { href: "#", kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
   ];
 
@@ -112,13 +112,14 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const getCarrierStyle = (name: string) => {
     const n = (name || "").toUpperCase();
-    if (n.includes("MERCADO LIVRE") || n.includes("MERCADOLIVRE") || n.includes("MELI")) return { color: "#CA8A04", bg: "rgba(253,224,71,0.25)", init: "ME" };
+    if (n.includes("MERCADO LIVRE") || n.includes("MERCADOLIVRE") || n.includes("MELI") || n.includes("MERCADO ENVIOS") || n.includes("MERCADOENVIOS")) return { color: "#CA8A04", bg: "rgba(253,224,71,0.25)", init: "ME" };
     if (n.includes("SHOPEE")) return { color: "#EA580C", bg: "rgba(249,115,22,0.15)", init: "SH" };
     if (n.includes("AMAZON")) return { color: "#EA580C", bg: "rgba(249,115,22,0.15)", init: "AM" };
     if (n.includes("B2W") || n.includes("AMERICANAS")) return { color: "#E11D48", bg: "rgba(225,29,72,0.15)", init: "B2" };
     if (n.includes("MAGALU") || n.includes("MAGAZINE LUIZA")) return { color: "#2563EB", bg: "rgba(37,99,235,0.15)", init: "MG" };
     if (n.includes("ALIEXPRESS") || n.includes("ALI EXPRESS")) return { color: "#E11D48", bg: "rgba(225,29,72,0.15)", init: "AL" };
     if (n.includes("SHEIN")) return { color: "#000000", bg: "rgba(0,0,0,0.1)", init: "SH" };
+    if (n.includes("JADLOG")) return { color: "#475569", bg: "rgba(100,116,139,0.15)", init: "JA" };
     if (n.includes("SITE") || n.includes("ECOMMERCE") || n.includes("LOJA")) return { color: "#059669", bg: "rgba(16,185,129,0.15)", init: "LO" };
     const init = (name || "N/A").slice(0, 2).toUpperCase();
     return { color: "#64748B", bg: "rgba(148,163,184,0.15)", init };
