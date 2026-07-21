@@ -131,6 +131,39 @@ export function ExpedicaoClient({ data }: { data: any }) {
         .animated-icon {
           animation: icon-pulse 2s ease-in-out infinite;
         }
+        .flow-card {
+          text-decoration: none;
+          position: relative;
+          padding: 22px;
+          border-radius: 16px;
+          background: var(--card-bg);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          cursor: pointer;
+          overflow: hidden;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .flow-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          background: var(--border);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+          transition: background 0.18s ease;
+        }
+        .flow-card:hover {
+          transform: translateY(-4px);
+          box-shadow: var(--shadow);
+        }
+        .flow-card:hover::before {
+          background: linear-gradient(135deg, var(--accent), transparent);
+        }
       `}</style>
 
       {/*<!-- title row -->*/}
@@ -171,7 +204,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       { isOrders  && (<>
       <div style={{display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px"}}>
         {flowCards ?.map((c: any, i: number) => <React.Fragment key={i}>
-          <a href="{c.href }" style={{textDecoration: "none", position: "relative", padding: "22px", borderRadius: "16px", border: `1px solid ${t.border }`, background: `${t.cardBg }`, display: "flex", flexDirection: "column", gap: "16px", cursor: "pointer", overflow: "hidden", transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"}} >
+          <a href={c.href} className="flow-card" style={{ "--accent": c.accent, "--card-bg": t.cardBg, "--border": t.border, "--shadow": isDark ? "0 16px 32px rgba(0,0,0,0.2)" : "0 16px 32px rgba(0,0,0,0.06)" } as React.CSSProperties} >
             <div style={{display: "flex", alignItems: "flex-start", justifyContent: "space-between"}}>
               <span style={{fontSize: "11px", fontWeight: "800", letterSpacing: "0.12em", color: `${c.accent }`}}>{c.kicker }</span>
               <span style={{width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", background: `${c.iconBg }`, color: `${c.accent }`}}>{c.iconEl }</span>
