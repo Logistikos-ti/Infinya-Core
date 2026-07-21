@@ -226,7 +226,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -384,7 +384,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -413,7 +413,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
   const marketplace = extractMarketplace(payload);
-  const invoice = extractInvoice(payload);
+  const invoice = extractInvoice(payload, (order as any).documentos);
   const orderType = extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
   const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
@@ -603,7 +603,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
-  const nfe = extractInvoice(payload);
+  const nfe = extractInvoice(payload, (item as any).documentos);
   
   const items = (item.itens ?? []).map((it) => ({
     name: it.nome,
@@ -773,10 +773,24 @@ function extractStore(payload: Record<string, unknown>, storeNumberFallback: str
   return readStoreDisplay(payload, storeNumberFallback);
 }
 
-function extractInvoice(payload: Record<string, unknown>) {
+function extractInvoice(payload: Record<string, unknown>, documents?: any[]) {
   const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : null;
+  const num = readString(notaFiscal?.numero);
+  if (num) return num;
 
-  return readString(notaFiscal?.numero) ?? "Ainda não vinculada";
+  if (documents && Array.isArray(documents)) {
+    const nfDoc = documents.find((d: any) => d.tipo === "NF" || (d.mime_type && d.mime_type.includes("xml")));
+    if (nfDoc && typeof nfDoc.nome_arquivo === "string") {
+      const match = nfDoc.nome_arquivo.match(/^(\d{44})/);
+      if (match) {
+        const chave = match[1];
+        const numero = chave.substring(25, 34);
+        return String(parseInt(numero, 10));
+      }
+    }
+  }
+
+  return "Ainda não vinculada";
 }
 
 function extractPlatformOrderNumber(
