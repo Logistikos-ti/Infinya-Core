@@ -5,7 +5,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Box, Clock, CheckCircle2, PackageSearch, X, ArrowLeft } from "lucide-react";
+import { Box, Clock, CheckCircle2, PackageSearch, X } from "lucide-react";
 
 export function ShippingPickingWavesView({ 
   orders,
@@ -149,29 +149,19 @@ export function ShippingPickingWavesView({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", opacity: 0.95 }}>
-      {/* BACK BUTTON */}
-      <div>
+      {/* BREADCRUMB / BACK BUTTON */}
+      <div className="flex items-center gap-3 mb-2 mt-2">
         <button 
           onClick={() => router.push("/expedicao")}
-          style={{ 
-            display: "inline-flex", 
-            alignItems: "center", 
-            gap: "8px", 
-            background: "transparent",
-            border: "none",
-            color: t.textSub, 
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: "14px", 
-            fontWeight: "600",
-            cursor: "pointer",
-            transition: "color 0.2s"
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.color = "#8B5CF6"}
-          onMouseLeave={(e) => e.currentTarget.style.color = t.textSub}
+          className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm cursor-pointer"
         >
-          <ArrowLeft size={16} />
-          Voltar para expedição
+          <span className="mr-1.5 text-slate-500 font-normal">‹</span> Expedição
         </button>
+        <div className="flex items-center gap-2 text-[14px] ml-1">
+          <span className="text-slate-500">Expedição</span>
+          <span className="text-slate-300 dark:text-slate-600 text-[12px]">›</span>
+          <span className="text-slate-900 dark:text-slate-100 font-medium">Ondas de Separação</span>
+        </div>
       </div>
 
       {/* HEADER */}
