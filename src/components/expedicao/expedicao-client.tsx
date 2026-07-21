@@ -200,7 +200,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const orders = paginatedOrders.map((o: any) => {
     const ss = getStatusStyle(o.status);
-    const carrierRaw = o.channel || o.marketplace || o.carrierName || "N/A";
+    let carrierRaw = o.marketplace && o.marketplace !== "Não" && o.marketplace !== "Marketplace" 
+      ? o.marketplace 
+      : (o.channel && o.channel !== "BLING" ? o.channel : (o.carrierName || "N/A"));
     const cs = getCarrierStyle(carrierRaw);
     
     const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
