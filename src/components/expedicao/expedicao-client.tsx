@@ -159,11 +159,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
       count: count,
       accent: s.accent,
       iconEl,
-      border: active ? (isDark ? s.accent : "#0f172a") : t.border,
-      bg: active ? (isDark ? getHex2(s.accent, 0.08) : "#f1f5f9") : t.cardBg,
+      border: active ? s.accent : t.border,
+      bg: active ? getHex2(s.accent, 0.08) : t.cardBg,
       iconBg: getHex2(s.accent, 0.14),
-      countColor: active ? (isDark ? s.accent : "#0f172a") : t.text,
-      labelColor: active ? (isDark ? s.accent : "#475569") : t.textSub,
+      countColor: active ? s.accent : t.text,
+      labelColor: active ? s.accent : t.textSub,
       pick: () => { setActiveFilter(s.id); setCurrentPage(1); }
     };
   });
