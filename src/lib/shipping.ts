@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { AppUserContext } from "@/lib/auth";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";

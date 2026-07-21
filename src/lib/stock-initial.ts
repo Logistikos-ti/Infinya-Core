@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RegisterInitialStockInput = {

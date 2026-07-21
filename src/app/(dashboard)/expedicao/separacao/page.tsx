@@ -19,7 +19,7 @@ type ExpedicaoSeparacaoPageProps = {
 export default async function ExpedicaoSeparacaoPage({
   searchParams,
 }: ExpedicaoSeparacaoPageProps) {
-  const user = await requireModuleAccess("expedicao", ["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireModuleAccess("expedicao");
   const params = await searchParams;
 
   const statusFilter = params?.status?.trim() ?? "";
