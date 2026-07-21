@@ -54,43 +54,41 @@ export function ShippingPickingWavesView({
     const opColors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981'];
     let colorIdx = 0;
 
-    return Array.from(groups.entries()).map(([key, opsOrders], i) => {
-      const isNovo = key === 'aguardando';
-      const operatorName = isNovo ? 'Não iniciada' : (opsOrders[0].operatorName || 'Operador Desconhecido');
+    return Array.from(groups.entries())
+      .filter(([key]) => key !== 'aguardando')
+      .map(([key, opsOrders], i) => {
+      const operatorName = opsOrders[0].operatorName || 'Operador Desconhecido';
       
       let totalItems = 0;
       let completedItems = 0;
       opsOrders.forEach(o => {
-        // o.totalItems might be the count of items or units. We mock completed for now if not available
         const items = o.totalItems || o.itens?.length || 0;
         totalItems += items;
-        // Mock progress if EM_SEPARACAO to make it look alive, unless we have real progress
-        completedItems += o.completedItems || (isNovo ? 0 : Math.floor(items / 2)); 
+        completedItems += o.completedItems || Math.floor(items / 2); 
       });
 
       const pct = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-      const status = isNovo ? 'Aguardando' : (pct >= 100 ? 'Concluída' : 'Em separação');
+      const status = pct >= 100 ? 'Concluída' : 'Em separação';
       const done = status === 'Concluída';
       
       let statusBg, statusColor, statusDot;
-      if (status === 'Aguardando') { statusBg = hex2('#F59E0B', 0.16); statusColor = '#F59E0B'; statusDot = '#F59E0B'; }
-      else if (status === 'Em separação') { statusBg = hex2('#3B82F6', 0.14); statusColor = '#3B82F6'; statusDot = '#3B82F6'; }
+      if (status === 'Em separação') { statusBg = hex2('#3B82F6', 0.14); statusColor = '#3B82F6'; statusDot = '#3B82F6'; }
       else if (status === 'Concluída') { statusBg = hex2('#10B981', 0.14); statusColor = '#10B981'; statusDot = '#10B981'; }
       
       const c = opColors[colorIdx % opColors.length];
       colorIdx++;
 
       return {
-        id: isNovo ? 'aguardando' : key,
-        code: isNovo ? `Fila Pendente` : `Onda W-${i+101}`,
+        id: key,
+        code: `Onda W-${i+101}`,
         meta: `${opsOrders.length} pedidos · ${opsOrders[0].depositante || 'Vários'}`,
         status,
         statusBg, statusColor, statusDot,
         pct,
         pctColor: done ? '#10B981' : (pct === 0 ? t.textSub : '#8B5CF6'),
-        barFill: done ? 'linear-gradient(90deg,#10B981,#34D399)' : grad,
+        barFill: done ? 'linear-gradient(90deg,#10B981,#34D399)' : 'linear-gradient(90deg,#3B82F6,#8B5CF6)',
         op: operatorName,
-        opInit: isNovo ? '—' : operatorName.split(' ').map((x:any) => x[0]).slice(0, 2).join(''),
+        opInit: operatorName.split(' ').map((x:any) => x[0]).slice(0, 2).join(''),
         opBg: `linear-gradient(135deg, ${c}, ${hex2(c, 0.65)})`,
         cta: done ? 'Ver detalhes' : (pct === 0 ? 'Iniciar separação' : 'Continuar separação'),
         stats: [
@@ -100,11 +98,11 @@ export function ShippingPickingWavesView({
         ],
         orders: opsOrders.map(o => o.id)
       };
-    }).sort((a) => a.id === 'aguardando' ? 1 : -1); // put pending at the end
+    }).sort((a,b) => -1);
   }, [orders]);
 
   const kpis = [
-    { label: 'Ondas ativas', value: activeWaves.filter(w => w.id !== 'aguardando' && w.status !== 'Concluída').length, iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.14), iconColor: '#3B82F6' },
+    { label: 'Ondas ativas', value: activeWaves.filter(w => w.status !== 'Concluída').length, iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.14), iconColor: '#3B82F6' },
     { label: 'Pedidos em separação', value: orders.filter(o => o.status === 'EM_SEPARACAO').length, iconEl: <ClipboardList size={20} />, iconBg: hex2('#8B5CF6', 0.14), iconColor: '#8B5CF6' },
     { label: 'Aguardando onda', value: orders.filter(o => o.status === 'NOVO').length, iconEl: <Clock size={20} />, iconBg: hex2('#F59E0B', 0.14), iconColor: '#F59E0B' },
     { label: 'Concluídas hoje', value: orders.filter(o => o.status === 'SEPARADO').length, iconEl: <CheckCircle2 size={20} />, iconBg: hex2('#10B981', 0.14), iconColor: '#10B981' }
@@ -241,28 +239,33 @@ export function ShippingPickingWavesView({
 
       {/* CREATE WAVE MODAL */}
       {showCreate && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "flex-end", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }}>
-          <div style={{ width: "100%", maxWidth: "440px", height: "100%", background: t.cardBg, borderLeft: `1px solid ${t.border}`, boxShadow: "-10px 0 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", animation: "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px", borderBottom: `1px solid ${t.border}` }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "20px", fontWeight: "800", color: t.text }}>Criar nova onda</span>
-                <span style={{ fontSize: "13.5px", color: t.textSub }}>Selecione a estratégia de agrupamento</span>
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+          <div onClick={() => setShowCreate(false)} style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.6)", backdropFilter: "blur(4px)", animation: "overlayFade 0.25s ease" }}></div>
+          <div style={{ position: "relative", width: "520px", maxWidth: "96vw", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", borderRadius: "20px", background: t.cardBg, border: `1px solid ${t.border}`, boxShadow: "0 32px 80px rgba(0,0,0,0.4)", animation: "drawerIn 0.3s cubic-bezier(.3,1,.4,1)" }}>
+            <div style={{ padding: "24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "20px", fontWeight: "700", color: t.text }}>Nova onda de separação</span>
+                <span style={{ fontSize: "13px", color: t.textSub }}>Selecione critérios para agrupar os pedidos.</span>
               </div>
-              <button onClick={() => setShowCreate(false)} style={{ width: "36px", height: "36px", borderRadius: "10px", background: t.softBg, border: `1px solid ${t.border}`, color: t.textSub, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={18} /></button>
+              <button onClick={() => setShowCreate(false)} style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => e.currentTarget.style.color = "#8B5CF6"} onMouseLeave={(e) => e.currentTarget.style.color = t.textSub}>
+                <X size={18} />
+              </button>
             </div>
             
-            <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
-              {/* Strategy Selector */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {stratDefs.map((s, i) => {
-                  const on = i === strategy;
-                  return (
-                    <div key={i} onClick={() => setStrategy(i)} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${on ? '#8B5CF6' : t.border}`, background: on ? hex2('#8B5CF6', 0.10) : t.cardBg, display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.16s ease" }}>
-                      <span style={{ fontSize: "13.5px", fontWeight: "700", color: on ? (isDark ? '#C4B5FD' : '#7C3AED') : t.text }}>{s.title}</span>
-                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span>
-                    </div>
-                  );
-                })}
+            <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Estratégia de agrupamento</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {stratDefs.map((s, i) => {
+                    const on = i === strategy;
+                    return (
+                      <div key={i} onClick={() => setStrategy(i)} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${on ? '#8B5CF6' : t.border}`, background: on ? hex2('#8B5CF6', 0.08) : t.cardBg, display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.16s ease" }}>
+                        <span style={{ fontSize: "13.5px", fontWeight: "700", color: on ? (isDark ? '#C4B5FD' : '#8B5CF6') : t.text }}>{s.title}</span>
+                        <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -291,12 +294,12 @@ export function ShippingPickingWavesView({
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", borderRadius: "12px", background: t.softBg, border: `1px dashed ${t.border}` }}>
-                <span style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(139,92,246,0.16)", color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(139,92,246,0.16)", color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Box size={20} />
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
                   <span style={{ fontSize: "14px", fontWeight: "700", color: t.text }}>{eligibleOrders.length} pedidos elegíveis</span>
-                  <span style={{ fontSize: "12px", color: t.textSub }}>{previewItems} itens estimados nesta onda</span>
+                  <span style={{ fontSize: "12px", color: t.textSub }}>{previewItems} volumes estimados nesta onda</span>
                 </div>
               </div>
             </div>
