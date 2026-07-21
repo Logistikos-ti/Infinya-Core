@@ -94,25 +94,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const flowCards = [
     { onClick: () => setActiveTab("pedidos_full"), kicker: "PAINEL", iconEl: <ClipboardList size={20} className="animated-icon" />, iconBg: "rgba(139,92,246,0.15)", accent: "#8B5CF6", title: "Pedidos", desc: "Ir direto para a listagem completa de pedidos, filtros operacionais e acompanhamento da fila.", btnBg: "rgba(139,92,246,0.15)", btnColor: "#8B5CF6", cta: "Ver Pedidos" },
     { 
-      onClick: () => {
-        const orderToPick = data.orders.find((o: any) => o.status === "NOVO" || o.status === "EM_SEPARACAO");
-        if (orderToPick) {
-          router.push(`/expedicao/separacao/${orderToPick.id}`);
-        } else {
-          alert("Nenhum pedido aguardando separação no momento.");
-        }
-      }, 
+      onClick: () => router.push("/expedicao/separacao"), 
       kicker: "OPERAÇÃO", iconEl: <ListChecks size={20} className="animated-icon" />, iconBg: "rgba(59,130,246,0.15)", accent: "#3B82F6", title: "Separação", desc: "Abrir a fila de picking, distribuir os pedidos e iniciar a leitura operacional do armazém.", btnBg: "rgba(59,130,246,0.15)", btnColor: "#3B82F6", cta: "Entrar em Separação" 
     },
     { 
-      onClick: () => {
-        const orderToPick = data.orders.find((o: any) => o.status === "SEPARADO" || o.status === "EM_CONFERENCIA");
-        if (orderToPick) {
-          router.push(`/expedicao/conferencia/${orderToPick.id}`);
-        } else {
-          alert("Nenhum pedido aguardando conferência no momento.");
-        }
-      }, 
+      onClick: () => router.push("/expedicao/conferencia"), 
       kicker: "VALIDAÇÃO", iconEl: <Scan size={20} className="animated-icon" />, iconBg: "rgba(168,85,247,0.15)", accent: "#A855F7", title: "Conferência", desc: "Entrar na etapa final, validar item a item e liberar somente pedidos conferidos para expedição.", btnBg: "rgba(168,85,247,0.15)", btnColor: "#A855F7", cta: "Entrar em Conferência" 
     },
     { onClick: () => router.push("/expedicao/conferidos"), kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
