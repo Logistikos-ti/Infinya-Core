@@ -73,30 +73,23 @@ export function ExpedicaoClient({ data }: { data: any }) {
   ];
 
   const tableFiltersDef = [
-    { id: 'todos', label: "Todos", count: data.orders.length, color: "" },
-    { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, color: "#64748B" },
-    { id: 'separacao', label: "Separação", count: data.orders.filter((o: any) => o.status === "EM_SEPARACAO" || o.status === "SEPARADO").length, color: "#3B82F6" },
-    { id: 'conferencia', label: "Conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA").length, color: "#8B5CF6" },
-    { id: 'expedido', label: "Expedido", count: data.orders.filter((o: any) => o.status === "EXPEDIDO" || o.status === "PRONTO_ROMANEIO").length, color: "#10B981" }
+    { id: 'todos', label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
+    { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, hasCount: true, isAlert: false },
+    { id: 'conferencia', label: "Em conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA").length, hasCount: true, isAlert: false },
+    { id: 'carregando', label: "Carregando", count: data.orders.filter((o: any) => ["EM_SEPARACAO", "SEPARADO", "PRONTO_ROMANEIO"].includes(o.status)).length, hasCount: true, isAlert: false },
+    { id: 'atrasados', label: "Atrasados", count: data.orders.filter((o: any) => o.ageTone === "LATE").length, hasCount: true, isAlert: true }
   ];
 
   const filters = tableFiltersDef.map(f => {
     const active = activeFilter === f.id;
-    const c = active ? (f.color || t.text) : t.textSub;
-    let bgCol = "transparent";
-    if (f.color === "#64748B") bgCol = "rgba(100,116,139,0.15)";
-    if (f.color === "#3B82F6") bgCol = "rgba(59,130,246,0.15)";
-    if (f.color === "#8B5CF6") bgCol = "rgba(139,92,246,0.15)";
-    if (f.color === "#10B981") bgCol = "rgba(16,185,129,0.15)";
-
     return {
       ...f,
-      hasCount: f.count > 0,
-      bg: active ? (f.color ? bgCol : t.cardBg) : t.softBg,
-      color: c,
-      border: active ? (f.color || t.border) : 'transparent',
-      countBg: active ? (f.color || t.text) : t.border,
-      countColor: active ? '#fff' : t.text,
+      bg: active ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+      color: active ? "#fff" : t.text,
+      border: active ? "transparent" : t.border,
+      countBg: active ? "rgba(255,255,255,0.2)" : (f.isAlert && f.count > 0 ? "rgba(239, 68, 68, 0.15)" : (isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9")),
+      countColor: active ? "#fff" : (f.isAlert && f.count > 0 ? "#EF4444" : (isDark ? "#94A3B8" : "#64748B")),
+      countFw: f.isAlert && f.count > 0 ? "800" : "600",
       action: () => setActiveFilter(f.id)
     };
   });
@@ -118,18 +111,24 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
 
   const getCarrierStyle = (name: string) => {
-    const n = name.toUpperCase();
-    if (n.includes("MERCADO LIVRE") || n.includes("MELI")) return { color: "#FDE047", bg: "rgba(253,224,71,0.15)" };
-    if (n.includes("SHOPEE") || n.includes("AMAZON")) return { color: "#F97316", bg: "rgba(249,115,22,0.15)" };
-    if (n.includes("B2W") || n.includes("ALIEXPRESS") || n.includes("MAGALU")) return { color: "#EF4444", bg: "rgba(239,68,68,0.15)" };
-    return { color: "#64748B", bg: "rgba(148,163,184,0.15)" };
+    const n = (name || "").toUpperCase();
+    if (n.includes("MERCADO LIVRE") || n.includes("MERCADOLIVRE") || n.includes("MELI")) return { color: "#CA8A04", bg: "rgba(253,224,71,0.25)", init: "ME" };
+    if (n.includes("SHOPEE")) return { color: "#EA580C", bg: "rgba(249,115,22,0.15)", init: "SH" };
+    if (n.includes("AMAZON")) return { color: "#EA580C", bg: "rgba(249,115,22,0.15)", init: "AM" };
+    if (n.includes("B2W") || n.includes("AMERICANAS")) return { color: "#E11D48", bg: "rgba(225,29,72,0.15)", init: "B2" };
+    if (n.includes("MAGALU") || n.includes("MAGAZINE LUIZA")) return { color: "#2563EB", bg: "rgba(37,99,235,0.15)", init: "MG" };
+    if (n.includes("ALIEXPRESS") || n.includes("ALI EXPRESS")) return { color: "#E11D48", bg: "rgba(225,29,72,0.15)", init: "AL" };
+    if (n.includes("SHEIN")) return { color: "#000000", bg: "rgba(0,0,0,0.1)", init: "SH" };
+    if (n.includes("SITE") || n.includes("ECOMMERCE") || n.includes("LOJA")) return { color: "#059669", bg: "rgba(16,185,129,0.15)", init: "LO" };
+    const init = (name || "N/A").slice(0, 2).toUpperCase();
+    return { color: "#64748B", bg: "rgba(148,163,184,0.15)", init };
   };
 
   const filteredDataOrders = activeFilter === "todos" ? data.orders : data.orders.filter((o: any) => {
     if (activeFilter === "aguardando") return o.status === "NOVO";
-    if (activeFilter === "separacao") return o.status === "EM_SEPARACAO" || o.status === "SEPARADO";
     if (activeFilter === "conferencia") return o.status === "EM_CONFERENCIA";
-    if (activeFilter === "expedido") return o.status === "EXPEDIDO" || o.status === "PRONTO_ROMANEIO";
+    if (activeFilter === "carregando") return ["EM_SEPARACAO", "SEPARADO", "PRONTO_ROMANEIO"].includes(o.status);
+    if (activeFilter === "atrasados") return o.ageTone === "LATE";
     return true;
   });
 
@@ -151,7 +150,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       city: o.destination || "-",
       owner: o.depositante || "-",
       carrier: carrierRaw,
-      carrierInit: carrierRaw.slice(0, 2).toUpperCase(),
+      carrierInit: cs.init,
       carrierColor: cs.color,
       carrierBg: cs.bg,
       itemsLabel: `${o.itemCount || 0} ${(o.itemCount === 1 ? 'item' : 'itens')}`,
@@ -288,7 +287,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       <div style={{borderRadius: "16px", border: `1px solid ${t.border }`, background: `${t.cardBg }`, overflow: "hidden"}}>
         <div style={{display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border }`, flexWrap: "wrap"}}>
           {filters ?.map((f: any, i: number) => <React.Fragment key={i}>
-            <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount  && (<><span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span></>)}</button>
+            <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount  && (<><span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span></>)}</button>
           </React.Fragment>)}
           <div style={{flex: "1"}}></div>
           <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount } pedidos na fila</span>
