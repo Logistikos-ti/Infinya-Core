@@ -23,6 +23,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const isDark = theme === "dark";
 
   const [activeTab, setActiveTab] = useState("orders");
+  const [activeFilter, setActiveFilter] = useState("todos");
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -71,34 +72,99 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { href: "#", kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
   ];
 
-  const tableFilters = [
-    { label: "Todos", hasCount: false, count: 0, countBg: "", countColor: "", bg: t.softBg, color: t.text, border: "transparent" }
+  const tableFiltersDef = [
+    { id: 'todos', label: "Todos", count: data.orders.length, color: "" },
+    { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, color: "#64748B" },
+    { id: 'separacao', label: "Separação", count: data.orders.filter((o: any) => o.status === "EM_SEPARACAO" || o.status === "SEPARADO").length, color: "#3B82F6" },
+    { id: 'conferencia', label: "Conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA").length, color: "#8B5CF6" },
+    { id: 'expedido', label: "Expedido", count: data.orders.filter((o: any) => o.status === "EXPEDIDO" || o.status === "PRONTO_ROMANEIO").length, color: "#10B981" }
   ];
-  const tSearchIcon = <PackageSearch size={16} />;
 
-  const getStatusColor = (s: string) => {
-    if (s === "CONCLUIDO") return { bg: "rgba(16,185,129,0.15)", text: "#10B981" };
-    if (s === "PENDENTE") return { bg: "rgba(245,158,11,0.15)", text: "#F59E0B" };
-    return { bg: "rgba(148,163,184,0.15)", text: "#64748B" };
+  const filters = tableFiltersDef.map(f => {
+    const active = activeFilter === f.id;
+    const c = active ? (f.color || t.text) : t.textSub;
+    let bgCol = "transparent";
+    if (f.color === "#64748B") bgCol = "rgba(100,116,139,0.15)";
+    if (f.color === "#3B82F6") bgCol = "rgba(59,130,246,0.15)";
+    if (f.color === "#8B5CF6") bgCol = "rgba(139,92,246,0.15)";
+    if (f.color === "#10B981") bgCol = "rgba(16,185,129,0.15)";
+
+    return {
+      ...f,
+      hasCount: f.count > 0,
+      bg: active ? (f.color ? bgCol : t.cardBg) : t.softBg,
+      color: c,
+      border: active ? (f.color || t.border) : 'transparent',
+      countBg: active ? (f.color || t.text) : t.border,
+      countColor: active ? '#fff' : t.text,
+      action: () => setActiveFilter(f.id)
+    };
+  });
+
+  const getStatusStyle = (s: string) => {
+    const statusMap: Record<string, { bg: string; color: string }> = {
+      "NOVO": { bg: "rgba(100,116,139,0.15)", color: "#64748B" },
+      "EM_SEPARACAO": { bg: "rgba(59,130,246,0.15)", color: "#3B82F6" },
+      "SEPARADO": { bg: "rgba(59,130,246,0.15)", color: "#3B82F6" },
+      "EM_CONFERENCIA": { bg: "rgba(139,92,246,0.15)", color: "#8B5CF6" },
+      "CONFERIDO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
+      "PRONTO_ROMANEIO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
+      "EXPEDIDO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
+      "CANCELADO": { bg: "rgba(239,68,68,0.15)", color: "#EF4444" },
+      "DIVERGENTE": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" }
+    };
+    const mapped = statusMap[s] || { bg: "rgba(148,163,184,0.15)", color: "#64748B" };
+    return { statusBg: mapped.bg, statusColor: mapped.color, statusDot: mapped.color };
   };
 
-  const tableOrders = data.orders.map((o: any) => {
-    const sc = getStatusColor(o.status);
+  const getCarrierStyle = (name: string) => {
+    const n = name.toUpperCase();
+    if (n.includes("MERCADO LIVRE") || n.includes("MELI")) return { color: "#FDE047", bg: "rgba(253,224,71,0.15)" };
+    if (n.includes("SHOPEE") || n.includes("AMAZON")) return { color: "#F97316", bg: "rgba(249,115,22,0.15)" };
+    if (n.includes("B2W") || n.includes("ALIEXPRESS") || n.includes("MAGALU")) return { color: "#EF4444", bg: "rgba(239,68,68,0.15)" };
+    return { color: "#64748B", bg: "rgba(148,163,184,0.15)" };
+  };
+
+  const filteredDataOrders = activeFilter === "todos" ? data.orders : data.orders.filter((o: any) => {
+    if (activeFilter === "aguardando") return o.status === "NOVO";
+    if (activeFilter === "separacao") return o.status === "EM_SEPARACAO" || o.status === "SEPARADO";
+    if (activeFilter === "conferencia") return o.status === "EM_CONFERENCIA";
+    if (activeFilter === "expedido") return o.status === "EXPEDIDO" || o.status === "PRONTO_ROMANEIO";
+    return true;
+  });
+
+  const orders = filteredDataOrders.map((o: any) => {
+    const ss = getStatusStyle(o.status);
+    const carrierRaw = o.carrierName || o.channel || o.marketplace || "N/A";
+    const cs = getCarrierStyle(carrierRaw);
+    
+    const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
+    const isConf = o.status === "EM_CONFERENCIA";
+    const isSep = ["EM_SEPARACAO", "SEPARADO"].includes(o.status);
+    const conf = isExpedido ? 100 : (isConf ? 50 : (isSep ? 25 : 0));
+    const isFull = conf === 100;
+    const confFill = isFull ? 'linear-gradient(90deg,#10B981,#34D399)' : (conf > 0 ? '#3B82F6' : t.barTrack);
+
     return {
-      code: o.codigo || o.id.slice(0, 8),
-      customer: o.cliente?.nome || "Sem cliente",
-      carrier: o.transportadora || "N/A",
-      items: (o.total_itens || 0) + " itens",
-      sla: "24h",
-      conf: "0%",
-      confW: "0%",
-      statusLabel: o.status,
-      statusColor: sc.text,
-      statusBg: sc.bg,
-      statusDot: sc.text,
-      avatar: o.cliente?.nome?.[0]?.toUpperCase() || "C",
-      avatarBg: "rgba(59,130,246,0.15)",
-      avatarColor: "#3B82F6",
+      code: o.displayNumber || o.code || o.id.slice(0, 8),
+      customer: o.customer || "Sem cliente",
+      city: o.destination || "-",
+      owner: o.depositante || "-",
+      carrier: carrierRaw,
+      carrierInit: carrierRaw.slice(0, 2).toUpperCase(),
+      carrierColor: cs.color,
+      carrierBg: cs.bg,
+      itemsLabel: `${o.itemCount || 0} ${(o.itemCount === 1 ? 'item' : 'itens')}`,
+      sla: o.ageLabel || "-",
+      slaColor: o.ageTone === "LATE" ? "#EF4444" : (o.ageTone === "WARNING" ? "#F59E0B" : t.text),
+      conf: conf + "%",
+      confW: conf + "%",
+      confFill: confFill,
+      statusLabel: o.statusLabel || o.status,
+      statusColor: ss.statusColor,
+      statusBg: ss.statusBg,
+      statusDot: ss.statusDot,
+      avatar: o.customer?.[0]?.toUpperCase() || "C",
       id: o.id,
       open: () => {}
     };
@@ -114,10 +180,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const btnColor = "#3B82F6";
   const softBg = t.softBg;
   const textSub = t.textSub;
-  const ordersCount = data.totalOrders;
-  const filters = tableFilters;
-  const orders = tableOrders;
-  const columns = ["Pedido", "Cliente", "Transportadora", "Itens", "Progresso", "SLA", "Status", ""];
+  const ordersCount = filteredDataOrders.length;
+  const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Progresso", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
 
   return (
@@ -224,7 +288,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       <div style={{borderRadius: "16px", border: `1px solid ${t.border }`, background: `${t.cardBg }`, overflow: "hidden"}}>
         <div style={{display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border }`, flexWrap: "wrap"}}>
           {filters ?.map((f: any, i: number) => <React.Fragment key={i}>
-            <button style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount  && (<><span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span></>)}</button>
+            <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount  && (<><span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span></>)}</button>
           </React.Fragment>)}
           <div style={{flex: "1"}}></div>
           <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount } pedidos na fila</span>
@@ -258,7 +322,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </div>
                   </td>
                   <td style={{padding: "14px 20px"}}><span style={{fontSize: "13px", fontWeight: "700", color: `${o.slaColor }`}}>{o.sla }</span></td>
-                  <td style={{padding: "14px 20px"}}><span style={{display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: `${o.statusBg }`, color: `${o.statusColor }`}}><span style={{width: "7px", height: "7px", borderRadius: "50%", background: `${o.statusDot }`}}></span>{o.status }</span></td>
+                  <td style={{padding: "14px 20px"}}><span style={{display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: `${o.statusBg }`, color: `${o.statusColor }`}}><span style={{width: "7px", height: "7px", borderRadius: "50%", background: `${o.statusDot }`}}></span>{o.statusLabel }</span></td>
                   <td style={{padding: "14px 20px", textAlign: "right"}}><span style={{color: `${t.textSub }`, fontWeight: "700"}} >›</span></td>
                 </tr>
               </React.Fragment>)}
