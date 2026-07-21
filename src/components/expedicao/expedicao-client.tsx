@@ -20,7 +20,9 @@ import {
   Sun,
   Search,
   Check,
-  ChevronLeft
+  ChevronLeft,
+  List,
+  ArrowLeft
 } from "lucide-react";
 
 export function ExpedicaoClient({ data }: { data: any }) {
@@ -121,29 +123,49 @@ export function ExpedicaoClient({ data }: { data: any }) {
   
   // Pipeline Stages for Pedidos Full View
   const stagesDefs = [
-    { id: "todos", label: "Novos", color: "#64748B" },
-    { id: "aguardando", label: "Em separação", color: "#3B82F6" },
-    { id: "conferencia", label: "Em conferência", color: "#8B5CF6" },
-    { id: "carregando", label: "Conferidos", color: "#10B981" },
-    { id: "pronto", label: "Aguardando despacho", color: "#F59E0B" },
-    { id: "despachado", label: "Despachados hoje", color: "#64748B" }
+    { id: 'todos', label: 'Todos', icon: 'List', accent: '#64748B', statusFilter: null },
+    { id: 'aguardando', label: 'Aguardando', icon: 'Clock', accent: '#F59E0B', statusFilter: 'NOVO' },
+    { id: 'separacao', label: 'Em separação', icon: 'ClipboardList', accent: '#3B82F6', statusFilter: 'EM_SEPARACAO' },
+    { id: 'conferencia', label: 'Em conferência', icon: 'Scan', accent: '#8B5CF6', statusFilter: 'EM_CONFERENCIA' },
+    { id: 'conferido', label: 'Conferido', icon: 'CheckCircle2', accent: '#10B981', statusFilter: 'CONFERIDO' },
+    { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' }
   ];
   
   const stages = stagesDefs.map(s => {
     const active = activeFilter === s.id;
-    const count = s.id === 'todos' ? data.orders.length : data.orders.filter((o:any) => o.status === "NOVO").length; // Mock
+    
+    // Calculate count with real data
+    const count = s.statusFilter ? data.orders.filter((o:any) => o.status === s.statusFilter || (s.id === 'expedido' && o.status === 'PRONTO_ROMANEIO')).length : data.orders.length;
+
+    let iconEl;
+    if (s.id === 'todos') iconEl = <List size={16} />;
+    if (s.id === 'aguardando') iconEl = <Clock size={16} />;
+    if (s.id === 'separacao') iconEl = <ClipboardList size={16} />;
+    if (s.id === 'conferencia') iconEl = <Scan size={16} />;
+    if (s.id === 'conferido') iconEl = <CheckCircle2 size={16} />;
+    if (s.id === 'expedido') iconEl = <Truck size={16} />;
+
+    // bg hex with opacity for iconBg
+    const getHex2 = (hex: string, alpha: number) => {
+      if (!hex) return 'transparent';
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    };
+
     return {
-      ...s,
-      bg: active ? (isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC") : t.cardBg,
-      border: active ? s.color : t.border,
+      label: s.label,
       count: count,
-      countColor: active ? s.color : t.text,
-      labelColor: active ? s.color : t.textSub,
-      accent: s.color,
-      iconBg: (active || isDark) ? "rgba(255,255,255,0.03)" : "#F1F5F9",
-      iconEl: <ClipboardList size={14}/>,
+      accent: s.accent,
+      iconEl,
+      border: active ? (isDark ? s.accent : "#0f172a") : t.border,
+      bg: active ? (isDark ? getHex2(s.accent, 0.08) : "#f1f5f9") : t.cardBg,
+      iconBg: getHex2(s.accent, 0.14),
+      countColor: active ? (isDark ? s.accent : "#0f172a") : t.text,
+      labelColor: active ? (isDark ? s.accent : "#475569") : t.textSub,
       pick: () => { setActiveFilter(s.id); setCurrentPage(1); }
-    }
+    };
   });
 
   const getStatusStyle = (s: string) => {
@@ -438,9 +460,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <button
                 onClick={() => setActiveTab('orders')}
-                style={{ display: "flex", alignItems: "center", gap: "4px", padding: 0, border: "none", background: "transparent", color: t.textSub, fontSize: "13px", fontWeight: "600", cursor: "pointer", marginBottom: "4px" }}
+                className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
-                <ChevronLeft size={14}/> Voltar para Dashboard de Expedição
+                <ArrowLeft className="h-4 w-4" />
+                Voltar para Dashboard de Expedição
               </button>
               <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "700" }}>Pedidos</h1>
               <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
