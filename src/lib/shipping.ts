@@ -125,6 +125,7 @@ export type ShippingOrderSummary = {
   syncedAt: string;
   releasedWithoutRomaneio: boolean;
   releasedToRomaneio: boolean;
+  nfe: string;
   items?: {
     name: string;
     sku: string;
@@ -602,6 +603,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
+  const nfe = extractInvoice(payload);
   
   const items = (item.itens ?? []).map((it) => ({
     name: it.nome,
@@ -639,6 +641,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     syncedAt: formatDateTimeInSaoPaulo(item.sincronizado_em, "Ainda não sincronizado"),
     releasedWithoutRomaneio,
     releasedToRomaneio,
+    nfe,
     items,
   };
 }

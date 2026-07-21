@@ -620,7 +620,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe || "NF " + sel.code.replace(/D/g,'') },
+          { k: "Nota fiscal", v: sel.raw.nfe && sel.raw.nfe !== "Ainda não vinculada" ? sel.raw.nfe : "NF " + sel.code.replace(/\D/g, '') },
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
@@ -670,86 +670,53 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </div>
               </div>
 
-              <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-                {/* conference ring + volumes */}
-                <div style={{ display: "flex", alignItems: "center", gap: "22px", padding: "20px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: "20px" }}>
-                  <div style={{ position: "relative", width: "108px", height: "108px", flexShrink: 0 }}>
-                    <svg width="108" height="108" viewBox="0 0 108 108" style={{ transform: "rotate(-90deg)" }}>
-                      <circle cx="54" cy="54" r="46" fill="none" stroke={t.barTrack} strokeWidth="11"></circle>
-                      <circle cx="54" cy="54" r="46" fill="none" stroke="url(#confGrad)" strokeWidth="11" strokeLinecap="round" strokeDasharray={ring.circ} style={{ animation: "fillRing 1s cubic-bezier(0.3, 1, 0.4, 1) forwards", "--ring-offset": ring.offset } as React.CSSProperties}></circle>
-                      <defs>
-                        <linearGradient id="confGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0" stopColor={ring.c1}></stop>
-                          <stop offset="1" stopColor={ring.c2}></stop>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "22px", fontWeight: "700" }}>{sel.conf}</span>
-                      <span style={{ fontSize: "10.5px", color: t.textSub }}>conferido</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                      <span style={{ fontSize: "12px", color: t.textSub }}>Cliente</span>
-                      <span style={{ fontSize: "15px", fontWeight: "700", lineHeight: "1.3" }}>{sel.customer}</span>
-                      <span style={{ fontSize: "12.5px", color: t.textSub }}>{sel.city}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: "18px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.itemsLabel.split(' ')[0]}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>itens</span>
+                            <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+                {/* customer info */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "28px" }}>
+                  <span style={{ fontSize: "16px", fontWeight: "700", lineHeight: "1.3", color: t.text }}>{sel.customer}</span>
+                  <span style={{ fontSize: "13px", color: t.textSub }}>{sel.owner} &middot; {sel.city}</span>
+                </div>
+
+                {/* timeline */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "32px" }}>
+                  {moves.map((m: any, i: number) => (
+                    <div key={i} style={{ display: "flex", gap: "14px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
+                        <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
+                        <span style={{ flex: 1, width: "2px", background: m.line }}></span>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.raw.weight || "0,8 kg"}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>peso</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "22px" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "700", color: m.titleColor }}>{m.title}</span>
+                        <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
 
                 {/* carrier + dock + specs */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
                   {specs.map((s: any, i: number) => (
-                    <div key={i} style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <div key={i} style={{ padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
-                      <span style={{ fontSize: "14.5px", fontWeight: "700" }}>{s.v}</span>
+                      <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* packing list */}
+                {/* packing list (items) */}
                 <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Itens do pedido</span>
-                    <span style={{ fontSize: "12.5px", color: t.textSub }}>{doneItems} de {nItems} conferidos</span>
+                    <span style={{ fontSize: "12.5px", color: t.textSub }}>{sel.itemsLabel}</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {itemsToUse.map((it: any, i: number) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                        <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
                           <span style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
                           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
                         </div>
-                        <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* timeline */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Histórico</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    {moves.map((m: any, i: number) => (
-                      <div key={i} style={{ display: "flex", gap: "14px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
-                          <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
-                          <span style={{ flex: 1, width: "2px", background: m.line }}></span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "16px" }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: "700" }}>{m.title}</span>
-                          <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
-                        </div>
+                        <span style={{ fontSize: "13px", fontWeight: "700", color: t.textSub }}>{it.qty}</span>
                       </div>
                     ))}
                   </div>
@@ -757,9 +724,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
               </div>
 
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
-                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>⎙ Romaneio</button>
-                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>✓ Conferir</button>
-                <button style={{ flex: 1.2, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>⇢ Despachar</button>
+                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.drawerBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path></svg>
+                  Romaneio
+                </button>
+                <button style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>Iniciar separação</button>
               </div>
             </div>
           </div>
