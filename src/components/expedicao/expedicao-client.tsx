@@ -200,10 +200,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
 
   const filteredDataOrders = activeFilter === "todos" ? data.orders : data.orders.filter((o: any) => {
-    if (activeFilter === "aguardando") return o.status === "NOVO";
-    if (activeFilter === "conferencia") return o.status === "EM_CONFERENCIA";
-    if (activeFilter === "carregando") return ["EM_SEPARACAO", "SEPARADO", "PRONTO_ROMANEIO"].includes(o.status);
-    if (activeFilter === "atrasados") return o.ageTone === "LATE";
+    const stage = stagesDefs.find(s => s.id === activeFilter);
+    if (stage && stage.statusFilter) {
+      if (activeFilter === 'expedido') return o.status === 'EXPEDIDO' || o.status === 'PRONTO_ROMANEIO';
+      return o.status === stage.statusFilter;
+    }
     return true;
   });
 
@@ -458,14 +459,19 @@ export function ExpedicaoClient({ data }: { data: any }) {
         <div style={{ display: "flex", flexDirection: "column", animation: "drawerIn 0.35s cubic-bezier(0.3, 1, 0.4, 1)" }}>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <button
-                onClick={() => setActiveTab('orders')}
-                className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar para Dashboard de Expedição
-              </button>
+              <div className="flex items-center gap-3 mb-2">
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm cursor-pointer"
+                >
+                  <span className="mr-1.5 text-slate-500 font-normal">‹</span> Expedição
+                </button>
+                <div className="flex items-center gap-2 text-[14px] ml-1">
+                  <span className="text-slate-500">Expedição</span>
+                  <span className="text-slate-300 text-[12px]">›</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-medium">Pedidos</span>
+                </div>
+              </div>
               <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "700" }}>Pedidos</h1>
               <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
             </div>
@@ -521,8 +527,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((o: any, i: number) => (
-                      <tr key={i} onClick={() => setSelectedOrder(o)} style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}>
+                    {orders.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} style={{ padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500" }}>
+                          Nenhum pedido encontrado para este filtro.
+                        </td>
+                      </tr>
+                    ) : (
+                      orders.map((o: any, i: number) => (
+                        <tr key={i} onClick={() => setSelectedOrder(o)} style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}>
                         <td style={{ padding: "14px 20px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px" }}>{o.code}</span></td>
                         <td style={{ padding: "14px 20px" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -543,7 +556,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         <td style={{ padding: "14px 20px" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: o.statusBg, color: o.statusColor }}><span style={{ width: "7px", height: "7px", borderRadius: "50%", background: o.statusDot }}></span>{o.statusLabel}</span></td>
                         <td style={{ padding: "14px 20px", textAlign: "right" }}><span style={{ color: t.textSub, fontWeight: "700" }}>›</span></td>
                       </tr>
-                    ))}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
