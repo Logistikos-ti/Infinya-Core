@@ -200,7 +200,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const orders = paginatedOrders.map((o: any) => {
     const ss = getStatusStyle(o.status);
-    const carrierRaw = o.carrierName || o.channel || o.marketplace || "N/A";
+    const carrierRaw = o.channel || o.marketplace || o.carrierName || "N/A";
     const cs = getCarrierStyle(carrierRaw);
     
     const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
@@ -245,7 +245,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const alertIcon = <AlertTriangle size={20} />;
   const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO");
   const ordersCount = searchedOrders.length;
-  const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
+  const columns = ["Pedido", "Cliente", "Depositante", "Marketplace", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
 
   return (
@@ -445,7 +445,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <input
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                placeholder="Buscar pedido, cliente, NF, canal..."
+                placeholder="Buscar pedido, cliente, NF, marketplace..."
                 style={{ flex: 1, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px" }}
               />
             </div>
@@ -583,7 +583,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
         const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
-          { k: "Canal", v: sel.carrier },
+          { k: "Marketplace", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
           { k: "Nota fiscal", v: sel.raw.nfe || "NF " + sel.code.replace(/D/g,'') },
           { k: "Corte (SLA)", v: sel.sla }
