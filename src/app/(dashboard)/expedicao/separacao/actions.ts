@@ -593,3 +593,18 @@ export async function startShippingWaveAction(waveId: string) {
     }).eq('id', waveId);
   }
 }
+
+export async function updateItemPickingQuantityAction(
+  orderId: string,
+  itemId: string,
+  quantity: number
+) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+  
+  await adminSupabase
+    .from("pedidos_expedicao_itens")
+    .update({ quantidade_separada: quantity })
+    .eq("id", itemId)
+    .eq("pedido_expedicao_id", orderId);
+}

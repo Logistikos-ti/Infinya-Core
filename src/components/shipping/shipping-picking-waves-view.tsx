@@ -63,13 +63,13 @@ export function ShippingPickingWavesView({
           const diffMins = Math.max(diffMs / 1000 / 60, 1);
           let localCompleted = 0;
           const localWaveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
-          localWaveOrders.forEach(o => { localCompleted += (o.status === 'SEPARADO' ? (o.totalUnits || 0) : 0); });
+          localWaveOrders.forEach(o => { localCompleted += (o.separatedUnits || 0); });
           if (localCompleted > 0) { itensMin = (localCompleted / diffMins).toFixed(1); } else { itensMin = '0.0'; }
         }
       const waveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
       waveOrders.forEach(o => {
         totalItems += (o.totalUnits || 0);
-        completedItems += (o.status === 'SEPARADO' ? (o.totalUnits || 0) : 0);
+        completedItems += (o.separatedUnits || 0);
       });
       
       if (totalItems > 0) {
