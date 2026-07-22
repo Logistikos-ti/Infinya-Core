@@ -19,6 +19,7 @@ import { requireRoleAccess } from "@/lib/auth";
 import { listReceivingOrdersFromDb } from "@/lib/receiving";
 import { listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
+import { SupportClient } from "@/components/portal/support-client";
 
 type PortalPageProps = { searchParams?: Promise<{ view?: string }> };
 
@@ -179,28 +180,7 @@ function InvoicesView() {
 }
 
 function SupportView() {
-  const tickets = [
-    { id: "#CH-2043", title: "Divergência no pedido #EC-48120", meta: "Divergência · há 2 dias · 3 comentários", status: "Resolvido", tone: "green" },
-    { id: "#CH-2051", title: "Nota fiscal não emitida — Shopee", meta: "Financeiro · ontem · 2 comentários", status: "Em análise", tone: "blue" },
-    { id: "#CH-2058", title: "Recontagem de estoque ELT-4821", meta: "Estoque · há 5 h · 1 comentário", status: "Aberto", tone: "amber" },
-  ];
-  return <>
-    <ViewHeader title="Suporte" description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos." />
-    <div className="grid min-h-[520px] gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.4fr)]">
-      <div className="flex flex-col gap-4">
-        <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
-          <h3 className="font-display text-base font-bold">Abrir chamado</h3>
-          <label className="mt-4 block text-xs text-slate-500">Assunto<input className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none dark:border-white/10 dark:bg-white/5" placeholder="Ex.: Divergência no pedido #EC-48219" /></label>
-          <span className="mt-4 block text-xs text-slate-500">Categoria</span>
-          <div className="mt-2 flex flex-wrap gap-2">{["Divergência", "Estoque", "Financeiro", "Outros"].map((item, index) => <button key={item} type="button" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${index === 0 ? "border-violet-500 bg-violet-500/10 text-slate-900 dark:text-white" : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-300"}`}>{item}</button>)}</div>
-          <label className="mt-4 block text-xs text-slate-500">Mensagem<textarea className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none dark:border-white/10 dark:bg-white/5" placeholder="Descreva o ocorrido..." /></label>
-          <button type="button" className="mt-4 h-11 w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-500/20">Enviar chamado</button>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500"><CircleHelp className="h-5 w-5" /></span><div><p className="text-sm font-bold">Tempo de resposta</p><p className="text-xs text-slate-500">Em até 2h úteis</p></div></div>
-      </div>
-      <div className="min-h-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]"><div className="border-b border-slate-200 px-5 py-4 font-display text-base font-bold dark:border-white/10">Meus chamados</div>{tickets.map((ticket) => <div key={ticket.id} className="flex items-center gap-4 border-b border-slate-100 px-5 py-5 last:border-0 dark:border-white/10"><span className="w-16 shrink-0 font-display text-xs font-bold">{ticket.id}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{ticket.title}</p><p className="text-xs text-slate-500">{ticket.meta}</p></div><span className={`rounded-full px-3 py-1 text-[11px] font-bold ${ticket.tone === "green" ? "bg-emerald-500/10 text-emerald-600" : ticket.tone === "blue" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>{ticket.status}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></div>)}</div>
-    </div>
-  </>;
+  return <><ViewHeader title="Suporte" description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos." /><SupportClient /></>;
 }
 
 function PageIntro({ title, description }: { title: string; description: string }) { return <div className="mb-7"><h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">{title}</h2><p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{description}</p></div>; }
