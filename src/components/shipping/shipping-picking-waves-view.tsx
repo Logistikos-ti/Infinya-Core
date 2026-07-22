@@ -2,10 +2,11 @@
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, Plus } from "lucide-react";
+import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus } from "lucide-react";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
 export function ShippingPickingWavesView({ 
   orders,
@@ -20,8 +21,9 @@ export function ShippingPickingWavesView({
 
   const [showCreate, setShowCreate] = useState(false);
   const [strategy, setStrategy] = useState(0);
-  const [limit, setLimit] = useState(40);
+  const [limit, setLimit] = useState(50);
   const [selectedDepositante, setSelectedDepositante] = useState("");
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
 
   const t = isDark ? {
     appBg: '#0A1120', sideBg: '#0C1424', barBg: '#0C1424', cardBg: '#101B30',
@@ -128,14 +130,18 @@ export function ShippingPickingWavesView({
     return avail.slice(0, limit);
   }, [orders, strategy, limit, selectedDepositante]);
 
-  const previewItems = eligibleOrders.reduce((sum, o) => sum + (o.totalItems || 0), 0);
+  useEffect(() => {
+    setSelectedOrderIds(eligibleOrders.map(o => o.id));
+  }, [eligibleOrders]);
+
+  const previewItems = eligibleOrders.filter(o => selectedOrderIds.includes(o.id)).reduce((sum, o) => sum + (o.totalItems || 0), 0);
 
   const handleCreateWave = () => {
-    if (eligibleOrders.length === 0) {
-      alert("Não há pedidos elegíveis para esta onda.");
+    if (selectedOrderIds.length === 0) {
+      alert("Selecione ao menos um pedido para esta onda.");
       return;
     }
-    const ids = eligibleOrders.map(o => o.id).join(",");
+    const ids = selectedOrderIds.join(",");
     router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}`);
   };
 
@@ -258,27 +264,26 @@ export function ShippingPickingWavesView({
             </div>
             
             <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Depositante</span>
-                  <select 
-                    value={selectedDepositante} 
-                    onChange={e => setSelectedDepositante(e.target.value)}
-                    style={{ width: "100%", height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, fontSize: "14px", color: t.text, outline: "none", boxSizing: "border-box" }}
-                  >
-                    <option value="">Todos</option>
-                    {depositantes.map(d => (
-                      <option key={d.id} value={d.id}>{d.nome}</option>
-                    ))}
-                  </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", alignItems: "flex-end" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <FancySelectInput
+                    label="Depositante"
+                    name="depositante"
+                    value={selectedDepositante}
+                    onChange={setSelectedDepositante}
+                    options={[
+                      { value: "", label: "Todos" },
+                      ...depositantes.map(d => ({ value: d.id, label: d.nome }))
+                    ]}
+                  />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Limite de pedidos</span>
+                  <span style={{ fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.025em", color: t.textSub }}>Limite de pedidos</span>
                   <input 
                     type="number"
                     value={limit}
                     onChange={e => setLimit(Number(e.target.value))}
-                    style={{ width: "100%", height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} 
+                    style={{ width: "100%", height: "52px", padding: "0 14px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box", boxShadow: "0 10px 35px rgba(15,23,42,0.04)" }} 
                   />
                 </div>
               </div>
@@ -288,10 +293,57 @@ export function ShippingPickingWavesView({
                   <Box size={20} />
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: "700", color: t.text }}>{eligibleOrders.length} pedidos elegíveis</span>
+                  <span style={{ fontSize: "14px", fontWeight: "700", color: t.text }}>{selectedOrderIds.length} pedidos selecionados</span>
                   <span style={{ fontSize: "12px", color: t.textSub }}>{previewItems} volumes estimados nesta onda</span>
                 </div>
               </div>
+
+              {eligibleOrders.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Pedidos elegíveis</span>
+                    <button 
+                      onClick={() => {
+                        if (selectedOrderIds.length === eligibleOrders.length) {
+                          setSelectedOrderIds([]);
+                        } else {
+                          setSelectedOrderIds(eligibleOrders.map(o => o.id));
+                        }
+                      }}
+                      style={{ fontSize: "12px", fontWeight: "600", color: "#3B82F6", background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      {selectedOrderIds.length === eligibleOrders.length ? "Desmarcar todos" : "Marcar todos"}
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", overflowY: "auto", maxHeight: "200px", paddingRight: "4px" }}>
+                    {eligibleOrders.map(order => {
+                      const isSelected = selectedOrderIds.includes(order.id);
+                      return (
+                        <div 
+                          key={order.id} 
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedOrderIds(prev => prev.filter(id => id !== order.id));
+                            } else {
+                              setSelectedOrderIds(prev => [...prev, order.id]);
+                            }
+                          }}
+                          style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "10px", border: `1px solid ${isSelected ? '#3B82F6' : t.border}`, background: isSelected ? hex2('#3B82F6', 0.05) : t.cardBg, cursor: "pointer", transition: "all 0.15s ease" }}
+                        >
+                          <div style={{ color: isSelected ? "#3B82F6" : t.textSub, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "2px" }}>
+                            <span style={{ fontSize: "13.5px", fontWeight: "700", color: t.text }}>Pedido #{order.numero}</span>
+                            <span style={{ fontSize: "12px", color: t.textSub }}>{order.depositante || 'Sem depositante'} · {order.totalItems || 0} volumes</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ padding: "20px 28px", borderTop: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", background: t.softBg }}>
@@ -304,11 +356,11 @@ export function ShippingPickingWavesView({
                 Cancelar
               </button>
               <button 
-                disabled={eligibleOrders.length === 0}
+                disabled={selectedOrderIds.length === 0}
                 onClick={handleCreateWave} 
-                style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: eligibleOrders.length === 0 ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: eligibleOrders.length === 0 ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: eligibleOrders.length === 0 ? "not-allowed" : "pointer", boxShadow: eligibleOrders.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
-                onMouseEnter={(e) => { if(eligibleOrders.length > 0) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
-                onMouseLeave={(e) => { if(eligibleOrders.length > 0) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: selectedOrderIds.length === 0 ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedOrderIds.length === 0 ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: selectedOrderIds.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedOrderIds.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
+                onMouseEnter={(e) => { if(selectedOrderIds.length > 0) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
+                onMouseLeave={(e) => { if(selectedOrderIds.length > 0) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
               >
                 Criar e iniciar separação →
               </button>
