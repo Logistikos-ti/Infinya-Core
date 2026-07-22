@@ -258,28 +258,13 @@ export function ShippingPickingWavesView({
             </div>
             
             <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Estratégia de agrupamento</span>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  {stratDefs.map((s, i) => {
-                    const on = i === strategy;
-                    return (
-                      <div key={i} onClick={() => setStrategy(i)} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${on ? '#8B5CF6' : t.border}`, background: on ? hex2('#8B5CF6', 0.08) : t.cardBg, display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.16s ease" }}>
-                        <span style={{ fontSize: "13.5px", fontWeight: "700", color: on ? (isDark ? '#C4B5FD' : '#8B5CF6') : t.text }}>{s.title}</span>
-                        <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                   <span style={{ fontSize: "13px", fontWeight: "700", color: t.text }}>Depositante</span>
                   <select 
                     value={selectedDepositante} 
                     onChange={e => setSelectedDepositante(e.target.value)}
-                    style={{ height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, fontSize: "14px", color: t.text, outline: "none" }}
+                    style={{ width: "100%", height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, fontSize: "14px", color: t.text, outline: "none", boxSizing: "border-box" }}
                   >
                     <option value="">Todos</option>
                     {depositantes.map(d => (
@@ -293,7 +278,7 @@ export function ShippingPickingWavesView({
                     type="number"
                     value={limit}
                     onChange={e => setLimit(Number(e.target.value))}
-                    style={{ height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} 
+                    style={{ width: "100%", height: "46px", padding: "0 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} 
                   />
                 </div>
               </div>
