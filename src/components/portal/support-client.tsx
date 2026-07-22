@@ -17,38 +17,7 @@ type Ticket = {
 
 const categories = ["Divergência", "Estoque", "Financeiro", "Outros"];
 
-const initialTickets: Ticket[] = [
-  {
-    id: "#CH-2043",
-    title: "Divergência no pedido #EC-48120",
-    category: "Divergência",
-    meta: "há 2 dias · 3 comentários",
-    status: "Resolvido",
-    tone: "green",
-    comments: [
-      "O pedido veio com 1 item a menos que o faturado.",
-      "Recontagem concluída e divergência ajustada.",
-    ],
-  },
-  {
-    id: "#CH-2051",
-    title: "Nota fiscal não emitida — Shopee",
-    category: "Financeiro",
-    meta: "ontem · 2 comentários",
-    status: "Em análise",
-    tone: "blue",
-    comments: ["A NF-e do pedido Shopee não foi emitida."],
-  },
-  {
-    id: "#CH-2058",
-    title: "Recontagem de estoque ELT-4821",
-    category: "Estoque",
-    meta: "há 5 h · 1 comentário",
-    status: "Aberto",
-    tone: "amber",
-    comments: ["Solicito recontagem do SKU ELT-4821."],
-  },
-];
+const initialTickets: Ticket[] = [];
 
 export function SupportClient() {
   const [subject, setSubject] = useState("");
@@ -185,27 +154,36 @@ export function SupportClient() {
             Meus chamados
           </div>
           <div className="flex flex-col">
-            {tickets.map((ticket) => (
-              <button
-                type="button"
-                key={ticket.id}
-                onClick={() => setSelectedId(ticket.id)}
-                className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-slate-50 last:border-0 dark:border-white/10 dark:hover:bg-white/5"
-                style={{ animation: "supportRowIn 0.35s ease both" }}
-              >
-                <span className="w-[74px] shrink-0 font-display text-xs font-bold text-slate-500 dark:text-slate-400">
-                  {ticket.id}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold">{ticket.title}</span>
-                  <span className="block text-xs text-slate-500">
-                    {ticket.category} · {ticket.meta}
+            {tickets.length === 0 ? (
+              <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
+                <div>
+                  <p className="font-display text-sm font-bold">Nenhum chamado aberto</p>
+                  <p className="mt-1 text-xs text-slate-500">Os chamados enviados aparecerão aqui.</p>
+                </div>
+              </div>
+            ) : (
+              tickets.map((ticket) => (
+                <button
+                  type="button"
+                  key={ticket.id}
+                  onClick={() => setSelectedId(ticket.id)}
+                  className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-slate-50 last:border-0 dark:border-white/10 dark:hover:bg-white/5"
+                  style={{ animation: "supportRowIn 0.35s ease both" }}
+                >
+                  <span className="w-[74px] shrink-0 font-display text-xs font-bold text-slate-500 dark:text-slate-400">
+                    {ticket.id}
                   </span>
-                </span>
-                <StatusPill ticket={ticket} />
-                <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
-              </button>
-            ))}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold">{ticket.title}</span>
+                    <span className="block text-xs text-slate-500">
+                      {ticket.category} · {ticket.meta}
+                    </span>
+                  </span>
+                  <StatusPill ticket={ticket} />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>
