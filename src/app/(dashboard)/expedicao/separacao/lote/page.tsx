@@ -34,7 +34,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
   const returnTo = `/expedicao/separacao/lote?ids=${encodeURIComponent(selectedIds.join(","))}`;
 
   return (
-    <div className="relative w-full overflow-hidden -mt-4">
+    <div className="relative w-full h-full overflow-hidden flex flex-col">
       {feedback ? (
         <div
           className={`mb-4 rounded-2xl px-4 py-3 text-sm ${

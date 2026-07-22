@@ -77,14 +77,16 @@ export function AppChrome({ children, user }: AppChromeProps) {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-8 lg:border-none lg:border-slate-200/80 dark:border-white/10">
           <div className="flex w-full max-w-3xl items-center gap-4">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder={isCatalogOnly ? "Buscar produtos..." : "Buscar pedidos, produtos..."} 
-                className="w-full rounded-full border border-white/10 bg-[#071120]/70 py-2 pl-10 pr-4 text-sm text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 lg:border-slate-200/80 lg:bg-white/70 lg:text-slate-900 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white"
-              />
-            </div>
+            {currentPath !== "/expedicao/separacao/lote" && (
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder={isCatalogOnly ? "Buscar produtos..." : "Buscar pedidos, produtos..."} 
+                  className="w-full rounded-full border border-white/10 bg-[#071120]/70 py-2 pl-10 pr-4 text-sm text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 lg:border-slate-200/80 lg:bg-white/70 lg:text-slate-900 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white"
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex items-center gap-4 ml-4">

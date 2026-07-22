@@ -75,19 +75,13 @@ export function ShippingPickingInterface({
   const router = useRouter();
   
   // Theme logic
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  useEffect(() => {
-    const saved = localStorage.getItem('infinoos-theme');
-    if (saved === 'light' || saved === 'dark') setTheme(saved);
-  }, []);
+  const { theme: nextTheme, setTheme, resolvedTheme } = require("next-themes").useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isSystemDark = mounted && (nextTheme === "system" ? resolvedTheme : nextTheme) === "dark";
+  const toggleTheme = () => setTheme(isSystemDark ? "light" : "dark");
   
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    localStorage.setItem('infinoos-theme', next);
-    setTheme(next);
-  };
-  
-  const dark = theme === 'dark';
+  const dark = typeof isSystemDark !== "undefined" ? isSystemDark : true;
   const t = dark ? {
     appBg: '#0A1120', sideBg: '#0C1424', sideBg2: '#0B1322', barBg: '#0C1424', cardBg: '#101B30',
     inputBg: '#0E1728', softBg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.14)',
@@ -274,7 +268,7 @@ export function ShippingPickingInterface({
   }, [currentIndex, current.active]);
 
   return (
-    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "calc(100vh - 120px)", minHeight: "600px", borderRadius: "20px", overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
+    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "100%", minHeight: "600px", color: t.text, transition: "color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html: `
         .shipping-picking-ui * { box-sizing: border-box; }
         .shipping-picking-ui a { color: #8B5CF6; text-decoration: none; }
@@ -288,7 +282,7 @@ export function ShippingPickingInterface({
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
       `}} />
       
-      <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
+      <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: "none", background: "transparent" }}>
         <button onClick={() => router.push("/expedicao/separacao")} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}>
           ‹ Voltar
         </button>
@@ -300,11 +294,6 @@ export function ShippingPickingInterface({
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10B981", animation: "pulseDot 1.8s ease-in-out infinite" }}></span>
           <span style={{ fontSize: "13px", fontWeight: "700" }}>Onda {waveId} ativa</span>
         </div>
-        <button onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema" style={{ position: "relative", width: "68px", height: "32px", padding: "0", borderRadius: "999px", border: `1px solid ${tog.border}`, background: tog.track, cursor: "pointer", transition: "background 0.3s ease, border-color 0.3s ease", boxShadow: `inset 0 1px 3px ${tog.inset}` }}>
-          <span style={{ position: "absolute", top: "50%", left: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackMoon, transition: "color 0.3s ease" }}>☾</span>
-          <span style={{ position: "absolute", top: "50%", right: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackSun, transition: "color 0.3s ease" }}>☀</span>
-          <span style={{ position: "absolute", top: "3px", left: "3px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: tog.knob, boxShadow: "0 1px 4px rgba(0,0,0,0.35)", transform: `translateX(${tog.knobX})`, transition: "transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease", fontSize: "13px", color: tog.knobIconColor }}>{tog.knobIcon}</span>
-        </button>
       </header>
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
