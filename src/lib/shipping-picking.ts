@@ -1135,7 +1135,10 @@ function compareEnderecoLabel(labelA: string, labelB: string, codeA: string, cod
 }
 
 function getAvailableQuantity(stock: RawPickingStockRow) {
-  return Math.max(Number(stock.quantidade ?? 0) - Number(stock.quantidade_reservada ?? 0), 0);
+  // We use physical quantity here instead of available (quantidade - quantidade_reservada) 
+  // because the stock is likely already reserved by THIS picking order. 
+  // If we filter by available > 0, we hide the very bins the operator needs to visit.
+  return Math.max(Number(stock.quantidade ?? 0), 0);
 }
 
 function getÁreaPriority(area: string | null | undefined) {
