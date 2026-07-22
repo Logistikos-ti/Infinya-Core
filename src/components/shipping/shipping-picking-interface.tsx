@@ -282,21 +282,7 @@ export function ShippingPickingInterface({
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
       `}} />
       
-      <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: "none", background: "transparent" }}>
-        <button onClick={() => router.push("/expedicao/separacao")} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}>
-          ‹ Voltar
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: t.textSub }}>
-          <span>Expedição</span><span>›</span><span style={{ color: t.text, fontWeight: "600" }}>Separação</span>
-        </div>
-        <div style={{ flex: 1 }}></div>
-        <div style={{ display: "flex", alignItems: "center", gap: "9px", height: "38px", padding: "0 14px", borderRadius: "10px", background: t.softBg, border: `1px solid ${t.border}` }}>
-          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10B981", animation: "pulseDot 1.8s ease-in-out infinite" }}></span>
-          <span style={{ fontSize: "13px", fontWeight: "700" }}>Onda {waveId} ativa</span>
-        </div>
-      </header>
-
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", paddingTop: "8px" }}>
         {/* LEFT: pick list */}
         <div style={{ width: "340px", flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent" }}>
           <div style={{ padding: "20px 22px 16px 22px" }}>
