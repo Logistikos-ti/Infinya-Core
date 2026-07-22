@@ -26,7 +26,16 @@ export function AppChrome({ children, user }: AppChromeProps) {
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
 
+    const [waveCode, setWaveCode] = useState("000");
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ids = params.get("ids") || "";
+      if (ids) setWaveCode(ids.split(',')[0].substring(0, 4).toUpperCase());
+    }
+  }, [currentPath]);
+
+useEffect(() => {
     const storedCollapsed = window.localStorage.getItem("infinoos-sidebar-collapsed");
     const storedWidth = window.localStorage.getItem("infinoos-sidebar-width");
 
@@ -102,7 +111,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
             {currentPath === "/expedicao/separacao/lote" && (
               <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda W-000 ativa</span>
+                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda W-{waveCode} ativa</span>
               </div>
             )}
             <ThemeToggle />
