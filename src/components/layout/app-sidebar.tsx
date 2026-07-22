@@ -63,6 +63,13 @@ const navigation: ReadonlyArray<{
   { href: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, module: "configuracoes" },
 ] as const;
 
+export type SidebarNavigationItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  module: AppModule;
+};
+
 type AppSidebarProps = {
   user: AppUserContext;
   currentPath: string;
@@ -70,9 +77,10 @@ type AppSidebarProps = {
   setIsCollapsed?: (collapsed: boolean) => void;
   sidebarWidth?: number;
   setSidebarWidth?: (width: number) => void;
+  navigationOverride?: ReadonlyArray<SidebarNavigationItem>;
 };
 
-export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sidebarWidth, setSidebarWidth }: AppSidebarProps) {
+export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sidebarWidth, setSidebarWidth, navigationOverride }: AppSidebarProps) {
   const isYMS = currentPath.startsWith("/yms");
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<boolean>(false);
@@ -100,7 +108,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
     document.removeEventListener("mouseup", handleMouseUp);
   };
 
-  const visibleNavigation = isProductCatalogOnlyUser(user)
+  const visibleNavigation = navigationOverride ?? (isProductCatalogOnlyUser(user)
     ? [
         {
           href: "/configuracoes/produtos",
@@ -130,7 +138,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
             ? [{ href: "/configuracoes/enderecos", label: "Endereços", icon: MapPin }]
             : []),
         ]
-      : navigation.filter((item) => canAccessModule(user, item.module));
+      : navigation.filter((item) => canAccessModule(user, item.module)));
 
   // Filtragem visual entre os módulos WMS e YMS
   const currentNavItems = visibleNavigation.filter((item) => {
