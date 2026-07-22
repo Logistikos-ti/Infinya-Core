@@ -102,7 +102,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
             {currentPath === "/expedicao/separacao/lote" && (
               <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda ativa</span>
+                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda W-000 ativa</span>
               </div>
             )}
             <ThemeToggle />
