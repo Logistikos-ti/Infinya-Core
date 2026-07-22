@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, FileText, Headphones, LayoutDashboard, Package, Plus, Receipt, Search, Truck } from "lucide-react";
+import { Bell, CircleHelp, FileText, LayoutDashboard, Package, Plus, Receipt, Search, Truck } from "lucide-react";
 import { AppSidebar, type SidebarNavigationItem } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
@@ -13,7 +13,7 @@ const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   { href: "/portal?view=recebimento", label: "Recebimento", icon: Truck, module: "dashboard" },
   { href: "/portal?view=produtos", label: "Meus produtos", icon: FileText, module: "dashboard" },
   { href: "/portal?view=faturas", label: "Faturas", icon: Receipt, module: "dashboard" },
-  { href: "/portal?view=suporte", label: "Suporte", icon: Headphones, module: "dashboard" },
+  { href: "/portal?view=suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" },
 ];
 
 export function PortalChrome({ children, user }: { children: ReactNode; user: AppUserContext }) {

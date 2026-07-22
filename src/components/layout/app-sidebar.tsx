@@ -180,7 +180,10 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
         <nav className="space-y-1.5">
           {currentNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPath.startsWith(item.href);
+            const [itemPath, itemQuery] = item.href.split("?");
+            const isActive = itemQuery
+              ? currentPath === item.href
+              : currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 
             return (
               <Link
