@@ -107,6 +107,20 @@ export function SupportClient() {
 
   return (
     <>
+      <style jsx>{`
+        @keyframes supportOverlayFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes supportDrawerIn {
+          from { transform: translateX(40px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes supportRowIn {
+          from { transform: translateY(8px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
       <div className="grid min-h-[520px] gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.4fr)]">
         <div className="flex flex-col gap-4">
           <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
@@ -177,6 +191,7 @@ export function SupportClient() {
                 key={ticket.id}
                 onClick={() => setSelectedId(ticket.id)}
                 className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-slate-50 last:border-0 dark:border-white/10 dark:hover:bg-white/5"
+                style={{ animation: "supportRowIn 0.35s ease both" }}
               >
                 <span className="w-[74px] shrink-0 font-display text-xs font-bold text-slate-500 dark:text-slate-400">
                   {ticket.id}
@@ -239,8 +254,12 @@ function TicketDrawer({
         aria-label="Fechar detalhes do chamado"
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-[3px]"
+        style={{ animation: "supportOverlayFade 0.25s ease both" }}
       />
-      <aside className="relative flex h-full w-[500px] max-w-[94vw] flex-col border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0c1526]">
+      <aside
+        className="relative flex h-full w-[500px] max-w-[94vw] flex-col border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0c1526]"
+        style={{ animation: "supportDrawerIn 0.32s cubic-bezier(.3,1,.4,1) both" }}
+      >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div className="flex min-w-0 flex-col gap-2">
             <span className="font-display text-xs font-bold text-slate-500 dark:text-slate-400">
