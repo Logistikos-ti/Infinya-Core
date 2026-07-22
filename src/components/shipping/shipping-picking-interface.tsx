@@ -16,6 +16,7 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   orderExternalNumber: string;
   orderDisplayNumber: string;
   orderCustomer: string;
+  imageUrl: string | null;
   orderDepositante: string;
   separatedQuantityValue: string;
   isSkipped?: boolean; // New state to track if skipped
@@ -117,6 +118,8 @@ export function ShippingPickingInterface({
   const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
+    const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const scanAddressRef = useRef<HTMLInputElement | null>(null);
   const [scanValue, setScanValue] = useState("");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   
@@ -164,6 +167,7 @@ export function ShippingPickingInterface({
     ean: currentItem.barcode || currentItem.code,
     qty: currentItem.requestedQuantity + 'x',
     order: currentItem.orderDisplayNumber || currentItem.orderExternalNumber,
+    imageUrl: currentItem.imageUrl,
     thumbBg: thumb(cat[currentIndex % cat.length]),
     separated: normalizeQuantity(currentItem.separatedQuantityValue),
     requested: currentItem.requestedQuantity
@@ -202,6 +206,24 @@ export function ShippingPickingInterface({
     setCurrentIndex(Math.min(currentIndex + 1, totalCount));
   };
 
+    const handleAddressSubmit = () => {
+    if (!scanValue.trim() || !currentItem) return;
+    const normalized = scanValue.replace(/\s+/g, "").trim().toUpperCase();
+    const address = (currentItem.routeLines[0]?.addressCode || "").replace(/\s+/g, "").trim().toUpperCase();
+    
+    if (normalized === address || address === "SEMENDERECO" || address === "") {
+      playFeedbackTone("success");
+      setAddressConfirmed(true);
+      setScanValue("");
+      setTimeout(() => scanInputRef.current?.focus(), 50);
+    } else {
+      playFeedbackTone("error");
+      alert("Endereço incorreto!");
+      setScanValue("");
+      scanAddressRef.current?.focus();
+    }
+  };
+  
   // Barcode scanning logic
   const handleScanSubmit = () => {
     if (!scanValue.trim()) return;
@@ -261,10 +283,20 @@ export function ShippingPickingInterface({
     oscillator.onended = () => { void context.close(); };
   }
 
+    // Reset address confirmation when item changes
+  useEffect(() => {
+    setAddressConfirmed(false);
+    setScanValue("");
+  }, [currentIndex]);
+  
   // Refocus input
   useEffect(() => {
-    if (current.active && scanInputRef.current) {
-      scanInputRef.current.focus();
+    if (current.active) {
+      if (!addressConfirmed && scanAddressRef.current) {
+        scanAddressRef.current.focus();
+      } else if (addressConfirmed && scanInputRef.current) {
+        scanInputRef.current.focus();
+      }
     }
   }, [currentIndex, current.active]);
 
@@ -324,57 +356,95 @@ export function ShippingPickingInterface({
               </div>
 
               {/* location big */}
-              <div style={{ position: "relative", borderRadius: "20px", padding: "28px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", overflow: "hidden" }}>
+              <div style={{ position: "relative", borderRadius: "20px", padding: "28px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", overflow: "hidden", marginBottom: addressConfirmed ? "0" : "12px" }}>
                 <div style={{ position: "absolute", inset: 0, opacity: 0.12, backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }}></div>
                 <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "20px" }}>
                   <span style={{ width: "60px", height: "60px", flexShrink: 0, borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.18)" }}>
                     <PinIcon size={30} />
                   </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
                     <span style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", opacity: 0.85 }}>ENDEREÇO DE COLETA</span>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "38px", fontWeight: "700", lineHeight: "1" }}>{current.loc}</span>
                     <span style={{ fontSize: "13.5px", opacity: 0.9 }}>{current.zone}</span>
                   </div>
+                  {addressConfirmed && (
+                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <CheckIcon size={24} color="#fff" />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* product */}
-              <div style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px", display: "flex", gap: "18px", alignItems: "center" }}>
-                <div style={{ width: "72px", height: "72px", flexShrink: 0, borderRadius: "14px", background: current.thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>
-                  <BoxIcon size={34} />
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: "17px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", paddingLeft: "18px", borderLeft: `1px solid ${t.border}` }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "34px", fontWeight: "700", color: "#8B5CF6" }}>{current.separated} / {current.requested}</span>
-                  <span style={{ fontSize: "11.5px", color: t.textSub }}>coletados</span>
-                </div>
-              </div>
+              {!addressConfirmed && (
+                <>
+                  <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                      <ScanIconBig size={24} />
+                      <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+                      <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o endereço para confirmar</span>
+                      <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código do endereço (`{current.loc}`)</span>
+                    </div>
+                  </div>
+                  <input 
+                    ref={scanAddressRef}
+                    value={scanValue}
+                    onChange={e => setScanValue(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") { e.preventDefault(); handleAddressSubmit(); }
+                    }}
+                    placeholder="Aguardando leitura do endereço..." 
+                    style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+                  />
+                </>
+              )}
 
-              {/* scan field */}
-              <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                  <ScanIconBig size={24} />
-                  <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-                  <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
-                  <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
-                </div>
-              </div>
-              <input 
-                ref={scanInputRef}
-                value={scanValue}
-                onChange={e => setScanValue(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
-                }}
-                placeholder="Aguardando leitura do coletor..." 
-                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
-              />
+              {addressConfirmed && (
+                <>
+                  {/* product */}
+                  <div style={{ borderRadius: "20px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "28px", display: "flex", gap: "24px", alignItems: "center", marginTop: "12px" }}>
+                    <div style={{ width: "100px", height: "100px", flexShrink: 0, borderRadius: "16px", background: current.imageUrl ? '#fff' : current.thumbBg, border: current.imageUrl ? `1px solid ${t.border}` : 'none', display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
+                      {current.imageUrl ? (
+                        <img src={current.imageUrl} alt={current.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
+                      ) : (
+                        <BoxIcon size={42} />
+                      )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: "20px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingLeft: "24px", borderLeft: `1px solid ${t.border}` }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "42px", fontWeight: "700", color: "#8B5CF6", lineHeight: "1" }}>{current.separated} / {current.requested}</span>
+                      <span style={{ fontSize: "13px", color: t.textSub }}>coletados</span>
+                    </div>
+                  </div>
 
+                  {/* scan field */}
+                  <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                      <ScanIconBig size={24} />
+                      <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+                      <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
+                      <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
+                    </div>
+                  </div>
+                  <input 
+                    ref={scanInputRef}
+                    value={scanValue}
+                    onChange={e => setScanValue(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
+                    }}
+                    placeholder="Aguardando leitura do coletor..." 
+                    style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+                  />
+                </>
+              )}
+              
               <div style={{ display: "flex", gap: "12px" }}>
                 <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
                   Pular / sem estoque
@@ -432,6 +502,7 @@ function flattenWaveItems(orders: ShippingPickingOrder[]) {
     order.items.map((item) => ({
       ...item,
       compositeId: `${order.id}:${item.id}`,
+      imageUrl: item.imageUrl,
       orderId: order.id,
       orderCode: order.code,
       orderExternalNumber: order.externalNumber,
