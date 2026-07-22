@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const SUPPORT_ROLES = ["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"] as const;
 
@@ -8,10 +8,15 @@ export async function GET() {
   const auth = await requireApiRoleAccess(SUPPORT_ROLES);
   if (auth.response) return auth.response;
 
-  const supabase = await createSupabaseServerClient();
-  const [{ data: tickets, error: ticketError }, { data: comments, error: commentError }, { data: depositantes, error: depositanteError }] = await Promise.all([
-    supabase.from("suporte_chamados").select("id, numero, assunto, categoria, status, created_at, updated_at, depositante_id").order("created_at", { ascending: false }),
-    supabase.from("suporte_comentarios").select("id, chamado_id, texto, created_at, autor_id").order("created_at", { ascending: true }),
+  const supabase = createSupabaseAdminClient();
+  let ticketsQuery = supabase.from("suporte_chamados").select("id, numero, assunto, categoria, status, created_at, updated_at, depositante_id").order("created_at", { ascending: false });
+  if (auth.user.papel === "DEPOSITANTE" && auth.user.depositanteId) ticketsQuery = ticketsQuery.eq("depositante_id", auth.user.depositanteId);
+  const { data: tickets, error: ticketError } = await ticketsQuery;
+  const ticketIds = (tickets ?? []).map((ticket) => ticket.id);
+  let commentsQuery = supabase.from("suporte_comentarios").select("id, chamado_id, texto, created_at, autor_id").order("created_at", { ascending: true });
+  if (ticketIds.length) commentsQuery = commentsQuery.in("chamado_id", ticketIds);
+  const [{ data: comments, error: commentError }, { data: depositantes, error: depositanteError }] = await Promise.all([
+    ticketIds.length ? commentsQuery : Promise.resolve({ data: [], error: null }),
     supabase.from("depositantes").select("id, nome"),
   ]);
 
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
   if (!subject || !message) return NextResponse.json({ error: "Informe o assunto e a mensagem do chamado." }, { status: 400 });
   if (!auth.user.depositanteId) return NextResponse.json({ error: "O chamado precisa estar vinculado a um depositante." }, { status: 400 });
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: ticket, error: ticketError } = await supabase.from("suporte_chamados").insert({ depositante_id: auth.user.depositanteId, criado_por: auth.user.id, assunto: subject, categoria: category }).select("id, numero, assunto, categoria, status, created_at, updated_at, depositante_id").single();
   if (ticketError || !ticket) return NextResponse.json({ error: ticketError?.message ?? "Não foi possível abrir o chamado." }, { status: 500 });
 
