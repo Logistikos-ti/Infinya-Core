@@ -146,7 +146,7 @@ export function ShippingPickingInterface({
       numColor: isDone ? '#10B981' : (isCur ? '#fff' : t.textSub),
       titleColor: isDone ? t.textSub : t.text,
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
-      pick: () => { if (i <= currentIndex) setCurrentIndex(i); },
+      pick: () => { if (i <= currentIndex) { setCurrentIndex(i); setAddressConfirmed(false); setScanValue(""); } },
       isSkipped: p.isSkipped
     };
   });
@@ -189,6 +189,8 @@ export function ShippingPickingInterface({
     );
     
     setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+    setAddressConfirmed(false);
+    setScanValue("");
   };
 
   const confirmItem = () => {
@@ -252,7 +254,7 @@ export function ShippingPickingInterface({
       if (nextSeparated >= currentItem.requestedQuantity) {
         // Play beep and advance
         playFeedbackTone("success");
-        setTimeout(() => setCurrentIndex(Math.min(currentIndex + 1, totalCount)), 300);
+        setTimeout(() => { setCurrentIndex(Math.min(currentIndex + 1, totalCount)); setAddressConfirmed(false); setScanValue(""); }, 300);
       } else {
         playFeedbackTone("success");
       }
@@ -283,11 +285,7 @@ export function ShippingPickingInterface({
     oscillator.onended = () => { void context.close(); };
   }
 
-    // Reset address confirmation when item changes
-  useEffect(() => {
-    setAddressConfirmed(false);
-    setScanValue("");
-  }, [currentIndex]);
+    // Refocus logic
   
   // Refocus input
   useEffect(() => {
@@ -368,8 +366,8 @@ export function ShippingPickingInterface({
                     <span style={{ fontSize: "13.5px", opacity: 0.9 }}>{current.zone}</span>
                   </div>
                   {addressConfirmed && (
-                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <CheckIcon size={24} color="#fff" />
+                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                      <CheckIcon size={24} />
                     </div>
                   )}
                 </div>
