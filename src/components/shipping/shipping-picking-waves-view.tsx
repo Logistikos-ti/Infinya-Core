@@ -193,7 +193,7 @@ export function ShippingPickingWavesView({
       await startShippingWaveAction(wave.id);
     }
     const ids = wave.orders.join(",");
-    router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}`);
+    router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}&wave=${encodeURIComponent(wave.code)}`);
   };
 
   return (
