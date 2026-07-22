@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, CircleHelp, Send, X } from "lucide-react";
+import { ArrowRight, CircleHelp, Loader2, Send, X } from "lucide-react";
 
 type TicketTone = "green" | "blue" | "amber";
 
@@ -157,10 +157,12 @@ export function SupportClient() {
             </label>
             <button
               type="button"
-              onClick={submitTicket}
-              className="mt-4 h-12 w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20"
+              onClick={() => void submitTicket()}
+              disabled={submitting}
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition enabled:hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
             >
-              Enviar chamado
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {submitting ? "Enviando..." : "Enviar chamado"}
             </button>
             {feedback ? (
               <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-semibold ${feedback.includes("sucesso") ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
