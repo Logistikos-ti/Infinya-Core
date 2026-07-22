@@ -211,7 +211,7 @@ export function ShippingPickingWavesView({
       </div>
 
       {/* KPIS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
         {kpis.map((k, i) => (
           <div key={i} style={{ padding: "24px", minHeight: "108px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", alignItems: "center", gap: "18px" }}>
             <div style={{ width: "48px", height: "48px", borderRadius: "12px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: k.iconBg, color: k.iconColor }}>{k.iconEl}</div>
@@ -225,7 +225,7 @@ export function ShippingPickingWavesView({
 
       
       {/* WAVES GRID */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
         {activeWaves.length === 0 ? (
           <div style={{ gridColumn: "1 / -1", padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500", background: t.cardBg, borderRadius: "16px", border: `1px solid ${t.border}` }}>
             Nenhuma onda em execução no momento. Clique em "+ Nova onda" para começar.
