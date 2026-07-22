@@ -20,6 +20,7 @@ import { listReceivingOrdersFromDb } from "@/lib/receiving";
 import { listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
+import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = { searchParams?: Promise<{ view?: string }> };
 
@@ -33,6 +34,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     listReceivingOrdersFromDb({ depositanteId }),
     listStockBalancesFromDb({ depositanteId }),
   ]);
+  const supportTickets = view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
   const depositanteName = user.depositanteNome || user.nome;
   const totalUnits = stock.reduce((sum, item) => sum + Number(item.rawQuantidade ?? 0), 0);
   const lowStock = stock.filter((item) => Number(item.rawQuantidade ?? 0) <= 5).slice(0, 5);
@@ -53,7 +55,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       {view === "produtos" ? <ProductsView stock={stock} /> : null}
       {view === "recebimento" ? <ReceivingView receiving={receiving} /> : null}
       {view === "faturas" ? <InvoicesView /> : null}
-      {view === "suporte" ? <SupportView /> : null}
+      {view === "suporte" ? <SupportView initialTickets={supportTickets} /> : null}
     </div>
   );
 }
@@ -179,8 +181,8 @@ function InvoicesView() {
   return <><ViewHeader title="Faturas & armazenagem" description="Custos de armazenagem, manuseio e expedição do período." /><div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]"><div className="flex items-center gap-3 border-b border-slate-100 p-5 dark:border-white/10"><FileText className="h-5 w-5 text-violet-500" /><div><p className="text-sm font-bold">Faturas do período</p><p className="text-xs text-slate-500">Os documentos financeiros aparecerão aqui quando liberados.</p></div></div><EmptyState text="Nenhuma fatura disponível." /></div></>;
 }
 
-function SupportView() {
-  return <><ViewHeader title="Suporte" description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos." /><SupportClient /></>;
+function SupportView({ initialTickets }: { initialTickets: Awaited<ReturnType<typeof listSupportTicketsFromDb>> }) {
+  return <><ViewHeader title="Suporte" description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos." /><SupportClient initialTickets={initialTickets} /></>;
 }
 
 function PageIntro({ title, description }: { title: string; description: string }) { return <div className="mb-7"><h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">{title}</h2><p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{description}</p></div>; }

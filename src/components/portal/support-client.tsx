@@ -2,20 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, CircleHelp, Loader2, Send, X } from "lucide-react";
+import type { SupportTicket } from "@/lib/support";
 
 type TicketTone = "green" | "blue" | "amber";
 
-export type Ticket = {
-  id: string;
-  databaseId: string;
-  title: string;
-  category: string;
-  meta: string;
-  status: string;
-  tone: TicketTone;
-  comments: Comment[];
-  depositante?: string | null;
-};
+export type Ticket = SupportTicket;
 
 type Comment = { id: string; text: string; author?: string; role?: string | null; createdAt?: string };
 
@@ -23,7 +14,7 @@ const categories = ["Divergência", "Estoque", "Financeiro", "Outros"];
 
 const initialTickets: Ticket[] = [];
 
-export function SupportClient() {
+export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket[] }) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState(categories[0]);
@@ -42,14 +33,14 @@ export function SupportClient() {
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "Não foi possível carregar os chamados.");
-        if (active) setTickets(payload.tickets ?? []);
+        if (active && (initialTickets.length === 0 || (payload.tickets ?? []).length > 0)) setTickets(payload.tickets ?? []);
       })
       .catch((error: unknown) => {
         if (active) setFeedback(error instanceof Error ? error.message : "Não foi possível carregar os chamados.");
       })
       .finally(() => active && setLoadingTickets(false));
     return () => { active = false; };
-  }, []);
+  }, [initialTickets.length]);
 
   async function submitTicket() {
     if (!subject.trim() || !message.trim()) {
