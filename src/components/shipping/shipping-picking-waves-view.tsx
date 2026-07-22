@@ -7,13 +7,16 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus } from "lucide-react";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
+import { createShippingWaveAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 
-export function ShippingPickingWavesView({ 
+export function ShippingPickingWavesView({
   orders,
-  depositantes 
-}: { 
+  depositantes,
+  initialWaves = []
+}: {
   orders: any[];
   depositantes: { id: string, nome: string }[];
+  initialWaves?: any[];
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -42,50 +45,93 @@ export function ShippingPickingWavesView({
   const grad = 'linear-gradient(92deg,#3B82F6,#8B5CF6)';
 
   // Calculate stats & active waves
-  const activeWaves = [
-    {
-      code: 'Onda W-204', meta: '42 pedidos · Sudeste',
-      status: 'Em separação', statusBg: hex2('#3B82F6', 0.1), statusColor: '#3B82F6', statusDot: '#3B82F6',
-      pct: 78, barFill: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
-      stats: [{v: '38', k: 'Separados'}, {v: '4', k: 'Pendentes'}, {v: '12', k: 'Itens/min'}],
-      op: 'Carlos Santos', opInit: 'CS', opBg: '#3B82F6', opIcon: null,
-      cta: 'Continuar separação ->',
-      orders: []
-    },
-    {
-      code: 'Onda W-205', meta: '28 pedidos · Sul',
-      status: 'Em separação', statusBg: hex2('#3B82F6', 0.1), statusColor: '#3B82F6', statusDot: '#3B82F6',
-      pct: 45, barFill: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
-      stats: [{v: '13', k: 'Separados'}, {v: '15', k: 'Pendentes'}, {v: '9', k: 'Itens/min'}],
-      op: 'Marcos Vieira', opInit: 'MV', opBg: '#8B5CF6', opIcon: null,
-      cta: 'Continuar separação ->',
-      orders: []
-    },
-    {
-      code: 'Onda W-206', meta: '51 pedidos · Nordeste',
-      status: 'Aguardando', statusBg: hex2('#F59E0B', 0.1), statusColor: '#F59E0B', statusDot: '#F59E0B',
-      pct: 0, barFill: '#E2E8F0',
-      stats: [{v: '0', k: 'Separados'}, {v: '51', k: 'Pendentes'}, {v: '—', k: 'Itens/min'}],
-      op: 'Não iniciada', opInit: '—', opBg: '#F43F5E', opIcon: null,
-      cta: 'Iniciar separação ->',
-      orders: []
-    },
-    {
-      code: 'Onda W-203', meta: '35 pedidos · Centro-Oeste',
-      status: 'Concluída', statusBg: hex2('#10B981', 0.1), statusColor: '#10B981', statusDot: '#10B981',
-      pct: 100, barFill: '#10B981',
-      stats: [{v: '35', k: 'Separados'}, {v: '0', k: 'Pendentes'}, {v: '14', k: 'Itens/min'}],
-      op: 'Ana Lima', opInit: 'AL', opBg: '#10B981', opIcon: null,
-      cta: 'Ver detalhes ->',
-      orders: []
-    }
-  ];
+  
+  const activeWaves = useMemo(() => {
+    return (initialWaves || []).map((w) => {
+      const isConcluida = w.status === 'CONCLUIDA';
+      const isAguardando = w.status === 'PENDENTE';
+      const isEmSeparacao = w.status === 'EM_SEPARACAO';
+      
+      let pct = 0;
+      let totalItems = 0;
+      let completedItems = 0;
+      
+      const waveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
+      waveOrders.forEach(o => {
+        totalItems += (o.totalUnits || 0);
+        completedItems += (o.status === 'SEPARADO' ? (o.totalUnits || 0) : 0);
+      });
+      
+      if (totalItems > 0) {
+        pct = Math.round((completedItems / totalItems) * 100);
+      }
+      if (isConcluida) pct = 100;
+      
+      let statusStr = 'Aguardando';
+      let statusBg = '#F59E0B22';
+      let statusColor = '#F59E0B';
+      let statusDot = '#F59E0B';
+      let barFill = '#E2E8F0';
+      let iconBg = '#F59E0B22';
+      let iconColor = '#F59E0B';
+      let iconEl = <Clock size={22} />;
+      
+      if (isConcluida) {
+        statusStr = 'Concluída';
+        statusBg = '#10B98122';
+        statusColor = '#10B981';
+        statusDot = '#10B981';
+        barFill = '#10B981';
+        iconBg = '#10B98122';
+        iconColor = '#10B981';
+        iconEl = <CheckCircle2 size={22} />;
+      } else if (isEmSeparacao) {
+        statusStr = 'Em separação';
+        statusBg = '#3B82F622';
+        statusColor = '#3B82F6';
+        statusDot = '#3B82F6';
+        barFill = 'linear-gradient(90deg, #3B82F6, #8B5CF6)';
+        iconBg = '#3B82F622';
+        iconColor = '#3B82F6';
+        iconEl = <Waves size={22} />;
+      }
+
+      const opName = w.operador?.nome || 'Não iniciada';
+      let opInit = '—';
+      let opBg = '#F43F5E';
+      if (opName !== 'Não iniciada') {
+        opInit = opName.split(' ').map((x:string) => x[0]).slice(0,2).join('').toUpperCase();
+        opBg = '#3B82F6';
+      }
+
+      return {
+        id: w.id,
+        code: w.codigo,
+        meta: `${w.pedidos?.length || 0} pedidos`,
+        status: statusStr,
+        statusBg, statusColor, statusDot,
+        pct, barFill, pctColor: isConcluida ? '#10B981' : (pct === 0 ? t.textSub : '#8B5CF6'),
+        stats: [
+          { v: completedItems.toString(), k: 'Separados' },
+          { v: (totalItems - completedItems).toString(), k: 'Pendentes' },
+          { v: '—', k: 'Itens/min' }
+        ],
+        op: opName,
+        opInit,
+        opBg,
+        cta: isConcluida ? 'Ver detalhes ->' : (isAguardando ? 'Iniciar separação ->' : 'Continuar separação ->'),
+        iconEl, iconBg, iconColor,
+        orders: w.pedidos?.map((p:any) => p.pedido_expedicao_id) || [],
+        raw: w
+      };
+    });
+  }, [initialWaves, orders]);
 
   const kpis = [
-    { label: 'Ondas ativas', value: '3', iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.1), iconColor: '#3B82F6' },
-    { label: 'Pedidos em separação', value: '86', iconEl: <ClipboardList size={20} />, iconBg: hex2('#8B5CF6', 0.1), iconColor: '#8B5CF6' },
-    { label: 'Aguardando onda', value: '63', iconEl: <Clock size={20} />, iconBg: hex2('#F59E0B', 0.1), iconColor: '#F59E0B' },
-    { label: 'Concluídas hoje', value: '12', iconEl: <CheckCircle2 size={20} />, iconBg: hex2('#10B981', 0.1), iconColor: '#10B981' }
+    { label: 'Ondas ativas', value: activeWaves.filter(w => w.status !== 'Concluída').length.toString(), iconEl: <Waves size={20} />, iconBg: '#3B82F622', iconColor: '#3B82F6' },
+    { label: 'Pedidos em separação', value: activeWaves.filter(w => w.status === 'Em separação').reduce((sum, w) => sum + (w.raw?.pedidos?.length || 0), 0).toString(), iconEl: <ClipboardList size={20} />, iconBg: '#8B5CF622', iconColor: '#8B5CF6' },
+    { label: 'Aguardando onda', value: orders.filter((o:any) => o.status === 'NOVO').length.toString(), iconEl: <Clock size={20} />, iconBg: '#F59E0B22', iconColor: '#F59E0B' },
+    { label: 'Concluídas hoje', value: activeWaves.filter(w => w.status === 'Concluída').length.toString(), iconEl: <CheckCircle2 size={20} />, iconBg: '#10B98122', iconColor: '#10B981' }
   ];
 
   const stratDefs = [
@@ -109,19 +155,26 @@ export function ShippingPickingWavesView({
   }, [orders, strategy, limit, selectedDepositante]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedOrderIds(eligibleOrders.map(o => o.id));
   }, [eligibleOrders]);
 
   const previewItems = eligibleOrders.filter(o => selectedOrderIds.includes(o.id)).reduce((sum, o) => sum + (o.totalUnits || 0), 0);
 
-  const handleCreateWave = () => {
-    if (selectedOrderIds.length === 0) {
-      alert("Selecione ao menos um pedido para esta onda.");
-      return;
+  
+  const [isCreating, setIsCreating] = useState(false);
+  const handleCreateWave = async () => {
+    if (selectedOrderIds.length === 0) return;
+    setIsCreating(true);
+    try {
+      const waveId = await createShippingWaveAction(selectedOrderIds);
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      setIsCreating(false);
     }
-    const ids = selectedOrderIds.join(",");
-    router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}`);
   };
+
 
   const handleOpenWave = (wave: any) => {
     if (wave.orders.length === 0) return;
@@ -170,6 +223,7 @@ export function ShippingPickingWavesView({
         ))}
       </div>
 
+      
       {/* WAVES GRID */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px" }}>
         {activeWaves.length === 0 ? (
@@ -178,48 +232,50 @@ export function ShippingPickingWavesView({
           </div>
         ) : (
           activeWaves.map((w, i) => (
-            <div key={i} style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderBottom: `1px solid ${t.border}` }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700", color: t.text }}>{w.code}</span>
-                  <span style={{ fontSize: "12.5px", color: t.textSub }}>{w.meta}</span>
+            <a key={i} onClick={() => handleOpenWave(w)} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${t.border}`, background: t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${t.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: w.iconBg, color: w.iconColor }}>{w.iconEl}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', fontWeight: 700 }}>{w.code}</span>
+                    <span style={{ fontSize: '12px', color: t.textSub }}>{w.meta}</span>
+                  </div>
                 </div>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", background: w.statusBg, color: w.statusColor }}>
-                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: w.statusDot }}></span>{w.status}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, background: w.statusBg, color: w.statusColor }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: w.statusDot }}></span>{w.status}
                 </span>
               </div>
-              <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
-                    <span style={{ color: t.textSub }}>Progresso</span>
-                    <span style={{ fontWeight: "700", color: t.text }}>{w.pct}%</span>
+              <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                    <span style={{ color: t.textSub }}>Progresso da separação</span>
+                    <span style={{ fontWeight: 700, color: w.pctColor }}>{w.pct}%</span>
                   </div>
-                  <div style={{ height: "8px", borderRadius: "999px", background: t.barTrack, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${w.pct}%`, borderRadius: "999px", background: w.barFill, transformOrigin: "left", transition: "width 0.5s ease" }}></div>
+                  <div style={{ height: '8px', borderRadius: '999px', background: t.barTrack, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${w.pct}%`, borderRadius: '999px', background: w.barFill, transformOrigin: 'left', transition: 'width 0.8s ease' }}></div>
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                  {w.stats.map((s, si) => (
-                    <div key={si} style={{ display: "flex", flexDirection: "column", gap: "3px", padding: "10px 12px", borderRadius: "11px", background: t.softBg }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700", color: si === 0 && w.status !== 'Aguardando' ? '#3B82F6' : t.text }}>{s.v}</span>
-                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {w.stats.map((st, si) => (
+                    <div key={si} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 12px', borderRadius: '11px', background: t.softBg }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', fontWeight: 700 }}>{st.v}</span>
+                      <span style={{ fontSize: '11px', color: t.textSub }}>{st.k}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: w.opBg, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800" }}>{w.opInit}</div>
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: t.textSub }}>{w.op}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: `1px solid ${t.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: w.opBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 800 }}>{w.opInit}</div>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: t.textSub }}>{w.op}</span>
                   </div>
-                  <button onClick={() => handleOpenWave(w)} style={{ height: "36px", padding: "0 16px", border: `1px solid ${t.border}`, borderRadius: "9px", background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", transition: "border-color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "#8B5CF6"} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>
-                    {w.cta}
-                  </button>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#8B5CF6' }}>{w.cta}</span>
                 </div>
               </div>
-            </div>
+            </a>
           ))
         )}
       </div>
+
 
       {/* CREATE WAVE MODAL */}
       {showCreate && (

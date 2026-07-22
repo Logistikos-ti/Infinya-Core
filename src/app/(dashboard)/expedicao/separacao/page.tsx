@@ -3,6 +3,7 @@ import { listShippingPickingOrdersFromDb } from "@/lib/shipping-picking";
 import { ShippingPickingWavesView } from "@/components/shipping/shipping-picking-waves-view";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { listActivePickingWavesAction } from "./actions";
 
 export default async function ExpedicaoSeparacaoPage() {
   const user = await requireModuleAccess("expedicao");
@@ -16,6 +17,7 @@ export default async function ExpedicaoSeparacaoPage() {
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
 
   const orders = await listShippingPickingOrdersFromDb(user, {});
+  const activeWaves = await listActivePickingWavesAction();
 
-  return <ShippingPickingWavesView orders={orders} depositantes={depositanteOptions} />;
+  return <ShippingPickingWavesView orders={orders} depositantes={depositanteOptions} initialWaves={activeWaves} />;
 }
