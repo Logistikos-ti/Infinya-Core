@@ -29,6 +29,7 @@ import {
   Tag,
   Truck,
   ChevronDown,
+  CircleHelp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -59,6 +60,7 @@ const navigation: ReadonlyArray<{
   { href: "/romaneio", label: "Romaneio", icon: ClipboardList, module: "romaneio" },
   { href: "/nfe", label: "NF-e", icon: FileCode2, module: "nfe" },
   { href: "/relatorios", label: "Relatórios", icon: PieChart, module: "relatorios" },
+  { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" },
   { href: "/yms", label: "YMS (Docas)", icon: Route, module: "yms" },
   { href: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, module: "configuracoes" },
 ] as const;
@@ -128,6 +130,7 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
           ...(canAccessModule(user, "romaneio")
             ? [{ href: "/romaneio", label: "Romaneio", icon: ClipboardList, module: "romaneio" as AppModule }]
             : []),
+          { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" as AppModule },
           {
             href: "/configuracoes/produtos",
             label: "Produtos",

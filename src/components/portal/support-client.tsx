@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, CircleHelp, Send, X } from "lucide-react";
 
 type TicketTone = "green" | "blue" | "amber";
 
-type Ticket = {
+export type Ticket = {
   id: string;
+  databaseId: string;
   title: string;
   category: string;
   meta: string;
   status: string;
   tone: TicketTone;
-  comments: string[];
+  comments: Comment[];
+  depositante?: string | null;
 };
+
+type Comment = { id: string; text: string; author?: string; role?: string | null; createdAt?: string };
 
 const categories = ["Divergência", "Estoque", "Financeiro", "Outros"];
 
@@ -27,30 +31,50 @@ export function SupportClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [loadingTickets, setLoadingTickets] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
   const selected = tickets.find((ticket) => ticket.id === selectedId) ?? null;
 
-  function submitTicket() {
+  useEffect(() => {
+    let active = true;
+    fetch("/api/suporte/chamados", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Não foi possível carregar os chamados.");
+        if (active) setTickets(payload.tickets ?? []);
+      })
+      .catch((error: unknown) => {
+        if (active) setFeedback(error instanceof Error ? error.message : "Não foi possível carregar os chamados.");
+      })
+      .finally(() => active && setLoadingTickets(false));
+    return () => { active = false; };
+  }, []);
+
+  async function submitTicket() {
     if (!subject.trim() || !message.trim()) {
       setFeedback("Preencha o assunto e a mensagem para abrir o chamado.");
       return;
     }
 
-    const id = `#CH-${2060 + tickets.length}`;
-    setTickets((current) => [
-      {
-        id,
-        title: subject.trim(),
-        category,
-        meta: "agora · 1 comentário",
-        status: "Aberto",
-        tone: "amber",
-        comments: [message.trim()],
-      },
-      ...current,
-    ]);
-    setSubject("");
-    setMessage("");
-    setFeedback(`Chamado ${id} aberto com sucesso.`);
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/suporte/chamados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, message, category }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Não foi possível abrir o chamado.");
+      setTickets((current) => [payload.ticket, ...current]);
+      setSubject("");
+      setMessage("");
+      setFeedback(`Chamado ${payload.ticket.id} aberto com sucesso.`);
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Não foi possível abrir o chamado.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function closeTicket() {
@@ -58,20 +82,26 @@ export function SupportClient() {
     setComment("");
   }
 
-  function sendComment() {
+  async function sendComment() {
     if (!selectedId || !comment.trim()) return;
-    setTickets((current) =>
-      current.map((ticket) =>
-        ticket.id === selectedId
-          ? {
-              ...ticket,
-              comments: [...ticket.comments, comment.trim()],
-              meta: `agora · ${ticket.comments.length + 1} comentários`,
-            }
-          : ticket,
-      ),
-    );
-    setComment("");
+    const selectedTicket = tickets.find((ticket) => ticket.id === selectedId);
+    if (!selectedTicket) return;
+    setSendingComment(true);
+    try {
+      const response = await fetch(`/api/suporte/chamados/${selectedTicket.databaseId}/comentarios`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: comment }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Não foi possível enviar o comentário.");
+      setTickets((current) => current.map((ticket) => ticket.id === selectedId ? { ...ticket, comments: [...ticket.comments, payload.comment], meta: `agora · ${ticket.comments.length + 1} comentários` } : ticket));
+      setComment("");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Não foi possível enviar o comentário.");
+    } finally {
+      setSendingComment(false);
+    }
   }
 
   return (
@@ -154,7 +184,9 @@ export function SupportClient() {
             Meus chamados
           </div>
           <div className="flex flex-col">
-            {tickets.length === 0 ? (
+            {loadingTickets ? (
+              <div className="flex min-h-[420px] items-center justify-center px-6 text-center text-sm text-slate-500">Carregando chamados...</div>
+            ) : tickets.length === 0 ? (
               <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
                 <div>
                   <p className="font-display text-sm font-bold">Nenhum chamado aberto</p>
@@ -195,6 +227,7 @@ export function SupportClient() {
           onClose={closeTicket}
           onChangeComment={setComment}
           onSendComment={sendComment}
+          sendingComment={sendingComment}
         />
       ) : null}
     </>
@@ -218,12 +251,14 @@ function TicketDrawer({
   onClose,
   onChangeComment,
   onSendComment,
+  sendingComment,
 }: {
   ticket: Ticket;
   comment: string;
   onClose: () => void;
   onChangeComment: (value: string) => void;
   onSendComment: () => void;
+  sendingComment: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -265,7 +300,7 @@ function TicketDrawer({
               key={`${ticket.id}-${index}`}
               className={`max-w-[86%] rounded-xl px-4 py-3 text-sm ${index % 2 === 0 ? "bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-300" : "ml-auto bg-violet-500/10 text-slate-700 dark:text-slate-200"}`}
             >
-              {item}
+              {item.text}
             </div>
           ))}
         </div>
@@ -283,7 +318,7 @@ function TicketDrawer({
           <button
             type="button"
             onClick={onSendComment}
-            disabled={!comment.trim()}
+            disabled={!comment.trim() || sendingComment}
             aria-label="Enviar comentário"
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
