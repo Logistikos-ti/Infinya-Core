@@ -241,13 +241,18 @@ export function ShippingPickingWavesView({
       {showCreate && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
           <div onClick={() => setShowCreate(false)} style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.6)", backdropFilter: "blur(4px)", animation: "overlayFade 0.25s ease" }}></div>
-          <div style={{ position: "relative", width: "520px", maxWidth: "96vw", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", borderRadius: "20px", background: t.cardBg, border: `1px solid ${t.border}`, boxShadow: "0 32px 80px rgba(0,0,0,0.4)", animation: "drawerIn 0.3s cubic-bezier(.3,1,.4,1)" }}>
-            <div style={{ padding: "24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "20px", fontWeight: "700", color: t.text }}>Nova onda de separação</span>
-                <span style={{ fontSize: "13px", color: t.textSub }}>Selecione critérios para agrupar os pedidos.</span>
+          <div style={{ position: "relative", width: "100%", maxWidth: "560px", background: t.cardBg, borderRadius: "20px", boxShadow: "0 24px 60px rgba(0,0,0,0.25)", overflow: "hidden", display: "flex", flexDirection: "column", animation: "modalScale 0.3s cubic-bezier(.175,.885,.32,1.1)" }}>
+            
+            {/* Header */}
+            <div style={{ padding: "24px 28px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "flex-start", gap: "16px" }}>
+              <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "rgba(139,92,246,0.12)", color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Waves size={22} strokeWidth={2.5} />
               </div>
-              <button onClick={() => setShowCreate(false)} style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} onMouseEnter={(e) => e.currentTarget.style.color = "#8B5CF6"} onMouseLeave={(e) => e.currentTarget.style.color = t.textSub}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, paddingTop: "2px" }}>
+                <h2 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "20px", fontWeight: 700, color: t.text }}>Nova onda de separação</h2>
+                <p style={{ margin: 0, fontSize: "14px", color: t.textSub }}>Selecione critérios para agrupar os pedidos.</p>
+              </div>
+              <button onClick={() => setShowCreate(false)} style={{ width: "36px", height: "36px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.color = t.text; e.currentTarget.style.borderColor = t.textSub; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>
                 <X size={18} />
               </button>
             </div>
@@ -304,14 +309,21 @@ export function ShippingPickingWavesView({
               </div>
             </div>
 
-            <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px" }}>
-              <button onClick={() => setShowCreate(false)} style={{ flex: 1, height: "48px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "#8B5CF6"} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>
+            <div style={{ padding: "20px 28px", borderTop: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", background: t.softBg }}>
+              <button 
+                onClick={() => setShowCreate(false)}
+                style={{ height: "44px", padding: "0 24px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = t.softBg; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = t.cardBg; }}
+              >
                 Cancelar
               </button>
               <button 
-                onClick={handleCreateWave} 
                 disabled={eligibleOrders.length === 0}
-                style={{ flex: 1.6, height: "48px", border: "none", borderRadius: "11px", background: eligibleOrders.length ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.border, color: eligibleOrders.length ? "#fff" : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: eligibleOrders.length ? "pointer" : "not-allowed", boxShadow: eligibleOrders.length ? "0 8px 22px rgba(99,102,241,0.32)" : "none", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onClick={handleCreateWave} 
+                style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: eligibleOrders.length === 0 ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: eligibleOrders.length === 0 ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: eligibleOrders.length === 0 ? "not-allowed" : "pointer", boxShadow: eligibleOrders.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
+                onMouseEnter={(e) => { if(eligibleOrders.length > 0) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
+                onMouseLeave={(e) => { if(eligibleOrders.length > 0) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
               >
                 Criar e iniciar separação →
               </button>
