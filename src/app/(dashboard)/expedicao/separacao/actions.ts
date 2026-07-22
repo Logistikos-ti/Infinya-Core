@@ -533,7 +533,7 @@ function appendFeedback(path: string, feedback: string) {
 
 export async function createShippingWaveAction(orderIds: string[]) {
   const supabase = createSupabaseAdminClient();
-  const codigo = "W-$((Get-Random -Minimum 100 -Maximum 999))"; // e.g. W-204
+  const codigo = `W-${Math.floor(100 + Math.random() * 900)}`; // e.g. W-204
 
   const { data: onda, error } = await supabase
     .from('ondas_separacao')
@@ -555,6 +555,13 @@ export async function createShippingWaveAction(orderIds: string[]) {
   }));
   
   await supabase.from('ondas_separacao_pedidos').insert(links);
+
+  // Update orders status so they disappear from "NOVO" list
+  await supabase
+    .from('pedidos_expedicao')
+    .update({ status: 'EM_SEPARACAO' })
+    .in('id', orderIds);
+
   return onda.id;
 }
 
