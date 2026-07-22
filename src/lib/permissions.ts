@@ -173,6 +173,10 @@ export function canUploadOperationalDocuments(user: AppUserContext) {
 }
 
 export function getPreferredWebRoute(user: AppUserContext) {
+  if (user.papel === "DEPOSITANTE") {
+    return "/portal";
+  }
+
   if (isProductCatalogOnlyUser(user)) {
     return "/configuracoes/produtos";
   }
