@@ -37,7 +37,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const lowStock = stock.filter((item) => Number(item.rawQuantidade ?? 0) <= 5).slice(0, 5);
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6">
+    <div className="w-full space-y-6">
       {view === "inicio" ? (
         <DashboardView
           depositanteName={depositanteName}
@@ -186,9 +186,9 @@ function SupportView() {
   ];
   return <>
     <ViewHeader title="Suporte" description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos." />
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+    <div className="grid min-h-[520px] gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.4fr)]">
+      <div className="flex flex-col gap-4">
+        <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
           <h3 className="font-display text-base font-bold">Abrir chamado</h3>
           <label className="mt-4 block text-xs text-slate-500">Assunto<input className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none dark:border-white/10 dark:bg-white/5" placeholder="Ex.: Divergência no pedido #EC-48219" /></label>
           <span className="mt-4 block text-xs text-slate-500">Categoria</span>
@@ -198,7 +198,7 @@ function SupportView() {
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500"><CircleHelp className="h-5 w-5" /></span><div><p className="text-sm font-bold">Tempo de resposta</p><p className="text-xs text-slate-500">Em até 2h úteis</p></div></div>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]"><div className="border-b border-slate-200 px-5 py-4 font-display text-base font-bold dark:border-white/10">Meus chamados</div>{tickets.map((ticket) => <div key={ticket.id} className="flex items-center gap-4 border-b border-slate-100 px-5 py-4 last:border-0 dark:border-white/10"><span className="w-16 shrink-0 font-display text-xs font-bold">{ticket.id}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{ticket.title}</p><p className="text-xs text-slate-500">{ticket.meta}</p></div><span className={`rounded-full px-3 py-1 text-[11px] font-bold ${ticket.tone === "green" ? "bg-emerald-500/10 text-emerald-600" : ticket.tone === "blue" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>{ticket.status}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></div>)}</div>
+      <div className="min-h-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]"><div className="border-b border-slate-200 px-5 py-4 font-display text-base font-bold dark:border-white/10">Meus chamados</div>{tickets.map((ticket) => <div key={ticket.id} className="flex items-center gap-4 border-b border-slate-100 px-5 py-5 last:border-0 dark:border-white/10"><span className="w-16 shrink-0 font-display text-xs font-bold">{ticket.id}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{ticket.title}</p><p className="text-xs text-slate-500">{ticket.meta}</p></div><span className={`rounded-full px-3 py-1 text-[11px] font-bold ${ticket.tone === "green" ? "bg-emerald-500/10 text-emerald-600" : ticket.tone === "blue" ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"}`}>{ticket.status}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></div>)}</div>
     </div>
   </>;
 }
