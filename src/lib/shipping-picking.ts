@@ -763,7 +763,7 @@ async function loadPickingStockRows(
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
   const hasPayloadKitWithoutRealProduct = orders.some((order) =>
     (order.itens ?? []).some((item) => {
-      if (!looksLikeUuid(item.produto_id)) return true;
+      if (!item.produto_id || !looksLikeUuid(item.produto_id)) return true;
       return normalizeKitComponentDefinitions(item.payload_origem).some(
         (component) => !looksLikeUuid(component.componentProductId),
       );
