@@ -562,11 +562,11 @@ export async function listActivePickingWavesAction() {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from('ondas_separacao')
-    .select(
+    .select(`
       id, codigo, status, criado_em, atualizado_em,
       operador:usuarios!ondas_separacao_operador_id_fkey(nome),
       pedidos:ondas_separacao_pedidos(pedido_expedicao_id)
-    )
+    `)
     .in('status', ['PENDENTE', 'EM_SEPARACAO'])
     .order('criado_em', { ascending: false });
     
