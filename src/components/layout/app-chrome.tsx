@@ -77,7 +77,16 @@ export function AppChrome({ children, user }: AppChromeProps) {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-8 lg:border-none lg:border-slate-200/80 dark:border-white/10">
           <div className="flex w-full max-w-3xl items-center gap-4">
-            {currentPath !== "/expedicao/separacao/lote" && (
+            {currentPath === "/expedicao/separacao/lote" ? (
+              <div className="flex items-center gap-4">
+                <Link href="/expedicao/separacao" className="flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200/80 bg-white/70 text-slate-700 font-bold text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white dark:hover:bg-[#0A1120]">
+                  ‹ Voltar
+                </Link>
+                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <span>Expedição</span><span>›</span><span className="text-slate-900 font-semibold dark:text-white">Separação</span>
+                </div>
+              </div>
+            ) : (
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
@@ -90,6 +99,12 @@ export function AppChrome({ children, user }: AppChromeProps) {
           </div>
           
           <div className="flex items-center gap-4 ml-4">
+            {currentPath === "/expedicao/separacao/lote" && (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda ativa</span>
+              </div>
+            )}
             <ThemeToggle />
           </div>
         </header>

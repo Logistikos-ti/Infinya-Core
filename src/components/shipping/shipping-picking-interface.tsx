@@ -298,8 +298,8 @@ export function ShippingPickingInterface({
 
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* LEFT: pick list */}
-        <div style={{ width: "340px", flexShrink: 0, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", background: t.sideBg2 }}>
-          <div style={{ padding: "20px 22px 16px 22px", borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ width: "340px", flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent" }}>
+          <div style={{ padding: "20px 22px 16px 22px" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700" }}>Lista de separação</span>
               <span style={{ fontSize: "12.5px", color: t.textSub }}>{doneCount}/{totalCount}</span>
