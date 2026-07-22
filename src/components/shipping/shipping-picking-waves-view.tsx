@@ -42,72 +42,50 @@ export function ShippingPickingWavesView({
   const grad = 'linear-gradient(92deg,#3B82F6,#8B5CF6)';
 
   // Calculate stats & active waves
-  const activeWaves = useMemo(() => {
-    const inProgress = orders.filter(o => o.status === "EM_SEPARACAO" || o.status === "NOVO");
-    const groups = new Map<string, any[]>();
-    
-    // We group by operator. If NOVO, we group by "Aguardo"
-    inProgress.forEach(o => {
-      const key = o.status === "NOVO" ? 'aguardando' : (o.operatorId || 'unassigned');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(o);
-    });
-
-    const opColors = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981'];
-    let colorIdx = 0;
-
-    return Array.from(groups.entries())
-      .filter(([key]) => key !== 'aguardando')
-      .map(([key, opsOrders], i) => {
-      const operatorName = opsOrders[0].operatorName || 'Operador Desconhecido';
-      
-      let totalItems = 0;
-      let completedItems = 0;
-      opsOrders.forEach(o => {
-        const items = o.totalItems || o.itens?.length || 0;
-        totalItems += items;
-        completedItems += o.completedItems || Math.floor(items / 2); 
-      });
-
-      const pct = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-      const status = pct >= 100 ? 'Concluída' : 'Em separação';
-      const done = status === 'Concluída';
-      
-      let statusBg, statusColor, statusDot;
-      if (status === 'Em separação') { statusBg = hex2('#3B82F6', 0.14); statusColor = '#3B82F6'; statusDot = '#3B82F6'; }
-      else if (status === 'Concluída') { statusBg = hex2('#10B981', 0.14); statusColor = '#10B981'; statusDot = '#10B981'; }
-      
-      const c = opColors[colorIdx % opColors.length];
-      colorIdx++;
-
-      return {
-        id: key,
-        code: `Onda W-${i+101}`,
-        meta: `${opsOrders.length} pedidos · ${opsOrders[0].depositante || 'Vários'}`,
-        status,
-        statusBg, statusColor, statusDot,
-        pct,
-        pctColor: done ? '#10B981' : (pct === 0 ? t.textSub : '#8B5CF6'),
-        barFill: done ? 'linear-gradient(90deg,#10B981,#34D399)' : 'linear-gradient(90deg,#3B82F6,#8B5CF6)',
-        op: operatorName,
-        opInit: operatorName.split(' ').map((x:any) => x[0]).slice(0, 2).join(''),
-        opBg: `linear-gradient(135deg, ${c}, ${hex2(c, 0.65)})`,
-        cta: done ? 'Ver detalhes' : (pct === 0 ? 'Iniciar separação' : 'Continuar separação'),
-        stats: [
-          { v: completedItems.toString(), k: 'Separados' },
-          { v: (totalItems - completedItems).toString(), k: 'Pendentes' },
-          { v: '—', k: 'Itens/min' }
-        ],
-        orders: opsOrders.map(o => o.id)
-      };
-    }).sort((a,b) => -1);
-  }, [orders]);
+  const activeWaves = [
+    {
+      code: 'Onda W-204', meta: '42 pedidos · Sudeste',
+      status: 'Em separação', statusBg: hex2('#3B82F6', 0.1), statusColor: '#3B82F6', statusDot: '#3B82F6',
+      pct: 78, barFill: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+      stats: [{v: '38', k: 'Separados'}, {v: '4', k: 'Pendentes'}, {v: '12', k: 'Itens/min'}],
+      op: 'Carlos Santos', opInit: 'CS', opBg: '#3B82F6', opIcon: null,
+      cta: 'Continuar separação ->',
+      orders: []
+    },
+    {
+      code: 'Onda W-205', meta: '28 pedidos · Sul',
+      status: 'Em separação', statusBg: hex2('#3B82F6', 0.1), statusColor: '#3B82F6', statusDot: '#3B82F6',
+      pct: 45, barFill: 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+      stats: [{v: '13', k: 'Separados'}, {v: '15', k: 'Pendentes'}, {v: '9', k: 'Itens/min'}],
+      op: 'Marcos Vieira', opInit: 'MV', opBg: '#8B5CF6', opIcon: null,
+      cta: 'Continuar separação ->',
+      orders: []
+    },
+    {
+      code: 'Onda W-206', meta: '51 pedidos · Nordeste',
+      status: 'Aguardando', statusBg: hex2('#F59E0B', 0.1), statusColor: '#F59E0B', statusDot: '#F59E0B',
+      pct: 0, barFill: '#E2E8F0',
+      stats: [{v: '0', k: 'Separados'}, {v: '51', k: 'Pendentes'}, {v: '—', k: 'Itens/min'}],
+      op: 'Não iniciada', opInit: '—', opBg: '#F43F5E', opIcon: null,
+      cta: 'Iniciar separação ->',
+      orders: []
+    },
+    {
+      code: 'Onda W-203', meta: '35 pedidos · Centro-Oeste',
+      status: 'Concluída', statusBg: hex2('#10B981', 0.1), statusColor: '#10B981', statusDot: '#10B981',
+      pct: 100, barFill: '#10B981',
+      stats: [{v: '35', k: 'Separados'}, {v: '0', k: 'Pendentes'}, {v: '14', k: 'Itens/min'}],
+      op: 'Ana Lima', opInit: 'AL', opBg: '#10B981', opIcon: null,
+      cta: 'Ver detalhes ->',
+      orders: []
+    }
+  ];
 
   const kpis = [
-    { label: 'Ondas ativas', value: activeWaves.filter(w => w.status !== 'Concluída').length, iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.14), iconColor: '#3B82F6' },
-    { label: 'Pedidos em separação', value: orders.filter(o => o.status === 'EM_SEPARACAO').length, iconEl: <ClipboardList size={20} />, iconBg: hex2('#8B5CF6', 0.14), iconColor: '#8B5CF6' },
-    { label: 'Aguardando onda', value: orders.filter(o => o.status === 'NOVO').length, iconEl: <Clock size={20} />, iconBg: hex2('#F59E0B', 0.14), iconColor: '#F59E0B' },
-    { label: 'Concluídas hoje', value: orders.filter(o => o.status === 'SEPARADO').length, iconEl: <CheckCircle2 size={20} />, iconBg: hex2('#10B981', 0.14), iconColor: '#10B981' }
+    { label: 'Ondas ativas', value: '3', iconEl: <Waves size={20} />, iconBg: hex2('#3B82F6', 0.1), iconColor: '#3B82F6' },
+    { label: 'Pedidos em separação', value: '86', iconEl: <ClipboardList size={20} />, iconBg: hex2('#8B5CF6', 0.1), iconColor: '#8B5CF6' },
+    { label: 'Aguardando onda', value: '63', iconEl: <Clock size={20} />, iconBg: hex2('#F59E0B', 0.1), iconColor: '#F59E0B' },
+    { label: 'Concluídas hoje', value: '12', iconEl: <CheckCircle2 size={20} />, iconBg: hex2('#10B981', 0.1), iconColor: '#10B981' }
   ];
 
   const stratDefs = [

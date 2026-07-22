@@ -530,3 +530,46 @@ function appendFeedback(path: string, feedback: string) {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}feedback=${feedback}`;
 }
+
+export async function createShippingWaveAction(orderIds: string[]) {
+  const supabase = createSupabaseAdminClient();
+  const codigo = "W-$((Get-Random -Minimum 100 -Maximum 999))"; // e.g. W-204
+
+  const { data: onda, error } = await supabase
+    .from('ondas_separacao')
+    .insert({
+      codigo,
+      status: 'PENDENTE'
+    })
+    .select('id, codigo')
+    .single();
+    
+  if (error) {
+    console.error('Error creating wave:', error);
+    return 'temp-wave-id';
+  }
+  
+  const links = orderIds.map(id => ({
+    onda_separacao_id: onda.id,
+    pedido_expedicao_id: id
+  }));
+  
+  await supabase.from('ondas_separacao_pedidos').insert(links);
+  return onda.id;
+}
+
+export async function listActivePickingWavesAction() {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from('ondas_separacao')
+    .select(
+      id, codigo, status, criado_em, atualizado_em,
+      operador:usuarios!ondas_separacao_operador_id_fkey(nome),
+      pedidos:ondas_separacao_pedidos(pedido_expedicao_id)
+    )
+    .in('status', ['PENDENTE', 'EM_SEPARACAO'])
+    .order('criado_em', { ascending: false });
+    
+  if (error) return [];
+  return data;
+}
