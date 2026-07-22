@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus } from "lucide-react";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
-import { createShippingWaveAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { createShippingWaveAction, startShippingWaveAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 
 export function ShippingPickingWavesView({
   orders,
@@ -27,6 +27,7 @@ export function ShippingPickingWavesView({
   const [limit, setLimit] = useState(50);
   const [selectedDepositante, setSelectedDepositante] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [openingWave, setOpeningWave] = useState<string | null>(null);
 
   const t = isDark ? {
     appBg: '#0A1120', sideBg: '#0C1424', barBg: '#0C1424', cardBg: '#101B30',
@@ -56,6 +57,15 @@ export function ShippingPickingWavesView({
       let totalItems = 0;
       let completedItems = 0;
       
+        let itensMin = '—';
+        if (w.iniciado_em && w.status !== 'PENDENTE') {
+          const diffMs = new Date().getTime() - new Date(w.iniciado_em).getTime();
+          const diffMins = Math.max(diffMs / 1000 / 60, 1);
+          let localCompleted = 0;
+          const localWaveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
+          localWaveOrders.forEach(o => { localCompleted += (o.status === 'SEPARADO' ? (o.totalUnits || 0) : 0); });
+          if (localCompleted > 0) { itensMin = (localCompleted / diffMins).toFixed(1); } else { itensMin = '0.0'; }
+        }
       const waveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
       waveOrders.forEach(o => {
         totalItems += (o.totalUnits || 0);
@@ -114,7 +124,7 @@ export function ShippingPickingWavesView({
         stats: [
           { v: completedItems.toString(), k: 'Separados' },
           { v: (totalItems - completedItems).toString(), k: 'Pendentes' },
-          { v: '—', k: 'Itens/min' }
+          { v: itensMin, k: 'Itens/min' }
         ],
         op: opName,
         opInit,
@@ -176,8 +186,12 @@ export function ShippingPickingWavesView({
   };
 
 
-  const handleOpenWave = (wave: any) => {
+  const handleOpenWave = async (wave: any) => {
     if (wave.orders.length === 0) return;
+    setOpeningWave(wave.id);
+    if (wave.raw.status === 'PENDENTE' && !wave.raw.iniciado_em) {
+      await startShippingWaveAction(wave.id);
+    }
     const ids = wave.orders.join(",");
     router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}`);
   };
@@ -232,7 +246,7 @@ export function ShippingPickingWavesView({
           </div>
         ) : (
           activeWaves.map((w, i) => (
-            <a key={i} onClick={() => handleOpenWave(w)} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${t.border}`, background: t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; }}>
+            <a key={i} onClick={() => handleOpenWave(w)} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${t.border}`, background: t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block', opacity: openingWave === w.id ? 0.7 : 1, pointerEvents: openingWave === w.id ? 'none' : 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${t.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: w.iconBg, color: w.iconColor }}>{w.iconEl}</span>
@@ -268,7 +282,7 @@ export function ShippingPickingWavesView({
                     <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: w.opBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 800 }}>{w.opInit}</div>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: t.textSub }}>{w.op}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#8B5CF6' }}>{w.cta}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#8B5CF6' }}>{openingWave === w.id ? 'Iniciando...' : w.cta}</span>
                 </div>
               </div>
             </a>

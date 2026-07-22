@@ -570,7 +570,7 @@ export async function listActivePickingWavesAction() {
   const { data, error } = await supabase
     .from('ondas_separacao')
     .select(`
-      id, codigo, status, criado_em, atualizado_em,
+      id, codigo, status, criado_em, atualizado_em, iniciado_em,
       operador:usuarios!ondas_separacao_operador_id_fkey(nome),
       pedidos:ondas_separacao_pedidos(pedido_expedicao_id)
     `)
@@ -579,4 +579,17 @@ export async function listActivePickingWavesAction() {
     
   if (error) return [];
   return data;
+}
+
+export async function startShippingWaveAction(waveId: string) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase.from('ondas_separacao').select('iniciado_em').eq('id', waveId).single();
+  if (data && !data.iniciado_em) {
+    await supabase.from('ondas_separacao').update({ 
+      status: 'EM_SEPARACAO', 
+      operador_id: user.id, 
+      iniciado_em: new Date().toISOString() 
+    }).eq('id', waveId);
+  }
 }
