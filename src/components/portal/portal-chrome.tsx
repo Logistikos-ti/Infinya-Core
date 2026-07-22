@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FileText, Headphones, LayoutDashboard, Package, Receipt, Truck } from "lucide-react";
+import { Bell, FileText, Headphones, LayoutDashboard, Package, Plus, Receipt, Search, Truck } from "lucide-react";
 import { AppSidebar, type SidebarNavigationItem } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
@@ -61,11 +61,14 @@ export function PortalChrome({ children, user }: { children: ReactNode; user: Ap
       </div>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-24 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/80 px-5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0c1424]/80 sm:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">Portal do depositante</p>
-            <h1 className="mt-1 text-xl font-bold text-slate-950 dark:text-white">Olá, {user.nome}</h1>
+        <header className="flex min-h-[68px] shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/80 bg-white/80 px-5 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#0c1424]/80 sm:flex-nowrap sm:px-7 sm:py-0">
+          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 dark:border-white/10 dark:bg-white/5 sm:max-w-[420px]">
+            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+            <input aria-label="Buscar no portal" placeholder="Buscar pedido, cliente, canal..." className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" />
           </div>
+          <div className="hidden flex-1 sm:block" />
+          <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20"><Plus className="h-4 w-4" />Novo pedido</button>
+          <button type="button" aria-label="Notificações" className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><Bell className="h-4 w-4" /><span className="absolute right-2.5 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" /></button>
           <ThemeToggle />
         </header>
 
