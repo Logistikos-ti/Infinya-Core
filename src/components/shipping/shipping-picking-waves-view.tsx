@@ -134,7 +134,7 @@ export function ShippingPickingWavesView({
     setSelectedOrderIds(eligibleOrders.map(o => o.id));
   }, [eligibleOrders]);
 
-  const previewItems = eligibleOrders.filter(o => selectedOrderIds.includes(o.id)).reduce((sum, o) => sum + (o.totalItems || 0), 0);
+  const previewItems = eligibleOrders.filter(o => selectedOrderIds.includes(o.id)).reduce((sum, o) => sum + (o.totalUnits || 0), 0);
 
   const handleCreateWave = () => {
     if (selectedOrderIds.length === 0) {
@@ -335,8 +335,8 @@ export function ShippingPickingWavesView({
                             {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "2px" }}>
-                            <span style={{ fontSize: "13.5px", fontWeight: "700", color: t.text }}>Pedido #{order.numero}</span>
-                            <span style={{ fontSize: "12px", color: t.textSub }}>{order.depositante || 'Sem depositante'} · {order.totalItems || 0} volumes</span>
+                            <span style={{ fontSize: "13.5px", fontWeight: "700", color: t.text }}>{order.displayNumber}</span>
+                            <span style={{ fontSize: "12px", color: t.textSub }}>{order.depositante || 'Sem depositante'} · {order.totalUnits || 0} volumes</span>
                           </div>
                         </div>
                       );
