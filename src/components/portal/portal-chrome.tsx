@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, CircleHelp, FileText, LayoutDashboard, Package, Plus, Receipt, Search, Truck } from "lucide-react";
+import { Bell, CircleHelp, FileText, LayoutDashboard, Package, Receipt, Search, Truck } from "lucide-react";
 import { AppSidebar, type SidebarNavigationItem } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
@@ -67,7 +67,7 @@ export function PortalChrome({ children, user }: { children: ReactNode; user: Ap
             <input aria-label="Buscar no portal" placeholder="Buscar pedido, cliente, canal..." className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" />
           </div>
           <div className="hidden flex-1 sm:block" />
-          <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20"><Plus className="h-4 w-4" />Novo pedido</button>
+          <button type="button" className="inline-flex h-11 items-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20">+ Novo pedido</button>
           <button type="button" aria-label="Notificações" className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><Bell className="h-4 w-4" /><span className="absolute right-2.5 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" /></button>
           <ThemeToggle />
         </header>
