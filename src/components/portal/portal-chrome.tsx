@@ -72,7 +72,7 @@ export function PortalChrome({ children, user }: { children: ReactNode; user: Ap
           <ThemeToggle />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">{children}</div>
+        <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-5 lg:px-4">{children}</div>
 
         <nav className="grid grid-cols-3 gap-2 border-t border-slate-200 bg-white/95 p-3 lg:hidden dark:border-white/10 dark:bg-[#0c1424]/95">
           {portalNavigation.slice(0, 3).map((item) => {
