@@ -14,7 +14,7 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   orderId: string;
   orderCode: string;
   orderExternalNumber: string;
-  orderWmsNumber: string | number | null;
+  orderDisplayNumber: string;
   orderCustomer: string;
   orderDepositante: string;
   separatedQuantityValue: string;
@@ -163,7 +163,7 @@ export function ShippingPickingInterface({
     sku: currentItem.sku,
     ean: currentItem.barcode || currentItem.code,
     qty: currentItem.requestedQuantity + 'x',
-    order: currentItem.orderWmsNumber ? `WMS-${currentItem.orderWmsNumber}` : (currentItem.orderCode || currentItem.orderExternalNumber),
+    order: currentItem.orderDisplayNumber || currentItem.orderExternalNumber,
     thumbBg: thumb(cat[currentIndex % cat.length]),
     separated: normalizeQuantity(currentItem.separatedQuantityValue),
     requested: currentItem.requestedQuantity
@@ -435,7 +435,7 @@ function flattenWaveItems(orders: ShippingPickingOrder[]) {
       orderId: order.id,
       orderCode: order.code,
       orderExternalNumber: order.externalNumber,
-      orderWmsNumber: order.wmsNumber,
+      orderDisplayNumber: order.displayNumber,
       orderCustomer: order.customer,
       orderDepositante: order.depositante,
       separatedQuantityValue: String(item.separatedQuantity),
