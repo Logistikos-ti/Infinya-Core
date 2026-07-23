@@ -25,6 +25,7 @@ import { listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
 import { ProductStockCard } from "@/components/portal/product-stock-card";
+import { ProductSearchInput } from "@/components/portal/product-search-input";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = {
@@ -288,19 +289,7 @@ function ProductsView({
             Saldo em estoque armazenado no CD Infinoos Cajamar.
           </p>
         </div>
-        <form action="/portal" method="get" className="w-full sm:w-[310px]">
-          <input type="hidden" name="view" value="produtos" />
-          <label className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-slate-400 transition focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 dark:border-white/10 dark:bg-[#101b30]">
-            <Search className="h-4 w-4 shrink-0" />
-            <input
-              aria-label="Filtrar produtos"
-              name="search"
-              defaultValue={search}
-              placeholder="Filtrar produtos..."
-              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:text-white"
-            />
-          </label>
-        </form>
+        <ProductSearchInput value={search} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visibleProducts.map((item) => {
