@@ -11,6 +11,7 @@ type ReceivingItem = {
   supplier: string | null;
   volumeCount: number | null;
   eta: string | null;
+  etaTime?: string | null;
   status: string;
   noteNumber: string;
   xmlAttached: boolean;
@@ -256,7 +257,7 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
                     {item.volumeCount === 1 ? "vol." : "vols."}
                   </td>
                   <td className="px-5 py-3.5 text-[13.5px] font-semibold">
-                    {item.eta ?? "Sem previsão"}
+                    {item.etaTime ?? item.eta ?? "Sem previsão"}
                   </td>
                   <td className="px-5 py-3.5">
                     <span

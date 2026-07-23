@@ -89,6 +89,7 @@ export type ReceivingOrderSummary = {
   supplier: string;
   createdAt: string;
   eta: string;
+  etaTime?: string;
   etaRaw?: string | null;
   status: string;
   noteNumber: string;
@@ -390,6 +391,9 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
   const volumeNote = item.observacoes?.match(
     /Volumes previstos:\s*(\d+)/i,
   )?.[1];
+  const hourNote = item.observacoes?.match(
+    /Horário previsto:\s*([0-9]{1,2}:[0-9]{2})/i,
+  )?.[1];
 
   return {
     id: item.id,
@@ -400,6 +404,9 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
     supplier: item.fornecedor_nome ?? "Fornecedor não informado",
     createdAt: formatDateTimeOrFallback(item.created_at, "Sem data"),
     eta: item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão",
+    etaTime: hourNote
+      ? `${item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão"} · ${hourNote}`
+      : undefined,
     etaRaw: item.previsto_para,
     status: item.status,
     noteNumber: item.nota_fiscal_numero ?? "-",
