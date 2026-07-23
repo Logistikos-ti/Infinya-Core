@@ -77,11 +77,12 @@ export function ShippingPickingInterface({
   const router = useRouter();
   
   // Theme logic
-  const { theme, systemTheme, setTheme } = require("next-themes").useTheme();
+  const { resolvedTheme, setTheme } = require("next-themes").useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const isDark = theme === "dark" || (theme === "system" && systemTheme === "dark");
+  // Use resolvedTheme because it accurately reflects the HTML class applied by next-themes
+  const isDark = resolvedTheme === "dark";
   
   // Default to true during SSR to prevent white flash since the app is primarily dark mode
   const dark = mounted ? isDark : true;
