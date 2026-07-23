@@ -768,16 +768,6 @@ async function loadPickingStockRows(
   commercialKitRules: CommercialKitRuleDefinition[],
 ) {
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
-  const hasPayloadKitWithoutRealProduct = orders.some((order) =>
-    (order.itens ?? []).some((item) => {
-      const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
-      if (!hydratedItem.produto_id || !looksLikeUuid(hydratedItem.produto_id)) return true;
-      return normalizeKitComponentDefinitions(hydratedItem.payload_origem).some(
-        (component) => !looksLikeUuid(component.componentProductId),
-      );
-    }),
-  );
-
   const productIds = [
     ...new Set(
       orders.flatMap((order) =>
@@ -803,7 +793,7 @@ async function loadPickingStockRows(
       "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, codigo_externo, metodo_retirada)",
     );
 
-  if (productIds.length && !hasPayloadKitWithoutRealProduct) {
+  if (productIds.length > 0) {
     stockQuery = stockQuery.in("produto_id", productIds);
   } else {
     stockQuery = stockQuery.in("depositante_id", depositanteIds);
