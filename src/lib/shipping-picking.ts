@@ -686,7 +686,7 @@ function mapSimplePickingItem(
   const separatedQuantity = Number(item.quantidade_separada ?? 0);
   const matchedStocks = includeRouteData
     ? stockRows
-        .filter((row) => row.depositante_id === depositanteId)
+        
         .filter((row) => matchesStockToItem(row, item))
         .sort(compareStocksForPicking)
     : [];
