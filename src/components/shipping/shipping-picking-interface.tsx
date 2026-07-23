@@ -78,9 +78,13 @@ export function ShippingPickingInterface({
   
   // Theme logic
   const { theme, systemTheme, setTheme } = require("next-themes").useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const isDark = theme === "dark" || (theme === "system" && systemTheme === "dark");
   
-  const dark = isDark;
+  // Default to true during SSR to prevent white flash since the app is primarily dark mode
+  const dark = mounted ? isDark : true;
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   const t = dark ? {
