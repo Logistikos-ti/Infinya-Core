@@ -12,6 +12,8 @@ type ReceivingItem = {
   volumeCount: number | null;
   eta: string | null;
   status: string;
+  noteNumber: string;
+  xmlAttached: boolean;
 };
 
 type ReceivingViewClientProps = {
@@ -105,13 +107,62 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
     }
   }
 
+  const displayStatus = (status: string) => {
+    const labels: Record<string, string> = {
+      AGUARDANDO: "Agendado",
+      AGENDADO: "Agendado",
+      EM_RECEBIMENTO: "Em recebimento",
+      RECEBIMENTO: "Em recebimento",
+      CONFERIDO: "Conferido",
+      DIVERGENCIA: "Divergência",
+      DIVERGÊNCIA: "Divergência",
+    };
+    return labels[status] ?? status;
+  };
+
+  const statusStyle = (status: string) => {
+    const label = displayStatus(status);
+    if (label === "Conferido") {
+      return {
+        background: "bg-emerald-500/10",
+        color: "text-emerald-600 dark:text-emerald-300",
+        dot: "bg-emerald-500",
+      };
+    }
+    if (label === "Em recebimento") {
+      return {
+        background: "bg-blue-500/10",
+        color: "text-blue-600 dark:text-blue-300",
+        dot: "bg-blue-500",
+      };
+    }
+    if (label === "Divergência") {
+      return {
+        background: "bg-rose-500/10",
+        color: "text-rose-600 dark:text-rose-300",
+        dot: "bg-rose-500",
+      };
+    }
+    return {
+      background: "bg-violet-500/10",
+      color: "text-violet-600 dark:text-violet-300",
+      dot: "bg-violet-500",
+    };
+  };
+
   const counts = {
-    agendado: receiving.filter((item) => item.status === "Agendado").length,
-    recebimento: receiving.filter((item) => item.status === "Em recebimento")
-      .length,
-    conferido: receiving.filter((item) => item.status === "Conferido").length,
-    divergencia: receiving.filter((item) => item.status === "Divergência")
-      .length,
+    agendado: receiving.filter(
+      (item) => displayStatus(item.status) === "Agendado",
+    ).length,
+    recebimento: receiving.filter(
+      (item) => displayStatus(item.status) === "Em recebimento",
+    ).length,
+    conferido: receiving.filter(
+      (item) => displayStatus(item.status) === "Conferido",
+    ).length,
+    divergencia: receiving.filter(
+      (item) => displayStatus(item.status) === "Divergência",
+    ).length,
   };
 
   return (
@@ -160,17 +211,22 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left">
-            <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-white/5">
+          <table className="w-full min-w-[900px] border-collapse text-left">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.04em] text-slate-500 dark:bg-white/5">
               <tr>
                 {[
                   "Solicitação",
-                  "Fornecedor",
+                  "Transportadora",
                   "Volumes",
                   "Previsão",
+                  "XML",
                   "Status",
+                  "",
                 ].map((label) => (
-                  <th key={label} className="px-5 py-3 font-bold">
+                  <th
+                    key={label || "acao"}
+                    className="border-b border-slate-200 px-5 py-3 font-bold dark:border-white/10"
+                  >
                     {label}
                   </th>
                 ))}
@@ -180,16 +236,52 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
               {receiving.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-t border-slate-100 text-sm dark:border-white/10"
+                  className="cursor-pointer border-b border-slate-200 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
                 >
-                  <td className="px-5 py-4 font-bold">{item.code}</td>
-                  <td className="px-5 py-4">{item.supplier ?? "A definir"}</td>
-                  <td className="px-5 py-4">{item.volumeCount ?? 0}</td>
-                  <td className="px-5 py-4">{item.eta ?? "A definir"}</td>
-                  <td className="px-5 py-4">
-                    <span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-300">
-                      {item.status}
+                  <td className="px-5 py-3.5 font-display text-sm font-bold">
+                    {item.code}
+                  </td>
+                  <td className="max-w-[260px] px-5 py-3.5">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="truncate text-sm font-semibold">
+                        {item.supplier ?? "Fornecedor não informado"}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        NF-e {item.noteNumber || "-"}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 font-display text-sm font-semibold">
+                    {item.volumeCount ?? 0}{" "}
+                    {item.volumeCount === 1 ? "vol." : "vols."}
+                  </td>
+                  <td className="px-5 py-3.5 text-[13.5px] font-semibold">
+                    {item.eta ?? "Sem previsão"}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[13px] font-bold ${item.xmlAttached ? "text-emerald-500" : "text-slate-500 dark:text-slate-400"}`}
+                    >
+                      {item.xmlAttached ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5" />
+                      )}
+                      {item.xmlAttached ? "XML anexado" : "Sem XML"}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${statusStyle(item.status).background} ${statusStyle(item.status).color}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${statusStyle(item.status).dot}`}
+                      />
+                      {displayStatus(item.status)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right text-lg font-bold text-slate-400 dark:text-slate-500">
+                    ›
                   </td>
                 </tr>
               ))}

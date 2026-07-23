@@ -35,7 +35,10 @@ type RawOrderRow = {
   created_at: string;
   depositante_id?: string;
   depositante: RelationName;
-  itens?: Array<{ id: string; quantidade_prevista: number | string | null }> | null;
+  itens?: Array<{
+    id: string;
+    quantidade_prevista: number | string | null;
+  }> | null;
 };
 
 type RawTaskRow = {
@@ -88,6 +91,8 @@ export type ReceivingOrderSummary = {
   eta: string;
   etaRaw?: string | null;
   status: string;
+  noteNumber: string;
+  xmlAttached: boolean;
   skuCount: number;
   volumeCount: number;
 };
@@ -166,7 +171,9 @@ export type ReceivingOrderDetail = {
   }>;
 };
 
-export async function listReceivingOrdersFromDb(filters?: ReceivingOrderFilters) {
+export async function listReceivingOrdersFromDb(
+  filters?: ReceivingOrderFilters,
+) {
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("pedidos_recebimento")
@@ -200,7 +207,9 @@ export async function listReceivingTasksFromDb() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("recebimento_tarefas")
-    .select("id, titulo, tipo, prioridade, created_at, responsavel:usuarios(nome)")
+    .select(
+      "id, titulo, tipo, prioridade, created_at, responsavel:usuarios(nome)",
+    )
     .order("created_at", { ascending: false })
     .limit(12);
 
@@ -214,7 +223,9 @@ export async function listReceivingTasksFromDb() {
   }));
 }
 
-export async function listOperationalIssuesFromDb(filters?: OperationalIssueFilters) {
+export async function listOperationalIssuesFromDb(
+  filters?: OperationalIssueFilters,
+) {
   const supabase = await createSupabaseServerClient();
   let query = supabase
     .from("ocorrencias_operacionais")
@@ -270,10 +281,12 @@ export async function getReceivingOrderDetailFromDb(id: string) {
       id: item.id,
       status: item.status,
       sku: extractProductField(item.produto, "sku") ?? "SKU não informado",
-      description: extractProductField(item.produto, "nome") ?? "Produto sem descrição",
+      description:
+        extractProductField(item.produto, "nome") ?? "Produto sem descrição",
       barcode: extractProductField(item.produto, "codigo_externo") ?? "",
       internalCode: extractProductField(item.produto, "codigo_interno") ?? "",
-      unitCode: extractProductField(item.produto, "unidade_estocagem") ?? "UNIDADE",
+      unitCode:
+        extractProductField(item.produto, "unidade_estocagem") ?? "UNIDADE",
       unitLabel: formatUnitLabel(
         extractProductField(item.produto, "unidade_estocagem") ?? "UNIDADE",
       ),
@@ -288,7 +301,9 @@ export async function getReceivingOrderDetailFromDb(id: string) {
       expiry: item.validade_em ? formatDate(item.validade_em) : "Não informada",
       expiryValue: item.validade_em ?? "",
       requireLot: Boolean(extractProductBoolean(item.produto, "exige_lote")),
-      requireExpiry: Boolean(extractProductBoolean(item.produto, "exige_validade")),
+      requireExpiry: Boolean(
+        extractProductBoolean(item.produto, "exige_validade"),
+      ),
     };
   });
 
@@ -297,10 +312,13 @@ export async function getReceivingOrderDetailFromDb(id: string) {
   return {
     id: normalized.id,
     code: normalized.codigo,
-    depositante: extractRelationName(normalized.depositante) ?? "Sem depositante",
+    depositante:
+      extractRelationName(normalized.depositante) ?? "Sem depositante",
     supplier: normalized.fornecedor_nome ?? "Fornecedor não informado",
     status: normalized.status,
-    eta: normalized.previsto_para ? formatDate(normalized.previsto_para) : "Sem previsão",
+    eta: normalized.previsto_para
+      ? formatDate(normalized.previsto_para)
+      : "Sem previsão",
     dock: "DOCA-01",
     noteNumber: normalized.nota_fiscal_numero ?? "-",
     volumes: items.reduce((sum, item) => sum + item.expectedQuantity, 0),
@@ -327,7 +345,9 @@ export async function listReceivingStatsFromDb(
 ) {
   const [orders, issues, tasks] = await Promise.all([
     sourceOrders ? Promise.resolve(sourceOrders) : listReceivingOrdersFromDb(),
-    sourceIssues ? Promise.resolve(sourceIssues) : listOperationalIssuesFromDb(),
+    sourceIssues
+      ? Promise.resolve(sourceIssues)
+      : listOperationalIssuesFromDb(),
     sourceTasks ? Promise.resolve(sourceTasks) : listReceivingTasksFromDb(),
   ]);
 
@@ -364,20 +384,30 @@ export async function listReceivingStatsFromDb(
 }
 
 function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
-  const quantities = (item.itens ?? []).map((entry) => Number(entry.quantidade_prevista ?? 0));
+  const quantities = (item.itens ?? []).map((entry) =>
+    Number(entry.quantidade_prevista ?? 0),
+  );
+  const volumeNote = item.observacoes?.match(
+    /Volumes previstos:\s*(\d+)/i,
+  )?.[1];
 
   return {
     id: item.id,
     code: item.codigo,
-    depositanteId: (item as RawOrderRow & { depositante_id?: string }).depositante_id,
+    depositanteId: (item as RawOrderRow & { depositante_id?: string })
+      .depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
     supplier: item.fornecedor_nome ?? "Fornecedor não informado",
     createdAt: formatDateTimeOrFallback(item.created_at, "Sem data"),
     eta: item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão",
     etaRaw: item.previsto_para,
     status: item.status,
+    noteNumber: item.nota_fiscal_numero ?? "-",
+    xmlAttached: Boolean(item.observacoes?.match(/XML selecionado:/i)),
     skuCount: (item.itens ?? []).length,
-    volumeCount: quantities.reduce((sum, value) => sum + value, 0),
+    volumeCount: volumeNote
+      ? Number(volumeNote)
+      : quantities.reduce((sum, value) => sum + value, 0),
   };
 }
 
@@ -395,7 +425,8 @@ function extractRelationName(value: RelationName) {
 
 function extractProductField(
   value: ProductRelation,
-  field: "sku" | "nome" | "codigo_interno" | "codigo_externo" | "unidade_estocagem",
+  field:
+    "sku" | "nome" | "codigo_interno" | "codigo_externo" | "unidade_estocagem",
 ) {
   if (Array.isArray(value)) {
     const first = value[0];
