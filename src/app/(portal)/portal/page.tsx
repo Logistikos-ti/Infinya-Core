@@ -5,6 +5,8 @@ import {
   Boxes,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleHelp,
   ClipboardList,
   Construction,
@@ -365,7 +367,7 @@ function ProductPagination({
           disabled={currentPage === 1}
           ariaLabel="Página anterior"
         >
-          ‹
+          <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
         {pages.map((page, index) =>
           page === "ellipsis" ? (
@@ -391,7 +393,7 @@ function ProductPagination({
           disabled={currentPage === totalPages}
           ariaLabel="Próxima página"
         >
-          ›
+          <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
       </div>
     </div>
@@ -444,7 +446,7 @@ function PaginationLink({
   disabled?: boolean;
   ariaLabel?: string;
 }) {
-  const className = `inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-2 text-sm font-semibold transition ${
+  const className = `inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-0 text-sm font-normal transition ${
     active
       ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm"
       : disabled
