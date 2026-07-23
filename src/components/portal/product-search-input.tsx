@@ -19,7 +19,7 @@ export function ProductSearchInput({ value }: { value: string }) {
       const params = new URLSearchParams({ view: "produtos" });
       if (search.trim()) params.set("search", search.trim());
       startTransition(() => router.replace(`${pathname}?${params.toString()}`));
-    }, 180);
+    }, 50);
 
     return () => window.clearTimeout(timeout);
   }, [pathname, router, search]);
