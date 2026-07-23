@@ -292,13 +292,13 @@ export function ShippingPickingWavesView({
                   handleOpenWave(w);
                 }
               }} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${isSelected ? '#EF4444' : t.border}`, background: isSelected ? 'rgba(239,68,68,0.04)' : t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block', opacity: openingWave === w.id ? 0.7 : 1, pointerEvents: openingWave === w.id ? 'none' : 'auto', position: 'relative' }} onMouseEnter={(e) => { if(!isDeleteMode) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; } }} onMouseLeave={(e) => { if(!isDeleteMode) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; } }}>
-                {isDeleteMode && (
-                  <div style={{ position: 'absolute', top: '16px', right: '16px', width: '24px', height: '24px', borderRadius: '6px', border: `2px solid ${isSelected ? '#EF4444' : t.border}`, background: isSelected ? '#EF4444' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', zIndex: 10 }}>
-                    {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
-                  </div>
-                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${t.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {isDeleteMode && (
+                      <div style={{ width: '24px', height: '24px', borderRadius: '6px', border: `2px solid ${isSelected ? '#EF4444' : t.border}`, background: isSelected ? '#EF4444' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}>
+                        {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
+                      </div>
+                    )}
                     <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: w.iconBg, color: w.iconColor }}>{w.iconEl}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                       <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', fontWeight: 700 }}>{w.code}</span>
