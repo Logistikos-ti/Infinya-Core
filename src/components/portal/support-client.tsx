@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CircleHelp, Loader2, Send, X } from "lucide-react";
 import type { SupportTicket } from "@/lib/support";
+import {
+  UnreadMessageBadge,
+  useSupportUnreadCounts,
+} from "@/components/support/use-support-notifications";
 
 type TicketTone = "green" | "blue" | "amber";
 
@@ -35,6 +39,7 @@ export function SupportClient({
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const { counts: unreadCounts, markRead } = useSupportUnreadCounts();
   const selected = tickets.find((ticket) => ticket.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -105,10 +110,7 @@ export function SupportClient({
   function openTicket(ticketId: string) {
     setSelectedId(ticketId);
     const ticket = tickets.find((item) => item.id === ticketId);
-    if (ticket)
-      void fetch(`/api/suporte/chamados/${ticket.databaseId}/leitura`, {
-        method: "POST",
-      });
+    if (ticket) markRead(ticket.databaseId);
   }
 
   async function sendComment() {
@@ -289,6 +291,7 @@ export function SupportClient({
                     </span>
                   </span>
                   <StatusPill ticket={ticket} />
+                  <UnreadMessageBadge count={unreadCounts[ticket.databaseId]} />
                   <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
                 </button>
               ))

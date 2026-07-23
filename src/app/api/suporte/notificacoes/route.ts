@@ -56,13 +56,27 @@ export async function GET() {
       new Date(read.lido_ate).getTime(),
     ]),
   );
-  const unreadCount = (comments ?? []).filter((comment) => {
-    if (comment.autor_id === auth.user.id) return false;
-    const readAt = readAtByTicket.get(comment.chamado_id);
-    return (
-      readAt === undefined || new Date(comment.created_at).getTime() > readAt
-    );
-  }).length;
+  const unreadByTicket: Record<string, number> = {};
+  for (const ticketId of ticketIds) unreadByTicket[ticketId] = 0;
 
-  return NextResponse.json({ unreadCount });
+  (comments ?? [])
+    .filter((comment) => {
+      if (comment.autor_id === auth.user.id) return false;
+      const readAt = readAtByTicket.get(comment.chamado_id);
+      return (
+        readAt === undefined || new Date(comment.created_at).getTime() > readAt
+      );
+    })
+    .forEach((comment) => {
+      unreadByTicket[comment.chamado_id] =
+        (unreadByTicket[comment.chamado_id] ?? 0) + 1;
+    });
+
+  return NextResponse.json({
+    unreadCount: Object.values(unreadByTicket).reduce(
+      (sum, count) => sum + count,
+      0,
+    ),
+    unreadByTicket,
+  });
 }

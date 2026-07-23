@@ -18,7 +18,6 @@ import {
 } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
-import { SupportNotificationBadge } from "@/components/support/support-notification-badge";
 
 const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   {
@@ -149,7 +148,6 @@ export function PortalChrome({
             className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
           >
             <Bell className="h-4 w-4" />
-            <SupportNotificationBadge />
           </button>
           <ThemeToggle />
         </header>

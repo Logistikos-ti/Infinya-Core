@@ -11,6 +11,10 @@ import {
   X,
 } from "lucide-react";
 import type { Ticket } from "@/components/portal/support-client";
+import {
+  UnreadMessageBadge,
+  useSupportUnreadCounts,
+} from "@/components/support/use-support-notifications";
 
 const statusOptions = ["Aberto", "Em análise", "Resolvido"] as const;
 
@@ -32,6 +36,7 @@ export function SupportOperationsClient() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { counts: unreadCounts, markRead } = useSupportUnreadCounts();
 
   async function load() {
     try {
@@ -110,9 +115,7 @@ export function SupportOperationsClient() {
 
   function openTicket(ticket: Ticket) {
     setSelected(ticket);
-    void fetch(`/api/suporte/chamados/${ticket.databaseId}/leitura`, {
-      method: "POST",
-    });
+    markRead(ticket.databaseId);
   }
 
   return (
@@ -184,6 +187,7 @@ export function SupportOperationsClient() {
                 </span>
               </span>
               <StatusPill status={ticket.status} tone={ticket.tone} />
+              <UnreadMessageBadge count={unreadCounts[ticket.databaseId]} />
             </button>
           ))
         )}

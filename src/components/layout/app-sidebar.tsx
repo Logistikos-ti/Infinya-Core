@@ -44,7 +44,6 @@ import {
   type AppModule,
 } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { SupportNotificationBadge } from "@/components/support/support-notification-badge";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
@@ -294,18 +293,13 @@ export function AppSidebar({
                 {isActive && (
                   <div className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.6)] dark:bg-cyan-400 dark:shadow-[0_0_16px_rgba(34,211,238,0.7)]" />
                 )}
-                <span className="relative flex shrink-0">
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110",
-                      isActive &&
-                        "drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]",
-                    )}
-                  />
-                  {item.href === "/suporte" ? (
-                    <SupportNotificationBadge />
-                  ) : null}
-                </span>
+                <Icon
+                  className={cn(
+                    "h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110",
+                    isActive &&
+                      "drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]",
+                  )}
+                />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
