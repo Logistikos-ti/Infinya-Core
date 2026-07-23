@@ -28,7 +28,7 @@ import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = {
-  searchParams?: Promise<{ view?: string; page?: string }>;
+  searchParams?: Promise<{ view?: string; page?: string; search?: string }>;
 };
 
 export default async function PortalPage({ searchParams }: PortalPageProps) {
@@ -37,6 +37,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const requestedView = params?.view ?? "inicio";
   const view = normalizeView(requestedView);
   const productsPage = parsePositivePage(params?.page);
+  const productsSearch = params?.search?.trim() ?? "";
   const depositanteId = user.depositanteId ?? "";
   const [orders, receiving, stock] = await Promise.all([
     view === "inicio" || view === "pedidos"
@@ -74,7 +75,11 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ) : null}
       {view === "pedidos" ? <OrdersView orders={orders} /> : null}
       {view === "produtos" ? (
-        <ProductsView stock={stock} page={productsPage} />
+        <ProductsView
+          stock={stock}
+          page={productsPage}
+          search={productsSearch}
+        />
       ) : null}
       {view === "recebimento" ? <ReceivingView receiving={receiving} /> : null}
       {view === "faturas" ? <InvoicesView /> : null}
@@ -249,30 +254,53 @@ function OrdersView({
 function ProductsView({
   stock,
   page,
+  search,
 }: {
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   page: number;
+  search: string;
 }) {
   const pageSize = 9;
-  const totalPages = Math.max(1, Math.ceil(stock.length / pageSize));
+  const normalizedSearch = search.toLocaleLowerCase("pt-BR");
+  const filteredStock = normalizedSearch
+    ? stock.filter((item) =>
+        [item.productName, item.sku, item.internalCode]
+          .filter(Boolean)
+          .some((value) =>
+            String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
+          ),
+      )
+    : stock;
+  const totalPages = Math.max(1, Math.ceil(filteredStock.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const visibleProducts = stock.slice(
+  const visibleProducts = filteredStock.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
   return (
     <>
-      <ViewHeader
-        title="Meus produtos no CD"
-        description="Saldo em estoque armazenado no CD Infinoos."
-      />
-      <div className="mb-5 flex max-w-sm items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 dark:border-white/10 dark:bg-[#101b30]">
-        <Search className="h-4 w-4 text-slate-400" />
-        <input
-          aria-label="Filtrar produtos"
-          placeholder="Filtrar produtos..."
-          className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-        />
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
+            Meus produtos no CD
+          </h2>
+          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+            Saldo em estoque armazenado no CD Infinoos Cajamar.
+          </p>
+        </div>
+        <form action="/portal" method="get" className="w-full sm:w-[310px]">
+          <input type="hidden" name="view" value="produtos" />
+          <label className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-slate-400 transition focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 dark:border-white/10 dark:bg-[#101b30]">
+            <Search className="h-4 w-4 shrink-0" />
+            <input
+              aria-label="Filtrar produtos"
+              name="search"
+              defaultValue={search}
+              placeholder="Filtrar produtos..."
+              className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 dark:text-white"
+            />
+          </label>
+        </form>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visibleProducts.map((item) => {
@@ -365,14 +393,21 @@ function ProductsView({
           );
         })}
       </div>
-      {!stock.length ? (
-        <EmptyState text="Nenhum produto disponível no estoque." />
+      {!filteredStock.length ? (
+        <EmptyState
+          text={
+            search
+              ? "Nenhum produto encontrado para esse filtro."
+              : "Nenhum produto disponível no estoque."
+          }
+        />
       ) : null}
-      {stock.length > pageSize ? (
+      {filteredStock.length > pageSize ? (
         <ProductPagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={stock.length}
+          totalItems={filteredStock.length}
+          search={search}
         />
       ) : null}
     </>
@@ -383,10 +418,12 @@ function ProductPagination({
   currentPage,
   totalPages,
   totalItems,
+  search,
 }: {
   currentPage: number;
   totalPages: number;
   totalItems: number;
+  search: string;
 }) {
   const pageSize = 9;
   const firstItem = (currentPage - 1) * pageSize + 1;
@@ -410,6 +447,7 @@ function ProductPagination({
           page={currentPage - 1}
           disabled={currentPage === 1}
           ariaLabel="Página anterior"
+          search={search}
         >
           <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
@@ -427,6 +465,7 @@ function ProductPagination({
               page={page}
               active={page === currentPage}
               ariaLabel={`Página ${page}`}
+              search={search}
             >
               {page}
             </PaginationLink>
@@ -436,6 +475,7 @@ function ProductPagination({
           page={currentPage + 1}
           disabled={currentPage === totalPages}
           ariaLabel="Próxima página"
+          search={search}
         >
           <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
@@ -483,12 +523,14 @@ function PaginationLink({
   active = false,
   disabled = false,
   ariaLabel,
+  search = "",
 }: {
   page: number;
   children: React.ReactNode;
   active?: boolean;
   disabled?: boolean;
   ariaLabel?: string;
+  search?: string;
 }) {
   const className = `inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-0 text-sm font-normal transition ${
     active
@@ -505,7 +547,7 @@ function PaginationLink({
     );
   return (
     <Link
-      href={`/portal?view=produtos&page=${page}`}
+      href={`/portal?view=produtos&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
       className={className}
       aria-label={ariaLabel}
     >

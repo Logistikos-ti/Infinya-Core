@@ -77,16 +77,29 @@ export function ShippingPickingInterface({
   const router = useRouter();
   
   // Theme logic
-  const { resolvedTheme, setTheme } = require("next-themes").useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  // Use resolvedTheme because it accurately reflects the HTML class applied by next-themes
-  const isDark = resolvedTheme === "dark";
+  const [dark, setDark] = useState(true);
+  useEffect(() => {
+    const updateTheme = () => setDark(document.documentElement.classList.contains("dark"));
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
   
-  // Default to true during SSR to prevent white flash since the app is primarily dark mode
-  const dark = mounted ? isDark : true;
-  const toggleTheme = () => setTheme(dark ? "light" : "dark");
+  const toggleTheme = () => {
+    const nextTheme = dark ? "light" : "dark";
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    }
+    // Also try to update next-themes if it exists
+    try {
+      window.localStorage.setItem("theme", nextTheme);
+    } catch (e) {}
+  };
 
   const t = dark ? {
     appBg: '#0A1120', sideBg: '#0C1424', sideBg2: '#0B1322', barBg: '#0C1424', cardBg: '#101B30',
