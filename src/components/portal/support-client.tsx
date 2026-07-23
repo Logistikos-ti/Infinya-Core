@@ -315,7 +315,7 @@ function TicketDrawer({
             aria-label="Enviar comentário"
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Send className="h-4 w-4" />
+            {sendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </aside>
