@@ -30,9 +30,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const view = normalizeView(requestedView);
   const depositanteId = user.depositanteId ?? "";
   const [orders, receiving, stock] = await Promise.all([
-    listShippingOrdersFromDb({ depositanteId }),
-    listReceivingOrdersFromDb({ depositanteId }),
-    listStockBalancesFromDb({ depositanteId }),
+    view === "inicio" || view === "pedidos" ? listShippingOrdersFromDb({ depositanteId }) : Promise.resolve([]),
+    view === "inicio" || view === "recebimento" ? listReceivingOrdersFromDb({ depositanteId }) : Promise.resolve([]),
+    view === "inicio" || view === "produtos" ? listStockBalancesFromDb({ depositanteId }) : Promise.resolve([]),
   ]);
   const supportTickets = view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
   const depositanteName = user.depositanteNome || user.nome;
