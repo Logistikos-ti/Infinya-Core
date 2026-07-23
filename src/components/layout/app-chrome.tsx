@@ -125,7 +125,7 @@ useEffect(() => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-24 lg:pb-12 z-10 scroll-smooth">
+        <div className={`flex-1 overflow-y-auto z-10 scroll-smooth ${currentPath.startsWith("/expedicao/conferencia") ? "" : "px-4 sm:px-8 pb-24 lg:pb-12"}`}>
           {showAdminMobileShortcuts ? (
             <section className="mb-4 lg:hidden">
               <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
