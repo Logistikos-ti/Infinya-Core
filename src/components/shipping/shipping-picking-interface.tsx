@@ -319,7 +319,7 @@ export function ShippingPickingInterface({
       
       <div style={{ flex: 1, display: "flex", overflow: "hidden", paddingTop: "8px" }}>
         {/* LEFT: pick list */}
-        <div style={{ width: "340px", flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent" }}>
+        <div style={{ width: "420px", flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent" }}>
           <div style={{ padding: "20px 22px 16px 22px" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700" }}>Lista de separação</span>
@@ -348,7 +348,7 @@ export function ShippingPickingInterface({
         {/* CENTER: active pick */}
         <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center" }}>
           {current.active && (
-            <div style={{ width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", gap: "20px", animation: "popIn 0.3s ease" }}>
+            <div style={{ width: "100%", maxWidth: "720px", display: "flex", flexDirection: "column", gap: "20px", animation: "popIn 0.3s ease" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", color: t.textSub }}>SEPARANDO {current.idx} DE {totalCount}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: hex.blue, color: "#3B82F6" }}>
