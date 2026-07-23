@@ -16,6 +16,7 @@ import {
   PackageCheck,
   Plus,
   Search,
+  Settings2,
   Truck,
 } from "lucide-react";
 import { requireRoleAccess } from "@/lib/auth";
@@ -275,12 +276,26 @@ function ProductsView({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visibleProducts.map((item) => {
           const quantity = Number(item.rawQuantidade ?? 0);
+          const minimum = Number(item.minQuantity ?? 0);
+          const maximum = Math.max(minimum * 2, quantity, 1);
+          const fillPercentage = `${Math.min(100, Math.round((quantity / maximum) * 100))}%`;
+          const stockStatus =
+            quantity === 0
+              ? { label: "Sem estoque", tone: "rose" }
+              : quantity <= minimum
+                ? { label: "Atenção", tone: "amber" }
+                : { label: "Monitorado", tone: "emerald" };
+          const statusClasses = {
+            rose: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
+            amber: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
+            emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+          }[stockStatus.tone];
           return (
             <div
               key={item.id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]"
+              className="flex flex-col gap-3.5 rounded-2xl border border-slate-200 bg-white p-[18px] shadow-sm dark:border-white/10 dark:bg-[#101b30]"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3.5">
                 <div
                   className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl text-white ${item.imageUrl ? "bg-white ring-1 ring-slate-200 dark:bg-white dark:ring-slate-200" : "bg-gradient-to-br from-blue-500 to-violet-500"}`}
                 >
@@ -304,17 +319,39 @@ function ProductsView({
                   </p>
                 </div>
               </div>
-              <div className="mt-5 flex items-end justify-between border-t border-slate-100 pt-4 dark:border-white/10">
+              <div className="flex items-end justify-between border-t border-slate-100 pt-3 dark:border-white/10">
                 <div>
                   <p
-                    className={`font-display text-2xl font-bold ${quantity <= 5 ? "text-amber-500" : ""}`}
+                    className={`font-display text-[22px] font-bold ${quantity <= minimum ? "text-amber-500" : ""}`}
                   >
                     {quantity}
                   </p>
                   <p className="text-[11px] text-slate-500">disponível</p>
                 </div>
-                <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600">
-                  Monitorado
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${statusClasses}`}
+                >
+                  {stockStatus.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                    <span>Min {minimum}</span>
+                    <span>Máx {maximum}</span>
+                  </div>
+                  <div className="relative h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                    <span
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-blue-500 to-violet-500"
+                      style={{ width: fillPercentage }}
+                    />
+                  </div>
+                </div>
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
+                  title="Configuração de estoque"
+                >
+                  <Settings2 className="h-4 w-4" />
                 </span>
               </div>
             </div>
