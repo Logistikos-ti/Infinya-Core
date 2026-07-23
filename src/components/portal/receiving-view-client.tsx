@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, FileText, Upload, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 
@@ -23,6 +24,8 @@ const inputClassName =
 export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [xmlName, setXmlName] = useState("");
   const [type, setType] = useState("NF-e XML");
   const [form, setForm] = useState({
@@ -34,8 +37,10 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
     notes: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   function openDrawer() {
+    setError("");
     setOpen(true);
     requestAnimationFrame(() => setDrawerVisible(true));
   }
@@ -52,6 +57,43 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
   function selectXml(file?: File) {
     if (!file) return;
     setXmlName(file.name);
+  }
+
+  async function submitRequest() {
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/portal/recebimentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, type, xmlName }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          payload.error ?? "Não foi possível enviar a solicitação.",
+        );
+      }
+      closeDrawer();
+      setForm({
+        supplier: "",
+        nf: "",
+        eta: "",
+        hour: "",
+        volumes: "",
+        notes: "",
+      });
+      setXmlName("");
+      router.refresh();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Não foi possível enviar a solicitação.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   const counts = {
@@ -316,6 +358,11 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
                   placeholder="Ex.: entrega paletizada, agendar doca fria..."
                 />
               </label>
+              {error ? (
+                <p className="rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                  {error}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex shrink-0 items-center gap-3 border-t border-slate-200 bg-white px-6 py-4 dark:border-white/10 dark:bg-[#0c1526]">
@@ -329,11 +376,12 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
               </button>
               <button
                 type="button"
-                onClick={closeDrawer}
-                className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20"
+                onClick={submitRequest}
+                disabled={saving}
+                className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 disabled:cursor-wait disabled:opacity-60"
               >
                 <span className="text-lg leading-none">⇢</span>
-                Enviar solicitação
+                {saving ? "Enviando..." : "Enviar solicitação"}
               </button>
             </div>
           </aside>
