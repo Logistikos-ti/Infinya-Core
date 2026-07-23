@@ -26,6 +26,7 @@ import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
 import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { ProductSearchInput } from "@/components/portal/product-search-input";
+import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = {
@@ -82,7 +83,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           search={productsSearch}
         />
       ) : null}
-      {view === "recebimento" ? <ReceivingView receiving={receiving} /> : null}
+      {view === "recebimento" ? (
+        <ReceivingViewClient receiving={receiving} />
+      ) : null}
       {view === "faturas" ? <InvoicesView /> : null}
       {view === "suporte" ? (
         <SupportView initialTickets={supportTickets} />
