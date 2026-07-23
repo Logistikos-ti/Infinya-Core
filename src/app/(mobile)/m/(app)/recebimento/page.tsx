@@ -5,6 +5,7 @@ import { listReceivingOrdersFromDb } from "@/lib/receiving";
 
 export default async function MobileReceivingQueuePage() {
   const user = await requireModuleAccess("recebimento");
+  const isReceivingInDevelopment = user.papel !== "ADMIN" && user.papel !== "TI";
   const orders = await listReceivingOrdersFromDb({
     depositanteId: user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined,
   });
@@ -21,6 +22,15 @@ export default async function MobileReceivingQueuePage() {
         <p className="mt-2 text-sm text-slate-300">
           Abra o recebimento, confira os itens e lance a entrada no estoque pelo app.
         </p>
+
+        {isReceivingInDevelopment ? (
+          <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 px-3 py-3 text-amber-100">
+            <p className="text-sm font-semibold">Recebimento em desenvolvimento</p>
+            <p className="mt-1 text-xs leading-5 text-amber-100/75">
+              A consulta já está liberada. O fluxo operacional ainda está sendo finalizado.
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-4 grid grid-cols-2 gap-2">
           <MiniStat label="Pedidos" value={String(orders.length)} icon={Truck} />

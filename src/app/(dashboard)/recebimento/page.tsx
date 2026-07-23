@@ -39,6 +39,7 @@ export default async function RecebimentoPage({
   searchParams,
 }: RecebimentoPageProps) {
   const user = await requireModuleAccess("recebimento");
+  const isReceivingInDevelopment = user.papel !== "ADMIN" && user.papel !== "TI";
   const params = searchParams ? await searchParams : undefined;
   const statusFilter = params?.status?.trim() ?? "";
   const depositanteFilter = params?.depositante?.trim() ?? "";
@@ -107,8 +108,13 @@ export default async function RecebimentoPage({
       {/* Header with Title and Quick Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-zinc-100 flex flex-wrap items-center gap-2">
             Recebimento (Inbound)
+            {isReceivingInDevelopment ? (
+              <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-200">
+                Em desenvolvimento
+              </span>
+            ) : null}
           </h1>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
             {
@@ -132,7 +138,7 @@ export default async function RecebimentoPage({
         </div>
       </div>
 
-      {user.papel === "OPERADOR" ? (
+      {isReceivingInDevelopment ? (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-5 py-4 text-amber-900 shadow-sm dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
           <Construction className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
