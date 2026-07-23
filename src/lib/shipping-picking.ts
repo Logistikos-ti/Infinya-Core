@@ -296,9 +296,9 @@ export async function listShippingPickingOrdersFromDb(
   const rawOrders = ((ordersData ?? []) as RawPickingOrderRow[]).filter(
     (order) => !isBlingWebhookSummaryOrder(order.observacoes),
   );
-  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
-  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
+  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders, commercialKitRulesByDepositante) : [];
+  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
 
   const orders = rawOrders
     .map((order) =>
@@ -351,9 +351,9 @@ export async function listShippingPickingOrdersByIdsFromDb(
 
   const rawOrders = ((data ?? []) as RawPickingOrderRow[])
     .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes));
-  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders) : [];
-  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
+  const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders, commercialKitRulesByDepositante) : [];
+  const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const orderMap = new Map(
     rawOrders.map((order) => [
       order.id,
@@ -399,9 +399,9 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
     return null;
   }
 
-  const stockRows = await loadPickingStockRows(supabase, [rawOrder]);
-  const productImageMap = await loadProductImageMap(supabase, [rawOrder], stockRows);
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, [rawOrder]);
+  const stockRows = await loadPickingStockRows(supabase, [rawOrder], commercialKitRulesByDepositante);
+  const productImageMap = await loadProductImageMap(supabase, [rawOrder], stockRows);
   return mapPickingOrder(
     rawOrder,
     stockRows,
@@ -765,27 +765,29 @@ function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
 async function loadPickingStockRows(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   orders: RawPickingOrderRow[],
+  commercialKitRules: CommercialKitRuleDefinition[],
 ) {
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
   const hasPayloadKitWithoutRealProduct = orders.some((order) =>
     (order.itens ?? []).some((item) => {
-      if (!item.produto_id || !looksLikeUuid(item.produto_id)) return true;
-      return normalizeKitComponentDefinitions(item.payload_origem).some(
+      const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
+      if (!hydratedItem.produto_id || !looksLikeUuid(hydratedItem.produto_id)) return true;
+      return normalizeKitComponentDefinitions(hydratedItem.payload_origem).some(
         (component) => !looksLikeUuid(component.componentProductId),
       );
     }),
   );
+
   const productIds = [
     ...new Set(
       orders.flatMap((order) =>
         (order.itens ?? []).flatMap((item) => {
-          const componentIds = normalizeKitComponentDefinitions(item.payload_origem)
+          const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
+          const componentIds = normalizeKitComponentDefinitions(hydratedItem.payload_origem)
             .filter((component) => looksLikeUuid(component.componentProductId))
-            .map(
-            (component) => component.componentProductId,
-          );
+            .map((component) => component.componentProductId);
 
-          return [item.produto_id, ...componentIds].filter((value): value is string => Boolean(value));
+          return [hydratedItem.produto_id, ...componentIds].filter((value): value is string => Boolean(value));
         }),
       ),
     ),
