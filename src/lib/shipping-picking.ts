@@ -765,21 +765,22 @@ function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
 async function loadPickingStockRows(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   orders: RawPickingOrderRow[],
-  commercialKitRules: CommercialKitRuleDefinition[],
+  commercialKitRulesByDepositante: Map<string, CommercialKitRuleDefinition[]>,
 ) {
   const depositanteIds = [...new Set(orders.map((item) => item.depositante_id).filter(Boolean))];
   const productIds = [
     ...new Set(
-      orders.flatMap((order) =>
-        (order.itens ?? []).flatMap((item) => {
-          const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
+      orders.flatMap((order) => {
+        const rules = resolveCommercialKitRulesForOrder(order.depositante_id, commercialKitRulesByDepositante);
+        return (order.itens ?? []).flatMap((item) => {
+          const hydratedItem = hydratePickingItemWithCommercialKit(item, rules);
           const componentIds = normalizeKitComponentDefinitions(hydratedItem.payload_origem)
             .filter((component) => looksLikeUuid(component.componentProductId))
             .map((component) => component.componentProductId);
 
           return [hydratedItem.produto_id, ...componentIds].filter((value): value is string => Boolean(value));
-        }),
-      ),
+        });
+      }),
     ),
   ];
 
