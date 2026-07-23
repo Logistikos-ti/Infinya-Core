@@ -44,18 +44,17 @@ export function SupportClient({
 
   useEffect(() => {
     let active = true;
-    fetch("/api/suporte/chamados", { cache: "no-store" })
+    fetch(`/api/suporte/chamados?refresh=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache" },
+    })
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok)
           throw new Error(
             payload.error || "Não foi possível carregar os chamados.",
           );
-        if (
-          active &&
-          (initialTickets.length === 0 || (payload.tickets ?? []).length > 0)
-        )
-          setTickets(payload.tickets ?? []);
+        if (active) setTickets(payload.tickets ?? []);
       })
       .catch((error: unknown) => {
         if (active)

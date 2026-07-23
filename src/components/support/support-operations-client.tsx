@@ -40,9 +40,13 @@ export function SupportOperationsClient() {
 
   async function load() {
     try {
-      const response = await fetch("/api/suporte/chamados", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/suporte/chamados?refresh=${Date.now()}`,
+        {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        },
+      );
       const payload = await response.json();
       if (response.ok) setTickets(payload.tickets ?? []);
     } finally {
