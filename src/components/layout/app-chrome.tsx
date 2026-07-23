@@ -89,7 +89,7 @@ useEffect(() => {
 
       {/* Main Content Área */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-8 lg:border-none lg:border-slate-200/80 dark:border-white/10">
+        <header className={`z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 ${currentPath.startsWith("/expedicao/conferencia") ? "pl-[22px] pr-4 sm:pr-8" : "px-4 sm:px-8"} lg:border-none lg:border-slate-200/80 dark:border-white/10`}>
           <div className="flex w-full max-w-3xl items-center gap-4">
             {currentPath === "/expedicao/separacao/lote" || currentPath.startsWith("/expedicao/conferencia") ? (
               <div className="flex items-center gap-4">
