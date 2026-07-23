@@ -93,31 +93,13 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
         }}
       >
         <div style={{ padding: "20px 22px 16px 22px", borderBottom: `1px solid ${t.border}` }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700, color: t.text }}>
               Fila de conferência
             </span>
-            <span style={{ fontSize: "13px", fontWeight: 700, color: t.textSub }}>
-              &middot; {filteredOrders.length}
+            <span style={{ fontSize: "13px", color: t.textSub }}>
+              {filteredOrders.length} {filteredOrders.length === 1 ? "pedido aguardando validação de saída." : "pedidos aguardando validação de saída."}
             </span>
-          </div>
-
-          {/* Filters */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {marketplaces.length > 1 && (
-              <div style={{ marginTop: "4px" }}>
-                <FancySelectInput
-                  label="Marketplace"
-                  name="marketplaceFilter"
-                  value={marketplaceFilter}
-                  onChange={setMarketplaceFilter}
-                  options={[
-                    { value: "Todos", label: "Todos os marketplaces" },
-                    ...marketplaces.filter(m => m !== "Todos").map(m => ({ value: m, label: m }))
-                  ]}
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -129,8 +111,8 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
           ) : (
             filteredOrders.map((o) => {
               const isActive = pathname === `/expedicao/conferencia/${o.id}`;
-              const carrierName = o.carrier || "Transportadora";
-              const c = carriers[carrierName] || "#64748B";
+              const marketplaceName = o.marketplace || o.destination || "Site Próprio";
+              const c = carriers[marketplaceName] || "#64748B";
 
               return (
                 <Link
@@ -142,7 +124,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                     cursor: "pointer",
                     textDecoration: "none",
                     border: `1.5px solid ${isActive ? "#8B5CF6" : t.border}`,
-                    background: isActive ? hex2("#8B5CF6", 0.1) : t.cardBg,
+                    background: isActive ? hex2("#8B5CF6", 0.08) : t.cardBg,
                     display: "flex",
                     flexDirection: "column",
                     gap: "8px",
@@ -166,7 +148,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                         color: c,
                       }}
                     >
-                      {carrierName}
+                      {marketplaceName}
                     </span>
                   </div>
                   <span style={{ fontSize: "12.5px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
