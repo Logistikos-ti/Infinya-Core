@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Filter, Search } from "lucide-react";
 import Link from "next/link";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
 type ShippingConferenceSplitLayoutProps = {
   initialOrders: any[];
@@ -102,30 +103,32 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
           </div>
 
           {/* Filters */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
-            <div style={{ position: "relative" }}>
-              <Search size={14} color={t.textSub} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
-              <input
-                type="text"
-                placeholder="Buscar pedido ou cliente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: "100%", height: "36px", padding: "0 12px 0 34px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }}
-              />
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <Search size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: t.textSub }} />
+                <input
+                  type="text"
+                  placeholder="Buscar pedido ou produto..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: "100%", height: "42px", padding: "0 14px 0 38px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
-            
             {marketplaces.length > 1 && (
-              <select
-                value={marketplaceFilter}
-                onChange={(e) => setMarketplaceFilter(e.target.value)}
-                style={{ width: "100%", height: "36px", padding: "0 12px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none", appearance: "none" }}
-              >
-                {marketplaces.map((m) => (
-                  <option key={m} value={m}>
-                    {m === "Todos" ? "Todos os canais" : m}
-                  </option>
-                ))}
-              </select>
+              <div style={{ marginTop: "4px" }}>
+                <FancySelectInput
+                  label="Marketplace"
+                  name="marketplaceFilter"
+                  value={marketplaceFilter}
+                  onChange={setMarketplaceFilter}
+                  options={[
+                    { value: "Todos", label: "Todos os marketplaces" },
+                    ...marketplaces.filter(m => m !== "Todos").map(m => ({ value: m, label: m }))
+                  ]}
+                />
+              </div>
             )}
           </div>
         </div>
