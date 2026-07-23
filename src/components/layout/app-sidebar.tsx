@@ -118,6 +118,12 @@ export function AppSidebar({ user, currentPath, isCollapsed, setIsCollapsed, sid
           icon: Tag,
           module: "configuracoes" as AppModule,
         },
+        {
+          href: "/suporte",
+          label: "Suporte",
+          icon: CircleHelp,
+          module: "dashboard" as AppModule,
+        },
       ]
     : isCatalogAndStockOperatorUser(user)
       ? [
