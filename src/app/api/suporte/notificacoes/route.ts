@@ -68,8 +68,7 @@ export async function GET() {
       );
     })
     .forEach((comment) => {
-      unreadByTicket[comment.chamado_id] =
-        (unreadByTicket[comment.chamado_id] ?? 0) + 1;
+      unreadByTicket[comment.chamado_id] = 1;
     });
 
   return NextResponse.json({
