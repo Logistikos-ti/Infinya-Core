@@ -129,9 +129,14 @@ export function resolveCommercialKitMatch(params: {
       nome: rule.productName,
     } satisfies ProductLookupForCommercialKit);
 
+  const isAliasOnly = rule.operationalQuantity === 1 && !hasOperationalKit(existingPayload);
+  const finalPayload = isAliasOnly 
+    ? existingPayload 
+    : buildCommercialKitPayload(existingPayload, matchedProduct, rule, itemDescription);
+
   return {
     matchedProduct,
-    payload: buildCommercialKitPayload(existingPayload, matchedProduct, rule, itemDescription),
+    payload: finalPayload,
     usesCommercialKitRule: true,
   } satisfies CommercialKitMatchResult;
 }

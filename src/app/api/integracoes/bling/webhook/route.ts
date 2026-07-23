@@ -538,22 +538,30 @@ async function loadProductsByCode(
     return [] as ProductLookupForCommercialKit[];
   }
 
+  const extendedCodes = Array.from(
+    new Set([
+      ...candidateCodes,
+      ...candidateCodes.map((c) => c.toUpperCase()),
+      ...candidateCodes.map((c) => c.toLowerCase()),
+    ]),
+  );
+
   const [internalCodes, externalCodes, skuCodes] = await Promise.all([
     adminSupabase
       .from("produtos")
       .select("id, codigo_interno, codigo_externo, sku, nome")
       .eq("depositante_id", depositanteId)
-      .in("codigo_interno", candidateCodes),
+      .in("codigo_interno", extendedCodes),
     adminSupabase
       .from("produtos")
       .select("id, codigo_interno, codigo_externo, sku, nome")
       .eq("depositante_id", depositanteId)
-      .in("codigo_externo", candidateCodes),
+      .in("codigo_externo", extendedCodes),
     adminSupabase
       .from("produtos")
       .select("id, codigo_interno, codigo_externo, sku, nome")
       .eq("depositante_id", depositanteId)
-      .in("sku", candidateCodes),
+      .in("sku", extendedCodes),
   ]);
 
   const merged = [
