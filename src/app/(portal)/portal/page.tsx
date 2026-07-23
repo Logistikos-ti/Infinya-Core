@@ -264,8 +264,17 @@ function ProductsView({
               className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white">
-                  <Package className="h-5 w-5" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={`Foto de ${item.productName ?? "produto"}`}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Package className="h-5 w-5" />
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold">
