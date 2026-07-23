@@ -483,6 +483,7 @@ function mapPickingOrder(
     depositante: extractRelationName(order.depositante) ?? "Sem depositante",
     totalItems: Number(order.quantidade_itens ?? items.length) || items.length,
     totalUnits: totalRequested,
+    separatedUnits: totalSeparated,
     assignedOperatorId: picking.operatorId,
     assignedOperatorName: picking.operatorName,
     startedAt: picking.startedAt,
