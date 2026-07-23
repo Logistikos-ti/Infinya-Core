@@ -22,11 +22,6 @@ export function ShippingPickingWavesView({
   const isDark = theme === "dark";
   const router = useRouter();
 
-  // Force refresh data on mount (e.g., returning via back button)
-  useEffect(() => {
-    router.refresh();
-  }, [router]);
-
   const [showCreate, setShowCreate] = useState(false);
   const [strategy, setStrategy] = useState(0);
   const [limit, setLimit] = useState(50);
