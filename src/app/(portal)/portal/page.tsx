@@ -249,7 +249,7 @@ function ProductsView({
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   page: number;
 }) {
-  const pageSize = 10;
+  const pageSize = 9;
   const totalPages = Math.max(1, Math.ceil(stock.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleProducts = stock.slice(
