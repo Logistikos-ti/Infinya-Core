@@ -799,8 +799,7 @@ async function loadPickingStockRows(
     .from("estoque")
     .select(
       "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, created_at, endereco:enderecos(codigo, area, rua, modulo, nivel, posicao), produto:produtos(sku, nome, codigo_interno, codigo_externo, metodo_retirada)",
-    )
-    .eq("bloqueado", false);
+    );
 
   if (productIds.length && !hasPayloadKitWithoutRealProduct) {
     stockQuery = stockQuery.in("produto_id", productIds);
@@ -1155,6 +1154,9 @@ function getAvailableQuantity(stock: RawPickingStockRow) {
   // We use physical quantity here instead of available (quantidade - quantidade_reservada) 
   // because the stock is likely already reserved by THIS picking order. 
   // If we filter by available > 0, we hide the very bins the operator needs to visit.
+  if (stock.bloqueado) {
+    return 0; // Treat blocked stock as 0 available so it's only used as a fallback address
+  }
   return Math.max(Number(stock.quantidade ?? 0), 0);
 }
 
