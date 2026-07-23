@@ -521,6 +521,7 @@ function flattenWaveItems(orders: ShippingPickingOrder[]) {
       orderCustomer: order.customer,
       orderDepositante: order.depositante,
       separatedQuantityValue: String(item.separatedQuantity),
+      isSkipped: false,
     })),
   );
 }
