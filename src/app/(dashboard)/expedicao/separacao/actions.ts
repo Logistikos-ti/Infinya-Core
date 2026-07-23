@@ -622,7 +622,7 @@ export async function updateItemPickingQuantityAction(
 }
 
 export async function deleteShippingWavesAction(waveIds: string[]) {
-  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
   
   // 1. Fetch links to get order IDs
