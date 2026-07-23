@@ -15,6 +15,7 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
       : Math.max(configuredMinimum * 5, 100),
   );
   const [open, setOpen] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [draftMinimum, setDraftMinimum] = useState(String(minimum));
   const [draftMaximum, setDraftMaximum] = useState(String(maximum));
   const [saving, setSaving] = useState(false);
@@ -40,6 +41,12 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
     setDraftMaximum(String(maximum));
     setError("");
     setOpen(true);
+    requestAnimationFrame(() => setDrawerVisible(true));
+  }
+
+  function closeSettings() {
+    setDrawerVisible(false);
+    window.setTimeout(() => setOpen(false), 220);
   }
 
   async function saveSettings() {
@@ -68,7 +75,7 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
         throw new Error(payload.error ?? "Não foi possível salvar os limites.");
       setMinimum(nextMinimum);
       setMaximum(nextMaximum);
-      setOpen(false);
+      closeSettings();
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -155,12 +162,14 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
       </div>
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/35 backdrop-blur-[2px]"
+          className={`fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/35 backdrop-blur-[2px] transition-opacity duration-200 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
           role="dialog"
           aria-modal="true"
           aria-label="Configurar estoque"
         >
-          <div className="flex h-full w-full max-w-[430px] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#101b30]">
+          <div
+            className={`flex h-full w-full max-w-[430px] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-200 ease-out dark:border-white/10 dark:bg-[#101b30] ${drawerVisible ? "translate-x-0" : "translate-x-full"}`}
+          >
             <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div className="flex min-w-0 items-center gap-3">
                 <div
@@ -187,7 +196,7 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={closeSettings}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-xl leading-none text-slate-500 transition hover:border-slate-400 hover:text-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/30 dark:hover:text-white"
                 aria-label="Fechar"
               >
@@ -295,7 +304,7 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
             <div className="mt-auto flex gap-3 border-t border-slate-200 p-5 dark:border-white/10">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={closeSettings}
                 className="h-12 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-800 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
               >
                 Cancelar
