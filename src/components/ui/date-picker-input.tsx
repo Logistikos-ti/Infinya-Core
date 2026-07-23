@@ -2,7 +2,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format, parse, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
+import {
+  format,
+  parse,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  getDay,
+  addMonths,
+  subMonths,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +22,7 @@ type DatePickerInputProps = {
   value?: string;
   required?: boolean;
   hideLabel?: boolean;
+  onChange?: (value: string) => void;
 };
 
 export function DatePickerInput({
@@ -21,6 +31,7 @@ export function DatePickerInput({
   value = "",
   required = false,
   hideLabel = false,
+  onChange,
 }: DatePickerInputProps) {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value);
@@ -73,7 +84,12 @@ export function DatePickerInput({
           {label}
         </span>
       )}
-      <input type="hidden" name={name} value={selectedDate} required={required} />
+      <input
+        type="hidden"
+        name={name}
+        value={selectedDate}
+        required={required}
+      />
 
       <button
         type="button"
@@ -82,7 +98,9 @@ export function DatePickerInput({
       >
         <span className="inline-flex items-center gap-3">
           <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-          <span className={selectedDate ? "" : "text-slate-400 dark:text-slate-500"}>
+          <span
+            className={selectedDate ? "" : "text-slate-400 dark:text-slate-500"}
+          >
             {selectedDate ? formatDisplayDate(selectedDate) : "Selecionar data"}
           </span>
         </span>
@@ -137,6 +155,7 @@ export function DatePickerInput({
                     type="button"
                     onClick={() => {
                       setSelectedDate(dateValue);
+                      onChange?.(dateValue);
                       setOpen(false);
                     }}
                     className={cn(
@@ -160,6 +179,7 @@ export function DatePickerInput({
                 type="button"
                 onClick={() => {
                   setSelectedDate("");
+                  onChange?.("");
                   setOpen(false);
                 }}
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
@@ -171,6 +191,7 @@ export function DatePickerInput({
                 onClick={() => {
                   const today = format(new Date(), "yyyy-MM-dd");
                   setSelectedDate(today);
+                  onChange?.(today);
                   setViewDate(new Date());
                   setOpen(false);
                 }}

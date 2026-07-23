@@ -2,6 +2,7 @@
 
 import { Check, FileText, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 
 type ReceivingItem = {
   id: string;
@@ -254,17 +255,12 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
                       placeholder="000000"
                     />
                   </label>
-                  <label className="space-y-1.5 text-xs text-slate-500">
-                    Data prevista
-                    <input
-                      type="date"
-                      className={inputClassName}
-                      value={form.eta}
-                      onChange={(event) =>
-                        updateField("eta", event.target.value)
-                      }
-                    />
-                  </label>
+                  <DatePickerInput
+                    label="Data prevista"
+                    name="dataPrevista"
+                    value={form.eta}
+                    onChange={(value) => updateField("eta", value)}
+                  />
                   <label className="space-y-1.5 text-xs text-slate-500">
                     Horário previsto
                     <input
