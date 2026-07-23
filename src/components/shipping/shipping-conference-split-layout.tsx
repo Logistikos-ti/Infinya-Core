@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Filter, Search, Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
   const isDark = theme === "dark";
   const pathname = usePathname();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const [marketplaceFilter, setMarketplaceFilter] = useState<string>("Todos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,6 +119,13 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                 <Link
                   key={o.id}
                   href={`/expedicao/conferencia/${o.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isActive) return;
+                    startTransition(() => {
+                      router.push(`/expedicao/conferencia/${o.id}`, { scroll: false });
+                    });
+                  }}
                   style={{
                     padding: "14px",
                     borderRadius: "12px",
@@ -164,6 +172,15 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
       {/* CENTER: active conference */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {children}
+        
+        {isPending && (
+          <div style={{ position: "absolute", inset: 0, background: isDark ? "rgba(10,17,32,0.6)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", background: t.cardBg, padding: "20px 32px", borderRadius: "16px", border: `1px solid ${t.border}`, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}>
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+              <span style={{ color: t.text, fontWeight: 600, fontSize: "14px" }}>Carregando pedido...</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
