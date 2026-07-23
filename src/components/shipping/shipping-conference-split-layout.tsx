@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
@@ -115,46 +115,15 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
               const c = carriers[marketplaceName] || "#64748B";
 
               return (
-                <Link
+                <OrderCard
                   key={o.id}
-                  href={`/expedicao/conferencia/${o.id}`}
-                  style={{
-                    padding: "14px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    textDecoration: "none",
-                    border: `1.5px solid ${isActive ? "#8B5CF6" : t.border}`,
-                    background: isActive ? hex2("#8B5CF6", 0.08) : t.cardBg,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    transition: "all 0.16s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.text }}>
-                      {o.displayNumber}
-                    </span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "3px 9px",
-                        borderRadius: "999px",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        background: hex2(c, 0.15),
-                        color: c,
-                      }}
-                    >
-                      {marketplaceName}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: "12.5px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {o.customer} · {o.totalUnits} {o.totalUnits === 1 ? "item" : "itens"}
-                  </span>
-                </Link>
+                  o={o}
+                  isActive={isActive}
+                  marketplaceName={marketplaceName}
+                  c={c}
+                  t={t}
+                  hex2={hex2}
+                />
               );
             })
           )}
@@ -166,5 +135,62 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
         {children}
       </div>
     </div>
+  );
+}
+
+function OrderCard({ o, isActive, marketplaceName, c, t, hex2 }: any) {
+  const router = useRouter();
+  const [isPending, startTransition] = React.useTransition();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isActive) return;
+    startTransition(() => {
+      router.push(`/expedicao/conferencia/${o.id}`);
+    });
+  };
+
+  return (
+    <a
+      href={`/expedicao/conferencia/${o.id}`}
+      onClick={handleClick}
+      style={{
+        padding: "14px",
+        borderRadius: "12px",
+        cursor: "pointer",
+        textDecoration: "none",
+        border: `1.5px solid ${isActive ? "#8B5CF6" : t.border}`,
+        background: isActive ? hex2("#8B5CF6", 0.08) : t.cardBg,
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        transition: "all 0.16s ease",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.text }}>
+          {o.displayNumber}
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "3px 9px",
+            borderRadius: "999px",
+            fontSize: "11px",
+            fontWeight: 700,
+            background: hex2(c, 0.15),
+            color: c,
+          }}
+        >
+          {isPending ? <Loader2 size={12} className="animate-spin" /> : null}
+          {marketplaceName}
+        </span>
+      </div>
+      <span style={{ fontSize: "12.5px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {o.customer} · {o.totalUnits} {o.totalUnits === 1 ? "item" : "itens"}
+      </span>
+    </a>
   );
 }
