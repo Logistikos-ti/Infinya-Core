@@ -23,12 +23,16 @@ import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
-type PortalPageProps = { searchParams?: Promise<{ view?: string }> };
+type PortalPageProps = {
+  searchParams?: Promise<{ view?: string; page?: string }>;
+};
 
 export default async function PortalPage({ searchParams }: PortalPageProps) {
   const user = await requireRoleAccess(["DEPOSITANTE"]);
-  const requestedView = (await searchParams)?.view ?? "inicio";
+  const params = await searchParams;
+  const requestedView = params?.view ?? "inicio";
   const view = normalizeView(requestedView);
+  const productsPage = parsePositivePage(params?.page);
   const depositanteId = user.depositanteId ?? "";
   const [orders, receiving, stock] = await Promise.all([
     view === "inicio" || view === "pedidos"
@@ -65,7 +69,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         />
       ) : null}
       {view === "pedidos" ? <OrdersView orders={orders} /> : null}
-      {view === "produtos" ? <ProductsView stock={stock} /> : null}
+      {view === "produtos" ? (
+        <ProductsView stock={stock} page={productsPage} />
+      ) : null}
       {view === "recebimento" ? <ReceivingView receiving={receiving} /> : null}
       {view === "faturas" ? <InvoicesView /> : null}
       {view === "suporte" ? (
@@ -238,9 +244,18 @@ function OrdersView({
 
 function ProductsView({
   stock,
+  page,
 }: {
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
+  page: number;
 }) {
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(stock.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleProducts = stock.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   return (
     <>
       <ViewHeader
@@ -256,7 +271,7 @@ function ProductsView({
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stock.map((item) => {
+        {visibleProducts.map((item) => {
           const quantity = Number(item.rawQuantidade ?? 0);
           return (
             <div
@@ -307,8 +322,75 @@ function ProductsView({
       {!stock.length ? (
         <EmptyState text="Nenhum produto disponível no estoque." />
       ) : null}
+      {stock.length > pageSize ? (
+        <ProductPagination currentPage={currentPage} totalPages={totalPages} />
+      ) : null}
     </>
   );
+}
+
+function ProductPagination({
+  currentPage,
+  totalPages,
+}: {
+  currentPage: number;
+  totalPages: number;
+}) {
+  const pageItems = Array.from({ length: totalPages }, (_, index) => index + 1);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+        Página {currentPage} de {totalPages}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <PaginationLink page={currentPage - 1} disabled={currentPage === 1}>
+          Anterior
+        </PaginationLink>
+        {pageItems.map((page) => (
+          <PaginationLink key={page} page={page} active={page === currentPage}>
+            {page}
+          </PaginationLink>
+        ))}
+        <PaginationLink
+          page={currentPage + 1}
+          disabled={currentPage === totalPages}
+        >
+          Próxima
+        </PaginationLink>
+      </div>
+    </div>
+  );
+}
+
+function PaginationLink({
+  page,
+  children,
+  active = false,
+  disabled = false,
+}: {
+  page: number;
+  children: React.ReactNode;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  const className = `inline-flex h-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+    active
+      ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm"
+      : disabled
+        ? "cursor-not-allowed text-slate-300 dark:text-slate-600"
+        : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+  }`;
+  if (disabled) return <span className={className}>{children}</span>;
+  return (
+    <Link href={`/portal?view=produtos&page=${page}`} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+function parsePositivePage(value: string | undefined) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
 function ReceivingView({
