@@ -108,6 +108,13 @@ export function SupportOperationsClient() {
     }
   }
 
+  function openTicket(ticket: Ticket) {
+    setSelected(ticket);
+    void fetch(`/api/suporte/chamados/${ticket.databaseId}/leitura`, {
+      method: "POST",
+    });
+  }
+
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -161,7 +168,7 @@ export function SupportOperationsClient() {
             <button
               key={ticket.id}
               type="button"
-              onClick={() => setSelected(ticket)}
+              onClick={() => openTicket(ticket)}
               className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-4 text-left transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
             >
               <span className="w-20 shrink-0 text-xs font-bold text-slate-500 dark:text-slate-400">

@@ -8,13 +8,23 @@ type TicketTone = "green" | "blue" | "amber";
 
 export type Ticket = SupportTicket;
 
-type Comment = { id: string; text: string; author?: string; role?: string | null; createdAt?: string };
+type Comment = {
+  id: string;
+  text: string;
+  author?: string;
+  role?: string | null;
+  createdAt?: string;
+};
 
 const categories = ["Divergência", "Estoque", "Financeiro", "Outros"];
 
 const initialTickets: Ticket[] = [];
 
-export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket[] }) {
+export function SupportClient({
+  initialTickets = [],
+}: {
+  initialTickets?: Ticket[];
+}) {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState(categories[0]);
@@ -32,14 +42,28 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
     fetch("/api/suporte/chamados", { cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Não foi possível carregar os chamados.");
-        if (active && (initialTickets.length === 0 || (payload.tickets ?? []).length > 0)) setTickets(payload.tickets ?? []);
+        if (!response.ok)
+          throw new Error(
+            payload.error || "Não foi possível carregar os chamados.",
+          );
+        if (
+          active &&
+          (initialTickets.length === 0 || (payload.tickets ?? []).length > 0)
+        )
+          setTickets(payload.tickets ?? []);
       })
       .catch((error: unknown) => {
-        if (active) setFeedback(error instanceof Error ? error.message : "Não foi possível carregar os chamados.");
+        if (active)
+          setFeedback(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar os chamados.",
+          );
       })
       .finally(() => active && setLoadingTickets(false));
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [initialTickets.length]);
 
   async function submitTicket() {
@@ -56,13 +80,18 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
         body: JSON.stringify({ subject, message, category }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Não foi possível abrir o chamado.");
+      if (!response.ok)
+        throw new Error(payload.error || "Não foi possível abrir o chamado.");
       setTickets((current) => [payload.ticket, ...current]);
       setSubject("");
       setMessage("");
       setFeedback(`Chamado ${payload.ticket.id} aberto com sucesso.`);
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Não foi possível abrir o chamado.");
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível abrir o chamado.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -73,23 +102,52 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
     setComment("");
   }
 
+  function openTicket(ticketId: string) {
+    setSelectedId(ticketId);
+    const ticket = tickets.find((item) => item.id === ticketId);
+    if (ticket)
+      void fetch(`/api/suporte/chamados/${ticket.databaseId}/leitura`, {
+        method: "POST",
+      });
+  }
+
   async function sendComment() {
     if (!selectedId || !comment.trim()) return;
     const selectedTicket = tickets.find((ticket) => ticket.id === selectedId);
     if (!selectedTicket) return;
     setSendingComment(true);
     try {
-      const response = await fetch(`/api/suporte/chamados/${selectedTicket.databaseId}/comentarios`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: comment }),
-      });
+      const response = await fetch(
+        `/api/suporte/chamados/${selectedTicket.databaseId}/comentarios`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: comment }),
+        },
+      );
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Não foi possível enviar o comentário.");
-      setTickets((current) => current.map((ticket) => ticket.id === selectedId ? { ...ticket, comments: [...ticket.comments, payload.comment], meta: `agora · ${ticket.comments.length + 1} comentários` } : ticket));
+      if (!response.ok)
+        throw new Error(
+          payload.error || "Não foi possível enviar o comentário.",
+        );
+      setTickets((current) =>
+        current.map((ticket) =>
+          ticket.id === selectedId
+            ? {
+                ...ticket,
+                comments: [...ticket.comments, payload.comment],
+                meta: `agora · ${ticket.comments.length + 1} comentários`,
+              }
+            : ticket,
+        ),
+      );
       setComment("");
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Não foi possível enviar o comentário.");
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar o comentário.",
+      );
     } finally {
       setSendingComment(false);
     }
@@ -99,16 +157,32 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
     <>
       <style jsx>{`
         @keyframes supportOverlayFade {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
         @keyframes supportDrawerIn {
-          from { transform: translateX(40px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
+          from {
+            transform: translateX(40px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
         }
         @keyframes supportRowIn {
-          from { transform: translateY(8px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+          from {
+            transform: translateY(8px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
       `}</style>
       <div className="grid min-h-[520px] gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.4fr)]">
@@ -156,7 +230,9 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
               {submitting ? "Enviando..." : "Enviar chamado"}
             </button>
             {feedback ? (
-              <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-semibold ${feedback.includes("sucesso") ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+              <p
+                className={`mt-3 rounded-lg px-3 py-2 text-xs font-semibold ${feedback.includes("sucesso") ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}
+              >
                 {feedback}
               </p>
             ) : null}
@@ -178,12 +254,18 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
           </div>
           <div className="flex flex-col">
             {loadingTickets ? (
-              <div className="flex min-h-[420px] items-center justify-center px-6 text-center text-sm text-slate-500">Carregando chamados...</div>
+              <div className="flex min-h-[420px] items-center justify-center px-6 text-center text-sm text-slate-500">
+                Carregando chamados...
+              </div>
             ) : tickets.length === 0 ? (
               <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
                 <div>
-                  <p className="font-display text-sm font-bold">Nenhum chamado aberto</p>
-                  <p className="mt-1 text-xs text-slate-500">Os chamados enviados aparecerão aqui.</p>
+                  <p className="font-display text-sm font-bold">
+                    Nenhum chamado aberto
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Os chamados enviados aparecerão aqui.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -191,7 +273,7 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
                 <button
                   type="button"
                   key={ticket.id}
-                  onClick={() => setSelectedId(ticket.id)}
+                  onClick={() => openTicket(ticket.id)}
                   className="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-5 text-left transition hover:bg-slate-50 last:border-0 dark:border-white/10 dark:hover:bg-white/5"
                   style={{ animation: "supportRowIn 0.35s ease both" }}
                 >
@@ -199,7 +281,9 @@ export function SupportClient({ initialTickets = [] }: { initialTickets?: Ticket
                     {ticket.id}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold">{ticket.title}</span>
+                    <span className="block truncate text-sm font-bold">
+                      {ticket.title}
+                    </span>
                     <span className="block text-xs text-slate-500">
                       {ticket.category} · {ticket.meta}
                     </span>
@@ -235,7 +319,13 @@ function StatusPill({ ticket }: { ticket: Ticket }) {
         ? "bg-blue-500/10 text-blue-600"
         : "bg-amber-500/10 text-amber-600";
 
-  return <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${style}`}>{ticket.status}</span>;
+  return (
+    <span
+      className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${style}`}
+    >
+      {ticket.status}
+    </span>
+  );
 }
 
 function TicketDrawer({
@@ -264,14 +354,18 @@ function TicketDrawer({
       />
       <aside
         className="relative flex h-full w-[500px] max-w-[94vw] flex-col border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0c1526]"
-        style={{ animation: "supportDrawerIn 0.32s cubic-bezier(.3,1,.4,1) both" }}
+        style={{
+          animation: "supportDrawerIn 0.32s cubic-bezier(.3,1,.4,1) both",
+        }}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div className="flex min-w-0 flex-col gap-2">
             <span className="font-display text-xs font-bold text-slate-500 dark:text-slate-400">
               {ticket.id} · {ticket.category}
             </span>
-            <h2 className="font-display text-[19px] font-bold leading-tight">{ticket.title}</h2>
+            <h2 className="font-display text-[19px] font-bold leading-tight">
+              {ticket.title}
+            </h2>
             <div className="pt-1">
               <StatusPill ticket={ticket} />
             </div>
@@ -287,7 +381,9 @@ function TicketDrawer({
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-6 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Comentários</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Comentários
+          </p>
           {ticket.comments.map((item, index) => (
             <div
               key={`${ticket.id}-${index}`}
@@ -315,7 +411,11 @@ function TicketDrawer({
             aria-label="Enviar comentário"
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {sendingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sendingComment ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </button>
         </div>
       </aside>
