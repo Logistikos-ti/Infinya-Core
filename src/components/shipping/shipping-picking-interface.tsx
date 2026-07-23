@@ -77,13 +77,12 @@ export function ShippingPickingInterface({
   const router = useRouter();
   
   // Theme logic
-  const { theme: nextTheme, setTheme, resolvedTheme } = require("next-themes").useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const isSystemDark = mounted && (nextTheme === "system" ? resolvedTheme : nextTheme) === "dark";
-  const toggleTheme = () => setTheme(isSystemDark ? "light" : "dark");
+  const { theme, systemTheme, setTheme } = require("next-themes").useTheme();
+  const isDark = theme === "dark" || (theme === "system" && systemTheme === "dark");
   
-  const dark = typeof isSystemDark !== "undefined" ? isSystemDark : true;
+  const dark = isDark;
+  const toggleTheme = () => setTheme(dark ? "light" : "dark");
+
   const t = dark ? {
     appBg: '#0A1120', sideBg: '#0C1424', sideBg2: '#0B1322', barBg: '#0C1424', cardBg: '#101B30',
     inputBg: '#0E1728', softBg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.14)',
