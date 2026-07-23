@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Barcode, Camera, CameraOff, Focus, ScanSearch, Volume2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { AlertTriangle, Camera, CameraOff, Focus, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
@@ -46,6 +47,45 @@ export function ShippingConferencePanel({
   documents,
 }: ShippingConferencePanelProps) {
   const router = useRouter();
+
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const t = isDark
+    ? {
+        appBg: "#0A1120",
+        sideBg: "#0C1424",
+        sideBg2: "#0B1322",
+        barBg: "#0C1424",
+        cardBg: "#101B30",
+        inputBg: "#0E1728",
+        softBg: "rgba(148,163,184,0.05)",
+        border: "rgba(148,163,184,0.14)",
+        navHover: "rgba(148,163,184,0.08)",
+        barTrack: "rgba(148,163,184,0.16)",
+        text: "#F1F5F9",
+        textSub: "#8695AD",
+      }
+    : {
+        appBg: "#F5F7FB",
+        sideBg: "#FFFFFF",
+        sideBg2: "#FBFCFE",
+        barBg: "#FFFFFF",
+        cardBg: "#FFFFFF",
+        inputBg: "#F8FAFC",
+        softBg: "rgba(100,116,139,0.05)",
+        border: "rgba(100,116,139,0.16)",
+        navHover: "rgba(100,116,139,0.07)",
+        barTrack: "rgba(100,116,139,0.14)",
+        text: "#0F172A",
+        textSub: "#64748B",
+      };
+
+  const hex = {
+    violet: isDark ? "rgba(139,92,246,0.16)" : "rgba(139,92,246,0.10)",
+    green: isDark ? "rgba(16,185,129,0.16)" : "rgba(16,185,129,0.10)",
+  };
+
   const defaultOperatorId = order.assignedOperatorId ?? currentUserId;
   const operatorDisplayName = order.assignedOperatorName?.trim() || currentUserName;
   const [selectedOperatorId] = useState(defaultOperatorId);
@@ -311,267 +351,108 @@ export function ShippingConferencePanel({
     applyScannedCode(scanValue);
   }
 
+  const itemsTotal = items.reduce((a, i) => a + i.requestedQuantity, 0);
+  const scanned = items.reduce((a, i) => a + normalizeQuantity(i.confirmedQuantityValue), 0);
+  const full = pendingUnits <= 0;
+  
+  const circ = 2 * Math.PI * 40;
+  const pctNum = itemsTotal > 0 ? Math.round((scanned / itemsTotal) * 100) : 0;
+  const ringOffset = itemsTotal > 0 ? circ * (1 - scanned / itemsTotal) : circ;
+  const ringC1 = full ? "#10B981" : "#3B82F6";
+  const ringC2 = full ? "#34D399" : "#8B5CF6";
+
+  const finishBg = full ? "linear-gradient(92deg,#10B981,#34D399)" : t.softBg;
+  const finishColor = full ? "#fff" : t.textSub;
+  const finishCursor = full ? "pointer" : "not-allowed";
+  const finishShadow = full ? "0 8px 22px rgba(16,185,129,0.32)" : "none";
+  const finishLabel = full ? "Finalizar conferência" : "Bipe todos os itens";
+
+  // Cat colors for thumbs
+  const cat = ['#3B82F6', '#10B981', '#EC4899', '#A855F7', '#F59E0B', '#06B6D4'];
+  const hex2 = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; };
+  const thumb = (c) => 'linear-gradient(140deg,' + c + ' 0%,' + hex2(c, 0.6) + ' 100%)';
+  
+  // Carrier colors (fallback if carrier not listed)
+  const carriers: Record<string, string> = { 'Mercado Livre': '#2D3277', 'Shopee': '#EE4D2D', 'Amazon': '#FF9900', 'Magalu': '#0086FF' };
+  const cc = '#0086FF'; 
+  const activeCarrier = { bg: hex2(cc, 0.15), color: cc, text: "Transportadora" };
+
+  const P = (d: string, i: number) => <path d={d} key={'p' + i} />;
+  const C = (cx: number, cy: number, r: number, i: number) => <circle cx={cx} cy={cy} r={r} key={'c' + i} />;
+  const mk = (children: React.ReactNode, size?: number) => <svg width={size || 19} height={size || 19} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+  
+  const scanIcon = mk([P('M4 7V5a1 1 0 0 1 1-1h2',1), P('M17 4h2a1 1 0 0 1 1 1v2',2), P('M20 17v2a1 1 0 0 1-1 1h-2',3), P('M7 20H5a1 1 0 0 1-1-1v-2',4), P('M4 12h16',5)], 26);
+  const boxIcon = mk([P('M12 2 3 7v10l9 5 9-5V7z',1), P('M3 7l9 5 9-5',2), P('M12 12v10',3)], 20);
+  const checkIcon = mk([P('M20 6 9 17l-5-5',1)], 18);
+
   return (
-    <div className="space-y-6">
-      <InactivityWarningDialog
-        isVisible={isWarningVisible}
-        countdownSeconds={countdownSeconds}
-        title="ConferÃªncia pausada por inatividade"
-        description="O operador ficou sem interaÃ§Ã£o nesta conferência. Se a atividade nÃ£o for retomada, o pedido serÃ¡ devolvido automaticamente para a fila."
-        mobileDescription="Sem interaÃ§Ã£o na conferência. Retome agora ou o pedido volta para a fila."
-      />
+    <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "28px 32px", background: t.sideBg2 }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
+        
+        <InactivityWarningDialog
+          isVisible={isWarningVisible}
+          countdownSeconds={countdownSeconds}
+          title="Conferência pausada por inatividade"
+          description="O operador ficou sem interação nesta conferência. Se a atividade não for retomada, o pedido será devolvido automaticamente para a fila."
+          mobileDescription="Sem interação na conferência. Retome agora ou o pedido volta para a fila."
+        />
 
-      {feedback ? (
-        <div
-          className={`rounded-3xl border px-5 py-4 text-sm font-bold shadow-sm ${
-            feedback === "concluido"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-              : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-          }`}
-        >
-          {feedback === "concluido"
-            ? "ConferÃªncia concluÃ­da. Revise os documentos e escolha se o pedido vai para romaneio ou se serÃ¡ liberado sem romaneio."
-            : feedback === "liberado-romaneio"
-              ? "Pedido liberado para romaneio com sucesso."
-              : feedback === "liberado-sem-romaneio"
-                ? "Pedido liberado sem romaneio com sucesso."
-              : feedback === "romaneio-obrigatorio"
-                  ? "Todos os pedidos devem ser liberados obrigatoriamente para romaneio."
-                : feedback === "danfe-pendente"
-                  ? "Bipe a DANFE simplificada correta antes de liberar o pedido para romaneio."
-                : feedback === "etiqueta-confirmacao"
-                  ? "Confirme a liberação sem etiqueta de envio para continuar."
-                : feedback === "salvo"
-                  ? "ConferÃªncia atualizada com sucesso."
-            : feedback === "incompleto"
-              ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
-              : feedback === "documentos-pendentes"
-                ? "Finalize os documentos obrigatÃ³rios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
-              : feedback === "inatividade"
-                ? "Pedido devolvido para a fila por inatividade do operador."
-                : "NÃ£o foi possÃ­vel concluir a operaÃ§Ã£o solicitada."}
-        </div>
-      ) : null}
-
-      {wrongProductScans > 0 || quantityDivergentItems > 0 ? (
-        <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 px-5 py-5 text-sm shadow-sm dark:text-amber-300">
-          <div className="flex items-start gap-4">
-            <div className="rounded-full bg-amber-500/20 p-2.5">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div className="space-y-1.5 pt-1">
-              <p className="font-bold text-amber-800 dark:text-amber-400 text-base">Alertas de divergÃªncia na conferência</p>
-              {wrongProductScans > 0 ? (
-                <p className="font-medium text-amber-700 dark:text-amber-300">Produto errado lido: <span className="font-bold">{wrongProductScans}</span> ocorrÃªncia(s).</p>
-              ) : null}
-              {quantityDivergentItems > 0 ? (
-                <p className="font-medium text-amber-700 dark:text-amber-300">Itens com divergÃªncia de quantidade: <span className="font-bold">{quantityDivergentItems}</span>.</p>
-              ) : null}
-            </div>
+        {feedback ? (
+          <div
+            style={{
+              padding: "16px 20px",
+              borderRadius: "24px",
+              fontSize: "14px",
+              fontWeight: 700,
+              border: feedback === "concluido" ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(245,158,11,0.3)",
+              background: feedback === "concluido" ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+              color: feedback === "concluido" ? (isDark ? "#34D399" : "#047857") : (isDark ? "#FBBF24" : "#B45309")
+            }}
+          >
+            {feedback === "concluido"
+              ? "Conferência concluída. Revise os documentos e escolha se o pedido vai para romaneio ou se será liberado sem romaneio."
+              : feedback === "liberado-romaneio"
+                ? "Pedido liberado para romaneio com sucesso."
+                : feedback === "liberado-sem-romaneio"
+                  ? "Pedido liberado sem romaneio com sucesso."
+                : feedback === "romaneio-obrigatorio"
+                    ? "Todos os pedidos devem ser liberados obrigatoriamente para romaneio."
+                  : feedback === "danfe-pendente"
+                    ? "Bipe a DANFE simplificada correta antes de liberar o pedido para romaneio."
+                  : feedback === "etiqueta-confirmacao"
+                    ? "Confirme a liberação sem etiqueta de envio para continuar."
+                  : feedback === "salvo"
+                    ? "Conferência atualizada com sucesso."
+              : feedback === "incompleto"
+                ? "Ainda existem itens pendentes. O pedido permanece na fila para nova conferência."
+                : feedback === "documentos-pendentes"
+                  ? "Finalize os documentos obrigatórios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
+                : feedback === "inatividade"
+                  ? "Pedido devolvido para a fila por inatividade do operador."
+                  : "Não foi possível concluir a operação solicitada."}
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Header Info Card */}
-      <div className="glass-card rounded-3xl p-6 shadow-sm border border-slate-200/50 dark:border-zinc-800/50 transition-all hover:border-primary-500/30">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide border ${
-                  order.status === 'SEPARADO' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20' : 
-                  order.status === 'EM_CONFERENCIA' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
-                  'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-              }`}>
-                {order.statusLabel}
-              </span>
-              <span className="rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                {order.depositante}
-              </span>
-              {pendingUnits > 0 ? (
-                <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                  Pendentes: {pendingUnits} un
-                </span>
-              ) : (
-                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  Pedido conferido
-                </span>
-              )}
-            </div>
-
-            <h2 className="mt-4 text-2xl font-bold text-slate-900 dark:text-white">{order.displayNumber}</h2>
-            <p className="mt-1 text-sm font-medium text-slate-600 dark:text-zinc-400">
-              {order.customer} <span className="px-1 text-slate-300 dark:text-zinc-600">â€¢</span> {order.destination}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
-              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">Marketplace {order.marketplace}</span>
-              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">CÃ³digo tÃ©cnico {order.code}</span>
-              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalItems} item(ns)</span>
-              <span className="bg-slate-50 dark:bg-zinc-800/50 px-2 py-1 rounded-md border border-slate-100 dark:border-zinc-800">{order.totalUnits} unidade(s)</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-900/50 px-5 py-4 text-sm shadow-sm backdrop-blur-sm min-w-[200px]">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Conferido</p>
-            <p className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{completionPercent}%</p>
-            <p className={`mt-2 text-[11px] font-bold tracking-wide uppercase ${quantityDivergentItems > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-              {quantityDivergentItems
-                ? `${quantityDivergentItems} item(ns) com divergÃªncia`
-                : "Sem divergÃªncia de quantidade"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-5 2xl:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="space-y-5">
-          <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
-            <div className="space-y-2 block">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-                Operador respons?vel
-              </span>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white">
-                {operatorDisplayName}
+        {wrongProductScans > 0 || quantityDivergentItems > 0 ? (
+          <div style={{ padding: "20px", borderRadius: "24px", border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: isDark ? "#FCD34D" : "#92400E", fontSize: "14px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+              <div style={{ borderRadius: "50%", background: "rgba(245,158,11,0.2)", padding: "10px" }}>
+                <AlertTriangle size={20} color={isDark ? "#FBBF24" : "#D97706"} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "4px" }}>
+                <p style={{ fontWeight: 700, fontSize: "16px", color: isDark ? "#FBBF24" : "#92400E" }}>Alertas de divergência na conferência</p>
+                {wrongProductScans > 0 && <p>Produto errado lido: <strong>{wrongProductScans}</strong> ocorrência(s).</p>}
+                {quantityDivergentItems > 0 && <p>Itens com divergência de quantidade: <strong>{quantityDivergentItems}</strong>.</p>}
               </div>
             </div>
-
-            <div className="mt-5 grid gap-3 text-sm text-slate-600 dark:text-zinc-400">
-              <InfoMini label="InÃ­cio" value={formatDateTime(order.startedAt) || "Ainda nÃ£o iniciado"} />
-              <InfoMini
-                label="Ãšltima atualizaÃ§Ã£o"
-                value={formatDateTime(order.updatedAt) || "Sem apontamento"}
-              />
-            </div>
           </div>
+        ) : null}
 
-          <div className="glass-card rounded-3xl border border-slate-200/50 dark:border-zinc-800/50 p-5 shadow-sm">
-            <form onSubmit={handleScanSubmit} className="space-y-3">
-              <span className="block text-sm font-bold text-slate-700 dark:text-zinc-300">
-                Leitura de cÃ³digo de barras
-              </span>
-              <div className="flex items-center gap-2 rounded-2xl border-2 border-primary-500/30 bg-white dark:bg-zinc-900 p-2 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all shadow-inner">
-                <Barcode className="h-5 w-5 ml-2 text-primary-500" />
-                <input
-                  ref={scanInputRef}
-                  value={scanValue}
-                  onChange={(event) => {
-                    resetTimer();
-                    setScanValue(event.target.value);
-                  }}
-                  onBlur={() => {
-                    if (operatorMode && !cameraEnabled) {
-                      window.setTimeout(() => {
-                        scanInputRef.current?.focus();
-                      }, 40);
-                    }
-                  }}
-                  placeholder="Leia EAN/GTIN ou SKU"
-                  className="h-10 w-full border-0 bg-transparent px-2 text-sm font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
-                />
-                <button
-                  type="submit"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 dark:bg-white px-4 text-sm font-bold text-white dark:text-slate-900 shadow-md transition hover:bg-slate-800 dark:hover:bg-slate-200"
-                >
-                  <ScanSearch className="h-4 w-4" />
-                  Ler
-                </button>
-              </div>
-              <p className="text-xs font-medium text-slate-500 dark:text-zinc-500 leading-relaxed">
-                FaÃ§a a leitura item a item para validar o pedido real antes da expediÃ§Ã£o.
-              </p>
-              {scanMessage ? (
-                <div className={`mt-2 rounded-xl border px-3 py-2 text-sm font-medium ${
-                  scanTone === "success" 
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
-                    : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                }`}>
-                  {scanMessage}
-                </div>
-              ) : null}
-            </form>
-
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={toggleCamera}
-                disabled={!cameraSupported}
-                className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all w-full ${
-                  cameraEnabled
-                    ? "bg-rose-500 text-white shadow-md shadow-rose-500/20 hover:bg-rose-600"
-                    : "bg-primary-500 text-white shadow-md shadow-primary-500/20 hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-zinc-800 disabled:text-slate-500"
-                }`}
-              >
-                {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                {cameraStarting
-                  ? "Abrindo cÃ¢mera..."
-                  : cameraEnabled
-                    ? "Desligar cÃ¢mera"
-                    : "Ler pela cÃ¢mera"}
-              </button>
-
-              <div className="flex w-full gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => setOperatorMode((current) => !current)}
-                  className={`rounded-xl px-4 py-2.5 text-[13px] font-bold transition-all flex-1 ${
-                    operatorMode
-                      ? "bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 hover:bg-primary-500/20"
-                      : "border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {operatorMode ? "Modo operador" : "Ativar operador"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSoundEnabled((current) => !current)}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-bold transition-all flex-1 ${
-                    soundEnabled
-                      ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
-                      : "border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <Volume2 className="h-4 w-4" />
-                  {soundEnabled ? "Som ativo" : "Ativar som"}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={focusScanInput}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-zinc-300 transition-all hover:bg-slate-50 dark:hover:bg-zinc-700 mt-1"
-              >
-                <Focus className="h-4 w-4" />
-                Focar leitura
-              </button>
-            </div>
-
-            <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-950">
-              <video
-                ref={videoRef}
-                playsInline
-                muted
-                className={`aspect-video w-full object-cover transition ${
-                  cameraEnabled || cameraStarting ? "opacity-100" : "opacity-35"
-                }`}
-              />
-            </div>
-
-            <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500 dark:text-zinc-500">
-              {cameraMessage ??
-                (cameraSupported
-                  ? "CompatÃ­vel com celular e notebook. Abra a cÃ¢mera e escaneie o EAN/GTIN do item."
-                  : "Seu navegador atual nÃ£o liberou leitura por cÃ¢mera. O leitor USB e o campo manual continuam disponÃ­veis.")}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-5">
         <form
           id="shipping-conference-form"
           ref={conferenceFormRef}
           action={saveShippingConferenceAction}
-          className="space-y-5"
-          aria-busy={isSubmitting}
+          style={{ display: "flex", flexDirection: "column", gap: 22 }}
           onSubmit={() => {
             resetTimer();
             setIsSubmitting(true);
@@ -581,91 +462,163 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
-          <input
-            type="hidden"
-            name="completeRedirectTo"
-            value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`}
-          />
+          <input type="hidden" name="completeRedirectTo" value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`} />
 
-          <div className="overflow-x-auto rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50">
-                <tr>
-                  <th className="px-5 py-4 font-bold text-slate-600 dark:text-zinc-300">SKU / produto</th>
-                  <th className="px-5 py-4 font-bold text-slate-600 dark:text-zinc-300">Pedido</th>
-                  <th className="px-5 py-4 font-bold text-slate-600 dark:text-zinc-300">Separado</th>
-                  <th className="px-5 py-4 font-bold text-slate-600 dark:text-zinc-300">Conferido</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
-                {items.map((item) => {
-                  const isCurrentItem = activeItemId === item.id;
-                  const confirmedQty = normalizeQuantity(item.confirmedQuantityValue);
-                  const isDivergent = confirmedQty !== item.requestedQuantity;
-                  
-                  return (
-                  <tr
-                    key={item.id}
-                    className={`align-top transition-colors ${
-                      isCurrentItem ? "bg-primary-500/5" : "hover:bg-slate-50/50 dark:hover:bg-zinc-800/30"
-                    }`}
-                  >
-                    <td className="px-5 py-5 text-slate-900 dark:text-white">
-                      <input type="hidden" name="itemId" value={item.id} />
-                      <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
-                      <div className="font-bold text-base mb-1">
-                        {item.sku}
-                      </div>
-                      <div className="font-medium text-sm text-slate-600 dark:text-zinc-400">
-                        {item.name}
-                      </div>
-                      <div className="mt-2 text-xs font-medium text-slate-500 dark:text-zinc-500">
-                        Cod. {item.code} <span className="px-1">â€¢</span> Ref. {item.externalReference || "-"}
-                      </div>
-                      <div className="mt-4 inline-block rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 px-4 py-2.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
-                          EAN/GTIN esperado
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
-                          {item.barcode || "-"}
-                        </p>
-                      </div>
-                      {item.isKit && item.kitComponents.length ? (
-                        <div className="mt-3 space-y-2">
-                          {item.kitComponents.map((component) => (
-                            <div
-                              key={`${item.id}-${component.componentProductId}`}
-                              className="rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/40 px-3 py-2"
-                            >
-                              <p className="text-sm font-bold text-slate-900 dark:text-white">{component.sku}</p>
-                              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-                                GTIN {component.barcode || "-"} â€¢ {component.confirmedQuantity}/{component.requestedQuantity}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-5 py-5">
-                      <span className="rounded-xl bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 text-sm font-bold text-slate-700 dark:text-zinc-300">
-                        {item.requestedQuantity} {item.unit}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5">
-                      <span className="rounded-xl bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 text-sm font-bold text-slate-700 dark:text-zinc-300">
-                        {item.separatedQuantity} {item.unit}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5">
-                      {isDivergent ? (
-                        <div className="mb-3 inline-flex items-center rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-                          DivergÃªncia
-                        </div>
-                      ) : null}
+          {/* Header of order */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0 }}>
+              <svg width={96} height={96} viewBox="0 0 96 96" style={{ transform: "rotate(-90deg)" }}>
+                <circle cx="48" cy="48" r="40" fill="none" stroke={t.barTrack} strokeWidth="10" />
+                <circle 
+                  cx="48" cy="48" r="40" fill="none" stroke="url(#cg)" strokeWidth="10" strokeLinecap="round" 
+                  strokeDasharray={circ.toFixed(1)} 
+                  strokeDashoffset={ringOffset.toFixed(1)} 
+                  style={{ transition: "stroke-dashoffset 0.5s cubic-bezier(.3,1,.4,1)" }} 
+                />
+                <defs>
+                  <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor={ringC1} />
+                    <stop offset="1" stopColor={ringC2} />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 700, color: t.text }}>{pctNum}%</span>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: 1, minWidth: 0 }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 700, color: t.text }}>{order.displayNumber}</span>
+              <span style={{ fontSize: 13.5, color: t.textSub }}>{order.customer} · {order.depositante}</span>
+              <span style={{ fontSize: 13, color: t.textSub }}>{scanned} de {itemsTotal} volumes conferidos</span>
+            </div>
+            
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: activeCarrier.bg, color: activeCarrier.color }}>
+              {activeCarrier.text}
+            </span>
+          </div>
+
+          {/* Camera View */}
+          <div style={{ overflow: "hidden", borderRadius: 16, border: `1px solid ${t.border}`, background: "#000", display: cameraEnabled || cameraStarting ? "block" : "none" }}>
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", opacity: cameraEnabled || cameraStarting ? 1 : 0.35, transition: "opacity 0.3s" }}
+            />
+          </div>
+
+          {/* Scan field */}
+          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0, borderRadius: 13, background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              {scanIcon}
+              <span style={{ position: "absolute", left: 8, right: 8, top: 8, height: 2, background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }} />
+            </div>
+            
+            <input 
+              ref={scanInputRef}
+              value={scanValue}
+              onChange={(e) => {
+                resetTimer();
+                setScanValue(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleScanSubmit();
+                }
+              }}
+              onBlur={() => {
+                if (operatorMode && !cameraEnabled) {
+                  window.setTimeout(() => scanInputRef.current?.focus(), 40);
+                }
+              }}
+              placeholder="Bipe o código do volume / produto..." 
+              style={{ flex: 1, height: 54, padding: "0 18px", borderRadius: 12, border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, outline: "none", boxSizing: "border-box" }} 
+            />
+            
+            <button 
+              type="button" 
+              onClick={() => handleScanSubmit()}
+              style={{ height: 54, padding: "0 22px", border: "none", borderRadius: 12, background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)" }}
+            >
+              Bipar
+            </button>
+          </div>
+
+          {scanMessage ? (
+            <div style={{ borderRadius: 12, border: scanTone === "success" ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(244,63,94,0.3)", background: scanTone === "success" ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)", color: scanTone === "success" ? (isDark ? "#34D399" : "#047857") : (isDark ? "#FB7185" : "#BE123C"), padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
+              {scanMessage}
+            </div>
+          ) : null}
+
+          {/* Secondary Actions */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={toggleCamera}
+              disabled={!cameraSupported}
+              style={{ flex: 1, height: 42, borderRadius: 10, border: `1px solid ${t.border}`, background: cameraEnabled ? "#F43F5E" : t.inputBg, color: cameraEnabled ? "#fff" : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: cameraSupported ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: cameraSupported ? 1 : 0.5 }}
+            >
+              {cameraEnabled ? <CameraOff size={16} /> : <Camera size={16} />}
+              {cameraStarting ? "Abrindo câmera..." : cameraEnabled ? "Desligar câmera" : "Ler pela câmera"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOperatorMode(c => !c)}
+              style={{ flex: 1, height: 42, borderRadius: 10, border: operatorMode ? "1px solid rgba(59,130,246,0.3)" : `1px solid ${t.border}`, background: operatorMode ? "rgba(59,130,246,0.1)" : t.inputBg, color: operatorMode ? (isDark ? "#60A5FA" : "#2563EB") : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <Focus size={16} />
+              {operatorMode ? "Modo operador ON" : "Modo operador OFF"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSoundEnabled(c => !c)}
+              style={{ flex: 1, height: 42, borderRadius: 10, border: soundEnabled ? "1px solid rgba(16,185,129,0.3)" : `1px solid ${t.border}`, background: soundEnabled ? "rgba(16,185,129,0.1)" : t.inputBg, color: soundEnabled ? (isDark ? "#34D399" : "#059669") : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <Volume2 size={16} />
+              {soundEnabled ? "Som ativo" : "Som mutado"}
+            </button>
+          </div>
+
+          {/* Items list */}
+          <div style={{ borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: `1px solid ${t.border}` }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, fontWeight: 700, color: t.text }}>Itens do pedido</span>
+              <span style={{ fontSize: 12.5, color: t.textSub }}>sequência de conferência</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {items.map((item, i) => {
+                const doneUnits = normalizeQuantity(item.confirmedQuantityValue);
+                const itemFull = doneUnits >= item.requestedQuantity;
+                
+                const mark = itemFull ? '✓' : (doneUnits > 0 ? '·' : '');
+                const checkBorder = itemFull ? '#10B981' : t.border;
+                const checkBg = itemFull ? '#10B981' : 'transparent';
+                const checkColor = itemFull ? '#fff' : t.textSub;
+                const rowBg = itemFull ? hex2('#10B981', 0.05) : 'transparent';
+                const nameColor = itemFull ? t.text : t.text;
+                const thumbBg = thumb(cat[i % cat.length]);
+                const qtyColor = itemFull ? '#10B981' : t.textSub;
+
+                return (
+                  <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: `1px solid ${t.border}`, background: rowBg, animation: itemFull ? "rowIn 0.3s ease" : "none" }}>
+                    <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
+                    
+                    <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1.5px solid ${checkBorder}`, background: checkBg, color: checkColor, fontWeight: 700 }}>{mark}</span>
+                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 10, background: thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>{boxIcon}</div>
+                    
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: nameColor }}>{item.name}</span>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 12, color: t.textSub }}>{item.sku}</span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
                       <input
-                        ref={(element) => {
-                          quantityInputRefs.current[item.id] = element;
-                        }}
+                        ref={(element) => { quantityInputRefs.current[item.id] = element; }}
                         type="number"
                         name="confirmedQuantity"
                         min={0}
@@ -674,45 +627,44 @@ export function ShippingConferencePanel({
                         value={item.confirmedQuantityValue}
                         onChange={(event) => updateItemQuantity(item.id, event.target.value)}
                         readOnly={item.isKit}
-                        className={`h-11 w-28 rounded-xl border px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-primary-500/50 transition-all block ${
-                          isCurrentItem ? "border-primary-500/40 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white" : "border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white"
-                        }`}
+                        style={{
+                          width: "36px",
+                          background: "transparent",
+                          border: "none",
+                          textAlign: "right",
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontSize: "14.5px",
+                          fontWeight: 700,
+                          color: qtyColor,
+                          outline: "none",
+                          WebkitAppearance: "none",
+                          MozAppearance: "textfield"
+                        }}
                       />
-                      {Math.max(item.requestedQuantity - confirmedQty, 0) > 0 ? (
-                        <p className="mt-3 text-xs font-bold text-amber-600 dark:text-amber-400">
-                          Faltam {Math.max(item.requestedQuantity - confirmedQty, 0)} {item.unit}.
-                        </p>
-                      ) : (
-                        <p className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400">Item conferido.</p>
-                      )}
-                    </td>
-                  </tr>
-                )})}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-xl backdrop-blur-xl transition-all">
-            <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
-              <span className="rounded-xl bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 font-bold text-primary-700 dark:text-primary-400">
-                {completionPercent}% conferido
-              </span>
-              <span className="rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-1.5 font-semibold text-slate-700 dark:text-zinc-300">
-                {pendingUnits} unidade(s) pendente(s)
-              </span>
-            </div>
-
-            <div className="mb-5 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
-              <div
-                className="h-full rounded-full bg-infinya-gradient transition-all"
-                style={{ width: `${completionPercent}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-500 dark:text-zinc-500">
-              <span>Ao atingir 100%, a conferência fica pronta para destinação. O pedido só fecha quando o operador liberar com ou sem romaneio.</span>
-              {isSubmitting ? <span className="font-bold text-primary-600 dark:text-primary-400">Processando ação...</span> : null}
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.textSub }}>
+                        / {item.requestedQuantity}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
+
+          {/* Action bar */}
+          <div style={{ display: "flex", gap: 12 }}>
+            <button type="button" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              ⚠ Reportar divergência
+            </button>
+            <button 
+              type="submit" 
+              disabled={!full || isSubmitting} 
+              style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
+            >
+              {checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
+            </button>
+          </div>
+
         </form>
 
         <ShippingConferenceDocumentsPanel
@@ -720,11 +672,15 @@ export function ShippingConferencePanel({
           depositanteId={documents.depositanteId}
           attachments={documents.attachments}
           canUploadAttachments={documents.canUploadAttachments}
-          unlocked={pendingUnits <= 0}
+          unlocked={full}
           formId="shipping-conference-form"
         />
-        </div>
+
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
+        @keyframes rowIn { from { transform: translateX(-8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      `}} />
     </div>
   );
 }
