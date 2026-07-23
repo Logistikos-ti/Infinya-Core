@@ -95,7 +95,7 @@ export function ShippingPickingWavesView({
       let statusBg = '#F59E0B22';
       let statusColor = '#F59E0B';
       let statusDot = '#F59E0B';
-      let barFill = '#E2E8F0';
+      let barFill = pct > 0 ? 'linear-gradient(90deg, #3B82F6, #8B5CF6)' : (isDark ? '#334155' : '#E2E8F0');
       let iconBg = '#F59E0B22';
       let iconColor = '#F59E0B';
       let iconEl = <Clock size={22} />;
