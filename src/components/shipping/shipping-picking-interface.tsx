@@ -115,10 +115,21 @@ export function ShippingPickingInterface({
   // Items Logic
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
   const [items, setItems] = useState<WavePickingItemState[]>(initialItems);
-  const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
+  const prioritizedItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      const aDone = normalizeQuantity(a.separatedQuantityValue) >= a.requestedQuantity;
+      const bDone = normalizeQuantity(b.separatedQuantityValue) >= b.requestedQuantity;
+      if (aDone && !bDone) return 1;
+      if (!aDone && bDone) return -1;
+      return compareWaveItemsForPicking(a, b);
+    });
+  }, [items]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-    const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const firstPending = initialItems.findIndex(p => normalizeQuantity(p.separatedQuantityValue) < p.requestedQuantity && !p.isSkipped);
+    return firstPending >= 0 ? firstPending : 0;
+  });
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
   const scanAddressRef = useRef<HTMLInputElement | null>(null);
   const [scanValue, setScanValue] = useState("");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
@@ -130,9 +141,9 @@ export function ShippingPickingInterface({
 
   // Filter tasks from prioritizedItems
   const tasks = prioritizedItems.map((p, i) => {
-    const isDone = i < currentIndex;
-    const isCur = i === currentIndex;
     const qtyNum = normalizeQuantity(p.separatedQuantityValue);
+    const isDone = qtyNum >= p.requestedQuantity;
+    const isCur = i === currentIndex;
     
     return {
       id: p.compositeId,
@@ -152,7 +163,7 @@ export function ShippingPickingInterface({
   });
 
   const totalCount = prioritizedItems.length;
-  const doneCount = Math.min(currentIndex, totalCount);
+  const doneCount = prioritizedItems.filter(p => normalizeQuantity(p.separatedQuantityValue) >= p.requestedQuantity).length;
   const progW = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) + '%' : '0%';
 
   const currentItem = prioritizedItems[currentIndex];

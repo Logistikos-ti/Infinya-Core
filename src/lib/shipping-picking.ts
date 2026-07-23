@@ -588,17 +588,17 @@ function mapPickingItem(
     let remaining = Math.max(requestedQuantity - separatedQuantity, 0);
 
     for (const stock of matchedStocks) {
-      if (remaining <= 0) {
+      if (remaining <= 0 && routeLines.length > 0) {
         break;
       }
 
       let available = getAvailableQuantity(stock);
       if (available <= 0) {
-        available = remaining; // Fallback: allow directing shortage to 0-stock bin
+        available = Math.max(remaining, 1); // Fallback: allow directing shortage to 0-stock bin
       }
       
-      const quantity = Math.min(remaining, available);
-      if (quantity <= 0) {
+      const quantity = Math.min(Math.max(remaining, 0), available);
+      if (quantity <= 0 && remaining > 0) {
         continue;
       }
 
@@ -695,17 +695,17 @@ function mapSimplePickingItem(
   const routeLines: ShippingPickingRouteLine[] = [];
 
   for (const stock of matchedStocks) {
-    if (remaining <= 0) {
+    if (remaining <= 0 && routeLines.length > 0) {
       break;
     }
 
     let available = getAvailableQuantity(stock);
     if (available <= 0) {
-      available = remaining; // Fallback: allow directing shortage to 0-stock bin
+      available = Math.max(remaining, 1); // Fallback: allow directing shortage to 0-stock bin
     }
 
-    const quantity = Math.min(remaining, available);
-    if (quantity <= 0) {
+    const quantity = Math.min(Math.max(remaining, 0), available);
+    if (quantity <= 0 && remaining > 0) {
       continue;
     }
 
