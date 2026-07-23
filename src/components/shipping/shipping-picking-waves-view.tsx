@@ -5,9 +5,9 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus } from "lucide-react";
+import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus, Trash2, Check } from "lucide-react";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
-import { createShippingWaveAction, startShippingWaveAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { createShippingWaveAction, startShippingWaveAction, deleteShippingWavesAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 
 export function ShippingPickingWavesView({
   orders,
@@ -28,6 +28,20 @@ export function ShippingPickingWavesView({
   const [selectedDepositante, setSelectedDepositante] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [openingWave, setOpeningWave] = useState<string | null>(null);
+
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
+  const [deletingWaves, setDeletingWaves] = useState(false);
+
+  async function handleDeleteSelected() {
+    if (selectedForDelete.length === 0) return;
+    if (!confirm(`Tem certeza que deseja excluir ${selectedForDelete.length} onda(s)? Os pedidos voltarão para o status NOVO.`)) return;
+    setDeletingWaves(true);
+    await deleteShippingWavesAction(selectedForDelete);
+    setDeletingWaves(false);
+    setIsDeleteMode(false);
+    setSelectedForDelete([]);
+  }
 
   const t = isDark ? {
     appBg: '#0A1120', sideBg: '#0C1424', barBg: '#0C1424', cardBg: '#101B30',
@@ -219,9 +233,27 @@ export function ShippingPickingWavesView({
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: "800", color: t.text, margin: 0 }}>Ondas de Separação</h1>
           <span style={{ fontSize: "14.5px", color: t.textSub }}>Gerencie filas de picking agrupadas e otimize o trajeto no armazém.</span>
         </div>
-        <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: "none", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", transition: "transform 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-          <Plus size={18} /> Nova onda
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {isDeleteMode ? (
+            <>
+              <button onClick={() => { setIsDeleteMode(false); setSelectedForDelete([]); }} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.color = t.text; e.currentTarget.style.borderColor = t.textSub; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>
+                Cancelar
+              </button>
+              <button onClick={handleDeleteSelected} disabled={deletingWaves || selectedForDelete.length === 0} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: "none", background: "#EF4444", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: (deletingWaves || selectedForDelete.length === 0) ? "not-allowed" : "pointer", opacity: (deletingWaves || selectedForDelete.length === 0) ? 0.6 : 1, transition: "transform 0.2s" }} onMouseEnter={(e) => { if(!deletingWaves && selectedForDelete.length > 0) e.currentTarget.style.transform = "translateY(-1px)" }} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
+                <Trash2 size={18} /> {deletingWaves ? "Excluindo..." : `Excluir (${selectedForDelete.length})`}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setIsDeleteMode(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.textSub, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EF4444"; e.currentTarget.style.borderColor = "#FCA5A5"; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>
+                <Trash2 size={18} />
+              </button>
+              <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: "none", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", transition: "transform 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
+                <Plus size={18} /> Nova onda
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* KPIS */}
@@ -245,48 +277,67 @@ export function ShippingPickingWavesView({
             Nenhuma onda em execução no momento. Clique em "+ Nova onda" para começar.
           </div>
         ) : (
-          activeWaves.map((w, i) => (
-            <a key={i} onClick={() => handleOpenWave(w)} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${t.border}`, background: t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block', opacity: openingWave === w.id ? 0.7 : 1, pointerEvents: openingWave === w.id ? 'none' : 'auto' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${t.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: w.iconBg, color: w.iconColor }}>{w.iconEl}</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', fontWeight: 700 }}>{w.code}</span>
-                    <span style={{ fontSize: '12px', color: t.textSub }}>{w.meta}</span>
+          activeWaves.map((w, i) => {
+            const isSelected = selectedForDelete.includes(w.id);
+            return (
+              <a key={i} onClick={(e) => {
+                if (isDeleteMode) {
+                  e.preventDefault();
+                  if (isSelected) {
+                    setSelectedForDelete(prev => prev.filter(id => id !== w.id));
+                  } else {
+                    setSelectedForDelete(prev => [...prev, w.id]);
+                  }
+                } else {
+                  handleOpenWave(w);
+                }
+              }} style={{ textDecoration: 'none', color: 'inherit', borderRadius: '18px', border: `1px solid ${isSelected ? '#EF4444' : t.border}`, background: isSelected ? 'rgba(239,68,68,0.04)' : t.cardBg, overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease', display: 'block', opacity: openingWave === w.id ? 0.7 : 1, pointerEvents: openingWave === w.id ? 'none' : 'auto', position: 'relative' }} onMouseEnter={(e) => { if(!isDeleteMode) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 18px 40px rgba(15,23,42,0.18)'; e.currentTarget.style.borderColor = '#8B5CF6'; } }} onMouseLeave={(e) => { if(!isDeleteMode) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = t.border; } }}>
+                {isDeleteMode && (
+                  <div style={{ position: 'absolute', top: '16px', right: '16px', width: '24px', height: '24px', borderRadius: '6px', border: `2px solid ${isSelected ? '#EF4444' : t.border}`, background: isSelected ? '#EF4444' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', zIndex: 10 }}>
+                    {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
                   </div>
-                </div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, background: w.statusBg, color: w.statusColor }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: w.statusDot }}></span>{w.status}
-                </span>
-              </div>
-              <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
-                    <span style={{ color: t.textSub }}>Progresso da separação</span>
-                    <span style={{ fontWeight: 700, color: w.pctColor }}>{w.pct}%</span>
-                  </div>
-                  <div style={{ height: '8px', borderRadius: '999px', background: t.barTrack, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${w.pct}%`, borderRadius: '999px', background: w.barFill, transformOrigin: 'left', transition: 'width 0.8s ease' }}></div>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                  {w.stats.map((st, si) => (
-                    <div key={si} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 12px', borderRadius: '11px', background: t.softBg }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', fontWeight: 700 }}>{st.v}</span>
-                      <span style={{ fontSize: '11px', color: t.textSub }}>{st.k}</span>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${t.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: w.iconBg, color: w.iconColor }}>{w.iconEl}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', fontWeight: 700 }}>{w.code}</span>
+                      <span style={{ fontSize: '12px', color: t.textSub }}>{w.meta}</span>
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: `1px solid ${t.border}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: w.opBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 800 }}>{w.opInit}</div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: t.textSub }}>{w.op}</span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#8B5CF6' }}>{openingWave === w.id ? 'Iniciando...' : w.cta}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, background: w.statusBg, color: w.statusColor }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: w.statusDot }}></span>{w.status}
+                  </span>
                 </div>
-              </div>
-            </a>
-          ))
+                <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px' }}>
+                      <span style={{ color: t.textSub }}>Progresso da separação</span>
+                      <span style={{ fontWeight: 700, color: w.pctColor }}>{w.pct}%</span>
+                    </div>
+                    <div style={{ height: '8px', borderRadius: '999px', background: t.barTrack, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${w.pct}%`, borderRadius: '999px', background: w.barFill, transformOrigin: 'left', transition: 'width 0.8s ease' }}></div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                    {w.stats.map((st, si) => (
+                      <div key={si} style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '10px 12px', borderRadius: '11px', background: t.softBg }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '17px', fontWeight: 700 }}>{st.v}</span>
+                        <span style={{ fontSize: '11px', color: t.textSub }}>{st.k}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '14px', borderTop: `1px solid ${t.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: w.opBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 800 }}>{w.opInit}</div>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: t.textSub }}>{w.op}</span>
+                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#8B5CF6' }}>{openingWave === w.id ? 'Iniciando...' : w.cta}</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })
         )}
       </div>
 

@@ -620,3 +620,38 @@ export async function updateItemPickingQuantityAction(
     console.error("Exception in updateItemPickingQuantityAction:", err);
   }
 }
+
+export async function deleteShippingWavesAction(waveIds: string[]) {
+  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const adminSupabase = createSupabaseAdminClient();
+  
+  // 1. Fetch links to get order IDs
+  const { data: links } = await adminSupabase
+    .from('ondas_separacao_pedidos')
+    .select('pedido_expedicao_id')
+    .in('onda_separacao_id', waveIds);
+    
+  const orderIds = (links || []).map(l => l.pedido_expedicao_id);
+  
+  // 2. Delete links
+  await adminSupabase
+    .from('ondas_separacao_pedidos')
+    .delete()
+    .in('onda_separacao_id', waveIds);
+    
+  // 3. Delete waves
+  await adminSupabase
+    .from('ondas_separacao')
+    .delete()
+    .in('id', waveIds);
+    
+  // 4. Reset orders to NOVO
+  if (orderIds.length > 0) {
+    await adminSupabase
+      .from('pedidos_expedicao')
+      .update({ status: 'NOVO' })
+      .in('id', orderIds);
+  }
+  
+  revalidatePath('/expedicao/separacao');
+}
