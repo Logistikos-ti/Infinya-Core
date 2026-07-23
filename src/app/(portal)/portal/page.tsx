@@ -24,6 +24,7 @@ import { listReceivingOrdersFromDb } from "@/lib/receiving";
 import { listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
+import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = {
@@ -277,7 +278,12 @@ function ProductsView({
         {visibleProducts.map((item) => {
           const quantity = Number(item.rawQuantidade ?? 0);
           const minimum = Number(item.minQuantity ?? 0);
-          const maximum = Math.max(Number(item.maxQuantity ?? 0), minimum, quantity, 1);
+          const maximum = Math.max(
+            Number(item.maxQuantity ?? 0),
+            minimum,
+            quantity,
+            1,
+          );
           const fillPercentage = `${Math.min(100, Math.round((quantity / maximum) * 100))}%`;
           const stockStatus =
             quantity === 0
@@ -290,6 +296,7 @@ function ProductsView({
             amber: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
             emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
           }[stockStatus.tone];
+          return <ProductStockCard item={item} />;
           return (
             <div
               key={item.id}
