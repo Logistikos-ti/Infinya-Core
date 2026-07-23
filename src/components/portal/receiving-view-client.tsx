@@ -260,6 +260,7 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
                     name="dataPrevista"
                     value={form.eta}
                     onChange={(value) => updateField("eta", value)}
+                    compact
                   />
                   <label className="space-y-1.5 text-xs text-slate-500">
                     Horário previsto

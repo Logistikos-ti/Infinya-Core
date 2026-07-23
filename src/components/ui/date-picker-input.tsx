@@ -23,6 +23,7 @@ type DatePickerInputProps = {
   required?: boolean;
   hideLabel?: boolean;
   onChange?: (value: string) => void;
+  compact?: boolean;
 };
 
 export function DatePickerInput({
@@ -32,6 +33,7 @@ export function DatePickerInput({
   required = false,
   hideLabel = false,
   onChange,
+  compact = false,
 }: DatePickerInputProps) {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value);
@@ -80,7 +82,9 @@ export function DatePickerInput({
   return (
     <div className="space-y-1" ref={containerRef}>
       {hideLabel ? null : (
-        <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <span
+          className={`text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400 ${compact ? "" : "uppercase"}`}
+        >
           {label}
         </span>
       )}
@@ -94,7 +98,7 @@ export function DatePickerInput({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex h-[52px] w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm text-slate-700 shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus:ring-cyan-900/40"
+        className={`flex w-full items-center justify-between border border-slate-200 bg-white px-4 text-left text-sm text-slate-700 shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus:ring-cyan-900/40 ${compact ? "h-11 rounded-xl" : "h-[52px] rounded-2xl"}`}
       >
         <span className="inline-flex items-center gap-3">
           <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" />
