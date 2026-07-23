@@ -144,7 +144,7 @@ export function ShippingPickingInterface({
 
   const [currentIndex, setCurrentIndex] = useState(() => {
     const firstPending = initialItems.findIndex(p => normalizeQuantity(p.separatedQuantityValue) < p.requestedQuantity && !p.isSkipped);
-    return firstPending >= 0 ? firstPending : 0;
+    return firstPending >= 0 ? firstPending : initialItems.length;
   });
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const scanAddressRef = useRef<HTMLInputElement | null>(null);
@@ -174,7 +174,13 @@ export function ShippingPickingInterface({
       numColor: isDone ? '#10B981' : (isCur ? '#fff' : t.textSub),
       titleColor: isDone ? t.textSub : t.text,
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
-      pick: () => { if (i <= currentIndex) { setCurrentIndex(i); setAddressConfirmed(false); setScanValue(""); } },
+      pick: () => { 
+        if (i <= currentIndex || isDone) { 
+          setCurrentIndex(i); 
+          setAddressConfirmed(isDone); 
+          setScanValue(""); 
+        } 
+      },
       isSkipped: p.isSkipped
     };
   });
