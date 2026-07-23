@@ -78,6 +78,12 @@ export function getEffectiveModules(user: AppUserContext) {
   if (user.modulePermissions?.length) {
     const modules = [...user.modulePermissions];
 
+    // Recebimento está liberado para todos os operadores, inclusive os que
+    // ainda carregam uma lista personalizada criada antes desse módulo.
+    if (user.papel === "OPERADOR" && !modules.includes("recebimento")) {
+      modules.push("recebimento");
+    }
+
     if (
       user.papel === "OPERADOR" &&
       modules.includes("estoque") &&
@@ -125,7 +131,7 @@ export function isCatalogAndStockOperatorUser(user: AppUserContext) {
       effectiveModules.includes("expedicao") ||
       effectiveModules.includes("romaneio")) &&
     effectiveModules.every((module) =>
-      ["configuracoes", "estoque", "expedicao", "romaneio"].includes(module),
+      ["configuracoes", "recebimento", "estoque", "expedicao", "romaneio"].includes(module),
     ) &&
     canAccessConfigSection(user, "produtos")
   );

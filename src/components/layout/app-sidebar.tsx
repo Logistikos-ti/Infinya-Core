@@ -162,13 +162,23 @@ export function AppSidebar({
         ]
       : isCatalogAndStockOperatorUser(user)
         ? [
-            ...(canAccessModule(user, "estoque")
+          ...(canAccessModule(user, "estoque")
               ? [
                   {
                     href: "/estoque",
                     label: "Estoque",
                     icon: Layers,
                     module: "estoque" as AppModule,
+                  },
+                ]
+              : []),
+            ...(canAccessModule(user, "recebimento")
+              ? [
+                  {
+                    href: "/recebimento",
+                    label: "Recebimento",
+                    icon: PackageOpen,
+                    module: "recebimento" as AppModule,
                   },
                 ]
               : []),
