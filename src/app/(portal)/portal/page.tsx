@@ -277,7 +277,7 @@ function ProductsView({
         {visibleProducts.map((item) => {
           const quantity = Number(item.rawQuantidade ?? 0);
           const minimum = Number(item.minQuantity ?? 0);
-          const maximum = Math.max(minimum * 2, quantity, 1);
+          const maximum = Math.max(Number(item.maxQuantity ?? 0), minimum, quantity, 1);
           const fillPercentage = `${Math.min(100, Math.round((quantity / maximum) * 100))}%`;
           const stockStatus =
             quantity === 0

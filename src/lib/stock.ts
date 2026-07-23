@@ -11,6 +11,7 @@ type ProductRelation =
       metodo_retirada?: string;
       imagem_principal_url?: string | null;
       qtd_minima?: number | null;
+      qtd_maxima?: number | null;
     }
   | Array<{
       sku?: string;
@@ -19,6 +20,7 @@ type ProductRelation =
       metodo_retirada?: string;
       imagem_principal_url?: string | null;
       qtd_minima?: number | null;
+      qtd_maxima?: number | null;
     }>
   | null;
 
@@ -124,6 +126,7 @@ export type StockBalance = {
   withdrawalRank: number;
   imageUrl?: string | null;
   minQuantity?: number | null;
+  maxQuantity?: number | null;
 };
 
 export type StockMovement = {
@@ -238,7 +241,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco:enderecos(codigo, area)",
+      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima, qtd_maxima), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -588,6 +591,7 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     withdrawalRank: buildWithdrawalRank(withdrawalMethod, expiryDate, createdAt),
     imageUrl: extractProductField(item.produto, "imagem_principal_url") as string | null,
     minQuantity: Number(extractProductField(item.produto, "qtd_minima") ?? 0) || null,
+    maxQuantity: Number(extractProductField(item.produto, "qtd_maxima") ?? 0) || null,
   };
 }
 
@@ -688,7 +692,7 @@ function sortBalancesByWithdrawalMethod(balances: StockBalance[]) {
 
 function extractProductField(
   value: ProductRelation,
-  field: "sku" | "nome" | "codigo_interno" | "metodo_retirada" | "imagem_principal_url" | "qtd_minima",
+  field: "sku" | "nome" | "codigo_interno" | "metodo_retirada" | "imagem_principal_url" | "qtd_minima" | "qtd_maxima",
 ): any {
   if (Array.isArray(value)) {
     return value[0]?.[field] !== undefined ? value[0][field] : null;
