@@ -91,13 +91,15 @@ useEffect(() => {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 px-4 sm:px-8 lg:border-none lg:border-slate-200/80 dark:border-white/10">
           <div className="flex w-full max-w-3xl items-center gap-4">
-            {currentPath === "/expedicao/separacao/lote" ? (
+            {currentPath === "/expedicao/separacao/lote" || currentPath.startsWith("/expedicao/conferencia") ? (
               <div className="flex items-center gap-4">
-                <Link href="/expedicao/separacao" className="flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200/80 bg-white/70 text-slate-700 font-bold text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white dark:hover:bg-[#0A1120]">
-                  ‹ Voltar
+                <Link href="/expedicao" className="flex items-center gap-2 h-10 px-4 rounded-xl border border-slate-200/80 bg-white/70 text-slate-700 font-bold text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white dark:hover:bg-[#0A1120]">
+                  ‹ Expedição
                 </Link>
                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                  <span>Expedição</span><span>›</span><span className="text-slate-900 font-semibold dark:text-white">Separação</span>
+                  <span>Expedição</span><span>›</span><span className="text-slate-900 font-semibold dark:text-white">
+                    {currentPath.startsWith("/expedicao/conferencia") ? "Conferência" : "Separação"}
+                  </span>
                 </div>
               </div>
             ) : (
