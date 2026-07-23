@@ -4,6 +4,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const SUPPORT_ROLES = ["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"] as const;
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const auth = await requireApiRoleAccess(SUPPORT_ROLES);
   if (auth.response) return auth.response;
@@ -21,7 +24,11 @@ export async function GET() {
     return NextResponse.json({ error: ticketsError.message }, { status: 500 });
 
   const ticketIds = (tickets ?? []).map((ticket) => ticket.id);
-  if (!ticketIds.length) return NextResponse.json({ unreadCount: 0 });
+  if (!ticketIds.length)
+    return NextResponse.json(
+      { unreadCount: 0, unreadByTicket: {} },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
+    );
 
   const [
     { data: comments, error: commentsError },
@@ -38,7 +45,7 @@ export async function GET() {
       .in("chamado_id", ticketIds),
   ]);
 
-  if (commentsError || readsError) {
+  if (commentsError) {
     return NextResponse.json(
       {
         error:
@@ -51,7 +58,7 @@ export async function GET() {
   }
 
   const readAtByTicket = new Map(
-    (reads ?? []).map((read) => [
+    (readsError ? [] : (reads ?? [])).map((read) => [
       read.chamado_id,
       new Date(read.lido_ate).getTime(),
     ]),
@@ -71,11 +78,14 @@ export async function GET() {
       unreadByTicket[comment.chamado_id] = 1;
     });
 
-  return NextResponse.json({
-    unreadCount: Object.values(unreadByTicket).reduce(
-      (sum, count) => sum + count,
-      0,
-    ),
-    unreadByTicket,
-  });
+  return NextResponse.json(
+    {
+      unreadCount: Object.values(unreadByTicket).reduce(
+        (sum, count) => sum + count,
+        0,
+      ),
+      unreadByTicket,
+    },
+    { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
+  );
 }

@@ -8,9 +8,13 @@ export function useSupportUnreadCounts() {
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/suporte/notificacoes", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/suporte/notificacoes?refresh=${Date.now()}`,
+        {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        },
+      );
       const payload = await response.json();
       if (response.ok) setCounts(payload.unreadByTicket ?? {});
     } catch {
@@ -20,7 +24,7 @@ export function useSupportUnreadCounts() {
 
   useEffect(() => {
     void load();
-    const interval = window.setInterval(load, 15000);
+    const interval = window.setInterval(load, 5000);
     return () => window.clearInterval(interval);
   }, [load]);
 
