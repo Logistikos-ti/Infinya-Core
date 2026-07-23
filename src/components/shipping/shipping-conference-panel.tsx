@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -55,7 +55,7 @@ export function ShippingConferencePanel({
     ? {
         appBg: "#0A1120",
         sideBg: "#0C1424",
-        sideBg2: "#0B1322",
+        sideBg2: "transparent",
         barBg: "#0C1424",
         cardBg: "#101B30",
         inputBg: "#0E1728",
@@ -69,10 +69,10 @@ export function ShippingConferencePanel({
     : {
         appBg: "#F5F7FB",
         sideBg: "#FFFFFF",
-        sideBg2: "#FBFCFE",
+        sideBg2: "transparent",
         barBg: "#FFFFFF",
         cardBg: "#FFFFFF",
-        inputBg: "#F8FAFC",
+        inputBg: "rgba(255, 255, 255, 0.6)",
         softBg: "rgba(100,116,139,0.05)",
         border: "rgba(100,116,139,0.16)",
         navHover: "rgba(100,116,139,0.07)",

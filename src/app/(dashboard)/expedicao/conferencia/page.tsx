@@ -1,6 +1,6 @@
 import { ScanSearch } from "lucide-react";
 
-export default function ShippingConferenceRootPage() {
+export default function ConferenceEmptyPage() {
   return (
     <div className="flex h-full flex-1 flex-col items-center justify-center p-8">
       <div className="flex max-w-md flex-col items-center gap-4 text-center">

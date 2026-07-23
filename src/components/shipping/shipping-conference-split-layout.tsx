@@ -23,7 +23,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
 
   const t = isDark
     ? {
-        sideBg2: "#0B1322",
+        sideBg2: "transparent",
         cardBg: "#101B30",
         inputBg: "#0E1728",
         border: "rgba(148,163,184,0.14)",
@@ -31,9 +31,9 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
         textSub: "#8695AD",
       }
     : {
-        sideBg2: "#FBFCFE",
+        sideBg2: "transparent",
         cardBg: "#FFFFFF",
-        inputBg: "#F8FAFC",
+        inputBg: "rgba(255, 255, 255, 0.6)",
         border: "rgba(100,116,139,0.16)",
         text: "#0F172A",
         textSub: "#64748B",
