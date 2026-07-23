@@ -6,14 +6,13 @@ import type { StockBalance } from "@/lib/stock";
 
 export function ProductStockCard({ item }: { item: StockBalance }) {
   const quantity = Number(item.rawQuantidade ?? 0);
-  const [minimum, setMinimum] = useState(Number(item.minQuantity ?? 0));
+  const configuredMaximum = Number(item.maxQuantity ?? 0);
+  const configuredMinimum = Number(item.minQuantity ?? 0);
+  const [minimum, setMinimum] = useState(configuredMinimum);
   const [maximum, setMaximum] = useState(
-    Math.max(
-      Number(item.maxQuantity ?? 0),
-      Number(item.minQuantity ?? 0),
-      quantity,
-      1,
-    ),
+    configuredMaximum > 0
+      ? configuredMaximum
+      : Math.max(configuredMinimum * 5, 100),
   );
   const [open, setOpen] = useState(false);
   const [draftMinimum, setDraftMinimum] = useState(String(minimum));
