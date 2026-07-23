@@ -204,20 +204,16 @@ export function ShippingPickingInterface({
     setScanValue("");
   };
 
-  const confirmItem = () => {
-    if (!currentItem) return;
-    
-    // Auto-fill full quantity and go to next
-    setItems((current) =>
-      current.map((item) =>
-        item.compositeId === currentItem.compositeId
-          ? { ...item, separatedQuantityValue: String(item.requestedQuantity) }
-          : item
-      )
-    );
-    
-    setCurrentIndex(Math.min(currentIndex + 1, totalCount));
-  };
+    const confirmItem = () => {
+      if (!currentItem) return;
+      
+      const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
+      if (currentSeparated < currentItem.requestedQuantity) return;
+      
+      setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+      setAddressConfirmed(false);
+      setScanValue("");
+    };
 
     const handleAddressSubmit = () => {
     if (!scanValue.trim() || !currentItem) return;
@@ -264,20 +260,14 @@ export function ShippingPickingInterface({
       
       void updateItemPickingQuantityAction(currentItem.orderId, currentItem.id, nextSeparated);
       
-      if (nextSeparated >= currentItem.requestedQuantity) {
-        // Play beep and advance
-        playFeedbackTone("success");
-        setTimeout(() => { setCurrentIndex(Math.min(currentIndex + 1, totalCount)); setAddressConfirmed(false); setScanValue(""); }, 300);
-      } else {
-        playFeedbackTone("success");
-      }
+      playFeedbackTone("success");
+      setScanValue("");
     } else {
       playFeedbackTone("error");
       alert("Codigo invalido para este produto!");
+      setScanValue("");
+      scanInputRef.current?.focus();
     }
-    
-    setScanValue("");
-    scanInputRef.current?.focus();
   };
 
   // Beep tone
@@ -460,7 +450,7 @@ export function ShippingPickingInterface({
                 <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
                   Pular / sem estoque
                 </button>
-                <button onClick={confirmItem} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <button onClick={confirmItem} disabled={normalizeQuantity(current.separated) < current.requested} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: normalizeQuantity(current.separated) >= current.requested ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.softBg, color: normalizeQuantity(current.separated) >= current.requested ? "#fff" : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: normalizeQuantity(current.separated) >= current.requested ? "pointer" : "not-allowed", boxShadow: normalizeQuantity(current.separated) >= current.requested ? "0 8px 22px rgba(99,102,241,0.32)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: normalizeQuantity(current.separated) >= current.requested ? 1 : 0.6 }}>
                   <CheckIcon size={18} /> Confirmar coleta
                 </button>
               </div>
@@ -492,6 +482,7 @@ export function ShippingPickingInterface({
                     <input type="hidden" name="itemOrderId" value={item.orderId} />
                     <input type="hidden" name="itemId" value={item.id} />
                     <input type="hidden" name="separatedQuantity" value={item.isSkipped ? "0" : item.separatedQuantityValue} />
+                    <input type="hidden" name="itemKitProgress" value="[]" />
                   </React.Fragment>
                 ))}
                 

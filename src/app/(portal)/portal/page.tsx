@@ -323,13 +323,82 @@ function ProductsView({
         <EmptyState text="Nenhum produto disponível no estoque." />
       ) : null}
       {stock.length > pageSize ? (
-        <ProductPagination currentPage={currentPage} totalPages={totalPages} />
+        <ProductPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={stock.length}
+        />
       ) : null}
     </>
   );
 }
 
 function ProductPagination({
+  currentPage,
+  totalPages,
+  totalItems,
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+}) {
+  const pageSize = 9;
+  const firstItem = (currentPage - 1) * pageSize + 1;
+  const lastItem = Math.min(currentPage * pageSize, totalItems);
+  const pages: Array<number | "ellipsis"> =
+    totalPages <= 5
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : currentPage <= 2
+        ? [1, 2, 3, "ellipsis", totalPages]
+        : currentPage >= totalPages - 1
+          ? [1, "ellipsis", totalPages - 2, totalPages - 1, totalPages]
+          : [1, "ellipsis", currentPage, "ellipsis", totalPages];
+
+  return (
+    <div className="flex min-h-20 flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-8 py-4 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+      <span className="text-sm text-slate-500 dark:text-slate-400">
+        Mostrando {firstItem}–{lastItem} de {totalItems} produtos
+      </span>
+      <div className="flex items-center gap-2">
+        <PaginationLink
+          page={currentPage - 1}
+          disabled={currentPage === 1}
+          ariaLabel="Página anterior"
+        >
+          ‹
+        </PaginationLink>
+        {pages.map((page, index) =>
+          page === "ellipsis" ? (
+            <span
+              key={`ellipsis-${index}`}
+              className="px-1 text-sm text-slate-400"
+            >
+              ...
+            </span>
+          ) : (
+            <PaginationLink
+              key={page}
+              page={page}
+              active={page === currentPage}
+              ariaLabel={`Página ${page}`}
+            >
+              {page}
+            </PaginationLink>
+          ),
+        )}
+        <PaginationLink
+          page={currentPage + 1}
+          disabled={currentPage === totalPages}
+          ariaLabel="Próxima página"
+        >
+          ›
+        </PaginationLink>
+      </div>
+    </div>
+  );
+}
+
+function LegacyProductPagination({
   currentPage,
   totalPages,
 }: {
@@ -367,22 +436,33 @@ function PaginationLink({
   children,
   active = false,
   disabled = false,
+  ariaLabel,
 }: {
   page: number;
   children: React.ReactNode;
   active?: boolean;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
-  const className = `inline-flex h-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+  const className = `inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-2 text-sm font-semibold transition ${
     active
-      ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm"
+      ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm"
       : disabled
-        ? "cursor-not-allowed text-slate-300 dark:text-slate-600"
-        : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+        ? "cursor-not-allowed border-slate-200 text-slate-300 dark:border-white/10 dark:text-slate-600"
+        : "border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-white/20 dark:text-slate-300 dark:hover:bg-white/10"
   }`;
-  if (disabled) return <span className={className}>{children}</span>;
+  if (disabled)
+    return (
+      <span className={className} aria-label={ariaLabel}>
+        {children}
+      </span>
+    );
   return (
-    <Link href={`/portal?view=produtos&page=${page}`} className={className}>
+    <Link
+      href={`/portal?view=produtos&page=${page}`}
+      className={className}
+      aria-label={ariaLabel}
+    >
       {children}
     </Link>
   );
