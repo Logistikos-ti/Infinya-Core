@@ -63,15 +63,11 @@ export function ShippingPickingWavesView({
   
   const activeWaves = useMemo(() => {
     return (initialWaves || []).map((w) => {
-      const isConcluida = w.status === 'CONCLUIDA';
-      const isAguardando = w.status === 'PENDENTE';
-      const isEmSeparacao = w.status === 'EM_SEPARACAO';
-      
       let pct = 0;
       let totalItems = 0;
       let completedItems = 0;
       
-        let itensMin = '—';
+        let itensMin = '-';
         if (w.iniciado_em && w.status !== 'PENDENTE') {
           const diffMs = new Date().getTime() - new Date(w.iniciado_em).getTime();
           const diffMins = Math.max(diffMs / 1000 / 60, 1);
@@ -80,17 +76,23 @@ export function ShippingPickingWavesView({
           localWaveOrders.forEach(o => { localCompleted += (o.separatedUnits || 0); });
           if (localCompleted > 0) { itensMin = (localCompleted / diffMins).toFixed(1); } else { itensMin = '0.0'; }
         }
-      const waveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
-      waveOrders.forEach(o => {
-        totalItems += (o.totalUnits || 0);
-        completedItems += (o.separatedUnits || 0);
-      });
-      
-      if (totalItems > 0) {
-        pct = Math.round((completedItems / totalItems) * 100);
-      }
-      if (isConcluida) pct = 100;
-      
+
+        const waveOrders = orders.filter(o => w.pedidos?.some((p:any) => p.pedido_expedicao_id === o.id));
+        waveOrders.forEach(o => {
+          totalItems += (o.totalUnits || 0);
+          completedItems += (o.separatedUnits || 0);
+        });
+        
+        if (totalItems > 0) {
+          pct = Math.round((completedItems / totalItems) * 100);
+        }
+        
+        if (w.status === 'CONCLUIDA') pct = 100;
+        
+        const isConcluida = w.status === 'CONCLUIDA' || (totalItems > 0 && completedItems >= totalItems);
+        const isEmSeparacao = w.status === 'EM_SEPARACAO' || (pct > 0 && !isConcluida);
+        const isAguardando = w.status === 'PENDENTE' && pct === 0 && !isConcluida;
+        
       let statusStr = 'Aguardando';
       let statusBg = '#F59E0B22';
       let statusColor = '#F59E0B';

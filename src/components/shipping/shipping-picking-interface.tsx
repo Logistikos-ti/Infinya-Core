@@ -440,33 +440,46 @@ export function ShippingPickingInterface({
                   </div>
 
                   {/* scan field */}
-                  <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                    <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                      <ScanIconBig size={24} />
-                      <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
+                  {current.separated < current.requested ? (
+                    <>
+                      <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                        <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                          <ScanIconBig size={24} />
+                          <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+                          <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
+                          <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
+                        </div>
+                      </div>
+                      <input 
+                        ref={scanInputRef}
+                        value={scanValue}
+                        onChange={e => setScanValue(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
+                        }}
+                        placeholder="Aguardando leitura do coletor..." 
+                        style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+                      />
+                    </>
+                  ) : (
+                    <div style={{ borderRadius: "18px", background: hex.green, color: "#10B981", padding: "24px", display: "flex", alignItems: "center", gap: "16px", justifyContent: "center", border: `1px solid rgba(16, 185, 129, 0.2)` }}>
+                      <CheckIcon size={28} />
+                      <span style={{ fontSize: "18px", fontWeight: "700" }}>
+                        {currentIndex === totalCount - 1 ? "Onda finalizada! Confirme a coleta" : "Produto separado com sucesso!"}
+                      </span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
-                      <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
-                    </div>
-                  </div>
-                  <input 
-                    ref={scanInputRef}
-                    value={scanValue}
-                    onChange={e => setScanValue(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
-                    }}
-                    placeholder="Aguardando leitura do coletor..." 
-                    style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
-                  />
+                  )}
                 </>
               )}
               
               <div style={{ display: "flex", gap: "12px" }}>
-                <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
-                  Pular / sem estoque
-                </button>
+                {current.separated < current.requested && (
+                  <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
+                    Pular / sem estoque
+                  </button>
+                )}
                 <button onClick={confirmItem} disabled={current.separated < current.requested} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: current.separated >= current.requested ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.softBg, color: current.separated >= current.requested ? "#fff" : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: current.separated >= current.requested ? "pointer" : "not-allowed", boxShadow: current.separated >= current.requested ? "0 8px 22px rgba(99,102,241,0.32)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: current.separated >= current.requested ? 1 : 0.6 }}>
                   <CheckIcon size={18} /> Confirmar coleta
                 </button>
