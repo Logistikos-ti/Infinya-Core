@@ -83,7 +83,7 @@ export function DatePickerInput({
     <div className="space-y-1" ref={containerRef}>
       {hideLabel ? null : (
         <span
-          className={`text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400 ${compact ? "" : "uppercase"}`}
+          className={`block text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400 ${compact ? "" : "uppercase"}`}
         >
           {label}
         </span>
