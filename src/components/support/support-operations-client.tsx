@@ -37,6 +37,9 @@ export function SupportOperationsClient() {
       const tone = status === "Resolvido" ? "green" : status === "Em análise" ? "blue" : "amber";
       setSelected((current) => current ? { ...current, status, tone } : current);
       setTickets((current) => current.map((ticket) => ticket.databaseId === selected.databaseId ? { ...ticket, status, tone } : ticket));
+    } else {
+      const payload = await response.json().catch(() => null);
+      window.alert(payload?.error ?? "Não foi possível atualizar o status do chamado.");
     }
     setStatusOpen(false);
   }
@@ -44,18 +47,23 @@ export function SupportOperationsClient() {
   async function sendComment() {
     if (!selected || !comment.trim()) return;
     setSending(true);
-    const response = await fetch(`/api/suporte/chamados/${selected.databaseId}/comentarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: comment }),
-    });
-    const payload = await response.json();
-    if (response.ok) {
-      setSelected({ ...selected, comments: [...selected.comments, payload.comment] });
-      setComment("");
-      await load();
+    try {
+      const response = await fetch(`/api/suporte/chamados/${selected.databaseId}/comentarios`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: comment }),
+      });
+      const payload = await response.json();
+      if (response.ok) {
+        setSelected({ ...selected, comments: [...selected.comments, payload.comment] });
+        setComment("");
+        await load();
+      } else {
+        window.alert(payload?.error ?? "Não foi possível enviar o comentário.");
+      }
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   }
 
   return (
