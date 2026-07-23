@@ -582,7 +582,6 @@ function mapPickingItem(
     const matchedStocks = includeRouteData
         ? stockRows
           .filter((row) => matchesStockToKitComponent(row, component))
-          .filter((row) => getAvailableQuantity(row) > 0)
           .sort(compareStocksForPicking)
       : [];
 
@@ -593,7 +592,11 @@ function mapPickingItem(
         break;
       }
 
-      const available = getAvailableQuantity(stock);
+      let available = getAvailableQuantity(stock);
+      if (available <= 0) {
+        available = remaining; // Fallback: allow directing shortage to 0-stock bin
+      }
+      
       const quantity = Math.min(remaining, available);
       if (quantity <= 0) {
         continue;
@@ -685,7 +688,6 @@ function mapSimplePickingItem(
     ? stockRows
         .filter((row) => row.depositante_id === depositanteId)
         .filter((row) => matchesStockToItem(row, item))
-        .filter((row) => getAvailableQuantity(row) > 0)
         .sort(compareStocksForPicking)
     : [];
 
@@ -697,7 +699,11 @@ function mapSimplePickingItem(
       break;
     }
 
-    const available = getAvailableQuantity(stock);
+    let available = getAvailableQuantity(stock);
+    if (available <= 0) {
+      available = remaining; // Fallback: allow directing shortage to 0-stock bin
+    }
+
     const quantity = Math.min(remaining, available);
     if (quantity <= 0) {
       continue;
@@ -1050,6 +1056,16 @@ function matchesStockToKitComponent(
 }
 
 function compareStocksForPicking(a: RawPickingStockRow, b: RawPickingStockRow) {
+  const aQty = getAvailableQuantity(a);
+  const bQty = getAvailableQuantity(b);
+  
+  if (aQty > 0 && bQty <= 0) {
+    return -1;
+  }
+  if (bQty > 0 && aQty <= 0) {
+    return 1;
+  }
+
   const areaDiff = getÁreaPriority(a.endereco?.area) - getÁreaPriority(b.endereco?.area);
   if (areaDiff !== 0) {
     return areaDiff;
