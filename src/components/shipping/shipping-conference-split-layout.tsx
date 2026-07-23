@@ -85,13 +85,13 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
         style={{
           width: "320px",
           flexShrink: 0,
-          borderRight: \`1px solid \${t.border}\`,
+          borderRight: `1px solid ${t.border}`,
           display: "flex",
           flexDirection: "column",
           background: t.sideBg2,
         }}
       >
-        <div style={{ padding: "20px 22px 16px 22px", borderBottom: \`1px solid \${t.border}\` }}>
+        <div style={{ padding: "20px 22px 16px 22px", borderBottom: `1px solid ${t.border}` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700, color: t.text }}>
               Fila de conferência
@@ -110,7 +110,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                 placeholder="Buscar pedido ou cliente..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: "100%", height: "36px", padding: "0 12px 0 34px", borderRadius: "10px", border: \`1px solid \${t.border}\`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }}
+                style={{ width: "100%", height: "36px", padding: "0 12px 0 34px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none" }}
               />
             </div>
             
@@ -118,7 +118,7 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
               <select
                 value={marketplaceFilter}
                 onChange={(e) => setMarketplaceFilter(e.target.value)}
-                style={{ width: "100%", height: "36px", padding: "0 12px", borderRadius: "10px", border: \`1px solid \${t.border}\`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none", appearance: "none" }}
+                style={{ width: "100%", height: "36px", padding: "0 12px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: "13px", outline: "none", appearance: "none" }}
               >
                 {marketplaces.map((m) => (
                   <option key={m} value={m}>
@@ -137,20 +137,20 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
             </div>
           ) : (
             filteredOrders.map((o) => {
-              const isActive = pathname === \`/expedicao/conferencia/\${o.id}\`;
+              const isActive = pathname === `/expedicao/conferencia/${o.id}`;
               const carrierName = o.carrier || "Transportadora";
               const c = carriers[carrierName] || "#64748B";
 
               return (
                 <Link
                   key={o.id}
-                  href={\`/expedicao/conferencia/\${o.id}\`}
+                  href={`/expedicao/conferencia/${o.id}`}
                   style={{
                     padding: "14px",
                     borderRadius: "12px",
                     cursor: "pointer",
                     textDecoration: "none",
-                    border: \`1.5px solid \${isActive ? "#8B5CF6" : t.border}\`,
+                    border: `1.5px solid ${isActive ? "#8B5CF6" : t.border}`,
                     background: isActive ? hex2("#8B5CF6", 0.1) : t.cardBg,
                     display: "flex",
                     flexDirection: "column",

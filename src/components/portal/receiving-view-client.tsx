@@ -68,10 +68,19 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, type, xmlName }),
       });
-      const payload = await response.json();
+      const responseText = await response.text();
+      let payload: { error?: string } = {};
+      try {
+        payload = responseText
+          ? (JSON.parse(responseText) as { error?: string })
+          : {};
+      } catch {
+        payload = { error: responseText.replace(/<[^>]*>/g, "").trim() };
+      }
       if (!response.ok) {
         throw new Error(
-          payload.error ?? "Não foi possível enviar a solicitação.",
+          payload.error ||
+            `Não foi possível enviar a solicitação (HTTP ${response.status}).`,
         );
       }
       closeDrawer();
