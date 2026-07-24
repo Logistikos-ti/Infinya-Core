@@ -97,7 +97,7 @@ export function ShippingConferenceDocumentsPanel({
   return (
     <div
       id="documentos-impressao"
-      className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80"
+      className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80 animate-[docExpand_0.4s_cubic-bezier(.3,1,.4,1)]"
     >
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
