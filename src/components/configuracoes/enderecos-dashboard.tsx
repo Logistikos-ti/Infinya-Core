@@ -263,8 +263,53 @@ export function EnderecosDashboard({
           ))}
         </div>
 
-        {/* TABLE VIEW */}
         {view === "table" && (
+          <div className="rounded-2xl border border-[var(--e-border)] bg-[var(--e-cardBg)] overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--e-border)] p-4">
+              <span className="text-[13px] text-[var(--e-textSub)]">{filtered.length} endereços encontrados</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1080px] border-collapse">
+                <thead>
+                  <tr className="text-left">
+                    {["Endereço", "Rua / Setor", "Tipo", "SKU", "Ocupação", "Qtd.", "Status"].map((column) => (
+                      <th key={column} className="border-b border-[var(--e-border)] bg-[var(--e-headBg)] px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-[var(--e-textSub)] whitespace-nowrap">{column}</th>
+                    ))}
+                    <th className="border-b border-[var(--e-border)] bg-[var(--e-headBg)] px-5 py-3 text-right text-[12px] font-bold uppercase tracking-wider text-[var(--e-textSub)]">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((address) => {
+                    const row = addressTableRows.find((item) => item.id === address.id);
+                    if (!row) return null;
+                    return (
+                      <tr key={row.id} onClick={() => setSelectedId(row.id)} className="cursor-pointer border-b border-[var(--e-border)] transition-colors hover:bg-[var(--e-rowHover)]">
+                        <td className="px-5 py-4"><span className="font-space text-[14.5px] font-bold text-[var(--e-text)]">{row.codigo}</span></td>
+                        <td className="px-5 py-4 text-[14px] text-[var(--e-textSub)]">{[row.rua, row.modulo].filter(Boolean).join(" · ") || "—"}</td>
+                        <td className="px-5 py-4"><span className="rounded-full bg-[var(--e-tagBg)] px-3 py-1 text-[12px] font-bold text-[var(--e-textSub)]">{row.area}</span></td>
+                        <td className="px-5 py-4 font-space text-[13.5px] font-bold text-[var(--e-text)]">{row.sku}</td>
+                        <td className="min-w-[170px] px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 min-w-[80px] flex-1 overflow-hidden rounded-full bg-[var(--e-barTrack)]"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500" style={{ width: `${row.metric.ocupacao ?? 0}%` }} /></div>
+                            <span className="text-[13px] font-bold text-[var(--e-textSub)]">{row.metric.ocupacao === null ? "—" : `${row.metric.ocupacao}%`}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-[14px] text-[var(--e-textSub)]">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(row.metric.quantidade)}{row.unidade_padrao ? ` ${row.unidade_padrao.toLowerCase()}` : ""}</td>
+                        <td className="px-5 py-4"><span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12.5px] font-bold ${row.statusClass}`}><span className={`h-2 w-2 rounded-full ${row.statusDot}`} />{row.status}</span></td>
+                        <td className="px-5 py-4 text-right"><span className="text-lg font-bold leading-none text-[var(--e-textSub)] hover:text-violet-500">›</span></td>
+                      </tr>
+                    );
+                  })}
+                  {filtered.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-sm text-[var(--e-textSub)]">Nenhum endereço encontrado.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--e-border)] px-4 py-3.5"><span className="text-[13px] text-[var(--e-textSub)]">Mostrando {(safePage - 1) * pageSize + 1}-{Math.min(safePage * pageSize, filtered.length)} de {filtered.length} endereços</span><div className="flex items-center gap-1.5"><button type="button" aria-label="Página anterior" disabled={safePage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] transition hover:border-violet-400 hover:text-violet-500 disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => <button key={page} type="button" aria-current={page === safePage ? "page" : undefined} onClick={() => setCurrentPage(page)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-[13px] font-bold transition ${page === safePage ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] hover:border-violet-400 hover:text-violet-500"}`}>{page}</button>)}<button type="button" aria-label="Próxima página" disabled={safePage === totalPages} onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] transition hover:border-violet-400 hover:text-violet-500 disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div></div>}
+          </div>
+        )}
+
+        {/* TABLE VIEW */}
+        {false && view === "table" && (
           <div className="rounded-2xl border border-[var(--e-border)] bg-[var(--e-cardBg)] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-[var(--e-border)]">
               <span className="text-[13px] text-[var(--e-textSub)]">{filtered.length} endereços encontrados</span>
