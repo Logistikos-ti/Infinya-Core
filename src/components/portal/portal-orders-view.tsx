@@ -54,8 +54,17 @@ export function PortalOrdersView({ orders }: { orders: ShippingOrderSummary[] })
             >
               {filter.label}
               <span
-                className="rounded-full px-1.5 py-0.5 text-[11px] leading-none"
-                className={active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"}
+                className={`text-[11px] leading-none ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"}`}
+                style={{
+                  minWidth: 22,
+                  height: 20,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 6px",
+                  borderRadius: 9999,
+                  lineHeight: 1,
+                }}
               >
                 {count}
               </span>

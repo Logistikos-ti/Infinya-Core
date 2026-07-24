@@ -162,6 +162,9 @@ export async function listShippingConferenceOrdersFromDb(
   const rawOrders = ((data ?? []) as RawConferenceOrderRow[]).filter(
     (order) => !isBlingWebhookSummaryOrder(order.observacoes),
   );
+
+  const fallbackImageMap = await loadFallbackImagesBySku(supabase, rawOrders);
+
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(
     supabase,
     rawOrders,
@@ -170,6 +173,7 @@ export async function listShippingConferenceOrdersFromDb(
     mapConferenceOrder(
       order,
       resolveCommercialKitRulesForOrder(order.depositante_id, commercialKitRulesByDepositante),
+      fallbackImageMap,
     ),
   );
 
@@ -208,9 +212,12 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
     [rawOrder],
   );
 
+  const fallbackImageMap = await loadFallbackImagesBySku(supabase, [rawOrder]);
+
   return mapConferenceOrder(
     rawOrder,
     resolveCommercialKitRulesForOrder(rawOrder.depositante_id, commercialKitRulesByDepositante),
+    fallbackImageMap,
   );
 }
 
@@ -227,10 +234,11 @@ function isBlingWebhookSummaryOrder(observacoes: string | null | undefined) {
 function mapConferenceOrder(
   order: RawConferenceOrderRow,
   commercialKitRules: CommercialKitRuleDefinition[],
+  fallbackImageMap: Map<string, string>
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const conference = extractConferencePayload(payload);
-  const items = (order.itens ?? []).map((item) => mapConferenceItem(item, commercialKitRules));
+  const items = (order.itens ?? []).map((item) => mapConferenceItem(item, commercialKitRules, fallbackImageMap));
   const totalRequested = items.reduce((sum, item) => sum + item.requestedQuantity, 0);
   const totalConfirmed = items.reduce((sum, item) => sum + item.confirmedQuantity, 0);
   const pendingUnits = items.reduce((sum, item) => sum + item.pendingQuantity, 0);
@@ -275,6 +283,7 @@ function mapConferenceOrder(
 function mapConferenceItem(
   item: RawConferenceItemRow,
   commercialKitRules: CommercialKitRuleDefinition[],
+  fallbackImageMap: Map<string, string>
 ) {
   const hydratedItem = hydrateConferenceItemWithCommercialKit(item, commercialKitRules);
   const payload: Record<string, unknown> = isRecord(hydratedItem.payload_origem)
@@ -313,7 +322,7 @@ function mapConferenceItem(
       pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
       hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
       kitComponents: [],
-      imageUrl: hydratedItem.produto?.imagem_principal_url || null,
+      imageUrl: hydratedItem.produto?.imagem_principal_url || fallbackImageMap.get(itemSku) || fallbackImageMap.get(itemCode) || null,
       scanTargets: [itemBarcode, itemCode, itemSku].filter(Boolean),
     } satisfies ShippingConferenceItem;
   }
@@ -353,7 +362,7 @@ function mapConferenceItem(
     pendingQuantity: Math.max(totals.operationalRequestedQuantity - totals.operationalSeparatedQuantity, 0),
     hasQuantityDivergence: totals.operationalSeparatedQuantity !== totals.operationalRequestedQuantity,
     kitComponents,
-    imageUrl: hydratedItem.produto?.imagem_principal_url || null,
+    imageUrl: hydratedItem.produto?.imagem_principal_url || fallbackImageMap.get(itemSku) || fallbackImageMap.get(itemCode) || null,
     scanTargets: [...new Set([
       itemBarcode,
       itemCode,
@@ -390,6 +399,54 @@ function normalizeKitComponentDefinitions(payload: Record<string, unknown> | nul
       } satisfies ProductKitComponentDefinition;
     })
     .filter((item): item is ProductKitComponentDefinition => Boolean(item));
+}
+
+async function loadFallbackImagesBySku(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: RawConferenceOrderRow[],
+) {
+  const missingSkus = new Set<string>();
+
+  for (const order of orders) {
+    for (const item of order.itens ?? []) {
+      if (!item.produto_id || !item.produto?.imagem_principal_url) {
+        if (item.sku) missingSkus.add(item.sku);
+        if (item.codigo_produto) missingSkus.add(item.codigo_produto);
+      }
+    }
+  }
+
+  const skuArray = [...missingSkus].filter(Boolean);
+  const map = new Map<string, string>();
+
+  if (skuArray.length === 0) {
+    return map;
+  }
+
+  // Split into chunks of 100 to avoid URL length limits
+  for (let i = 0; i < skuArray.length; i += 100) {
+    const chunk = skuArray.slice(i, i + 100);
+    const { data } = await supabase
+      .from("produtos")
+      .select("sku, codigo_interno, imagem_principal_url")
+      .in("sku", chunk)
+      .not("imagem_principal_url", "is", null);
+      
+    const { data: data2 } = await supabase
+      .from("produtos")
+      .select("sku, codigo_interno, imagem_principal_url")
+      .in("codigo_interno", chunk)
+      .not("imagem_principal_url", "is", null);
+
+    for (const row of [...(data ?? []), ...(data2 ?? [])]) {
+      if (row.imagem_principal_url) {
+        if (row.sku) map.set(row.sku, row.imagem_principal_url);
+        if (row.codigo_interno) map.set(row.codigo_interno, row.imagem_principal_url);
+      }
+    }
+  }
+
+  return map;
 }
 
 async function loadCommercialKitRulesByDepositante(
