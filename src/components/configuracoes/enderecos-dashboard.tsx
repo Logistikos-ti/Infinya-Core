@@ -26,6 +26,11 @@ type Endereco = {
 
 type EnderecosDashboardProps = {
   enderecos: Endereco[];
+  addressMetrics: Record<string, {
+    quantidade: number;
+    skus: string[];
+    ocupacao: number | null;
+  }>;
   kpiData: {
     total: number;
     ocupacaoMedia: number;
@@ -39,6 +44,7 @@ type EnderecosDashboardProps = {
 
 export function EnderecosDashboard({
   enderecos,
+  addressMetrics,
   kpiData,
   formSlot,
   children,
@@ -132,6 +138,26 @@ export function EnderecosDashboard({
       return { label: `Rua ${rua}`, meta: `${cells.length} posições`, cells };
     });
   }, [filtered, selectedId]);
+
+  const addressTableRows = useMemo(() => enderecos.map((address) => {
+    const metric = addressMetrics[address.id] ?? { quantidade: 0, skus: [], ocupacao: null };
+    const blocked = !address.ativo || address.area === "BLOQUEADO";
+    const empty = !blocked && metric.quantidade <= 0;
+    const full = !blocked && !empty && metric.ocupacao !== null && metric.ocupacao >= 100;
+    const status = blocked ? "Bloqueado" : empty ? "Vazio" : full ? "Cheio" : "Ativo";
+    const statusClass = status === "Bloqueado"
+      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+      : status === "Cheio"
+        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+        : status === "Vazio"
+          ? "bg-slate-500/10 text-slate-600 dark:text-slate-300"
+          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    const statusDot = status === "Bloqueado" ? "bg-rose-500" : status === "Cheio" ? "bg-amber-500" : status === "Vazio" ? "bg-slate-400" : "bg-emerald-500";
+    const area = address.area === "PULMAO" ? "Armazenagem" : address.area === "BLOQUEADO" ? "Bloqueado" : address.area;
+    const sku = metric.skus.length > 1 ? `${metric.skus[0]} +${metric.skus.length - 1}` : metric.skus[0] ?? "—";
+    const quantity = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(metric.quantidade);
+    return { ...address, metric, status, statusClass, statusDot, area, sku, quantity };
+  }), [enderecos, addressMetrics]);
 
   return (
     <div className={`e-theme ${manrope.variable} ${space.variable} font-manrope relative flex w-full flex-col bg-transparent text-[var(--e-text)] transition-colors duration-300`}>
@@ -244,7 +270,7 @@ export function EnderecosDashboard({
               <span className="text-[13px] text-[var(--e-textSub)]">{filtered.length} endereços encontrados</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[880px]">
+              <table className="w-full border-collapse min-w-[1080px]">
                 <thead>
                   <tr className="text-left">
                     {["Endereço", "Área", "Tipo", "Status"].map((c, i) => (

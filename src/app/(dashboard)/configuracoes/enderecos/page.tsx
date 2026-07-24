@@ -44,9 +44,10 @@ export default async function ConfiguracoesEnderecosPage({
   const { data: enderecos } = await enderecosQuery;
   const { data: saldos } = await supabase
     .from("estoque")
-    .select("endereco_id, quantidade, quantidade_reservada, bloqueado");
+    .select("endereco_id, quantidade, quantidade_reservada, bloqueado, produto:produtos(sku)");
 
   const saldoPorEndereco = new Map<string, number>();
+  const skusPorEndereco = new Map<string, string[]>();
   for (const saldo of saldos ?? []) {
     const quantidadeDisponivel = Math.max(
       0,
@@ -56,6 +57,12 @@ export default async function ConfiguracoesEnderecosPage({
       saldo.endereco_id,
       (saldoPorEndereco.get(saldo.endereco_id) ?? 0) + quantidadeDisponivel,
     );
+    const produto = Array.isArray(saldo.produto) ? saldo.produto[0] : saldo.produto;
+    if (produto?.sku) {
+      const skus = skusPorEndereco.get(saldo.endereco_id) ?? [];
+      if (!skus.includes(produto.sku)) skus.push(produto.sku);
+      skusPorEndereco.set(saldo.endereco_id, skus);
+    }
   }
 
   const enderecosAtivos = (enderecos ?? []).filter(
@@ -81,6 +88,17 @@ export default async function ConfiguracoesEnderecosPage({
   const enderecosBloqueados = (enderecos ?? []).filter(
     (endereco) => !endereco.ativo || endereco.area === "BLOQUEADO",
   ).length;
+  const addressMetrics = Object.fromEntries(
+    (enderecos ?? []).map((endereco) => {
+      const quantidade = saldoPorEndereco.get(endereco.id) ?? 0;
+      const capacidade = Number(endereco.capacidade_maxima ?? 0);
+      return [endereco.id, {
+        quantidade,
+        skus: skusPorEndereco.get(endereco.id) ?? [],
+        ocupacao: capacidade > 0 ? Math.min(100, Math.round((quantidade / capacidade) * 100)) : null,
+      }];
+    }),
+  );
   const currentAddress = editingId
     ? (enderecos ?? []).find((item) => item.id === editingId) ?? null
     : null;
@@ -113,6 +131,7 @@ export default async function ConfiguracoesEnderecosPage({
 
       <EnderecosDashboard
         enderecos={enderecos ?? []}
+        addressMetrics={addressMetrics}
         kpiData={{
           total: enderecos?.length ?? 0,
           ocupacaoMedia,
