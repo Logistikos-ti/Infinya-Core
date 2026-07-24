@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, ChevronLeft, ChevronRight, Download, Gauge, Lock, MapPin, Percent, Tag, Trash2, Unlock, X } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Download, Gauge, Lock, MapPin, Percent, Printer, Tag, Trash2, Unlock, X } from "lucide-react";
 import { deleteEnderecoAction, toggleEnderecoStatusAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 import { AddressBarcodePreview } from "@/components/configuracoes/endereco-form";
 
@@ -289,6 +289,14 @@ export function EnderecosDashboard({
                 ▦ Mapa
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="h-[44px] px-4 rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-text)] font-manrope text-sm font-extrabold cursor-pointer flex items-center gap-2 transition-all hover:-translate-y-[1px] hover:border-violet-400 hover:text-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </button>
             <button
               onClick={() => { setSelectedId(null); setShowForm(true); }}
               className="h-[44px] px-5 border-none rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-sm font-extrabold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] flex items-center gap-2 hover:-translate-y-[1px] transition-transform"
