@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, Layers, Percent, MapPin, Search, Trash2 } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Layers, Percent, MapPin, Search, Trash2 } from "lucide-react";
 import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -41,7 +41,9 @@ export function EnderecosDashboard({
   const [view, setView] = useState<"table" | "map">("table");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(initialShowForm);
+  const pageSize = 10;
 
   useEffect(() => {
     if (initialShowForm) {
@@ -73,6 +75,17 @@ export function EnderecosDashboard({
     const q = search.toLowerCase();
     return enderecos.filter(e => e.codigo.toLowerCase().includes(q) || (e.descricao && e.descricao.toLowerCase().includes(q)));
   }, [enderecos, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageItems = useMemo(
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage],
+  );
 
   // Mapa Data
   const mapData = useMemo(() => {
@@ -254,7 +267,7 @@ export function EnderecosDashboard({
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.slice(0, 50).map((r) => (
+                  {pageItems.map((r) => (
                     <tr key={r.id} onClick={() => setSelectedId(r.id)} className="border-b border-[var(--e-border)] cursor-pointer transition-colors hover:bg-[var(--e-rowHover)]">
                       <td className="py-4 px-5"><span className="font-space font-bold text-[14.5px] text-[var(--e-text)]">{r.codigo}</span></td>
                       <td className="py-4 px-5 text-[14px] text-[var(--e-textSub)]">{r.area}</td>
@@ -276,6 +289,44 @@ export function EnderecosDashboard({
                 </tbody>
               </table>
             </div>
+            {filtered.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--e-border)] px-4 py-3.5">
+                <span className="text-[13px] text-[var(--e-textSub)]">
+                  Mostrando {(safePage - 1) * pageSize + 1}-{Math.min(safePage * pageSize, filtered.length)} de {filtered.length} endereços
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="Página anterior"
+                    disabled={safePage === 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] transition hover:border-violet-400 hover:text-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      aria-current={page === safePage ? "page" : undefined}
+                      onClick={() => setCurrentPage(page)}
+                      className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-[13px] font-bold transition ${page === safePage ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] hover:border-violet-400 hover:text-violet-500"}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-label="Próxima página"
+                    disabled={safePage === totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] transition hover:border-violet-400 hover:text-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
