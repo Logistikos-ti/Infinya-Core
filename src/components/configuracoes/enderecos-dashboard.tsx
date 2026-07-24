@@ -564,12 +564,12 @@ export function EnderecosDashboard({
                       <span className="text-[14.5px] font-bold">{selected.rua || "-"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Nível</span>
-                      <span className="text-[14.5px] font-bold">{selected.nivel || "Não informado"}</span>
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Prédio</span>
+                      <span className="text-[14.5px] font-bold">{selected.modulo || "Não informado"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Dimensões</span>
-                      <span className="text-[14.5px] font-bold">Não informado</span>
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Nível</span>
+                      <span className="text-[14.5px] font-bold">{selected.nivel || "Não informado"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Peso máx.</span>
