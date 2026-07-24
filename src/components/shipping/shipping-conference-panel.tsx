@@ -156,7 +156,7 @@ export function ShippingConferencePanel({
   );
 
   useEffect(() => {
-    if (!operatorMode || cameraEnabled) {
+    if (!operatorMode || cameraEnabled || full) {
       return;
     }
 
@@ -165,7 +165,7 @@ export function ShippingConferencePanel({
     }, 120);
 
     return () => window.clearTimeout(focusTimer);
-  }, [cameraEnabled, operatorMode]);
+  }, [cameraEnabled, operatorMode, full]);
 
   useEffect(() => {
     if (!isSubmitting) {
@@ -517,7 +517,7 @@ export function ShippingConferencePanel({
                 }
               }}
               onBlur={() => {
-                if (operatorMode && !cameraEnabled) {
+                if (operatorMode && !cameraEnabled && !full) {
                   window.setTimeout(() => scanInputRef.current?.focus(), 40);
                 }
               }}
