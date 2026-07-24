@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, ChevronLeft, ChevronRight, Layers, Percent, MapPin, Search, Trash2 } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Layers, Percent, MapPin, Trash2 } from "lucide-react";
 import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -40,7 +40,6 @@ export function EnderecosDashboard({
   const router = useRouter();
   const [view, setView] = useState<"table" | "map">("table");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(initialShowForm);
   const pageSize = 10;
@@ -69,16 +68,7 @@ export function EnderecosDashboard({
     ];
   }, [enderecos]);
 
-  // Filtro
-  const filtered = useMemo(() => {
-    if (!search) return enderecos;
-    const q = search.toLowerCase();
-    return enderecos.filter(e => e.codigo.toLowerCase().includes(q) || (e.descricao && e.descricao.toLowerCase().includes(q)));
-  }, [enderecos, search]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search]);
+  const filtered = enderecos;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -188,19 +178,6 @@ export function EnderecosDashboard({
         @keyframes gridPan { from { background-position: 0 0, 0 0; } to { background-position: 42px 42px, 42px 42px; } }
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-360px); opacity: 0; } }
       `}</style>
-
-      {/* header inside the component, since the global header is above */}
-      <div className="flex items-center gap-4 p-6 border-b border-[var(--e-border)] bg-[var(--e-headBg)]">
-        <div className="flex items-center gap-2 h-10 flex-1 max-w-[320px] px-4 rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)]">
-          <Search className="w-4 h-4 text-[var(--e-textSub)]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar endereço, rua..."
-            className="flex-1 border-none outline-none bg-transparent text-[var(--e-text)] text-sm placeholder-[var(--e-textSub)]"
-          />
-        </div>
-      </div>
 
       <div className="flex-1 p-6 md:p-8">
         {/* title row */}
