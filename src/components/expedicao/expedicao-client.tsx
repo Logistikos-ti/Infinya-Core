@@ -243,7 +243,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
     const isConf = o.status === "EM_CONFERENCIA";
     const isSep = ["EM_SEPARACAO", "SEPARADO"].includes(o.status);
-    let confRaw = isExpedido ? 100 : 0;
+    let confRaw = isExpedido ? 100 : (isConf ? 50 : (isSep ? 25 : 0));
     if (o.conf !== undefined) confRaw = o.conf; // From mock if exists
     
     const isFull = confRaw === 100;
