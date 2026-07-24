@@ -53,108 +53,78 @@ export function ShippingAttachmentUploadPanel({
   }, [router, state]);
 
   return (
-    <form action={formAction} className="mt-4 space-y-4">
+    <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="depositanteId" value={depositanteId} />
       <input type="hidden" name="pedidoExpedicaoId" value={pedidoExpedicaoId} />
       <input type="hidden" name="tipo" value={tipo} />
 
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="space-y-2">
-          <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Tipo do anexo
+      <div className="flex flex-col gap-[7px]">
+        <span className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400">
+          Tipo do anexo
+        </span>
+        <div className="flex gap-[7px]">
+          {attachmentTypes.map((item) => {
+            const active = item.value === tipo;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setTipo(item.value)}
+                className={`flex flex-1 items-center justify-center rounded-[9px] border-[1.5px] font-['Manrope'] text-[12px] font-bold transition-all h-[36px] ${
+                  active
+                    ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:border-violet-500 dark:text-violet-400"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-[7px]">
+        <input
+          ref={fileInputRef}
+          type="file"
+          name="arquivo"
+          accept=".xml,.pdf,.png,.jpg,.jpeg"
+          onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
+          className="hidden"
+        />
+
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="flex cursor-pointer items-center gap-[12px] rounded-[11px] border-[1.5px] border-dashed border-slate-300 bg-white/60 p-[14px] transition-colors hover:border-violet-500 dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-violet-400"
+        >
+          <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400">
+            {arquivo ? <Paperclip className="h-5 w-5" /> : <FileUp className="h-5 w-5" />}
           </span>
-
-          <div className="relative z-10">
-            <button
-              type="button"
-              onClick={() => setDropdownOpen((current) => !current)}
-              className="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-cyan-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-500"
-            >
-              <div className="min-w-0">
-                <p className="truncate">{selectedType.label}</p>
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 text-slate-400 transition ${dropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {dropdownOpen ? (
-              <div className="absolute inset-x-0 z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                {attachmentTypes.map((item) => {
-                  const active = item.value === tipo;
-
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        setTipo(item.value);
-                        setDropdownOpen(false);
-                      }}
-                      className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition ${
-                        active
-                          ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300"
-                          : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <span className="text-sm font-semibold">{item.label}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.hint}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+            <span className="truncate text-[12.5px] font-bold text-slate-900 dark:text-white">
+              {arquivo ? arquivo.name : "Selecionar arquivo"}
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              {arquivo ? "Pronto para enviar" : "Aceita XML, PDF, PNG e JPG."}
+            </span>
           </div>
         </div>
-
-        <div className="space-y-2">
-          <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Arquivo
-          </span>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            name="arquivo"
-            accept=".xml,.pdf,.png,.jpg,.jpeg"
-            onChange={(event) => setArquivo(event.target.files?.[0] ?? null)}
-            className="hidden"
-          />
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex min-h-[72px] w-full flex-col items-start gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-left shadow-sm transition hover:border-cyan-400 hover:bg-slate-50 sm:flex-row sm:items-center dark:border-slate-700 dark:bg-slate-900 dark:hover:border-cyan-500 dark:hover:bg-slate-800"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-300">
-              {arquivo ? <Paperclip className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="break-all text-sm font-semibold text-slate-900 dark:text-slate-100 sm:break-normal sm:truncate">
-                {arquivo ? arquivo.name : "Selecionar arquivo"}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {arquivo ? "Arquivo pronto para envio." : "Aceita XML, PDF, PNG e JPG."}
-              </p>
-            </div>
-          </button>
-        </div>
       </div>
 
-      <div className="flex justify-start lg:justify-end">
+      {arquivo && (
         <button
           type="submit"
-          disabled={!arquivo || isUploading}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 lg:w-auto dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
+          disabled={isUploading}
+          className="flex h-[38px] w-full items-center justify-center gap-2 rounded-[9px] bg-violet-600 px-4 font-['Manrope'] text-[12.5px] font-bold text-white transition-all hover:bg-violet-700 disabled:opacity-50"
         >
           <UploadCloud className="h-4 w-4" />
-          {isUploading ? "Enviando..." : "Anexar documento"}
+          {isUploading ? "Enviando..." : "Enviar anexo"}
         </button>
-      </div>
+      )}
 
-      {state.message ? (
+      {state.message && (
         <div
-          className={`rounded-2xl border px-4 py-3 text-sm ${
+          className={`rounded-xl border px-3 py-2 text-[12.5px] font-semibold ${
             state.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
               : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
@@ -162,7 +132,7 @@ export function ShippingAttachmentUploadPanel({
         >
           {state.message}
         </div>
-      ) : null}
+      )}
     </form>
   );
 }
