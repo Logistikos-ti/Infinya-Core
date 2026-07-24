@@ -87,6 +87,7 @@ export default async function ConfiguracoesEnderecosPage({
         formSlot={
           <div className="space-y-4">
             <EnderecoForm
+              key={currentAddress?.id ?? "novo-endereco"}
               action={saveEnderecoAction}
               defaultValues={{
                 id: currentAddress?.id,
