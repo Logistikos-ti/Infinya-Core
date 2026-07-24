@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { AddressBulkGeneratorForm } from "@/components/configuracoes/address-bulk-generator-form";
 import { AddressImportPanel } from "@/components/configuracoes/address-import-panel";
 import { EnderecoForm } from "@/components/configuracoes/endereco-form";
@@ -49,14 +48,6 @@ export default async function ConfiguracoesEnderecosPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para configurações
-      </Link>
-
       {feedback ? (
         <div
           className={`rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
