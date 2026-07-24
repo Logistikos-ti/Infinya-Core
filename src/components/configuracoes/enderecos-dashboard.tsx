@@ -70,6 +70,8 @@ export function EnderecosDashboard({
   const [activeFilter, setActiveFilter] = useState<"TODOS" | "PICKING" | "PULMAO" | "DISPONIVEIS" | "BLOQUEADOS">("TODOS");
   const [showForm, setShowForm] = useState(initialShowForm);
   const [labelOpen, setLabelOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printSelection, setPrintSelection] = useState<Record<string, number>>({});
   const pageSize = 10;
 
   useEffect(() => {
@@ -103,6 +105,49 @@ export function EnderecosDashboard({
     link.download = `etiqueta-${selected.codigo}.svg`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function openPrintDialog() {
+    setPrintSelection(Object.fromEntries(filtered.map((address) => [address.id, 1])));
+    setPrintOpen(true);
+  }
+
+  function printSelectedLabels() {
+    const selectedAddresses = filtered.filter((address) => (printSelection[address.id] ?? 0) > 0);
+    if (!selectedAddresses.length) return;
+
+    const labels = selectedAddresses.flatMap((address) => {
+      const quantity = Math.max(1, Number(printSelection[address.id] ?? 1));
+      const svg = document.getElementById(`barcode-print-${address.id}`)?.querySelector("svg");
+      const barcode = svg ? new XMLSerializer().serializeToString(svg) : "";
+      return Array.from({ length: quantity }, () => `
+        <section class="label">
+          <div class="brand">INFINOOS WMS</div>
+          <div class="address">${address.codigo}</div>
+          ${address.descricao ? `<div class="description">${address.descricao}</div>` : ""}
+          <div class="barcode">${barcode}</div>
+          <div class="code">${address.codigo}</div>
+        </section>
+      `);
+    }).join("");
+
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
+    if (!printWindow) return;
+    printWindow.document.write(`<!doctype html><html><head><title>Etiquetas de endereços</title><style>
+      @page { size: 100mm 150mm; margin: 0; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
+      .label { width: 100mm; height: 150mm; page-break-after: always; padding: 12mm 8mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .brand { font-size: 14pt; font-weight: 700; letter-spacing: .08em; margin-bottom: 9mm; }
+      .address { font-size: 30pt; font-weight: 800; line-height: 1.1; word-break: break-word; }
+      .description { margin-top: 4mm; font-size: 12pt; }
+      .barcode { width: 84mm; margin-top: 11mm; }
+      .barcode svg { display: block; width: 84mm; height: 34mm; }
+      .code { margin-top: 3mm; font-size: 11pt; letter-spacing: .08em; }
+    </style></head><body>${labels}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    window.setTimeout(() => printWindow.print(), 250);
   }
 
   // KPIs
@@ -291,7 +336,7 @@ export function EnderecosDashboard({
             </div>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={openPrintDialog}
               className="h-[44px] px-4 rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-text)] font-manrope text-sm font-extrabold cursor-pointer flex items-center gap-2 transition-all hover:-translate-y-[1px] hover:border-violet-400 hover:text-violet-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
             >
               <Printer className="h-4 w-4" />
@@ -537,6 +582,43 @@ export function EnderecosDashboard({
           </div>
         )}
       </div>
+
+      {printOpen ? (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setPrintOpen(false)}>
+          <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold tracking-[0.14em] text-slate-500 dark:text-zinc-400">IMPRESSÃO TÉRMICA</p>
+                <h2 className="mt-1 font-space text-xl font-bold text-slate-950 dark:text-white">Escolha as etiquetas</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">Cada etiqueta será impressa em 100 mm x 150 mm.</p>
+              </div>
+              <button type="button" aria-label="Fechar impressão" onClick={() => setPrintOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-violet-500/10"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="mt-5 max-h-[52vh] overflow-y-auto rounded-2xl border border-slate-200 dark:border-zinc-800">
+              {filtered.map((address) => {
+                const quantity = printSelection[address.id] ?? 0;
+                return (
+                  <div key={address.id} className="flex items-center gap-4 border-b border-slate-100 p-3 last:border-b-0 dark:border-zinc-800">
+                    <input type="checkbox" checked={quantity > 0} onChange={(event) => setPrintSelection((current) => ({ ...current, [address.id]: event.target.checked ? 1 : 0 }))} className="h-4 w-4 accent-violet-500" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-space text-sm font-bold text-slate-900 dark:text-white">{address.codigo}</p>
+                      <p className="truncate text-xs text-slate-500 dark:text-zinc-400">{address.descricao || "Endereço operacional"}</p>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-zinc-400">Quantidade
+                      <input type="number" min={0} max={99} value={quantity} onChange={(event) => setPrintSelection((current) => ({ ...current, [address.id]: Math.max(0, Math.min(99, Number(event.target.value) || 0)) }))} className="h-9 w-16 rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-sm font-bold text-slate-900 outline-none focus:border-violet-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white" />
+                    </label>
+                    <div id={`barcode-print-${address.id}`} className="pointer-events-none absolute -left-[99999px] opacity-0"><AddressBarcodePreview value={address.codigo} /></div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button type="button" onClick={() => setPrintOpen(false)} className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-violet-500/10">Cancelar</button>
+              <button type="button" onClick={printSelectedLabels} disabled={!Object.values(printSelection).some((quantity) => quantity > 0)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(99,102,241,0.28)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"><Printer className="h-4 w-4" />Imprimir etiquetas</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* DRAWER AND MODAL FORMS */}
       {(selected || showForm) && (
