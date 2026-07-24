@@ -41,7 +41,6 @@ export function ShippingConferenceDocumentsPanel({
   const labelAttachment = (attachments || []).find((attachment) => attachment?.kind === "ETIQUETA");
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
-  const canReleaseToRomaneio = unlocked && hasInvoiceXml && danfeValidation.valid;
 
   const releaseHelp = !unlocked
     ? "Finalize 100% da conferência para liberar o pedido."
@@ -196,39 +195,6 @@ export function ShippingConferenceDocumentsPanel({
             </h4>
             <p className="text-[12px] text-slate-500 dark:text-slate-400">{releaseHelp}</p>
           </div>
-        </div>
-
-        <div className="flex gap-[12px] pt-4">
-          <button
-            type="button"
-            disabled={!unlocked}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              setPrintMessage("");
-              setPreparationOpen(true);
-            }}
-            className="flex flex-[1.6] h-[52px] items-center justify-center gap-[8px] rounded-[12px] bg-slate-950 text-[15px] font-extrabold text-white shadow-lg transition-all duration-200 ease-in hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-          >
-            <Route className="h-[18px] w-[18px]" />
-            Preparar para romaneio
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            name="intent"
-            value="release-romaneio"
-            disabled={!canReleaseToRomaneio}
-            onClick={(event) => {
-              if (!hasShippingLabel) {
-                event.preventDefault();
-                setConfirmMissingLabel(true);
-              }
-            }}
-            className="flex h-[52px] flex-1 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-[15px] font-bold text-slate-700 transition hover:border-red-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-red-500 dark:hover:text-red-500"
-          >
-            ⚠ Reportar divergência
-          </button>
         </div>
       </div>
       </div>
