@@ -31,6 +31,17 @@ type EnderecosDashboardProps = {
     skus: string[];
     ocupacao: number | null;
   }>;
+  addressMovements: Record<string, Array<{
+    id: string;
+    tipo: string;
+    quantidade: number;
+    created_at: string;
+    observacoes: string | null;
+    endereco_origem_id: string | null;
+    endereco_destino_id: string | null;
+    produto?: { sku?: string | null; nome?: string | null } | Array<{ sku?: string | null; nome?: string | null }> | null;
+    criado_por?: { nome?: string | null } | Array<{ nome?: string | null }> | null;
+  }>>;
   kpiData: {
     total: number;
     ocupacaoMedia: number;
@@ -45,6 +56,7 @@ type EnderecosDashboardProps = {
 export function EnderecosDashboard({
   enderecos,
   addressMetrics,
+  addressMovements,
   kpiData,
   formSlot,
   children,
@@ -72,6 +84,7 @@ export function EnderecosDashboard({
   const selectedOccupancy = selectedMetric?.ocupacao ?? 0;
   const selectedArea = selected?.area === "PULMAO" ? "Armazenagem" : selected?.area === "BLOQUEADO" ? "Bloqueado" : selected?.area;
   const selectedSku = selectedMetric?.skus.length ? selectedMetric.skus.join(", ") : "Nenhum SKU armazenado";
+  const selectedMovements = selected ? addressMovements[selected.id] ?? [] : [];
   const selectedCreatedAt = selected
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(selected.created_at))
     : "-";
@@ -597,9 +610,51 @@ export function EnderecosDashboard({
 
                   <div className="flex flex-col gap-3">
                     <span className="font-space text-[14px] font-bold">Movimentações recentes</span>
-                    <div className="rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] p-4 text-[13px] text-[var(--e-textSub)]">
-                      Endereço criado em {selectedCreatedAt}. Ainda não há movimentações detalhadas registradas para este endereço.
-                    </div>
+                    {selectedMovements.length > 0 ? (
+                      <div className="flex flex-col">
+                        {selectedMovements.map((movement, index) => {
+                          const movementProduct = Array.isArray(movement.produto) ? movement.produto[0] : movement.produto;
+                          const movementUser = Array.isArray(movement.criado_por) ? movement.criado_por[0] : movement.criado_por;
+                          const movementLabels: Record<string, string> = {
+                            ENTRADA: "Entrada de mercadoria",
+                            SAIDA: "Saída de estoque",
+                            TRANSFERENCIA: "Transferência de estoque",
+                            AJUSTE_POSITIVO: "Ajuste positivo",
+                            AJUSTE_NEGATIVO: "Ajuste negativo",
+                            BLOQUEIO: "Endereço bloqueado",
+                            DESBLOQUEIO: "Endereço desbloqueado",
+                          };
+                          const movementColors: Record<string, string> = {
+                            ENTRADA: "bg-emerald-500",
+                            SAIDA: "bg-blue-500",
+                            TRANSFERENCIA: "bg-violet-500",
+                            AJUSTE_POSITIVO: "bg-emerald-500",
+                            AJUSTE_NEGATIVO: "bg-amber-500",
+                            BLOQUEIO: "bg-rose-500",
+                            DESBLOQUEIO: "bg-slate-500",
+                          };
+                          const when = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(movement.created_at));
+                          const direction = movement.endereco_destino_id === selected.id ? "Entrada no endereço" : "Saída do endereço";
+                          return (
+                            <div key={movement.id} className="flex gap-3">
+                              <div className="flex w-3 shrink-0 flex-col items-center">
+                                <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${movementColors[movement.tipo] ?? "bg-slate-500"}`} />
+                                {index < selectedMovements.length - 1 ? <span className="w-0.5 flex-1 bg-[var(--e-border)]" /> : null}
+                              </div>
+                              <div className="flex flex-col gap-1 pb-4">
+                                <span className="text-[13.5px] font-bold">{movementLabels[movement.tipo] ?? movement.tipo}</span>
+                                <span className="text-[12.5px] text-[var(--e-textSub)]">{when} · {movementUser?.nome || "Sistema"} · {direction}</span>
+                                <span className="text-[12px] text-[var(--e-textSub)]">{movementProduct?.sku || movementProduct?.nome || "Produto não informado"} · {movement.quantidade} un{movement.observacoes ? ` · ${movement.observacoes}` : ""}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] p-4 text-[13px] text-[var(--e-textSub)]">
+                        Endereço criado em {selectedCreatedAt}. Ainda não há movimentações registradas para este endereço.
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Actions */}

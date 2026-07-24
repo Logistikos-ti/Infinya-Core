@@ -45,6 +45,20 @@ export default async function ConfiguracoesEnderecosPage({
   const { data: saldos } = await supabase
     .from("estoque")
     .select("endereco_id, quantidade, quantidade_reservada, bloqueado, produto:produtos(sku)");
+  const { data: movementRows } = await supabase
+    .from("movimentacoes_estoque")
+    .select("id, tipo, quantidade, created_at, observacoes, endereco_origem_id, endereco_destino_id, produto:produtos(sku, nome), criado_por:usuarios(nome)")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  const addressMovements = Object.fromEntries(
+    (enderecos ?? []).map((endereco) => [
+      endereco.id,
+      (movementRows ?? [])
+        .filter((movement) => movement.endereco_origem_id === endereco.id || movement.endereco_destino_id === endereco.id)
+        .slice(0, 6),
+    ]),
+  );
 
   const saldoPorEndereco = new Map<string, number>();
   const skusPorEndereco = new Map<string, string[]>();
@@ -132,6 +146,7 @@ export default async function ConfiguracoesEnderecosPage({
       <EnderecosDashboard
         enderecos={enderecos ?? []}
         addressMetrics={addressMetrics}
+        addressMovements={addressMovements}
         kpiData={{
           total: enderecos?.length ?? 0,
           ocupacaoMedia,
