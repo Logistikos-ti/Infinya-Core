@@ -350,7 +350,7 @@ export function EnderecosDashboard({
                     onClick={() => setActiveFilter(value as typeof activeFilter)}
                     className={`h-9 rounded-xl border px-4 text-[13px] font-bold transition-all ${activeFilter === value ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-text)] hover:border-violet-400 hover:-translate-y-0.5"}`}
                   >
-                    {label}
+                    {value === "PULMAO" ? "Pulm\u00e3o" : value === "DISPONIVEIS" ? "Dispon\u00edveis" : label}
                   </button>
                 ))}
               </div>
