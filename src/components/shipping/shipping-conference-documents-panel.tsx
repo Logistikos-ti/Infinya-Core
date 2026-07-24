@@ -176,67 +176,21 @@ export function ShippingConferenceDocumentsPanel({
               <p className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
                 Anexe manualmente o XML da NF ou a etiqueta quando o pedido não vier completo pela integração.
               </p>
-            title="Nota fiscal"
-            subtitle="XML anexado ao pedido para consulta e impressão fiscal."
-            icon={<FileCheck2 className="h-4 w-4" />}
-            iconColor="text-blue-500"
-            attachment={xmlAttachment}
-            emptyLabel="NF pendente"
-            printLabel="Imprimir NF"
-            downloadLabel="Baixar NF"
-            unlocked={unlocked}
-            badgeBg="bg-blue-500/10"
-            badgeText="text-blue-600 dark:text-blue-400"
-          />
-
-          <AttachmentStatusCard
-            title="Etiqueta de envio"
-            subtitle="Etiqueta operacional do marketplace ou anexada manualmente."
-            icon={<Package2 className="h-4 w-4" />}
-            iconColor="text-emerald-500"
-            attachment={labelAttachment}
-            emptyLabel="Etiqueta pendente"
-            printLabel="Imprimir etiqueta"
-            downloadLabel="Baixar etiqueta"
-            unlocked={unlocked}
-            badgeBg="bg-emerald-500/10"
-            badgeText="text-emerald-600 dark:text-emerald-400"
-          />
+              <ShippingAttachmentUploadPanel
+                depositanteId={depositanteId}
+                pedidoExpedicaoId={orderId}
+              />
+            </div>
+          ) : null}
         </div>
+      </div>
 
-        <div className="grid gap-4 2xl:grid-cols-2">
-          <div className="h-full">
-            <ShippingDanfePanel orderId={orderId} />
-          </div>
-
-          <div className="h-full">
-            {canUploadAttachments ? (
-              <div className="flex h-full flex-col gap-[12px] rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex text-amber-500">
-                    <FileText className="h-4 w-4" />
-                  </span>
-                  <h4 className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">
-                    Anexar documentos
-                  </h4>
-                </div>
-                <p className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
-                  Anexe manualmente o XML da NF ou a etiqueta quando o pedido não vier completo pela integração.
-                </p>
-                <ShippingAttachmentUploadPanel
-                  depositanteId={depositanteId}
-                  pedidoExpedicaoId={orderId}
-                />
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
+      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="flex flex-1 min-w-[160px] items-center gap-4">
           <span className="flex text-violet-500">
             <Route className="h-5 w-5" />
           </span>
-          <div className="flex min-w-[160px] flex-1 flex-col gap-[2px]">
+          <div className="flex flex-col gap-[2px]">
             <h4 className="text-[14px] font-bold text-slate-900 dark:text-white">
               Destinação do pedido
             </h4>
@@ -244,7 +198,7 @@ export function ShippingConferenceDocumentsPanel({
           </div>
         </div>
 
-        <div className="flex gap-[12px] mt-4">
+        <div className="flex gap-[12px] pt-4">
           <button
             type="button"
             disabled={!unlocked}
@@ -271,11 +225,12 @@ export function ShippingConferenceDocumentsPanel({
                 setConfirmMissingLabel(true);
               }
             }}
-            className="flex h-[52px] flex-1 items-center justify-center gap-[8px] rounded-[12px] border border-slate-200 bg-white text-[15px] font-bold text-slate-700 transition hover:border-red-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-red-500 dark:hover:text-red-500"
+            className="flex h-[52px] flex-1 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-[15px] font-bold text-slate-700 transition hover:border-red-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-red-500 dark:hover:text-red-500"
           >
-            Avançar
+            ⚠ Reportar divergência
           </button>
         </div>
+      </div>
       </div>
 
       {preparationOpen ? (
