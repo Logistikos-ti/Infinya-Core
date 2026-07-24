@@ -28,6 +28,7 @@ import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { ProductSearchInput } from "@/components/portal/product-search-input";
 import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
+import { PortalOrdersView } from "@/components/portal/portal-orders-view";
 
 type PortalPageProps = {
   searchParams?: Promise<{
@@ -81,9 +82,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           lowStock={lowStock}
         />
       ) : null}
-      {view === "pedidos" ? (
-        <OrdersView orders={orders} statusFilter={ordersStatus} />
-      ) : null}
+      {view === "pedidos" ? <PortalOrdersView orders={orders} /> : null}
       {view === "produtos" ? (
         <ProductsView
           stock={stock}
