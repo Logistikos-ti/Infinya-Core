@@ -179,7 +179,7 @@ export function EnderecosDashboard({
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-360px); opacity: 0; } }
       `}</style>
 
-      <div className="flex-1 p-6 md:p-8">
+      <div className="flex-1 px-0 pb-8 pt-7">
         {/* title row */}
         <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
           <div className="flex flex-col gap-1.5">
