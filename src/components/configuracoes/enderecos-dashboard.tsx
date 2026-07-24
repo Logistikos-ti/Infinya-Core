@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, ChevronLeft, ChevronRight, Download, Gauge, MapPin, Percent, Tag, Trash2, X } from "lucide-react";
-import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
+import { Box, ChevronLeft, ChevronRight, Download, Gauge, Lock, MapPin, Percent, Tag, Trash2, Unlock, X } from "lucide-react";
+import { deleteEnderecoAction, toggleEnderecoStatusAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 import { AddressBarcodePreview } from "@/components/configuracoes/endereco-form";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -682,10 +682,26 @@ export function EnderecosDashboard({
                     <input type="hidden" name="id" value={selected.id} />
                     <button
                       type="submit"
-                      className="flex h-[46px] w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 font-manrope text-[14px] font-bold text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
+                      aria-label="Excluir endereço"
+                      title="Excluir endereço"
+                      className="flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-rose-200 bg-rose-50 font-manrope text-[14px] font-bold text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-rose-100 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
                     >
                       <Trash2 className="h-4 w-4" />
-                      Excluir
+                    </button>
+                  </form>
+                  <form action={toggleEnderecoStatusAction} onSubmit={(event) => {
+                    const action = selected.ativo ? "bloquear" : "desbloquear";
+                    if (!window.confirm(`${action.charAt(0).toUpperCase()}${action.slice(1)} o endereço ${selected.codigo}?`)) event.preventDefault();
+                  }}>
+                    <input type="hidden" name="id" value={selected.id} />
+                    <input type="hidden" name="nextActive" value={selected.ativo ? "false" : "true"} />
+                    <button
+                      type="submit"
+                      aria-label={selected.ativo ? "Bloquear endereço" : "Desbloquear endereço"}
+                      title={selected.ativo ? "Bloquear endereço" : "Desbloquear endereço"}
+                      className={`flex h-[46px] w-[46px] items-center justify-center rounded-xl border font-manrope text-[14px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 ${selected.ativo ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 focus-visible:ring-amber-400 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:ring-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"}`}
+                    >
+                      {selected.ativo ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                     </button>
                   </form>
                   <button type="button" onClick={() => setLabelOpen(true)} className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(99,102,241,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"><span className="inline-flex items-center justify-center gap-2"><Tag className="h-4 w-4" />Etiqueta</span></button>
