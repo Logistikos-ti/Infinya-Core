@@ -87,44 +87,14 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
   if (isCatalogAndStockOperatorUser(user)) {
     return [
       { href: "/m/inicio", label: "Início", icon: House, match: ["/m/inicio"] },
-      ...(canAccessModule(user, "estoque")
-        ? [{ href: "/m/estoque", label: "Estoque", icon: Boxes, match: ["/m/estoque"] }]
+      ...(canAccessModule(user, "recebimento")
+        ? [{ href: "/m/recebimento", label: "Recebimento", icon: PackageCheck, match: ["/m/recebimento"] } satisfies MobileNavigationItem]
         : []),
       ...(canAccessModule(user, "expedicao")
-        ? [
-            {
-              href: "/m/separacao",
-              label: "Exped.",
-              icon: ScanLine,
-              match: ["/m/separacao", "/m/conferencia"],
-            } satisfies MobileNavigationItem,
-          ]
+        ? [{ href: "/m/separacao", label: "Separação", icon: ScanLine, match: ["/m/separacao", "/m/conferencia"] } satisfies MobileNavigationItem]
         : []),
-      ...(canAccessModule(user, "romaneio")
-        ? [
-            {
-              href: "/m/romaneio",
-              label: "Romaneio",
-              icon: FileText,
-              match: ["/m/romaneio"],
-            } satisfies MobileNavigationItem,
-          ]
-        : []),
-      {
-        href: "/m/produtos",
-        label: "Produtos",
-        icon: Settings2,
-        match: ["/m/produtos"],
-      },
-      ...(canAccessConfigSection(user, "enderecos")
-        ? [
-            {
-              href: "/m/enderecos",
-              label: "Endereços",
-              icon: Warehouse,
-              match: ["/m/enderecos"],
-            } satisfies MobileNavigationItem,
-          ]
+      ...(canAccessModule(user, "estoque")
+        ? [{ href: "/m/estoque", label: "Inventário", icon: Boxes, match: ["/m/estoque", "/m/inventario"] } satisfies MobileNavigationItem]
         : []),
       { href: "/m/sair", label: "Sair", icon: LogOut, match: ["/m/sair"] },
     ];

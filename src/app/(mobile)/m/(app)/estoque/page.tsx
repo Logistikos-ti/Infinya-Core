@@ -1,32 +1,7 @@
-﻿import Link from "next/link";
-import { Boxes, ClipboardList, MoveRight, PlusCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
-
-const actionCards = [
-  {
-    href: "/m/estoque/saldo-inicial",
-    title: "Lançar estoque inicial",
-    description: "Bipe endereço e produto para registrar a primeira carga de saldo.",
-    icon: PlusCircle,
-    tone: "from-cyan-500/20 to-sky-500/10 text-cyan-200",
-  },
-  {
-    href: "/m/estoque/movimentacao-interna",
-    title: "Movimentação interna",
-    description: "Transfira saldo entre endereços com rastreabilidade completa.",
-    icon: MoveRight,
-    tone: "from-violet-500/20 to-fuchsia-500/10 text-violet-200",
-  },
-  {
-    href: "/m/estoque/inventarios",
-    title: "Inventário cíclico",
-    description: "Abra contagens cegas, registre divergências e segunda conferência.",
-    icon: ClipboardList,
-    tone: "from-amber-500/20 to-orange-500/10 text-amber-200",
-  },
-];
+import { EstoqueListClient } from "./estoque-list-client";
 
 export default async function MobileEstoquePage() {
   const user = await getCurrentUserContext();
@@ -39,54 +14,5 @@ export default async function MobileEstoquePage() {
     redirect("/m/inicio");
   }
 
-  return (
-    <div className="space-y-4">
-      <section className="mobile-hero-card overflow-hidden rounded-[28px] border border-white/10 p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/90">
-          Estoque operacional
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Fluxos do estoque</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-100/90">
-          Escolha a ação que deseja executar no armazém para manter o fluxo mais limpo e rápido no
-          celular.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        {actionCards.map((card) => {
-          const Icon = card.icon;
-
-          return (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="mobile-action-card block rounded-[24px] p-4 transition hover:-translate-y-0.5"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-white">{card.title}</p>
-                  <p className="mt-1 text-sm text-slate-300">{card.description}</p>
-                </div>
-                <div className={`rounded-2xl bg-gradient-to-br p-3 ${card.tone}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </section>
-
-      <Link
-        href="/estoque"
-        className="mobile-action-card flex items-center justify-between rounded-[24px] px-4 py-4 text-sm text-slate-300 transition hover:-translate-y-0.5"
-      >
-        <span className="inline-flex items-center gap-2 font-medium text-white">
-          <Boxes className="h-4 w-4" />
-          Abrir consulta completa do estoque
-        </span>
-        <span>Web</span>
-      </Link>
-    </div>
-  );
+  return <EstoqueListClient />;
 }
-
