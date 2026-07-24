@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { Box, Layers, Percent, MapPin, Search, Trash2 } from "lucide-react";
@@ -42,6 +42,13 @@ export function EnderecosDashboard({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(initialShowForm);
+
+  useEffect(() => {
+    if (initialShowForm) {
+      setSelectedId(null);
+      setShowForm(true);
+    }
+  }, [initialShowForm]);
 
   const selected = useMemo(() => enderecos.find((e) => e.id === selectedId) || null, [enderecos, selectedId]);
 
@@ -407,7 +414,11 @@ export function EnderecosDashboard({
                 <div className="shrink-0 p-4 border-t border-[var(--e-border)] flex gap-2.5 bg-[var(--e-drawerBg)]">
                   <button
                     type="button"
-                    onClick={() => router.push(`/configuracoes/enderecos?editar=${selected.id}`)}
+                    onClick={() => {
+                      setSelectedId(null);
+                      setShowForm(true);
+                      router.push(`/configuracoes/enderecos?editar=${selected.id}`);
+                    }}
                     className="flex-1 h-[46px] rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)] font-manrope text-[14px] font-bold hover:border-violet-500 transition-colors"
                   >
                     Editar
