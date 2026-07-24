@@ -125,13 +125,6 @@ export function ShippingConferenceDocumentsPanel({
         </span>
       </div>
 
-      {!unlocked ? (
-        <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-4 text-sm text-amber-700 dark:text-amber-300">
-          Finalize a bipagem de todos os itens para liberar a NF, a DANFE simplificada, a etiqueta
-          e a destinação final do pedido.
-        </div>
-      ) : null}
-
       <div className="grid gap-4 2xl:grid-cols-2">
         <AttachmentStatusCard
           title="Nota fiscal"
