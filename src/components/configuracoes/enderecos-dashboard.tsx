@@ -66,6 +66,15 @@ export function EnderecosDashboard({
   }, [initialShowForm]);
 
   const selected = useMemo(() => enderecos.find((e) => e.id === selectedId) || null, [enderecos, selectedId]);
+  const selectedMetric = selected
+    ? addressMetrics[selected.id] ?? { quantidade: 0, skus: [], ocupacao: null }
+    : null;
+  const selectedOccupancy = selectedMetric?.ocupacao ?? 0;
+  const selectedArea = selected?.area === "PULMAO" ? "Armazenagem" : selected?.area === "BLOQUEADO" ? "Bloqueado" : selected?.area;
+  const selectedSku = selectedMetric?.skus.length ? selectedMetric.skus.join(", ") : "Nenhum SKU armazenado";
+  const selectedCreatedAt = selected
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(selected.created_at))
+    : "-";
 
   // KPIs
   const kpis = useMemo(() => {

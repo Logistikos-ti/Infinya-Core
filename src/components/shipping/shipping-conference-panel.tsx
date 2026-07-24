@@ -602,20 +602,22 @@ export function ShippingConferencePanel({
           />
         )}
 
-        {/* Action bar */}
-        <div style={{ display: "flex", gap: 12 }}>
-          <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-            ⚠ Reportar divergência
-          </button>
-          <button 
-            type="submit"
-            form="shipping-conference-form"
-            disabled={!full || isSubmitting} 
-            style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
-          >
-            {full ? <FileText size={18} /> : checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
-          </button>
-        </div>
+        {/* Action bar - only show when not full, because documents panel has its own */}
+        {!full && (
+          <div style={{ display: "flex", gap: 12 }}>
+            <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              ⚠ Reportar divergência
+            </button>
+            <button 
+              type="submit"
+              form="shipping-conference-form"
+              disabled={true} 
+              style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
+            >
+              {checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
+            </button>
+          </div>
+        )}
 
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
