@@ -139,7 +139,7 @@ export function EnderecosDashboard({
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
       .label { position: relative; width: 100mm; height: 150mm; page-break-after: always; padding: 12mm 8mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-      .logo { position: absolute; top: 7mm; left: 7mm; width: 16mm; height: 16mm; object-fit: contain; filter: grayscale(1); }
+      .logo { position: absolute; top: 5mm; left: 7mm; width: 16mm; height: 16mm; object-fit: contain; filter: grayscale(1); }
       .brand { font-size: 14pt; font-weight: 700; letter-spacing: .08em; margin-bottom: 9mm; }
       .address { font-size: 30pt; font-weight: 800; line-height: 1.1; word-break: break-word; }
       .description { margin-top: 4mm; font-size: 12pt; }
@@ -684,7 +684,7 @@ export function EnderecosDashboard({
                   <div className="mb-5">
                     <span className="font-space text-[14px] font-bold">Etiqueta do endereço</span>
                     <div className="relative">
-                      <img src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" className="pointer-events-none absolute left-5 top-4 z-10 h-8 w-8 object-contain grayscale" />
+                      <img src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" className="pointer-events-none absolute left-5 top-2 z-10 h-8 w-8 object-contain grayscale" />
                       <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-${selected.id}`} />
                     </div>
                   </div>
