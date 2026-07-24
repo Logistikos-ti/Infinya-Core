@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
-import { savePickingWaveProgressAction, updateItemPickingQuantityAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -14,9 +14,7 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   orderId: string;
   orderCode: string;
   orderExternalNumber: string;
-  orderDisplayNumber: string;
   orderCustomer: string;
-  imageUrl: string | null;
   orderDepositante: string;
   separatedQuantityValue: string;
   isSkipped?: boolean; // New state to track if skipped
@@ -77,30 +75,19 @@ export function ShippingPickingInterface({
   const router = useRouter();
   
   // Theme logic
-  const [dark, setDark] = useState(true);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   useEffect(() => {
-    const updateTheme = () => setDark(document.documentElement.classList.contains("dark"));
-    updateTheme();
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
+    const saved = localStorage.getItem('infinoos-theme');
+    if (saved === 'light' || saved === 'dark') setTheme(saved);
   }, []);
   
   const toggleTheme = () => {
-    const nextTheme = dark ? "light" : "dark";
-    if (nextTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.documentElement.classList.remove("light");
-    } else {
-      document.documentElement.classList.add("light");
-      document.documentElement.classList.remove("dark");
-    }
-    // Also try to update next-themes if it exists
-    try {
-      window.localStorage.setItem("theme", nextTheme);
-    } catch (e) {}
+    const next = theme === "dark" ? "light" : "dark";
+    localStorage.setItem('infinoos-theme', next);
+    setTheme(next);
   };
-
+  
+  const dark = theme === 'dark';
   const t = dark ? {
     appBg: '#0A1120', sideBg: '#0C1424', sideBg2: '#0B1322', barBg: '#0C1424', cardBg: '#101B30',
     inputBg: '#0E1728', softBg: 'rgba(148,163,184,0.05)', border: 'rgba(148,163,184,0.14)',
@@ -132,22 +119,9 @@ export function ShippingPickingInterface({
   // Items Logic
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
   const [items, setItems] = useState<WavePickingItemState[]>(initialItems);
-  const prioritizedItems = useMemo(() => {
-    return [...items].sort((a, b) => {
-      const aDone = normalizeQuantity(a.separatedQuantityValue) >= a.requestedQuantity;
-      const bDone = normalizeQuantity(b.separatedQuantityValue) >= b.requestedQuantity;
-      if (aDone && !bDone) return 1;
-      if (!aDone && bDone) return -1;
-      return compareWaveItemsForPicking(a, b);
-    });
-  }, [items]);
+  const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
 
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    const firstPending = initialItems.findIndex(p => normalizeQuantity(p.separatedQuantityValue) < p.requestedQuantity && !p.isSkipped);
-    return firstPending >= 0 ? firstPending : initialItems.length;
-  });
-  const [addressConfirmed, setAddressConfirmed] = useState(false);
-  const scanAddressRef = useRef<HTMLInputElement | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [scanValue, setScanValue] = useState("");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   
@@ -158,9 +132,9 @@ export function ShippingPickingInterface({
 
   // Filter tasks from prioritizedItems
   const tasks = prioritizedItems.map((p, i) => {
-    const qtyNum = normalizeQuantity(p.separatedQuantityValue);
-    const isDone = qtyNum >= p.requestedQuantity;
+    const isDone = i < currentIndex;
     const isCur = i === currentIndex;
+    const qtyNum = normalizeQuantity(p.separatedQuantityValue);
     
     return {
       id: p.compositeId,
@@ -174,19 +148,13 @@ export function ShippingPickingInterface({
       numColor: isDone ? '#10B981' : (isCur ? '#fff' : t.textSub),
       titleColor: isDone ? t.textSub : t.text,
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
-      pick: () => { 
-        if (i <= currentIndex || isDone) { 
-          setCurrentIndex(i); 
-          setAddressConfirmed(isDone); 
-          setScanValue(""); 
-        } 
-      },
+      pick: () => { if (i <= currentIndex) setCurrentIndex(i); },
       isSkipped: p.isSkipped
     };
   });
 
   const totalCount = prioritizedItems.length;
-  const doneCount = prioritizedItems.filter(p => normalizeQuantity(p.separatedQuantityValue) >= p.requestedQuantity).length;
+  const doneCount = Math.min(currentIndex, totalCount);
   const progW = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) + '%' : '0%';
 
   const currentItem = prioritizedItems[currentIndex];
@@ -200,8 +168,7 @@ export function ShippingPickingInterface({
     sku: currentItem.sku,
     ean: currentItem.barcode || currentItem.code,
     qty: currentItem.requestedQuantity + 'x',
-    order: currentItem.orderDisplayNumber || currentItem.orderExternalNumber,
-    imageUrl: currentItem.imageUrl,
+    order: currentItem.orderExternalNumber,
     thumbBg: thumb(cat[currentIndex % cat.length]),
     separated: normalizeQuantity(currentItem.separatedQuantityValue),
     requested: currentItem.requestedQuantity
@@ -223,39 +190,23 @@ export function ShippingPickingInterface({
     );
     
     setCurrentIndex(Math.min(currentIndex + 1, totalCount));
-    setAddressConfirmed(false);
-    setScanValue("");
   };
 
-    const confirmItem = () => {
-      if (!currentItem) return;
-      
-      const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
-      if (currentSeparated < currentItem.requestedQuantity) return;
-      
-      setCurrentIndex(Math.min(currentIndex + 1, totalCount));
-      setAddressConfirmed(false);
-      setScanValue("");
-    };
-
-    const handleAddressSubmit = () => {
-    if (!scanValue.trim() || !currentItem) return;
-    const normalized = scanValue.replace(/\s+/g, "").trim().toUpperCase();
-    const address = (currentItem.routeLines[0]?.addressCode || "").replace(/\s+/g, "").trim().toUpperCase();
+  const confirmItem = () => {
+    if (!currentItem) return;
     
-    if (normalized === address || address === "SEMENDERECO" || address === "") {
-      playFeedbackTone("success");
-      setAddressConfirmed(true);
-      setScanValue("");
-      setTimeout(() => scanInputRef.current?.focus(), 50);
-    } else {
-      playFeedbackTone("error");
-      alert("Endereço incorreto!");
-      setScanValue("");
-      scanAddressRef.current?.focus();
-    }
+    // Auto-fill full quantity and go to next
+    setItems((current) =>
+      current.map((item) =>
+        item.compositeId === currentItem.compositeId
+          ? { ...item, separatedQuantityValue: String(item.requestedQuantity) }
+          : item
+      )
+    );
+    
+    setCurrentIndex(Math.min(currentIndex + 1, totalCount));
   };
-  
+
   // Barcode scanning logic
   const handleScanSubmit = () => {
     if (!scanValue.trim()) return;
@@ -281,16 +232,20 @@ export function ShippingPickingInterface({
         )
       );
       
-      void updateItemPickingQuantityAction(currentItem.orderId, currentItem.id, nextSeparated);
-      
-      playFeedbackTone("success");
-      setScanValue("");
+      if (nextSeparated >= currentItem.requestedQuantity) {
+        // Play beep and advance
+        playFeedbackTone("success");
+        setTimeout(() => setCurrentIndex(Math.min(currentIndex + 1, totalCount)), 300);
+      } else {
+        playFeedbackTone("success");
+      }
     } else {
       playFeedbackTone("error");
       alert("Codigo invalido para este produto!");
-      setScanValue("");
-      scanInputRef.current?.focus();
     }
+    
+    setScanValue("");
+    scanInputRef.current?.focus();
   };
 
   // Beep tone
@@ -311,21 +266,15 @@ export function ShippingPickingInterface({
     oscillator.onended = () => { void context.close(); };
   }
 
-    // Refocus logic
-  
   // Refocus input
   useEffect(() => {
-    if (current.active) {
-      if (!addressConfirmed && scanAddressRef.current) {
-        scanAddressRef.current.focus();
-      } else if (addressConfirmed && scanInputRef.current) {
-        scanInputRef.current.focus();
-      }
+    if (current.active && scanInputRef.current) {
+      scanInputRef.current.focus();
     }
   }, [currentIndex, current.active]);
 
   return (
-    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "100%", minHeight: "600px", color: t.text, transition: "color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
+    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "calc(100vh - 120px)", minHeight: "600px", borderRadius: "20px", overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html: `
         .shipping-picking-ui * { box-sizing: border-box; }
         .shipping-picking-ui a { color: #8B5CF6; text-decoration: none; }
@@ -337,13 +286,31 @@ export function ShippingPickingInterface({
         @keyframes popIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes pulseDot { 0%,100% { opacity: 0.4; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
-        .shipping-picking-ui .task-card:hover { border-color: #8B5CF6 !important; }
       `}} />
       
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", paddingTop: "8px" }}>
+      <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
+        <button onClick={() => router.push("/expedicao/separacao")} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}>
+          ‹ Voltar
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: t.textSub }}>
+          <span>Expedição</span><span>›</span><span style={{ color: t.text, fontWeight: "600" }}>Separação</span>
+        </div>
+        <div style={{ flex: 1 }}></div>
+        <div style={{ display: "flex", alignItems: "center", gap: "9px", height: "38px", padding: "0 14px", borderRadius: "10px", background: t.softBg, border: `1px solid ${t.border}` }}>
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10B981", animation: "pulseDot 1.8s ease-in-out infinite" }}></span>
+          <span style={{ fontSize: "13px", fontWeight: "700" }}>Onda {waveId} ativa</span>
+        </div>
+        <button onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema" style={{ position: "relative", width: "68px", height: "32px", padding: "0", borderRadius: "999px", border: `1px solid ${tog.border}`, background: tog.track, cursor: "pointer", transition: "background 0.3s ease, border-color 0.3s ease", boxShadow: `inset 0 1px 3px ${tog.inset}` }}>
+          <span style={{ position: "absolute", top: "50%", left: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackMoon, transition: "color 0.3s ease" }}>☾</span>
+          <span style={{ position: "absolute", top: "50%", right: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackSun, transition: "color 0.3s ease" }}>☀</span>
+          <span style={{ position: "absolute", top: "3px", left: "3px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: tog.knob, boxShadow: "0 1px 4px rgba(0,0,0,0.35)", transform: `translateX(${tog.knobX})`, transition: "transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease", fontSize: "13px", color: tog.knobIconColor }}>{tog.knobIcon}</span>
+        </button>
+      </header>
+
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         {/* LEFT: pick list */}
-        <div style={{ width: "420px", flexShrink: 0, display: "flex", flexDirection: "column", background: "transparent" }}>
-          <div style={{ padding: "20px 22px 16px 22px" }}>
+        <div style={{ width: "340px", flexShrink: 0, borderRight: `1px solid ${t.border}`, display: "flex", flexDirection: "column", background: t.sideBg2 }}>
+          <div style={{ padding: "20px 22px 16px 22px", borderBottom: `1px solid ${t.border}` }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "14px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700" }}>Lista de separação</span>
               <span style={{ fontSize: "12.5px", color: t.textSub }}>{doneCount}/{totalCount}</span>
@@ -354,7 +321,7 @@ export function ShippingPickingInterface({
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {tasks.map(task => (
-              <div key={task.id} className="task-card" onClick={task.pick} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${task.border}`, background: task.bg, display: "flex", alignItems: "center", gap: "12px", transition: "all 0.16s ease" }}>
+              <div key={task.id} onClick={task.pick} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${task.border}`, background: task.bg, display: "flex", alignItems: "center", gap: "12px", transition: "all 0.16s ease" }}>
                 <span style={{ width: "30px", height: "30px", flexShrink: 0, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800", background: task.numBg, color: task.numColor }}>{task.mark}</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700", color: task.titleColor }}>{task.loc}</span>
@@ -371,7 +338,7 @@ export function ShippingPickingInterface({
         {/* CENTER: active pick */}
         <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center" }}>
           {current.active && (
-            <div style={{ width: "100%", maxWidth: "720px", display: "flex", flexDirection: "column", gap: "20px", animation: "popIn 0.3s ease" }}>
+            <div style={{ width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", gap: "20px", animation: "popIn 0.3s ease" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", color: t.textSub }}>SEPARANDO {current.idx} DE {totalCount}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: hex.blue, color: "#3B82F6" }}>
@@ -380,113 +347,62 @@ export function ShippingPickingInterface({
               </div>
 
               {/* location big */}
-              <div style={{ position: "relative", borderRadius: "20px", padding: "28px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", overflow: "hidden", marginBottom: addressConfirmed ? "0" : "12px" }}>
+              <div style={{ position: "relative", borderRadius: "20px", padding: "28px", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", overflow: "hidden" }}>
                 <div style={{ position: "absolute", inset: 0, opacity: 0.12, backgroundImage: "repeating-linear-gradient(135deg, #fff 0 1px, transparent 1px 12px)" }}></div>
                 <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "20px" }}>
                   <span style={{ width: "60px", height: "60px", flexShrink: 0, borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.18)" }}>
                     <PinIcon size={30} />
                   </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                     <span style={{ fontSize: "13px", fontWeight: "700", letterSpacing: "0.08em", opacity: 0.85 }}>ENDEREÇO DE COLETA</span>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "38px", fontWeight: "700", lineHeight: "1" }}>{current.loc}</span>
                     <span style={{ fontSize: "13.5px", opacity: 0.9 }}>{current.zone}</span>
                   </div>
-                  {addressConfirmed && (
-                    <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-                      <CheckIcon size={24} />
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {!addressConfirmed && (
-                <>
-                  <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                    <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                      <ScanIconBig size={24} />
-                      <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-                      <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o endereço para confirmar</span>
-                      <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código do endereço (`{current.loc}`)</span>
-                    </div>
-                  </div>
-                  <input 
-                    ref={scanAddressRef}
-                    value={scanValue}
-                    onChange={e => setScanValue(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") { e.preventDefault(); handleAddressSubmit(); }
-                    }}
-                    placeholder="Aguardando leitura do endereço..." 
-                    style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
-                  />
-                </>
-              )}
+              {/* product */}
+              <div style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px", display: "flex", gap: "18px", alignItems: "center" }}>
+                <div style={{ width: "72px", height: "72px", flexShrink: 0, borderRadius: "14px", background: current.thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>
+                  <BoxIcon size={34} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: "17px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", paddingLeft: "18px", borderLeft: `1px solid ${t.border}` }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "34px", fontWeight: "700", color: "#8B5CF6" }}>{current.separated} / {current.requested}</span>
+                  <span style={{ fontSize: "11.5px", color: t.textSub }}>coletados</span>
+                </div>
+              </div>
 
-              {addressConfirmed && (
-                <>
-                  {/* product */}
-                  <div style={{ borderRadius: "20px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "28px", display: "flex", gap: "24px", alignItems: "center", marginTop: "12px" }}>
-                    <div style={{ width: "100px", height: "100px", flexShrink: 0, borderRadius: "16px", background: current.imageUrl ? '#fff' : current.thumbBg, border: current.imageUrl ? `1px solid ${t.border}` : 'none', display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
-                      {current.imageUrl ? (
-                        <img src={current.imageUrl} alt={current.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }} />
-                      ) : (
-                        <BoxIcon size={42} />
-                      )}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: "20px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", paddingLeft: "24px", borderLeft: `1px solid ${t.border}` }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "42px", fontWeight: "700", color: "#8B5CF6", lineHeight: "1" }}>{current.separated} / {current.requested}</span>
-                      <span style={{ fontSize: "13px", color: t.textSub }}>coletados</span>
-                    </div>
-                  </div>
+              {/* scan field */}
+              <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+                <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  <ScanIconBig size={24} />
+                  <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+                  <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
+                  <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
+                </div>
+              </div>
+              <input 
+                ref={scanInputRef}
+                value={scanValue}
+                onChange={e => setScanValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
+                }}
+                placeholder="Aguardando leitura do coletor..." 
+                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+              />
 
-                  {/* scan field */}
-                  {current.separated < current.requested ? (
-                    <>
-                      <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
-                        <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                          <ScanIconBig size={24} />
-                          <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-                          <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
-                          <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
-                        </div>
-                      </div>
-                      <input 
-                        ref={scanInputRef}
-                        value={scanValue}
-                        onChange={e => setScanValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
-                        }}
-                        placeholder="Aguardando leitura do coletor..." 
-                        style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
-                      />
-                    </>
-                  ) : (
-                    <div style={{ borderRadius: "18px", background: hex.green, color: "#10B981", padding: "24px", display: "flex", alignItems: "center", gap: "16px", justifyContent: "center", border: `1px solid rgba(16, 185, 129, 0.2)` }}>
-                      <CheckIcon size={28} />
-                      <span style={{ fontSize: "18px", fontWeight: "700" }}>
-                        {currentIndex === totalCount - 1 ? "Onda finalizada! Confirme a coleta" : "Produto separado com sucesso!"}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
-              
               <div style={{ display: "flex", gap: "12px" }}>
-                {current.separated < current.requested && (
-                  <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
-                    Pular / sem estoque
-                  </button>
-                )}
-                <button onClick={confirmItem} disabled={current.separated < current.requested} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: current.separated >= current.requested ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.softBg, color: current.separated >= current.requested ? "#fff" : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: current.separated >= current.requested ? "pointer" : "not-allowed", boxShadow: current.separated >= current.requested ? "0 8px 22px rgba(99,102,241,0.32)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", opacity: current.separated >= current.requested ? 1 : 0.6 }}>
+                <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
+                  Pular / sem estoque
+                </button>
+                <button onClick={confirmItem} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                   <CheckIcon size={18} /> Confirmar coleta
                 </button>
               </div>
@@ -518,7 +434,6 @@ export function ShippingPickingInterface({
                     <input type="hidden" name="itemOrderId" value={item.orderId} />
                     <input type="hidden" name="itemId" value={item.id} />
                     <input type="hidden" name="separatedQuantity" value={item.isSkipped ? "0" : item.separatedQuantityValue} />
-                    <input type="hidden" name="itemKitProgress" value="[]" />
                   </React.Fragment>
                 ))}
                 
@@ -540,15 +455,12 @@ function flattenWaveItems(orders: ShippingPickingOrder[]) {
     order.items.map((item) => ({
       ...item,
       compositeId: `${order.id}:${item.id}`,
-      imageUrl: item.imageUrl,
       orderId: order.id,
       orderCode: order.code,
       orderExternalNumber: order.externalNumber,
-      orderDisplayNumber: order.displayNumber,
       orderCustomer: order.customer,
       orderDepositante: order.depositante,
       separatedQuantityValue: String(item.separatedQuantity),
-      isSkipped: false,
     })),
   );
 }

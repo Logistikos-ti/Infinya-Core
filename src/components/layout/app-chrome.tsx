@@ -9,6 +9,7 @@ import { AppMobileNav } from "@/components/layout/app-mobile-nav";
 import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SoundToggle } from "@/components/sound-toggle";
 import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 
 type AppChromeProps = {
@@ -121,7 +122,10 @@ useEffect(() => {
                 <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Onda {waveCode} ativa</span>
               </div>
             )}
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <SoundToggle />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 

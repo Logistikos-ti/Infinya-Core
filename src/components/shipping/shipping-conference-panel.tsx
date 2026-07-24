@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { AlertTriangle, Camera, CameraOff, Focus, Volume2 } from "lucide-react";
+
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
-import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
@@ -99,26 +98,32 @@ export function ShippingConferencePanel({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
-  const [operatorMode, setOperatorMode] = useState(true);
+  
+  const operatorMode = true;
+  const cameraEnabled = false;
   const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  useEffect(() => {
+    const saved = localStorage.getItem("wms-sound-enabled");
+    if (saved !== null) {
+      setSoundEnabled(saved === "true");
+    }
+    const handleStorageChange = () => {
+      const current = localStorage.getItem("wms-sound-enabled");
+      if (current !== null) {
+        setSoundEnabled(current === "true");
+      }
+    };
+    window.addEventListener("sound-preference-changed", handleStorageChange);
+    return () => window.removeEventListener("sound-preference-changed", handleStorageChange);
+  }, []);
+
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const conferenceFormRef = useRef<HTMLFormElement | null>(null);
-  const {
-    videoRef,
-    cameraSupported,
-    cameraEnabled,
-    cameraStarting,
-    cameraMessage,
-    toggleCamera,
-  } = useCameraBarcodeScanner({
-    onDetected: (code) => {
-      applyScannedCode(code);
-      resetTimer();
-    },
-  });
+
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
     disabled: isSubmitting,
     onExpire: () => {
@@ -374,8 +379,9 @@ export function ShippingConferencePanel({
   
   // Carrier colors (fallback if carrier not listed)
   const carriers: Record<string, string> = { 'Mercado Livre': '#2D3277', 'Shopee': '#EE4D2D', 'Amazon': '#FF9900', 'Magalu': '#0086FF' };
-  const cc = '#0086FF'; 
-  const activeCarrier = { bg: hex2(cc, 0.15), color: cc, text: "Transportadora" };
+  const marketplaceName = order.marketplace || order.destination || "Site Próprio";
+  const cc = carriers[marketplaceName] || "#64748B";
+  const activeCarrier = { bg: hex2(cc, 0.15), color: cc, text: marketplaceName };
 
   const P = (d: string, i: number) => <path d={d} key={'p' + i} />;
   const C = (cx: number, cy: number, r: number, i: number) => <circle cx={cx} cy={cy} r={r} key={'c' + i} />;
@@ -433,20 +439,7 @@ export function ShippingConferencePanel({
           </div>
         ) : null}
 
-        {wrongProductScans > 0 || quantityDivergentItems > 0 ? (
-          <div style={{ padding: "20px", borderRadius: "24px", border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: isDark ? "#FCD34D" : "#92400E", fontSize: "14px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
-              <div style={{ borderRadius: "50%", background: "rgba(245,158,11,0.2)", padding: "10px" }}>
-                <AlertTriangle size={20} color={isDark ? "#FBBF24" : "#D97706"} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "4px" }}>
-                <p style={{ fontWeight: 700, fontSize: "16px", color: isDark ? "#FBBF24" : "#92400E" }}>Alertas de divergência na conferência</p>
-                {wrongProductScans > 0 && <p>Produto errado lido: <strong>{wrongProductScans}</strong> ocorrência(s).</p>}
-                {quantityDivergentItems > 0 && <p>Itens com divergência de quantidade: <strong>{quantityDivergentItems}</strong>.</p>}
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {/* Divergence alerts removed per user request */}
 
         <form
           id="shipping-conference-form"
@@ -498,16 +491,6 @@ export function ShippingConferencePanel({
             </span>
           </div>
 
-          {/* Camera View */}
-          <div style={{ overflow: "hidden", borderRadius: 16, border: `1px solid ${t.border}`, background: "#000", display: cameraEnabled || cameraStarting ? "block" : "none" }}>
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", opacity: cameraEnabled || cameraStarting ? 1 : 0.35, transition: "opacity 0.3s" }}
-            />
-          </div>
-
           {/* Scan field */}
           <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
             <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0, borderRadius: 13, background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -551,37 +534,6 @@ export function ShippingConferencePanel({
               {scanMessage}
             </div>
           ) : null}
-
-          {/* Secondary Actions */}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              onClick={toggleCamera}
-              disabled={!cameraSupported}
-              style={{ flex: 1, height: 42, borderRadius: 10, border: `1px solid ${t.border}`, background: cameraEnabled ? "#F43F5E" : t.inputBg, color: cameraEnabled ? "#fff" : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: cameraSupported ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: cameraSupported ? 1 : 0.5 }}
-            >
-              {cameraEnabled ? <CameraOff size={16} /> : <Camera size={16} />}
-              {cameraStarting ? "Abrindo câmera..." : cameraEnabled ? "Desligar câmera" : "Ler pela câmera"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOperatorMode(c => !c)}
-              style={{ flex: 1, height: 42, borderRadius: 10, border: operatorMode ? "1px solid rgba(59,130,246,0.3)" : `1px solid ${t.border}`, background: operatorMode ? "rgba(59,130,246,0.1)" : t.inputBg, color: operatorMode ? (isDark ? "#60A5FA" : "#2563EB") : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            >
-              <Focus size={16} />
-              {operatorMode ? "Modo operador ON" : "Modo operador OFF"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSoundEnabled(c => !c)}
-              style={{ flex: 1, height: 42, borderRadius: 10, border: soundEnabled ? "1px solid rgba(16,185,129,0.3)" : `1px solid ${t.border}`, background: soundEnabled ? "rgba(16,185,129,0.1)" : t.inputBg, color: soundEnabled ? (isDark ? "#34D399" : "#059669") : t.text, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            >
-              <Volume2 size={16} />
-              {soundEnabled ? "Som ativo" : "Som mutado"}
-            </button>
-          </div>
 
           {/* Items list */}
           <div style={{ borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
