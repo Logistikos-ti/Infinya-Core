@@ -206,6 +206,11 @@ export function EnderecosDashboard({
         {/* title row */}
         <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
           <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-[13px] text-[var(--e-textSub)]">
+              <span>Armazém</span>
+              <span aria-hidden="true">›</span>
+              <span className="font-semibold text-[var(--e-text)]">Endereços</span>
+            </div>
             <h1 className="m-0 font-space text-[28px] font-bold">Endereçamento</h1>
             <p className="m-0 text-[14.5px] text-[var(--e-textSub)]">Gestão de posições, ocupação e status dos endereços do armazém.</p>
           </div>
@@ -214,13 +219,13 @@ export function EnderecosDashboard({
             <div className="flex p-1 gap-1 rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)]">
               <button
                 onClick={() => setView("table")}
-                className={`h-9 px-4 rounded-lg font-manrope text-[13.5px] font-bold cursor-pointer flex items-center gap-2 transition-all ${view === "table" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm" : "bg-transparent text-[var(--e-textSub)]"}`}
+                className={`h-9 px-4 rounded-lg font-manrope text-[13.5px] font-bold cursor-pointer flex items-center gap-2 transition-all ${view === "table" ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "bg-transparent text-[var(--e-textSub)]"}`}
               >
                 ☰ Tabela
               </button>
               <button
                 onClick={() => setView("map")}
-                className={`h-9 px-4 rounded-lg font-manrope text-[13.5px] font-bold cursor-pointer flex items-center gap-2 transition-all ${view === "map" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm" : "bg-transparent text-[var(--e-textSub)]"}`}
+                className={`h-9 px-4 rounded-lg font-manrope text-[13.5px] font-bold cursor-pointer flex items-center gap-2 transition-all ${view === "map" ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "bg-transparent text-[var(--e-textSub)]"}`}
               >
                 ▦ Mapa
               </button>
