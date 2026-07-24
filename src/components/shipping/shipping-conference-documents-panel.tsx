@@ -158,13 +158,13 @@ export function ShippingConferenceDocumentsPanel({
       </div>
 
       <div className="grid gap-4 2xl:grid-cols-2">
-        <div className="space-y-4">
+        <div className="h-full">
           <ShippingDanfePanel orderId={orderId} />
         </div>
 
-        <div className="space-y-4">
+        <div className="h-full">
           {canUploadAttachments ? (
-            <div className="flex flex-col gap-[12px] rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="flex h-full flex-col gap-[12px] rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
               <div className="flex items-center gap-2.5">
                 <span className="flex text-amber-500">
                   <FileText className="h-4 w-4" />

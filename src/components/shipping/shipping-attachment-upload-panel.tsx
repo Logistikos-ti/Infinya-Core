@@ -70,7 +70,7 @@ export function ShippingAttachmentUploadPanel({
                 key={item.value}
                 type="button"
                 onClick={() => setTipo(item.value)}
-                className={`flex flex-1 items-center justify-center rounded-[9px] border-[1.5px] font-['Manrope'] text-[12px] font-bold transition-all h-[36px] ${
+                className={`flex flex-1 items-center justify-center rounded-[9px] border-[1.5px] text-[12.5px] font-bold transition-all h-[36px] ${
                   active
                     ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:border-violet-500 dark:text-violet-400"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600"
@@ -115,7 +115,7 @@ export function ShippingAttachmentUploadPanel({
         <button
           type="submit"
           disabled={isUploading}
-          className="flex h-[38px] w-full items-center justify-center gap-2 rounded-[9px] bg-violet-600 px-4 font-['Manrope'] text-[12.5px] font-bold text-white transition-all hover:bg-violet-700 disabled:opacity-50"
+          className="flex h-[38px] w-full items-center justify-center gap-2 rounded-[9px] bg-violet-600 px-4 text-[12.5px] font-bold text-white transition-all hover:bg-violet-700 disabled:opacity-50"
         >
           <UploadCloud className="h-4 w-4" />
           {isUploading ? "Enviando..." : "Enviar anexo"}
