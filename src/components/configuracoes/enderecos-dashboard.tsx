@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, ChevronLeft, ChevronRight, Gauge, MapPin, Percent, Trash2 } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Download, Gauge, MapPin, Percent, Tag, Trash2, X } from "lucide-react";
 import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 import { AddressBarcodePreview } from "@/components/configuracoes/endereco-form";
 
@@ -688,11 +688,11 @@ export function EnderecosDashboard({
                       Excluir
                     </button>
                   </form>
-                  <button type="button" onClick={() => setLabelOpen(true)} className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)]">Etiqueta</button>
+                  <button type="button" onClick={() => setLabelOpen(true)} className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(99,102,241,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"><span className="inline-flex items-center justify-center gap-2"><Tag className="h-4 w-4" />Etiqueta</span></button>
                 </div>
                 {labelOpen ? (
                   <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setLabelOpen(false)}>
-                    <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
+                    <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl transition-all duration-200 [&>div:first-child>button]:transition-all [&>div:first-child>button:hover]:-translate-y-0.5 [&>div:first-child>button:hover]:border-violet-300 [&>div:first-child>button:hover]:bg-violet-50 dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-[11px] font-bold tracking-[0.14em] text-slate-500 dark:text-zinc-400">ETIQUETA DO ENDEREÇO</p>
@@ -704,8 +704,8 @@ export function EnderecosDashboard({
                         <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
                       </div>
                       <div className="mt-6 flex justify-end gap-3">
-                        <button type="button" onClick={() => setLabelOpen(false)} className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:text-zinc-200">Fechar</button>
-                        <button type="button" onClick={downloadSelectedLabel} className="h-11 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white">Baixar etiqueta</button>
+                        <button type="button" onClick={() => setLabelOpen(false)} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500/60 dark:hover:bg-violet-500/10">Fechar</button>
+                        <button type="button" onClick={downloadSelectedLabel} className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(99,102,241,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(99,102,241,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"><Download className="h-4 w-4" />Baixar etiqueta</button>
                       </div>
                     </div>
                   </div>
