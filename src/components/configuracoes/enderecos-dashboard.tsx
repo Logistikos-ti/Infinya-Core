@@ -519,33 +519,36 @@ export function EnderecosDashboard({
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">
-                  {/* Occupancy dummy */}
                   <div className="flex items-center gap-5 p-5 rounded-2xl border border-[var(--e-border)] bg-[var(--e-cardBg)] mb-5">
                     <div className="relative w-[100px] h-[100px] shrink-0">
                       <svg width="100" height="100" viewBox="0 0 116 116" className="-rotate-90">
                         <circle cx="58" cy="58" r="50" fill="none" stroke="var(--e-barTrack)" strokeWidth="12" />
-                        <circle cx="58" cy="58" r="50" fill="none" stroke="url(#ringGrad)" strokeWidth="12" strokeLinecap="round" strokeDasharray="314" strokeDashoffset={selected.ativo ? "80" : "314"} className="transition-all duration-1000" />
+                        <circle cx="58" cy="58" r="50" fill="none" stroke="url(#ringGrad)" strokeWidth="12" strokeLinecap="round" strokeDasharray="314" strokeDashoffset={314 - (314 * selectedOccupancy) / 100} className="transition-all duration-700" />
                         <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3B82F6" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs>
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="font-space text-[22px] font-bold">{selected.ativo ? "75%" : "0%"}</span>
+                        <span className="font-space text-[22px] font-bold">{selectedOccupancy}%</span>
+                        <span className="text-[10px] text-[var(--e-textSub)]">ocupação</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 flex-1">
                       <div className="flex flex-col gap-1">
                         <span className="text-[12px] text-[var(--e-textSub)]">Área</span>
-                        <span className="font-space text-[16px] font-bold">{selected.area}</span>
+                        <span className="font-space text-[16px] font-bold">{selectedArea}</span>
                       </div>
                       <div className="flex flex-col gap-1">
                         <span className="text-[12px] text-[var(--e-textSub)]">Capacidade Máxima</span>
-                        <span className="text-[15px] font-bold">{selected.capacidade_maxima || "Sem limite"}</span>
+                        <span className="text-[15px] font-bold">{selected.capacidade_maxima ? `${selected.capacidade_maxima} un` : "Sem limite"}</span>
                       </div>
                     </div>
                   </div>
-                  {/* Specs */}
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Rua</span>
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Tipo</span>
+                      <span className="text-[14.5px] font-bold">{selected.unidade_padrao || "Não definido"}</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Rua / Setor</span>
                       <span className="text-[14.5px] font-bold">{selected.rua || "-"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
@@ -559,6 +562,43 @@ export function EnderecosDashboard({
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Posição</span>
                       <span className="text-[14.5px] font-bold">{selected.posicao || "-"}</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Última atualização</span>
+                      <span className="text-[14.5px] font-bold">{selectedCreatedAt}</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 flex flex-col gap-4">
+                    <span className="font-space text-[14px] font-bold">Capacidade</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-[13px]"><span className="text-[var(--e-textSub)]">Volume</span><span className="font-bold">{selectedMetric?.ocupacao === null ? "Sem limite" : `${selectedOccupancy}%`}</span></div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[var(--e-barTrack)]"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-700" style={{ width: `${selectedOccupancy}%` }} /></div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-[13px]"><span className="text-[var(--e-textSub)]">Peso</span><span className="font-bold text-[var(--e-textSub)]">Não informado</span></div>
+                      <div className="h-2 overflow-hidden rounded-full bg-[var(--e-barTrack)]"><div className="h-full w-0 rounded-full bg-gradient-to-r from-blue-500 to-violet-500" /></div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 flex flex-col gap-3">
+                    <span className="font-space text-[14px] font-bold">Estoque armazenado</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
+                        <span className="text-[11.5px] text-[var(--e-textSub)]">SKU armazenado</span>
+                        <span className="text-[14px] font-bold break-words">{selectedSku}</span>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
+                        <span className="text-[11.5px] text-[var(--e-textSub)]">Quantidade</span>
+                        <span className="text-[15px] font-bold">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(selectedMetric?.quantidade ?? 0)} un</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <span className="font-space text-[14px] font-bold">Movimentações recentes</span>
+                    <div className="rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] p-4 text-[13px] text-[var(--e-textSub)]">
+                      Endereço criado em {selectedCreatedAt}. Ainda não há movimentações detalhadas registradas para este endereço.
                     </div>
                   </div>
                 </div>
