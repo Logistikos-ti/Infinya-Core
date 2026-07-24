@@ -239,7 +239,7 @@ export function ShippingConferencePanel({
     const normalizedScan = normalizeScanValue(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Informe ou leia um cÃ³digo para localizar o item.", "error");
+      setFeedback("Informe ou leia um código para localizar o item.", "error");
       return false;
     }
 
@@ -248,7 +248,7 @@ export function ShippingConferencePanel({
     if (!matchedItem) {
       setActiveItemId(null);
       setWrongProductScans((current) => current + 1);
-      setFeedback("CÃ³digo nÃ£o encontrado neste pedido.", "error");
+      setFeedback("Código não encontrado neste pedido.", "error");
       return false;
     }
 
@@ -258,14 +258,14 @@ export function ShippingConferencePanel({
       if (!matchedComponent) {
         setActiveItemId(matchedItem.id);
         setWrongProductScans((current) => current + 1);
-        setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido nÃ£o estÃ¡ mapeado.`, "error");
+        setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido não está mapeado.`, "error");
         return false;
       }
 
       if (matchedComponent.confirmedQuantity >= matchedComponent.requestedQuantity) {
         setActiveItemId(matchedItem.id);
         setFeedback(
-          `O componente ${matchedComponent.sku} jÃ¡ foi totalmente conferido (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`,
+          `O componente ${matchedComponent.sku} já foi totalmente conferido (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`,
           "error",
         );
         return false;
@@ -313,7 +313,7 @@ export function ShippingConferencePanel({
       const currentConfirmed = normalizeQuantity(matchedItem.confirmedQuantityValue);
       if (currentConfirmed >= matchedItem.requestedQuantity) {
         setActiveItemId(matchedItem.id);
-        setFeedback(`O item ${matchedItem.sku} jÃ¡ foi totalmente conferido.`, "error");
+        setFeedback(`O item ${matchedItem.sku} já foi totalmente conferido.`, "error");
         return false;
       }
 
@@ -332,7 +332,7 @@ export function ShippingConferencePanel({
 
       setActiveItemId(matchedItem.id);
       setFeedback(
-        `ConferÃªncia aplicada em ${matchedItem.sku}. Total conferido: ${nextConfirmed}/${matchedItem.requestedQuantity}.`,
+        `Conferência aplicada em ${matchedItem.sku}. Total conferido: ${nextConfirmed}/${matchedItem.requestedQuantity}.`,
         "success",
       );
     }
