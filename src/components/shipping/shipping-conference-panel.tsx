@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
-import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
@@ -434,7 +434,7 @@ export function ShippingConferencePanel({
                 : feedback === "documentos-pendentes"
                   ? "Finalize os documentos obrigatórios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
                 : feedback === "inatividade"
-                  ? "Pedido devolvido para a fila por inatividade do operador."
+                  ? "Sessão expirada por inatividade. O pedido foi devolvido para a fila e a operação cancelada."
                   : "Não foi possível concluir a operação solicitada."}
           </div>
         ) : null}
@@ -584,7 +584,7 @@ export function ShippingConferencePanel({
 
           {/* Action bar */}
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+            <button type="submit" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
               ⚠ Reportar divergência
             </button>
             <button 

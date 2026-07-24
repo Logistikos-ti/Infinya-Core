@@ -254,6 +254,54 @@ export async function saveShippingConferenceAction(formData: FormData) {
   redirect(`${redirectBase}/${orderId}?feedback=${intent === "complete" ? "concluido" : "salvo"}`);
 }
 
+export async function markShippingOrderAsDivergentAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const operatorId = String(formData.get("operatorId") ?? "").trim();
+  const wrongProductScans = normalizeQuantity(String(formData.get("wrongProductScans") ?? "0"));
+  
+  if (!orderId) {
+    redirect("/expedicao/conferencia?feedback=erro");
+  }
+
+  const { data: order, error: orderError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, payload_origem")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderError || !order) {
+    redirect(`/expedicao/conferencia?feedback=erro`);
+  }
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+  const now = new Date().toISOString();
+
+  await adminSupabase
+    .from("pedidos_expedicao")
+    .update({
+      status: "DIVERGENCIA",
+      payload_origem: {
+        ...payload,
+        conferencia: {
+          ...currentConference,
+          marcadoComoDivergenteEm: now,
+          produtoErradoCount: wrongProductScans,
+        },
+      },
+    })
+    .eq("id", orderId);
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath(`/expedicao/conferencia/${orderId}`);
+
+  redirect("/expedicao?status=DIVERGENCIA");
+}
+
 export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
   await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
