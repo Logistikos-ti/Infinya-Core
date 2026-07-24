@@ -22,7 +22,7 @@ export const SALES_CHANNEL_OPTIONS: readonly SalesChannelOption[] = [
   { value: "MAGAZINE_LUIZA", label: "Magazine Luiza", marketplace: true },
   { value: "OLIST", label: "Olist", marketplace: true },
   { value: "LOJA_INTEGRADA", label: "Loja Integrada", marketplace: false },
-  { value: "SITE_PROPRIO", label: "Site prÃ³prio", marketplace: false },
+  { value: "SITE_PROPRIO", label: "Site próprio", marketplace: false },
   { value: "VENDA_DIRETA", label: "Venda direta", marketplace: false },
   { value: "OUTRO", label: "Outro canal", marketplace: false },
 ] as const;
@@ -37,6 +37,28 @@ export function getSalesChannelOption(code: string | null | undefined) {
 
 export function getSalesChannelLabel(code: string | null | undefined) {
   return getSalesChannelOption(code)?.label ?? null;
+}
+
+/** Repairs legacy values stored with an incorrect UTF-8/Latin-1 conversion. */
+export function repairMojibake(value: string | null | undefined) {
+  if (!value) return "";
+
+  return value
+    .replaceAll("Ã£", "ã")
+    .replaceAll("Ã§", "ç")
+    .replaceAll("Ã¡", "á")
+    .replaceAll("Ã©", "é")
+    .replaceAll("Ãª", "ê")
+    .replaceAll("Ã­", "í")
+    .replaceAll("Ã³", "ó")
+    .replaceAll("Ã´", "ô")
+    .replaceAll("Ãµ", "õ")
+    .replaceAll("Ãº", "ú")
+    .replaceAll("Ã¢", "â")
+    .replaceAll("Ã‰", "É")
+    .replaceAll("Ã‡", "Ç")
+    .replaceAll("Âº", "º")
+    .replaceAll("Â", "");
 }
 
 export function isMarketplaceChannel(code: string | null | undefined) {
@@ -121,11 +143,11 @@ export function readMarketplaceFlagDisplay(payload: Record<string, unknown>) {
   const manualCommercial = readManualCommercial(payload);
 
   if (typeof manualCommercial?.marketplace === "boolean") {
-    return manualCommercial.marketplace ? "Sim" : "NÃ£o";
+    return manualCommercial.marketplace ? "Sim" : "Não";
   }
 
   const detected = detectSalesChannelFromPayload(payload);
-  return detected?.marketplace ? "Sim" : "NÃ£o";
+  return detected?.marketplace ? "Sim" : "Não";
 }
 
 export function readMarketplaceDisplay(payload: Record<string, unknown>) {
@@ -141,7 +163,7 @@ export function readMarketplaceDisplay(payload: Record<string, unknown>) {
     return detected.label;
   }
 
-  return readMarketplaceFlagDisplay(payload) === "Sim" ? "Marketplace" : "NÃ£o";
+  return readMarketplaceFlagDisplay(payload) === "Sim" ? "Marketplace" : "Não";
 }
 
 export function readStoreDisplay(
@@ -172,7 +194,7 @@ export function readStoreDisplay(
     readHumanStoreName(unidadeNegocio?.id) ??
     readHumanStoreName(loja?.id) ??
     readHumanStoreName(storeNumberFallback) ??
-    "Loja nÃ£o identificada"
+    "Loja não identificada"
   );
 }
 

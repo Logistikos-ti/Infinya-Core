@@ -2,6 +2,7 @@
 
 import { ArrowRight, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { repairMojibake } from "@/lib/sales-channels";
 import type { ShippingOrderSummary } from "@/lib/shipping";
 
 const filters = [
@@ -129,7 +130,9 @@ function OrderRow({ order }: { order: ShippingOrderSummary }) {
           <span className="text-xs text-slate-500 dark:text-slate-400">{order.destination || "Destino não informado"}</span>
         </div>
       </td>
-      <td className="px-5 py-[14px] text-[13.5px] font-semibold">{order.marketplace || order.channel || "Operação própria"}</td>
+      <td className="px-5 py-[14px] text-[13.5px] font-semibold">
+        {repairMojibake(order.marketplace || order.channel || "Operação própria")}
+      </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
       <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatDate(order.createdAt)}</td>
       <td className="px-5 py-[14px]"><StatusBadge label={order.statusLabel || order.status} /></td>

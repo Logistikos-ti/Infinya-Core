@@ -8,6 +8,7 @@ import {
   readMarketplaceDisplay,
   readMarketplaceFlagDisplay,
   readStoreDisplay,
+  repairMojibake,
 } from "@/lib/sales-channels";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -626,7 +627,7 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     storeDisplay,
     customer,
     destination,
-    channel: item.canal?.trim() || "BLING",
+    channel: repairMojibake(item.canal?.trim()) || "BLING",
     marketplace,
     carrierName,
     status: item.status,
