@@ -343,7 +343,7 @@ function code128BPattern(value: string) {
     .join("");
 }
 
-export function AddressBarcodePreview({ value }: { value: string }) {
+export function AddressBarcodePreview({ value, containerId }: { value: string; containerId?: string }) {
   const pattern = code128BPattern(value);
   let cursor = 8;
   const bars: Array<{ x: number; width: number }> = [];
@@ -358,7 +358,7 @@ export function AddressBarcodePreview({ value }: { value: string }) {
 
   const width = cursor + 8;
   return (
-    <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-950">
+    <div id={containerId} className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-950">
       <div className="mb-2 text-center font-mono text-sm font-bold tracking-wide text-slate-900 dark:text-white">
         {value}
       </div>

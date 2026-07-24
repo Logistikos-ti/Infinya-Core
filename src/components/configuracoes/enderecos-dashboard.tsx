@@ -69,6 +69,7 @@ export function EnderecosDashboard({
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState<"TODOS" | "PICKING" | "PULMAO" | "DISPONIVEIS" | "BLOQUEADOS">("TODOS");
   const [showForm, setShowForm] = useState(initialShowForm);
+  const [labelOpen, setLabelOpen] = useState(false);
   const pageSize = 10;
 
   useEffect(() => {
@@ -89,6 +90,20 @@ export function EnderecosDashboard({
   const selectedCreatedAt = selected
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(selected.created_at))
     : "-";
+
+  function downloadSelectedLabel() {
+    if (!selected) return;
+    const svg = document.getElementById(`barcode-label-modal-${selected.id}`)?.querySelector("svg");
+    if (!svg) return;
+    const source = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `etiqueta-${selected.codigo}.svg`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   // KPIs
   const kpis = useMemo(() => {
@@ -558,7 +573,7 @@ export function EnderecosDashboard({
                   </div>
                   <div className="mb-5">
                     <span className="font-space text-[14px] font-bold">Etiqueta do endereço</span>
-                    <AddressBarcodePreview value={selected.codigo} />
+                    <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-${selected.id}`} />
                   </div>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
@@ -673,8 +688,28 @@ export function EnderecosDashboard({
                       Excluir
                     </button>
                   </form>
-                  <button className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)]">⎙ Imprimir Etiqueta</button>
+                  <button type="button" onClick={() => setLabelOpen(true)} className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)]">Etiqueta</button>
                 </div>
+                {labelOpen ? (
+                  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setLabelOpen(false)}>
+                    <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[11px] font-bold tracking-[0.14em] text-slate-500 dark:text-zinc-400">ETIQUETA DO ENDEREÇO</p>
+                          <h3 className="mt-1 font-space text-xl font-bold text-slate-950 dark:text-white">{selected.codigo}</h3>
+                        </div>
+                        <button type="button" onClick={() => setLabelOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:border-zinc-700 dark:text-zinc-300">✕</button>
+                      </div>
+                      <div className="mt-5 [&_svg]:h-[150px]">
+                        <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
+                      </div>
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button type="button" onClick={() => setLabelOpen(false)} className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:text-zinc-200">Fechar</button>
+                        <button type="button" onClick={downloadSelectedLabel} className="h-11 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white">Baixar etiqueta</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </>
             )}
           </div>
