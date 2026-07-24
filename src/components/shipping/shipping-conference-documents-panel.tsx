@@ -97,55 +97,64 @@ export function ShippingConferenceDocumentsPanel({
   return (
     <div
       id="documentos-impressao"
-      className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80 animate-[docExpand_0.4s_cubic-bezier(.3,1,.4,1)]"
+      className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/80 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80 animate-[docExpand_0.4s_cubic-bezier(.3,1,.4,1)]"
     >
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
-      <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-start 2xl:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            <h3 className="text-base font-bold text-slate-950 dark:text-white">
-              Documentos e impressão
-            </h3>
-          </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
-            Depois da bipagem, revise os documentos e libere obrigatoriamente o pedido para romaneio.
+      
+      <div className="flex items-start gap-4 border-b border-slate-200 px-[22px] py-[20px] dark:border-zinc-800/80">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-violet-500/10 text-violet-500">
+          <Paperclip className="h-5 w-5" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <h3 className="font-['Space_Grotesk'] text-[16px] font-bold text-slate-950 dark:text-white">
+            Documentos e impressão
+          </h3>
+          <p className="text-[13px] leading-[1.45] text-slate-500 dark:text-zinc-400">
+            Revise os documentos e libere obrigatoriamente o pedido para romaneio.
           </p>
         </div>
 
         <span
-          className={`inline-flex w-fit rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
+          className={`shrink-0 rounded-[10px] px-3 py-[6px] text-center text-[11px] font-extrabold tracking-[0.03em] leading-[1.3] ${
             unlocked
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-              : "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
           }`}
         >
-          {unlocked ? "Destinação liberada" : "Libera após 100% da conferência"}
+          {unlocked ? "DOCUMENTOS LIBERADOS" : "LIBERA APÓS 100%"}
         </span>
       </div>
 
-      <div className="grid gap-4 2xl:grid-cols-2">
+      <div className="flex flex-col gap-4 p-[18px_22px_22px_22px]">
+
+      <div className="grid gap-[14px] 2xl:grid-cols-2">
         <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido para consulta e impressão fiscal."
-          icon={<FileCheck2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
+          icon={<FileCheck2 className="h-4 w-4" />}
+          iconColor="text-blue-500"
           attachment={xmlAttachment}
           emptyLabel="NF pendente"
           printLabel="Imprimir NF"
           downloadLabel="Baixar NF"
           unlocked={unlocked}
+          badgeBg="bg-blue-500/10"
+          badgeText="text-blue-600 dark:text-blue-400"
         />
 
         <AttachmentStatusCard
           title="Etiqueta de envio"
           subtitle="Etiqueta operacional do marketplace ou anexada manualmente."
-          icon={<Package2 className="h-4 w-4 text-slate-500 dark:text-slate-400" />}
+          icon={<Package2 className="h-4 w-4" />}
+          iconColor="text-emerald-500"
           attachment={labelAttachment}
           emptyLabel="Etiqueta pendente"
           printLabel="Imprimir etiqueta"
           downloadLabel="Baixar etiqueta"
           unlocked={unlocked}
+          badgeBg="bg-emerald-500/10"
+          badgeText="text-emerald-600 dark:text-emerald-400"
         />
       </div>
 
@@ -156,16 +165,17 @@ export function ShippingConferenceDocumentsPanel({
 
         <div className="space-y-4">
           {canUploadAttachments ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">
-                  Anexar documentos do pedido
+            <div className="flex flex-col gap-[12px] rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+              <div className="flex items-center gap-2.5">
+                <span className="flex text-amber-500">
+                  <FileText className="h-4 w-4" />
+                </span>
+                <h4 className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">
+                  Anexar documentos
                 </h4>
               </div>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Use esta área para anexar manualmente o XML da NF ou a etiqueta de envio quando o
-                pedido não vier completo pela integração.
+              <p className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
+                Anexe manualmente o XML da NF ou a etiqueta quando o pedido não vier completo pela integração.
               </p>
               <ShippingAttachmentUploadPanel
                 depositanteId={depositanteId}
@@ -176,51 +186,50 @@ export function ShippingConferenceDocumentsPanel({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-        <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Route className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-              <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">
-                Destinação do pedido
-              </h4>
-            </div>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{releaseHelp}</p>
+      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="flex flex-1 min-w-[160px] items-center gap-4">
+          <span className="flex text-violet-500">
+            <Route className="h-5 w-5" />
+          </span>
+          <div className="flex flex-col gap-[2px]">
+            <h4 className="text-[14px] font-bold text-slate-900 dark:text-white">
+              Destinação do pedido
+            </h4>
+            <p className="text-[12px] text-slate-500 dark:text-slate-400">{releaseHelp}</p>
           </div>
+        </div>
 
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-            <button
-              type="button"
-              disabled={!unlocked}
-              onClick={(event) => {
+        <div className="flex gap-[12px] pt-4">
+          <button
+            type="button"
+            disabled={!unlocked}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setPrintMessage("");
+              setPreparationOpen(true);
+            }}
+            className="flex flex-[1.6] h-[52px] items-center justify-center gap-[8px] rounded-[12px] bg-slate-950 text-[15px] font-extrabold text-white shadow-lg transition-all duration-200 ease-in hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+          >
+            <Route className="h-[18px] w-[18px]" />
+            Preparar para romaneio
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            name="intent"
+            value="release-romaneio"
+            disabled={!canReleaseToRomaneio}
+            onClick={(event) => {
+              if (!hasShippingLabel) {
                 event.preventDefault();
-                event.stopPropagation();
-                setPrintMessage("");
-                setPreparationOpen(true);
-              }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-primary-500/30 bg-primary-500/10 px-4 text-sm font-semibold text-primary-700 transition hover:bg-primary-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-primary-300"
-            >
-              Preparar para romaneio
-            </button>
-            <button
-              type="submit"
-              form={formId}
-              name="intent"
-              value="release-romaneio"
-              disabled={!canReleaseToRomaneio}
-              onClick={(event) => {
-                if (!hasShippingLabel) {
-                  event.preventDefault();
-                  setConfirmMissingLabel(true);
-                }
-              }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-            >
-              <Route className="h-4 w-4" />
-              {hasShippingLabel ? "Liberar para romaneio" : "Liberar sem etiqueta"}
-            </button>
-
-          </div>
+                setConfirmMissingLabel(true);
+              }
+            }}
+            className="flex h-[52px] flex-1 items-center justify-center rounded-[12px] border border-slate-200 bg-white text-[15px] font-bold text-slate-700 transition hover:border-red-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-red-500 dark:hover:text-red-500"
+          >
+            ⚠ Reportar divergência
+          </button>
         </div>
       </div>
 
@@ -381,46 +390,43 @@ function AttachmentStatusCard({
   emptyLabel,
   printLabel,
   downloadLabel,
-  unlocked,
+  iconColor,
+  badgeBg,
+  badgeText,
 }: {
   title: string;
   subtitle: string;
   icon: ReactNode;
+  iconColor: string;
   attachment?: ShippingAttachment;
   emptyLabel: string;
   printLabel: string;
   downloadLabel: string;
   unlocked: boolean;
+  badgeBg: string;
+  badgeText: string;
 }) {
   const available = attachment?.status === "DISPONIVEL";
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {icon}
-            <h4 className="text-sm font-semibold text-slate-950 dark:text-slate-100">{title}</h4>
-          </div>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{subtitle}</p>
-          {attachment?.fileName ? (
-            <p className="mt-2 break-words text-xs text-slate-500 dark:text-slate-400">
-              {attachment.fileName}
-              {attachment.uploadedAt ? ` • ${attachment.uploadedAt}` : ""}
-            </p>
-          ) : null}
-        </div>
-
+    <div className="flex flex-col gap-2 rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+      <div className="flex items-start gap-2.5">
+        <span className={`flex ${iconColor}`}>{icon}</span>
+        <span className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">{title}</span>
         <span
-          className={`w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+          className={`rounded-lg px-2.5 py-1 text-[10.5px] font-extrabold leading-[1.25] tracking-wide ${
             available
-              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-              : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+              ? `${badgeBg} ${badgeText}`
+              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
           }`}
         >
           {available ? "Disponível" : emptyLabel}
         </span>
       </div>
+
+      <span className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
+        {subtitle}
+      </span>
 
       {unlocked && attachment?.viewHref && attachment.href ? (
         <div className="mt-4">

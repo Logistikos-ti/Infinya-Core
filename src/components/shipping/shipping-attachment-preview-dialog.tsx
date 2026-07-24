@@ -53,9 +53,9 @@ export function ShippingAttachmentPreviewDialog({
             event.stopPropagation();
             openPreview();
           }}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex h-[38px] items-center gap-[6px] rounded-[9px] border border-slate-200 bg-white px-[13px] text-[12.5px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          <Eye className="h-3.5 w-3.5" />
+          <Eye className="h-[15px] w-[15px]" />
           Visualizar
         </button>
 
@@ -66,17 +66,17 @@ export function ShippingAttachmentPreviewDialog({
             event.stopPropagation();
             openPrint();
           }}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex h-[38px] items-center gap-[6px] rounded-[9px] border border-slate-200 bg-white px-[13px] text-[12.5px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          <Printer className="h-3.5 w-3.5" />
+          <Printer className="h-[15px] w-[15px]" />
           {printLabel}
         </button>
 
         <a
           href={downloadHref}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex h-[38px] items-center gap-[6px] rounded-[9px] border border-slate-200 bg-white px-[13px] text-[12.5px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-[15px] w-[15px]" />
           {downloadLabel}
         </a>
       </div>
