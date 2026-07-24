@@ -557,27 +557,27 @@ export function EnderecosDashboard({
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Tipo</span>
-                      <span className="text-[14.5px] font-bold">{selected.unidade_padrao || "Não definido"}</span>
+                      <span className="text-[14.5px] font-bold">{selectedArea || "Não definido"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Rua / Setor</span>
                       <span className="text-[14.5px] font-bold">{selected.rua || "-"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Módulo</span>
-                      <span className="text-[14.5px] font-bold">{selected.modulo || "-"}</span>
-                    </div>
-                    <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Nível</span>
-                      <span className="text-[14.5px] font-bold">{selected.nivel || "-"}</span>
+                      <span className="text-[14.5px] font-bold">{selected.nivel || "Não informado"}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Posição</span>
-                      <span className="text-[14.5px] font-bold">{selected.posicao || "-"}</span>
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Dimensões</span>
+                      <span className="text-[14.5px] font-bold">Não informado</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                      <span className="text-[11.5px] text-[var(--e-textSub)]">Última atualização</span>
-                      <span className="text-[14.5px] font-bold">{selectedCreatedAt}</span>
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Peso máx.</span>
+                      <span className="text-[14.5px] font-bold">Não informado</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
+                      <span className="text-[11.5px] text-[var(--e-textSub)]">Última contagem</span>
+                      <span className="text-[14.5px] font-bold">Sem registro</span>
                     </div>
                   </div>
 
