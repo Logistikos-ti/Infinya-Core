@@ -83,6 +83,7 @@ export function EnderecosDashboard({
     : null;
   const selectedOccupancy = selectedMetric?.ocupacao ?? 0;
   const selectedArea = selected?.area === "PULMAO" ? "Armazenagem" : selected?.area === "BLOQUEADO" ? "Bloqueado" : selected?.area;
+  const selectedType = selectedArea ? `${selectedArea.charAt(0)}${selectedArea.slice(1).toLowerCase()}` : "Não definido";
   const selectedMovements = selected ? addressMovements[selected.id] ?? [] : [];
   const selectedCreatedAt = selected
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(selected.created_at))
@@ -557,7 +558,7 @@ export function EnderecosDashboard({
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Tipo</span>
-                      <span className="text-[14.5px] font-bold">{selectedArea || "Não definido"}</span>
+                      <span className="text-[14.5px] font-bold">{selectedType}</span>
                     </div>
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
                       <span className="text-[11.5px] text-[var(--e-textSub)]">Rua / Setor</span>
