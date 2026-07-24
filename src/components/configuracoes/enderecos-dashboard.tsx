@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, Layers, Percent, MapPin, Search } from "lucide-react";
+import { Box, Layers, Percent, MapPin, Search, Trash2 } from "lucide-react";
+import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 const space = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
@@ -26,13 +28,20 @@ type EnderecosDashboardProps = {
   enderecos: Endereco[];
   children?: React.ReactNode; // Para injetar os formulários ocultos (como Bulk Generator) se necessário
   formSlot?: React.ReactNode; // Para o form de edição/criação
+  initialShowForm?: boolean;
 };
 
-export function EnderecosDashboard({ enderecos, formSlot, children }: EnderecosDashboardProps) {
+export function EnderecosDashboard({
+  enderecos,
+  formSlot,
+  children,
+  initialShowForm = false,
+}: EnderecosDashboardProps) {
+  const router = useRouter();
   const [view, setView] = useState<"table" | "map">("table");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialShowForm);
 
   const selected = useMemo(() => enderecos.find((e) => e.id === selectedId) || null, [enderecos, selectedId]);
 
@@ -396,7 +405,25 @@ export function EnderecosDashboard({ enderecos, formSlot, children }: EnderecosD
                 </div>
                 {/* Actions */}
                 <div className="shrink-0 p-4 border-t border-[var(--e-border)] flex gap-2.5 bg-[var(--e-drawerBg)]">
-                  <button onClick={() => { setShowForm(true); }} className="flex-1 h-[46px] rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)] font-manrope text-[14px] font-bold hover:border-violet-500 transition-colors">Editar</button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/configuracoes/enderecos?editar=${selected.id}`)}
+                    className="flex-1 h-[46px] rounded-xl border border-[var(--e-border)] bg-[var(--e-inputBg)] font-manrope text-[14px] font-bold hover:border-violet-500 transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <form action={deleteEnderecoAction} className="flex-1" onSubmit={(event) => {
+                    if (!window.confirm(`Excluir o endereço ${selected.codigo}?`)) event.preventDefault();
+                  }}>
+                    <input type="hidden" name="id" value={selected.id} />
+                    <button
+                      type="submit"
+                      className="flex h-[46px] w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 font-manrope text-[14px] font-bold text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </button>
+                  </form>
                   <button className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)]">⎙ Imprimir Etiqueta</button>
                 </div>
               </>

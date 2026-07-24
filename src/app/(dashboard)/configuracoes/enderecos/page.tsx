@@ -83,6 +83,7 @@ export default async function ConfiguracoesEnderecosPage({
 
       <EnderecosDashboard
         enderecos={enderecos ?? []}
+        initialShowForm={Boolean(currentAddress)}
         formSlot={
           <div className="space-y-4">
             <EnderecoForm
