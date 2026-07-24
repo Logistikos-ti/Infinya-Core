@@ -142,7 +142,7 @@ export function EnderecosDashboard({
   }, [filtered, selectedId]);
 
   return (
-    <div className={`e-theme ${manrope.variable} ${space.variable} font-manrope relative flex flex-col min-h-0 bg-[var(--e-appBg)] text-[var(--e-text)] transition-colors duration-300 rounded-3xl overflow-hidden border border-[var(--e-border)]`}>
+    <div className={`e-theme ${manrope.variable} ${space.variable} font-manrope relative flex w-full flex-col bg-transparent text-[var(--e-text)] transition-colors duration-300`}>
       <style>{`
         .e-theme {
           --e-appBg: #F5F7FB;
@@ -202,7 +202,7 @@ export function EnderecosDashboard({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 md:p-8">
+      <div className="flex-1 p-6 md:p-8">
         {/* title row */}
         <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
           <div className="flex flex-col gap-1.5">
