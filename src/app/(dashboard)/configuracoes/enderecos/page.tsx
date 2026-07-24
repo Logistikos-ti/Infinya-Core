@@ -42,6 +42,45 @@ export default async function ConfiguracoesEnderecosPage({
   }
 
   const { data: enderecos } = await enderecosQuery;
+  const { data: saldos } = await supabase
+    .from("estoque")
+    .select("endereco_id, quantidade, quantidade_reservada, bloqueado");
+
+  const saldoPorEndereco = new Map<string, number>();
+  for (const saldo of saldos ?? []) {
+    const quantidadeDisponivel = Math.max(
+      0,
+      Number(saldo.quantidade ?? 0) - Number(saldo.quantidade_reservada ?? 0),
+    );
+    saldoPorEndereco.set(
+      saldo.endereco_id,
+      (saldoPorEndereco.get(saldo.endereco_id) ?? 0) + quantidadeDisponivel,
+    );
+  }
+
+  const enderecosAtivos = (enderecos ?? []).filter(
+    (endereco) => endereco.ativo && endereco.area !== "BLOQUEADO",
+  );
+  const enderecosComCapacidade = enderecosAtivos.filter(
+    (endereco) => Number(endereco.capacidade_maxima ?? 0) > 0,
+  );
+  const ocupacaoMedia = enderecosComCapacidade.length
+    ? Math.round(
+        (enderecosComCapacidade.reduce((total, endereco) => {
+          const capacidade = Number(endereco.capacidade_maxima ?? 0);
+          const saldo = saldoPorEndereco.get(endereco.id) ?? 0;
+          return total + Math.min(1, saldo / capacidade);
+        }, 0) /
+          enderecosComCapacidade.length) *
+          100,
+      )
+    : 0;
+  const enderecosVazios = enderecosAtivos.filter(
+    (endereco) => (saldoPorEndereco.get(endereco.id) ?? 0) <= 0,
+  ).length;
+  const enderecosBloqueados = (enderecos ?? []).filter(
+    (endereco) => !endereco.ativo || endereco.area === "BLOQUEADO",
+  ).length;
   const currentAddress = editingId
     ? (enderecos ?? []).find((item) => item.id === editingId) ?? null
     : null;
@@ -74,6 +113,12 @@ export default async function ConfiguracoesEnderecosPage({
 
       <EnderecosDashboard
         enderecos={enderecos ?? []}
+        kpiData={{
+          total: enderecos?.length ?? 0,
+          ocupacaoMedia,
+          vazios: enderecosVazios,
+          bloqueados: enderecosBloqueados,
+        }}
         initialShowForm={Boolean(currentAddress)}
         formSlot={
           <div className="space-y-4">

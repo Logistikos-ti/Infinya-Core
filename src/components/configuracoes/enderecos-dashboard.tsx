@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import { Box, ChevronLeft, ChevronRight, Layers, Percent, MapPin, Trash2 } from "lucide-react";
+import { Box, ChevronLeft, ChevronRight, Gauge, MapPin, Percent, Trash2 } from "lucide-react";
 import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
@@ -26,6 +26,12 @@ type Endereco = {
 
 type EnderecosDashboardProps = {
   enderecos: Endereco[];
+  kpiData: {
+    total: number;
+    ocupacaoMedia: number;
+    vazios: number;
+    bloqueados: number;
+  };
   children?: React.ReactNode; // Para injetar os formulários ocultos (como Bulk Generator) se necessário
   formSlot?: React.ReactNode; // Para o form de edição/criação
   initialShowForm?: boolean;
@@ -33,6 +39,7 @@ type EnderecosDashboardProps = {
 
 export function EnderecosDashboard({
   enderecos,
+  kpiData,
   formSlot,
   children,
   initialShowForm = false,
@@ -55,18 +62,13 @@ export function EnderecosDashboard({
 
   // KPIs
   const kpis = useMemo(() => {
-    const total = enderecos.length;
-    const blocked = enderecos.filter((e) => !e.ativo || e.area === "BLOQUEADO").length;
-    const picking = enderecos.filter((e) => e.area === "PICKING").length;
-    const storage = enderecos.filter((e) => e.area === "PULMAO").length;
-
     return [
-      { label: "Total de posições", value: total, delta: "+12", deltaColor: "#10B981", icon: <MapPin className="w-5 h-5" />, iconBg: "rgba(59,130,246,0.12)", iconColor: "#3B82F6" },
-      { label: "Área de Picking", value: picking, delta: "~", deltaColor: "#64748B", icon: <Layers className="w-5 h-5" />, iconBg: "rgba(16,185,129,0.12)", iconColor: "#10B981" },
-      { label: "Área de Armazenagem", value: storage, delta: "~", deltaColor: "#64748B", icon: <Box className="w-5 h-5" />, iconBg: "rgba(139,92,246,0.12)", iconColor: "#8B5CF6" },
-      { label: "Bloqueados", value: blocked, delta: "-2", deltaColor: "#F43F5E", icon: <Percent className="w-5 h-5" />, iconBg: "rgba(244,63,94,0.12)", iconColor: "#F43F5E" },
+      { label: "Total de endereços", value: kpiData.total, detail: "base atual", icon: <MapPin className="w-5 h-5" />, iconBg: "rgba(59,130,246,0.12)", iconColor: "#3B82F6" },
+      { label: "Ocupação média", value: `${kpiData.ocupacaoMedia}%`, detail: "da capacidade", icon: <Gauge className="w-5 h-5" />, iconBg: "rgba(16,185,129,0.12)", iconColor: "#10B981" },
+      { label: "Endereços vazios", value: kpiData.vazios, detail: "sem saldo", icon: <Box className="w-5 h-5" />, iconBg: "rgba(139,92,246,0.12)", iconColor: "#8B5CF6" },
+      { label: "Bloqueados", value: kpiData.bloqueados, detail: "fora de operação", icon: <Percent className="w-5 h-5" />, iconBg: "rgba(244,63,94,0.12)", iconColor: "#F43F5E" },
     ];
-  }, [enderecos]);
+  }, [kpiData]);
 
   const filtered = enderecos;
 
@@ -226,7 +228,7 @@ export function EnderecosDashboard({
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-space text-[30px] font-bold">{k.value}</span>
-                <span className="text-[13px] font-bold" style={{ color: k.deltaColor }}>{k.delta}</span>
+                <span className="text-[13px] font-semibold text-[var(--e-textSub)]">{k.detail}</span>
               </div>
             </div>
           ))}
