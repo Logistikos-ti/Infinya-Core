@@ -137,6 +137,7 @@ export function EnderecosDashboard({
     <div className={`e-theme ${manrope.variable} ${space.variable} font-manrope relative flex w-full flex-col bg-transparent text-[var(--e-text)] transition-colors duration-300`}>
       <style>{`
         .e-theme {
+          font-family: var(--font-manrope), Arial, Helvetica, sans-serif;
           --e-appBg: #F5F7FB;
           --e-cardBg: #FFFFFF;
           --e-headBg: #F8FAFC;
@@ -154,6 +155,8 @@ export function EnderecosDashboard({
           --e-emptyCell: rgba(100,116,139,0.08);
           --e-mapBg: radial-gradient(120% 100% at 50% 0%, #EEF2FB 0%, #F4F6FB 60%, #F7F9FD 100%);
         }
+        .e-theme .font-manrope { font-family: var(--font-manrope), Arial, Helvetica, sans-serif; }
+        .e-theme .font-space { font-family: var(--font-space), Arial, Helvetica, sans-serif; }
         .dark .e-theme {
           --e-appBg: transparent; /* usa o fundo do dashboard */
           --e-cardBg: #101B30;
