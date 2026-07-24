@@ -107,7 +107,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const tableFiltersDef = [
     { id: 'todos', label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
     { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, hasCount: true, isAlert: false },
-    { id: 'conferencia', label: "Em conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA").length, hasCount: true, isAlert: false },
+    { id: 'conferencia', label: "Em conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA" || o.status === "SEPARADO").length, hasCount: true, isAlert: false },
     { id: 'atrasados', label: "Atrasados", count: data.orders.filter((o: any) => o.ageTone === "LATE").length, hasCount: true, isAlert: true }
   ];
 
@@ -142,7 +142,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
     const active = activeFilter === s.id;
     
     // Calculate count with real data
-    const count = s.statusFilter ? data.orders.filter((o:any) => o.status === s.statusFilter || (s.id === 'expedido' && o.status === 'PRONTO_ROMANEIO')).length : data.orders.length;
+    const count = s.statusFilter ? data.orders.filter((o:any) => {
+      if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
+      if (s.id === 'expedido') return o.status === 'EXPEDIDO' || o.status === 'PRONTO_ROMANEIO';
+      return o.status === s.statusFilter;
+    }).length : data.orders.length;
 
     let iconEl;
     if (s.id === 'todos') iconEl = <List size={16} />;
@@ -210,6 +214,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     const stage = stagesDefs.find(s => s.id === activeFilter);
     if (stage && stage.statusFilter) {
       if (activeFilter === 'expedido') return o.status === 'EXPEDIDO' || o.status === 'PRONTO_ROMANEIO';
+      if (activeFilter === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
       return o.status === stage.statusFilter;
     }
     return true;
