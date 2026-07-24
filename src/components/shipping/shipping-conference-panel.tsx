@@ -499,50 +499,54 @@ export function ShippingConferencePanel({
           </div>
 
           {/* Scan field */}
-          <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-            <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0, borderRadius: 13, background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-              {scanIcon}
-              <span style={{ position: "absolute", left: 8, right: 8, top: 8, height: 2, background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }} />
-            </div>
-            
-            <input 
-              ref={scanInputRef}
-              value={scanValue}
-              onChange={(e) => {
-                resetTimer();
-                setScanValue(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleScanSubmit();
-                }
-              }}
-              onBlur={() => {
-                const isFull = items.every((item) => normalizeQuantity(item.confirmedQuantityValue) >= item.requestedQuantity);
-                if (operatorMode && !cameraEnabled && !isFull) {
-                  window.setTimeout(() => scanInputRef.current?.focus(), 40);
-                }
-              }}
-              placeholder="Bipe o código do volume / produto..." 
-              style={{ flex: 1, height: 54, padding: "0 18px", borderRadius: 12, border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, outline: "none", boxSizing: "border-box" }} 
-            />
-            
-            <button 
-              type="button" 
-              onClick={() => handleScanSubmit()}
-              className="btn-bipar"
-              style={{ height: 54, padding: "0 22px", border: "none", borderRadius: 12, background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)" }}
-            >
-              Bipar
-            </button>
-          </div>
+          {!full && (
+            <>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div style={{ position: "relative", width: 54, height: 54, flexShrink: 0, borderRadius: 13, background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {scanIcon}
+                  <span style={{ position: "absolute", left: 8, right: 8, top: 8, height: 2, background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }} />
+                </div>
+                
+                <input 
+                  ref={scanInputRef}
+                  value={scanValue}
+                  onChange={(e) => {
+                    resetTimer();
+                    setScanValue(e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleScanSubmit();
+                    }
+                  }}
+                  onBlur={() => {
+                    const isFull = items.every((item) => normalizeQuantity(item.confirmedQuantityValue) >= item.requestedQuantity);
+                    if (operatorMode && !cameraEnabled && !isFull) {
+                      window.setTimeout(() => scanInputRef.current?.focus(), 40);
+                    }
+                  }}
+                  placeholder="Bipe o código do volume / produto..." 
+                  style={{ flex: 1, height: 54, padding: "0 18px", borderRadius: 12, border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, outline: "none", boxSizing: "border-box" }} 
+                />
+                
+                <button 
+                  type="button" 
+                  onClick={() => handleScanSubmit()}
+                  className="btn-bipar"
+                  style={{ height: 54, padding: "0 22px", border: "none", borderRadius: 12, background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)" }}
+                >
+                  Bipar
+                </button>
+              </div>
 
-          {scanMessage ? (
-            <div style={{ borderRadius: 12, border: scanTone === "success" ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(244,63,94,0.3)", background: scanTone === "success" ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)", color: scanTone === "success" ? (isDark ? "#34D399" : "#047857") : (isDark ? "#FB7185" : "#BE123C"), padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
-              {scanMessage}
-            </div>
-          ) : null}
+              {scanMessage ? (
+                <div style={{ borderRadius: 12, border: scanTone === "success" ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(244,63,94,0.3)", background: scanTone === "success" ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)", color: scanTone === "success" ? (isDark ? "#34D399" : "#047857") : (isDark ? "#FB7185" : "#BE123C"), padding: "12px 16px", fontSize: 14, fontWeight: 600 }}>
+                  {scanMessage}
+                </div>
+              ) : null}
+            </>
+          )}
 
           {/* Items list */}
           <div style={{ borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
