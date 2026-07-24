@@ -217,7 +217,11 @@ export function ShippingConferencePanel({
   }
 
   function setFeedback(message: string, tone: ScanFeedbackTone) {
-    setScanMessage(message);
+    if (tone === "success") {
+      setScanMessage(null);
+    } else {
+      setScanMessage(message);
+    }
     setScanTone(tone);
     playFeedbackTone(tone);
   }
@@ -575,7 +579,7 @@ export function ShippingConferencePanel({
 
                     <div style={{ display: "flex", alignItems: "baseline", gap: 6, fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px" }}>
                       <span style={{ fontWeight: 800, color: qtyColor }}>{item.confirmedQuantityValue}</span>
-                      <span style={{ fontWeight: 700, color: t.textSub, opacity: 0.8 }}>/ {item.requestedQuantity}</span>
+                      <span style={{ fontWeight: 700, color: itemFull ? qtyColor : t.textSub, opacity: itemFull ? 1 : 0.8 }}>/ {item.requestedQuantity}</span>
                     </div>
                   </div>
                 );
