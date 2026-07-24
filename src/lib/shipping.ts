@@ -947,7 +947,7 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
     case "NOVO":
       return "Novo";
     case "EM_SEPARACAO":
-      return "Em separaÃ§Ã£o";
+      return "Em separação";
     case "SEPARADO":
       return "Aguardando conferência";
     case "EM_CONFERENCIA":

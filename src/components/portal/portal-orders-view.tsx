@@ -135,7 +135,7 @@ function OrderRow({ order }: { order: ShippingOrderSummary }) {
       </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
       <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatDate(order.createdAt)}</td>
-      <td className="px-5 py-[14px]"><StatusBadge label={order.statusLabel || order.status} /></td>
+      <td className="px-5 py-[14px]"><StatusBadge label={repairMojibake(order.statusLabel || order.status)} /></td>
       <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
     </tr>
   );
