@@ -83,7 +83,6 @@ export function EnderecosDashboard({
     : null;
   const selectedOccupancy = selectedMetric?.ocupacao ?? 0;
   const selectedArea = selected?.area === "PULMAO" ? "Armazenagem" : selected?.area === "BLOQUEADO" ? "Bloqueado" : selected?.area;
-  const selectedSku = selectedMetric?.skus.length ? selectedMetric.skus.join(", ") : "Nenhum SKU armazenado";
   const selectedMovements = selected ? addressMovements[selected.id] ?? [] : [];
   const selectedCreatedAt = selected
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(selected.created_at))
@@ -591,20 +590,6 @@ export function EnderecosDashboard({
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between text-[13px]"><span className="text-[var(--e-textSub)]">Peso</span><span className="font-bold text-[var(--e-textSub)]">Não informado</span></div>
                       <div className="h-2 overflow-hidden rounded-full bg-[var(--e-barTrack)]"><div className="h-full w-0 rounded-full bg-gradient-to-r from-blue-500 to-violet-500" /></div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 flex flex-col gap-3">
-                    <span className="font-space text-[14px] font-bold">Estoque armazenado</span>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                        <span className="text-[11.5px] text-[var(--e-textSub)]">SKU armazenado</span>
-                        <span className="text-[14px] font-bold break-words">{selectedSku}</span>
-                      </div>
-                      <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
-                        <span className="text-[11.5px] text-[var(--e-textSub)]">Quantidade</span>
-                        <span className="text-[15px] font-bold">{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(selectedMetric?.quantidade ?? 0)} un</span>
-                      </div>
                     </div>
                   </div>
 
