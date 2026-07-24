@@ -613,6 +613,7 @@ export function ShippingConferencePanel({
             type={full ? "button" : "submit"}
             form={full ? undefined : "shipping-conference-form"}
             disabled={!full || isSubmitting} 
+            className={full ? "btn-shine" : ""}
             onClick={(e) => {
               if (full) {
                 e.preventDefault();
@@ -631,11 +632,15 @@ export function ShippingConferencePanel({
         @keyframes rowIn { from { transform: translateX(-8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes panelFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes docExpand { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes shine-effect { 0% { left: -100%; } 100% { left: 200%; } }
         .btn-bipar { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .btn-bipar:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99,102,241,0.45) !important; filter: brightness(1.05); }
         .btn-bipar:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(99,102,241,0.3) !important; }
         .btn-divergence { transition: all 0.2s ease; }
         .btn-divergence:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.4) !important; color: #EF4444 !important; }
+        .btn-shine { position: relative; overflow: hidden; }
+        .btn-shine::after { content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); transition: all 0.5s ease; pointer-events: none; }
+        .btn-shine:not(:disabled):hover::after { animation: shine-effect 1.2s infinite; }
       `}} />
     </div>
   );
