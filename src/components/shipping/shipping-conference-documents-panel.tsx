@@ -127,9 +127,8 @@ export function ShippingConferenceDocumentsPanel({
       </div>
 
       <div className="flex flex-col gap-4 p-[18px_22px_22px_22px]">
-
-      <div className="grid gap-[14px] 2xl:grid-cols-2">
-        <AttachmentStatusCard
+        <div className="grid gap-[14px] 2xl:grid-cols-2">
+          <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido para consulta e impressão fiscal."
           icon={<FileCheck2 className="h-4 w-4" />}
