@@ -386,7 +386,7 @@ export function ShippingConferencePanel({
   const checkIcon = mk([P('M20 6 9 17l-5-5',1)], 18);
 
   return (
-    <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "28px 32px", background: t.sideBg2 }}>
+    <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "28px 32px", background: t.sideBg2, animation: "panelFadeIn 0.25s ease-out" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
         
         <InactivityWarningDialog
@@ -680,6 +680,7 @@ export function ShippingConferencePanel({
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
         @keyframes rowIn { from { transform: translateX(-8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes panelFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
     </div>
   );
