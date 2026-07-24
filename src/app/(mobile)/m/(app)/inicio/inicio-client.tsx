@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ScanLine, PackageCheck, Boxes, LogOut } from "lucide-react";
 import { IOSListRow } from "@/components/mobile/ios-glass";
@@ -14,112 +13,10 @@ type InicioClientProps = {
 
 export function InicioClient({ user, snapshot, totalPendencias }: InicioClientProps) {
   const router = useRouter();
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState(false);
-
-  const pressDigit = (d: string) => {
-    if (pin.length >= 4) return;
-    const np = pin + d;
-    setPin(np);
-    setPinError(false);
-    if (np.length === 4) {
-      setTimeout(() => {
-        if (np === "1234") {
-          setIsUnlocked(true);
-          setPin("");
-        } else {
-          setPin("");
-          setPinError(true);
-        }
-      }, 180);
-    }
-  };
 
   const handleLogout = () => {
     router.push("/m/sair");
   };
-
-  if (!isUnlocked) {
-    const pinDots = [0, 1, 2, 3].map((i) => ({
-      bg: i < pin.length ? "#8B5CF6" : "transparent",
-      border: i < pin.length ? "#8B5CF6" : "rgba(148,163,184,0.4)",
-    }));
-
-    const kd = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "ok"];
-    
-    return (
-      <div className="flex flex-col flex-1 px-[26px] pt-2 pb-6">
-        <div className="flex flex-col flex-1 items-center justify-center gap-2">
-          <div className="w-[66px] h-[66px] rounded-[20px] flex items-center justify-center mb-1.5 shadow-[0_14px_34px_rgba(99,102,241,0.4)] bg-gradient-to-br from-blue-500 to-violet-500">
-            <ScanLine className="text-white w-8 h-8" />
-          </div>
-          <span className="font-['Space_Grotesk'] text-[12px] font-semibold tracking-[0.42em] text-slate-500">
-            INFINOOS
-          </span>
-          <span className="font-['Space_Grotesk'] text-[30px] font-bold leading-none bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-            WMS · Coletor
-          </span>
-          
-          <div className="mt-[18px] flex items-center gap-[9px] px-[15px] py-2 rounded-xl bg-slate-400/10 border border-slate-400/15">
-            <span className="text-slate-400 text-sm font-bold">
-              Matrícula {user.id.slice(0, 4)} · {user.nome.split(" ")[0]}
-            </span>
-          </div>
-
-          <span className="mt-6 text-[13.5px] font-semibold text-slate-400">
-            Digite seu PIN
-          </span>
-          <div className="flex gap-[14px] mt-3">
-            {pinDots.map((d, i) => (
-              <span
-                key={i}
-                className="w-[15px] h-[15px] rounded-full transition-all duration-150 ease-in-out"
-                style={{ background: d.bg, border: `2px solid ${d.border}` }}
-              />
-            ))}
-          </div>
-          {pinError && (
-            <span className="mt-3 text-[12.5px] font-bold text-red-500">
-              PIN incorreto — tente novamente
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 pb-2 mt-8">
-          {kd.map((label) => {
-            const isDel = label === "⌫";
-            const isOk = label === "ok";
-            const isNum = !isDel && !isOk;
-            
-            return (
-              <button
-                key={label}
-                onClick={() => {
-                  if (isDel) {
-                    setPin((p) => p.slice(0, -1));
-                    setPinError(false);
-                  } else if (isNum) {
-                    pressDigit(label);
-                  }
-                }}
-                className={`h-[62px] rounded-2xl border flex items-center justify-center font-['Space_Grotesk'] font-semibold text-[25px] active:scale-95 transition-transform ${
-                  isOk
-                    ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-lg shadow-indigo-500/30"
-                    : "border-slate-400/15 bg-slate-400/5 text-slate-100"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-        <span className="text-center text-[11.5px] text-slate-500 mt-1">
-          Dica: PIN de demonstração é 1234
-        </span>
-      </div>
-    );
-  }
 
   // Home Screen
   const userInitials = user.nome.split(" ").map(n => n[0]).slice(0, 2).join("");
