@@ -37,8 +37,8 @@ export function ShippingConferenceDocumentsPanel({
   const [validatingDanfe, setValidatingDanfe] = useState(false);
   const [confirmMissingLabel, setConfirmMissingLabel] = useState(false);
   const [printMessage, setPrintMessage] = useState("");
-  const xmlAttachment = attachments.find((attachment) => attachment.kind === "XML_NF");
-  const labelAttachment = attachments.find((attachment) => attachment.kind === "ETIQUETA");
+  const xmlAttachment = (attachments || []).find((attachment) => attachment?.kind === "XML_NF");
+  const labelAttachment = (attachments || []).find((attachment) => attachment?.kind === "ETIQUETA");
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
   const canReleaseToRomaneio = unlocked && hasInvoiceXml && danfeValidation.valid;
@@ -393,6 +393,7 @@ function AttachmentStatusCard({
   iconColor,
   badgeBg,
   badgeText,
+  unlocked,
 }: {
   title: string;
   subtitle: string;

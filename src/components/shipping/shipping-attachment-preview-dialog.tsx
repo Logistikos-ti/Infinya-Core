@@ -21,7 +21,7 @@ export function ShippingAttachmentPreviewDialog({
   const [open, setOpen] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const isLabelPreview = label.toLocaleLowerCase("pt-BR").includes("etiqueta");
+  const isLabelPreview = Boolean(label && String(label).toLocaleLowerCase("pt-BR").includes("etiqueta"));
 
   const handlePrint = useCallback(() => {
     const frame = iframeRef.current;
