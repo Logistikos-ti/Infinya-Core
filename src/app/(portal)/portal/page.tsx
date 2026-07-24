@@ -30,7 +30,12 @@ import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 
 type PortalPageProps = {
-  searchParams?: Promise<{ view?: string; page?: string; search?: string }>;
+  searchParams?: Promise<{
+    view?: string;
+    page?: string;
+    search?: string;
+    status?: string;
+  }>;
 };
 
 export default async function PortalPage({ searchParams }: PortalPageProps) {
@@ -40,6 +45,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const view = normalizeView(requestedView);
   const productsPage = parsePositivePage(params?.page);
   const productsSearch = params?.search?.trim() ?? "";
+  const ordersStatus = params?.status?.trim() ?? "";
   const depositanteId = user.depositanteId ?? "";
   const [orders, receiving, stock] = await Promise.all([
     view === "inicio" || view === "pedidos"
@@ -75,7 +81,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           lowStock={lowStock}
         />
       ) : null}
-      {view === "pedidos" ? <OrdersView orders={orders} /> : null}
+      {view === "pedidos" ? (
+        <OrdersView orders={orders} statusFilter={ordersStatus} />
+      ) : null}
       {view === "produtos" ? (
         <ProductsView
           stock={stock}
@@ -191,9 +199,34 @@ function DashboardView({
 
 function OrdersView({
   orders,
+  statusFilter,
 }: {
   orders: Awaited<ReturnType<typeof listShippingOrdersFromDb>>;
+  statusFilter: string;
 }) {
+  const filters = [
+    { label: "Todos", value: "" },
+    { label: "Recebido", value: "Recebido" },
+    { label: "Em separação", value: "Em separação" },
+    { label: "Expedido", value: "Expedido" },
+    { label: "Cancelado", value: "Cancelado" },
+  ];
+  const statusOf = (order: (typeof orders)[number]) =>
+    order.statusLabel || order.status || "Recebido";
+  const matchesFilter = (order: (typeof orders)[number], value: string) => {
+    if (!value) return true;
+    if (value === "Recebido") return order.status === "NOVO";
+    if (value === "Em separação") {
+      return ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(order.status);
+    }
+    if (value === "Expedido") return order.status === "EXPEDIDO";
+    if (value === "Cancelado") return order.status === "CANCELADO";
+    return statusOf(order) === value;
+  };
+  const visibleOrders = orders.filter((order) => matchesFilter(order, statusFilter));
+  const countFor = (value: string) =>
+    orders.filter((order) => matchesFilter(order, value)).length;
+
   return (
     <>
       <ViewHeader
@@ -201,30 +234,38 @@ function OrdersView({
         description="Pedidos enviados ao CD para separação e expedição."
         action="+ Novo pedido"
       />
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {[
-          "Todos",
-          "Recebido",
-          "Em separação",
-          "Em conferência",
-          "Expedido",
-        ].map((filter, index) => (
-          <span
-            key={filter}
-            className={`rounded-lg border px-3.5 py-2 text-xs font-bold ${index === 0 ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white" : "border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"}`}
-          >
-            {filter}
-          </span>
-        ))}
+      <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
+        {filters.map((filter) => {
+          const active = statusFilter === filter.value;
+          return (
+            <Link
+              key={filter.label}
+              href={
+                filter.value
+                  ? `/portal?view=pedidos&status=${encodeURIComponent(filter.value)}`
+                  : "/portal?view=pedidos"
+              }
+              aria-current={active ? "page" : undefined}
+              className={`inline-flex h-[34px] items-center gap-2 rounded-[9px] border px-3.5 text-[13px] font-bold transition-all ${active ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"}`}
+            >
+              {filter.label}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[11px] leading-none ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"}`}
+              >
+                {countFor(filter.value)}
+              </span>
+            </Link>
+          );
+        })}
         <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
-          {orders.length} pedidos
+          {visibleOrders.length} pedidos
         </span>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left">
-            <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-slate-400">
-              <tr>
+          <table className="w-full min-w-[860px] border-collapse text-left">
+            <thead className="text-[12px] uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
+              <tr className="text-left">
                 {[
                   "Pedido",
                   "Cliente",
@@ -234,20 +275,23 @@ function OrdersView({
                   "Status",
                   "",
                 ].map((item) => (
-                  <th key={item} className="px-5 py-3 font-bold">
+                  <th
+                    key={item}
+                    className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-[13px] font-bold dark:border-white/10 dark:bg-white/5"
+                  >
                     {item}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {visibleOrders.map((order) => (
                 <OrderTableRow key={order.id} order={order} />
               ))}
             </tbody>
           </table>
         </div>
-        {!orders.length ? (
+        {!visibleOrders.length ? (
           <EmptyState text="Nenhum pedido encontrado." />
         ) : null}
       </div>
@@ -854,29 +898,31 @@ function OrderTableRow({
   order: Awaited<ReturnType<typeof listShippingOrdersFromDb>>[number];
 }) {
   return (
-    <tr className="border-t border-slate-100 text-sm dark:border-white/10">
-      <td className="px-5 py-4 font-display font-bold">
+    <tr className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]">
+      <td className="px-5 py-[14px] font-display text-sm font-bold">
         {order.displayNumber ?? order.id}
       </td>
-      <td className="px-5 py-4">
-        <p className="font-semibold">
+      <td className="px-5 py-[14px]">
+        <p className="max-w-[200px] truncate text-sm font-semibold">
           {order.customer ?? "Cliente não informado"}
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {order.destination ?? "Destino não informado"}
         </p>
       </td>
-      <td className="px-5 py-4">
+      <td className="px-5 py-[14px] text-[13.5px] font-semibold">
         {order.marketplace || order.channel || "Operação própria"}
       </td>
-      <td className="px-5 py-4">{order.itemCount ?? 0}</td>
-      <td className="px-5 py-4 text-xs text-slate-500">
+      <td className="px-5 py-[14px] font-display text-sm font-semibold">
+        {order.itemCount ?? 0} item{(order.itemCount ?? 0) === 1 ? "" : "s"}
+      </td>
+      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">
         {formatDate(order.createdAt)}
       </td>
-      <td className="px-5 py-4">
+      <td className="px-5 py-[14px]">
         <StatusBadge label={order.statusLabel || order.status} />
       </td>
-      <td className="px-5 py-4 text-right text-slate-400">
+      <td className="px-5 py-[14px] text-right text-slate-400">
         <ArrowRight className="ml-auto h-4 w-4" />
       </td>
     </tr>
