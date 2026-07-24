@@ -54,6 +54,7 @@ export function EnderecosDashboard({
   const [view, setView] = useState<"table" | "map">("table");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeFilter, setActiveFilter] = useState<"TODOS" | "PICKING" | "PULMAO" | "DISPONIVEIS" | "BLOQUEADOS">("TODOS");
   const [showForm, setShowForm] = useState(initialShowForm);
   const pageSize = 10;
 
@@ -76,7 +77,19 @@ export function EnderecosDashboard({
     ];
   }, [kpiData]);
 
-  const filtered = enderecos;
+  const filtered = useMemo(() => enderecos.filter((address) => {
+    const metric = addressMetrics[address.id] ?? { quantidade: 0, skus: [], ocupacao: null };
+    const blocked = !address.ativo || address.area === "BLOQUEADO";
+    if (activeFilter === "PICKING") return address.area === "PICKING";
+    if (activeFilter === "PULMAO") return address.area === "PULMAO";
+    if (activeFilter === "DISPONIVEIS") return !blocked;
+    if (activeFilter === "BLOQUEADOS") return blocked;
+    return true;
+  }), [activeFilter, addressMetrics, enderecos]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -260,6 +273,25 @@ export function EnderecosDashboard({
                 <span className="text-[13px] font-semibold text-[var(--e-textSub)]">{k.detail}</span>
               </div>
             </div>
+          ))}
+        </div>
+
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {[
+            ["TODOS", "Todos"],
+            ["PICKING", "Picking"],
+            ["PULMAO", "Pulmão"],
+            ["DISPONIVEIS", "Disponíveis"],
+            ["BLOQUEADOS", "Bloqueados"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setActiveFilter(value as typeof activeFilter)}
+              className={`h-10 rounded-xl border px-4 text-[13px] font-bold transition-all ${activeFilter === value ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-textSub)] hover:border-violet-400 hover:text-violet-500"}`}
+            >
+              {label}
+            </button>
           ))}
         </div>
 
