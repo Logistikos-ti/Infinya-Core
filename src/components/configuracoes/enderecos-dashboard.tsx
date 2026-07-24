@@ -314,7 +314,7 @@ export function EnderecosDashboard({
           ))}
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="hidden">
           {[
             ["TODOS", "Todos"],
             ["PICKING", "Picking"],
@@ -335,7 +335,25 @@ export function EnderecosDashboard({
 
         {view === "table" && (
           <div className="rounded-2xl border border-[var(--e-border)] bg-[var(--e-cardBg)] overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--e-border)] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--e-border)] p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  ["TODOS", "Todos"],
+                  ["PICKING", "Picking"],
+                  ["PULMAO", "PulmÃ£o"],
+                  ["DISPONIVEIS", "DisponÃ­veis"],
+                  ["BLOQUEADOS", "Bloqueados"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setActiveFilter(value as typeof activeFilter)}
+                    className={`h-9 rounded-xl border px-4 text-[13px] font-bold transition-all ${activeFilter === value ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-sm" : "border-[var(--e-border)] bg-[var(--e-inputBg)] text-[var(--e-text)] hover:border-violet-400 hover:-translate-y-0.5"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <span className="text-[13px] text-[var(--e-textSub)]">{filtered.length} endereços encontrados</span>
             </div>
             <div className="overflow-x-auto">
