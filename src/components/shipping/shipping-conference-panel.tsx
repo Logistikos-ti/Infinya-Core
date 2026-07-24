@@ -393,7 +393,7 @@ export function ShippingConferencePanel({
 
   return (
     <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "28px 32px", background: t.sideBg2, animation: "panelFadeIn 0.25s ease-out" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
+      <div style={{ maxWidth: 840, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
         
         <InactivityWarningDialog
           isVisible={isWarningVisible}
@@ -523,6 +523,7 @@ export function ShippingConferencePanel({
             <button 
               type="button" 
               onClick={() => handleScanSubmit()}
+              className="btn-bipar"
               style={{ height: 54, padding: "0 22px", border: "none", borderRadius: 12, background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)" }}
             >
               Bipar
@@ -561,41 +562,19 @@ export function ShippingConferencePanel({
                     <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
                     
                     <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1.5px solid ${checkBorder}`, background: checkBg, color: checkColor, fontWeight: 700 }}>{mark}</span>
-                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 10, background: thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>{boxIcon}</div>
+                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 10, background: thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
+                      {/* @ts-ignore */}
+                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : boxIcon}
+                    </div>
                     
                     <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: nameColor }}>{item.name}</span>
                       <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 12, color: t.textSub }}>{item.sku}</span>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                      <input
-                        ref={(element) => { quantityInputRefs.current[item.id] = element; }}
-                        type="number"
-                        name="confirmedQuantity"
-                        min={0}
-                        max={item.requestedQuantity}
-                        step={1}
-                        value={item.confirmedQuantityValue}
-                        onChange={(event) => updateItemQuantity(item.id, event.target.value)}
-                        readOnly={item.isKit}
-                        style={{
-                          width: "36px",
-                          background: "transparent",
-                          border: "none",
-                          textAlign: "right",
-                          fontFamily: "'Space Grotesk', sans-serif",
-                          fontSize: "14.5px",
-                          fontWeight: 700,
-                          color: qtyColor,
-                          outline: "none",
-                          WebkitAppearance: "none",
-                          MozAppearance: "textfield"
-                        }}
-                      />
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.textSub }}>
-                        / {item.requestedQuantity}
-                      </span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, fontFamily: "'Space Grotesk', sans-serif", fontSize: "15px" }}>
+                      <span style={{ fontWeight: 800, color: qtyColor }}>{item.confirmedQuantityValue}</span>
+                      <span style={{ fontWeight: 700, color: t.textSub, opacity: 0.8 }}>/ {item.requestedQuantity}</span>
                     </div>
                   </div>
                 );
@@ -605,7 +584,7 @@ export function ShippingConferencePanel({
 
           {/* Action bar */}
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+            <button type="button" className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
               ⚠ Reportar divergência
             </button>
             <button 
@@ -633,6 +612,11 @@ export function ShippingConferencePanel({
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
         @keyframes rowIn { from { transform: translateX(-8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes panelFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-bipar { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-bipar:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99,102,241,0.45) !important; filter: brightness(1.05); }
+        .btn-bipar:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(99,102,241,0.3) !important; }
+        .btn-divergence { transition: all 0.2s ease; }
+        .btn-divergence:hover { background: rgba(239,68,68,0.1) !important; border-color: rgba(239,68,68,0.4) !important; color: #EF4444 !important; }
       `}} />
     </div>
   );
