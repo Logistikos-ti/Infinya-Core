@@ -28,6 +28,7 @@ export type ProductLookupForCommercialKit = {
   codigo_externo: string | null;
   sku: string | null;
   nome: string;
+  imagem_principal_url?: string | null;
 };
 
 export type CommercialKitMatchResult = {
@@ -127,6 +128,8 @@ export function resolveCommercialKitMatch(params: {
       codigo_externo: rule.productBarcode,
       sku: rule.productSku,
       nome: rule.productName,
+      // @ts-ignore - The property exists on the rule from our cast in shipping-conference.ts
+      imagem_principal_url: rule.imagem_principal_url,
     } satisfies ProductLookupForCommercialKit);
 
   const isAliasOnly = rule.operationalQuantity === 1 && !hasOperationalKit(existingPayload);

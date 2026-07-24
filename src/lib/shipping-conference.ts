@@ -30,6 +30,7 @@ type RawConferenceItemRow = {
   payload_origem: Record<string, unknown> | null;
   produto?: {
     codigo_externo?: string | null;
+    imagem_principal_url?: string | null;
   } | null;
 };
 
@@ -90,6 +91,7 @@ export type ShippingConferenceItem = {
   pendingQuantity: number;
   hasQuantityDivergence: boolean;
   kitComponents: ShippingConferenceKitComponent[];
+  imageUrl: string | null;
   scanTargets: string[];
 };
 
@@ -214,7 +216,7 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
 
 function buildConferenceOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, numero_wms, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, numero_wms, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo, imagem_principal_url))",
   );
 }
 
@@ -311,6 +313,7 @@ function mapConferenceItem(
       pendingQuantity: Math.max(requestedQuantity - confirmedQuantity, 0),
       hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
       kitComponents: [],
+      imageUrl: hydratedItem.produto?.imagem_principal_url || null,
       scanTargets: [itemBarcode, itemCode, itemSku].filter(Boolean),
     } satisfies ShippingConferenceItem;
   }
@@ -350,6 +353,7 @@ function mapConferenceItem(
     pendingQuantity: Math.max(totals.operationalRequestedQuantity - totals.operationalSeparatedQuantity, 0),
     hasQuantityDivergence: totals.operationalSeparatedQuantity !== totals.operationalRequestedQuantity,
     kitComponents,
+    imageUrl: hydratedItem.produto?.imagem_principal_url || null,
     scanTargets: [...new Set([
       itemBarcode,
       itemCode,
@@ -399,7 +403,7 @@ async function loadCommercialKitRulesByDepositante(
   const { data, error } = await supabase
     .from("produto_kit_comercial_regras")
     .select(
-      "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo)",
+      "id, depositante_id, produto_base_id, texto_gatilho, quantidade_operacional, ativo, produto:produtos!produto_kit_comercial_regras_produto_base_id_fkey(id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url)",
     )
     .eq("ativo", true);
 
@@ -425,6 +429,7 @@ async function loadCommercialKitRulesByDepositante(
           sku: string | null;
           codigo_interno: string | null;
           codigo_externo: string | null;
+          imagem_principal_url?: string | null;
         }>
       | {
           id: string;
@@ -432,6 +437,7 @@ async function loadCommercialKitRulesByDepositante(
           sku: string | null;
           codigo_interno: string | null;
           codigo_externo: string | null;
+          imagem_principal_url?: string | null;
         }
       | null;
   }>)) {
@@ -503,6 +509,10 @@ function hydrateConferenceItemWithCommercialKit(
       codigo_externo:
         item.produto?.codigo_externo?.trim() ||
         resolvedMatch.matchedProduct?.codigo_externo ||
+        null,
+      imagem_principal_url: 
+        item.produto?.imagem_principal_url || 
+        resolvedMatch.matchedProduct?.imagem_principal_url || 
         null,
     },
   } satisfies RawConferenceItemRow;
