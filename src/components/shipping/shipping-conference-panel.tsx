@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, RefreshCw, Smartphone, Loader2, FileText } from "lucide-react";
+import { Camera, RefreshCw, Smartphone, Loader2, FileText, Route } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
-import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
+import { ShippingConferenceDocumentsPanel, type ShippingConferenceDocumentsPanelRef } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -46,6 +46,7 @@ export function ShippingConferencePanel({
   redirectBase = "/expedicao/conferencia",
   documents,
 }: ShippingConferencePanelProps) {
+  const panelRef = useRef<ShippingConferenceDocumentsPanelRef>(null);
   const router = useRouter();
 
   const { theme } = useTheme();
@@ -591,9 +592,10 @@ export function ShippingConferencePanel({
 
         </form>
 
-        {full && (
+        {full && documents && documents.depositanteId && (
           <ShippingConferenceDocumentsPanel
-            orderId={documents.orderId}
+            ref={panelRef}
+            orderId={order.id}
             depositanteId={documents.depositanteId}
             attachments={documents.attachments}
             canUploadAttachments={documents.canUploadAttachments}
@@ -602,22 +604,26 @@ export function ShippingConferencePanel({
           />
         )}
 
-        {/* Action bar - only show when not full, because documents panel has its own */}
-        {!full && (
-          <div style={{ display: "flex", gap: 12 }}>
-            <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
-              ⚠ Reportar divergência
-            </button>
-            <button 
-              type="submit"
-              form="shipping-conference-form"
-              disabled={true} 
-              style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
-            >
-              {checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
-            </button>
-          </div>
-        )}
+        {/* Action bar */}
+        <div style={{ display: "flex", gap: 12 }}>
+          <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+            ⚠ Reportar divergência
+          </button>
+          <button 
+            type={full ? "button" : "submit"}
+            form={full ? undefined : "shipping-conference-form"}
+            disabled={!full || isSubmitting} 
+            onClick={(e) => {
+              if (full) {
+                e.preventDefault();
+                panelRef.current?.openPreparationModal();
+              }
+            }}
+            style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
+          >
+            {full ? <Route size={18} /> : checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
+          </button>
+        </div>
 
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
