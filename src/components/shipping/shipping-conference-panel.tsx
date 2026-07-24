@@ -156,7 +156,8 @@ export function ShippingConferencePanel({
   );
 
   useEffect(() => {
-    if (!operatorMode || cameraEnabled || full) {
+    const isFull = items.every((item) => normalizeQuantity(item.confirmedQuantityValue) >= item.requestedQuantity);
+    if (!operatorMode || cameraEnabled || isFull) {
       return;
     }
 
@@ -165,7 +166,7 @@ export function ShippingConferencePanel({
     }, 120);
 
     return () => window.clearTimeout(focusTimer);
-  }, [cameraEnabled, operatorMode, full]);
+  }, [cameraEnabled, operatorMode, items]);
 
   useEffect(() => {
     if (!isSubmitting) {
@@ -517,7 +518,8 @@ export function ShippingConferencePanel({
                 }
               }}
               onBlur={() => {
-                if (operatorMode && !cameraEnabled && !full) {
+                const isFull = items.every((item) => normalizeQuantity(item.confirmedQuantityValue) >= item.requestedQuantity);
+                if (operatorMode && !cameraEnabled && !isFull) {
                   window.setTimeout(() => scanInputRef.current?.focus(), 40);
                 }
               }}
