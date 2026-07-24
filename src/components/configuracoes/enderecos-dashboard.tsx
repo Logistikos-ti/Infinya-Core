@@ -664,7 +664,7 @@ export function EnderecosDashboard({
                   </div>
                 </div>
                 {/* Actions */}
-                <div className="shrink-0 p-4 border-t border-[var(--e-border)] flex gap-2.5 bg-[var(--e-drawerBg)]">
+                <div className="shrink-0 p-4 border-t border-[var(--e-border)] grid grid-cols-[minmax(0,1fr)_46px_46px_minmax(0,1.2fr)] gap-2.5 bg-[var(--e-drawerBg)]">
                   <button
                     type="button"
                     onClick={() => {
@@ -676,7 +676,7 @@ export function EnderecosDashboard({
                   >
                     Editar
                   </button>
-                  <form action={deleteEnderecoAction} className="flex-1" onSubmit={(event) => {
+                  <form action={deleteEnderecoAction} className="w-full" onSubmit={(event) => {
                     if (!window.confirm(`Excluir o endereço ${selected.codigo}?`)) event.preventDefault();
                   }}>
                     <input type="hidden" name="id" value={selected.id} />
@@ -689,7 +689,7 @@ export function EnderecosDashboard({
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </form>
-                  <form action={toggleEnderecoStatusAction} onSubmit={(event) => {
+                  <form action={toggleEnderecoStatusAction} className="w-full" onSubmit={(event) => {
                     const action = selected.ativo ? "bloquear" : "desbloquear";
                     if (!window.confirm(`${action.charAt(0).toUpperCase()}${action.slice(1)} o endereço ${selected.codigo}?`)) event.preventDefault();
                   }}>
@@ -704,7 +704,7 @@ export function EnderecosDashboard({
                       {selected.ativo ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                     </button>
                   </form>
-                  <button type="button" onClick={() => setLabelOpen(true)} className="flex-[1.2] h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(99,102,241,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"><span className="inline-flex items-center justify-center gap-2"><Tag className="h-4 w-4" />Etiqueta</span></button>
+                  <button type="button" onClick={() => setLabelOpen(true)} className="w-full h-[46px] rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-manrope text-[14px] font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(99,102,241,0.42)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"><span className="inline-flex items-center justify-center gap-2"><Tag className="h-4 w-4" />Etiqueta</span></button>
                 </div>
                 {labelOpen ? (
                   <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setLabelOpen(false)}>
