@@ -343,7 +343,7 @@ function code128BPattern(value: string) {
     .join("");
 }
 
-function AddressBarcodePreview({ value }: { value: string }) {
+export function AddressBarcodePreview({ value }: { value: string }) {
   const pattern = code128BPattern(value);
   let cursor = 8;
   const bars: Array<{ x: number; width: number }> = [];

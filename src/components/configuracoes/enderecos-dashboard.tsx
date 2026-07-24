@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { Box, ChevronLeft, ChevronRight, Gauge, MapPin, Percent, Trash2 } from "lucide-react";
 import { deleteEnderecoAction } from "@/app/(dashboard)/configuracoes/enderecos/actions";
+import { AddressBarcodePreview } from "@/components/configuracoes/endereco-form";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 const space = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
@@ -554,6 +555,10 @@ export function EnderecosDashboard({
                         <span className="text-[15px] font-bold">{selected.capacidade_maxima ? `${selected.capacidade_maxima} un` : "Sem limite"}</span>
                       </div>
                     </div>
+                  </div>
+                  <div className="mb-5">
+                    <span className="font-space text-[14px] font-bold">Etiqueta do endereço</span>
+                    <AddressBarcodePreview value={selected.codigo} />
                   </div>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="p-3.5 rounded-xl border border-[var(--e-border)] bg-[var(--e-cardBg)] flex flex-col gap-1.5">
