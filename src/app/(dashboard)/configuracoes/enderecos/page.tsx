@@ -186,7 +186,7 @@ export default async function ConfiguracoesEnderecosPage({
           </div>
         }
       >
-        <div className="grid gap-6 xl:grid-cols-2 mt-8">
+        {false && <div className="grid gap-6 xl:grid-cols-2 mt-8">
           <AddressImportPanel />
           <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-white/10 dark:bg-slate-900/40">
             <div>
@@ -201,7 +201,7 @@ export default async function ConfiguracoesEnderecosPage({
               <AddressBulkGeneratorForm action={generateEnderecosAction} />
             </div>
           </section>
-        </div>
+        </div>}
       </EnderecosDashboard>
     </div>
   );
