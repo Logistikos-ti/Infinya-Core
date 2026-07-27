@@ -1,5 +1,7 @@
 /* eslint-disable */
 import type { AppUserContext } from "@/lib/auth";
+import { gunzipSync } from "node:zlib";
+import { parseNfeXml } from "@/lib/nfe-import";
 import { buildOperationalSlaMeta, type OperationalSlaTone } from "@/lib/operational-sla";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import {
@@ -11,6 +13,7 @@ import {
   repairMojibake,
 } from "@/lib/sales-channels";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { documentsBucketName } from "@/lib/storage";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -83,6 +86,7 @@ type RawStoredDocumentRow = {
   tipo: string;
   nome_arquivo: string;
   mime_type: string | null;
+  caminho_storage?: string | null;
   created_at: string;
 };
 
@@ -230,7 +234,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -261,9 +265,11 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
     throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
   }
 
-  const orders = ((data ?? []) as RawShippingOrderRow[])
-    .filter((item) => !isBlingWebhookSummaryOrder(item.observacoes))
-    .map(mapShippingOrderSummary);
+  const orders = await Promise.all(
+    ((data ?? []) as RawShippingOrderRow[])
+      .filter((item) => !isBlingWebhookSummaryOrder(item.observacoes))
+      .map(mapShippingOrderSummary),
+  );
 
   return orders.filter((order) => {
     if (filters?.carrier) {
@@ -388,7 +394,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -417,7 +423,10 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
   const marketplace = extractMarketplace(payload);
-  const invoice = extractInvoice(payload, (order as any).documentos);
+  const invoice = await resolveStoredInvoiceNumber(
+    extractInvoice(payload, (order as any).documentos),
+    (order as any).documentos,
+  );
   const orderType = extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
   const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
@@ -534,7 +543,7 @@ function buildDefaultShippingAttachments(
       orderId,
       invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
       "Anexe aqui o XML da nota fiscal quando o documento estiver disponÃ­vel no fluxo fiscal.",
-      origin === "BLING" ? `/api/expedicao/${orderId}/nota-fiscal-preview` : null,
+      `/api/expedicao/${orderId}/nota-fiscal-preview?disposition=inline`,
     ),
     buildAttachment(
       "ETIQUETA",
@@ -595,7 +604,7 @@ export function listShippingFlowSteps() {
   ] as const;
 }
 
-function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummary {
+async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<ShippingOrderSummary> {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const storeDisplay = extractStore(payload, item.numero_loja);
   const marketplace = extractMarketplace(payload);
@@ -607,7 +616,10 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const ageMeta = buildOperationalSlaMeta(item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
-  const nfe = extractInvoice(payload, (item as any).documentos);
+  const nfe = await resolveStoredInvoiceNumber(
+    extractInvoice(payload, (item as any).documentos),
+    (item as any).documentos,
+  );
   const docs = Array.isArray((item as any).documentos) ? (item as any).documentos : [];
   const hasNfe = docs.some((d: any) => d.tipo === "NF" || (d.mime_type && d.mime_type.includes("xml")));
   const hasEtiqueta = docs.some((d: any) => d.tipo === "ETIQUETA");
@@ -780,6 +792,40 @@ function isOrderReleasedToRomaneio(payload: Record<string, unknown>, status: str
 
 function extractStore(payload: Record<string, unknown>, storeNumberFallback: string | null) {
   return readStoreDisplay(payload, storeNumberFallback);
+}
+
+async function resolveStoredInvoiceNumber(fallback: string, documents?: any[]) {
+  if (fallback !== "Ainda não vinculada" || !Array.isArray(documents)) {
+    return fallback;
+  }
+
+  const xmlDocument = documents.find(
+    (document: any) =>
+      (document.tipo === "NF" || document.mime_type?.includes("xml")) &&
+      typeof document.caminho_storage === "string" &&
+      document.caminho_storage,
+  );
+
+  if (!xmlDocument) return fallback;
+
+  try {
+    const supabase = createSupabaseAdminClient();
+    const downloadResult = await supabase.storage
+      .from(documentsBucketName)
+      .download(xmlDocument.caminho_storage);
+
+    if (downloadResult.error || !downloadResult.data) return fallback;
+
+    let bytes = Buffer.from(await downloadResult.data.arrayBuffer());
+    if ((xmlDocument.mime_type || "").includes("xml") && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+      bytes = gunzipSync(bytes);
+    }
+
+    const parsed = parseNfeXml(bytes.toString("utf-8"));
+    return parsed.noteNumber || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function extractInvoice(payload: Record<string, unknown>, documents?: any[]) {
