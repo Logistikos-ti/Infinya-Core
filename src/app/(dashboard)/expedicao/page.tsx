@@ -57,7 +57,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     supabase.from("depositantes").select("id, nome").order("nome"),
     supabase
       .from("produtos")
-      .select("id, nome, sku, codigo_interno, codigo_externo, depositante_id")
+      .select("id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url, depositante_id")
       .order("nome")
       .limit(1000),
     listShippingOrdersFromDb({

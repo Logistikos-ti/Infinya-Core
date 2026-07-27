@@ -49,6 +49,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderChannel, setNewOrderChannel] = useState("MERCADO_LIVRE");
   const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productPickerQuery, setProductPickerQuery] = useState("");
   const [newOrderCarrier, setNewOrderCarrier] = useState("Melhor frete (automático)");
 
   const isOrders = activeTab === "orders";
@@ -100,6 +101,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const availableProducts = (data.productOptions ?? []).filter((produto: any) => produto.depositante_id === newOrderDepositante);
   const selectedItems = newOrderItems.map((item) => ({ ...item, product: availableProducts.find((produto: any) => produto.id === item.id) ?? data.productOptions?.find((produto: any) => produto.id === item.id) })).filter((item) => item.product);
   const totalNewOrderUnits = selectedItems.reduce((total, item) => total + item.quantity, 0);
+  const pickerProducts = availableProducts.filter((produto: any) => {
+    const query = productPickerQuery.trim().toLowerCase();
+    return !query || [produto.nome, produto.sku, produto.codigo_interno, produto.codigo_externo].filter(Boolean).some((value) => String(value).toLowerCase().includes(query));
+  });
 
   const kpis = [
     { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: data.stats[0]?.delta || "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
@@ -629,8 +634,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
         const getTimelineSteps = (status: string, o: any) => {
           let orderIdx = 0;
           if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
-          if (status === 'EM_CONFERENCIA' || status === 'CONFERIDO') orderIdx = 2;
-          if (status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+          if (status === 'EM_CONFERENCIA') orderIdx = 2;
+          if (status === 'CONFERIDO' || status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
 
           const stepMeta = [
             { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
@@ -662,8 +667,9 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
+        const isRingConcluded = sel.status === 'CONFERIDO' || sel.status === 'PRONTO_ROMANEIO' || sel.status === 'EXPEDIDO';
         const ring = {
-          c1: '#3B82F6', c2: '#8B5CF6',
+          c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
           offset: 289 - (289 * sel.confN) / 100
         };
@@ -812,8 +818,8 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         const getTimelineSteps = (status: string, o: any) => {
           let orderIdx = 0;
           if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
-          if (status === 'EM_CONFERENCIA' || status === 'CONFERIDO') orderIdx = 2;
-          if (status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+          if (status === 'EM_CONFERENCIA') orderIdx = 2;
+          if (status === 'CONFERIDO' || status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
 
           const stepMeta = [
             { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
@@ -848,8 +854,9 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
+        const isRingConcluded = sel.status === 'CONFERIDO' || sel.status === 'PRONTO_ROMANEIO' || sel.status === 'EXPEDIDO';
         const ring = {
-          c1: '#3B82F6', c2: '#8B5CF6',
+          c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
           offset: 289 - (289 * sel.confN) / 100
         };
@@ -1028,10 +1035,33 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     <button type="button" aria-label="Remover item" onClick={() => setNewOrderItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid rgba(239,68,68,.25)`, background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><X size={14} /></button>
                   </div>)}
                   {showProductPicker && <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", flexDirection: "column", background: t.drawerBg, animation: "overlayFade .2s ease" }}>
-                    <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 12 }}><button type="button" onClick={() => setShowProductPicker(false)} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><ChevronLeft size={17} /></button><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>Escolher produtos</strong></div>
-                    <div style={{ padding: "16px 24px 0" }}><input placeholder="Buscar por nome ou SKU..." style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none" }} /></div>
-                    <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>{availableProducts.map((produto: any) => { const already = newOrderItems.some((item) => item.id === produto.id); return <button type="button" key={produto.id} disabled={already} onClick={() => { setNewOrderItems((items) => already ? items : [...items, { id: produto.id, quantity: 1 }]); setShowProductPicker(false); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${already ? "#10B981" : t.border}`, background: already ? "rgba(16,185,129,.08)" : t.cardBg, color: t.text, textAlign: "left", cursor: already ? "default" : "pointer" }}><span style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#60A5FA,#A78BFA)", color: "#fff" }}><Box size={18} /></span><span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 13.5 }}>{produto.nome}</strong><small style={{ color: t.textSub }}>{produto.sku || produto.codigo_interno || produto.codigo_externo || "Sem código"}</small></span><span style={{ color: already ? "#10B981" : "#8B5CF6", fontWeight: 800 }}>{already ? "✓ Adicionado" : "+ Adicionar"}</span></button>; })}</div>
+                    <div style={{ flexShrink: 0, padding: "20px 24px 18px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+                      <button type="button" aria-label="Voltar para o pedido" onClick={() => setShowProductPicker(false)} style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center", padding: 0, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><ChevronLeft size={17} strokeWidth={2.2} /></button>
+                      <strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>Escolher produtos</strong>
+                    </div>
+                     <div style={{ flexShrink: 0, padding: "16px 24px 0" }}><div style={{ position: "relative" }}><Search size={15} color={t.textSub} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} /><input value={productPickerQuery} onChange={(event) => setProductPickerQuery(event.target.value)} placeholder="Buscar por nome ou SKU..." style={{ width: "100%", height: 46, padding: "0 14px 0 38px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /></div></div>
+                    <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {pickerProducts.length === 0 && <div style={{ padding: "38px 18px", borderRadius: 14, border: `1px dashed ${t.border}`, color: t.textSub, textAlign: "center", fontSize: 13 }}>Nenhum produto encontrado.</div>}
+                      {pickerProducts.map((produto: any) => {
+                        const already = newOrderItems.some((item) => item.id === produto.id);
+                        const stockValue = produto.estoque_disponivel ?? produto.quantidade_disponivel ?? produto.estoque ?? produto.quantidade;
+                        const hasStockValue = stockValue !== undefined && stockValue !== null && stockValue !== "";
+                        const outOfStock = hasStockValue && Number(stockValue) <= 0;
+                        const imageUrl = produto.imagem_principal_url;
+                        return <button type="button" key={produto.id} disabled={already || outOfStock} onClick={() => setNewOrderItems((items) => already || outOfStock ? items : [...items, { id: produto.id, quantity: 1 }])} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", minHeight: 66, padding: "10px 14px", borderRadius: 13, border: `1.5px solid ${already ? "#8B5CF6" : t.border}`, background: already ? "rgba(139,92,246,.08)" : t.cardBg, color: t.text, textAlign: "left", cursor: already || outOfStock ? "default" : "pointer", opacity: outOfStock ? .72 : 1 }}>
+                          <span style={{ width: 40, height: 40, flexShrink: 0, overflow: "hidden", borderRadius: 10, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#60A5FA,#A78BFA)", color: "#fff" }}>{imageUrl ? <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Box size={18} />}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 13.5 }}>{produto.nome}</strong><small style={{ display: "block", marginTop: 3, color: outOfStock ? "#EF4444" : t.textSub, fontSize: 11.5 }}>{produto.sku || produto.codigo_interno || produto.codigo_externo || "Sem código"}{hasStockValue ? ` · ${Number(stockValue)} em estoque` : ""}</small></span>
+                          <span style={{ flexShrink: 0, color: outOfStock ? "#EF4444" : already ? "#10B981" : "#8B5CF6", fontWeight: 800, fontSize: 12.5 }}>{outOfStock ? "Indisponível" : already ? "✓ Adicionado" : "+ Adicionar"}</span>
+                        </button>;
+                      })}
+                    </div>
+                    <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}><button type="button" disabled={newOrderItems.length === 0} onClick={() => { setShowProductPicker(false); setProductPickerQuery(""); }} style={{ width: "100%", height: 48, border: 0, borderRadius: 11, background: newOrderItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: newOrderItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, fontSize: 14, cursor: newOrderItems.length === 0 ? "not-allowed" : "pointer", boxShadow: newOrderItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.25)" }}>Concluir seleção ({newOrderItems.length})</button></div>
                   </div>}
+                     {false && <>
+                     <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 12 }}><button type="button" onClick={() => setShowProductPicker(false)} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><ChevronLeft size={17} /></button><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>Escolher produtos</strong></div>
+                    <div style={{ flexShrink: 0, padding: "16px 24px 0" }}><div style={{ position: "relative" }}><Search size={15} color={t.textSub} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} /><input value={productPickerQuery} onChange={(event) => setProductPickerQuery(event.target.value)} placeholder="Buscar por nome ou SKU..." style={{ width: "100%", height: 46, padding: "0 14px 0 38px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /></div></div>
+                    <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>{availableProducts.map((produto: any) => { const already = newOrderItems.some((item) => item.id === produto.id); return <button type="button" key={produto.id} disabled={already} onClick={() => { setNewOrderItems((items) => already ? items : [...items, { id: produto.id, quantity: 1 }]); setShowProductPicker(false); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${already ? "#10B981" : t.border}`, background: already ? "rgba(16,185,129,.08)" : t.cardBg, color: t.text, textAlign: "left", cursor: already ? "default" : "pointer" }}><span style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#60A5FA,#A78BFA)", color: "#fff" }}><Box size={18} /></span><span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 13.5 }}>{produto.nome}</strong><small style={{ color: t.textSub }}>{produto.sku || produto.codigo_interno || produto.codigo_externo || "Sem código"}</small></span><span style={{ color: already ? "#10B981" : "#8B5CF6", fontWeight: 800 }}>{already ? "✓ Adicionado" : "+ Adicionar"}</span></button>; })}</div>
+                    </div></>}
                 </section>
 
                 <section>
