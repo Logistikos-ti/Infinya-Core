@@ -10,6 +10,7 @@ import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 type ExpedicaoPageProps = {
   searchParams?: Promise<{
@@ -116,5 +117,11 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     estoque_disponivel: stockByProduct.get(produto.id) ?? 0,
   }));
 
-  return <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery }} />;
+  // Force a tiny mutation in ExpedicaoClient so we can see if it deployed
+  return (
+    <>
+      <div style={{ display: "none" }} id="cache-buster-v2">v2</div>
+      <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery }} />
+    </>
+  );
 }
