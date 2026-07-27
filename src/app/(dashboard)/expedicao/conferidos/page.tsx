@@ -35,7 +35,7 @@ export default async function ShippingConferidosPage({ searchParams }: ShippingC
   const orders = allOrders.filter(
     (order) =>
       order.status === "PRONTO_ROMANEIO" ||
-      (order.status === "CONFERIDO" && order.releasedWithoutRomaneio),
+      order.status === "CONFERIDO",
   );
 
   const withoutRomaneio = orders.filter((order) => order.releasedWithoutRomaneio).length;
