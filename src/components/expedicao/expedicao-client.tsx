@@ -989,7 +989,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Operação</h3>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <label style={{ position: "relative", color: t.textSub, fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 700 }}>Depositante
+                    <label style={{ position: "relative", color: t.textSub, fontSize: 12, letterSpacing: 0, textTransform: "none", fontWeight: 500 }}>Depositante
                       <input type="hidden" required name="depositanteId" value={newOrderDepositante} />
                       <button type="button" onClick={() => setNewOrderDepositanteOpen((open) => !open)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: 7, height: 52, padding: "0 16px", borderRadius: 16, border: `1.5px solid ${newOrderDepositanteOpen ? "#22D3EE" : t.border}`, background: t.cardBg, color: newOrderDepositante ? t.text : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: 14, cursor: "pointer", textAlign: "left", boxShadow: newOrderDepositanteOpen ? "0 0 0 3px rgba(34,211,238,.13)" : "none", transition: "border-color .16s ease, box-shadow .16s ease" }}>
                         <span style={{ letterSpacing: 0, textTransform: "none", fontWeight: 500 }}>{data.depositanteOptions?.find((depositante: any) => depositante.id === newOrderDepositante)?.nome ?? "Todos"}</span><ChevronDown size={17} color={newOrderDepositanteOpen ? "#64748B" : t.textSub} style={{ transform: newOrderDepositanteOpen ? "rotate(180deg)" : "none", transition: "transform .16s ease" }} />
@@ -999,20 +999,17 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       </div>}
                     </label>
                     <label style={{ color: t.textSub, fontSize: 12 }}>Número do pedido
-                      <input required name="numeroPedido" placeholder="Ex.: 18450" style={{ display: "block", width: "100%", marginTop: 6, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                      <input required name="numeroPedido" placeholder="Ex.: 18450" style={{ display: "block", width: "100%", marginTop: 7, height: 52, padding: "0 14px", borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 14, outline: "none" }} />
                     </label>
                   </div>
                 </section>
 
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Destinatário</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 12 }}>
-                    <input required name="clienteNome" placeholder="Nome do cliente" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
-                    <input name="clienteDocumento" placeholder="CPF / CNPJ" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
-                    <input name="clienteCep" placeholder="CEP" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
-                    <input name="clienteCidade" placeholder="Cidade" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    {[{ name: "clienteNome", label: "Nome do cliente", placeholder: "Ex.: Marina Costa", required: true }, { name: "clienteDocumento", label: "CPF / CNPJ", placeholder: "000.000.000-00" }, { name: "clienteCep", label: "CEP", placeholder: "00000-000" }, { name: "clienteCidade", label: "Cidade / UF", placeholder: "São Paulo · SP" }].map((field: any) => <label key={field.name} style={{ display: "flex", flexDirection: "column", gap: 6, color: t.textSub, fontSize: 12, fontWeight: 500 }}>{field.label}<input required={field.required} name={field.name} placeholder={field.placeholder} style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 14, outline: "none", boxSizing: "border-box" }} /></label>)}
                   </div>
-                  <input name="clienteUf" maxLength={2} placeholder="UF" style={{ width: 90, height: 44, marginTop: 12, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, textTransform: "uppercase" }} />
+                  <input type="hidden" name="clienteUf" value="" />
                 </section>
 
                 <section>
