@@ -837,7 +837,7 @@ export function EnderecosDashboard({
                           </div>
                         </div>
                         <div className="[&_svg]:h-[92px] [&_svg]:w-full">
-                          <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
+                          <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} showValue={false} />
                         </div>
                       </div>
                       <div className="mt-6 flex justify-end gap-3">
