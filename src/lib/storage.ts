@@ -6,6 +6,7 @@ export const allowedDocumentMimeTypes = [
   "application/pdf",
   "application/xml",
   "text/xml",
+  "text/html",
   "image/png",
   "image/jpeg",
 ] as const;
