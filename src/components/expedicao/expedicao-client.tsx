@@ -957,7 +957,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.13em", color: t.textSub }}>NOVO PEDIDO</div>
-                  <h2 style={{ margin: "6px 0 4px", color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 25, lineHeight: 1.1 }}>Enviar pedido ao CD</h2>
+                  <h2 style={{ margin: "6px 0 4px", color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 700, lineHeight: 1.1 }}>Enviar pedido ao CD</h2>
                   <p style={{ margin: 0, color: t.textSub, fontSize: 13.5 }}>O pedido cai direto na fila de expedição da Infinoos.</p>
                 </div>
                 <button onClick={() => setNewOrderOpen(false)} aria-label="Fechar" style={{ width: 38, height: 38, display: "grid", placeItems: "center", borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer" }}><X size={18} /></button>
@@ -974,10 +974,12 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Canal de venda</h3>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "SITE_PROPRIO"].includes(option.value)).map((option) => {
+                    {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
                       const active = option.value === newOrderChannel;
-                      const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", SITE_PROPRIO: "SP" };
-                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ height: 38, padding: "0 14px", display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 10, border: `1.5px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}><span style={{ width: 20, height: 20, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 10, fontWeight: 800, background: option.value === "MERCADO_LIVRE" ? "rgba(45,50,119,.15)" : option.value === "SHOPEE" ? "rgba(238,77,45,.15)" : option.value === "AMAZON" ? "rgba(255,153,0,.15)" : "rgba(139,92,246,.15)", color: option.value === "MERCADO_LIVRE" ? "#2D3277" : option.value === "SHOPEE" ? "#EE4D2D" : option.value === "AMAZON" ? "#FF9900" : "#8B5CF6" }}>{initials[option.value]}</span>{option.label}</button>;
+                      const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
+                      const channelColors: Record<string, string> = { MERCADO_LIVRE: "#2D3277", SHOPEE: "#EE4D2D", AMAZON: "#FF9900", MAGALU: "#F59E0B", SHEIN: "#111827", TIKTOK: "#111827", KWAI: "#FF6B35", SITE_PROPRIO: "#8B5CF6" };
+                      const channelColor = channelColors[option.value] ?? "#8B5CF6";
+                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ height: 36, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 10, border: `1.5px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontSize: 12.5, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}><span style={{ width: 19, height: 19, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 9.5, fontWeight: 800, background: `${channelColor}20`, color: channelColor }}>{initials[option.value]}</span>{option.label}</button>;
                     })}
                   </div>
                 </section>

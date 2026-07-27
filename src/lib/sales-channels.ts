@@ -2,6 +2,10 @@
   | "MERCADO_LIVRE"
   | "SHOPEE"
   | "AMAZON"
+  | "MAGALU"
+  | "SHEIN"
+  | "TIKTOK"
+  | "KWAI"
   | "MAGAZINE_LUIZA"
   | "OLIST"
   | "LOJA_INTEGRADA"
@@ -19,6 +23,10 @@ export const SALES_CHANNEL_OPTIONS: readonly SalesChannelOption[] = [
   { value: "MERCADO_LIVRE", label: "Mercado Livre", marketplace: true },
   { value: "SHOPEE", label: "Shopee", marketplace: true },
   { value: "AMAZON", label: "Amazon", marketplace: true },
+  { value: "MAGALU", label: "Magalu", marketplace: true },
+  { value: "SHEIN", label: "Shein", marketplace: true },
+  { value: "TIKTOK", label: "TikTok Shop", marketplace: true },
+  { value: "KWAI", label: "Kwai", marketplace: true },
   { value: "MAGAZINE_LUIZA", label: "Magazine Luiza", marketplace: true },
   { value: "OLIST", label: "Olist", marketplace: true },
   { value: "LOJA_INTEGRADA", label: "Loja Integrada", marketplace: false },
