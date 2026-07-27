@@ -851,7 +851,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                           <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
                         )}
                         <FileText size={20} color={t.textSub} />
-                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF (v2) hasNfe: {String(sel.raw.hasNfe)}</span>
+                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>
                       </button>
                     )}
                   />
