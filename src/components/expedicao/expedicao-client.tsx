@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
+import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { createPortal } from "react-dom";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 function xmlPreviewValue(xml: string, tag: string) {
@@ -554,6 +556,28 @@ export function ExpedicaoClient({ data }: { data: any }) {
       )}
 
       {/* ----------------- PEDIDOS FULL VIEW (infinoos-wms-pedidos) ----------------- */}
+      {uploadModalOpen.open && typeof document !== "undefined" ? createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setUploadModalOpen({ open: false, type: "NF" })}>
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-bold text-slate-950 dark:text-white">Anexar documento</h4>
+              <button onClick={() => setUploadModalOpen({ open: false, type: "NF" })} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-white">✕</button>
+            </div>
+            <p className="mb-6 text-sm text-slate-600 dark:text-zinc-400">
+              O pedido <strong>{sel?.code}</strong> não possui <strong>{uploadModalOpen.type === "NF" ? "Nota Fiscal" : "Etiqueta"}</strong>. Faça o upload abaixo para vinculá-lo.
+            </p>
+            {sel?.raw?.id && sel?.raw?.depositanteId ? (
+              <ShippingAttachmentUploadPanel
+                depositanteId={sel.raw.depositanteId}
+                pedidoExpedicaoId={sel.raw.id}
+              />
+            ) : (
+              <p className="text-sm text-rose-500">Erro: Pedido não possui depositante vinculado.</p>
+            )}
+          </div>
+        </div>, document.body
+      ) : null}
+
       {isPedidosFull && (
         <div style={{ display: "flex", flexDirection: "column", animation: "drawerIn 0.35s cubic-bezier(0.3, 1, 0.4, 1)" }}>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
@@ -816,10 +840,15 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     downloadHref={`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=attachment`}
                     customTrigger={(openPreview) => (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasNfe) { openPreview(); } else { setUploadModalOpen({ open: true, type: "NF" }); } }}
+                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
                         className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                       >
+                        {sel.raw.hasNfe ? (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
+                        ) : (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
+                        )}
                         <FileText size={20} color={t.textSub} />
                         <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>
                       </button>
@@ -831,10 +860,15 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     downloadHref={`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=attachment`}
                     customTrigger={(openPreview) => (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasNfe) { openPreview(); } else { setUploadModalOpen({ open: true, type: "NF" }); } }}
+                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
                         className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                       >
+                        {sel.raw.hasNfe ? (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
+                        ) : (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
+                        )}
                         <Receipt size={20} color={t.textSub} />
                         <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
                       </button>
@@ -846,10 +880,15 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     downloadHref={`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=attachment`}
                     customTrigger={(openPreview) => (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasEtiqueta) { openPreview(); } else { setUploadModalOpen({ open: true, type: "ETIQUETA" }); } }}
+                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
                         className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                       >
+                        {sel.raw.hasEtiqueta ? (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
+                        ) : (
+                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
+                        )}
                         <Tag size={20} color={t.textSub} />
                         <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
                       </button>
