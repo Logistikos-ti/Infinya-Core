@@ -274,7 +274,7 @@ export function ShippingPickingInterface({
   }, [currentIndex, current.active]);
 
   return (
-    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "calc(100vh - 120px)", minHeight: "600px", borderRadius: "20px", overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
+    <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "100%", minHeight: "600px", borderRadius: 0, overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html: `
         .shipping-picking-ui * { box-sizing: border-box; }
         .shipping-picking-ui a { color: #8B5CF6; text-decoration: none; }
