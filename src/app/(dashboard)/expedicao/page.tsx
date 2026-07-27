@@ -99,5 +99,19 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     depositanteOptions.some((depositante) => depositante.id === produto.depositante_id),
   );
 
-  return <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions, baseQuery }} />;
+  const productIds = productOptions.map((produto) => produto.id);
+  const { data: estoqueRows } = productIds.length
+    ? await supabase.from("estoque").select("produto_id, quantidade, quantidade_reservada").in("produto_id", productIds)
+    : { data: [] };
+  const stockByProduct = new Map<string, number>();
+  for (const row of estoqueRows ?? []) {
+    const disponivel = Math.max(Number(row.quantidade ?? 0) - Number(row.quantidade_reservada ?? 0), 0);
+    stockByProduct.set(row.produto_id, (stockByProduct.get(row.produto_id) ?? 0) + disponivel);
+  }
+  const productOptionsWithStock = productOptions.map((produto) => ({
+    ...produto,
+    estoque_disponivel: stockByProduct.get(produto.id) ?? 0,
+  }));
+
+  return <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery }} />;
 }
