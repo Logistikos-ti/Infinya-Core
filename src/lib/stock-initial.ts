@@ -13,14 +13,28 @@ type RegisterInitialStockInput = {
 
 function parseDateString(dateStr: string | null): string | null {
   if (!dateStr) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (match) {
-    let [_, day, month, year] = match;
+  const cleanStr = dateStr.trim();
+
+  // If it comes from a date input as YYYY-MM-DD
+  const isoMatch = cleanStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    let year = isoMatch[1];
+    // Fix Chrome bug where typing "25" in year field yields "0025"
+    if (year.startsWith("00") && year.length === 4) {
+      year = "20" + year.substring(2);
+    }
+    return `${year}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  // Handle DD/MM/YY, DD-MM-YY, DD.MM.YYYY
+  const brMatch = cleanStr.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+  if (brMatch) {
+    let [_, day, month, year] = brMatch;
     if (year.length === 2) year = "20" + year;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
-  return dateStr;
+
+  return cleanStr;
 }
 
 export async function registerInitialStock(input: RegisterInitialStockInput) {
