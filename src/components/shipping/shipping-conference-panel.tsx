@@ -571,6 +571,7 @@ export function ShippingConferencePanel({
                 return (
                   <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderBottom: `1px solid ${t.border}`, background: rowBg, animation: itemFull ? "rowIn 0.3s ease" : "none" }}>
                     <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="confirmedQuantity" value={item.confirmedQuantityValue} />
                     <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
                     
                     <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1.5px solid ${checkBorder}`, background: checkBg, color: checkColor, fontWeight: 700 }}>{mark}</span>
