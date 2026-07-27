@@ -1240,9 +1240,9 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                   </div>
                 </section>
               </div>
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
+              <div className="new-order-footer" style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
                 <div><div style={{ color: t.textSub, fontSize: 12 }}>Total de itens</div><strong style={{ color: t.text, fontSize: 20 }}>{totalNewOrderUnits}</strong></div>
-                <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)" }}>⇢ Enviar ao CD</button></div>
+                <div style={{ display: "flex", gap: 14 }}><button className="new-order-cancel" type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer", transition: "border-color .18s ease, box-shadow .18s ease" }}>Cancelar</button><button className="new-order-submit" type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)", transition: "transform .18s ease, box-shadow .18s ease" }}>⇢ Enviar ao CD</button></div>
               </div>
             </form>
             {newOrderPreview && <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.72)", animation: "overlayFade .2s ease" }}>
@@ -1271,6 +1271,8 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           from { transform: translateX(40px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
+        .new-order-cancel:hover { border-color: #64748B !important; box-shadow: 0 0 0 3px rgba(100,116,139,.14); }
+        .new-order-submit:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(99,102,241,.38) !important; }
         @keyframes overlayFade {
           from { opacity: 0; }
           to { opacity: 1; }
