@@ -564,12 +564,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <button onClick={() => setUploadModalOpen({ open: false, type: "NF" })} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-white">✕</button>
             </div>
             <p className="mb-6 text-sm text-slate-600 dark:text-zinc-400">
-              O pedido <strong>{sel?.code}</strong> não possui <strong>{uploadModalOpen.type === "NF" ? "Nota Fiscal" : "Etiqueta"}</strong>. Faça o upload abaixo para vinculá-lo.
+              O pedido <strong>{selectedOrder?.code}</strong> não possui <strong>{uploadModalOpen.type === "NF" ? "Nota Fiscal" : "Etiqueta"}</strong>. Faça o upload abaixo para vinculá-lo.
             </p>
-            {sel?.raw?.id && sel?.raw?.depositanteId ? (
+            {selectedOrder?.raw?.id && selectedOrder?.raw?.depositanteId ? (
               <ShippingAttachmentUploadPanel
-                depositanteId={sel.raw.depositanteId}
-                pedidoExpedicaoId={sel.raw.id}
+                depositanteId={selectedOrder.raw.depositanteId}
+                pedidoExpedicaoId={selectedOrder.raw.id}
               />
             ) : (
               <p className="text-sm text-rose-500">Erro: Pedido não possui depositante vinculado.</p>
