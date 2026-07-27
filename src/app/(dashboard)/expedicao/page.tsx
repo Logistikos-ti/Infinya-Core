@@ -8,6 +8,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ExpedicaoClient } from "@/components/expedicao/expedicao-client";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
+
 type ExpedicaoPageProps = {
   searchParams?: Promise<{
     status?: string;
