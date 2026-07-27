@@ -128,6 +128,8 @@ export type ShippingOrderSummary = {
   releasedWithoutRomaneio: boolean;
   releasedToRomaneio: boolean;
   nfe: string;
+  hasNfe: boolean;
+  hasEtiqueta: boolean;
   items?: {
     name: string;
     sku: string;
@@ -606,6 +608,9 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
   const nfe = extractInvoice(payload, (item as any).documentos);
+  const docs = Array.isArray((item as any).documentos) ? (item as any).documentos : [];
+  const hasNfe = docs.some((d: any) => d.tipo === "NF" || (d.mime_type && d.mime_type.includes("xml")));
+  const hasEtiqueta = docs.some((d: any) => d.tipo === "ETIQUETA");
   
   const items = (item.itens ?? []).map((it) => ({
     name: it.nome,
@@ -644,6 +649,8 @@ function mapShippingOrderSummary(item: RawShippingOrderRow): ShippingOrderSummar
     releasedWithoutRomaneio,
     releasedToRomaneio,
     nfe,
+    hasNfe,
+    hasEtiqueta,
     items,
   };
 }
