@@ -821,7 +821,7 @@ export function EnderecosDashboard({
                 </div>
                 {labelOpen ? (
                   <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm" onClick={() => setLabelOpen(false)}>
-                    <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl transition-all duration-200 [&>div:first-child>button]:transition-all [&>div:first-child>button:hover]:-translate-y-0.5 [&>div:first-child>button:hover]:border-violet-300 [&>div:first-child>button:hover]:bg-violet-50 dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
+                    <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl transition-all duration-200 [&>div:first-child>button]:transition-all [&>div:first-child>button:hover]:-translate-y-0.5 [&>div:first-child>button:hover]:border-violet-300 [&>div:first-child>button:hover]:bg-violet-50 dark:border-zinc-800 dark:bg-zinc-950" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-[11px] font-bold tracking-[0.14em] text-slate-500 dark:text-zinc-400">ETIQUETA DO ENDEREÇO</p>
@@ -829,15 +829,15 @@ export function EnderecosDashboard({
                         </div>
                         <button type="button" onClick={() => setLabelOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:border-zinc-700 dark:text-zinc-300">✕</button>
                       </div>
-                      <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                        <div className="mb-4 flex items-center gap-3 border-b border-slate-200 pb-4 dark:border-zinc-800">
-                          <img src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" className="h-12 w-12 object-contain grayscale" />
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <div className="relative mb-1 flex h-7 items-center justify-center border-b-0 pb-0">
+                          <img src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" className="absolute left-1 top-0 h-6 w-6 object-contain grayscale" />
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold tracking-[0.16em] text-slate-500 dark:text-zinc-400">ETIQUETA DE ENDEREÇO</p>
-                            <p className="mt-1 truncate font-space text-lg font-extrabold text-slate-950 dark:text-white">{selected.codigo}</p>
+                            <p className="hidden">ETIQUETA DE ENDEREÇO</p>
+                            <p className="mt-0 truncate font-mono text-[15px] font-extrabold tracking-wide text-slate-900 dark:text-white">{selected.codigo}</p>
                           </div>
                         </div>
-                        <div className="[&_svg]:h-[150px]">
+                        <div className="[&_svg]:h-[92px] [&_svg]:w-full">
                           <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
                         </div>
                       </div>
