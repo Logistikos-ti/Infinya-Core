@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireRoleAccess } from "@/lib/auth";
 import { storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
 import {
@@ -350,12 +351,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
   } catch (error) {
     // O Next.js implementa redirect() lançando um sinal interno; ele não pode
     // ser convertido no feedback de erro do formulário.
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")
-    ) {
+    if (isRedirectError(error)) {
       throw error;
     }
     redirect("/expedicao/novo?feedback=erro");

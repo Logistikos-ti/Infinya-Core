@@ -19,7 +19,7 @@ type NovoPedidoManualPageProps = {
 export default async function NovoPedidoManualPage({
   searchParams,
 }: NovoPedidoManualPageProps) {
-  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const supabase = createSupabaseAdminClient();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const feedback = resolvedSearchParams?.feedback?.trim() ?? "";
