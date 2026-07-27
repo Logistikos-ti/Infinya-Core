@@ -825,7 +825,6 @@ export function EnderecosDashboard({
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-[11px] font-bold tracking-[0.14em] text-slate-500 dark:text-zinc-400">ETIQUETA DO ENDEREÇO</p>
-                          <h3 className="mt-1 font-space text-xl font-bold text-slate-950 dark:text-white">{selected.codigo}</h3>
                         </div>
                         <button type="button" onClick={() => setLabelOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:border-zinc-700 dark:text-zinc-300">✕</button>
                       </div>
