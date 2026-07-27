@@ -122,8 +122,10 @@ export function EnderecosDashboard({
       const barcode = svg ? new XMLSerializer().serializeToString(svg) : "";
       return Array.from({ length: quantity }, () => `
         <section class="label">
-          <div class="label-head"><img class="logo" src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" /><div class="address">${address.codigo}</div></div>
-          <div class="barcode">${barcode}</div>
+          <div class="ticket">
+            <div class="label-head"><img class="logo" src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" /><div class="address">${address.codigo}</div></div>
+            <div class="barcode">${barcode}</div>
+          </div>
         </section>
       `);
     }).join("");
@@ -135,10 +137,11 @@ export function EnderecosDashboard({
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
       .label { position: relative; width: 100mm; height: 150mm; page-break-after: always; padding: 8mm 6mm; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; }
-      .label-head { position: relative; width: 100%; height: 12mm; display: flex; align-items: center; justify-content: center; }
-      .logo { position: absolute; top: 0; left: 0; width: 8mm; height: 8mm; object-fit: contain; filter: grayscale(1); }
-      .address { font-family: monospace; font-size: 16pt; font-weight: 800; line-height: 1.1; letter-spacing: .04em; word-break: break-word; }
-      .barcode { width: 86mm; margin-top: 3mm; }
+      .ticket { width: 100%; padding: 3mm 3mm 2mm; border: .35mm solid #dbe3ef; border-radius: 4mm; background: #fff; }
+      .label-head { position: relative; width: 100%; height: 10mm; display: flex; align-items: center; justify-content: center; }
+      .logo { position: absolute; top: 0; left: 0; width: 7mm; height: 7mm; object-fit: contain; filter: grayscale(1); }
+      .address { font-family: monospace; font-size: 14pt; font-weight: 800; line-height: 1.1; letter-spacing: .04em; word-break: break-word; }
+      .barcode { width: 86mm; margin-top: 1mm; }
       .barcode svg { display: block; width: 86mm; height: 30mm; }
     </style></head><body>${labels}</body></html>`);
     printWindow.document.close();
