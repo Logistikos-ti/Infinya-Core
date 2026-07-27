@@ -53,8 +53,13 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
-  const [{ data: depositantes }, shippingOverviewOrders, shippingOrders] = await Promise.all([
+  const [{ data: depositantes }, { data: produtos }, shippingOverviewOrders, shippingOrders] = await Promise.all([
     supabase.from("depositantes").select("id, nome").order("nome"),
+    supabase
+      .from("produtos")
+      .select("id, nome, sku, codigo_interno, codigo_externo, depositante_id")
+      .order("nome")
+      .limit(1000),
     listShippingOrdersFromDb({
       depositanteId: effectiveDepositanteFilter || undefined,
     }),
@@ -90,5 +95,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     perPage: String(perPage),
   };
 
-  return <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, baseQuery }} />;
+  const productOptions = (produtos ?? []).filter((produto) =>
+    depositanteOptions.some((depositante) => depositante.id === produto.depositante_id),
+  );
+
+  return <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions, baseQuery }} />;
 }

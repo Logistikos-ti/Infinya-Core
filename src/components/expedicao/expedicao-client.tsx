@@ -21,10 +21,16 @@ import {
   Sun,
   Search,
   Check,
+  Plus,
+  Minus,
+  X,
+  Upload,
   ChevronLeft,
   List,
   ArrowLeft
 } from "lucide-react";
+import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
+import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 export function ExpedicaoClient({ data }: { data: any }) {
   const router = useRouter();
@@ -36,6 +42,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
+  const [newOrderChannel, setNewOrderChannel] = useState("MERCADO_LIVRE");
+  const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
+  const [draftProductId, setDraftProductId] = useState("");
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -83,6 +94,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const showAdd = true;
   const addBtnLabel = "+ Novo pedido";
   const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO").length;
+  const availableProducts = (data.productOptions ?? []).filter((produto: any) => produto.depositante_id === newOrderDepositante);
+  const selectedItems = newOrderItems.map((item) => ({ ...item, product: availableProducts.find((produto: any) => produto.id === item.id) ?? data.productOptions?.find((produto: any) => produto.id === item.id) })).filter((item) => item.product);
+  const totalNewOrderUnits = selectedItems.reduce((total, item) => total + item.quantity, 0);
 
   const kpis = [
     { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: data.stats[0]?.delta || "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
@@ -488,7 +502,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <button onClick={() => router.push("/expedicao/novo")} style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <button onClick={() => setNewOrderOpen(true)} style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
                 + Novo pedido
               </button>
             </div>
@@ -917,6 +931,118 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           </div>
         );
       })()}
+
+      {newOrderOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Novo pedido"
+          style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", justifyContent: "flex-end" }}
+        >
+          <button
+            aria-label="Fechar novo pedido"
+            onClick={() => setNewOrderOpen(false)}
+            style={{ position: "absolute", inset: 0, border: 0, background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(4px)", cursor: "default" }}
+          />
+          <aside style={{ position: "relative", width: "min(560px, 100vw)", height: "100%", display: "flex", flexDirection: "column", background: t.drawerBg, borderLeft: `1px solid ${t.border}`, boxShadow: "-20px 0 60px rgba(15, 23, 42, 0.24)", animation: "drawerIn 0.3s cubic-bezier(.3,1,.4,1)" }}>
+            <div style={{ padding: "24px 26px 20px", borderBottom: `1px solid ${t.border}`, background: isDark ? t.drawerBg : "linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.13em", color: t.textSub }}>NOVO PEDIDO</div>
+                  <h2 style={{ margin: "6px 0 4px", color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 25, lineHeight: 1.1 }}>Enviar pedido ao CD</h2>
+                  <p style={{ margin: 0, color: t.textSub, fontSize: 13.5 }}>O pedido cai direto na fila de expedição da Infinoos.</p>
+                </div>
+                <button onClick={() => setNewOrderOpen(false)} aria-label="Fechar" style={{ width: 38, height: 38, display: "grid", placeItems: "center", borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer" }}><X size={18} /></button>
+              </div>
+            </div>
+
+            <form action={createManualShippingOrderAction} style={{ minHeight: 0, display: "flex", flex: 1, flexDirection: "column" }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 120px", display: "flex", flexDirection: "column", gap: 24 }}>
+                <input type="hidden" name="salesChannelCode" value={newOrderChannel} />
+                <input type="hidden" name="dataPedido" value={new Date().toISOString().slice(0, 10)} />
+                <input type="hidden" name="quantidadeItens" value={selectedItems.length} />
+                <input type="hidden" name="quantidadeUnidades" value={totalNewOrderUnits} />
+
+                <section>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Canal de venda</h3>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "SITE_PROPRIO"].includes(option.value)).map((option) => {
+                      const active = option.value === newOrderChannel;
+                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ padding: "10px 13px", borderRadius: 10, border: `1px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontWeight: 700, cursor: "pointer" }}>{option.label}</button>;
+                    })}
+                  </div>
+                </section>
+
+                <section>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Operação</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <label style={{ color: t.textSub, fontSize: 12 }}>Depositante
+                      <select required name="depositanteId" value={newOrderDepositante} onChange={(event) => { setNewOrderDepositante(event.target.value); setNewOrderItems([]); }} style={{ display: "block", width: "100%", marginTop: 6, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }}>
+                        <option value="">Selecione</option>
+                        {(data.depositanteOptions ?? []).map((depositante: any) => <option key={depositante.id} value={depositante.id}>{depositante.nome}</option>)}
+                      </select>
+                    </label>
+                    <label style={{ color: t.textSub, fontSize: 12 }}>Número do pedido
+                      <input required name="numeroPedido" placeholder="Ex.: 18450" style={{ display: "block", width: "100%", marginTop: 6, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                    </label>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Destinatário</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 12 }}>
+                    <input required name="clienteNome" placeholder="Nome do cliente" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                    <input name="clienteDocumento" placeholder="CPF / CNPJ" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                    <input name="clienteCep" placeholder="CEP" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                    <input name="clienteCidade" placeholder="Cidade" style={{ height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                  </div>
+                  <input name="clienteUf" maxLength={2} placeholder="UF" style={{ width: 90, height: 44, marginTop: 12, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, textTransform: "uppercase" }} />
+                </section>
+
+                <section>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, color: t.text, fontSize: 14, fontWeight: 800 }}>Itens do pedido</h3>
+                    <span style={{ color: "#7C3AED", fontSize: 13, fontWeight: 800 }}>{totalNewOrderUnits} unidade(s)</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    <select value={draftProductId} onChange={(event) => setDraftProductId(event.target.value)} style={{ flex: 1, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }}>
+                      <option value="">Adicionar produto do catálogo</option>
+                      {availableProducts.map((produto: any) => <option key={produto.id} value={produto.id}>{produto.nome} · {produto.sku || produto.codigo_interno || produto.codigo_externo || "sem código"}</option>)}
+                    </select>
+                    <button type="button" disabled={!draftProductId} onClick={() => { if (draftProductId) { setNewOrderItems((items) => items.some((item) => item.id === draftProductId) ? items : [...items, { id: draftProductId, quantity: 1 }]); setDraftProductId(""); } }} style={{ width: 46, border: 0, borderRadius: 10, background: draftProductId ? "#8B5CF6" : t.softBg, color: draftProductId ? "#fff" : t.textSub, cursor: draftProductId ? "pointer" : "default" }}><Plus size={18} /></button>
+                  </div>
+                  {selectedItems.length === 0 && <div style={{ padding: 18, borderRadius: 12, border: `1px dashed ${t.border}`, color: t.textSub, fontSize: 13, textAlign: "center" }}>Adicione os produtos que deverão ser separados.</div>}
+                  {selectedItems.map(({ id, quantity, product }: any, index: number) => <div key={id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: 8 }}>
+                    <input type="hidden" name="productId[]" value={id} />
+                    <input type="hidden" name="itemQuantity[]" value={quantity} />
+                    <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: t.text, fontWeight: 750, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.nome}</div><div style={{ color: t.textSub, fontSize: 11.5 }}>{product.sku || product.codigo_interno || product.codigo_externo || "Sem código"}</div></div>
+                    <button type="button" onClick={() => setNewOrderItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><Minus size={14} /></button>
+                    <strong style={{ minWidth: 18, textAlign: "center", color: t.text }}>{quantity}</strong>
+                    <button type="button" onClick={() => setNewOrderItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: item.quantity + 1 } : item))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><Plus size={14} /></button>
+                    <button type="button" aria-label="Remover item" onClick={() => setNewOrderItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid rgba(239,68,68,.25)`, background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><X size={14} /></button>
+                  </div>)}
+                </section>
+
+                <section>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Frete / transportadora</h3>
+                  <input name="carrierName" placeholder="Ex.: Correios, Perfect, Shopee Xpress" style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                  <input name="shippingService" placeholder="Serviço de entrega (opcional)" style={{ width: "100%", height: 44, marginTop: 10, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                </section>
+
+                <section>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Documentos (opcional)</h3>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg, color: t.text, fontSize: 13, cursor: "pointer" }}><Upload size={18} color="#3B82F6" /> Nota fiscal (XML)<input type="file" name="invoiceXml" accept=".xml,text/xml,application/xml" style={{ display: "none" }} /></label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg, color: t.text, fontSize: 13, cursor: "pointer" }}><Upload size={18} color="#8B5CF6" /> Etiqueta de envio<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" style={{ display: "none" }} /></label>
+                </section>
+              </div>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
+                <div><div style={{ color: t.textSub, fontSize: 12 }}>Total de itens</div><strong style={{ color: t.text, fontSize: 20 }}>{totalNewOrderUnits}</strong></div>
+                <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 46, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" style={{ height: 46, padding: "0 22px", border: 0, borderRadius: 11, background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,.3)" }}>Enviar ao CD</button></div>
+              </div>
+            </form>
+          </aside>
+        </div>
+      )}
       
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes drawerIn {

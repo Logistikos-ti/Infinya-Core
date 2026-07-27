@@ -181,6 +181,8 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const total = Number(String(formData.get("valorTotal") ?? "0").replace(",", "."));
   const itemCount = Number(String(formData.get("quantidadeItens") ?? "0").replace(",", "."));
   const unitCount = Number(String(formData.get("quantidadeUnidades") ?? "0").replace(",", "."));
+  const selectedProductIds = formData.getAll("productId[]").map((item) => String(item ?? "").trim()).filter(Boolean);
+  const selectedProductQuantities = formData.getAll("itemQuantity[]").map((item) => Number(String(item ?? "0").replace(",", ".")));
   const supplies = extractShippingSupplies(formData);
   const xmlFile = formData.get("invoiceXml");
   const labelFile = formData.get("shippingLabel");
@@ -262,6 +264,43 @@ export async function createManualShippingOrderAction(formData: FormData) {
 
     if (error || !createdOrder) {
       redirect("/expedicao/novo?feedback=erro");
+    }
+
+    if (selectedProductIds.length > 0) {
+      const { data: selectedProducts } = await adminSupabase
+        .from("produtos")
+        .select("id, nome, sku, codigo_interno, codigo_externo, unidade_estocagem")
+        .in("id", selectedProductIds);
+
+      const productById = new Map((selectedProducts ?? []).map((produto) => [produto.id, produto]));
+      const itemRows = selectedProductIds.flatMap((productId, index) => {
+        const produto = productById.get(productId);
+        const quantidade = Number.isFinite(selectedProductQuantities[index]) && selectedProductQuantities[index] > 0
+          ? selectedProductQuantities[index]
+          : 1;
+
+        return produto
+          ? [{
+              pedido_expedicao_id: createdOrder.id,
+              depositante_id: depositanteId,
+              produto_id: produto.id,
+              codigo_produto: produto.codigo_externo || produto.codigo_interno || null,
+              sku: produto.sku || null,
+              nome: produto.nome,
+              unidade: produto.unidade_estocagem || "UNIDADE",
+              quantidade,
+              payload_origem: { manual: true },
+            }]
+          : [];
+      });
+
+      if (itemRows.length > 0) {
+        const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
+        if (itemError) {
+          await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrder.id);
+          redirect("/expedicao/novo?feedback=erro");
+        }
+      }
     }
 
     const parsedXmlFile = readOptionalUpload(xmlFile);
