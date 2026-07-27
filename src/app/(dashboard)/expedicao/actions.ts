@@ -335,7 +335,17 @@ export async function createManualShippingOrderAction(formData: FormData) {
     revalidatePath("/expedicao");
     revalidatePath(`/expedicao/${createdOrder.id}`);
     redirect(`/expedicao/${createdOrder.id}?feedback=salvo`);
-  } catch {
+  } catch (error) {
+    // O Next.js implementa redirect() lançando um sinal interno; ele não pode
+    // ser convertido no feedback de erro do formulário.
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
     redirect("/expedicao/novo?feedback=erro");
   }
 }
