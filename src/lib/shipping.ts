@@ -821,7 +821,13 @@ async function resolveStoredInvoiceNumber(fallback: string, documents?: any[]) {
       bytes = gunzipSync(bytes);
     }
 
-    const parsed = parseNfeXml(bytes.toString("utf-8"));
+    const source = bytes.toString("utf-8");
+    if (/<!doctype\s+html|<html[\s>]/i.test(source)) {
+      const numberMatch = source.match(/N[ºo]\s*<span[^>]*class=["']value["'][^>]*>\s*(\d+)/i);
+      return numberMatch?.[1] ?? fallback;
+    }
+
+    const parsed = parseNfeXml(source);
     return parsed.noteNumber || fallback;
   } catch {
     return fallback;

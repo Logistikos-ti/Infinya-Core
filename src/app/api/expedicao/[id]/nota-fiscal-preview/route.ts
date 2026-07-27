@@ -90,8 +90,25 @@ export async function GET(_request: Request, { params }: RouteProps) {
     }
 
     try {
+      const source = xmlBytes.toString("utf-8");
+
+      // Alguns clientes exportam a DANFE do SmartGo como HTML salvo com
+      // extensÃ£o .xml. Nesse caso, o navegador deve renderizar o documento
+      // original, em vez de tentar interpretÃ¡-lo como NF-e fiscal padrÃ£o.
+      if (isHtmlDocument(source)) {
+        const html = source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+        return new NextResponse(html, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Content-Disposition": `${disposition}; filename="nota-fiscal-${order.numero_pedido ?? order.codigo}.html"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+
       const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-      const pdfBytes = buildSimplifiedDanfePdfFromXml(xmlBytes.toString("utf-8"), {
+      const pdfBytes = buildSimplifiedDanfePdfFromXml(source, {
         carrierName: extractCarrierName(payload),
       });
 
@@ -254,4 +271,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isGzipBuffer(value: Buffer) {
   return value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b;
+}
+
+function isHtmlDocument(value: string) {
+  return /<!doctype\s+html|<html[\s>]/i.test(value);
 }
