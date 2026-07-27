@@ -123,9 +123,7 @@ export function EnderecosDashboard({
       return Array.from({ length: quantity }, () => `
         <section class="label">
           <img class="logo" src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" />
-          <div class="brand">INFINOOS WMS</div>
           <div class="address">${address.codigo}</div>
-          ${address.descricao ? `<div class="description">${address.descricao}</div>` : ""}
           <div class="barcode">${barcode}</div>
           <div class="code">${address.codigo}</div>
         </section>
@@ -138,14 +136,12 @@ export function EnderecosDashboard({
       @page { size: 100mm 150mm; margin: 0; }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
-      .label { position: relative; width: 100mm; height: 150mm; page-break-after: always; padding: 12mm 8mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-      .logo { position: absolute; top: 5mm; left: 7mm; width: 16mm; height: 16mm; object-fit: contain; filter: grayscale(1); }
-      .brand { font-size: 14pt; font-weight: 700; letter-spacing: .08em; margin-bottom: 9mm; }
-      .address { font-size: 30pt; font-weight: 800; line-height: 1.1; word-break: break-word; }
-      .description { margin-top: 4mm; font-size: 12pt; }
-      .barcode { width: 84mm; margin-top: 11mm; }
-      .barcode svg { display: block; width: 84mm; height: 34mm; }
-      .code { margin-top: 3mm; font-size: 11pt; letter-spacing: .08em; }
+      .label { position: relative; width: 100mm; height: 150mm; page-break-after: always; padding: 10mm 7mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .logo { position: absolute; top: 5mm; left: 7mm; width: 8mm; height: 8mm; object-fit: contain; filter: grayscale(1); }
+      .address { font-family: monospace; font-size: 16pt; font-weight: 800; line-height: 1.1; letter-spacing: .04em; word-break: break-word; }
+      .barcode { width: 86mm; margin-top: 5mm; }
+      .barcode svg { display: block; width: 86mm; height: 30mm; }
+      .code { margin-top: 1mm; font-family: monospace; font-size: 8pt; letter-spacing: .04em; }
     </style></head><body>${labels}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
