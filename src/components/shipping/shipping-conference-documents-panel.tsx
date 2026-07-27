@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
 import { FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
@@ -18,14 +18,17 @@ type ShippingConferenceDocumentsPanelProps = {
   formId: string;
 };
 
-export function ShippingConferenceDocumentsPanel({
-  orderId,
-  depositanteId,
-  attachments,
-  canUploadAttachments,
-  unlocked,
-  formId,
-}: ShippingConferenceDocumentsPanelProps) {
+export type ShippingConferenceDocumentsPanelRef = {
+  openPreparationModal: () => void;
+};
+
+export const ShippingConferenceDocumentsPanel = forwardRef<
+  ShippingConferenceDocumentsPanelRef,
+  ShippingConferenceDocumentsPanelProps
+>(function ShippingConferenceDocumentsPanel(
+  { orderId, depositanteId, attachments, canUploadAttachments, unlocked, formId },
+  ref
+) {
   const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const [preparationOpen, setPreparationOpen] = useState(false);
   const [danfeScanCode, setDanfeScanCode] = useState("");
@@ -42,6 +45,12 @@ export function ShippingConferenceDocumentsPanel({
   const labelAttachment = (attachments || []).find((attachment) => attachment?.kind === "ETIQUETA");
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
+
+  useImperativeHandle(ref, () => ({
+    openPreparationModal: () => {
+      setPreparationOpen(true);
+    },
+  }));
 
   const releaseHelp = !unlocked
     ? "Finalize 100% da conferência para liberar o pedido."
@@ -347,7 +356,7 @@ export function ShippingConferenceDocumentsPanel({
       ) : null}
     </div>
   );
-}
+});
 
 function AttachmentStatusCard({
   title,
