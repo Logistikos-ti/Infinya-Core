@@ -37,6 +37,10 @@ export async function updateShippingOrderAction(formData: FormData) {
   const numeroLoja = String(formData.get("numeroLoja") ?? "").trim();
   const clienteNome = String(formData.get("clienteNome") ?? "").trim();
   const clienteDocumento = String(formData.get("clienteDocumento") ?? "").trim();
+  const clienteCep = String(formData.get("clienteCep") ?? "").trim();
+  const clienteEndereco = String(formData.get("clienteEndereco") ?? "").trim();
+  const clienteNumero = String(formData.get("clienteNumero") ?? "").trim();
+  const clienteTelefone = String(formData.get("clienteTelefone") ?? "").trim();
   const clienteCidade = String(formData.get("clienteCidade") ?? "").trim();
   const clienteUf = String(formData.get("clienteUf") ?? "")
     .trim()
@@ -114,6 +118,12 @@ export async function updateShippingOrderAction(formData: FormData) {
           codigoRastreamento: trackingCode || null,
         },
       ],
+    },
+    destinatario: {
+      cep: clienteCep || null,
+      endereco: clienteEndereco || null,
+      numero: clienteNumero || null,
+      telefone: clienteTelefone || null,
     },
     insumos: {
       itens: supplies,
