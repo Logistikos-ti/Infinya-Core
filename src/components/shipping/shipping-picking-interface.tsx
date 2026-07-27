@@ -24,6 +24,7 @@ type ShippingPickingInterfaceProps = {
   orders: ShippingPickingOrder[];
   currentUserId: string;
   currentUserName: string;
+  waveCode: string;
   returnTo: string;
   expireRedirectTo: string;
   completeRedirectTo: string;
@@ -68,6 +69,7 @@ export function ShippingPickingInterface({
   orders,
   currentUserId,
   currentUserName,
+  waveCode,
   returnTo,
   expireRedirectTo,
   completeRedirectTo,
@@ -127,8 +129,6 @@ export function ShippingPickingInterface({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, startResetTransition] = useTransition();
-
-  const waveId = orders[0]?.id || "WAVE"; // display
 
   // Filter tasks from prioritizedItems
   const tasks = prioritizedItems.map((p, i) => {
@@ -298,7 +298,7 @@ export function ShippingPickingInterface({
         <div style={{ flex: 1 }}></div>
         <div style={{ display: "flex", alignItems: "center", gap: "9px", height: "38px", padding: "0 14px", borderRadius: "10px", background: t.softBg, border: `1px solid ${t.border}` }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10B981", animation: "pulseDot 1.8s ease-in-out infinite" }}></span>
-          <span style={{ fontSize: "13px", fontWeight: "700" }}>Onda {waveId} ativa</span>
+          <span style={{ fontSize: "13px", fontWeight: "700" }}>Onda {waveCode} ativa</span>
         </div>
         <button onClick={toggleTheme} title="Alternar tema" aria-label="Alternar tema" style={{ position: "relative", width: "68px", height: "32px", padding: "0", borderRadius: "999px", border: `1px solid ${tog.border}`, background: tog.track, cursor: "pointer", transition: "background 0.3s ease, border-color 0.3s ease", boxShadow: `inset 0 1px 3px ${tog.inset}` }}>
           <span style={{ position: "absolute", top: "50%", left: "12px", transform: "translateY(-50%)", fontSize: "12px", color: tog.trackMoon, transition: "color 0.3s ease" }}>☾</span>

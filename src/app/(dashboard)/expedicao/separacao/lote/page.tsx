@@ -7,6 +7,7 @@ type PickingWavePageProps = {
   searchParams?: Promise<{
     ids?: string;
     feedback?: string;
+    wave?: string;
   }>;
 };
 
@@ -18,6 +19,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
     .map((item) => item.trim())
     .filter(Boolean);
   const feedback = params?.feedback?.trim() ?? "";
+  const waveCode = params?.wave?.trim() || "W-000";
 
   if (!selectedIds.length) {
     notFound();
@@ -55,6 +57,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
 
       <ShippingPickingInterface
         orders={orders}
+        waveCode={waveCode}
         currentUserId={user.id}
         currentUserName={user.nome}
         returnTo={returnTo}
