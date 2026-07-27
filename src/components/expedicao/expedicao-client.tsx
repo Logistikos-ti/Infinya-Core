@@ -667,7 +667,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
-        const isRingConcluded = sel.status === 'CONFERIDO' || sel.status === 'PRONTO_ROMANEIO' || sel.status === 'EXPEDIDO';
+        const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
         const ring = {
           c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
@@ -854,7 +854,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Corte (SLA)", v: sel.sla }
         ];
 
-        const isRingConcluded = sel.status === 'CONFERIDO' || sel.status === 'PRONTO_ROMANEIO' || sel.status === 'EXPEDIDO';
+        const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
         const ring = {
           c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
@@ -1022,7 +1022,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <section>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <h3 style={{ margin: 0, color: t.text, fontSize: 14, fontWeight: 800 }}>Itens do pedido</h3>
-                    <button type="button" onClick={() => setShowProductPicker(true)} style={{ border: 0, padding: 0, background: "transparent", color: "#8B5CF6", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>+ Adicionar item</button>
+                    <button type="button" onClick={() => { setProductPickerQuery(""); setShowProductPicker(true); }} style={{ border: 0, padding: 0, background: "transparent", color: "#8B5CF6", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>+ Adicionar item</button>
                   </div>
                   {selectedItems.length === 0 && <div style={{ padding: 18, borderRadius: 12, border: `1px dashed ${t.border}`, color: t.textSub, fontSize: 13, textAlign: "center" }}>Adicione os produtos que deverão ser separados.</div>}
                   {selectedItems.map(({ id, quantity, product }: any, index: number) => <div key={id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: 8 }}>
@@ -1061,7 +1061,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                      <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 12 }}><button type="button" onClick={() => setShowProductPicker(false)} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><ChevronLeft size={17} /></button><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>Escolher produtos</strong></div>
                     <div style={{ flexShrink: 0, padding: "16px 24px 0" }}><div style={{ position: "relative" }}><Search size={15} color={t.textSub} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} /><input value={productPickerQuery} onChange={(event) => setProductPickerQuery(event.target.value)} placeholder="Buscar por nome ou SKU..." style={{ width: "100%", height: 46, padding: "0 14px 0 38px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /></div></div>
                     <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>{availableProducts.map((produto: any) => { const already = newOrderItems.some((item) => item.id === produto.id); return <button type="button" key={produto.id} disabled={already} onClick={() => { setNewOrderItems((items) => already ? items : [...items, { id: produto.id, quantity: 1 }]); setShowProductPicker(false); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${already ? "#10B981" : t.border}`, background: already ? "rgba(16,185,129,.08)" : t.cardBg, color: t.text, textAlign: "left", cursor: already ? "default" : "pointer" }}><span style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#60A5FA,#A78BFA)", color: "#fff" }}><Box size={18} /></span><span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 13.5 }}>{produto.nome}</strong><small style={{ color: t.textSub }}>{produto.sku || produto.codigo_interno || produto.codigo_externo || "Sem código"}</small></span><span style={{ color: already ? "#10B981" : "#8B5CF6", fontWeight: 800 }}>{already ? "✓ Adicionado" : "+ Adicionar"}</span></button>; })}</div>
-                    </div></>}
+                    </>}
                 </section>
 
                 <section>
