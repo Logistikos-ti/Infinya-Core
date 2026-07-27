@@ -93,6 +93,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const isDark = theme === "dark";
 
   const [activeTab, setActiveTab] = useState("orders");
+  const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
   const [activeFilter, setActiveFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
