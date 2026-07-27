@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { gunzipSync } from "node:zlib";
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import {
   downloadBlingInvoicePdf,
@@ -11,6 +12,9 @@ import {
   updateDepositanteBlingConfig,
 } from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
+import { extractCarrierName } from "@/lib/shipping";
+import { documentsBucketName } from "@/lib/storage";
 
 type RouteProps = {
   params: Promise<{
@@ -51,11 +55,61 @@ export async function GET(_request: Request, { params }: RouteProps) {
     return scopeError;
   }
 
+  const disposition =
+    new URL(_request.url).searchParams.get("disposition") === "attachment" ? "attachment" : "inline";
+
+  // Pedidos manuais usam o XML armazenado no próprio pedido, sem depender do Bling.
   if (order.origem !== "BLING") {
-    return NextResponse.json(
-      { error: "A pré-visualização da NF está disponível apenas para pedidos integrados ao Bling." },
-      { status: 409 },
-    );
+    const { data: xmlDocument, error: xmlError } = await adminSupabase
+      .from("documentos_armazenados")
+      .select("nome_arquivo, caminho_storage, mime_type")
+      .eq("pedido_expedicao_id", id)
+      .eq("tipo", "NF")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (xmlError) {
+      return NextResponse.json({ error: `Não foi possível localizar o XML anexado: ${xmlError.message}` }, { status: 500 });
+    }
+    if (!xmlDocument) {
+      return NextResponse.json({ error: "Este pedido manual ainda não possui XML da nota fiscal anexado." }, { status: 409 });
+    }
+
+    const downloadResult = await adminSupabase.storage
+      .from(documentsBucketName)
+      .download(xmlDocument.caminho_storage);
+
+    if (downloadResult.error || !downloadResult.data) {
+      return NextResponse.json({ error: "Não foi possível carregar o XML anexado da nota fiscal." }, { status: 500 });
+    }
+
+    let xmlBytes = Buffer.from(await downloadResult.data.arrayBuffer());
+    if ((xmlDocument.mime_type || "").includes("xml") && isGzipBuffer(xmlBytes)) {
+      xmlBytes = gunzipSync(xmlBytes);
+    }
+
+    try {
+      const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+      const pdfBytes = buildSimplifiedDanfePdfFromXml(xmlBytes.toString("utf-8"), {
+        carrierName: extractCarrierName(payload),
+      });
+
+      return new NextResponse(new Uint8Array(pdfBytes), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Length": String(pdfBytes.byteLength),
+          "Content-Disposition": `${disposition}; filename="nota-fiscal-${order.numero_pedido ?? order.codigo}.pdf"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Não foi possível converter o XML anexado em PDF." },
+        { status: 422 },
+      );
+    }
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
@@ -196,4 +250,8 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isGzipBuffer(value: Buffer) {
+  return value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b;
 }
