@@ -43,7 +43,18 @@ function xmlPreviewValue(xml: string, tag: string) {
     if (node?.textContent?.trim()) return node.textContent.trim();
   }
   const match = xml.match(new RegExp(`<(?:[\\w-]+:)?${tag}[^>]*>([^<]*)</(?:[\\w-]+:)?${tag}>`, "i"));
-  return match?.[1]?.trim() || "-";
+  if (match?.[1]?.trim()) return match[1].trim();
+  const text = xml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (tag === "nNF") return text.match(/N[^0-9]{0,6}([0-9]{3,})/i)?.[1] || "-";
+  if (tag === "serie") return text.match(/serie[^0-9]{0,4}([0-9]+)/i)?.[1] || "-";
+  /*
+  if (tag === "nNF") return text.match(/N[ºo°]?\\s*(\\d{3,})/i)?.[1] || "-";
+  if (tag === "serie") return text.match(/s[ée]rie\\s*(\\d+)/i)?.[1] || "-";
+  if (tag === "xNome") return text.match(/NOME\\s*\\/\\s*RAZ[ÃA]O SOCIAL\\s*:\\s*([^:]+?)(?=ENDERE[ÇC]O|$)/i)?.[1]?.trim() || "-";
+  */
+  if (tag === "vNF") return text.match(/VALOR TOTAL DA NOTA[^0-9]*([0-9.,]+)/i)?.[1] || text.match(/VALOR TOTAL[^0-9]*([0-9.,]+)/i)?.[1] || "-";
+  if (tag === "CNPJ") return text.match(/CNPJ\s*:?\s*([0-9./-]{14,18})/i)?.[1] || "-";
+  return "-";
 }
 
 function xmlPreviewScopedValue(xml: string, scopeTag: string, tag: string) {
