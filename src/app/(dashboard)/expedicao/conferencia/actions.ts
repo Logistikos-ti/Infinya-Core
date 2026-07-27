@@ -159,7 +159,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect(`${redirectBase}/${orderId}?feedback=romaneio-obrigatorio`);
   }
   const isCompletingConference =
-    intent === "complete" || isReleaseToRomaneio;
+    intent === "complete" || intent === "force-pronto-romaneio" || isReleaseToRomaneio;
 
   const nextConferencePayload: Record<string, unknown> = {
     ...currentConference,
@@ -211,6 +211,18 @@ export async function saveShippingConferenceAction(formData: FormData) {
         liberadoSemRomaneioEm: null,
       },
     };
+  } else if (intent === "force-pronto-romaneio") {
+    nextStatus = canComplete ? "PRONTO_ROMANEIO" : order.status;
+    if (canComplete) {
+      nextPayload = {
+        ...payload,
+        conferencia: {
+          ...nextConferencePayload,
+          liberadoParaRomaneioEm: now,
+          liberadoSemRomaneioEm: null,
+        },
+      };
+    }
   } else if (intent === "complete") {
     nextStatus = canComplete ? "CONFERIDO" : order.status;
   }
@@ -251,7 +263,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect(completeRedirectTo);
   }
 
-  redirect(`${redirectBase}/${orderId}?feedback=${intent === "complete" ? "concluido" : "salvo"}`);
+  redirect(`${redirectBase}/${orderId}?feedback=${(intent === "complete" || intent === "force-pronto-romaneio") ? "concluido" : "salvo"}`);
 }
 
 export async function markShippingOrderAsDivergentAction(formData: FormData) {

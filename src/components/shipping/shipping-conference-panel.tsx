@@ -618,7 +618,7 @@ export function ShippingConferencePanel({
             type="submit"
             form="shipping-conference-form"
             name="intent"
-            value="complete"
+            value="force-pronto-romaneio"
             disabled={!full || isSubmitting} 
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
