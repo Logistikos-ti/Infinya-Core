@@ -371,7 +371,7 @@ function ProductsView({
                 >
                   {item.imageUrl ? (
                     <img
-                      src={item.imageUrl}
+                      src={item.imageUrl ?? undefined}
                       alt={`Foto de ${item.productName ?? "produto"}`}
                       className="h-full w-full object-contain"
                       loading="lazy"

@@ -317,7 +317,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       ) : null}
 
       {confirmReleaseWithoutRomaneio && typeof document !== "undefined" ? createPortal(
@@ -352,7 +352,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       ) : null}
     </div>
   );

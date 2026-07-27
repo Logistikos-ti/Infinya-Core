@@ -381,8 +381,8 @@ export function ShippingConferencePanel({
 
   // Cat colors for thumbs
   const cat = ['#3B82F6', '#10B981', '#EC4899', '#A855F7', '#F59E0B', '#06B6D4'];
-  const hex2 = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; };
-  const thumb = (c) => 'linear-gradient(140deg,' + c + ' 0%,' + hex2(c, 0.6) + ' 100%)';
+  const hex2 = (h: string, a: number) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; };
+  const thumb = (c: string) => 'linear-gradient(140deg,' + c + ' 0%,' + hex2(c, 0.6) + ' 100%)';
   
   // Carrier colors (fallback if carrier not listed)
   const carriers: Record<string, string> = { 'Mercado Livre': '#2D3277', 'Shopee': '#EE4D2D', 'Amazon': '#FF9900', 'Magalu': '#0086FF' };

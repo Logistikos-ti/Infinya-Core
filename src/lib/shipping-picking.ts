@@ -194,6 +194,7 @@ export type ShippingPickingOrder = {
   depositante: string;
   totalItems: number;
   totalUnits: number;
+  separatedUnits: number;
   assignedOperatorId: string | null;
   assignedOperatorName: string | null;
   startedAt: string | null;
