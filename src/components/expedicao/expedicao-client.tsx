@@ -28,7 +28,10 @@ import {
   ChevronLeft,
   ChevronDown,
   List,
-  ArrowLeft
+  ArrowLeft,
+  FileText,
+  Receipt,
+  Tag
 } from "lucide-react";
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
@@ -52,6 +55,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [productPickerQuery, setProductPickerQuery] = useState("");
   const [newOrderCarrier, setNewOrderCarrier] = useState("Marketplace");
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
+  const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
+  const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -983,7 +988,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
 
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Canal de venda</h3>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: newOrderCarrier === "Outro" ? 12 : 0 }}>
                     {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
                       const active = option.value === newOrderChannel;
                       const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
@@ -1080,8 +1085,20 @@ const moves = getTimelineSteps(sel.raw.status, sel);
 
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Documentos (opcional)</h3>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg, color: t.text, fontSize: 13, cursor: "pointer" }}><Upload size={18} color="#3B82F6" /> Nota fiscal (XML)<input type="file" name="invoiceXml" accept=".xml,text/xml,application/xml" style={{ display: "none" }} /></label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg, color: t.text, fontSize: 13, cursor: "pointer" }}><Upload size={18} color="#8B5CF6" /> Etiqueta de envio<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" style={{ display: "none" }} /></label>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>
+                      <Upload size={18} color="#3B82F6" />
+                      <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Nota fiscal (XML)</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderInvoiceFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
+                      <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(59,130,246,.12)", color: "#2563EB", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="invoiceXml" accept=".xml,text/xml,application/xml" onChange={(event) => setNewOrderInvoiceFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
+                      {newOrderInvoiceFile && <button type="button" onClick={() => window.open(URL.createObjectURL(newOrderInvoiceFile), "_blank", "noopener,noreferrer")} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>
+                      <Upload size={18} color="#8B5CF6" />
+                      <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Etiqueta de envio</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderLabelFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
+                      <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(139,92,246,.12)", color: "#7C3AED", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" onChange={(event) => setNewOrderLabelFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
+                      {newOrderLabelFile && <button type="button" onClick={() => window.open(URL.createObjectURL(newOrderLabelFile), "_blank", "noopener,noreferrer")} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                    </div>
+                  </div>
                 </section>
               </div>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
