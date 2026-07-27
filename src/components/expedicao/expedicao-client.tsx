@@ -36,6 +36,28 @@ import {
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
+function xmlPreviewValue(xml: string, tag: string) {
+  const match = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, "i"));
+  return match?.[1]?.trim() || "-";
+}
+
+function escapePreviewHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character] ?? character));
+}
+
+function buildInvoicePreviewHtml(xml: string) {
+  const invoiceNumber = xmlPreviewValue(xml, "nNF");
+  const series = xmlPreviewValue(xml, "serie");
+  const issuer = xmlPreviewValue(xml, "xNome");
+  const issuerDocument = xmlPreviewValue(xml, "CNPJ");
+  const recipient = xml.match(/<dest[\s\S]*?<xNome>([^<]+)</i)?.[1]?.trim() || "-";
+  const total = xmlPreviewValue(xml, "vNF");
+  const accessKey = xml.match(/Id="NFe(\d{44})"/i)?.[1] || xmlPreviewValue(xml, "chNFe");
+  const itemMatches = [...xml.matchAll(/<det[^>]*>[\s\S]*?<cProd>([^<]*)<\/cProd>[\s\S]*?<xProd>([^<]*)<\/xProd>[\s\S]*?<qCom>([^<]*)<\/qCom>[\s\S]*?<vProd>([^<]*)<\/vProd>[\s\S]*?<\/det>/gi)];
+  const items = itemMatches.length ? itemMatches.map((match) => `<tr><td>${escapePreviewHtml(match[1])}</td><td>${escapePreviewHtml(match[2])}</td><td>${escapePreviewHtml(match[3])}</td><td>R$ ${escapePreviewHtml(match[4])}</td></tr>`).join("") : `<tr><td colspan="4">Itens disponíveis no XML da nota.</td></tr>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff;color:#111827;font-family:Arial,sans-serif;padding:28px}.sheet{max-width:820px;margin:auto;border:1px solid #111827}.head{display:flex;justify-content:space-between;gap:20px;padding:18px;border-bottom:2px solid #111827}.brand{font-size:19px;font-weight:800;letter-spacing:.04em}.muted{font-size:11px;color:#4b5563;margin-top:5px}.box{padding:12px 18px;border-bottom:1px solid #111827}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.label{font-size:9px;color:#4b5563;text-transform:uppercase}.value{font-size:13px;font-weight:700;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{text-align:left;padding:9px;border:1px solid #9ca3af}th{background:#f3f4f6;font-size:10px}.total{text-align:right;font-size:17px;font-weight:800}.barcode{font-family:monospace;letter-spacing:3px;font-size:18px;word-break:break-all}</style></head><body><div class="sheet"><div class="head"><div><div class="brand">INFINOOS WMS</div><div class="muted">Documento fiscal operacional</div></div><div><div class="label">DANFE simplificada</div><div class="value">NF ${escapePreviewHtml(invoiceNumber)} · Série ${escapePreviewHtml(series)}</div></div></div><div class="box grid"><div><div class="label">Emitente</div><div class="value">${escapePreviewHtml(issuer)}</div><div class="muted">CNPJ: ${escapePreviewHtml(issuerDocument)}</div></div><div><div class="label">Destinatário</div><div class="value">${escapePreviewHtml(recipient)}</div></div><div><div class="label">Valor total</div><div class="value">R$ ${escapePreviewHtml(total)}</div></div></div><div class="box"><div class="label">Itens da nota</div><table><thead><tr><th>Código</th><th>Descrição</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody>${items}</tbody></table></div><div class="box"><div class="label">Chave de acesso</div><div class="barcode">${escapePreviewHtml(accessKey)}</div></div><div class="box total">Total da nota: R$ ${escapePreviewHtml(total)}</div></div></body></html>`;
+}
+
 export function ExpedicaoClient({ data }: { data: any }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -57,6 +79,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
+  const [newOrderPreview, setNewOrderPreview] = useState<{ kind: "invoice" | "label"; src: string } | null>(null);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -1090,13 +1113,13 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       <Upload size={18} color="#3B82F6" />
                       <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Nota fiscal (XML)</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderInvoiceFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
                       <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(59,130,246,.12)", color: "#2563EB", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="invoiceXml" accept=".xml,text/xml,application/xml" onChange={(event) => setNewOrderInvoiceFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
-                      {newOrderInvoiceFile && <button type="button" onClick={() => window.open(URL.createObjectURL(newOrderInvoiceFile), "_blank", "noopener,noreferrer")} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                      {newOrderInvoiceFile && <button type="button" onClick={async () => setNewOrderPreview({ kind: "invoice", src: buildInvoicePreviewHtml(await newOrderInvoiceFile.text()) })} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>
                       <Upload size={18} color="#8B5CF6" />
                       <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Etiqueta de envio</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderLabelFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
                       <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(139,92,246,.12)", color: "#7C3AED", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" onChange={(event) => setNewOrderLabelFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
-                      {newOrderLabelFile && <button type="button" onClick={() => window.open(URL.createObjectURL(newOrderLabelFile), "_blank", "noopener,noreferrer")} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                      {newOrderLabelFile && <button type="button" onClick={() => setNewOrderPreview({ kind: "label", src: URL.createObjectURL(newOrderLabelFile) })} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
                     </div>
                   </div>
                 </section>
@@ -1106,6 +1129,10 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)" }}>⇢ Enviar ao CD</button></div>
               </div>
             </form>
+            {newOrderPreview && <div style={{ position: "absolute", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", background: t.drawerBg, animation: "overlayFade .2s ease" }}>
+              <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: `1px solid ${t.border}` }}><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16 }}>{newOrderPreview.kind === "invoice" ? "Nota fiscal" : "Etiqueta de envio"}</strong><button type="button" aria-label="Fechar visualização" onClick={() => setNewOrderPreview(null)} style={{ width: 34, height: 34, display: "grid", placeItems: "center", padding: 0, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><X size={17} /></button></div>
+              <div style={{ flex: 1, minHeight: 0, padding: 16, background: t.softBg }}><iframe title="Visualização do documento" src={newOrderPreview.kind === "label" ? newOrderPreview.src : undefined} srcDoc={newOrderPreview.kind === "invoice" ? newOrderPreview.src : undefined} style={{ width: "100%", height: "100%", border: 0, borderRadius: 12, background: "#fff" }} /></div>
+            </div>}
           </aside>
         </div>
       )}
