@@ -46,7 +46,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
   const [newOrderChannel, setNewOrderChannel] = useState("MERCADO_LIVRE");
   const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
-  const [draftProductId, setDraftProductId] = useState("");
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [newOrderCarrier, setNewOrderCarrier] = useState("Melhor frete (automático)");
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -343,6 +344,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
         .flow-card:hover::before {
           background: linear-gradient(135deg, var(--accent), transparent);
         }
+        .new-order-trigger {
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .new-order-trigger:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 26px rgba(99,102,241,0.38) !important;
+        }
       `}</style>
 
       {/* ----------------- EXPEDIÇÃO DASHBOARD VIEW ----------------- */}
@@ -361,7 +369,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 <button onClick={setDivergence} style={{height: "36px", padding: "0 15px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: `${vt.divBg }`, color: `${vt.divColor }`, transition: "all 0.2s ease"}}>⚠ Divergências<span style={{padding: "1px 7px", borderRadius: "999px", fontSize: "11px", background: `${vt.divCountBg }`, color: `${vt.divCountColor }`}}>{divergenceCount }</span></button>
               </div>
               { showAdd  && (
-                <button onClick={() => setNewOrderOpen(true)} style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
+                <button className="new-order-trigger" onClick={() => setNewOrderOpen(true)} style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
               )}
             </div>
           </div>
@@ -502,7 +510,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <button onClick={() => setNewOrderOpen(true)} style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <button className="new-order-trigger" onClick={() => setNewOrderOpen(true)} style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
                 + Novo pedido
               </button>
             </div>
@@ -968,7 +976,8 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "SITE_PROPRIO"].includes(option.value)).map((option) => {
                       const active = option.value === newOrderChannel;
-                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ padding: "10px 13px", borderRadius: 10, border: `1px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontWeight: 700, cursor: "pointer" }}>{option.label}</button>;
+                      const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", SITE_PROPRIO: "SP" };
+                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ height: 38, padding: "0 14px", display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 10, border: `1.5px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}><span style={{ width: 20, height: 20, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 10, fontWeight: 800, background: option.value === "MERCADO_LIVRE" ? "rgba(45,50,119,.15)" : option.value === "SHOPEE" ? "rgba(238,77,45,.15)" : option.value === "AMAZON" ? "rgba(255,153,0,.15)" : "rgba(139,92,246,.15)", color: option.value === "MERCADO_LIVRE" ? "#2D3277" : option.value === "SHOPEE" ? "#EE4D2D" : option.value === "AMAZON" ? "#FF9900" : "#8B5CF6" }}>{initials[option.value]}</span>{option.label}</button>;
                     })}
                   </div>
                 </section>
@@ -1002,14 +1011,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <section>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <h3 style={{ margin: 0, color: t.text, fontSize: 14, fontWeight: 800 }}>Itens do pedido</h3>
-                    <span style={{ color: "#7C3AED", fontSize: 13, fontWeight: 800 }}>{totalNewOrderUnits} unidade(s)</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                    <select value={draftProductId} onChange={(event) => setDraftProductId(event.target.value)} style={{ flex: 1, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }}>
-                      <option value="">Adicionar produto do catálogo</option>
-                      {availableProducts.map((produto: any) => <option key={produto.id} value={produto.id}>{produto.nome} · {produto.sku || produto.codigo_interno || produto.codigo_externo || "sem código"}</option>)}
-                    </select>
-                    <button type="button" disabled={!draftProductId} onClick={() => { if (draftProductId) { setNewOrderItems((items) => items.some((item) => item.id === draftProductId) ? items : [...items, { id: draftProductId, quantity: 1 }]); setDraftProductId(""); } }} style={{ width: 46, border: 0, borderRadius: 10, background: draftProductId ? "#8B5CF6" : t.softBg, color: draftProductId ? "#fff" : t.textSub, cursor: draftProductId ? "pointer" : "default" }}><Plus size={18} /></button>
+                    <button type="button" onClick={() => setShowProductPicker(true)} style={{ border: 0, padding: 0, background: "transparent", color: "#8B5CF6", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>+ Adicionar item</button>
                   </div>
                   {selectedItems.length === 0 && <div style={{ padding: 18, borderRadius: 12, border: `1px dashed ${t.border}`, color: t.textSub, fontSize: 13, textAlign: "center" }}>Adicione os produtos que deverão ser separados.</div>}
                   {selectedItems.map(({ id, quantity, product }: any, index: number) => <div key={id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px", borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: 8 }}>
@@ -1021,12 +1023,20 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     <button type="button" onClick={() => setNewOrderItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: item.quantity + 1 } : item))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><Plus size={14} /></button>
                     <button type="button" aria-label="Remover item" onClick={() => setNewOrderItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} style={{ width: 30, height: 30, borderRadius: 8, border: `1px solid rgba(239,68,68,.25)`, background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><X size={14} /></button>
                   </div>)}
+                  {showProductPicker && <div style={{ position: "absolute", inset: 0, zIndex: 5, display: "flex", flexDirection: "column", background: t.drawerBg, animation: "overlayFade .2s ease" }}>
+                    <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 12 }}><button type="button" onClick={() => setShowProductPicker(false)} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><ChevronLeft size={17} /></button><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17 }}>Escolher produtos</strong></div>
+                    <div style={{ padding: "16px 24px 0" }}><input placeholder="Buscar por nome ou SKU..." style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none" }} /></div>
+                    <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 8 }}>{availableProducts.map((produto: any) => { const already = newOrderItems.some((item) => item.id === produto.id); return <button type="button" key={produto.id} disabled={already} onClick={() => { setNewOrderItems((items) => already ? items : [...items, { id: produto.id, quantity: 1 }]); setShowProductPicker(false); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${already ? "#10B981" : t.border}`, background: already ? "rgba(16,185,129,.08)" : t.cardBg, color: t.text, textAlign: "left", cursor: already ? "default" : "pointer" }}><span style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "linear-gradient(135deg,#60A5FA,#A78BFA)", color: "#fff" }}><Box size={18} /></span><span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 13.5 }}>{produto.nome}</strong><small style={{ color: t.textSub }}>{produto.sku || produto.codigo_interno || produto.codigo_externo || "Sem código"}</small></span><span style={{ color: already ? "#10B981" : "#8B5CF6", fontWeight: 800 }}>{already ? "✓ Adicionado" : "+ Adicionar"}</span></button>; })}</div>
+                  </div>}
                 </section>
 
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Frete / transportadora</h3>
-                  <input name="carrierName" placeholder="Ex.: Correios, Perfect, Shopee Xpress" style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
-                  <input name="shippingService" placeholder="Serviço de entrega (opcional)" style={{ width: "100%", height: 44, marginTop: 10, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+                  <input type="hidden" name="carrierName" value={newOrderCarrier} />
+                  <input type="hidden" name="shippingService" value={newOrderCarrier} />
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {["Melhor frete (automático)", "Correios PAC", "Coleta marketplace"].map((carrier) => <button type="button" key={carrier} onClick={() => setNewOrderCarrier(carrier)} style={{ height: 38, padding: "0 15px", borderRadius: 10, border: `1.5px solid ${newOrderCarrier === carrier ? "#8B5CF6" : t.border}`, background: newOrderCarrier === carrier ? "rgba(139,92,246,.1)" : t.cardBg, color: newOrderCarrier === carrier ? t.text : t.textSub, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}>{carrier}</button>)}
+                  </div>
                 </section>
 
                 <section>
@@ -1037,7 +1047,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
                 <div><div style={{ color: t.textSub, fontSize: 12 }}>Total de itens</div><strong style={{ color: t.text, fontSize: 20 }}>{totalNewOrderUnits}</strong></div>
-                <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 46, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" style={{ height: 46, padding: "0 22px", border: 0, borderRadius: 11, background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,.3)" }}>Enviar ao CD</button></div>
+                <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)" }}>⇢ Enviar ao CD</button></div>
               </div>
             </form>
           </aside>
