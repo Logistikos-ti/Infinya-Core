@@ -37,8 +37,23 @@ import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/act
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 function xmlPreviewValue(xml: string, tag: string) {
-  const match = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, "i"));
+  if (typeof DOMParser !== "undefined") {
+    const document = new DOMParser().parseFromString(xml, "application/xml");
+    const node = Array.from(document.getElementsByTagName("*")).find((element) => element.localName === tag);
+    if (node?.textContent?.trim()) return node.textContent.trim();
+  }
+  const match = xml.match(new RegExp(`<(?:[\\w-]+:)?${tag}[^>]*>([^<]*)</(?:[\\w-]+:)?${tag}>`, "i"));
   return match?.[1]?.trim() || "-";
+}
+
+function xmlPreviewScopedValue(xml: string, scopeTag: string, tag: string) {
+  if (typeof DOMParser !== "undefined") {
+    const document = new DOMParser().parseFromString(xml, "application/xml");
+    const scope = Array.from(document.getElementsByTagName("*")).find((element) => element.localName === scopeTag);
+    const node = scope ? Array.from(scope.getElementsByTagName("*")).find((element) => element.localName === tag) : null;
+    if (node?.textContent?.trim()) return node.textContent.trim();
+  }
+  return xmlPreviewValue(xml, tag);
 }
 
 function escapePreviewHtml(value: string) {
@@ -48,9 +63,9 @@ function escapePreviewHtml(value: string) {
 function buildInvoicePreviewHtml(xml: string) {
   const invoiceNumber = xmlPreviewValue(xml, "nNF");
   const series = xmlPreviewValue(xml, "serie");
-  const issuer = xmlPreviewValue(xml, "xNome");
-  const issuerDocument = xmlPreviewValue(xml, "CNPJ");
-  const recipient = xml.match(/<dest[\s\S]*?<xNome>([^<]+)</i)?.[1]?.trim() || "-";
+  const issuer = xmlPreviewScopedValue(xml, "emit", "xNome");
+  const issuerDocument = xmlPreviewScopedValue(xml, "emit", "CNPJ");
+  const recipient = xmlPreviewScopedValue(xml, "dest", "xNome");
   const total = xmlPreviewValue(xml, "vNF");
   const accessKey = xml.match(/Id="NFe(\d{44})"/i)?.[1] || xmlPreviewValue(xml, "chNFe");
   const itemMatches = [...xml.matchAll(/<det[^>]*>[\s\S]*?<cProd>([^<]*)<\/cProd>[\s\S]*?<xProd>([^<]*)<\/xProd>[\s\S]*?<qCom>([^<]*)<\/qCom>[\s\S]*?<vProd>([^<]*)<\/vProd>[\s\S]*?<\/det>/gi)];
