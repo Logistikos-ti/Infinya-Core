@@ -4,7 +4,7 @@ import {
   listShippingQueuesFromDb,
   listShippingStatsFromDb,
 } from "@/lib/shipping";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ExpedicaoClient } from "@/components/expedicao/expedicao-client";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
@@ -53,13 +53,15 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   
-  const supabase = await createSupabaseServerClient();
+  // Operadores atuam para todos os depositantes; os dados operacionais
+  // precisam seguir o mesmo acesso administrativo controlado usado no estoque.
+  const operationalSupabase = createSupabaseAdminClient();
   const effectiveDepositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : depositanteFilter;
 
   const [{ data: depositantes }, { data: produtos }, shippingOverviewOrders, shippingOrders] = await Promise.all([
-    supabase.from("depositantes").select("id, nome").order("nome"),
-    supabase
+    operationalSupabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
+    operationalSupabase
       .from("produtos")
       .select("id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url, depositante_id")
       .order("nome")
@@ -105,7 +107,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
 
   const productIds = productOptions.map((produto) => produto.id);
   const { data: estoqueRows } = productIds.length
-    ? await supabase.from("estoque").select("produto_id, quantidade, quantidade_reservada").in("produto_id", productIds)
+    ? await operationalSupabase.from("estoque").select("produto_id, quantidade, quantidade_reservada").in("produto_id", productIds)
     : { data: [] };
   const stockByProduct = new Map<string, number>();
   for (const row of estoqueRows ?? []) {

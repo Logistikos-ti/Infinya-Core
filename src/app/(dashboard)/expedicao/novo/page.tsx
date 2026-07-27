@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { requireRoleAccess } from "@/lib/auth";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 
@@ -20,7 +20,7 @@ export default async function NovoPedidoManualPage({
   searchParams,
 }: NovoPedidoManualPageProps) {
   const user = await requireRoleAccess(["ADMIN", "TI"]);
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const feedback = resolvedSearchParams?.feedback?.trim() ?? "";
 
