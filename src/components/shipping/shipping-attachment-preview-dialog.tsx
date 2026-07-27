@@ -10,6 +10,7 @@ type ShippingAttachmentPreviewDialogProps = {
   downloadHref: string;
   printLabel?: string;
   downloadLabel?: string;
+  customTrigger?: (openPreview: () => void) => React.ReactNode;
 };
 
 export function ShippingAttachmentPreviewDialog({
@@ -18,6 +19,7 @@ export function ShippingAttachmentPreviewDialog({
   downloadHref,
   printLabel = "Imprimir",
   downloadLabel = "Baixar",
+  customTrigger,
 }: ShippingAttachmentPreviewDialogProps) {
   const [open, setOpen] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
@@ -46,6 +48,7 @@ export function ShippingAttachmentPreviewDialog({
 
   return (
     <>
+      {customTrigger ? customTrigger(openPreview) : (
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <button
           type="button"
@@ -81,6 +84,7 @@ export function ShippingAttachmentPreviewDialog({
           {downloadLabel}
         </a>
       </div>
+      )}
 
       {open && typeof document !== "undefined"
         ? createPortal(

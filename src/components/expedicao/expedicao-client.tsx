@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,7 @@ import {
   Tag
 } from "lucide-react";
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
+import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 function xmlPreviewValue(xml: string, tag: string) {
@@ -105,7 +106,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
-  const [newOrderPreview, setNewOrderPreview] = useState<{ kind: "invoice" | "label"; src: string } | null>(null);
+  const [newOrderPreview, setNewOrderPreview] = useState<{ kind: "invoice" | "label"; src: string; file?: File } | null>(null);
+  const [newOrderPreviewZoom, setNewOrderPreviewZoom] = useState(100);
+  const newOrderPreviewFrameRef = useRef<HTMLIFrameElement>(null);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -807,30 +810,51 @@ const moves = getTimelineSteps(sel.raw.status, sel);
 
                 {/* Document buttons */}
                 <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=inline`, "_blank", "width=900,height=700"); }}
-                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                  >
-                    <FileText size={20} color={t.textSub} />
-                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=inline`, "_blank", "width=900,height=700"); }}
-                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                  >
-                    <Receipt size={20} color={t.textSub} />
-                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=inline`, "_blank", "width=900,height=700"); }}
-                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                  >
-                    <Tag size={20} color={t.textSub} />
-                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
-                  </button>
+                  <ShippingAttachmentPreviewDialog
+                    label="Nota Fiscal"
+                    viewHref={`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=inline`}
+                    downloadHref={`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=attachment`}
+                    customTrigger={(openPreview) => (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                      >
+                        <FileText size={20} color={t.textSub} />
+                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>
+                      </button>
+                    )}
+                  />
+                  <ShippingAttachmentPreviewDialog
+                    label="DANFE Simplificada"
+                    viewHref={`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=inline`}
+                    downloadHref={`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=attachment`}
+                    customTrigger={(openPreview) => (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                      >
+                        <Receipt size={20} color={t.textSub} />
+                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
+                      </button>
+                    )}
+                  />
+                  <ShippingAttachmentPreviewDialog
+                    label="Etiqueta de Envio"
+                    viewHref={`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=inline`}
+                    downloadHref={`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=attachment`}
+                    customTrigger={(openPreview) => (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                      >
+                        <Tag size={20} color={t.textSub} />
+                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
+                      </button>
+                    )}
+                  />
                 </div>
 
                 {/* carrier + dock + specs */}
@@ -1167,13 +1191,13 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       <Upload size={18} color="#3B82F6" />
                       <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Nota fiscal (XML)</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderInvoiceFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
                       <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(59,130,246,.12)", color: "#2563EB", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="invoiceXml" accept=".xml,text/xml,application/xml" onChange={(event) => setNewOrderInvoiceFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
-                      {newOrderInvoiceFile && <button type="button" onClick={async () => setNewOrderPreview({ kind: "invoice", src: buildInvoicePreviewHtml(await newOrderInvoiceFile.text()) })} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                      {newOrderInvoiceFile && <button type="button" onClick={async () => { setNewOrderPreviewZoom(100); setNewOrderPreview({ kind: "invoice", src: buildInvoicePreviewHtml(await newOrderInvoiceFile.text()), file: newOrderInvoiceFile }); }} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>
                       <Upload size={18} color="#8B5CF6" />
                       <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Etiqueta de envio</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderLabelFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
                       <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(139,92,246,.12)", color: "#7C3AED", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" onChange={(event) => setNewOrderLabelFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
-                      {newOrderLabelFile && <button type="button" onClick={() => setNewOrderPreview({ kind: "label", src: URL.createObjectURL(newOrderLabelFile) })} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
+                      {newOrderLabelFile && <button type="button" onClick={() => { setNewOrderPreviewZoom(100); setNewOrderPreview({ kind: "label", src: URL.createObjectURL(newOrderLabelFile), file: newOrderLabelFile }); }} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
                     </div>
                   </div>
                 </section>
@@ -1183,7 +1207,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <div style={{ display: "flex", gap: 10 }}><button type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer" }}>Cancelar</button><button type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)" }}>⇢ Enviar ao CD</button></div>
               </div>
             </form>
-            {newOrderPreview && <div style={{ position: "absolute", inset: 0, zIndex: 30, display: "flex", flexDirection: "column", background: t.drawerBg, animation: "overlayFade .2s ease" }}>
+            {newOrderPreview && <div style={{ position: "absolute", inset: 0, zIndex: 29, display: "flex", flexDirection: "column", background: t.drawerBg, animation: "overlayFade .2s ease" }}>
               <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: `1px solid ${t.border}` }}><strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16 }}>{newOrderPreview.kind === "invoice" ? "Nota fiscal" : "Etiqueta de envio"}</strong><button type="button" aria-label="Fechar visualização" onClick={() => setNewOrderPreview(null)} style={{ width: 34, height: 34, display: "grid", placeItems: "center", padding: 0, borderRadius: 9, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><X size={17} /></button></div>
               <div style={{ flex: 1, minHeight: 0, padding: 16, background: t.softBg }}><iframe title="Visualização do documento" src={newOrderPreview.kind === "label" ? newOrderPreview.src : undefined} srcDoc={newOrderPreview.kind === "invoice" ? newOrderPreview.src : undefined} style={{ width: "100%", height: "100%", border: 0, borderRadius: 12, background: "#fff" }} /></div>
             </div>}
