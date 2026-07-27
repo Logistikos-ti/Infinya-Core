@@ -829,8 +829,17 @@ export function EnderecosDashboard({
                         </div>
                         <button type="button" onClick={() => setLabelOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 dark:border-zinc-700 dark:text-zinc-300">✕</button>
                       </div>
-                      <div className="mt-5 [&_svg]:h-[150px]">
-                        <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                        <div className="mb-4 flex items-center gap-3 border-b border-slate-200 pb-4 dark:border-zinc-800">
+                          <img src="/branding/infinoos-icon-wms.svg" alt="Infinoos WMS" className="h-12 w-12 object-contain grayscale" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-bold tracking-[0.16em] text-slate-500 dark:text-zinc-400">ETIQUETA DE ENDEREÇO</p>
+                            <p className="mt-1 truncate font-space text-lg font-extrabold text-slate-950 dark:text-white">{selected.codigo}</p>
+                          </div>
+                        </div>
+                        <div className="[&_svg]:h-[150px]">
+                          <AddressBarcodePreview value={selected.codigo} containerId={`barcode-label-modal-${selected.id}`} />
+                        </div>
                       </div>
                       <div className="mt-6 flex justify-end gap-3">
                         <button type="button" onClick={() => setLabelOpen(false)} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500/60 dark:hover:bg-violet-500/10">Fechar</button>
