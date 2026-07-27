@@ -165,7 +165,7 @@ export async function updateShippingOrderAction(formData: FormData) {
 }
 
 export async function createManualShippingOrderAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
 
   const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
   const returnPath = requestedReturnPath.startsWith("/expedicao") ? requestedReturnPath : "/expedicao";
