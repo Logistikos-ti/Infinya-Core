@@ -26,6 +26,7 @@ import {
   X,
   Upload,
   ChevronLeft,
+  ChevronDown,
   List,
   ArrowLeft
 } from "lucide-react";
@@ -44,6 +45,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
+  const [newOrderDepositanteOpen, setNewOrderDepositanteOpen] = useState(false);
   const [newOrderChannel, setNewOrderChannel] = useState("MERCADO_LIVRE");
   const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
@@ -987,11 +989,14 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 <section>
                   <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Operação</h3>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <label style={{ color: t.textSub, fontSize: 12 }}>Depositante
-                      <select required name="depositanteId" value={newOrderDepositante} onChange={(event) => { setNewOrderDepositante(event.target.value); setNewOrderItems([]); }} style={{ display: "block", width: "100%", marginTop: 6, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }}>
-                        <option value="">Selecione</option>
-                        {(data.depositanteOptions ?? []).map((depositante: any) => <option key={depositante.id} value={depositante.id}>{depositante.nome}</option>)}
-                      </select>
+                    <label style={{ position: "relative", color: t.textSub, fontSize: 12 }}>Depositante
+                      <input type="hidden" required name="depositanteId" value={newOrderDepositante} />
+                      <button type="button" onClick={() => setNewOrderDepositanteOpen((open) => !open)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: 6, height: 44, padding: "0 12px 0 14px", borderRadius: 10, border: `1px solid ${newOrderDepositanteOpen ? "#8B5CF6" : t.border}`, background: t.inputBg, color: newOrderDepositante ? t.text : t.textSub, fontFamily: "'Manrope', sans-serif", fontSize: 13.5, cursor: "pointer", textAlign: "left", boxShadow: newOrderDepositanteOpen ? "0 0 0 3px rgba(139,92,246,.12)" : "none" }}>
+                        <span>{data.depositanteOptions?.find((depositante: any) => depositante.id === newOrderDepositante)?.nome ?? "Selecione o depositante"}</span><ChevronDown size={16} style={{ transform: newOrderDepositanteOpen ? "rotate(180deg)" : "none", transition: "transform .16s ease" }} />
+                      </button>
+                      {newOrderDepositanteOpen && <div style={{ position: "absolute", zIndex: 20, top: "calc(100% + 6px)", left: 0, right: 0, padding: 6, borderRadius: 12, border: `1px solid ${t.border}`, background: t.drawerBg, boxShadow: "0 14px 30px rgba(15,23,42,.16)", animation: "popIn .16s ease" }}>
+                        {(data.depositanteOptions ?? []).map((depositante: any) => <button type="button" key={depositante.id} onClick={() => { setNewOrderDepositante(depositante.id); setNewOrderItems([]); setNewOrderDepositanteOpen(false); }} style={{ display: "flex", alignItems: "center", width: "100%", height: 38, padding: "0 10px", border: 0, borderRadius: 8, background: depositante.id === newOrderDepositante ? "rgba(139,92,246,.1)" : "transparent", color: depositante.id === newOrderDepositante ? t.text : t.textSub, fontSize: 13, fontWeight: 700, textAlign: "left", cursor: "pointer" }}>{depositante.nome}</button>)}
+                      </div>}
                     </label>
                     <label style={{ color: t.textSub, fontSize: 12 }}>Número do pedido
                       <input required name="numeroPedido" placeholder="Ex.: 18450" style={{ display: "block", width: "100%", marginTop: 6, height: 44, padding: "0 12px", borderRadius: 10, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
@@ -1064,6 +1069,10 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         @keyframes overlayFade {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @keyframes popIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes fillRing {
           from { stroke-dashoffset: 289; }

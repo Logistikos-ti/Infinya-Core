@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { ShippingConferenceDocumentsPanel, type ShippingConferenceDocumentsPanelRef } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -45,6 +46,7 @@ export function ShippingConferencePanel({
   redirectBase = "/expedicao/conferencia",
   documents,
 }: ShippingConferencePanelProps) {
+  const panelRef = useRef<ShippingConferenceDocumentsPanelRef>(null);
   const router = useRouter();
 
   const { theme } = useTheme();
@@ -593,6 +595,18 @@ export function ShippingConferencePanel({
           </div>
 
         </form>
+
+        {full && documents && documents.depositanteId && (
+          <ShippingConferenceDocumentsPanel
+            ref={panelRef}
+            orderId={order.id}
+            depositanteId={documents.depositanteId}
+            attachments={documents.attachments}
+            canUploadAttachments={documents.canUploadAttachments}
+            unlocked={full}
+            formId="shipping-conference-form"
+          />
+        )}
 
         {/* Action bar */}
         <div style={{ display: "flex", gap: 12 }}>
