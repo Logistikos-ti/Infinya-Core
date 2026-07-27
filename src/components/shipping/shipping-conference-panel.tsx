@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
-import { ShippingConferenceDocumentsPanel, type ShippingConferenceDocumentsPanelRef } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -46,7 +45,6 @@ export function ShippingConferencePanel({
   redirectBase = "/expedicao/conferencia",
   documents,
 }: ShippingConferencePanelProps) {
-  const panelRef = useRef<ShippingConferenceDocumentsPanelRef>(null);
   const router = useRouter();
 
   const { theme } = useTheme();
@@ -462,7 +460,7 @@ export function ShippingConferencePanel({
           <input type="hidden" name="operatorId" value={selectedOperatorId} />
           <input type="hidden" name="wrongProductScans" value={String(wrongProductScans)} />
           <input type="hidden" name="redirectBase" value={redirectBase} />
-          <input type="hidden" name="completeRedirectTo" value={`/expedicao/conferencia/${order.id}?feedback=concluido#documentos-impressao`} />
+          <input type="hidden" name="completeRedirectTo" value="/expedicao/conferidos?feedback=concluido" />
 
           {/* Header of order */}
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
@@ -596,34 +594,18 @@ export function ShippingConferencePanel({
 
         </form>
 
-        {full && documents && documents.depositanteId && (
-          <ShippingConferenceDocumentsPanel
-            ref={panelRef}
-            orderId={order.id}
-            depositanteId={documents.depositanteId}
-            attachments={documents.attachments}
-            canUploadAttachments={documents.canUploadAttachments}
-            unlocked={full}
-            formId="shipping-conference-form"
-          />
-        )}
-
         {/* Action bar */}
         <div style={{ display: "flex", gap: 12 }}>
           <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
             ⚠ Reportar divergência
           </button>
           <button 
-            type={full ? "button" : "submit"}
-            form={full ? undefined : "shipping-conference-form"}
+            type="submit"
+            form="shipping-conference-form"
+            name="intent"
+            value="complete"
             disabled={!full || isSubmitting} 
             className={full ? "btn-shine" : ""}
-            onClick={(e) => {
-              if (full) {
-                e.preventDefault();
-                panelRef.current?.openPreparationModal();
-              }
-            }}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
           >
             {full ? <Route size={18} /> : checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
