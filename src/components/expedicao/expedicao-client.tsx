@@ -1177,7 +1177,24 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     <div style={{ flex: 1, minWidth: 0 }}><div style={{ color: t.text, fontWeight: 750, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.nome}</div><div style={{ color: t.textSub, fontSize: 11.5, marginTop: 3 }}>{product.sku || product.codigo_interno || product.codigo_externo || "Sem código"}{product.estoque_disponivel !== undefined ? ` · ${product.estoque_disponivel} em estoque` : ""}</div></div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                       <button type="button" aria-label="Diminuir quantidade" onClick={() => setNewOrderItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item))} style={{ width: 30, height: 30, display: "grid", placeItems: "center", padding: 0, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><Minus size={14} /></button>
-                      <strong style={{ width: 24, textAlign: "center", color: t.text }}>{quantity}</strong>
+                      <input
+                        aria-label={`Quantidade de ${product.nome}`}
+                        type="number"
+                        min={1}
+                        step={1}
+                        inputMode="numeric"
+                        value={quantity}
+                        onChange={(event) => {
+                          const nextQuantity = Number.parseInt(event.target.value, 10);
+                          setNewOrderItems((items) => items.map((item, itemIndex) =>
+                            itemIndex === index
+                              ? { ...item, quantity: Number.isFinite(nextQuantity) && nextQuantity > 0 ? nextQuantity : 1 }
+                              : item,
+                          ));
+                        }}
+                        onWheel={(event) => event.currentTarget.blur()}
+                        style={{ width: 42, height: 30, padding: "0 3px", border: 0, background: "transparent", color: t.text, fontWeight: 800, fontSize: 14, textAlign: "center", outline: "none" }}
+                      />
                       <button type="button" aria-label="Aumentar quantidade" onClick={() => setNewOrderItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: item.quantity + 1 } : item))} style={{ width: 30, height: 30, display: "grid", placeItems: "center", padding: 0, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer" }}><Plus size={14} /></button>
                       <button type="button" aria-label="Remover item" onClick={() => setNewOrderItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} style={{ width: 30, height: 30, display: "grid", placeItems: "center", padding: 0, borderRadius: 8, border: `1px solid rgba(239,68,68,.25)`, background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><X size={14} /></button>
                     </div>
