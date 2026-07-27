@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
@@ -199,7 +200,7 @@ export function ShippingConferenceDocumentsPanel({
       </div>
       </div>
 
-      {preparationOpen ? (
+      {preparationOpen && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
             <h4 className="text-lg font-bold text-slate-950 dark:text-white">Preparar para romaneio</h4>
@@ -288,10 +289,10 @@ export function ShippingConferenceDocumentsPanel({
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       ) : null}
 
-      {confirmMissingLabel ? (
+      {confirmMissingLabel && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-3xl border border-amber-500/30 bg-white p-6 shadow-2xl dark:bg-zinc-950">
             <h4 className="text-lg font-bold text-slate-950 dark:text-white">Liberar sem etiqueta de envio?</h4>
@@ -310,7 +311,7 @@ export function ShippingConferenceDocumentsPanel({
         </div>
       ) : null}
 
-      {confirmReleaseWithoutRomaneio ? (
+      {confirmReleaseWithoutRomaneio && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
             <h4 className="text-lg font-bold text-slate-950 dark:text-white">
