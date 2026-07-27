@@ -167,6 +167,8 @@ export async function updateShippingOrderAction(formData: FormData) {
 export async function createManualShippingOrderAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI"]);
 
+  const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
+  const returnPath = requestedReturnPath.startsWith("/expedicao") ? requestedReturnPath : "/expedicao";
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const numeroPedido = String(formData.get("numeroPedido") ?? "").trim();
   const numeroLoja = String(formData.get("numeroLoja") ?? "").trim();
@@ -344,7 +346,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
 
     revalidatePath("/expedicao");
     revalidatePath(`/expedicao/${createdOrder.id}`);
-    redirect(`/expedicao/${createdOrder.id}?feedback=salvo`);
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=salvo`);
   } catch (error) {
     // O Next.js implementa redirect() lançando um sinal interno; ele não pode
     // ser convertido no feedback de erro do formulário.
