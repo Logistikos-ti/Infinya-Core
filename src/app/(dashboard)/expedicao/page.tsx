@@ -122,7 +122,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   // Force a tiny mutation in ExpedicaoClient so we can see if it deployed
   return (
     <>
-      <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery }} />
+      <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery, userRole: user.papel }} />
     </>
   );
 }

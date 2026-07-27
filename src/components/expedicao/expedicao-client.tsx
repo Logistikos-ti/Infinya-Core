@@ -31,9 +31,10 @@ import {
   ArrowLeft,
   FileText,
   Receipt,
-  Tag
+  Tag,
+  Trash2
 } from "lucide-react";
-import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
+import { createManualShippingOrderAction, deleteShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { createPortal } from "react-dom";
@@ -89,6 +90,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
+  const canDeleteOrder = data.userRole === "ADMIN" || data.userRole === "TI";
 
   const [activeTab, setActiveTab] = useState("orders");
   const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
@@ -791,7 +793,13 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: sel.statusDot }}></span>{sel.statusLabel}
                     </span>
                   </div>
-                  <button onClick={() => setSelectedOrder(null)} style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {canDeleteOrder && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>
+                      <input type="hidden" name="id" value={sel.raw.id} />
+                      <button type="submit" aria-label="Excluir pedido" title="Excluir pedido" style={{ width: "36px", height: "36px", display: "grid", placeItems: "center", flexShrink: 0, borderRadius: "10px", border: "1px solid rgba(239,68,68,.28)", background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
+                    </form>}
+                    <button onClick={() => setSelectedOrder(null)} aria-label="Fechar pedido" style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
+                  </div>
                 </div>
               </div>
 
@@ -1042,7 +1050,13 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: sel.statusDot }}></span>{sel.statusLabel}
                     </span>
                   </div>
-                  <button onClick={() => setSelectedOrder(null)} style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {canDeleteOrder && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>
+                      <input type="hidden" name="id" value={sel.raw.id} />
+                      <button type="submit" aria-label="Excluir pedido" title="Excluir pedido" style={{ width: "36px", height: "36px", display: "grid", placeItems: "center", flexShrink: 0, borderRadius: "10px", border: "1px solid rgba(239,68,68,.28)", background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
+                    </form>}
+                    <button onClick={() => setSelectedOrder(null)} aria-label="Fechar pedido" style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
+                  </div>
                 </div>
               </div>
 
