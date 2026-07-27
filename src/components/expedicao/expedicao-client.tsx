@@ -361,7 +361,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 <button onClick={setDivergence} style={{height: "36px", padding: "0 15px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: `${vt.divBg }`, color: `${vt.divColor }`, transition: "all 0.2s ease"}}>⚠ Divergências<span style={{padding: "1px 7px", borderRadius: "999px", fontSize: "11px", background: `${vt.divCountBg }`, color: `${vt.divCountColor }`}}>{divergenceCount }</span></button>
               </div>
               { showAdd  && (
-                <button style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
+                <button onClick={() => setNewOrderOpen(true)} style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
               )}
             </div>
           </div>
