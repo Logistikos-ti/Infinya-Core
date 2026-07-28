@@ -636,36 +636,49 @@ export async function cancelPickingOrderAction(orderId: string) {
     .from("pedidos_expedicao")
     .select("id, payload_origem")
     .eq("id", orderId)
-    .single();
+    .maybeSingle();
 
-  if (readError || !order) return { ok: false };
+  if (readError) {
+    console.error("Failed to read order before stockout cancellation:", readError);
+  }
 
-  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  const payload = order && isRecord(order.payload_origem) ? order.payload_origem : null;
+  const currentPicking = payload && isRecord(payload.separacao) ? payload.separacao : {};
   const { error } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
       status: "DIVERGENCIA",
-      payload_origem: {
-        ...payload,
-        separacao: {
-          ...currentPicking,
-          cancelado: true,
-          canceladoEm: now,
-          canceladoPor: user.id,
-          canceladoPorNome: user.nome,
-          motivoCancelamento: "Sem estoque",
-        },
-      },
+      ...(payload
+        ? {
+            payload_origem: {
+              ...payload,
+              separacao: {
+                ...currentPicking,
+                cancelado: true,
+                canceladoEm: now,
+                canceladoPor: user.id,
+                canceladoPorNome: user.nome,
+                motivoCancelamento: "Sem estoque",
+              },
+            },
+          }
+        : {}),
     })
     .eq("id", orderId);
 
-  if (error) return { ok: false };
+  if (error) {
+    console.error("Failed to cancel picking order:", error);
+    return { ok: false };
+  }
 
-  await adminSupabase
+  const { error: itemError } = await adminSupabase
     .from("pedidos_expedicao_itens")
     .update({ quantidade_separada: 0 })
     .eq("pedido_expedicao_id", orderId);
+
+  if (itemError) {
+    console.error("Failed to reset cancelled order items:", itemError);
+  }
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/separacao");
