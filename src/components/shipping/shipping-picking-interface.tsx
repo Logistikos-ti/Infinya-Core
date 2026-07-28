@@ -125,6 +125,7 @@ export function ShippingPickingInterface({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scanValue, setScanValue] = useState("");
+  const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -180,6 +181,12 @@ export function ShippingPickingInterface({
 
   const skip = () => {
     if (!currentItem) return;
+
+    if (scanPhase === "address") {
+      alert("Bipe primeiro o endereco de coleta deste item.");
+      scanInputRef.current?.focus();
+      return;
+    }
     
     // Mark as skipped/rupture
     setItems((current) =>
@@ -190,11 +197,18 @@ export function ShippingPickingInterface({
       )
     );
     
+    setScanPhase("address");
     setCurrentIndex(Math.min(currentIndex + 1, totalCount));
   };
 
   const confirmItem = () => {
     if (!currentItem) return;
+
+    if (scanPhase === "address") {
+      alert("Bipe primeiro o endereco de coleta deste item.");
+      scanInputRef.current?.focus();
+      return;
+    }
     
     // Auto-fill full quantity and go to next
     setItems((current) =>
@@ -205,6 +219,7 @@ export function ShippingPickingInterface({
       )
     );
     
+    setScanPhase("address");
     setCurrentIndex(Math.min(currentIndex + 1, totalCount));
   };
 
@@ -214,6 +229,24 @@ export function ShippingPickingInterface({
     if (!currentItem) return;
     
     const normalized = scanValue.replace(/\s+/g, "").trim().toUpperCase();
+
+    const expectedAddress = currentItem.routeLines[0]?.addressCode?.replace(/\s+/g, "").trim().toUpperCase() ?? "";
+
+    if (scanPhase === "address") {
+      if (!expectedAddress || normalized !== expectedAddress) {
+        playFeedbackTone("error");
+        alert("Endereco incorreto. Bipe o endereco sugerido na tela.");
+        setScanValue("");
+        scanInputRef.current?.focus();
+        return;
+      }
+
+      playFeedbackTone("success");
+      setScanPhase("product");
+      setScanValue("");
+      scanInputRef.current?.focus();
+      return;
+    }
     
     // Check if it matches the current item
     const matches = [currentItem.barcode, currentItem.sku, currentItem.code]
@@ -236,7 +269,10 @@ export function ShippingPickingInterface({
       if (nextSeparated >= currentItem.requestedQuantity) {
         // Play beep and advance
         playFeedbackTone("success");
-        setTimeout(() => setCurrentIndex(Math.min(currentIndex + 1, totalCount)), 300);
+        setTimeout(() => {
+          setScanPhase("address");
+          setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+        }, 300);
       } else {
         playFeedbackTone("success");
       }
@@ -272,7 +308,7 @@ export function ShippingPickingInterface({
     if (current.active && scanInputRef.current) {
       scanInputRef.current.focus();
     }
-  }, [currentIndex, current.active]);
+  }, [currentIndex, current.active, scanPhase]);
 
   return (
     <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "100%", minHeight: "600px", borderRadius: 0, overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
@@ -382,13 +418,13 @@ export function ShippingPickingInterface({
               </div>
 
               {/* scan field */}
-              <div style={{ borderRadius: "18px", border: `1.5px dashed ${t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
+              <div style={{ borderRadius: "18px", border: `1.5px dashed ${scanPhase === "address" ? "#3B82F6" : t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                 <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   <ScanIconBig size={24} />
                   <span style={{ position: "absolute", left: "8px", right: "8px", top: "6px", height: "2px", background: "#8B5CF6", opacity: 0.5, animation: "scanBeam 1.6s ease-in-out infinite" }}></span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-                  <span style={{ fontSize: "14px", fontWeight: "700" }}>Bipe o produto para confirmar</span>
+                  <span style={{ fontSize: "14px", fontWeight: "700" }}>{scanPhase === "address" ? "Bipe o endereco de coleta primeiro" : "Bipe o produto para confirmar"}</span>
                   <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
                 </div>
               </div>
@@ -399,15 +435,15 @@ export function ShippingPickingInterface({
                 onKeyDown={e => {
                   if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
                 }}
-                placeholder="Aguardando leitura do coletor..." 
-                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+                placeholder={scanPhase === "address" ? "Aguardando bipagem do endereco..." : "Aguardando bipagem do produto..."} 
+                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${scanPhase === "address" ? "#3B82F6" : t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
               />
 
               <div style={{ display: "flex", gap: "12px" }}>
                 <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
                   Pular / sem estoque
                 </button>
-                <button onClick={confirmItem} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <button onClick={confirmItem} disabled={scanPhase === "address"} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: scanPhase === "address" ? t.softBg : "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: scanPhase === "address" ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: scanPhase === "address" ? "not-allowed" : "pointer", boxShadow: scanPhase === "address" ? "none" : "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                   <CheckIcon size={18} /> Confirmar coleta
                 </button>
               </div>
