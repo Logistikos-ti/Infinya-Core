@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
-import { savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { cancelPickingOrderAction, savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -19,6 +19,7 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   orderDepositante: string;
   separatedQuantityValue: string;
   isSkipped?: boolean; // New state to track if skipped
+  isCancelled?: boolean;
 };
 
 type ShippingPickingInterfaceProps = {
@@ -129,6 +130,7 @@ export function ShippingPickingInterface({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, startResetTransition] = useTransition();
+  const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
 
   // Filter tasks from prioritizedItems
   const tasks = prioritizedItems.map((p, i) => {
@@ -142,15 +144,16 @@ export function ShippingPickingInterface({
       name: p.name,
       qty: p.requestedQuantity + 'x',
       mark: isDone ? '✓' : (i + 1),
-      border: isCur ? '#8B5CF6' : t.border,
-      bg: isCur ? hex2('#8B5CF6', 0.10) : (isDone ? t.softBg : t.cardBg),
-      numBg: isDone ? hex2('#10B981', 0.18) : (isCur ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg),
-      numColor: isDone ? '#10B981' : (isCur ? '#fff' : t.textSub),
-      titleColor: isDone ? t.textSub : t.text,
+      border: p.isCancelled ? '#FCA5A5' : (isCur ? '#8B5CF6' : t.border),
+      bg: p.isCancelled ? 'rgba(239,68,68,0.07)' : (isCur ? hex2('#8B5CF6', 0.10) : (isDone ? t.softBg : t.cardBg)),
+      numBg: p.isCancelled ? 'rgba(239,68,68,0.14)' : (isDone ? hex2('#10B981', 0.18) : (isCur ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg)),
+      numColor: p.isCancelled ? '#DC2626' : (isDone ? '#10B981' : (isCur ? '#fff' : t.textSub)),
+      titleColor: p.isCancelled ? '#B91C1C' : (isDone ? t.textSub : t.text),
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
       detailsVisible: !(isCur && scanPhase === "address"),
       pick: () => { if (i <= currentIndex) setCurrentIndex(i); },
-      isSkipped: p.isSkipped
+      isSkipped: p.isSkipped,
+      isCancelled: p.isCancelled,
     };
   });
 
@@ -179,26 +182,27 @@ export function ShippingPickingInterface({
     done: true,
   };
 
-  const skip = () => {
+  const cancelOrder = () => {
     if (!currentItem) return;
-
-    if (scanPhase === "address") {
-      alert("Bipe primeiro o endereco de coleta deste item.");
-      scanInputRef.current?.focus();
-      return;
-    }
-    
-    // Mark as skipped/rupture
+    const orderId = currentItem.orderId;
+    setCancelledOrderIds((current) => current.includes(orderId) ? current : [...current, orderId]);
     setItems((current) =>
       current.map((item) =>
-        item.compositeId === currentItem.compositeId
-          ? { ...item, isSkipped: true }
+        item.orderId === orderId
+          ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
           : item
       )
     );
-    
+
+    void cancelPickingOrderAction(orderId).then((result) => {
+      if (!result?.ok) alert("Não foi possível cancelar o pedido por falta de estoque.");
+    });
+
     setScanPhase("address");
-    setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+    const nextIndex = prioritizedItems.findIndex(
+      (item, index) => index > currentIndex && item.orderId !== orderId && !cancelledOrderIds.includes(item.orderId),
+    );
+    setCurrentIndex(nextIndex >= 0 ? nextIndex : totalCount);
   };
 
   // Barcode scanning logic
@@ -348,12 +352,12 @@ export function ShippingPickingInterface({
           <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {tasks.map(task => (
               <div key={task.id} onClick={task.pick} style={{ padding: "14px", borderRadius: "12px", cursor: "pointer", border: `1.5px solid ${task.border}`, background: task.bg, display: "flex", alignItems: "center", gap: "12px", transition: "all 0.16s ease" }}>
-                <span style={{ width: "30px", height: "30px", flexShrink: 0, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800", background: task.numBg, color: task.numColor }}>{task.mark}</span>
+                <span style={{ width: "30px", height: "30px", flexShrink: 0, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800", background: task.numBg, color: task.numColor }}>{task.isCancelled ? "×" : task.mark}</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700", color: task.titleColor }}>{task.loc}</span>
                   {task.detailsVisible ? (
                     <span style={{ fontSize: "12px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {task.isSkipped ? <span style={{color: '#F59E0B'}}>(PULADO) </span> : null}{task.name}
+                      {task.isCancelled ? <span style={{color: '#DC2626', fontWeight: 800 }}>(CANCELADO) </span> : task.isSkipped ? <span style={{color: '#F59E0B'}}>(PULADO) </span> : null}{task.name}
                     </span>
                   ) : (
                     <span style={{ fontSize: "12px", color: t.textSub }}>Valide o endereço para revelar o item</span>
@@ -440,8 +444,8 @@ export function ShippingPickingInterface({
               />
 
               <div style={{ display: "flex", gap: "12px" }}>
-                <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
-                  Pular / sem estoque
+                <button type="button" onClick={cancelOrder} style={{ flex: 1, height: "52px", borderRadius: "12px", border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#B91C1C", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer" }}>
+                  Sem estoque, cancelar pedido
                 </button>
               </div>
             </div>
@@ -466,6 +470,7 @@ export function ShippingPickingInterface({
                 <input type="hidden" name="currentUserId" value={currentUserId} />
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <input type="hidden" name="completeRedirectTo" value={completeRedirectTo} />
+                {cancelledOrderIds.map((orderId) => <input key={orderId} type="hidden" name="cancelledOrderId" value={orderId} />)}
                 
                 {items.map(item => (
                   <React.Fragment key={item.compositeId}>

@@ -99,6 +99,12 @@ export async function savePickingProgressAction(formData: FormData) {
   const quantityValues = formData
     .getAll("separatedQuantity")
     .map((value) => normalizeQuantity(String(value)));
+  const cancelledOrderIds = new Set(
+    formData
+      .getAll("cancelledOrderId")
+      .map((value) => String(value).trim())
+      .filter(Boolean),
+  );
 
   if (!orderId || itemIds.length !== quantityValues.length || itemIds.length !== itemKitProgressValues.length) {
     redirect(`${redirectBase}?feedback=erro`);
@@ -386,6 +392,7 @@ export async function savePickingWaveProgressAction(formData: FormData) {
   const now = new Date().toISOString();
   const orderUpdates = orderIds
     .map((orderId) => {
+      if (cancelledOrderIds.has(orderId)) return null;
       const order = orderMap.get(orderId);
       if (!order) {
         return null;
@@ -619,6 +626,50 @@ export async function updateItemPickingQuantityAction(
   } catch (err) {
     console.error("Exception in updateItemPickingQuantityAction:", err);
   }
+}
+
+export async function cancelPickingOrderAction(orderId: string) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+  const now = new Date().toISOString();
+  const { data: order, error: readError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, payload_origem")
+    .eq("id", orderId)
+    .single();
+
+  if (readError || !order) return { ok: false };
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  const { error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .update({
+      status: "DIVERGENCIA",
+      payload_origem: {
+        ...payload,
+        separacao: {
+          ...currentPicking,
+          cancelado: true,
+          canceladoEm: now,
+          canceladoPor: user.id,
+          canceladoPorNome: user.nome,
+          motivoCancelamento: "Sem estoque",
+        },
+      },
+    })
+    .eq("id", orderId);
+
+  if (error) return { ok: false };
+
+  await adminSupabase
+    .from("pedidos_expedicao_itens")
+    .update({ quantidade_separada: 0 })
+    .eq("pedido_expedicao_id", orderId);
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  return { ok: true };
 }
 
 export async function deleteShippingWavesAction(waveIds: string[]) {
