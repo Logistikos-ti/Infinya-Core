@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/m",
-    name: "Infinoos WMS",
-    short_name: "Infinoos",
+    name: "WMS",
+    short_name: "WMS",
     description:
       "Webapp operacional da Infinoos para recebimento, separação e conferência logística.",
     start_url: "/m/login",

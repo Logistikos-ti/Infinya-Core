@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Infinoos WMS",
+    title: "WMS",
   },
   icons: {
     apple: [{ url: "/branding/infinoos-mark-192.png", sizes: "192x192", type: "image/png" }],
