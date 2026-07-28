@@ -1,7 +1,7 @@
-﻿import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { StockCycleCountCreateForm } from "@/components/estoque/stock-cycle-count-create-form";
 import { getMobileStockPageData } from "../_lib";
+import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 
 const areaOptions = [
   { value: "RECEBIMENTO", label: "Recebimento" },
@@ -15,13 +15,13 @@ export default async function MobileStockInventariosPage() {
   const data = await getMobileStockPageData();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-[18px]">
       <Link
         href="/m/estoque"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
+        className="inline-flex items-center gap-2 text-sm font-medium transition"
+        style={{ color: mobileColors.muted }}
       >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para estoque
+        &#8249; Voltar para estoque
       </Link>
 
       <StockCycleCountCreateForm
@@ -36,17 +36,18 @@ export default async function MobileStockInventariosPage() {
       />
 
       {data.cycleCountsResult.available && data.cycleCountsResult.data.length ? (
-        <section className="rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur">
-          <p className="text-sm font-semibold text-white">Contagens recentes</p>
+        <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
+          <p className="text-sm font-semibold" style={{ color: mobileColors.text, ...headingFont }}>Contagens recentes</p>
           <div className="mt-3 space-y-3">
             {data.cycleCountsResult.data.map((count) => (
               <Link
                 key={count.id}
                 href={`/estoque/inventarios/${count.id}`}
-                className="block rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                className="block rounded-2xl px-4 py-3 text-sm transition"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
               >
-                <p className="font-medium text-white">{count.titulo}</p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="font-medium" style={{ color: mobileColors.text }}>{count.titulo}</p>
+                <p className="mt-1 text-xs" style={{ color: mobileColors.dim }}>
                   {count.area} • {count.status} • {count.createdAt}
                 </p>
               </Link>
@@ -57,6 +58,3 @@ export default async function MobileStockInventariosPage() {
     </div>
   );
 }
-
-
-

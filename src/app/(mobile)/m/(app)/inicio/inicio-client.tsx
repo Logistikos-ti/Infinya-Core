@@ -1,120 +1,108 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ScanLine, PackageCheck, Boxes, LogOut } from "lucide-react";
-import { IOSListRow } from "@/components/mobile/ios-glass";
 import type { AppUserContext } from "@/lib/auth";
+import {
+  mobileColors,
+  hexAlpha,
+  headingFont,
+  MobileIcon,
+  MobileCard,
+  type MobileIconName,
+} from "@/components/mobile/mobile-kit";
+
+type OperationsSnapshot = {
+  picking: { count: number };
+  receiving: { count: number };
+  conference: { count: number };
+};
 
 type InicioClientProps = {
   user: AppUserContext;
-  snapshot: any;
+  snapshot: OperationsSnapshot;
   totalPendencias: number;
 };
 
 export function InicioClient({ user, snapshot, totalPendencias }: InicioClientProps) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    router.push("/m/sair");
-  };
-
-  // Home Screen
-  const userInitials = user.nome.split(" ").map(n => n[0]).slice(0, 2).join("");
+  const userInitials = user.nome
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("");
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="relative flex h-full flex-col">
       {/* Header */}
-      <div className="shrink-0 px-[22px] pb-[14px] flex items-center gap-3">
-        <div className="w-[44px] h-[44px] rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-white font-bold text-[15px]">
+      <div className="flex shrink-0 items-center gap-3 px-[22px] pb-[14px] pt-[18px]">
+        <div
+          className="flex h-[44px] w-[44px] items-center justify-center rounded-full text-[15px] font-bold text-white"
+          style={{ background: "linear-gradient(135deg, #10B981, #3B82F6)" }}
+        >
           {userInitials}
         </div>
-        <div className="flex-1 flex flex-col gap-px">
-          <span className="text-[12px] text-slate-400">Bom dia,</span>
-          <span className="text-[17px] font-extrabold font-['Space_Grotesk']">
+        <div className="flex flex-1 flex-col gap-px min-w-0">
+          <span className="text-[12px]" style={{ color: mobileColors.muted }}>
+            Bom dia,
+          </span>
+          <span className="truncate text-[17px] font-extrabold" style={headingFont}>
             {user.nome}
           </span>
         </div>
         <button
-          onClick={handleLogout}
+          onClick={() => router.push("/m/sair")}
           title="Sair"
-          className="w-[40px] h-[40px] rounded-xl border border-slate-400/15 bg-slate-400/5 text-slate-400 flex items-center justify-center active:scale-95 transition-transform"
+          className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-xl transition-transform active:scale-95"
+          style={{
+            border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`,
+            background: hexAlpha("#94A3B8", 0.06),
+            color: mobileColors.muted,
+          }}
         >
-          <LogOut className="w-5 h-5" />
+          <MobileIcon name="logout" size={19} />
         </button>
       </div>
 
       {/* Stats */}
-      <div className="shrink-0 px-[22px] pb-[16px] flex gap-2.5">
-        <div className="flex-1 p-[13px_14px] rounded-[14px] bg-blue-500/10 border border-blue-500/20 flex flex-col gap-[2px]">
-          <span className="font-['Space_Grotesk'] text-[22px] font-bold text-blue-400">
-            {totalPendencias}
-          </span>
-          <span className="text-[11.5px] text-slate-400">tarefas hoje</span>
-        </div>
-        <div className="flex-1 p-[13px_14px] rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex flex-col gap-[2px]">
-          <span className="font-['Space_Grotesk'] text-[22px] font-bold text-emerald-500">
-            {snapshot.picking.count}
-          </span>
-          <span className="text-[11.5px] text-slate-400">linhas pick</span>
-        </div>
-        <div className="flex-1 p-[13px_14px] rounded-[14px] bg-violet-500/10 border border-violet-500/20 flex flex-col gap-[2px]">
-          <span className="font-['Space_Grotesk'] text-[22px] font-bold text-violet-400">
-            99%
-          </span>
-          <span className="text-[11.5px] text-slate-400">acuracidade</span>
-        </div>
+      <div className="flex shrink-0 gap-2.5 px-[22px] pb-[16px]">
+        <StatCard value={totalPendencias} label="tarefas hoje" color={mobileColors.blueLight} />
+        <StatCard value={snapshot.picking.count} label="linhas / dia" color={mobileColors.green} />
+        <StatCard value="99%" label="acuracidade" color={mobileColors.violetLight} />
       </div>
 
       <div className="shrink-0 px-[22px] pb-2">
-        <span className="text-[12.5px] font-bold tracking-[0.06em] uppercase text-slate-500">
+        <span
+          className="text-[12.5px] font-bold uppercase"
+          style={{ letterSpacing: "0.06em", color: mobileColors.dim }}
+        >
           Minhas tarefas
         </span>
       </div>
 
-      {/* Task List */}
-      <div className="app-scroll flex-1 overflow-y-auto px-[22px] pt-1 pb-[10px] flex flex-col gap-3">
+      {/* Task list */}
+      <div className="app-scroll flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] pb-[10px] pt-1">
         <TaskCard
           title="Separação"
-          sub="Pedidos aguardando coleta"
-          badge={`${snapshot.picking.count}`}
-          hasBadge={snapshot.picking.count > 0}
-          badgeBg="#DBEAFE"
-          badgeColor="#1E40AF"
-          iconBg="#EFF6FF"
-          iconColor="#3B82F6"
-          icon={<ScanLine className="w-6 h-6" />}
-          border="rgba(59,130,246,0.15)"
-          bg="rgba(59,130,246,0.04)"
+          sub="Onda de separação pendente"
+          badge={snapshot.picking.count > 0 ? String(snapshot.picking.count) : undefined}
+          icon="pick"
+          color={mobileColors.blue}
           onClick={() => router.push("/m/separacao")}
         />
-        
         <TaskCard
           title="Recebimento"
           sub="Fila inbound do turno"
-          badge={`${snapshot.receiving.count}`}
-          hasBadge={snapshot.receiving.count > 0}
-          badgeBg="#D1FAE5"
-          badgeColor="#065F46"
-          iconBg="#ECFDF5"
-          iconColor="#10B981"
-          icon={<PackageCheck className="w-6 h-6" />}
-          border="rgba(16,185,129,0.15)"
-          bg="rgba(16,185,129,0.04)"
+          badge={snapshot.receiving.count > 0 ? String(snapshot.receiving.count) : undefined}
+          icon="inbound"
+          color={mobileColors.violet}
           onClick={() => router.push("/m/recebimento")}
         />
-
         <TaskCard
           title="Inventário"
-          sub="Consultas e auditoria"
-          badge=""
-          hasBadge={false}
-          badgeBg="#EDE9FE"
-          badgeColor="#5B21B6"
-          iconBg="#F5F3FF"
-          iconColor="#8B5CF6"
-          icon={<Boxes className="w-6 h-6" />}
-          border="rgba(139,92,246,0.15)"
-          bg="rgba(139,92,246,0.04)"
+          sub="Contagem por depositante"
+          icon="clip"
+          color={mobileColors.amber}
           onClick={() => router.push("/m/estoque")}
         />
       </div>
@@ -122,38 +110,69 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
   );
 }
 
-function TaskCard({ title, sub, badge, hasBadge, badgeBg, badgeColor, iconBg, iconColor, icon, border, bg, onClick }: any) {
+function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
   return (
-    <button
-      onClick={onClick}
-      className="text-left p-4 rounded-[18px] flex items-center gap-[14px] active:scale-[0.985] transition-transform animate-in fade-in slide-in-from-bottom-2 duration-300"
-      style={{ border: `1px solid ${border}`, background: bg }}
+    <div
+      className="flex flex-1 flex-col gap-0.5 rounded-[14px] px-[14px] py-[13px]"
+      style={{ background: hexAlpha(color, 0.1), border: `1px solid ${hexAlpha(color, 0.22)}` }}
     >
-      <span
-        className="w-[46px] h-[46px] shrink-0 rounded-[13px] flex items-center justify-center"
-        style={{ background: iconBg, color: iconColor }}
-      >
-        {icon}
+      <span className="text-[22px] font-bold" style={{ color, ...headingFont }}>
+        {value}
       </span>
-      <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+      <span className="text-[11.5px]" style={{ color: mobileColors.muted }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function TaskCard({
+  title,
+  sub,
+  badge,
+  icon,
+  color,
+  onClick,
+}: {
+  title: string;
+  sub: string;
+  badge?: string;
+  icon: MobileIconName;
+  color: string;
+  onClick: () => void;
+}) {
+  return (
+    <MobileCard as="button" onClick={onClick} style={{ padding: 16, display: "flex", alignItems: "center", gap: 14 }}>
+      <span
+        className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[13px]"
+        style={{ background: hexAlpha(color, 0.16), color }}
+      >
+        <MobileIcon name={icon} size={22} />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
         <div className="flex items-center gap-2">
-          <span className="text-[16px] font-extrabold text-slate-100 font-['Space_Grotesk']">
+          <span className="text-[16px] font-extrabold" style={{ color: mobileColors.text, ...headingFont }}>
             {title}
           </span>
-          {hasBadge && (
+          {badge ? (
             <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-extrabold"
-              style={{ background: badgeBg, color: badgeColor }}
+              className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+              style={{ background: hexAlpha(mobileColors.red, 0.16), color: mobileColors.redLight }}
             >
               {badge}
             </span>
-          )}
+          ) : null}
         </div>
-        <span className="text-[12.5px] text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+        <span
+          className="overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px]"
+          style={{ color: mobileColors.muted }}
+        >
           {sub}
         </span>
       </div>
-      <span className="text-slate-500 text-[20px] font-bold">›</span>
-    </button>
+      <span className="text-[20px] font-bold" style={{ color: mobileColors.dim }}>
+        &#8250;
+      </span>
+    </MobileCard>
   );
 }

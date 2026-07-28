@@ -3,7 +3,6 @@
 import { ReactNode } from "react";
 import type { AppUserContext } from "@/lib/auth";
 import { ThemeProvider } from "@/components/theme-provider";
-import { IOSDevice } from "@/components/mobile/ios-glass";
 
 type MobileAppShellProps = {
   children: ReactNode;
@@ -18,10 +17,14 @@ export function MobileAppShell({ children, user }: MobileAppShellProps) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      <div className="mx-auto min-h-dvh max-w-md w-full bg-[#0A1120] text-white">
-        <IOSDevice dark={true}>
-          {children}
-        </IOSDevice>
+      <div
+        className="mx-auto flex min-h-dvh w-full max-w-md flex-col text-[#F1F5F9]"
+        style={{
+          background: "linear-gradient(180deg, #0A1120 0%, #0B1424 100%)",
+          fontFamily: "'Manrope', -apple-system, system-ui, sans-serif",
+        }}
+      >
+        {children}
       </div>
     </ThemeProvider>
   );

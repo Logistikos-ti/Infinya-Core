@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { EnderecoForm } from "@/components/configuracoes/endereco-form";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessConfigSection, canAccessModule } from "@/lib/permissions";
 import { saveMobileEnderecoAction } from "../actions";
+import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 
 type MobileNovoEnderecoPageProps = {
   searchParams?: Promise<{
@@ -28,29 +28,31 @@ export default async function MobileNovoEnderecoPage({
   }
 
   return (
-    <div className="space-y-4">
-      <Link
-        href="/m/enderecos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para enderecos
-      </Link>
+    <div className="space-y-4 p-[18px]">
+      <div className="flex items-center gap-3">
+        <Link
+          href="/m/enderecos"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-[20px]"
+          style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
+        >
+          &#8249;
+        </Link>
+        <div className="flex flex-col gap-1">
+          <span className="text-[16px] font-extrabold" style={{ color: mobileColors.text, ...headingFont }}>Novo endereço</span>
+          <span className="text-[12px]" style={{ color: mobileColors.muted }}>Cadastre a localização por código, área e posição física.</span>
+        </div>
+      </div>
 
       {feedback === "erro" ? (
-        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          Nao foi possivel salvar o endereco. Revise os campos e tente novamente.
+        <div
+          className="rounded-2xl px-4 py-3 text-sm"
+          style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.1), color: mobileColors.redLight }}
+        >
+          Não foi possível salvar o endereço. Revise os campos e tente novamente.
         </div>
       ) : null}
 
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4 shadow-lg backdrop-blur">
-        <div>
-          <p className="text-lg font-semibold text-white">Novo endereco</p>
-          <p className="mt-1 text-sm text-slate-300">
-            Cadastre a nova localizacao do armazem por codigo, area e posicao fisica.
-          </p>
-        </div>
-
+      <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
         <EnderecoForm action={saveMobileEnderecoAction} />
       </section>
     </div>

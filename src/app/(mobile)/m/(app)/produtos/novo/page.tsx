@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 
 export default async function MobileNovoProdutoPage() {
   const user = await requireConfigSectionAccess("produtos");
@@ -25,19 +25,19 @@ export default async function MobileNovoProdutoPage() {
   const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantes ?? []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-[18px]">
       <Link
         href="/m/produtos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
+        className="inline-flex items-center gap-2 text-sm font-medium transition"
+        style={{ color: mobileColors.muted }}
       >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para produtos
+        &#8249; Voltar para produtos
       </Link>
 
-      <section className="mobile-glass-card rounded-[28px] p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Cadastro móvel</p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Novo produto</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-300">
+      <section className="rounded-[24px] p-5" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.blueLight }}>Cadastro móvel</p>
+        <h1 className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>Novo produto</h1>
+        <p className="mt-2 text-sm leading-6" style={{ color: mobileColors.muted }}>
           {compactMode
             ? "Cadastre o produto com o essencial e deixe os campos técnicos sob controle do sistema."
             : "Cadastre o SKU com identificação, código de barras e regras operacionais."}

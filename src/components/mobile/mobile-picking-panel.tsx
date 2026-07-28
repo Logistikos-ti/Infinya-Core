@@ -6,10 +6,18 @@ import { useRouter } from "next/navigation";
 import { Barcode, Camera, CameraOff, Focus, MapPinned, Volume2 } from "lucide-react";
 import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
-import { Button } from "@/components/ui/button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
+import {
+  mobileColors,
+  mobileGradient,
+  hexAlpha,
+  headingFont,
+  MobilePrimaryButton,
+  MobileScanOverlay,
+  type ScanOverlayState,
+} from "@/components/mobile/mobile-kit";
 
 type MobilePickingPanelProps = {
   order: ShippingPickingOrder;
@@ -43,15 +51,15 @@ export function MobilePickingPanel({
     })),
   );
   const [scanValue, setScanValue] = useState("");
-  const [scanMessage, setScanMessage] = useState<string | null>(null);
-  const [scanTone, setScanTone] = useState<"success" | "error">("success");
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+  const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const recentScanTimerRef = useRef<number | null>(null);
+  const overlayTimerRef = useRef<number | null>(null);
   const {
     videoRef,
     cameraSupported,
@@ -137,14 +145,20 @@ export function MobilePickingPanel({
       if (recentScanTimerRef.current) {
         window.clearTimeout(recentScanTimerRef.current);
       }
+      if (overlayTimerRef.current) {
+        window.clearTimeout(overlayTimerRef.current);
+      }
     };
   }, []);
 
-  function setFeedback(message: string, tone: "success" | "error") {
-    setScanMessage(message);
-    setScanTone(tone);
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) {
+      window.clearTimeout(overlayTimerRef.current);
+    }
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
 
-    if (!soundEnabled || typeof window === "undefined") {
+    if (!soundEnabled || typeof window === "undefined" || !next) {
       return;
     }
 
@@ -160,8 +174,8 @@ export function MobilePickingPanel({
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.type = tone === "success" ? "sine" : "square";
-    oscillator.frequency.value = tone === "success" ? 880 : 220;
+    oscillator.type = next.type === "ok" ? "sine" : "square";
+    oscillator.frequency.value = next.type === "ok" ? 880 : 220;
     gain.gain.value = 0.04;
     oscillator.connect(gain);
     gain.connect(context.destination);
@@ -214,7 +228,7 @@ export function MobilePickingPanel({
 
     if (!normalizedScan) {
       const message = "Leia ou digite um código para localizar o item.";
-      setFeedback(message, "error");
+      flash({ type: "err", title: "Código vazio", code: "—", sub: message });
       pushScanHistory(message, "error");
       if (!cameraEnabled) {
         focusScanInput();
@@ -227,7 +241,7 @@ export function MobilePickingPanel({
     if (!matchedItem) {
       setActiveItemId(null);
       const message = "Código não encontrado nesta separação.";
-      setFeedback(message, "error");
+      flash({ type: "err", title: "Não encontrado", code: rawValue, sub: message });
       pushScanHistory(message, "error");
       if (!cameraEnabled) {
         focusScanInput();
@@ -243,7 +257,7 @@ export function MobilePickingPanel({
       if (!matchedComponent) {
         setActiveItemId(matchedItem.id);
         message = `Kit ${matchedItem.sku} localizado, mas o componente lido não está mapeado.`;
-        setFeedback(message, "error");
+        flash({ type: "err", title: "Componente não mapeado", code: matchedItem.sku, sub: message });
         pushScanHistory(message, "error");
         if (!cameraEnabled) {
           focusScanInput();
@@ -254,7 +268,7 @@ export function MobilePickingPanel({
       if (matchedComponent.separatedQuantity >= matchedComponent.requestedQuantity) {
         setActiveItemId(matchedItem.id);
         message = `Componente ${matchedComponent.sku} já completo (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`;
-        setFeedback(message, "error");
+        flash({ type: "warn", title: "Já completo", code: matchedComponent.sku, sub: message });
         pushScanHistory(message, "error");
         if (!cameraEnabled) {
           focusScanInput();
@@ -296,6 +310,7 @@ export function MobilePickingPanel({
       );
 
       message = `${matchedItem.sku}: ${matchedComponent.sku} ${nextComponentQuantity}/${matchedComponent.requestedQuantity}. Total ${nextTotalSeparated}/${matchedItem.requestedQuantity}.`;
+      flash({ type: "ok", title: "Componente bipado", code: matchedComponent.sku, sub: message });
     } else {
       const currentSeparated = normalizeQuantity(matchedItem.separatedQuantityValue);
       const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
@@ -309,12 +324,12 @@ export function MobilePickingPanel({
       );
 
       message = `${matchedItem.sku}: ${nextSeparated}/${matchedItem.requestedQuantity} separado(s).`;
+      flash({ type: "ok", title: "Item bipado", code: matchedItem.sku, sub: `${nextSeparated}/${matchedItem.requestedQuantity} ${matchedItem.unit}` });
     }
 
     setActiveItemId(matchedItem.id);
     highlightScannedItem(matchedItem.id);
     setScanValue("");
-    setFeedback(message, "success");
     pushScanHistory(message, "success");
     resetTimer();
     if (!cameraEnabled) {
@@ -325,9 +340,10 @@ export function MobilePickingPanel({
   return (
     <form
       action={savePickingProgressAction}
-      className="space-y-4 max-w-2xl mx-auto w-full"
+      className="relative mx-auto w-full max-w-2xl space-y-4"
       aria-busy={isSubmitting}
       onSubmit={() => setIsSubmitting(true)}
+      style={{ color: mobileColors.text, ...bodyFontVar }}
     >
       <InactivityWarningDialog
         isVisible={isWarningVisible}
@@ -337,25 +353,33 @@ export function MobilePickingPanel({
         mobileDescription="Sem interação na separação. Retome agora ou o pedido volta para a fila."
       />
 
+      <MobileScanOverlay overlay={overlay} />
+
       <input type="hidden" name="orderId" value={order.id} />
       <input type="hidden" name="operatorId" value={selectedOperatorId} />
       <input type="hidden" name="redirectBase" value="/m/separacao" />
       <input type="hidden" name="completeRedirectTo" value={`/m/conferencia/${order.id}`} />
 
       {/* Hero Header Card */}
-      <section className="glass-card rounded-3xl p-5 border border-slate-200/60 dark:border-zinc-800/60 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-infinya-gradient"></div>
+      <section
+        className="relative overflow-hidden rounded-3xl p-5"
+        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}
+      >
+        <div className="absolute left-0 top-0 h-1 w-full" style={{ background: mobileGradient }} />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary-500">
+            <p className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.blueLight }}>
               Separação em andamento
             </p>
-            <h1 className="mt-1.5 text-2xl font-bold text-slate-900 dark:text-white">{order.displayNumber}</h1>
-            <p className="mt-1 text-sm font-medium text-slate-500 dark:text-zinc-400">
+            <h1 className="mt-1.5 text-2xl font-bold" style={headingFont}>{order.displayNumber}</h1>
+            <p className="mt-1 text-sm font-medium" style={{ color: mobileColors.muted }}>
               {order.customer} • {order.destination}
             </p>
           </div>
-          <span className="rounded-xl bg-primary-500/10 border border-primary-500/20 px-3 py-1.5 text-sm font-bold text-primary-600 dark:text-primary-400">
+          <span
+            className="rounded-xl px-3 py-1.5 text-sm font-bold"
+            style={{ background: hexAlpha(mobileColors.blue, 0.1), border: `1px solid ${hexAlpha(mobileColors.blue, 0.2)}`, color: mobileColors.blueLight }}
+          >
             {completionPercent}%
           </span>
         </div>
@@ -368,16 +392,22 @@ export function MobilePickingPanel({
 
       {/* Item em Foco */}
       {nextItem ? (
-        <section className="rounded-3xl border border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-accent-500/5 dark:from-primary-500/15 dark:to-accent-500/10 p-5 shadow-lg shadow-primary-500/10 transition-all">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary-600 dark:text-primary-400">
+        <section
+          className="rounded-3xl p-5 transition-all"
+          style={{
+            border: `1px solid ${hexAlpha(mobileColors.blue, 0.3)}`,
+            background: `linear-gradient(140deg, ${hexAlpha(mobileColors.blue, 0.08)}, ${hexAlpha(mobileColors.violet, 0.05)})`,
+          }}
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.blueLight }}>
             Item em foco (Próxima Coleta)
           </p>
           <div className="mt-4 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <ProductThumb imageUrl={nextItem.imageUrl} name={nextItem.name} large />
               <div className="min-w-0">
-              <p className="text-xl font-bold text-slate-900 dark:text-white">{nextItem.sku}</p>
-              <p className="mt-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">{nextItem.name}</p>
+                <p className="text-xl font-bold" style={headingFont}>{nextItem.sku}</p>
+                <p className="mt-1.5 text-sm font-medium" style={{ color: mobileColors.muted }}>{nextItem.name}</p>
               </div>
             </div>
           </div>
@@ -395,17 +425,21 @@ export function MobilePickingPanel({
               )} ${nextItem.unit}`}
             />
           </div>
-          <div className="mt-4 rounded-2xl border border-primary-500/20 bg-white/60 dark:bg-zinc-950/40 px-4 py-3 backdrop-blur-sm">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <div
+            className="mt-4 rounded-2xl px-4 py-3"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.blue, 0.2)}`, background: hexAlpha("#000000", 0.2) }}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
               EAN/GTIN esperado
             </p>
-            <p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">{nextItem.barcode || "-"}</p>
+            <p className="mt-1 text-sm font-bold" style={{ color: mobileColors.text, ...headingFont }}>{nextItem.barcode || "-"}</p>
           </div>
           <div className="mt-4 space-y-3">
-            <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
+            <div className="h-2.5 overflow-hidden rounded-full" style={{ background: hexAlpha("#94A3B8", 0.15) }}>
               <div
-                className="h-full rounded-full bg-infinya-gradient transition-all"
+                className="h-full rounded-full transition-all"
                 style={{
+                  background: mobileGradient,
                   width: `${Math.min(
                     100,
                     Math.round(
@@ -418,14 +452,17 @@ export function MobilePickingPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-bold" style={{ color: mobileColors.text }}>
                 {nextItem.routeLines[0]
                   ? `Coleta sugerida em ${nextItem.routeLines[0].addressCode}`
                   : "Sem endereço sugerido."}
               </p>
               {nextItem.routeLines[0] ? (
-                <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  <span className="rounded-full border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-2.5 py-1 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-medium" style={{ color: mobileColors.muted }}>
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px]"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.06) }}
+                  >
                     {nextItem.routeLines[0].area}
                   </span>
                   <span>{nextItem.routeLines[0].routeLabel}</span>
@@ -436,23 +473,32 @@ export function MobilePickingPanel({
         </section>
       ) : null}
 
-      {/* Área de Scaneamento e Filtros */}
-      <section className="glass-card rounded-3xl border border-slate-200/60 dark:border-zinc-800/60 p-5 shadow-sm">
-        <label className="space-y-2 block">
-          <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-zinc-400">
+      {/* Área de Scaneamento */}
+      <section
+        className="rounded-3xl p-5"
+        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}
+      >
+        <label className="block space-y-2">
+          <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.muted }}>
             Operador
           </span>
-          <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
-            {order.assignedOperatorName ?? "Operador n?o atribu?do"}
+          <div
+            className="rounded-2xl px-4 py-3 text-sm font-semibold"
+            style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
+          >
+            {order.assignedOperatorName ?? "Operador não atribuído"}
           </div>
         </label>
 
         <div className="mt-5 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-zinc-400">
+          <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.muted }}>
             Leitura de Código
           </span>
-          <div className="flex items-center gap-2 rounded-2xl border-2 border-primary-500/30 bg-white dark:bg-zinc-900 p-2 shadow-sm focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
-            <Barcode className="h-5 w-5 ml-2 text-primary-500" />
+          <div
+            className="flex items-center gap-2 rounded-2xl p-2 transition-all"
+            style={{ border: `2px solid ${hexAlpha(mobileColors.blue, 0.3)}`, background: hexAlpha("#94A3B8", 0.05) }}
+          >
+            <Barcode className="ml-2 h-5 w-5" style={{ color: mobileColors.blueLight }} />
             <input
               ref={scanInputRef}
               value={scanValue}
@@ -472,43 +518,36 @@ export function MobilePickingPanel({
                 }, 40);
               }}
               placeholder="Leia EAN, SKU ou código"
-              className="h-11 w-full bg-transparent px-2 text-base font-medium text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+              className="h-11 w-full bg-transparent px-2 text-base font-medium outline-none"
+              style={{ color: mobileColors.text }}
             />
             <button
               type="button"
               onClick={() => applyScan(scanValue)}
-              className="rounded-xl bg-primary-500 hover:bg-primary-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-primary-500/20 transition-all"
+              className="rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all"
+              style={{ background: mobileColors.blue }}
             >
               Ler
             </button>
           </div>
 
-          {scanMessage ? (
-            <div
-              className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
-                scanTone === "success"
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-              }`}
-            >
-              {scanMessage}
-            </div>
-          ) : null}
-
           {scanHistory.length ? (
-            <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/40 px-4 py-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <div
+              className="rounded-2xl px-4 py-3"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.03) }}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                 Últimos scans
               </p>
               <div className="mt-2.5 space-y-2">
                 {scanHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${
-                      entry.tone === "success"
-                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                        : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                    }`}
+                    className="rounded-xl px-3 py-2 text-xs font-semibold"
+                    style={{
+                      background: hexAlpha(entry.tone === "success" ? mobileColors.green : mobileColors.red, 0.12),
+                      color: entry.tone === "success" ? mobileColors.green : mobileColors.redLight,
+                    }}
                   >
                     {entry.text}
                   </div>
@@ -522,11 +561,8 @@ export function MobilePickingPanel({
               type="button"
               onClick={toggleCamera}
               disabled={!cameraSupported}
-              className={`inline-flex items-center justify-center gap-2 flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
-                cameraEnabled
-                  ? "bg-rose-500 text-white hover:bg-rose-600"
-                  : "bg-primary-500 text-white hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
-              }`}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: cameraEnabled ? mobileColors.red : mobileColors.blue }}
             >
               {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
               {cameraStarting
@@ -539,7 +575,8 @@ export function MobilePickingPanel({
             <button
               type="button"
               onClick={focusScanInput}
-              className="inline-flex items-center justify-center gap-2 flex-1 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.18)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
             >
               <Focus className="h-4 w-4" />
               Focar
@@ -547,25 +584,25 @@ export function MobilePickingPanel({
             <button
               type="button"
               onClick={() => setSoundEnabled((current) => !current)}
-              className="inline-flex items-center justify-center gap-2 flex-1 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-zinc-700 transition-colors"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.18)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
             >
               <Volume2 className="h-4 w-4" />
               {soundEnabled ? "Som ativo" : "Sem som"}
             </button>
           </div>
 
-          <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-950">
+          <div className="mt-3 overflow-hidden rounded-2xl" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#05070D" }}>
             <video
               ref={videoRef}
               playsInline
               muted
-              className={`aspect-video w-full object-cover transition ${
-                cameraEnabled || cameraStarting ? "opacity-100" : "opacity-35"
-              }`}
+              className="aspect-video w-full object-cover transition"
+              style={{ opacity: cameraEnabled || cameraStarting ? 1 : 0.35 }}
             />
           </div>
 
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <p className="text-xs font-medium" style={{ color: mobileColors.muted }}>
             {cameraMessage ??
               (cameraSupported
                 ? "Abra a câmera para escanear pelo celular ou notebook sem depender do teclado."
@@ -584,37 +621,46 @@ export function MobilePickingPanel({
           const isActiveItem = activeItemId === item.id;
           const isRecentlyScanned = recentScannedItemId === item.id;
 
+          const cardBorder = isCurrentItem
+            ? hexAlpha(mobileColors.blue, 0.4)
+            : isCompleted
+              ? hexAlpha(mobileColors.green, 0.3)
+              : isActiveItem
+                ? hexAlpha(mobileColors.blue, 0.3)
+                : hexAlpha("#94A3B8", 0.14);
+          const cardBg = isCurrentItem
+            ? hexAlpha(mobileColors.blue, 0.1)
+            : isCompleted
+              ? hexAlpha(mobileColors.green, 0.05)
+              : isActiveItem
+                ? hexAlpha(mobileColors.blue, 0.05)
+                : hexAlpha("#94A3B8", 0.045);
+
           return (
             <div
               key={item.id}
-              className={`border transition-all ${
-                isCurrentItem
-                  ? "rounded-3xl border-primary-500/40 bg-gradient-to-br from-primary-500/10 to-transparent p-5 shadow-lg shadow-primary-500/10"
-                  : isCompleted
-                    ? "rounded-[24px] border-emerald-500/30 bg-emerald-500/5 p-4"
-                    : isActiveItem
-                      ? "rounded-[24px] border-primary-500/30 bg-primary-500/5 p-4"
-                      : "rounded-[24px] border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-              } ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
+              className={`rounded-3xl p-4 transition-colors ${isRecentlyScanned ? "mobile-scan-flash mobile-scan-flash-sky" : ""}`}
+              style={{ border: `1px solid ${cardBorder}`, background: cardBg }}
             >
               <input type="hidden" name="itemId" value={item.id} />
               <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
               <ProductThumb imageUrl={item.imageUrl} name={item.name} />
 
-              <div className={`flex items-start justify-between ${isCurrentItem ? "gap-4" : "gap-3"}`}>
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className={`${isCurrentItem ? "text-base" : "text-sm"} font-bold text-slate-900 dark:text-white`}>
+                    <p className={isCurrentItem ? "text-base font-bold" : "text-sm font-bold"} style={headingFont}>
                       {item.sku}
                     </p>
                     <span
-                      className={`rounded-full ${isCurrentItem ? "px-3 py-1" : "px-2 py-0.5"} text-[10px] font-bold uppercase tracking-wider ${
-                        isCurrentItem
-                          ? "bg-primary-500/15 text-primary-600 dark:text-primary-400"
-                          : isCompleted
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                      }`}
+                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        background: hexAlpha(
+                          isCurrentItem ? mobileColors.blue : isCompleted ? mobileColors.green : mobileColors.amber,
+                          0.16,
+                        ),
+                        color: isCurrentItem ? mobileColors.blueLight : isCompleted ? mobileColors.green : mobileColors.amber,
+                      }}
                     >
                       {isRecentlyScanned
                         ? "Lido agora"
@@ -625,38 +671,37 @@ export function MobilePickingPanel({
                             : "Pendente"}
                     </span>
                   </div>
-                  <p className={`mt-1.5 ${isCurrentItem ? "text-sm" : "line-clamp-2 text-xs"} font-medium text-slate-600 dark:text-slate-400`}>
+                  <p className={`mt-1.5 text-xs font-medium ${isCurrentItem ? "" : "line-clamp-2"}`} style={{ color: mobileColors.muted }}>
                     {item.name}
                   </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-slate-500">
-                    <span className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">Cod. {item.code}</span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium" style={{ color: mobileColors.muted }}>
+                    <span className="rounded-md px-2 py-0.5" style={{ background: hexAlpha("#94A3B8", 0.1) }}>Cod. {item.code}</span>
                     {!isCurrentItem ? (
-                      <span className="bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                      <span className="rounded-md px-2 py-0.5" style={{ background: hexAlpha("#94A3B8", 0.1) }}>
                         {item.requestedQuantity} {item.unit}
                       </span>
                     ) : null}
                   </div>
                 </div>
                 {isCurrentItem ? (
-                  <span className="shrink-0 rounded-xl bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <span className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold" style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}>
                     {item.requestedQuantity} {item.unit}
                   </span>
                 ) : null}
               </div>
 
-              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} space-y-2`}>
-                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                   <span>Progresso</span>
                   <span>
                     {separatedQuantity} / {item.requestedQuantity} {item.unit}
                   </span>
                 </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
+                <div className="h-2.5 overflow-hidden rounded-full" style={{ background: hexAlpha("#94A3B8", 0.15) }}>
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      isCompleted ? "bg-emerald-500" : isCurrentItem ? "bg-primary-500" : "bg-amber-500"
-                    }`}
+                    className="h-full rounded-full transition-all"
                     style={{
+                      background: isCompleted ? mobileColors.green : isCurrentItem ? mobileColors.blue : mobileColors.amber,
                       width: `${Math.min(
                         100,
                         Math.round((separatedQuantity / Math.max(item.requestedQuantity, 1)) * 100),
@@ -666,22 +711,20 @@ export function MobilePickingPanel({
                 </div>
               </div>
 
-              <div
-                className={`rounded-2xl border border-slate-200/50 dark:border-zinc-700/50 bg-slate-50 dark:bg-zinc-950/40 ${isCurrentItem ? "mt-4 px-4 py-3" : "mt-3 px-3 py-2.5"}`}
-              >
-                <div className={`flex ${isCurrentItem ? "flex-col" : "items-center justify-between gap-3"}`}>
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <div className="mt-3 rounded-2xl px-3 py-2.5" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.12)}`, background: hexAlpha("#94A3B8", 0.04) }}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     EAN/GTIN esperado
                   </p>
-                  <p className={`${isCurrentItem ? "mt-1 text-sm" : "text-sm"} font-bold text-slate-800 dark:text-white`}>
+                  <p className="text-sm font-bold" style={{ color: mobileColors.text }}>
                     {item.barcode || "-"}
                   </p>
                 </div>
               </div>
 
-              <div className={`${isCurrentItem ? "mt-4" : "mt-3"} grid grid-cols-2 gap-3`}>
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <label className="space-y-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     Qtd Separada
                   </span>
                   <input
@@ -693,26 +736,30 @@ export function MobilePickingPanel({
                     value={item.separatedQuantityValue}
                     onChange={(event) => updateQuantity(item.id, event.target.value)}
                     readOnly={item.isKit}
-                    className={`h-11 w-full rounded-xl border px-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/50 transition-colors ${
-                      isCurrentItem ? "border-primary-500/40 bg-white dark:bg-zinc-900" : "border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
-                    }`}
+                    className="h-11 w-full rounded-xl px-3 text-sm font-bold outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
                   />
                 </label>
 
                 <div className="space-y-1.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     Status
                   </span>
-                  <div className={`flex h-11 items-center rounded-xl border px-3 text-sm font-bold transition-colors ${
-                    missing > 0 ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  }`}>
+                  <div
+                    className="flex h-11 items-center rounded-xl px-3 text-sm font-bold"
+                    style={{
+                      border: `1px solid ${hexAlpha(missing > 0 ? mobileColors.amber : mobileColors.green, 0.3)}`,
+                      background: hexAlpha(missing > 0 ? mobileColors.amber : mobileColors.green, 0.1),
+                      color: missing > 0 ? mobileColors.amber : mobileColors.green,
+                    }}
+                  >
                     {missing > 0 ? `Faltam ${missing}` : "Completo"}
                   </div>
                 </div>
               </div>
 
-              <div className={`${isCurrentItem ? "mt-5" : "mt-4"} space-y-3`}>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <div className="mt-4 space-y-3">
+                <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                   Endereços sugeridos
                 </p>
                 {item.isKit && item.kitComponents.length ? (
@@ -720,16 +767,17 @@ export function MobilePickingPanel({
                     {item.kitComponents.map((component) => (
                       <div
                         key={`${item.id}-${component.componentProductId}`}
-                        className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-3"
+                        className="rounded-2xl px-3 py-3"
+                        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.04) }}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">{component.sku}</p>
-                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            <p className="text-sm font-bold" style={{ color: mobileColors.text }}>{component.sku}</p>
+                            <p className="text-[11px] font-medium" style={{ color: mobileColors.muted }}>
                               GTIN {component.barcode || "-"}
                             </p>
                           </div>
-                          <p className="text-xs font-bold text-primary-600 dark:text-primary-400">
+                          <p className="text-xs font-bold" style={{ color: mobileColors.blueLight }}>
                             {component.separatedQuantity}/{component.requestedQuantity}
                           </p>
                         </div>
@@ -740,50 +788,57 @@ export function MobilePickingPanel({
                   item.routeLines.map((line) => (
                     <div
                       key={`${item.id}-${line.stockId}`}
-                      className={`rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 ${isCurrentItem ? "px-4 py-3.5 shadow-sm" : "px-3 py-3"}`}
+                      className="rounded-2xl px-3 py-3"
+                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.04) }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 text-slate-800 dark:text-white">
-                            <MapPinned className="h-4 w-4 shrink-0 text-primary-500" />
-                            <span className={`${isCurrentItem ? "text-sm" : "text-sm"} font-bold`}>
+                          <div className="flex items-center gap-2">
+                            <MapPinned className="h-4 w-4 shrink-0" style={{ color: mobileColors.blueLight }} />
+                            <span className="text-sm font-bold" style={{ color: mobileColors.text }}>
                               {line.addressCode}
                             </span>
                           </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                            <span className="rounded-full bg-primary-500/10 px-2 py-0.5 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-medium" style={{ color: mobileColors.muted }}>
+                            <span
+                              className="rounded-full px-2 py-0.5"
+                              style={{ background: hexAlpha(mobileColors.blue, 0.1), border: `1px solid ${hexAlpha(mobileColors.blue, 0.2)}`, color: mobileColors.blueLight }}
+                            >
                               {line.area}
                             </span>
                             <span>{line.routeLabel}</span>
                           </div>
                         </div>
-                        <div className="shrink-0 rounded-xl border border-primary-500/20 bg-primary-500/10 px-3 py-2 text-right">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary-600 dark:text-primary-400">
+                        <div className="shrink-0 rounded-xl px-3 py-2 text-right" style={{ border: `1px solid ${hexAlpha(mobileColors.blue, 0.2)}`, background: hexAlpha(mobileColors.blue, 0.1) }}>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.blueLight }}>
                             Coletar
                           </p>
-                          <p className="mt-0.5 text-sm font-bold text-primary-700 dark:text-primary-300">
+                          <p className="mt-0.5 text-sm font-bold" style={{ color: mobileColors.blueLight }}>
                             {line.quantity} {item.unit}
                           </p>
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-3 py-2 border border-slate-100 dark:border-zinc-800">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+                        <div className="rounded-xl px-3 py-2" style={{ background: hexAlpha("#94A3B8", 0.05), border: `1px solid ${hexAlpha("#94A3B8", 0.1)}` }}>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.muted }}>
                             Lote
                           </p>
-                          <p className="mt-1 text-xs font-bold text-slate-800 dark:text-white">{line.lot}</p>
+                          <p className="mt-1 text-xs font-bold" style={{ color: mobileColors.text }}>{line.lot}</p>
                         </div>
-                        <div className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-3 py-2 border border-slate-100 dark:border-zinc-800">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+                        <div className="rounded-xl px-3 py-2" style={{ background: hexAlpha("#94A3B8", 0.05), border: `1px solid ${hexAlpha("#94A3B8", 0.1)}` }}>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.muted }}>
                             Validade
                           </p>
-                          <p className="mt-1 text-xs font-bold text-slate-800 dark:text-white">{line.expiry}</p>
+                          <p className="mt-1 text-xs font-bold" style={{ color: mobileColors.text }}>{line.expiry}</p>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-4 text-sm font-medium text-amber-700 dark:text-amber-400 text-center">
+                  <div
+                    className="rounded-2xl px-4 py-4 text-center text-sm font-medium"
+                    style={{ border: `1px dashed ${hexAlpha(mobileColors.amber, 0.3)}`, background: hexAlpha(mobileColors.amber, 0.05), color: mobileColors.amber }}
+                  >
                     Sem endereço sugerido.
                   </div>
                 )}
@@ -794,61 +849,59 @@ export function MobilePickingPanel({
       </section>
 
       {/* Floating Action Bar */}
-      <div className="sticky bottom-4 z-40 mt-8 rounded-[28px] border border-slate-200/50 dark:border-zinc-700/50 bg-white/80 dark:bg-zinc-900/80 p-5 shadow-2xl backdrop-blur-xl max-w-2xl mx-auto w-full">
+      <div
+        className="sticky bottom-4 z-40 mx-auto mt-8 w-full max-w-2xl rounded-[28px] p-5 shadow-2xl"
+        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "rgba(10,17,32,0.92)" }}
+      >
         {isWarningVisible ? (
-          <div className="mb-4 rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-amber-500/5 px-4 py-3 text-sm">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-rose-600 dark:text-rose-400">
+          <div
+            className="mb-4 rounded-2xl px-4 py-3 text-sm"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.2)}`, background: hexAlpha(mobileColors.red, 0.08) }}
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: mobileColors.redLight }}>
               Atenção operacional
             </p>
-            <p className="mt-1 font-bold text-slate-800 dark:text-white">Pedido em risco de voltar para a fila.</p>
-            <p className="mt-1 font-medium text-slate-600 dark:text-slate-300">
-              Retome a separação em até <span className="font-bold text-rose-600 dark:text-rose-400">{countdownSeconds}s</span>.
+            <p className="mt-1 font-bold" style={{ color: mobileColors.text }}>Pedido em risco de voltar para a fila.</p>
+            <p className="mt-1 font-medium" style={{ color: mobileColors.muted }}>
+              Retome a separação em até <span className="font-bold" style={{ color: mobileColors.redLight }}>{countdownSeconds}s</span>.
             </p>
           </div>
         ) : null}
 
-        <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
+        <div className="mb-3 flex items-center justify-between gap-3 text-sm font-bold" style={{ color: mobileColors.text }}>
           <span>{completionPercent}% concluído</span>
           <span>{pendingUnits} un pendente(s)</span>
         </div>
 
-        <div className="mb-5 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
-          <div
-            className="h-full rounded-full bg-infinya-gradient transition-all"
-            style={{ width: `${completionPercent}%` }}
-          />
+        <div className="mb-5 h-2.5 overflow-hidden rounded-full" style={{ background: hexAlpha("#94A3B8", 0.15) }}>
+          <div className="h-full rounded-full transition-all" style={{ background: mobileGradient, width: `${completionPercent}%` }} />
         </div>
 
-        <div className="grid grid-cols-1">
-          <Button
-            type="submit"
-            name="intent"
-            value="complete"
-            className="h-14 rounded-2xl bg-infinya-gradient text-white hover:opacity-90 shadow-lg shadow-primary-500/25 transition-all text-base font-bold"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Processando separação..." : "Concluir Separação"}
-          </Button>
-        </div>
+        <MobilePrimaryButton type="submit" disabled={isSubmitting} style={{ height: 56 }}>
+          {isSubmitting ? "Processando separação..." : "Concluir Separação"}
+        </MobilePrimaryButton>
+        <input type="hidden" name="intent" value="complete" />
       </div>
     </form>
   );
 }
 
+const bodyFontVar = { fontFamily: "var(--font-manrope), sans-serif" };
+
 function MiniInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1.5 text-base font-bold text-slate-900 dark:text-white">{value}</p>
+    <div className="rounded-2xl px-4 py-3" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.05) }}>
+      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>{label}</p>
+      <p className="mt-1.5 text-base font-bold" style={{ color: mobileColors.text }}>{value}</p>
     </div>
   );
 }
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200/50 dark:border-zinc-800/50 bg-white/60 dark:bg-zinc-950/40 px-3 py-2.5">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">{value}</p>
+    <div className="rounded-2xl px-3 py-2.5" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.06) }}>
+      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>{label}</p>
+      <p className="mt-1 text-sm font-bold" style={{ color: mobileColors.text }}>{value}</p>
     </div>
   );
 }
@@ -911,7 +964,8 @@ function ProductThumb({
   if (!imageUrl) {
     return (
       <div
-        className={`${dimensions} flex items-center justify-center overflow-hidden border border-slate-200 bg-slate-100 text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-500`}
+        className={`${dimensions} flex items-center justify-center overflow-hidden text-[10px] font-bold uppercase tracking-wide`}
+        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.muted }}
       >
         Sem foto
       </div>
@@ -919,9 +973,7 @@ function ProductThumb({
   }
 
   return (
-    <div
-      className={`${dimensions} overflow-hidden border border-slate-200 bg-white dark:border-zinc-700 dark:bg-zinc-900`}
-    >
+    <div className={`${dimensions} overflow-hidden`} style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.06) }}>
       <Image
         src={imageUrl}
         alt={`Foto do produto ${name}`}
@@ -933,4 +985,3 @@ function ProductThumb({
     </div>
   );
 }
-

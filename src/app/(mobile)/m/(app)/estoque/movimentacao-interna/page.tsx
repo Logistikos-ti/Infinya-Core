@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { StockTransferForm } from "@/components/estoque/stock-transfer-form";
 import { getMobileStockPageData } from "../_lib";
+import { mobileColors } from "@/components/mobile/mobile-kit-tokens";
 
 export default async function MobileStockTransferPage() {
   const data = await getMobileStockPageData();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-[18px]">
       <Link
         href="/m/estoque"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
+        className="inline-flex items-center gap-2 text-sm font-medium transition"
+        style={{ color: mobileColors.muted }}
       >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para estoque
+        &#8249; Voltar para estoque
       </Link>
 
       <StockTransferForm

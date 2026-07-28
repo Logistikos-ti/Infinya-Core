@@ -1,12 +1,18 @@
 import type { ReactNode } from "react";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
-import { ArrowRight, Package2, Plus, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import {
+  mobileColors,
+  mobileGradient,
+  hexAlpha,
+  headingFont,
+  MobileIcon,
+} from "@/components/mobile/mobile-kit-tokens";
 
 type MobileProdutosPageProps = {
   searchParams?: Promise<{
@@ -24,7 +30,6 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
   const user = await requireConfigSectionAccess("produtos");
   const compactMode = isProductCatalogOnlyUser(user);
   const params = searchParams ? await searchParams : undefined;
-  const feedback = params?.feedback?.trim() ?? "";
   const searchTerm = params?.q?.trim() ?? "";
   const depositanteFiltro = params?.depositante?.trim() ?? "";
   const statusFiltro = params?.status?.trim() ?? "ativos";
@@ -79,65 +84,70 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
   const { data: produtos, count } = await produtosQuery;
   const totalProdutos = count ?? produtos?.length ?? 0;
 
+  const cardStyle = { border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) };
+  const chipStyle = { border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05) };
+
   return (
-    <div className="space-y-4">
-      <section className="mobile-glass-card rounded-[28px] p-5">
+    <div className="space-y-4 p-[18px]">
+      <section className="rounded-[24px] p-5" style={cardStyle}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.blueLight }}>
               Catálogo móvel
             </p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Produtos</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
+            <h1 className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>Produtos</h1>
+            <p className="mt-2 text-sm leading-6" style={{ color: mobileColors.muted }}>
               Lista operacional para cadastrar, localizar e revisar SKUs pelo celular.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-cyan-500/15 p-3 text-cyan-300">
-            <Package2 className="h-5 w-5" />
+          <div className="rounded-2xl p-3" style={{ background: hexAlpha(mobileColors.blue, 0.15), color: mobileColors.blueLight }}>
+            <MobileIcon name="box" size={20} />
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="mobile-soft-chip rounded-2xl p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+          <div className="rounded-2xl p-3" style={chipStyle}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: mobileColors.muted }}>
               Produtos
             </p>
-            <p className="mt-2 text-2xl font-semibold text-white">{totalProdutos}</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{totalProdutos}</p>
           </div>
-          <div className="mobile-soft-chip rounded-2xl p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+          <div className="rounded-2xl p-3" style={chipStyle}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: mobileColors.muted }}>
               Depositantes
             </p>
-            <p className="mt-2 text-2xl font-semibold text-white">{visibleDepositantes.length}</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{visibleDepositantes.length}</p>
           </div>
         </div>
 
         <div className="mt-4">
-          <Link href="/m/produtos/novo" prefetch={false}>
-            <Button className="h-12 w-full rounded-2xl bg-infinya-gradient text-slate-950 hover:opacity-95">
-              <Plus className="h-4 w-4" />
-              Novo produto
-            </Button>
+          <Link
+            href="/m/produtos/novo"
+            prefetch={false}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-white"
+            style={{ background: mobileGradient }}
+          >
+            + Novo produto
           </Link>
         </div>
       </section>
 
-
       {!compactMode ? (
-        <form method="get" action="/m/produtos" className="mobile-glass-card rounded-[28px] p-4">
+        <form method="get" action="/m/produtos" className="rounded-[24px] p-4" style={cardStyle}>
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: mobileColors.muted }}>
               Buscar produto
             </span>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#071224] px-4 py-3">
-              <Search className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424" }}>
+              <Search className="h-4 w-4" style={{ color: mobileColors.muted }} />
               <input
                 type="text"
                 name="q"
                 defaultValue={searchTerm}
                 placeholder="Nome, SKU, código interno ou EAN"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                className="w-full bg-transparent text-sm outline-none"
+                style={{ color: mobileColors.text }}
               />
             </div>
           </label>
@@ -147,34 +157,31 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
               { label: "Ativos", value: "ativos" },
               { label: "Inativos", value: "inativos" },
               { label: "Todos", value: "todos" },
-            ].map((item) => (
-              <Link
-                key={item.value}
-                href={buildMobileProductsHref({
-                  q: searchTerm,
-                  depositante: depositanteEfetivo,
-                  status: item.value,
-                })}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  statusFiltro === item.value
-                    ? "bg-infinya-gradient text-slate-950"
-                    : "mobile-soft-chip text-slate-300"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            ].map((item) => {
+              const active = statusFiltro === item.value;
+              return (
+                <Link
+                  key={item.value}
+                  href={buildMobileProductsHref({
+                    q: searchTerm,
+                    depositante: depositanteEfetivo,
+                    status: item.value,
+                  })}
+                  className="whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition"
+                  style={active ? { background: mobileGradient, color: "#fff" } : { ...chipStyle, color: mobileColors.muted }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
 
           {visibleDepositantes.length > 1 ? (
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
               <Link
                 href={buildMobileProductsHref({ q: searchTerm, status: statusFiltro })}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  !depositanteEfetivo
-                    ? "bg-cyan-500/20 text-cyan-200"
-                    : "mobile-soft-chip text-slate-300"
-                }`}
+                className="whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition"
+                style={!depositanteEfetivo ? { background: hexAlpha(mobileColors.blue, 0.2), color: mobileColors.blueLight } : { ...chipStyle, color: mobileColors.muted }}
               >
                 Todos os depositantes
               </Link>
@@ -186,11 +193,8 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
                     status: statusFiltro,
                     depositante: depositante.id,
                   })}
-                  className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    depositanteEfetivo === depositante.id
-                      ? "bg-cyan-500/20 text-cyan-200"
-                      : "mobile-soft-chip text-slate-300"
-                  }`}
+                  className="whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition"
+                  style={depositanteEfetivo === depositante.id ? { background: hexAlpha(mobileColors.blue, 0.2), color: mobileColors.blueLight } : { ...chipStyle, color: mobileColors.muted }}
                 >
                   {depositante.nome}
                 </Link>
@@ -199,9 +203,13 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
           ) : null}
 
           <div className="mt-4">
-            <Button type="submit" className="h-11 w-full rounded-2xl bg-white text-slate-950 hover:bg-slate-100">
+            <button
+              type="submit"
+              className="h-11 w-full rounded-2xl text-sm font-bold"
+              style={{ background: mobileColors.text, color: "#0A1120" }}
+            >
               Aplicar busca
-            </Button>
+            </button>
           </div>
         </form>
       ) : null}
@@ -213,27 +221,28 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
               key={produto.id}
               href={`/m/produtos/${produto.id}/editar?returnPath=${encodeURIComponent("/m/produtos" + (searchParamsEntries.toString() ? "?" + searchParamsEntries.toString() : ""))}`}
               prefetch={false}
-              className="mobile-action-card block rounded-[28px] p-4 transition hover:-translate-y-0.5"
+              className="block rounded-[24px] p-4 transition hover:-translate-y-0.5"
+              style={cardStyle}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-white">{produto.nome}</p>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="text-base font-semibold" style={{ color: mobileColors.text }}>{produto.nome}</p>
+                  <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>
                     {(produto.sku || "-") + " • " + (produto.codigo_interno || "-")}
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    produto.ativo
-                      ? "bg-emerald-500/15 text-emerald-200"
-                      : "bg-slate-700/70 text-slate-200"
-                  }`}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style={{
+                    background: hexAlpha(produto.ativo ? mobileColors.green : "#94A3B8", produto.ativo ? 0.16 : 0.14),
+                    color: produto.ativo ? mobileColors.green : mobileColors.muted,
+                  }}
                 >
                   {produto.ativo ? "Ativo" : "Inativo"}
                 </span>
               </div>
 
-              <div className="mt-3 grid gap-2 text-sm text-slate-300">
+              <div className="mt-3 grid gap-2 text-sm" style={{ color: mobileColors.muted }}>
                 <p>Depositante: {extractDepositanteName(produto.depositante) ?? "-"}</p>
                 <p>EAN/GTIN: {produto.codigo_externo || "-"}</p>
                 <p>Categoria: {produto.categoria || "-"}</p>
@@ -244,17 +253,19 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
                 <Badge>{getUnidadeLabel(produto.unidade_estocagem)}</Badge>
               </div>
 
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+              <div className="mt-4 flex items-center justify-between text-xs" style={{ color: mobileColors.dim }}>
                 <span>Criado em {new Date(produto.created_at).toLocaleDateString("pt-BR")}</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-cyan-200">
-                  Abrir
-                  <ArrowRight className="h-3.5 w-3.5" />
+                <span className="inline-flex items-center gap-1 font-semibold" style={{ color: mobileColors.blueLight }}>
+                  Abrir &#8250;
                 </span>
               </div>
             </Link>
           ))
         ) : (
-          <div className="mobile-glass-card rounded-[28px] border-dashed px-4 py-8 text-center text-sm text-slate-400">
+          <div
+            className="rounded-[24px] px-4 py-8 text-center text-sm"
+            style={{ border: `1px dashed ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.muted }}
+          >
             Nenhum produto encontrado com os filtros atuais.
           </div>
         )}
@@ -265,7 +276,10 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="mobile-soft-chip rounded-full px-3 py-1 text-xs font-medium text-slate-200">
+    <span
+      className="rounded-full px-3 py-1 text-xs font-medium"
+      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
+    >
       {children}
     </span>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { ProdutoForm } from "@/components/configuracoes/produto-form";
 import { Button } from "@/components/ui/button";
 import { deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
@@ -10,6 +10,7 @@ import type { ProductCommercialKitRuleOption } from "@/lib/commercial-kit-rules"
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 
 type MobileEditarProdutoPageProps = {
   params: Promise<{
@@ -85,19 +86,19 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
   ].join("|");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-[18px]">
       <Link
         href="/m/produtos"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white"
+        className="inline-flex items-center gap-2 text-sm font-medium transition"
+        style={{ color: mobileColors.muted }}
       >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para produtos
+        &#8249; Voltar para produtos
       </Link>
 
-      <section className="mobile-glass-card rounded-[28px] p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Edição móvel</p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">{product.nome}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-300">
+      <section className="rounded-[24px] p-5" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.blueLight }}>Edição móvel</p>
+        <h1 className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{product.nome}</h1>
+        <p className="mt-2 text-sm leading-6" style={{ color: mobileColors.muted }}>
           Revise código de barras, regras de retirada, unidade de estocagem e situação operacional.
         </p>
       </section>

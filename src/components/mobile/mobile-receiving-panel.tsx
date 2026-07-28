@@ -1,10 +1,17 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Focus, Search, Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { ReceivingOrderDetail } from "@/lib/receiving";
+import {
+  mobileColors,
+  hexAlpha,
+  headingFont,
+  MobilePrimaryButton,
+  MobileScanOverlay,
+  type ScanOverlayState,
+} from "@/components/mobile/mobile-kit";
 
 type AddressOption = {
   id: string;
@@ -33,8 +40,6 @@ type ReceivingItemState = {
   requireExpiry: boolean;
 };
 
-type ScanFeedbackTone = "success" | "error";
-
 export function MobileReceivingPanel({
   orderId,
   initialItems,
@@ -43,6 +48,7 @@ export function MobileReceivingPanel({
   const router = useRouter();
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const overlayTimerRef = useRef<number | null>(null);
   const [items, setItems] = useState<ReceivingItemState[]>(
     initialItems.map((item) => ({
       id: item.id,
@@ -62,8 +68,7 @@ export function MobileReceivingPanel({
   const [enderecoId, setEnderecoId] = useState(addresses[0]?.id ?? "");
   const [scanValue, setScanValue] = useState("");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [scanMessage, setScanMessage] = useState<string | null>(null);
-  const [scanTone, setScanTone] = useState<ScanFeedbackTone>("success");
+  const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -105,8 +110,22 @@ export function MobileReceivingPanel({
     });
   }, [activeItemId]);
 
-  function playFeedbackTone(tone: ScanFeedbackTone) {
-    if (!soundEnabled || typeof window === "undefined") {
+  useEffect(() => {
+    return () => {
+      if (overlayTimerRef.current) {
+        window.clearTimeout(overlayTimerRef.current);
+      }
+    };
+  }, []);
+
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) {
+      window.clearTimeout(overlayTimerRef.current);
+    }
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
+
+    if (!soundEnabled || typeof window === "undefined" || !next) {
       return;
     }
 
@@ -122,20 +141,14 @@ export function MobileReceivingPanel({
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.type = tone === "success" ? "sine" : "square";
-    oscillator.frequency.value = tone === "success" ? 880 : 220;
+    oscillator.type = next.type === "ok" ? "sine" : "square";
+    oscillator.frequency.value = next.type === "ok" ? 880 : 220;
     gain.gain.value = 0.04;
     oscillator.connect(gain);
     gain.connect(context.destination);
     oscillator.start();
     oscillator.stop(context.currentTime + 0.12);
     oscillator.onended = () => void context.close();
-  }
-
-  function setFeedback(text: string, tone: ScanFeedbackTone) {
-    setScanMessage(text);
-    setScanTone(tone);
-    playFeedbackTone(tone);
   }
 
   function focusScanInput() {
@@ -161,7 +174,7 @@ export function MobileReceivingPanel({
     const normalizedScan = normalizeScan(rawValue);
 
     if (!normalizedScan) {
-      setFeedback("Leia ou digite um cÃ³digo para localizar o item.", "error");
+      flash({ type: "err", title: "Código vazio", code: "—", sub: "Leia ou digite um código para localizar o item." });
       return;
     }
 
@@ -173,7 +186,7 @@ export function MobileReceivingPanel({
 
     if (!matchedItem) {
       setActiveItemId(null);
-      setFeedback("CÃ³digo nÃ£o encontrado neste recebimento.", "error");
+      flash({ type: "err", title: "Não encontrado", code: rawValue, sub: "Código não encontrado neste recebimento." });
       focusScanInput();
       return;
     }
@@ -190,10 +203,12 @@ export function MobileReceivingPanel({
 
     setActiveItemId(matchedItem.id);
     setScanValue("");
-    setFeedback(
-      `${matchedItem.sku}: ${nextQuantity}/${matchedItem.expectedQuantity} recebido(s).`,
-      "success",
-    );
+    flash({
+      type: "ok",
+      title: "Volume recebido",
+      code: matchedItem.sku,
+      sub: `${nextQuantity}/${matchedItem.expectedQuantity} recebido(s).`,
+    });
     setError(null);
     setMessage(null);
     focusScanInput();
@@ -225,39 +240,41 @@ export function MobileReceivingPanel({
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error ?? "NÃ£o foi possÃ­vel salvar a conferência.");
-        playFeedbackTone("error");
+        setError(result.error ?? "Não foi possível salvar a conferência.");
+        flash({ type: "err", title: "Falha ao salvar", code: "—", sub: result.error ?? "Tente novamente." });
         return;
       }
 
-      setMessage(result.message ?? "ConferÃªncia atualizada com sucesso.");
-      playFeedbackTone("success");
+      setMessage(result.message ?? "Conferência atualizada com sucesso.");
+      flash({ type: "ok", title: "Salvo", code: "—", sub: result.message ?? "Conferência atualizada." });
 
       if (finalizar) {
         router.push("/m/recebimento?feedback=concluido");
         return;
       }
     } catch {
-      setError("Falha de comunicaÃ§Ã£o com a API do recebimento.");
-      playFeedbackTone("error");
+      setError("Falha de comunicação com a API do recebimento.");
+      flash({ type: "err", title: "Falha de rede", code: "—", sub: "Falha de comunicação com a API do recebimento." });
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+    <div className="relative space-y-4">
+      <MobileScanOverlay overlay={overlay} />
+
+      <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-              ConferÃªncia inbound
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.violetLight }}>
+              Conferência inbound
             </p>
-            <p className="mt-2 text-sm text-slate-300">
+            <p className="mt-2 text-sm" style={{ color: mobileColors.muted }}>
               Lance quantidade, lote e validade direto no celular.
             </p>
           </div>
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
+          <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: hexAlpha(mobileColors.violet, 0.15), color: mobileColors.violetLight }}>
             {progress.percent}%
           </span>
         </div>
@@ -270,13 +287,16 @@ export function MobileReceivingPanel({
       </section>
 
       {nextItem ? (
-        <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-            PrÃ³ximo item sugerido
+        <section
+          className="rounded-[24px] p-4"
+          style={{ border: `1px solid ${hexAlpha(mobileColors.violet, 0.3)}`, background: hexAlpha(mobileColors.violet, 0.1) }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.violetLight }}>
+            Próximo item sugerido
           </p>
-          <p className="mt-2 text-base font-semibold text-white">{nextItem.sku}</p>
-          <p className="mt-1 text-sm text-slate-300">{nextItem.description}</p>
-          <p className="mt-2 text-sm text-slate-200">
+          <p className="mt-2 text-base font-semibold" style={headingFont}>{nextItem.sku}</p>
+          <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>{nextItem.description}</p>
+          <p className="mt-2 text-sm" style={{ color: mobileColors.text }}>
             Falta{" "}
             {Math.max(
               nextItem.expectedQuantity - normalizeQuantity(nextItem.receivedQuantityValue),
@@ -287,62 +307,66 @@ export function MobileReceivingPanel({
         </section>
       ) : null}
 
-      <section className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+      <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            EndereÃ§o destino
+          <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.muted }}>
+            Endereço destino
           </span>
           <select
             value={enderecoId}
             onChange={(event) => setEnderecoId(event.target.value)}
-            className="h-12 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+            className="h-12 w-full rounded-2xl px-3 text-sm outline-none"
+            style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
           >
             {addresses.map((address) => (
               <option key={address.id} value={address.id}>
-                {address.codigo} â€¢ {formatÁrea(address.area)}
+                {address.codigo} • {formatArea(address.area)}
               </option>
             ))}
           </select>
         </label>
 
         <div className="mt-4 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.muted }}>
             Leitura
           </span>
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900 p-2">
-            <Barcode className="h-4 w-4 text-slate-400" />
+          <div className="flex items-center gap-2 rounded-2xl p-2" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424" }}>
+            <Barcode className="h-4 w-4" style={{ color: mobileColors.muted }} />
             <input
               ref={scanInputRef}
               value={scanValue}
               onChange={(event) => setScanValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyScan(scanValue);
+                }
+              }}
               onBlur={() => {
                 window.setTimeout(() => {
                   scanInputRef.current?.focus();
                 }, 40);
               }}
-              placeholder="Leia EAN, SKU ou cÃ³digo"
-              className="h-10 w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              placeholder="Leia EAN, SKU ou código"
+              className="h-10 w-full bg-transparent text-sm outline-none"
+              style={{ color: mobileColors.text }}
             />
             <button
               type="button"
               onClick={() => applyScan(scanValue)}
-              className="rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-950"
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-white"
+              style={{ background: mobileColors.violet }}
             >
               <Search className="h-4 w-4" />
             </button>
           </div>
 
-          {scanMessage ? (
-            <p className={`text-sm ${scanTone === "success" ? "text-emerald-300" : "text-rose-300"}`}>
-              {scanMessage}
-            </p>
-          ) : null}
-
           <div className="flex gap-2">
             <button
               type="button"
               onClick={focusScanInput}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.text }}
             >
               <Focus className="h-4 w-4" />
               Focar
@@ -350,7 +374,8 @@ export function MobileReceivingPanel({
             <button
               type="button"
               onClick={() => setSoundEnabled((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200"
+              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.text }}
             >
               <Volume2 className="h-4 w-4" />
               {soundEnabled ? "Som ativo" : "Som desligado"}
@@ -364,6 +389,7 @@ export function MobileReceivingPanel({
           const received = normalizeQuantity(item.receivedQuantityValue);
           const missing = Math.max(item.expectedQuantity - received, 0);
           const hasDivergence = received !== item.expectedQuantity;
+          const isActive = activeItemId === item.id;
 
           return (
             <div
@@ -371,21 +397,21 @@ export function MobileReceivingPanel({
               ref={(element) => {
                 itemRefs.current[item.id] = element;
               }}
-              className={`rounded-[24px] border p-4 ${
-                activeItemId === item.id
-                  ? "border-emerald-400 bg-emerald-500/10"
-                  : "border-white/10 bg-white/5"
-              }`}
+              className="rounded-[24px] p-4 transition-colors"
+              style={{
+                border: `1px solid ${hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.5 : 0.14)}`,
+                background: hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.1 : 0.045),
+              }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">{item.sku}</p>
-                  <p className="mt-1 text-sm text-slate-300">{item.description}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    CÃ³digo {item.internalCode || "-"} â€¢ EAN {item.barcode || "-"}
+                  <p className="text-sm font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{item.sku}</p>
+                  <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>{item.description}</p>
+                  <p className="mt-1 text-xs" style={{ color: mobileColors.dim }}>
+                    Código {item.internalCode || "-"} • EAN {item.barcode || "-"}
                   </p>
                 </div>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-slate-200">
+                <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}>
                   {item.expectedQuantity} {item.unitLabel.toLowerCase()}
                 </span>
               </div>
@@ -393,7 +419,7 @@ export function MobileReceivingPanel({
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <InfoBadge label="Previsto" value={`${item.expectedQuantity}`} />
                 <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     Recebido
                   </span>
                   <input
@@ -404,7 +430,8 @@ export function MobileReceivingPanel({
                     onChange={(event) =>
                       updateItem(item.id, "receivedQuantityValue", event.target.value)
                     }
-                    className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
                   />
                 </label>
                 <InfoBadge label="Status" value={hasDivergence ? "A validar" : "OK"} />
@@ -412,31 +439,33 @@ export function MobileReceivingPanel({
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     Lote {item.requireLot ? "*" : ""}
                   </span>
                   <input
                     value={item.lotValue}
                     onChange={(event) => updateItem(item.id, "lotValue", event.target.value)}
-                    placeholder={item.requireLot ? "ObrigatÃ³rio" : "Opcional"}
-                    className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+                    placeholder={item.requireLot ? "Obrigatório" : "Opcional"}
+                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
                   />
                 </label>
 
                 <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
                     Validade {item.requireExpiry ? "*" : ""}
                   </span>
                   <input
                     type="date"
                     value={item.expiryValue}
                     onChange={(event) => updateItem(item.id, "expiryValue", event.target.value)}
-                    className="h-11 w-full rounded-2xl border border-white/10 bg-slate-900 px-3 text-sm text-white outline-none"
+                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
                   />
                 </label>
               </div>
 
-              <p className={`mt-3 text-sm ${missing > 0 ? "text-amber-200" : "text-emerald-300"}`}>
+              <p className="mt-3 text-sm" style={{ color: missing > 0 ? mobileColors.amber : mobileColors.green }}>
                 {missing > 0
                   ? `Faltam ${missing} ${item.unitLabel.toLowerCase()}.`
                   : "Item recebido conforme previsto."}
@@ -447,13 +476,19 @@ export function MobileReceivingPanel({
       </section>
 
       {message ? (
-        <section className="rounded-[24px] border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+        <section
+          className="rounded-[24px] p-4 text-sm"
+          style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.1), color: mobileColors.green }}
+        >
           {message}
         </section>
       ) : null}
 
       {error ? (
-        <section className="rounded-[24px] border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <section
+          className="rounded-[24px] p-4 text-sm"
+          style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.1), color: mobileColors.redLight }}
+        >
           <div className="flex gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>{error}</p>
@@ -461,29 +496,28 @@ export function MobileReceivingPanel({
         </section>
       ) : null}
 
-      <div className="sticky bottom-20 z-20 rounded-[24px] border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
-        <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-300">
-          <span>{progress.percent}% concluÃ­do</span>
+      <div
+        className="sticky bottom-20 z-20 rounded-[24px] p-4 shadow-2xl"
+        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "rgba(10,17,32,0.95)" }}
+      >
+        <div className="mb-3 flex items-center justify-between gap-3 text-sm" style={{ color: mobileColors.muted }}>
+          <span>{progress.percent}% concluído</span>
           <span>{progress.pending} un pendente(s)</span>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
-          <Button
+          <button
             type="button"
             onClick={() => void submitConference(false)}
             disabled={isSaving || !enderecoId}
-            className="h-11 bg-slate-100 text-slate-950 hover:bg-white"
+            className="h-11 rounded-xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text, border: `1px solid ${hexAlpha("#94A3B8", 0.16)}` }}
           >
             {isSaving ? "Salvando..." : "Salvar conferência"}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void submitConference(true)}
-            disabled={isSaving || !enderecoId}
-            className="h-11 bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-          >
-            {isSaving ? "Concluindo..." : "Concluir e lanÃ§ar no estoque"}
-          </Button>
+          </button>
+          <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 44 }}>
+            {isSaving ? "Concluindo..." : "Concluir e lançar no estoque"}
+          </MobilePrimaryButton>
         </div>
       </div>
     </div>
@@ -492,23 +526,23 @@ export function MobileReceivingPanel({
 
 function MiniInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+    <div className="rounded-2xl px-3 py-3" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05) }}>
+      <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>{label}</p>
+      <p className="mt-2 text-lg font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{value}</p>
     </div>
   );
 }
 
 function InfoBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900 px-3 py-2">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-2xl px-3 py-2" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424" }}>
+      <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>{label}</p>
+      <p className="mt-1 text-sm font-semibold" style={{ color: mobileColors.text }}>{value}</p>
     </div>
   );
 }
 
-function formatÁrea(area: string) {
+function formatArea(area: string) {
   switch (area) {
     case "RECEBIMENTO":
       return "Recebimento";
@@ -519,7 +553,7 @@ function formatÁrea(area: string) {
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "ExpediÃ§Ã£o";
+      return "Expedição";
     default:
       return area;
   }
@@ -537,5 +571,3 @@ function normalizeQuantity(value: string) {
 
   return Math.max(0, numeric);
 }
-
-
