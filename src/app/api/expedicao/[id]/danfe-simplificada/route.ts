@@ -98,8 +98,7 @@ export async function GET(request: Request, context: RouteContext) {
         const { data: items } = await adminSupabase
           .from("pedidos_expedicao_itens")
           .select("codigo_produto, sku, nome, quantidade")
-          .eq("pedido_expedicao_id", id)
-          .order("created_at", { ascending: true });
+          .eq("pedido_expedicao_id", id);
 
         const fallbackXml = buildManualDanfeXml(order, items ?? []);
         pdfBytes = buildSimplifiedDanfePdfFromXml(fallbackXml, { carrierName });
@@ -165,7 +164,7 @@ function buildManualDanfeXml(
           (item) => `<prod><cProd>${escapeXml(item.codigo_produto || item.sku || "-")}</cProd><xProd>${escapeXml(item.nome)}</xProd><qCom>${Math.max(1, Number(item.quantidade) || 1)}</qCom><vProd>0</vProd></prod>`,
         )
         .join("")
-    : `<det><prod><cProd>-</cProd><xProd>Item manual nao informado</xProd><qCom>1</qCom><vProd>0</vProd></prod></det>`;
+    : `<prod><cProd>-</cProd><xProd>Item manual nao informado</xProd><qCom>1</qCom><vProd>0</vProd></prod>`;
 
   return `<nfeProc><NFe><infNFe><ide><nNF>${escapeXml(numero)}</nNF><tpNF>1</tpNF></ide><emit><xNome>${escapeXml(nomeEmitente)}</xNome><CNPJ>${escapeXml(documentoEmitente)}</CNPJ></emit><dest><xNome>${escapeXml(nomeDestinatario)}</xNome><CPF>${escapeXml(documentoDestinatario)}</CPF><enderDest><xLgr>${escapeXml(endereco)}</xLgr><nro>${escapeXml(numeroEndereco)}</nro><xMun>${escapeXml(cidade)}</xMun><UF>${escapeXml(uf)}</UF></enderDest></dest><det>${det}</det><total><ICMSTot><vNF>${total}</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;
 }
