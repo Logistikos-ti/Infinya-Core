@@ -25,7 +25,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, codigo, depositante_id, origem, payload_origem")
+    .select("id, codigo, numero_pedido, depositante_id, origem, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, payload_origem")
     .eq("id", id)
     .maybeSingle();
 
@@ -88,7 +88,25 @@ export async function GET(request: Request, context: RouteContext) {
     const carrierName = order.payload_origem && typeof order.payload_origem === "object"
       ? extractCarrierName(order.payload_origem as Record<string, unknown>)
       : null;
-    const pdfBytes = buildSimplifiedDanfePdfFromXml(xmlBytes.toString("utf-8"), { carrierName });
+    const source = xmlBytes.toString("utf-8");
+    let pdfBytes: Buffer;
+
+    try {
+      pdfBytes = buildSimplifiedDanfePdfFromXml(source, { carrierName });
+    } catch (error) {
+      if (order.origem !== "BLING") {
+        const { data: items } = await adminSupabase
+          .from("pedidos_expedicao_itens")
+          .select("codigo_produto, sku, nome, quantidade")
+          .eq("pedido_expedicao_id", id)
+          .order("created_at", { ascending: true });
+
+        const fallbackXml = buildManualDanfeXml(order, items ?? []);
+        pdfBytes = buildSimplifiedDanfePdfFromXml(fallbackXml, { carrierName });
+      } else {
+        throw error;
+      }
+    }
 
     return new NextResponse(new Uint8Array(pdfBytes), {
       headers: {
@@ -108,6 +126,60 @@ export async function GET(request: Request, context: RouteContext) {
       { status: 500 },
     );
   }
+}
+
+function buildManualDanfeXml(
+  order: {
+    numero_pedido: string | null;
+    cliente_nome: string | null;
+    cliente_documento: string | null;
+    cliente_cidade: string | null;
+    cliente_uf: string | null;
+    valor_total: number | null;
+    payload_origem: unknown;
+  },
+  items: Array<{
+    codigo_produto: string | null;
+    sku: string | null;
+    nome: string;
+    quantidade: number;
+  }>,
+) {
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : {};
+  const destinatario = isRecord(payload.destinatario) ? payload.destinatario : {};
+  const emitente = isRecord(payload.emitente) ? payload.emitente : {};
+  const numero = readPayloadString(notaFiscal.numero) || order.numero_pedido || "SEM NUMERO";
+  const nomeDestinatario = order.cliente_nome || "Destinatario nao informado";
+  const documentoDestinatario = order.cliente_documento || "";
+  const cidade = order.cliente_cidade || "";
+  const uf = order.cliente_uf || "";
+  const endereco = readPayloadString(destinatario.endereco) || "";
+  const numeroEndereco = readPayloadString(destinatario.numero) || "";
+  const nomeEmitente = readPayloadString(emitente.nome) || "Pedido manual";
+  const documentoEmitente = readPayloadString(emitente.documento) || "";
+  const total = Number(order.valor_total ?? 0) || 0;
+  const det = items.length
+    ? items
+        .map(
+          (item) => `<prod><cProd>${escapeXml(item.codigo_produto || item.sku || "-")}</cProd><xProd>${escapeXml(item.nome)}</xProd><qCom>${Math.max(1, Number(item.quantidade) || 1)}</qCom><vProd>0</vProd></prod>`,
+        )
+        .join("")
+    : `<det><prod><cProd>-</cProd><xProd>Item manual nao informado</xProd><qCom>1</qCom><vProd>0</vProd></prod></det>`;
+
+  return `<nfeProc><NFe><infNFe><ide><nNF>${escapeXml(numero)}</nNF><tpNF>1</tpNF></ide><emit><xNome>${escapeXml(nomeEmitente)}</xNome><CNPJ>${escapeXml(documentoEmitente)}</CNPJ></emit><dest><xNome>${escapeXml(nomeDestinatario)}</xNome><CPF>${escapeXml(documentoDestinatario)}</CPF><enderDest><xLgr>${escapeXml(endereco)}</xLgr><nro>${escapeXml(numeroEndereco)}</nro><xMun>${escapeXml(cidade)}</xMun><UF>${escapeXml(uf)}</UF></enderDest></dest><det>${det}</det><total><ICMSTot><vNF>${total}</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;
+}
+
+function readPayloadString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function escapeXml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 function isGzipBuffer(value: Buffer) {
