@@ -58,9 +58,9 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
           title="Sair"
           className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-xl transition-transform active:scale-95"
           style={{
-            border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`,
-            background: hexAlpha("#94A3B8", 0.06),
-            color: mobileColors.muted,
+            border: `1px solid ${hexAlpha(mobileColors.red, 0.25)}`,
+            background: hexAlpha(mobileColors.red, 0.1),
+            color: mobileColors.redLight,
           }}
         >
           <MobileIcon name="logout" size={19} />
