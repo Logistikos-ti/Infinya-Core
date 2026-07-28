@@ -127,6 +127,8 @@ export function ShippingPickingInterface({
   const [scanValue, setScanValue] = useState("");
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
+  const completionFormRef = useRef<HTMLFormElement | null>(null);
+  const autoSubmittedRef = useRef(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, startResetTransition] = useTransition();
@@ -193,28 +195,6 @@ export function ShippingPickingInterface({
       current.map((item) =>
         item.compositeId === currentItem.compositeId
           ? { ...item, isSkipped: true }
-          : item
-      )
-    );
-    
-    setScanPhase("address");
-    setCurrentIndex(Math.min(currentIndex + 1, totalCount));
-  };
-
-  const confirmItem = () => {
-    if (!currentItem) return;
-
-    if (scanPhase === "address") {
-      alert("Bipe primeiro o endereco de coleta deste item.");
-      scanInputRef.current?.focus();
-      return;
-    }
-    
-    // Auto-fill full quantity and go to next
-    setItems((current) =>
-      current.map((item) =>
-        item.compositeId === currentItem.compositeId
-          ? { ...item, separatedQuantityValue: String(item.requestedQuantity) }
           : item
       )
     );
@@ -309,6 +289,17 @@ export function ShippingPickingInterface({
       scanInputRef.current.focus();
     }
   }, [currentIndex, current.active, scanPhase]);
+
+  useEffect(() => {
+    if (!current.done || totalCount === 0 || autoSubmittedRef.current) return;
+
+    autoSubmittedRef.current = true;
+    const timer = window.setTimeout(() => {
+      setIsSubmitting(true);
+      completionFormRef.current?.requestSubmit();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [current.done, totalCount]);
 
   return (
     <div className="shipping-picking-ui flex flex-col" style={{ width: "100%", height: "100%", minHeight: "600px", borderRadius: 0, overflow: "hidden", background: t.appBg, color: t.text, transition: "background 0.35s ease, color 0.35s ease", fontFamily: "'Manrope', sans-serif" }}>
@@ -443,9 +434,6 @@ export function ShippingPickingInterface({
                 <button onClick={skip} style={{ flex: 1, height: "52px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "700", cursor: "pointer" }}>
                   Pular / sem estoque
                 </button>
-                <button onClick={confirmItem} disabled={scanPhase === "address"} style={{ flex: 1.6, height: "52px", border: "none", borderRadius: "12px", background: scanPhase === "address" ? t.softBg : "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: scanPhase === "address" ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: scanPhase === "address" ? "not-allowed" : "pointer", boxShadow: scanPhase === "address" ? "none" : "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                  <CheckIcon size={18} /> Confirmar coleta
-                </button>
               </div>
             </div>
           )}
@@ -462,7 +450,7 @@ export function ShippingPickingInterface({
                   {items.some(i => i.isSkipped) && <span style={{display: 'block', marginTop: 8, color: '#F59E0B'}}>Aviso: Há itens pulados por divergência ou ruptura.</span>}
                 </span>
               </div>
-              <form action={savePickingWaveProgressAction} onSubmit={() => setIsSubmitting(true)} style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+              <form ref={completionFormRef} action={savePickingWaveProgressAction} onSubmit={() => setIsSubmitting(true)} style={{ width: "100%", display: "flex", justifyContent: "center" }}>
                 {orders.map((order) => (
                   <input key={order.id} type="hidden" name="waveOrderId" value={order.id} />
                 ))}
@@ -478,7 +466,7 @@ export function ShippingPickingInterface({
                   </React.Fragment>
                 ))}
                 
-                <button type="submit" disabled={isSubmitting} style={{ height: "52px", padding: "0 28px", border: "none", borderRadius: "12px", background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", textDecoration: "none" }}>
+                <button type="submit" disabled={isSubmitting} style={{ display: "none" }}>
                   {isSubmitting ? "Finalizando..." : "Ir para conferência →"}
                 </button>
               </form>
