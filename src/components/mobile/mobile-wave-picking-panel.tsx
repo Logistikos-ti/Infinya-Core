@@ -76,7 +76,7 @@ function normalizeQuantity(value: string) {
   return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
 
-const FLASH_DURATION_MS = 2500;
+const FLASH_DURATION_MS = 1800;
 
 export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: MobileWavePickingPanelProps) {
   const router = useRouter();
@@ -591,7 +591,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         ))}
         <input type="hidden" name="currentUserId" value={currentUserId} />
         <input type="hidden" name="returnTo" value="/m/separacao" />
-        <input type="hidden" name="completeRedirectTo" value="/m/conferencia" />
+        <input type="hidden" name="completeRedirectTo" value="/m/separacao" />
         {cancelledOrderIds.map((orderId) => (
           <input key={orderId} type="hidden" name="cancelledOrderId" value={orderId} />
         ))}
