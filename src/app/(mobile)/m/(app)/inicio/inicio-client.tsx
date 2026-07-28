@@ -15,7 +15,7 @@ import {
 type OperationsSnapshot = {
   picking: { count: number };
   receiving: { count: number };
-  conference: { count: number };
+  conference: { count: number; divergentItems: number };
 };
 
 type InicioClientProps = {
@@ -70,8 +70,8 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
       {/* Stats */}
       <div className="flex shrink-0 gap-2.5 px-[22px] pb-[16px]">
         <StatCard value={totalPendencias} label="tarefas hoje" color={mobileColors.blueLight} />
-        <StatCard value={snapshot.picking.count} label="linhas / dia" color={mobileColors.green} />
-        <StatCard value="99%" label="acuracidade" color={mobileColors.violetLight} />
+        <StatCard value={snapshot.picking.count} label="pedidos p/ separar" color={mobileColors.green} />
+        <StatCard value={snapshot.conference.divergentItems} label="divergências" color={mobileColors.amber} />
       </div>
 
       <div className="shrink-0 px-[22px] pb-2">
