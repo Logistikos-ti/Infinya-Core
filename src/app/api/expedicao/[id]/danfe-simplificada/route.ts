@@ -166,6 +166,7 @@ function buildManualDanfeData(
   const uf = order.cliente_uf || "";
   const endereco = readPayloadString(destinatario.endereco) || "";
   const numeroEndereco = readPayloadString(destinatario.numero) || "";
+  const cep = readPayloadString(destinatario.cep) || "";
   const nomeEmitente = readPayloadString(emitente.nome) || depositante?.nome || "Pedido manual";
   const documentoEmitente = readPayloadString(emitente.documento) || depositante?.cnpj || "";
   const total = Number(order.valor_total ?? 0) || 0;
@@ -206,7 +207,11 @@ function buildManualDanfeData(
     supplierDocument: documentoEmitente || null,
     recipientName: nomeDestinatario,
     recipientDocument: documentoDestinatario || null,
-    recipientAddress: [endereco, numeroEndereco, cidade, uf].filter(Boolean).join(" - ") || null,
+    recipientAddress: [
+      [endereco, numeroEndereco].filter(Boolean).join(", "),
+      [cidade, uf].filter(Boolean).join(" - "),
+      cep ? `CEP ${cep}` : "",
+    ].filter(Boolean).join(" | ") || null,
     issuedAt: null,
     volumeCount: 1,
     carrierName: null,
