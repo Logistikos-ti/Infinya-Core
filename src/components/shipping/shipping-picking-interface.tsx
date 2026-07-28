@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
-import { cancelPickingOrderAction, savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { cancelPickingOrderAction, savePickingWaveProgressAction, updateItemPickingQuantityAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -247,6 +247,9 @@ export function ShippingPickingInterface({
             : item
         )
       );
+
+      // Persist each confirmed scan so leaving the wave does not lose progress.
+      void updateItemPickingQuantityAction(currentItem.orderId, currentItem.id, nextSeparated);
       
       if (nextSeparated >= currentItem.requestedQuantity) {
         // Play beep and advance

@@ -338,7 +338,9 @@ export async function listShippingPickingOrdersByIdsFromDb(
 
   const supabase = createSupabaseAdminClient();
   const includeRouteData = options?.includeRouteData ?? true;
-  let query = buildPickingOrdersQuery(supabase).in("id", normalizedIds);
+  let query = buildPickingOrdersQuery(supabase)
+    .in("id", normalizedIds)
+    .in("status", [...activePickingStatuses]);
 
   if (user.papel === "DEPOSITANTE" && user.depositanteId) {
     query = query.eq("depositante_id", user.depositanteId);
