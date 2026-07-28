@@ -229,7 +229,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   }
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <MobileScanOverlay overlay={overlay} />
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
@@ -359,25 +359,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
               className="h-11 w-full rounded-2xl px-4 text-sm font-medium outline-none"
               style={{ border: `1px solid ${hexAlpha(phaseColor, 0.25)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.text }}
             />
-
-            <button
-              type="button"
-              onClick={() => applyScan(scanValue)}
-              className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
-              style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
-            >
-              <MobileIcon name="scan" size={20} strokeWidth={2} />
-              {scanPhase === "address" ? "Bipar endereço" : "Bipar produto"}
-            </button>
-
-            <button
-              type="button"
-              onClick={cancelCurrentOrder}
-              className="h-12 rounded-xl text-sm font-bold"
-              style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight }}
-            >
-              Sem estoque, cancelar pedido
-            </button>
           </>
         ) : (
           <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -405,6 +386,29 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
           </div>
         )}
       </div>
+
+      {currentItem ? (
+        <div className="shrink-0 flex flex-col gap-2.5 px-[18px] pb-[18px] pt-1">
+          <button
+            type="button"
+            onClick={() => applyScan(scanValue)}
+            className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
+            style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
+          >
+            <MobileIcon name="scan" size={20} strokeWidth={2} />
+            {scanPhase === "address" ? "Bipar endereço" : "Bipar produto"}
+          </button>
+
+          <button
+            type="button"
+            onClick={cancelCurrentOrder}
+            className="h-12 rounded-xl text-sm font-bold"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight }}
+          >
+            Sem estoque, cancelar pedido
+          </button>
+        </div>
+      ) : null}
 
       <form
         ref={completionFormRef}
