@@ -477,6 +477,26 @@ export async function savePickingWaveProgressAction(formData: FormData) {
   redirect(appendFeedback(completeRedirectTo, intent === "complete" ? "concluido" : "salvo"));
 }
 
+export async function savePickingWaveDraftAction(
+  items: { orderId: string; itemId: string; separatedQuantity: number }[],
+) {
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  if (!items.length) return { ok: true };
+
+  const adminSupabase = createSupabaseAdminClient();
+  const results = await Promise.all(
+    items.map(({ orderId, itemId, separatedQuantity }) =>
+      adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({ quantidade_separada: normalizeQuantity(String(separatedQuantity)) })
+        .eq("id", itemId)
+        .eq("pedido_expedicao_id", orderId),
+    ),
+  );
+
+  return { ok: !results.some((result) => result.error) };
+}
+
 async function resolveOperatorName(
   adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
   operatorId: string,

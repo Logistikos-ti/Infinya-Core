@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { savePickingWaveProgressAction, cancelPickingOrderAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import {
+  savePickingWaveProgressAction,
+  savePickingWaveDraftAction,
+  cancelPickingOrderAction,
+} from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
@@ -71,6 +75,8 @@ function normalizeQuantity(value: string) {
   const numeric = Number(value.replace(",", "."));
   return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
+
+const FLASH_DURATION_MS = 2500;
 
 export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: MobileWavePickingPanelProps) {
   const router = useRouter();
@@ -149,7 +155,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   function flash(next: ScanOverlayState) {
     setOverlay(next);
     if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
 
     if (!next) return;
 
@@ -184,6 +190,20 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     }
   }
 
+  function persistDraft(itemsToSave: WaveItemState[]) {
+    const payload = itemsToSave.map((item) => ({
+      orderId: item.orderId,
+      itemId: item.id,
+      separatedQuantity: item.isSkipped ? 0 : normalizeQuantity(item.separatedQuantityValue),
+    }));
+    void savePickingWaveDraftAction(payload);
+  }
+
+  function handleBack() {
+    persistDraft(items);
+    router.push("/m/separacao");
+  }
+
   function applyScan(rawValue: string) {
     if (!currentItem) return;
     const normalized = normalizeScan(rawValue);
@@ -197,7 +217,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       }
       flash({ type: "ok", title: "Endereço OK", code: currentItem.routeLines[0]?.addressCode ?? "", sub: currentItem.name });
       setScanPhase("product");
-      scheduleScannerClose(700);
+      scheduleScannerClose(FLASH_DURATION_MS);
       return;
     }
 
@@ -214,13 +234,13 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       normalizeQuantity(currentItem.separatedQuantityValue) + 1,
       currentItem.requestedQuantity,
     );
-    setItems((current) =>
-      current.map((item) =>
-        item.compositeId === currentItem.compositeId
-          ? { ...item, separatedQuantityValue: String(nextSeparated) }
-          : item,
-      ),
+    const updatedItems = items.map((item) =>
+      item.compositeId === currentItem.compositeId
+        ? { ...item, separatedQuantityValue: String(nextSeparated) }
+        : item,
     );
+    setItems(updatedItems);
+    persistDraft(updatedItems);
 
     if (nextSeparated >= currentItem.requestedQuantity) {
       flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
@@ -229,7 +249,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         setScanPhase("address");
         setCurrentIndex((idx) => Math.min(idx + 1, totalCount));
         closeScanner();
-      }, 700);
+      }, FLASH_DURATION_MS);
     } else {
       flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity}` });
     }
@@ -265,7 +285,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       <MobileScanOverlay overlay={overlay} />
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
-        <MobileBackButton onClick={() => router.push("/m/separacao")} />
+        <MobileBackButton onClick={handleBack} />
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <span className="text-[16px] font-extrabold" style={headingFont}>
             Separação
