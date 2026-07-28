@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Barcode, Camera, CameraOff, Focus, Volume2 } from "lucide-react";
+import { Camera, CameraOff, Focus, Volume2 } from "lucide-react";
 import { savePickingWaveProgressAction, cancelPickingOrderAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
@@ -112,6 +112,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
   const currentItem = prioritizedItems[currentIndex];
   const isDone = !currentItem;
+  const phaseColor = scanPhase === "address" ? mobileColors.blue : mobileColors.violet;
 
   useEffect(() => {
     if (cameraEnabled) return;
@@ -256,17 +257,20 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         <MobileBackButton onClick={() => router.push("/m/separacao")} />
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <span className="text-[16px] font-extrabold" style={headingFont}>
-            Onda {waveCode}
+            Separação
           </span>
           <span className="text-[12px]" style={{ color: mobileColors.muted }}>
-            {doneCount}/{totalCount} itens
+            Onda {waveCode}
           </span>
         </div>
         <span
           className="rounded-full px-[11px] py-[5px] text-[11.5px] font-extrabold"
-          style={{ background: hexAlpha(mobileColors.blue, 0.16), color: mobileColors.blueLight }}
+          style={{
+            background: hexAlpha(isDone ? mobileColors.green : mobileColors.blue, 0.16),
+            color: isDone ? mobileColors.green : mobileColors.blueLight,
+          }}
         >
-          {progressPct}%
+          {isDone ? "Concluída" : `${currentIndex + 1}/${totalCount}`}
         </span>
       </div>
 
@@ -276,6 +280,14 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
             className="h-full rounded-full transition-all"
             style={{ width: `${progressPct}%`, background: mobileGradient }}
           />
+        </div>
+        <div className="mt-1.5 flex items-center justify-between">
+          <span className="text-[11.5px]" style={{ color: mobileColors.muted }}>
+            {isDone ? "Todos os itens separados" : scanPhase === "address" ? "Vá até o endereço" : "Confirme o produto"}
+          </span>
+          <span className="text-[11.5px] font-bold" style={{ color: mobileColors.violetLight }}>
+            {progressPct}%
+          </span>
         </div>
       </div>
 
@@ -291,103 +303,121 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       <div className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] pb-[18px]">
         {currentItem ? (
           <>
-            {/* Current target card */}
+            {/* Primary instruction card — matches the mockup's Flow "active" card exactly */}
             <div
-              className="rounded-[20px] p-[18px]"
+              className="flex flex-col gap-3.5 rounded-[20px] p-[18px]"
               style={{
-                border: `1px solid ${hexAlpha(scanPhase === "address" ? mobileColors.blue : mobileColors.violet, 0.3)}`,
-                background: hexAlpha(scanPhase === "address" ? mobileColors.blue : mobileColors.violet, 0.08),
+                border: `1px solid ${hexAlpha(phaseColor, 0.3)}`,
+                background: hexAlpha("#94A3B8", 0.04),
               }}
             >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[12.5px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                  Separando {currentIndex + 1} de {totalCount}
-                </span>
+              <div className="flex items-center gap-2">
                 <span
-                  className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-                  style={{ background: hexAlpha(mobileColors.blue, 0.16), color: mobileColors.blueLight }}
+                  className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] text-[13px] font-extrabold"
+                  style={{ background: hexAlpha(phaseColor, 0.18), color: phaseColor, ...headingFont }}
                 >
-                  Pedido {currentItem.orderExternalNumber}
+                  {scanPhase === "address" ? "1" : "2"}
+                </span>
+                <span className="text-[13px] font-extrabold uppercase tracking-wide" style={{ color: phaseColor }}>
+                  {scanPhase === "address" ? "Bipe o endereço" : "Bipe o produto"}
                 </span>
               </div>
 
-              {scanPhase === "address" ? (
+              <div className="flex items-center gap-[13px]">
                 <div
-                  className="flex items-center gap-4 rounded-[16px] p-5"
-                  style={{ background: mobileGradient, color: "#fff" }}
+                  className="flex h-[54px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
+                  style={{ background: `linear-gradient(140deg, ${mobileColors.blue} 0%, ${hexAlpha(mobileColors.blue, 0.55)} 100%)`, color: "rgba(255,255,255,0.92)" }}
                 >
-                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(255,255,255,0.18)" }}>
-                    <MobileIcon name="loc" size={28} />
+                  {currentItem.imageUrl ? (
+                    <Image src={currentItem.imageUrl} alt={currentItem.name} width={54} height={54} unoptimized className="h-full w-full object-cover" />
+                  ) : (
+                    <MobileIcon name="box" size={24} />
+                  )}
+                </div>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[16px] font-extrabold leading-tight">{currentItem.name}</span>
+                  <span className="text-[12.5px]" style={{ color: mobileColors.muted, ...headingFont }}>
+                    {currentItem.sku}
                   </span>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[12px] font-bold uppercase tracking-wide opacity-85">Endereço de coleta</span>
-                    <span className="text-[32px] font-bold leading-none" style={headingFont}>
-                      {currentItem.routeLines[0]?.addressCode ?? "—"}
-                    </span>
-                    <span className="text-[13px] opacity-90">{currentItem.routeLines[0]?.routeLabel ?? ""}</span>
-                  </div>
                 </div>
-              ) : (
-                <div className="flex items-center gap-4 rounded-[16px] p-5" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.05) }}>
-                  <div
-                    className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl"
-                    style={{ background: hexAlpha(mobileColors.violet, 0.2), color: "#fff" }}
-                  >
-                    {currentItem.imageUrl ? (
-                      <Image src={currentItem.imageUrl} alt={currentItem.name} width={64} height={64} unoptimized className="h-full w-full object-cover" />
-                    ) : (
-                      <MobileIcon name="box" size={26} />
-                    )}
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="text-[15px] font-bold leading-tight">{currentItem.name}</span>
-                    <span className="text-[12.5px]" style={{ color: mobileColors.muted, ...headingFont }}>
-                      {currentItem.sku} · EAN {currentItem.barcode || "-"}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-center gap-0.5 border-l pl-4" style={{ borderColor: hexAlpha("#94A3B8", 0.16) }}>
-                    <span className="text-[26px] font-bold" style={{ color: mobileColors.violetLight, ...headingFont }}>
+              </div>
+
+              <div
+                className="flex items-center gap-3 rounded-[15px] p-4"
+                style={{ background: "rgba(5,7,13,0.5)", border: `1px dashed ${hexAlpha(phaseColor, 0.4)}` }}
+              >
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px]"
+                  style={{ background: hexAlpha(phaseColor, 0.16), color: phaseColor }}
+                >
+                  <MobileIcon name={scanPhase === "address" ? "loc" : "code"} size={20} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[11px] uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                    {scanPhase === "address" ? "Endereço de picking" : "Código de barras"}
+                  </span>
+                  <span className="truncate text-[24px] font-bold tracking-wide" style={{ color: mobileColors.text, ...headingFont }}>
+                    {scanPhase === "address"
+                      ? currentItem.routeLines[0]?.addressCode ?? "—"
+                      : currentItem.barcode || currentItem.sku}
+                  </span>
+                </div>
+                {scanPhase === "product" ? (
+                  <div className="shrink-0 border-l pl-3 text-center" style={{ borderColor: hexAlpha("#94A3B8", 0.16) }}>
+                    <div className="text-[26px] font-extrabold" style={headingFont}>
                       {normalizeQuantity(currentItem.separatedQuantityValue)}/{currentItem.requestedQuantity}
-                    </span>
-                    <span className="text-[10.5px]" style={{ color: mobileColors.muted }}>coletados</span>
+                    </div>
+                    <div className="text-[10.5px]" style={{ color: mobileColors.muted }}>un</div>
                   </div>
-                </div>
-              )}
+                ) : null}
+              </div>
             </div>
 
-            {/* Scan input */}
-            <div
-              className="flex items-center gap-2 rounded-2xl p-2"
-              style={{ border: `2px solid ${hexAlpha(scanPhase === "address" ? mobileColors.blue : mobileColors.violet, 0.35)}`, background: hexAlpha("#94A3B8", 0.05) }}
+            {/* Real scanner capture — a physical reader "types" here then sends Enter */}
+            <input
+              ref={scanInputRef}
+              value={scanValue}
+              onChange={(event) => {
+                resetTimer();
+                setScanValue(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyScan(scanValue);
+                }
+              }}
+              onBlur={() => window.setTimeout(() => scanInputRef.current?.focus(), 40)}
+              placeholder={scanPhase === "address" ? "Aguardando bipagem do endereço..." : "Aguardando bipagem do produto..."}
+              className="h-11 w-full rounded-2xl px-4 text-sm font-medium outline-none"
+              style={{ border: `1px solid ${hexAlpha(phaseColor, 0.25)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.text }}
+            />
+
+            <button
+              type="button"
+              onClick={() => applyScan(scanValue)}
+              className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
+              style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
             >
-              <Barcode className="ml-2 h-5 w-5" style={{ color: mobileColors.muted }} />
-              <input
-                ref={scanInputRef}
-                value={scanValue}
-                onChange={(event) => {
-                  resetTimer();
-                  setScanValue(event.target.value);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    applyScan(scanValue);
-                  }
-                }}
-                onBlur={() => window.setTimeout(() => scanInputRef.current?.focus(), 40)}
-                placeholder={scanPhase === "address" ? "Bipe o endereço..." : "Bipe o produto..."}
-                className="h-11 w-full bg-transparent px-2 text-base font-medium outline-none"
-                style={{ color: mobileColors.text }}
-              />
-              <button
-                type="button"
-                onClick={() => applyScan(scanValue)}
-                className="rounded-xl px-4 py-2.5 text-sm font-bold text-white"
-                style={{ background: scanPhase === "address" ? mobileColors.blue : mobileColors.violet }}
-              >
-                Ler
-              </button>
-            </div>
+              <MobileIcon name="scan" size={20} strokeWidth={2} />
+              {scanPhase === "address" ? "Bipar endereço" : "Bipar produto"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                flash({
+                  type: "err",
+                  title: "Código incorreto",
+                  code: "— — —",
+                  sub: "Este item não pertence a esta tarefa. Verifique e bipe novamente.",
+                })
+              }
+              className="h-11 rounded-[13px] text-[13px] font-bold"
+              style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.08), color: mobileColors.redLight }}
+            >
+              Simular leitura incorreta
+            </button>
 
             <div className="flex gap-2">
               <button
