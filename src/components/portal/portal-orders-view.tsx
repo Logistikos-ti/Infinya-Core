@@ -34,6 +34,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [activeFilter, setActiveFilter] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "created", direction: "desc" });
+  const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
   const filteredOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, activeFilter)),
@@ -49,6 +50,11 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function changeFilter(value: string) {
     setActiveFilter(value);
@@ -142,7 +148,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
             </thead>
             <tbody>
               {pagedOrders.map((order) => (
-                <OrderRow key={order.id} order={order} />
+                <OrderRow key={order.id} order={order} now={now} />
               ))}
             </tbody>
           </table>
@@ -254,7 +260,7 @@ function Pagination({
   );
 }
 
-function OrderRow({ order }: { order: ShippingOrderSummary }) {
+function OrderRow({ order, now }: { order: ShippingOrderSummary; now: number }) {
   return (
     <tr className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]">
       <td className="px-5 py-[14px] font-display text-sm font-bold">{order.displayNumber || order.id}</td>
@@ -268,7 +274,7 @@ function OrderRow({ order }: { order: ShippingOrderSummary }) {
         {repairMojibake(order.marketplace || order.channel || "Operação própria")}
       </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
-      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatDate(order.createdAt)}</td>
+      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatCreatedAt(order.createdAt, now)}</td>
       <td className="px-5 py-[14px]"><StatusBadge label={repairMojibake(order.statusLabel || order.status)} /></td>
       <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
     </tr>
@@ -292,10 +298,36 @@ function StatusBadge({ label }: { label: string }) {
   );
 }
 
-function formatDate(value: string | null) {
+function formatCreatedAt(value: string | null, now: number) {
   if (!value) return "-";
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const elapsedMs = now - date.getTime();
+  if (elapsedMs < 0) {
+    return `Agendado para ${formatDateTime(date)}`;
+  }
+
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+  if (elapsedMinutes < 1) return "Criado agora";
+  if (elapsedMinutes < 60) return `Criado há ${elapsedMinutes} min`;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `Criado há ${elapsedHours} ${elapsedHours === 1 ? "hora" : "horas"}`;
+  if (elapsedHours < 48) return `Ontem às ${formatTime(date)}`;
+  return formatDateTime(date);
+}
+
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date).replace(",", " às");
+}
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date);
 }
