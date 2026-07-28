@@ -29,6 +29,7 @@ import { ProductSearchInput } from "@/components/portal/product-search-input";
 import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 import { PortalOrdersView } from "@/components/portal/portal-orders-view";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type PortalPageProps = {
   searchParams?: Promise<{
@@ -36,6 +37,7 @@ type PortalPageProps = {
     page?: string;
     search?: string;
     status?: string;
+    new?: string;
   }>;
 };
 
@@ -48,6 +50,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
   const depositanteId = user.depositanteId ?? "";
+  const adminSupabase = createSupabaseAdminClient();
   const [orders, receiving, stock] = await Promise.all([
     view === "inicio" || view === "pedidos"
       ? listShippingOrdersFromDb({ depositanteId })
@@ -61,6 +64,23 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   ]);
   const supportTickets =
     view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
+  const { data: portalProductRows } = view === "pedidos"
+    ? await adminSupabase
+        .from("produtos")
+        .select("id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url")
+        .eq("depositante_id", depositanteId)
+        .eq("ativo", true)
+        .order("nome")
+    : { data: [] };
+  const stockByProduct = new Map<string, number>();
+  for (const item of stock) {
+    const key = item.sku || item.internalCode || item.productName;
+    stockByProduct.set(key, (stockByProduct.get(key) ?? 0) + Number(item.rawQuantidade ?? 0));
+  }
+  const portalProducts = (portalProductRows ?? []).map((product) => ({
+    ...product,
+    estoque_disponivel: stockByProduct.get(product.sku || product.codigo_interno || product.nome) ?? 0,
+  }));
   const depositanteName = user.depositanteNome || user.nome;
   const totalUnits = stock.reduce(
     (sum, item) => sum + Number(item.rawQuantidade ?? 0),
@@ -82,7 +102,15 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           lowStock={lowStock}
         />
       ) : null}
-      {view === "pedidos" ? <PortalOrdersView orders={orders} /> : null}
+      {view === "pedidos" ? (
+        <PortalOrdersView
+          orders={orders}
+          products={portalProducts}
+          depositanteId={depositanteId}
+          depositanteName={depositanteName}
+          openNewOrder={params?.new === "1"}
+        />
+      ) : null}
       {view === "produtos" ? (
         <ProductsView
           stock={stock}

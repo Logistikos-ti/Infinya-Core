@@ -166,10 +166,12 @@ export async function updateShippingOrderAction(formData: FormData) {
 }
 
 export async function createManualShippingOrderAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
 
   const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
-  const returnPath = requestedReturnPath.startsWith("/expedicao") ? requestedReturnPath : "/expedicao";
+  const returnPath = requestedReturnPath.startsWith("/expedicao") || requestedReturnPath.startsWith("/portal")
+    ? requestedReturnPath
+    : "/expedicao";
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const numeroPedido = String(formData.get("numeroPedido") ?? "").trim();
   const numeroLoja = String(formData.get("numeroLoja") ?? "").trim();
@@ -205,7 +207,11 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const labelFile = formData.get("shippingLabel");
 
   if (!depositanteId || !numeroPedido || !clienteNome || !salesChannelCode) {
-    redirect("/expedicao/novo?feedback=erro");
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+  }
+
+  if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
   }
 
   const adminSupabase = createSupabaseAdminClient();
@@ -286,7 +292,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
       .single();
 
     if (error || !createdOrder) {
-      redirect("/expedicao/novo?feedback=erro");
+      redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
     }
 
     if (selectedProductIds.length > 0) {
@@ -321,7 +327,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
         const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
         if (itemError) {
           await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrder.id);
-          redirect("/expedicao/novo?feedback=erro");
+          redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
         }
       }
     }
@@ -356,6 +362,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     }
 
     revalidatePath("/expedicao");
+    revalidatePath("/portal");
     revalidatePath(`/expedicao/${createdOrder.id}`);
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=salvo`);
   } catch (error) {
@@ -364,7 +371,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     if (isRedirectError(error)) {
       throw error;
     }
-    redirect("/expedicao/novo?feedback=erro");
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
   }
 }
 

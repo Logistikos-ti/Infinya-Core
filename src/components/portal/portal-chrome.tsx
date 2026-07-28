@@ -138,6 +138,7 @@ export function PortalChrome({
           <div className="hidden flex-1 sm:block" />
           <button
             type="button"
+            onClick={() => router.push("/portal?view=pedidos&new=1")}
             className="inline-flex h-11 items-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20"
           >
             + Novo pedido

@@ -2,8 +2,10 @@
 
 import { ArrowRight, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
 import type { ShippingOrderSummary } from "@/lib/shipping";
+import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -13,8 +15,24 @@ const filters = [
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
-export function PortalOrdersView({ orders }: { orders: ShippingOrderSummary[] }) {
+export function PortalOrdersView({ orders, products, depositanteId, depositanteName, openNewOrder = false }: {
+  orders: ShippingOrderSummary[];
+  products: Array<{
+    id: string;
+    nome: string;
+    sku: string | null;
+    codigo_interno: string | null;
+    codigo_externo: string | null;
+    imagem_principal_url: string | null;
+    estoque_disponivel: number;
+  }>;
+  depositanteId: string;
+  depositanteName: string;
+  openNewOrder?: boolean;
+}) {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("");
+  const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
   const visibleOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, activeFilter)),
     [activeFilter, orders],
@@ -33,6 +51,7 @@ export function PortalOrdersView({ orders }: { orders: ShippingOrderSummary[] })
         </div>
         <button
           type="button"
+          onClick={() => setNewOrderOpen(true)}
           className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
         >
           <Plus className="h-4 w-4" />
@@ -105,6 +124,17 @@ export function PortalOrdersView({ orders }: { orders: ShippingOrderSummary[] })
           </div>
         ) : null}
       </div>
+      {newOrderOpen ? (
+        <PortalNewOrderDrawer
+          depositanteId={depositanteId}
+          depositanteName={depositanteName}
+          products={products}
+          onClose={() => {
+            setNewOrderOpen(false);
+            if (openNewOrder) router.replace("/portal?view=pedidos");
+          }}
+        />
+      ) : null}
     </>
   );
 }
