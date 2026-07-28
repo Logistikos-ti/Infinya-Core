@@ -169,6 +169,7 @@ export function ShippingPickingInterface({
     ean: currentItem.barcode || currentItem.code,
     qty: currentItem.requestedQuantity + 'x',
     order: currentItem.orderExternalNumber,
+    imageUrl: currentItem.imageUrl,
     thumbBg: thumb(cat[currentIndex % cat.length]),
     separated: normalizeQuantity(currentItem.separatedQuantityValue),
     requested: currentItem.requestedQuantity
@@ -363,8 +364,12 @@ export function ShippingPickingInterface({
 
               {/* product */}
               <div style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px", display: "flex", gap: "18px", alignItems: "center" }}>
-                <div style={{ width: "72px", height: "72px", flexShrink: 0, borderRadius: "14px", background: current.thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)" }}>
-                  <BoxIcon size={34} />
+                <div style={{ width: "72px", height: "72px", flexShrink: 0, borderRadius: "14px", background: current.thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
+                  {current.imageUrl ? (
+                    <img src={current.imageUrl} alt={current.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#fff" }} />
+                  ) : (
+                    <BoxIcon size={34} />
+                  )}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: "17px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
