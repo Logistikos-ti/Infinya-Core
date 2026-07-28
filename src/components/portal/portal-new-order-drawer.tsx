@@ -86,7 +86,9 @@ export function PortalNewOrderDrawer({
                 {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
                   const active = option.value === channel;
                   const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
-                  return <button type="button" key={option.value} onClick={() => setChannel(option.value)} className={`inline-flex h-9 items-center gap-2 rounded-[10px] border px-3 text-xs font-bold transition hover:-translate-y-px ${active ? "border-violet-500 bg-violet-50 text-slate-950 dark:bg-violet-400/10 dark:text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-300 dark:border-white/10 dark:bg-white/5"}`}><span className="grid h-5 w-5 place-items-center rounded-md bg-violet-100 text-[9px] font-extrabold text-violet-700 dark:bg-violet-400/20 dark:text-violet-300">{initials[option.value]}</span>{option.label}</button>;
+                  const channelColors: Record<string, string> = { MERCADO_LIVRE: "#2D3277", SHOPEE: "#EE4D2D", AMAZON: "#FF9900", MAGALU: "#0086FF", SHEIN: "#111827", TIKTOK: "#111827", KWAI: "#FF6B35", SITE_PROPRIO: "#8B5CF6" };
+                  const channelColor = channelColors[option.value] ?? "#8B5CF6";
+                  return <button type="button" key={option.value} onClick={() => setChannel(option.value)} className={`inline-flex h-9 items-center gap-2 rounded-[10px] border px-3 text-xs font-bold transition hover:-translate-y-px ${active ? "border-violet-500 bg-violet-50 text-slate-950 dark:bg-violet-400/10 dark:text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-300 dark:border-white/10 dark:bg-white/5"}`}><span className="grid h-5 w-5 place-items-center rounded-md text-[9px] font-extrabold" style={{ background: `${channelColor}20`, color: channelColor }}>{initials[option.value]}</span>{option.label}</button>;
                 })}
               </div>
             </section>
