@@ -74,12 +74,14 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     : { data: [] };
   const stockByProduct = new Map<string, number>();
   for (const item of stock) {
-    const key = item.sku || item.internalCode || item.productName;
-    stockByProduct.set(key, (stockByProduct.get(key) ?? 0) + Number(item.rawQuantidade ?? 0));
+    stockByProduct.set(
+      item.productId,
+      (stockByProduct.get(item.productId) ?? 0) + Number(item.rawQuantidade ?? 0),
+    );
   }
   const portalProducts = (portalProductRows ?? []).map((product) => ({
     ...product,
-    estoque_disponivel: stockByProduct.get(product.sku || product.codigo_interno || product.nome) ?? 0,
+    estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
   const depositanteName = user.depositanteNome || user.nome;
   const totalUnits = stock.reduce(

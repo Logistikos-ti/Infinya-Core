@@ -44,6 +44,7 @@ export type StockFilters = {
 type RawStockRow = {
   id: string;
   depositante_id: string;
+  produto_id: string;
   quantidade: number | string;
   bloqueado: boolean;
   bloqueio_motivo?: string | null;
@@ -102,6 +103,7 @@ type RawReceivingOrderReference = {
 
 export type StockBalance = {
   id: string;
+  productId: string;
   protocol: string;
   sku: string;
   productName: string;
@@ -241,7 +243,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima, qtd_maxima), endereco:enderecos(codigo, area)",
+      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima, qtd_maxima), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -567,6 +569,7 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
 
   return {
     id: item.id,
+    productId: item.produto_id,
     protocol: buildTraceabilityProtocol(item),
     sku: extractProductField(item.produto, "sku") ?? "SKU",
     productName: extractProductField(item.produto, "nome") ?? "Produto sem descrição",
