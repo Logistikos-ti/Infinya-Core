@@ -955,7 +955,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
                         <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
+                          <span title={it.name} style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
                           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
                         </div>
                         <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
