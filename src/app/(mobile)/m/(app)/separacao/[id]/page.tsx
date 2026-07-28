@@ -1,9 +1,11 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireModuleAccess } from "@/lib/auth";
-import { MobilePickingPanel } from "@/components/mobile/mobile-picking-panel";
-import { getShippingPickingOrderFromDb, listPickingOperatorsFromDb } from "@/lib/shipping-picking";
+import { listShippingPickingOrdersByIdsFromDb } from "@/lib/shipping-picking";
+import {
+  listActivePickingWavesAction,
+  startShippingWaveAction,
+} from "@/app/(dashboard)/expedicao/separacao/actions";
+import { MobileWavePickingPanel } from "@/components/mobile/mobile-wave-picking-panel";
 
 type MobilePickingDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -11,25 +13,41 @@ type MobilePickingDetailPageProps = {
 
 export default async function MobilePickingDetailPage({ params }: MobilePickingDetailPageProps) {
   const user = await requireModuleAccess("expedicao");
-  const { id } = await params;
+  const { id: waveId } = await params;
 
-  const [order, operators] = await Promise.all([
-    getShippingPickingOrderFromDb(user, id),
-    listPickingOperatorsFromDb(user),
-  ]);
+  const waves = await listActivePickingWavesAction();
+  const wave = waves.find((item) => item.id === waveId);
 
-  if (!order) {
+  if (!wave) {
+    notFound();
+  }
+
+  const pedidoIds = (wave.pedidos ?? []).map(
+    (item: { pedido_expedicao_id: string }) => item.pedido_expedicao_id,
+  );
+
+  if (!pedidoIds.length) {
+    notFound();
+  }
+
+  if (wave.status === "PENDENTE" && !wave.iniciado_em) {
+    await startShippingWaveAction(waveId);
+  }
+
+  const orders = await listShippingPickingOrdersByIdsFromDb(user, pedidoIds, {
+    includeRouteData: true,
+  });
+
+  if (!orders.length) {
     notFound();
   }
 
   return (
-    <div className="space-y-4">
-      <Link href="/m/separacao" className="inline-flex items-center gap-2 text-sm font-medium text-slate-300">
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para a fila
-      </Link>
-
-      <MobilePickingPanel order={order} operators={operators} currentUserId={user.id} />
-    </div>
+    <MobileWavePickingPanel
+      orders={orders}
+      waveId={waveId}
+      waveCode={wave.codigo}
+      currentUserId={user.id}
+    />
   );
 }

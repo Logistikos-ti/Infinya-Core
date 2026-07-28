@@ -1,56 +1,41 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  MobileListShell,
-  mobileColors,
-  hexAlpha,
-} from "@/components/mobile/mobile-kit";
+import { MobileListShell, mobileColors, hexAlpha } from "@/components/mobile/mobile-kit";
 
-type PickingOrder = {
+type RelationName = { nome?: string } | { nome?: string }[] | null;
+
+type PickingWaveRow = {
   id: string;
+  codigo: string;
   status: string;
-  displayNumber: string;
-  statusLabel: string;
-  customer: string;
-  totalItems: number;
-  completionPercent: number;
+  criado_em: string;
+  atualizado_em: string | null;
+  iniciado_em: string | null;
+  operador: RelationName;
+  pedidos: Array<{ pedido_expedicao_id: string }> | null;
 };
 
 type SeparacaoListClientProps = {
-  orders: PickingOrder[];
-  totalOrders: number;
-  pendingUnits: number;
-  currentPage: number;
-  totalPages: number;
-  perPage: number;
+  waves: PickingWaveRow[];
   feedback: string;
 };
 
-function buildQueryString(values: Record<string, string>) {
-  const params = new URLSearchParams();
-  Object.entries(values).forEach(([key, value]) => {
-    if (value) params.set(key, value);
-  });
-  return params.toString();
-}
-
-function getMobileShippingOrderHref(status: string, orderId: string) {
-  if (["SEPARADO", "EM_CONFERENCIA", "CONFERIDO", "PRONTO_ROMANEIO"].includes(status)) {
-    return `/m/conferencia/${orderId}`;
+function extractOperatorName(value: RelationName) {
+  if (Array.isArray(value)) {
+    return value[0]?.nome ?? null;
   }
-  return `/m/separacao/${orderId}`;
+  return value?.nome ?? null;
 }
 
-export function SeparacaoListClient({
-  orders,
-  totalOrders,
-  currentPage,
-  totalPages,
-  perPage,
-  feedback,
-}: SeparacaoListClientProps) {
+function statusMeta(status: string) {
+  if (status === "EM_SEPARACAO") {
+    return { label: "Em separação", color: mobileColors.blue };
+  }
+  return { label: "Aguardando", color: mobileColors.amber };
+}
+
+export function SeparacaoListClient({ waves, feedback }: SeparacaoListClientProps) {
   const router = useRouter();
 
   return (
@@ -65,74 +50,40 @@ export function SeparacaoListClient({
               color: feedback === "concluido" ? mobileColors.green : mobileColors.amber,
             }}
           >
-            {feedback === "inatividade" && "Pedido devolvido por inatividade."}
-            {feedback === "incompleto" && "Pedido voltou para a fila para nova separação."}
+            {feedback === "inatividade" && "Onda devolvida por inatividade."}
+            {feedback === "incompleto" && "Ainda há itens pendentes nesta onda."}
             {feedback === "concluido" && "Separação concluída com sucesso."}
+            {feedback === "erro" && "Não foi possível concluir a operação solicitada."}
           </div>
         </div>
       ) : null}
 
       <MobileListShell
-        title="Fila de Separação"
-        subtitle="Pedidos aguardando coleta"
-        count={String(totalOrders)}
+        title="Separação"
+        subtitle="Ondas de separação"
+        count={`${waves.length} onda${waves.length === 1 ? "" : "s"}`}
         onBack={() => router.push("/m/inicio")}
-        emptyLabel="Nenhum pedido disponível no momento."
-        items={orders.map((order) => ({
-          icon: "pick",
-          iconColor: mobileColors.blue,
-          title: order.displayNumber,
-          tag: order.statusLabel,
-          tagColor: mobileColors.amber,
-          sub: `${order.customer} • ${order.totalItems} itens (${order.completionPercent}%)`,
-          onClick: () => router.push(getMobileShippingOrderHref(order.status, order.id)),
-        }))}
-      />
+        createLabel="Criar onda"
+        onCreate={() => router.push("/m/separacao/nova")}
+        emptyLabel="Nenhuma onda em execução no momento."
+        items={waves.map((wave) => {
+          const meta = statusMeta(wave.status);
+          const operatorName = extractOperatorName(wave.operador);
+          const orderCount = wave.pedidos?.length ?? 0;
 
-      {totalPages > 1 ? (
-        <div
-          className="mx-[18px] mb-4 flex items-center justify-between gap-2 rounded-[16px] p-2"
-          style={{ background: hexAlpha("#94A3B8", 0.05), border: `1px solid ${hexAlpha("#94A3B8", 0.1)}` }}
-        >
-          <Link
-            href={`/m/separacao?${buildQueryString({
-              feedback,
-              perPage: String(perPage),
-              page: String(Math.max(1, currentPage - 1)),
-            })}`}
-            className="flex h-10 w-10 items-center justify-center rounded-[12px]"
-            style={{
-              background: hexAlpha("#94A3B8", 0.1),
-              color: mobileColors.text,
-              opacity: currentPage <= 1 ? 0.5 : 1,
-              pointerEvents: currentPage <= 1 ? "none" : "auto",
-              fontSize: 18,
-            }}
-          >
-            &#8249;
-          </Link>
-          <span className="text-[12px] font-bold" style={{ color: mobileColors.muted }}>
-            Página {currentPage} de {totalPages}
-          </span>
-          <Link
-            href={`/m/separacao?${buildQueryString({
-              feedback,
-              perPage: String(perPage),
-              page: String(Math.min(totalPages, currentPage + 1)),
-            })}`}
-            className="flex h-10 w-10 items-center justify-center rounded-[12px]"
-            style={{
-              background: hexAlpha("#94A3B8", 0.1),
-              color: mobileColors.text,
-              opacity: currentPage >= totalPages ? 0.5 : 1,
-              pointerEvents: currentPage >= totalPages ? "none" : "auto",
-              fontSize: 18,
-            }}
-          >
-            &#8250;
-          </Link>
-        </div>
-      ) : null}
+          return {
+            icon: "pick",
+            iconColor: mobileColors.blue,
+            title: wave.codigo,
+            tag: meta.label,
+            tagColor: meta.color,
+            sub: operatorName
+              ? `${orderCount} pedido${orderCount === 1 ? "" : "s"} · ${operatorName}`
+              : `${orderCount} pedido${orderCount === 1 ? "" : "s"}`,
+            onClick: () => router.push(`/m/separacao/${wave.id}`),
+          };
+        })}
+      />
     </div>
   );
 }
