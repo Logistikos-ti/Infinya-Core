@@ -209,6 +209,32 @@ export function ShippingPickingWavesView({
 
   const handleOpenWave = async (wave: any) => {
     if (wave.orders.length === 0) return;
+
+    // A completed wave is only a summary of the picking work. Opening the
+    // picking route again would incorrectly ask the operator to scan the
+    // address and products a second time.
+    const isCompletedWave =
+      wave.status === 'Concluída' ||
+      wave.pct >= 100 ||
+      wave.raw.status === 'CONCLUIDA';
+
+    if (isCompletedWave) {
+      const conferenceOrderIds = wave.orders.filter((orderId: string) =>
+        orders.some(
+          (order: any) =>
+            order.id === orderId &&
+            ['SEPARADO', 'EM_CONFERENCIA'].includes(order.status),
+        ),
+      );
+
+      router.push(
+        conferenceOrderIds.length > 0
+          ? '/expedicao/conferencia'
+          : '/expedicao/conferidos',
+      );
+      return;
+    }
+
     setOpeningWave(wave.id);
     if (wave.raw.status === 'PENDENTE' && !wave.raw.iniciado_em) {
       await startShippingWaveAction(wave.id);
