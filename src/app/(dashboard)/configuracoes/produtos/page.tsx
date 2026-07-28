@@ -54,7 +54,7 @@ export default async function ConfiguracoesProdutosPage({
   let productsQuery = adminSupabase
     .from("produtos")
     .select(
-      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url",
+      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url, peso_kg, altura_cm, largura_cm, comprimento_cm",
       { count: "exact" },
     )
     .order("nome")

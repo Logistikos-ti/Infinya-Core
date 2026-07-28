@@ -820,6 +820,12 @@ export async function fetchProdutoDrawerDetails(produtoId: string) {
     qty: `${s.quantidade} un`
   }));
 
+  const { data: produto } = await adminSupabase
+    .from("produtos")
+    .select("peso_kg, altura_cm, largura_cm, comprimento_cm")
+    .eq("id", produtoId)
+    .single();
+
   // 2. Fetch moves
   const { data: moveRecords } = await adminSupabase
     .from("movimentacoes_estoque")
@@ -854,5 +860,9 @@ export async function fetchProdutoDrawerDetails(produtoId: string) {
     return { title, sub, dot, halo };
   });
 
-  return { locs, moves };
+  return { 
+    locs, 
+    moves,
+    produto 
+  };
 }

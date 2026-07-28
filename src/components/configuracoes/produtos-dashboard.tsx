@@ -122,8 +122,10 @@ export function ProdutosDashboard({
         abc,
         priceStr: p.preco ? `R$ ${p.preco.toFixed(2).replace('.', ',')}` : "R$ --,--",
         ean: p.codigo_externo || "--",
-        dim: p.dimensoes || "--",
-        weight: p.peso || "--",
+        dim: p.altura_cm && p.largura_cm && p.comprimento_cm 
+          ? `${p.largura_cm}x${p.altura_cm}x${p.comprimento_cm} cm`
+          : "--",
+        weight: p.peso_kg ? `${p.peso_kg} kg` : "--",
         supplier: p.fornecedor || p.depositante_nome || "--",
         skuStr: p.sku || p.codigo_interno || "--",
       };
@@ -223,8 +225,27 @@ export function ProdutosDashboard({
       
       setSelectedData(data);
 
-      fetchProdutoDrawerDetails(p.id).then(({ locs, moves }) => {
-        setSelectedData((prev: any) => prev ? { ...prev, locs, moves } : null);
+      fetchProdutoDrawerDetails(p.id).then(({ locs, moves, produto }) => {
+        if (produto) {
+          const dim = produto.altura_cm && produto.largura_cm && produto.comprimento_cm 
+            ? `${produto.largura_cm}x${produto.altura_cm}x${produto.comprimento_cm} cm`
+            : "--";
+          const weight = produto.peso_kg ? `${produto.peso_kg} kg` : "--";
+          
+          setSelectedData((prev: any) => prev ? { 
+            ...prev, 
+            locs, 
+            moves,
+            specs: [
+              { k: "EAN", v: prev.ean },
+              { k: "Fornecedor", v: prev.supplier },
+              { k: "Dimensões", v: dim },
+              { k: "Peso", v: weight },
+            ]
+          } : null);
+        } else {
+          setSelectedData((prev: any) => prev ? { ...prev, locs, moves } : null);
+        }
       });
     } else {
       setSelectedData(null);
