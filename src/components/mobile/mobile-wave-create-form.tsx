@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createShippingWaveAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import {
@@ -15,19 +15,38 @@ import {
 type EligibleOrder = {
   id: string;
   displayNumber: string;
+  depositanteId: string;
   depositante: string;
   marketplace: string;
   totalItems: number;
   totalUnits: number;
 };
 
-export function MobileWaveCreateForm({ orders }: { orders: EligibleOrder[] }) {
+type Depositante = { id: string; nome: string };
+
+type MobileWaveCreateFormProps = {
+  orders: EligibleOrder[];
+  depositantes: Depositante[];
+};
+
+export function MobileWaveCreateForm({ orders, depositantes }: MobileWaveCreateFormProps) {
   const router = useRouter();
+  const [selectedDepositante, setSelectedDepositante] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>(orders.map((o) => o.id));
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allSelected = selectedIds.length === orders.length && orders.length > 0;
+  const filteredOrders = useMemo(
+    () => (selectedDepositante ? orders.filter((o) => o.depositanteId === selectedDepositante) : orders),
+    [orders, selectedDepositante],
+  );
+
+  useEffect(() => {
+    setSelectedIds(filteredOrders.map((o) => o.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDepositante]);
+
+  const allSelected = selectedIds.length === filteredOrders.length && filteredOrders.length > 0;
 
   const totalUnits = useMemo(
     () => orders.filter((o) => selectedIds.includes(o.id)).reduce((sum, o) => sum + o.totalUnits, 0),
@@ -41,7 +60,7 @@ export function MobileWaveCreateForm({ orders }: { orders: EligibleOrder[] }) {
   }
 
   function toggleAll() {
-    setSelectedIds(allSelected ? [] : orders.map((o) => o.id));
+    setSelectedIds(allSelected ? [] : filteredOrders.map((o) => o.id));
   }
 
   async function handleCreate() {
@@ -73,9 +92,43 @@ export function MobileWaveCreateForm({ orders }: { orders: EligibleOrder[] }) {
           className="rounded-full px-[11px] py-[5px] text-[11.5px] font-extrabold"
           style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.muted }}
         >
-          {orders.length}
+          {filteredOrders.length}
         </span>
       </div>
+
+      {depositantes.length > 1 ? (
+        <div className="shrink-0 px-[18px] pb-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              onClick={() => setSelectedDepositante("")}
+              className="whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-bold transition"
+              style={
+                !selectedDepositante
+                  ? { background: hexAlpha(mobileColors.blue, 0.2), color: mobileColors.blueLight }
+                  : { border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.muted }
+              }
+            >
+              Todos os depositantes
+            </button>
+            {depositantes.map((dep) => (
+              <button
+                key={dep.id}
+                type="button"
+                onClick={() => setSelectedDepositante(dep.id)}
+                className="whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-bold transition"
+                style={
+                  selectedDepositante === dep.id
+                    ? { background: hexAlpha(mobileColors.blue, 0.2), color: mobileColors.blueLight }
+                    : { border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.muted }
+                }
+              >
+                {dep.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="shrink-0 px-[18px] pb-3">
         <button
@@ -89,8 +142,8 @@ export function MobileWaveCreateForm({ orders }: { orders: EligibleOrder[] }) {
       </div>
 
       <div className="app-scroll flex flex-1 flex-col gap-[11px] overflow-y-auto px-[18px] pb-[10px]">
-        {orders.length ? (
-          orders.map((order) => {
+        {filteredOrders.length ? (
+          filteredOrders.map((order) => {
             const selected = selectedIds.includes(order.id);
             return (
               <button
@@ -134,7 +187,9 @@ export function MobileWaveCreateForm({ orders }: { orders: EligibleOrder[] }) {
             className="rounded-[16px] px-4 py-8 text-center text-sm"
             style={{ border: `1px dashed ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.muted }}
           >
-            Nenhum pedido elegível para uma nova onda no momento.
+            {orders.length
+              ? "Nenhum pedido elegível para este depositante."
+              : "Nenhum pedido elegível para uma nova onda no momento."}
           </div>
         )}
       </div>
