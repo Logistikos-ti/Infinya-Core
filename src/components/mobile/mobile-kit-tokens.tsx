@@ -182,3 +182,89 @@ export function MobileIcon({
       return null;
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// Infinity loader — a lemniscate (figure-8) traced by a comet in the
+// brand gradient, used as the shared between-pages loading state.
+// Points are computed once at module load (pure math, no DOM
+// measurement needed) so this renders identically on server and
+// client with no hydration flash. No "use client" needed: the only
+// animation is a CSS keyframe on stroke-dashoffset.
+// ─────────────────────────────────────────────────────────────
+const INFINITY_LOOP_POINTS = (() => {
+  const steps = 120;
+  const cx = 50;
+  const cy = 25;
+  const scaleX = 45;
+  const scaleY = 22;
+  const pts: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * Math.PI * 2;
+    const x = cx + scaleX * Math.cos(t);
+    const y = cy + scaleY * Math.sin(t) * Math.cos(t);
+    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  return pts.join(" ");
+})();
+
+export function MobileInfinityLoader({
+  size = 132,
+  label = "Carregando",
+}: {
+  size?: number;
+  label?: string | null;
+}) {
+  const gradientId = "mobileInfinityLoaderGradient";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <svg width={size} height={size / 2} viewBox="0 0 100 50" role="img" aria-label="Carregando">
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3B82F6" />
+            <stop offset="55%" stopColor="#8B5CF6" />
+            <stop offset="100%" stopColor="#60A5FA" />
+          </linearGradient>
+        </defs>
+        <polyline
+          points={INFINITY_LOOP_POINTS}
+          fill="none"
+          stroke="rgba(148,163,184,0.16)"
+          strokeWidth={4}
+          strokeLinecap="round"
+        />
+        <polyline
+          points={INFINITY_LOOP_POINTS}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth={4}
+          strokeLinecap="round"
+          pathLength={100}
+          strokeDasharray="20 80"
+          style={{ animation: "mobileInfinityTrace 1.5s linear infinite" }}
+        />
+      </svg>
+      {label ? (
+        <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: "0.02em", color: mobileColors.muted, ...bodyFont }}>
+          {label}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+export function MobileFullScreenLoader({ label }: { label?: string | null }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        minHeight: "60dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <MobileInfinityLoader label={label} />
+    </div>
+  );
+}
