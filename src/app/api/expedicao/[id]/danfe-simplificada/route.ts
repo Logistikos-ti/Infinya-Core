@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { gunzipSync } from "node:zlib";
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
-import { buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
+import { buildSimplifiedDanfePdf, buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
+import type { ImportedNfeItem } from "@/lib/nfe-import";
 import { extractCarrierName } from "@/lib/shipping";
 import { documentsBucketName } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -100,8 +101,7 @@ export async function GET(request: Request, context: RouteContext) {
           .select("codigo_produto, sku, nome, quantidade")
           .eq("pedido_expedicao_id", id);
 
-        const fallbackXml = buildManualDanfeXml(order, items ?? []);
-        pdfBytes = buildSimplifiedDanfePdfFromXml(fallbackXml, { carrierName });
+        pdfBytes = buildSimplifiedDanfePdf(buildManualDanfeData(order, items ?? []), { carrierName });
       } else {
         throw error;
       }
@@ -127,7 +127,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 }
 
-function buildManualDanfeXml(
+function buildManualDanfeData(
   order: {
     numero_pedido: string | null;
     cliente_nome: string | null;
@@ -158,23 +158,58 @@ function buildManualDanfeXml(
   const nomeEmitente = readPayloadString(emitente.nome) || "Pedido manual";
   const documentoEmitente = readPayloadString(emitente.documento) || "";
   const total = Number(order.valor_total ?? 0) || 0;
-  const det = items.length
-    ? items
-        .map(
-          (item) => `<prod><cProd>${escapeXml(item.codigo_produto || item.sku || "-")}</cProd><xProd>${escapeXml(item.nome)}</xProd><qCom>${Math.max(1, Number(item.quantidade) || 1)}</qCom><vProd>0</vProd></prod>`,
-        )
-        .join("")
-    : `<prod><cProd>-</cProd><xProd>Item manual nao informado</xProd><qCom>1</qCom><vProd>0</vProd></prod>`;
+  const parsedItems: ImportedNfeItem[] = items.length
+    ? items.map((item) => ({
+        codigo: item.codigo_produto || item.sku || null,
+        ean: null,
+        descricao: item.nome || "Item manual nao informado",
+        quantidade: Math.max(1, Number(item.quantidade) || 1),
+        ncm: null,
+        cfop: null,
+        cstCsosn: null,
+        icmsValue: 0,
+        ipiValue: 0,
+        pisValue: 0,
+        cofinsValue: 0,
+      }))
+    : [{
+        codigo: null,
+        ean: null,
+        descricao: "Item manual nao informado",
+        quantidade: 1,
+        ncm: null,
+        cfop: null,
+        cstCsosn: null,
+        icmsValue: 0,
+        ipiValue: 0,
+        pisValue: 0,
+        cofinsValue: 0,
+      }];
 
-  return `<nfeProc><NFe><infNFe><ide><nNF>${escapeXml(numero)}</nNF><tpNF>1</tpNF></ide><emit><xNome>${escapeXml(nomeEmitente)}</xNome><CNPJ>${escapeXml(documentoEmitente)}</CNPJ></emit><dest><xNome>${escapeXml(nomeDestinatario)}</xNome><CPF>${escapeXml(documentoDestinatario)}</CPF><enderDest><xLgr>${escapeXml(endereco)}</xLgr><nro>${escapeXml(numeroEndereco)}</nro><xMun>${escapeXml(cidade)}</xMun><UF>${escapeXml(uf)}</UF></enderDest></dest><det>${det}</det><total><ICMSTot><vNF>${total}</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;
+  return {
+    accessKey: null,
+    noteNumber: numero,
+    direction: "SAIDA" as const,
+    supplierName: nomeEmitente,
+    supplierDocument: documentoEmitente || null,
+    recipientName: nomeDestinatario,
+    recipientDocument: documentoDestinatario || null,
+    recipientAddress: [endereco, numeroEndereco, cidade, uf].filter(Boolean).join(" - ") || null,
+    issuedAt: null,
+    volumeCount: 1,
+    carrierName: null,
+    grossWeight: null,
+    additionalInfo: "Pedido manual",
+    totalValue: total,
+    protocolNumber: null,
+    protocolStatusCode: null,
+    protocolStatusLabel: null,
+    items: parsedItems,
+  };
 }
 
 function readPayloadString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function escapeXml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
