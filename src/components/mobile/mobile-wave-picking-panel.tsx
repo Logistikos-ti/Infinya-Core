@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { savePickingWaveProgressAction, cancelPickingOrderAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -79,14 +80,14 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
-  const [scanValue, setScanValue] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
-  const scanInputRef = useRef<HTMLInputElement | null>(null);
   const completionFormRef = useRef<HTMLFormElement | null>(null);
   const autoSubmittedRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   const totalCount = prioritizedItems.length;
   const doneCount = Math.min(currentIndex, totalCount);
@@ -95,14 +96,29 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const isDone = !currentItem;
   const phaseColor = scanPhase === "address" ? mobileColors.blue : mobileColors.violet;
 
+  const applyScanRef = useRef<(code: string) => void>(() => {});
+  const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
+
+  const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
+    onDetected: handleDetected,
+  });
+
   useEffect(() => {
-    const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
-    return () => window.clearTimeout(timer);
-  }, [currentIndex, scanPhase]);
+    if (scannerOpen) void startCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerOpen]);
+
+  useEffect(() => {
+    if (!currentItem && scannerOpen) {
+      closeScanner();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentItem]);
 
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
     };
   }, []);
 
@@ -116,56 +132,72 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     return () => window.clearTimeout(timer);
   }, [isDone, totalCount]);
 
+  function openScanner() {
+    setScannerOpen(true);
+  }
+
+  function closeScanner() {
+    stopCamera(null);
+    setScannerOpen(false);
+  }
+
+  function scheduleScannerClose(delay: number) {
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => closeScanner(), delay);
+  }
+
   function flash(next: ScanOverlayState) {
     setOverlay(next);
     if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
     overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
 
-    if (!next || typeof window === "undefined") return;
+    if (!next) return;
+
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(next.type === "ok" ? 60 : [70, 60, 70]);
+    }
+
+    if (typeof window === "undefined") return;
     const AudioContextRef =
       window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextRef) return;
     const context = new AudioContextRef();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = next.type === "ok" ? "sine" : "square";
-    oscillator.frequency.value = next.type === "ok" ? 880 : 220;
-    gain.gain.value = 0.04;
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.12);
-    oscillator.onended = () => void context.close();
-  }
-
-  function focusScanInput() {
-    requestAnimationFrame(() => {
-      scanInputRef.current?.focus();
-      scanInputRef.current?.select();
-    });
+    const beep = (freq: number, type: OscillatorType, startTime: number, duration: number) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = freq;
+      gain.gain.value = 0.05;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    const now = context.currentTime;
+    if (next.type === "ok") {
+      beep(880, "sine", now, 0.12);
+      window.setTimeout(() => void context.close(), 150);
+    } else {
+      beep(220, "square", now, 0.1);
+      beep(180, "square", now + 0.14, 0.12);
+      window.setTimeout(() => void context.close(), 300);
+    }
   }
 
   function applyScan(rawValue: string) {
     if (!currentItem) return;
     const normalized = normalizeScan(rawValue);
-    if (!normalized) {
-      flash({ type: "err", title: "Código vazio", code: "—", sub: "Leia ou digite um código." });
-      focusScanInput();
-      return;
-    }
+    if (!normalized) return;
 
     if (scanPhase === "address") {
       const expected = normalizeScan(currentItem.routeLines[0]?.addressCode ?? "");
       if (!expected || normalized !== expected) {
         flash({ type: "err", title: "Endereço incorreto", code: rawValue, sub: "Bipe o endereço sugerido na tela." });
-        setScanValue("");
-        focusScanInput();
         return;
       }
       flash({ type: "ok", title: "Endereço OK", code: currentItem.routeLines[0]?.addressCode ?? "", sub: currentItem.name });
       setScanPhase("product");
-      setScanValue("");
-      focusScanInput();
+      scheduleScannerClose(700);
       return;
     }
 
@@ -175,8 +207,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
     if (!matches) {
       flash({ type: "err", title: "Código inválido", code: rawValue, sub: "Este item não pertence a esta posição." });
-      setScanValue("");
-      focusScanInput();
       return;
     }
 
@@ -193,17 +223,19 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     );
 
     if (nextSeparated >= currentItem.requestedQuantity) {
-      flash({ type: "ok", title: "Item bipado", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
-      setTimeout(() => {
+      flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = window.setTimeout(() => {
         setScanPhase("address");
         setCurrentIndex((idx) => Math.min(idx + 1, totalCount));
-      }, 300);
+        closeScanner();
+      }, 700);
     } else {
-      flash({ type: "ok", title: "Item bipado", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity}` });
+      flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity}` });
     }
-    setScanValue("");
-    focusScanInput();
   }
+
+  applyScanRef.current = applyScan;
 
   function cancelCurrentOrder() {
     if (!currentItem) return;
@@ -345,23 +377,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                 ) : null}
               </div>
             </div>
-
-            {/* Real scanner capture — a physical reader "types" here then sends Enter */}
-            <input
-              ref={scanInputRef}
-              value={scanValue}
-              onChange={(event) => setScanValue(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyScan(scanValue);
-                }
-              }}
-              onBlur={() => window.setTimeout(() => scanInputRef.current?.focus(), 40)}
-              placeholder={scanPhase === "address" ? "Aguardando bipagem do endereço..." : "Aguardando bipagem do produto..."}
-              className="h-11 w-full rounded-2xl px-4 text-sm font-medium outline-none"
-              style={{ border: `1px solid ${hexAlpha(phaseColor, 0.25)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.text }}
-            />
           </>
         ) : (
           <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -402,7 +417,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         >
           <button
             type="button"
-            onClick={() => applyScan(scanValue)}
+            onClick={openScanner}
             className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
             style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
           >
@@ -418,6 +433,76 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
           >
             Sem estoque, cancelar pedido
           </button>
+        </div>
+      ) : null}
+
+      {scannerOpen && currentItem ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#000" }}>
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.65) 100%)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "18px",
+              paddingTop: "calc(18px + env(safe-area-inset-top))",
+            }}
+          >
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, ...headingFont }}>
+              {scanPhase === "address" ? "Aponte para o endereço" : "Aponte para o produto"}
+            </span>
+            <button
+              type="button"
+              onClick={() => closeScanner()}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.14)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MobileIcon name="x" size={18} strokeWidth={2.6} />
+            </button>
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                width: 250,
+                height: 160,
+                borderRadius: 22,
+                border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
+              }}
+            />
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, padding: "0 24px calc(40px + env(safe-area-inset-bottom))", textAlign: "center" }}>
+            <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
+              {cameraStarting ? "Abrindo câmera..." : cameraMessage ?? "Posicione o código dentro da moldura"}
+            </span>
+          </div>
+
+          <MobileScanOverlay overlay={overlay} />
         </div>
       ) : null}
 
