@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, CameraOff, Focus, Volume2 } from "lucide-react";
 import { savePickingWaveProgressAction, cancelPickingOrderAction } from "@/app/(dashboard)/expedicao/separacao/actions";
-import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
-import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -84,28 +81,12 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const [scanValue, setScanValue] = useState("");
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const completionFormRef = useRef<HTMLFormElement | null>(null);
   const autoSubmittedRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
-
-  const { videoRef, cameraSupported, cameraEnabled, cameraStarting, cameraMessage, toggleCamera } =
-    useCameraBarcodeScanner({
-      onDetected: (code) => {
-        applyScan(code);
-        resetTimer();
-      },
-    });
-
-  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
-    disabled: isSubmitting,
-    onExpire: () => {
-      router.replace("/m/separacao?feedback=inatividade");
-    },
-  });
 
   const totalCount = prioritizedItems.length;
   const doneCount = Math.min(currentIndex, totalCount);
@@ -115,10 +96,9 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const phaseColor = scanPhase === "address" ? mobileColors.blue : mobileColors.violet;
 
   useEffect(() => {
-    if (cameraEnabled) return;
     const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
     return () => window.clearTimeout(timer);
-  }, [cameraEnabled, currentIndex, scanPhase]);
+  }, [currentIndex, scanPhase]);
 
   useEffect(() => {
     return () => {
@@ -141,7 +121,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
     overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
 
-    if (!soundEnabled || !next || typeof window === "undefined") return;
+    if (!next || typeof window === "undefined") return;
     const AudioContextRef =
       window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextRef) return;
@@ -222,7 +202,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       flash({ type: "ok", title: "Item bipado", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity}` });
     }
     setScanValue("");
-    resetTimer();
     focusScanInput();
   }
 
@@ -290,15 +269,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
           </span>
         </div>
       </div>
-
-      {isWarningVisible ? (
-        <div className="mx-[18px] mb-3 rounded-2xl px-4 py-3 text-sm" style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.2)}`, background: hexAlpha(mobileColors.red, 0.08) }}>
-          <p className="font-bold" style={{ color: mobileColors.redLight }}>Onda em risco de voltar para a fila.</p>
-          <p style={{ color: mobileColors.muted }}>
-            Retome em até <span className="font-bold" style={{ color: mobileColors.redLight }}>{countdownSeconds}s</span>.
-          </p>
-        </div>
-      ) : null}
 
       <div className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] pb-[18px]">
         {currentItem ? (
@@ -377,10 +347,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
             <input
               ref={scanInputRef}
               value={scanValue}
-              onChange={(event) => {
-                resetTimer();
-                setScanValue(event.target.value);
-              }}
+              onChange={(event) => setScanValue(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -405,137 +372,12 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
             <button
               type="button"
-              onClick={() =>
-                flash({
-                  type: "err",
-                  title: "Código incorreto",
-                  code: "— — —",
-                  sub: "Este item não pertence a esta tarefa. Verifique e bipe novamente.",
-                })
-              }
-              className="h-11 rounded-[13px] text-[13px] font-bold"
-              style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.08), color: mobileColors.redLight }}
-            >
-              Simular leitura incorreta
-            </button>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={toggleCamera}
-                disabled={!cameraSupported}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                style={{ background: cameraEnabled ? mobileColors.red : mobileColors.blue }}
-              >
-                {cameraEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                {cameraStarting ? "Abrindo..." : cameraEnabled ? "Desligar câmera" : "Ler pela câmera"}
-              </button>
-              <button
-                type="button"
-                onClick={focusScanInput}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold"
-                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.18)}`, color: mobileColors.text }}
-              >
-                <Focus className="h-4 w-4" />
-                Focar
-              </button>
-              <button
-                type="button"
-                onClick={() => setSoundEnabled((current) => !current)}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold"
-                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.18)}`, color: mobileColors.text }}
-              >
-                <Volume2 className="h-4 w-4" />
-                {soundEnabled ? "Som" : "Mudo"}
-              </button>
-            </div>
-
-            {cameraEnabled || cameraStarting ? (
-              <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#05070D" }}>
-                <video ref={videoRef} playsInline muted className="aspect-video w-full object-cover" />
-              </div>
-            ) : null}
-            {cameraMessage ? (
-              <p className="text-xs" style={{ color: mobileColors.muted }}>{cameraMessage}</p>
-            ) : null}
-
-            <button
-              type="button"
               onClick={cancelCurrentOrder}
               className="h-12 rounded-xl text-sm font-bold"
               style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight }}
             >
               Sem estoque, cancelar pedido
             </button>
-
-            {/* Task list */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: mobileColors.dim }}>
-                Fila da onda
-              </span>
-              {prioritizedItems.map((item, index) => {
-                const done = index < currentIndex;
-                const isCurrent = index === currentIndex;
-                const revealed = !(isCurrent && scanPhase === "address");
-                return (
-                  <button
-                    key={item.compositeId}
-                    type="button"
-                    onClick={() => {
-                      if (index <= currentIndex) {
-                        setCurrentIndex(index);
-                        setScanPhase("address");
-                      }
-                    }}
-                    className="flex items-center gap-3 rounded-[14px] p-3 text-left"
-                    style={{
-                      border: `1.5px solid ${item.isCancelled ? hexAlpha(mobileColors.red, 0.3) : isCurrent ? hexAlpha(mobileColors.violet, 0.4) : hexAlpha("#94A3B8", 0.14)}`,
-                      background: item.isCancelled
-                        ? hexAlpha(mobileColors.red, 0.06)
-                        : isCurrent
-                          ? hexAlpha(mobileColors.violet, 0.08)
-                          : done
-                            ? hexAlpha("#94A3B8", 0.03)
-                            : hexAlpha("#94A3B8", 0.045),
-                    }}
-                  >
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] text-xs font-extrabold"
-                      style={{
-                        background: item.isCancelled
-                          ? hexAlpha(mobileColors.red, 0.16)
-                          : done
-                            ? hexAlpha(mobileColors.green, 0.18)
-                            : isCurrent
-                              ? mobileGradient
-                              : hexAlpha("#94A3B8", 0.1),
-                        color: item.isCancelled ? mobileColors.redLight : done ? mobileColors.green : isCurrent ? "#fff" : mobileColors.muted,
-                      }}
-                    >
-                      {item.isCancelled ? "×" : done ? <MobileIcon name="check" size={14} strokeWidth={3} /> : index + 1}
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[14px] font-bold" style={{ color: item.isCancelled || done ? mobileColors.muted : mobileColors.text, ...headingFont }}>
-                        {item.routeLines[0]?.addressCode ?? "SEM ENDEREÇO"}
-                      </span>
-                      {revealed ? (
-                        <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[12px]" style={{ color: mobileColors.muted }}>
-                          {item.isCancelled ? "(cancelado) " : item.isSkipped ? "(pulado) " : ""}
-                          {item.name}
-                        </span>
-                      ) : (
-                        <span className="text-[12px]" style={{ color: mobileColors.dim }}>Valide o endereço para revelar</span>
-                      )}
-                    </div>
-                    {revealed ? (
-                      <span className="shrink-0 text-[13px] font-bold" style={{ color: isCurrent ? mobileColors.violetLight : mobileColors.muted, ...headingFont }}>
-                        {item.requestedQuantity}x
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
           </>
         ) : (
           <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-4 text-center">
