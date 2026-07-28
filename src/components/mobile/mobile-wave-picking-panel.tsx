@@ -94,6 +94,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const autoSubmittedRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const totalCount = prioritizedItems.length;
   const doneCount = Math.min(currentIndex, totalCount);
@@ -128,6 +129,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
       if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      void audioContextRef.current?.close();
     };
   }, []);
 
@@ -141,7 +143,26 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     return () => window.clearTimeout(timer);
   }, [isDone, totalCount]);
 
+  function unlockAudio() {
+    if (typeof window === "undefined") return;
+    const AudioContextRef =
+      window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextRef) return;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextRef();
+    }
+    if (audioContextRef.current.state === "suspended") {
+      void audioContextRef.current.resume();
+    }
+  }
+
   function openScanner() {
+    // Must run inside this direct tap handler: mobile browsers only allow
+    // an AudioContext to unlock/resume during a genuine user gesture, and
+    // the barcode-detection callback that later triggers flash()/beep()
+    // runs async, well outside any gesture, so it can't unlock audio itself.
+    unlockAudio();
     setScannerOpen(true);
   }
 
@@ -166,11 +187,12 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       navigator.vibrate(next.type === "ok" ? 60 : [70, 60, 70]);
     }
 
-    if (typeof window === "undefined") return;
-    const AudioContextRef =
-      window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextRef) return;
-    const context = new AudioContextRef();
+    const context = audioContextRef.current;
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+
     const beep = (freq: number, type: OscillatorType, startTime: number, duration: number) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
@@ -185,11 +207,9 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     const now = context.currentTime;
     if (next.type === "ok") {
       beep(880, "sine", now, 0.12);
-      window.setTimeout(() => void context.close(), 150);
     } else {
       beep(220, "square", now, 0.1);
       beep(180, "square", now + 0.14, 0.12);
-      window.setTimeout(() => void context.close(), 300);
     }
   }
 
