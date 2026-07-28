@@ -151,6 +151,7 @@ export function ShippingPickingInterface({
       numColor: isDone ? '#10B981' : (isCur ? '#fff' : t.textSub),
       titleColor: isDone ? t.textSub : t.text,
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
+      detailsVisible: !(isCur && scanPhase === "address"),
       pick: () => { if (i <= currentIndex) setCurrentIndex(i); },
       isSkipped: p.isSkipped
     };
@@ -353,11 +354,15 @@ export function ShippingPickingInterface({
                 <span style={{ width: "30px", height: "30px", flexShrink: 0, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800", background: task.numBg, color: task.numColor }}>{task.mark}</span>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700", color: task.titleColor }}>{task.loc}</span>
-                  <span style={{ fontSize: "12px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {task.isSkipped ? <span style={{color: '#F59E0B'}}>(PULADO) </span> : null}{task.name}
-                  </span>
+                  {task.detailsVisible ? (
+                    <span style={{ fontSize: "12px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {task.isSkipped ? <span style={{color: '#F59E0B'}}>(PULADO) </span> : null}{task.name}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: "12px", color: t.textSub }}>Valide o endereço para revelar o item</span>
+                  )}
                 </div>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: "700", color: task.qtyColor }}>{task.qty}</span>
+                {task.detailsVisible && <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: "700", color: task.qtyColor }}>{task.qty}</span>}
               </div>
             ))}
           </div>
@@ -390,7 +395,8 @@ export function ShippingPickingInterface({
               </div>
 
               {/* product */}
-              <div style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px", display: "flex", gap: "18px", alignItems: "center" }}>
+              {scanPhase === "product" ? (
+              <div style={{ borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px", display: "flex", gap: "18px", alignItems: "center", animation: "popIn 0.2s ease" }}>
                 <div style={{ width: "72px", height: "72px", flexShrink: 0, borderRadius: "14px", background: current.thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
                   {current.imageUrl ? (
                     <img src={current.imageUrl} alt={current.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", background: "#fff" }} />
@@ -407,6 +413,12 @@ export function ShippingPickingInterface({
                   <span style={{ fontSize: "11.5px", color: t.textSub }}>coletados</span>
                 </div>
               </div>
+              ) : (
+                <div style={{ borderRadius: "18px", border: `1.5px dashed #3B82F6`, background: t.softBg, padding: "24px", display: "flex", alignItems: "center", gap: "14px", color: t.textSub }}>
+                  <span style={{ width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.blue, color: "#3B82F6", display: "flex", alignItems: "center", justifyContent: "center" }}><PinIcon size={24} /></span>
+                  <span style={{ fontSize: "14px", fontWeight: "700" }}>O produto será exibido após a validação do endereço</span>
+                </div>
+              )}
 
               {/* scan field */}
               <div style={{ borderRadius: "18px", border: `1.5px dashed ${scanPhase === "address" ? "#3B82F6" : t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
