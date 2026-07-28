@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AppUserContext } from "@/lib/auth";
 import {
@@ -23,28 +24,30 @@ type InicioClientProps = {
   totalPendencias: number;
 };
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Bom dia,";
+  if (hour < 18) return "Boa tarde,";
+  return "Boa noite,";
+}
+
 export function InicioClient({ user, snapshot, totalPendencias }: InicioClientProps) {
   const router = useRouter();
+  const [greeting, setGreeting] = useState(getGreeting);
 
-  const userInitials = user.nome
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("");
+  useEffect(() => {
+    setGreeting(getGreeting());
+    const timer = window.setInterval(() => setGreeting(getGreeting()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className="relative flex h-full flex-col">
       {/* Header */}
       <div className="flex shrink-0 items-center gap-3 px-[22px] pb-[14px] pt-[18px]">
-        <div
-          className="flex h-[44px] w-[44px] items-center justify-center rounded-full text-[15px] font-bold text-white"
-          style={{ background: "linear-gradient(135deg, #10B981, #3B82F6)" }}
-        >
-          {userInitials}
-        </div>
         <div className="flex flex-1 flex-col gap-px min-w-0">
           <span className="text-[12px]" style={{ color: mobileColors.muted }}>
-            Bom dia,
+            {greeting}
           </span>
           <span className="truncate text-[17px] font-extrabold" style={headingFont}>
             {user.nome}
