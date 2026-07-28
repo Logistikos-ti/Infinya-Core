@@ -101,7 +101,16 @@ export async function GET(request: Request, context: RouteContext) {
           .select("codigo_produto, sku, nome, quantidade")
           .eq("pedido_expedicao_id", id);
 
-        pdfBytes = buildSimplifiedDanfePdf(buildManualDanfeData(order, items ?? []), { carrierName });
+        const { data: depositante } = await adminSupabase
+          .from("depositantes")
+          .select("nome, cnpj")
+          .eq("id", order.depositante_id)
+          .maybeSingle();
+
+        pdfBytes = buildSimplifiedDanfePdf(
+          buildManualDanfeData(order, items ?? [], source, depositante),
+          { carrierName },
+        );
       } else {
         throw error;
       }
@@ -143,6 +152,8 @@ function buildManualDanfeData(
     nome: string;
     quantidade: number;
   }>,
+  source: string,
+  depositante: { nome: string | null; cnpj: string | null } | null,
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : {};
@@ -155,9 +166,10 @@ function buildManualDanfeData(
   const uf = order.cliente_uf || "";
   const endereco = readPayloadString(destinatario.endereco) || "";
   const numeroEndereco = readPayloadString(destinatario.numero) || "";
-  const nomeEmitente = readPayloadString(emitente.nome) || "Pedido manual";
-  const documentoEmitente = readPayloadString(emitente.documento) || "";
+  const nomeEmitente = readPayloadString(emitente.nome) || depositante?.nome || "Pedido manual";
+  const documentoEmitente = readPayloadString(emitente.documento) || depositante?.cnpj || "";
   const total = Number(order.valor_total ?? 0) || 0;
+  const accessKey = extractAccessKey(source) || buildManualControlCode(order.numero_pedido);
   const parsedItems: ImportedNfeItem[] = items.length
     ? items.map((item) => ({
         codigo: item.codigo_produto || item.sku || null,
@@ -187,7 +199,7 @@ function buildManualDanfeData(
       }];
 
   return {
-    accessKey: null,
+    accessKey,
     noteNumber: numero,
     direction: "SAIDA" as const,
     supplierName: nomeEmitente,
@@ -199,13 +211,27 @@ function buildManualDanfeData(
     volumeCount: 1,
     carrierName: null,
     grossWeight: null,
-    additionalInfo: "Pedido manual",
+    additionalInfo: "Pedido manual | Codigo operacional WMS",
     totalValue: total,
     protocolNumber: null,
     protocolStatusCode: null,
     protocolStatusLabel: null,
     items: parsedItems,
   };
+}
+
+function extractAccessKey(source: string) {
+  const compact = source.replace(/\D/g, "");
+  const direct = compact.match(/\d{44}/);
+  if (direct) return direct[0];
+
+  const grouped = source.match(/\d{4}(?:\s+\d{4}){10}/);
+  return grouped?.[0].replace(/\D/g, "") || null;
+}
+
+function buildManualControlCode(value: string | null) {
+  const digits = (value || "MANUAL").replace(/\D/g, "") || "0";
+  return digits.padStart(44, "0").slice(-44);
 }
 
 function readPayloadString(value: unknown) {
