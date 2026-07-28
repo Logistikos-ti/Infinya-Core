@@ -18,8 +18,8 @@ export function ShippingPickingWavesView({
   depositantes: { id: string, nome: string }[];
   initialWaves?: any[];
 }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const router = useRouter();
 
   const [showCreate, setShowCreate] = useState(false);

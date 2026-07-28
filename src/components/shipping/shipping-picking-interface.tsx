@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
 import { savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
@@ -76,16 +77,12 @@ export function ShippingPickingInterface({
 }: ShippingPickingInterfaceProps) {
   const router = useRouter();
   
-  // Theme logic
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  useEffect(() => {
-    const saved = localStorage.getItem('infinoos-theme');
-    if (saved === 'light' || saved === 'dark') setTheme(saved);
-  }, []);
-  
+  // Keep the wave view on the same theme preference as the global app shell.
+  const { resolvedTheme, setTheme } = useTheme();
+  const theme = resolvedTheme === "light" ? "light" : "dark";
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
-    localStorage.setItem('infinoos-theme', next);
     setTheme(next);
   };
   
