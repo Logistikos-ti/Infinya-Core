@@ -316,6 +316,7 @@ export function ShippingPickingInterface({
         @keyframes popIn { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes pulseDot { 0%,100% { opacity: 0.4; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
+        @keyframes stockoutPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.08); } 50% { box-shadow: 0 0 0 4px rgba(220,38,38,0.16); } }
       `}} />
       
       <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
@@ -444,7 +445,7 @@ export function ShippingPickingInterface({
               />
 
               <div style={{ display: "flex", gap: "12px" }}>
-                <button type="button" onClick={cancelOrder} style={{ flex: 1, height: "52px", borderRadius: "12px", border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#B91C1C", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer" }}>
+                <button type="button" onClick={cancelOrder} style={{ flex: 1, height: "52px", borderRadius: "12px", border: "1px solid #DC2626", background: t.inputBg, color: "#DC2626", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", animation: "stockoutPulse 1.6s ease-in-out infinite" }}>
                   Sem estoque, cancelar pedido
                 </button>
               </div>
