@@ -82,14 +82,19 @@ export function ShippingPickingWavesView({
           totalItems += (o.totalUnits || 0);
           completedItems += (o.separatedUnits || 0);
         });
+
+        const allOrdersAdvanced = waveOrders.length > 0 && waveOrders.every((order) =>
+          ['SEPARADO', 'EM_CONFERENCIA', 'CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO'].includes(order.status),
+        );
         
         if (totalItems > 0) {
           pct = Math.round((completedItems / totalItems) * 100);
         }
         
         if (w.status === 'CONCLUIDA') pct = 100;
+        if (allOrdersAdvanced) pct = 100;
         
-        const isConcluida = w.status === 'CONCLUIDA' || (totalItems > 0 && completedItems >= totalItems);
+        const isConcluida = w.status === 'CONCLUIDA' || allOrdersAdvanced || (totalItems > 0 && completedItems >= totalItems);
         const isEmSeparacao = w.status === 'EM_SEPARACAO' || (pct > 0 && !isConcluida);
         const isAguardando = w.status === 'PENDENTE' && pct === 0 && !isConcluida;
         
