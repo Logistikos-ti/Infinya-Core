@@ -480,6 +480,7 @@ export function ShippingPickingInterface({
                   <React.Fragment key={item.compositeId}>
                     <input type="hidden" name="itemOrderId" value={item.orderId} />
                     <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="itemKitProgress" value="[]" />
                     <input type="hidden" name="separatedQuantity" value={item.isSkipped ? "0" : item.separatedQuantityValue} />
                   </React.Fragment>
                 ))}
