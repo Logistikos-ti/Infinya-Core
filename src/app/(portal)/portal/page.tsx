@@ -64,19 +64,26 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   ]);
   const supportTickets =
     view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
-  const { data: portalProductRows } = view === "pedidos"
-    ? await adminSupabase
-        .from("produtos")
-        .select("id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url")
-        .eq("depositante_id", depositanteId)
-        .eq("ativo", true)
-        .order("nome")
-    : { data: [] };
+  const [{ data: portalProductRows }, { data: portalStockRows }] =
+    view === "pedidos"
+      ? await Promise.all([
+          adminSupabase
+            .from("produtos")
+            .select("id, nome, sku, codigo_interno, codigo_externo, imagem_principal_url")
+            .eq("depositante_id", depositanteId)
+            .eq("ativo", true)
+            .order("nome"),
+          adminSupabase
+            .from("estoque")
+            .select("produto_id, quantidade")
+            .eq("depositante_id", depositanteId),
+        ])
+      : [{ data: [] }, { data: [] }];
   const stockByProduct = new Map<string, number>();
-  for (const item of stock) {
+  for (const item of portalStockRows ?? []) {
     stockByProduct.set(
-      item.productId,
-      (stockByProduct.get(item.productId) ?? 0) + Number(item.rawQuantidade ?? 0),
+      item.produto_id,
+      (stockByProduct.get(item.produto_id) ?? 0) + Number(item.quantidade ?? 0),
     );
   }
   const portalProducts = (portalProductRows ?? []).map((product) => ({
