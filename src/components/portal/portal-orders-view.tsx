@@ -218,7 +218,7 @@ function compareOrders(
       case "channel": return repairMojibake(order.marketplace || order.channel || "");
       case "items": return order.itemCount;
       case "status": return repairMojibake(order.statusLabel || order.status || "");
-      case "created": return new Date(order.createdAt).getTime() || 0;
+      case "created": return order.createdAtIso ? new Date(order.createdAtIso).getTime() || 0 : 0;
     }
   };
   const a = value(left);
@@ -274,7 +274,7 @@ function OrderRow({ order, now }: { order: ShippingOrderSummary; now: number }) 
         {repairMojibake(order.marketplace || order.channel || "Operação própria")}
       </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
-      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatCreatedAt(order.createdAt, now)}</td>
+      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatCreatedAt(order.createdAtIso, now)}</td>
       <td className="px-5 py-[14px]"><StatusBadge label={repairMojibake(order.statusLabel || order.status)} /></td>
       <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
     </tr>
