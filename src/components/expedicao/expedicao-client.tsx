@@ -97,6 +97,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [activeFilter, setActiveFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
@@ -952,13 +953,14 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {itemsToUse.map((it: any, i: number) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                      <div key={i} onMouseEnter={() => setHoveredProductIndex(i)} onMouseLeave={() => setHoveredProductIndex(null)} style={{ position: "relative", display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
                         <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
                         <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
                           <span title={it.name} style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
                           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
                         </div>
                         <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
+                        {hoveredProductIndex === i && it.name.length > 42 && <span role="tooltip" style={{ position: "absolute", zIndex: 5, left: "12px", right: "12px", bottom: "calc(100% + 6px)", padding: "9px 11px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.drawerBg, color: t.text, boxShadow: "0 10px 24px rgba(15,23,42,.18)", fontSize: "12.5px", fontWeight: "700", lineHeight: 1.35, whiteSpace: "normal", pointerEvents: "none" }}>{it.name}</span>}
                       </div>
                     ))}
                   </div>
