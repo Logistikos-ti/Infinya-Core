@@ -453,6 +453,23 @@ export async function savePickingWaveProgressAction(formData: FormData) {
 
   const canCompleteAllOrders = orderIds.every((orderId) => orderCompletionMap.get(orderId));
 
+  if (intent === "complete" && canCompleteAllOrders) {
+    const { data: waveLinks } = await adminSupabase
+      .from("ondas_separacao_pedidos")
+      .select("onda_separacao_id")
+      .in("pedido_expedicao_id", orderIds);
+    const waveIds = Array.from(
+      new Set((waveLinks ?? []).map((link) => link.onda_separacao_id).filter(Boolean)),
+    );
+
+    if (waveIds.length) {
+      await adminSupabase
+        .from("ondas_separacao")
+        .update({ status: "CONCLUIDA", atualizado_em: new Date().toISOString() })
+        .in("id", waveIds);
+    }
+  }
+
   if (intent === "complete" && !canCompleteAllOrders) {
     redirect(appendFeedback(returnTo, "incompleto"));
   }
