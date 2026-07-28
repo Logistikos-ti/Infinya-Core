@@ -108,6 +108,8 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
     onDetected: handleDetected,
     requirePresenceGap: true,
+    confirmReads: 2,
+    confirmMisses: 4,
   });
 
   useEffect(() => {

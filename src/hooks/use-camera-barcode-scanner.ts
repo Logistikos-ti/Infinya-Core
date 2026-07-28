@@ -26,6 +26,22 @@ type UseCameraBarcodeScannerOptions = {
    * silently keep counting.
    */
   requirePresenceGap?: boolean;
+  /**
+   * How many consecutive frames must decode to the same code before it is
+   * accepted. Filters one-off misreads (motion blur, partial frames) that
+   * would otherwise flash as a wrong-code error right before the real
+   * read comes through. Defaults to 1 (accept on the first frame, same as
+   * before this option existed).
+   */
+  confirmReads?: number;
+  /**
+   * Only used together with requirePresenceGap: how many consecutive
+   * no-code frames are required before a held code is considered to have
+   * left the frame. A single dropped frame from autofocus/motion should
+   * not be enough to let the same physical barcode re-count itself.
+   * Defaults to 1.
+   */
+  confirmMisses?: number;
 };
 
 const CAMERA_ERROR_MESSAGES: Record<string, string> = {
@@ -62,6 +78,8 @@ export function useCameraBarcodeScanner({
   onDetected,
   successCooldownMs = 1500,
   requirePresenceGap = false,
+  confirmReads = 1,
+  confirmMisses = 1,
 }: UseCameraBarcodeScannerOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<ScannerControlsLike | null>(null);
@@ -72,6 +90,9 @@ export function useCameraBarcodeScanner({
   const lastCodeRef = useRef<string>("");
   const lastDetectedAtRef = useRef<number>(0);
   const presentCodeRef = useRef<string>("");
+  const pendingReadCodeRef = useRef<string>("");
+  const pendingReadCountRef = useRef(0);
+  const missStreakRef = useRef(0);
 
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
@@ -121,11 +142,47 @@ export function useCameraBarcodeScanner({
     [onDetected, successCooldownMs, requirePresenceGap],
   );
 
+  const registerRawDetection = useCallback(
+    (rawCode: string) => {
+      missStreakRef.current = 0;
+
+      const normalizedCode = normalizeCode(rawCode);
+      if (!normalizedCode) {
+        return;
+      }
+
+      if (confirmReads <= 1) {
+        emitDetection(normalizedCode);
+        return;
+      }
+
+      if (pendingReadCodeRef.current === normalizedCode) {
+        pendingReadCountRef.current += 1;
+      } else {
+        pendingReadCodeRef.current = normalizedCode;
+        pendingReadCountRef.current = 1;
+      }
+
+      if (pendingReadCountRef.current >= confirmReads) {
+        emitDetection(normalizedCode);
+      }
+    },
+    [confirmReads, emitDetection],
+  );
+
   const markMiss = useCallback(() => {
-    if (requirePresenceGap) {
+    pendingReadCodeRef.current = "";
+    pendingReadCountRef.current = 0;
+
+    if (!requirePresenceGap) {
+      return;
+    }
+
+    missStreakRef.current += 1;
+    if (missStreakRef.current >= confirmMisses) {
       presentCodeRef.current = "";
     }
-  }, [requirePresenceGap]);
+  }, [requirePresenceGap, confirmMisses]);
 
   const cleanupStream = useCallback(() => {
     controlsRef.current?.stop();
@@ -146,6 +203,9 @@ export function useCameraBarcodeScanner({
     }
 
     presentCodeRef.current = "";
+    pendingReadCodeRef.current = "";
+    pendingReadCountRef.current = 0;
+    missStreakRef.current = 0;
   }, []);
 
   const stopCamera = useCallback(
@@ -179,7 +239,7 @@ export function useCameraBarcodeScanner({
         const code = results.find((item) => item.rawValue?.trim())?.rawValue?.trim() ?? "";
 
         if (code) {
-          emitDetection(code);
+          registerRawDetection(code);
           if (mountedRef.current) {
             setCameraMessage("Câmera ativa. Aponte para o código de barras.");
           }
@@ -197,7 +257,7 @@ export function useCameraBarcodeScanner({
     };
 
     loopRef.current = window.requestAnimationFrame(loop);
-  }, [emitDetection, markMiss]);
+  }, [registerRawDetection, markMiss]);
 
   const startCamera = useCallback(async () => {
     if (!cameraSupported) {
@@ -269,7 +329,7 @@ export function useCameraBarcodeScanner({
 
         controlsRef.current = await reader.decodeFromVideoElement(videoElement, (result, error) => {
           if (result?.getText()) {
-            emitDetection(result.getText());
+            registerRawDetection(result.getText());
             if (mountedRef.current) {
               setCameraMessage("Câmera ativa. Aponte para o código de barras.");
             }
@@ -317,7 +377,7 @@ export function useCameraBarcodeScanner({
           "Não foi possível iniciar a câmera neste dispositivo.",
       );
     }
-  }, [cameraSupported, cleanupStream, emitDetection, markMiss, nativeDetectorSupported, runNativeDetectorLoop]);
+  }, [cameraSupported, cleanupStream, markMiss, nativeDetectorSupported, registerRawDetection, runNativeDetectorLoop]);
 
   const toggleCamera = useCallback(() => {
     if (cameraEnabled || cameraStarting) {
