@@ -116,7 +116,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           );
         })}
         <span className="ml-auto text-[13px] text-slate-500 dark:text-slate-400">
-          {sortedOrders.length} pedidos
+          {sortedOrders.length} pedidos · ordenado por {sortLabel(sort.key)} ({sort.direction === "asc" ? "crescente" : "decrescente"})
         </span>
       </div>
 
@@ -131,7 +131,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
                     className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-[13px] text-[12px] font-bold uppercase tracking-[0.04em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
                   >
                     {label ? (
-                      <button type="button" onClick={() => changeSort(sortKeyForLabel(label))} className="inline-flex items-center gap-1.5 transition-colors hover:text-violet-600">
+                      <button type="button" aria-sort={sort.key === sortKeyForLabel(label) ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} onClick={() => changeSort(sortKeyForLabel(label))} className="inline-flex items-center gap-1.5 transition-colors hover:text-violet-600">
                         {label}
                         <ArrowUpDown className={`h-3.5 w-3.5 ${sort.key === sortKeyForLabel(label) ? "text-violet-500" : "opacity-50"}`} />
                       </button>
@@ -194,6 +194,10 @@ function sortKeyForLabel(label: string): SortKey {
     Criado: "created",
     Status: "status",
   } as Record<string, SortKey>)[label];
+}
+
+function sortLabel(key: SortKey) {
+  return ({ order: "pedido", customer: "cliente", channel: "canal", items: "itens", created: "criação", status: "status" } as Record<SortKey, string>)[key];
 }
 
 function compareOrders(
