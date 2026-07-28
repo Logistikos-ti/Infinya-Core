@@ -158,7 +158,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const showAdd = true;
   const addBtnLabel = "+ Novo pedido";
-  const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO").length;
+  const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO").length;
   const availableProducts = (data.productOptions ?? []).filter((produto: any) => produto.depositante_id === newOrderDepositante);
   const selectedItems = newOrderItems.map((item) => ({ ...item, product: availableProducts.find((produto: any) => produto.id === item.id) ?? data.productOptions?.find((produto: any) => produto.id === item.id) })).filter((item) => item.product);
   const totalNewOrderUnits = selectedItems.reduce((total, item) => total + item.quantity, 0);
@@ -363,7 +363,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const conferenceOrders: any[] = [];
   const scanIcon = <PackageSearch size={20} />;
   const alertIcon = <AlertTriangle size={20} />;
-  const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO");
+  const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
   const ordersCount = searchedOrders.length;
   const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];

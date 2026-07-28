@@ -222,7 +222,9 @@ export async function savePickingProgressAction(formData: FormData) {
         separacao: nextPickingPayload,
       },
     })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .select("id")
+    .maybeSingle();
 
   if (orderUpdateResult.error) {
     redirect(`${redirectBase}?feedback=erro`);
@@ -642,32 +644,42 @@ export async function cancelPickingOrderAction(orderId: string) {
     console.error("Failed to read order before stockout cancellation:", readError);
   }
 
-  const payload = order && isRecord(order.payload_origem) ? order.payload_origem : null;
-  const currentPicking = payload && isRecord(payload.separacao) ? payload.separacao : {};
-  const { error } = await adminSupabase
+  if (readError || !order) {
+    return { ok: false };
+  }
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  const { data: updatedOrder, error } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
-      status: "DIVERGENCIA",
-      ...(payload
-        ? {
-            payload_origem: {
-              ...payload,
-              separacao: {
-                ...currentPicking,
-                cancelado: true,
-                canceladoEm: now,
-                canceladoPor: user.id,
-                canceladoPorNome: user.nome,
-                motivoCancelamento: "Sem estoque",
-              },
-            },
-          }
-        : {}),
+      // DIVERGENCIA is a receiving-only status in the current database enum.
+      // Keep the order in the supported CANCELADO state and record the
+      // operational reason so the expedition divergence view can surface it.
+      status: "CANCELADO",
+      payload_origem: {
+        ...payload,
+        separacao: {
+          ...currentPicking,
+          cancelado: true,
+          canceladoEm: now,
+          canceladoPor: user.id,
+          canceladoPorNome: user.nome,
+          motivoCancelamento: "Sem estoque",
+        },
+      },
     })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("Failed to cancel picking order:", error);
+    return { ok: false };
+  }
+
+  if (!updatedOrder) {
+    console.error("Picking stockout cancellation did not update an order:", orderId);
     return { ok: false };
   }
 
