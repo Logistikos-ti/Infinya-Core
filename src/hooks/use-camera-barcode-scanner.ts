@@ -17,6 +17,15 @@ type BarcodeDetectorCtor = new (options?: {
 type UseCameraBarcodeScannerOptions = {
   onDetected: (code: string) => void;
   successCooldownMs?: number;
+  /**
+   * When true, a code is only re-accepted after it has left the frame at
+   * least once (a "miss" is observed) instead of after successCooldownMs
+   * elapses. Use this when the same physical barcode may need to be
+   * scanned multiple times in a row (e.g. picking several units of the
+   * same product) and holding it in front of the camera should not
+   * silently keep counting.
+   */
+  requirePresenceGap?: boolean;
 };
 
 const CAMERA_ERROR_MESSAGES: Record<string, string> = {
@@ -52,6 +61,7 @@ function normalizeCode(code: string) {
 export function useCameraBarcodeScanner({
   onDetected,
   successCooldownMs = 1500,
+  requirePresenceGap = false,
 }: UseCameraBarcodeScannerOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<ScannerControlsLike | null>(null);
@@ -61,6 +71,7 @@ export function useCameraBarcodeScanner({
   const mountedRef = useRef(true);
   const lastCodeRef = useRef<string>("");
   const lastDetectedAtRef = useRef<number>(0);
+  const presentCodeRef = useRef<string>("");
 
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
@@ -86,6 +97,15 @@ export function useCameraBarcodeScanner({
         return;
       }
 
+      if (requirePresenceGap) {
+        if (presentCodeRef.current === normalizedCode) {
+          return;
+        }
+        presentCodeRef.current = normalizedCode;
+        onDetected(normalizedCode);
+        return;
+      }
+
       const now = Date.now();
       if (
         normalizedCode === lastCodeRef.current &&
@@ -98,8 +118,14 @@ export function useCameraBarcodeScanner({
       lastDetectedAtRef.current = now;
       onDetected(normalizedCode);
     },
-    [onDetected, successCooldownMs],
+    [onDetected, successCooldownMs, requirePresenceGap],
   );
+
+  const markMiss = useCallback(() => {
+    if (requirePresenceGap) {
+      presentCodeRef.current = "";
+    }
+  }, [requirePresenceGap]);
 
   const cleanupStream = useCallback(() => {
     controlsRef.current?.stop();
@@ -118,6 +144,8 @@ export function useCameraBarcodeScanner({
       video.pause();
       video.srcObject = null;
     }
+
+    presentCodeRef.current = "";
   }, []);
 
   const stopCamera = useCallback(
@@ -155,8 +183,11 @@ export function useCameraBarcodeScanner({
           if (mountedRef.current) {
             setCameraMessage("Câmera ativa. Aponte para o código de barras.");
           }
+        } else {
+          markMiss();
         }
       } catch {
+        markMiss();
         if (mountedRef.current) {
           setCameraMessage("A câmera está ativa, mas a leitura automática falhou neste momento.");
         }
@@ -166,7 +197,7 @@ export function useCameraBarcodeScanner({
     };
 
     loopRef.current = window.requestAnimationFrame(loop);
-  }, [emitDetection]);
+  }, [emitDetection, markMiss]);
 
   const startCamera = useCallback(async () => {
     if (!cameraSupported) {
@@ -252,6 +283,7 @@ export function useCameraBarcodeScanner({
             errorName === "ChecksumException" ||
             errorName === "FormatException"
           ) {
+            markMiss();
             return;
           }
 
@@ -285,7 +317,7 @@ export function useCameraBarcodeScanner({
           "Não foi possível iniciar a câmera neste dispositivo.",
       );
     }
-  }, [cameraSupported, cleanupStream, emitDetection, nativeDetectorSupported, runNativeDetectorLoop]);
+  }, [cameraSupported, cleanupStream, emitDetection, markMiss, nativeDetectorSupported, runNativeDetectorLoop]);
 
   const toggleCamera = useCallback(() => {
     if (cameraEnabled || cameraStarting) {
