@@ -595,6 +595,8 @@ export async function createShippingWaveAction(orderIds: string[]) {
   return onda.id;
 }
 
+const ADVANCED_ORDER_STATUSES = ['SEPARADO', 'EM_CONFERENCIA', 'CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO', 'CANCELADO'];
+
 export async function listActivePickingWavesAction() {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -606,9 +608,38 @@ export async function listActivePickingWavesAction() {
     `)
     .in('status', ['PENDENTE', 'EM_SEPARACAO'])
     .order('criado_em', { ascending: false });
-    
-  if (error) return [];
-  return data;
+
+  if (error || !data?.length) return data ?? [];
+
+  const allOrderIds = Array.from(
+    new Set(data.flatMap((wave) => (wave.pedidos ?? []).map((p: { pedido_expedicao_id: string }) => p.pedido_expedicao_id))),
+  );
+
+  if (!allOrderIds.length) return data;
+
+  const { data: orderStatuses } = await supabase
+    .from('pedidos_expedicao')
+    .select('id, status')
+    .in('id', allOrderIds);
+
+  const statusById = new Map((orderStatuses ?? []).map((order) => [order.id, order.status]));
+
+  const staleWaveIds: string[] = [];
+  const stillActive = data.filter((wave) => {
+    const orderIds = (wave.pedidos ?? []).map((p: { pedido_expedicao_id: string }) => p.pedido_expedicao_id);
+    const allAdvanced = orderIds.length > 0 && orderIds.every((id: string) => ADVANCED_ORDER_STATUSES.includes(statusById.get(id) ?? ''));
+    if (allAdvanced) staleWaveIds.push(wave.id);
+    return !allAdvanced;
+  });
+
+  if (staleWaveIds.length) {
+    await supabase
+      .from('ondas_separacao')
+      .update({ status: 'CONCLUIDA', atualizado_em: new Date().toISOString() })
+      .in('id', staleWaveIds);
+  }
+
+  return stillActive;
 }
 
 export async function startShippingWaveAction(waveId: string) {

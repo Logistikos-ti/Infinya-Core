@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireModuleAccess } from "@/lib/auth";
 import { listShippingPickingOrdersByIdsFromDb } from "@/lib/shipping-picking";
 import {
@@ -19,7 +19,7 @@ export default async function MobilePickingDetailPage({ params }: MobilePickingD
   const wave = waves.find((item) => item.id === waveId);
 
   if (!wave) {
-    notFound();
+    redirect("/m/separacao?feedback=concluido");
   }
 
   const pedidoIds = (wave.pedidos ?? []).map(
@@ -27,7 +27,7 @@ export default async function MobilePickingDetailPage({ params }: MobilePickingD
   );
 
   if (!pedidoIds.length) {
-    notFound();
+    redirect("/m/separacao?feedback=concluido");
   }
 
   if (wave.status === "PENDENTE" && !wave.iniciado_em) {
@@ -39,7 +39,7 @@ export default async function MobilePickingDetailPage({ params }: MobilePickingD
   });
 
   if (!orders.length) {
-    notFound();
+    redirect("/m/separacao?feedback=concluido");
   }
 
   return (
