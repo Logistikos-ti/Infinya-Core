@@ -270,7 +270,10 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         </div>
       </div>
 
-      <div className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px] pb-[18px]">
+      <div
+        className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px]"
+        style={{ paddingBottom: currentItem ? 158 : 18 }}
+      >
         {currentItem ? (
           <>
             {/* Primary instruction card — matches the mockup's Flow "active" card exactly */}
@@ -388,7 +391,15 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       </div>
 
       {currentItem ? (
-        <div className="shrink-0 flex flex-col gap-2.5 px-[18px] pb-[18px] pt-1">
+        <div
+          className="left-1/2 flex w-full max-w-md -translate-x-1/2 flex-col gap-2.5 px-[18px] pt-3"
+          style={{
+            position: "fixed",
+            bottom: 0,
+            paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
+            background: "linear-gradient(180deg, rgba(10,17,32,0) 0%, #0A1120 22%)",
+          }}
+        >
           <button
             type="button"
             onClick={() => applyScan(scanValue)}
@@ -403,7 +414,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
             type="button"
             onClick={cancelCurrentOrder}
             className="h-12 rounded-xl text-sm font-bold"
-            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight }}
+            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight, background: "#0A1120" }}
           >
             Sem estoque, cancelar pedido
           </button>
