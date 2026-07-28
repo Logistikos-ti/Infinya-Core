@@ -222,9 +222,7 @@ export async function savePickingProgressAction(formData: FormData) {
         separacao: nextPickingPayload,
       },
     })
-    .eq("id", orderId)
-    .select("id")
-    .maybeSingle();
+    .eq("id", orderId);
 
   if (orderUpdateResult.error) {
     redirect(`${redirectBase}?feedback=erro`);
