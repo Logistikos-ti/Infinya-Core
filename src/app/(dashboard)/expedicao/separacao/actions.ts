@@ -278,6 +278,12 @@ export async function savePickingWaveProgressAction(formData: FormData) {
   const quantityValues = formData
     .getAll("separatedQuantity")
     .map((value) => normalizeQuantity(String(value)));
+  const cancelledOrderIds = new Set(
+    formData
+      .getAll("cancelledOrderId")
+      .map((value) => String(value).trim())
+      .filter(Boolean),
+  );
 
   if (
     !orderIds.length ||
