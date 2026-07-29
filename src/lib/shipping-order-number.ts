@@ -3,7 +3,14 @@ export function formatWmsOrderNumber(
   fallback: string,
   depositanteName?: string | null,
 ) {
-  const numericValue = Number(value);
+  let numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    const match = fallback.match(/\d+$/);
+    if (match && fallback.startsWith("WMS-")) {
+      numericValue = Number(match[0]);
+    }
+  }
 
   if (Number.isFinite(numericValue) && numericValue > 0) {
     let prefix = "WMS";
