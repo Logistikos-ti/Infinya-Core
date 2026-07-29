@@ -32,7 +32,8 @@ import {
   FileText,
   Receipt,
   Tag,
-  Trash2
+  Trash2,
+  ArrowUpDown
 } from "lucide-react";
 import { createManualShippingOrderAction, deleteShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
@@ -96,6 +97,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
   const [activeFilter, setActiveFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
+  type OrderSortKey = "order" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
+  const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -313,9 +316,58 @@ export function ExpedicaoClient({ data }: { data: any }) {
            (o.nfe || "").toLowerCase().includes(q);
   });
 
+  const sortValue = (order: any, key: OrderSortKey) => {
+    const carrier = order.marketplace && order.marketplace !== "NÃ£o" && order.marketplace !== "Marketplace"
+      ? order.marketplace
+      : (order.channel && order.channel !== "BLING" ? order.channel : (order.carrierName || "N/A"));
+    switch (key) {
+      case "order": return String(order.displayNumber || order.code || order.id || "");
+      case "customer": return String(order.customer || "");
+      case "depositante": return String(order.depositante || "");
+      case "channel": return String(carrier || "");
+      case "items": return Number(order.itemCount ?? order.vol ?? 0);
+      case "conference": {
+        if (["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(order.status)) return 100;
+        if (order.status === "EM_CONFERENCIA") return 50;
+        if (["EM_SEPARACAO", "SEPARADO"].includes(order.status)) return 25;
+        return Number(order.conf ?? 0);
+      }
+      case "sla": return Number(order.ageMinutes ?? order.ageHours ?? 0);
+      case "status": return String(order.statusLabel || order.status || "");
+    }
+  };
+
+  const sortedSearchedOrders = [...searchedOrders].sort((left, right) => {
+    const leftValue = sortValue(left, sort.key);
+    const rightValue = sortValue(right, sort.key);
+    const comparison = typeof leftValue === "number" && typeof rightValue === "number"
+      ? leftValue - rightValue
+      : String(leftValue).localeCompare(String(rightValue), "pt-BR", { sensitivity: "base", numeric: true });
+    return sort.direction === "asc" ? comparison : -comparison;
+  });
+
+  const changeSort = (key: OrderSortKey) => {
+    setCurrentPage(1);
+    setSort((current) => current.key === key
+      ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+      : { key, direction: key === "order" ? "asc" : "asc" });
+  };
+
+  const sortKeyByColumn: Record<string, OrderSortKey | undefined> = {
+    "Pedido": "order",
+    "Cliente": "customer",
+    "Depositante": "depositante",
+    "Canal": "channel",
+    "Itens": "items",
+    "ConferÃªncia": "conference",
+    "Conferência": "conference",
+    "SLA": "sla",
+    "Status": "status"
+  };
+
   const ITEMS_PER_PAGE = 10;
-  const totalPages = Math.ceil(searchedOrders.length / ITEMS_PER_PAGE) || 1;
-  const paginatedOrders = searchedOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedSearchedOrders.length / ITEMS_PER_PAGE) || 1;
+  const paginatedOrders = sortedSearchedOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const orders = paginatedOrders.map((o: any) => {
     const ss = getStatusStyle(o.status);
@@ -493,7 +545,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <thead>
                     <tr style={{textAlign: "left"}}>
                       {columns?.map((c: any, i: number) => <React.Fragment key={i}>
-                        <th style={{padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: `${t.textSub }`, background: `${t.headBg }`, borderBottom: `1px solid ${t.border }`, whiteSpace: "nowrap"}}>{c }</th>
+                        <th style={{padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: `${t.textSub }`, background: `${t.headBg }`, borderBottom: `1px solid ${t.border }`, whiteSpace: "nowrap"}}>
+                          {sortKeyByColumn[c] ? (
+                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer" }}>
+                              {c}<ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: sort.key === sortKeyByColumn[c] ? 1 : 0.55 }} />
+                            </button>
+                          ) : c}
+                        </th>
                       </React.Fragment>)}
                     </tr>
                   </thead>
@@ -678,7 +736,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <thead>
                     <tr style={{ textAlign: "left" }}>
                       {columns.map((c: any, i: number) => (
-                        <th key={i} style={{ padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: t.textSub, background: t.headBg, borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>{c}</th>
+                        <th key={i} style={{ padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: t.textSub, background: t.headBg, borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>
+                          {sortKeyByColumn[c] ? (
+                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer" }}>
+                              {c}<ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: sort.key === sortKeyByColumn[c] ? 1 : 0.55 }} />
+                            </button>
+                          ) : c}
+                        </th>
                       ))}
                     </tr>
                   </thead>
