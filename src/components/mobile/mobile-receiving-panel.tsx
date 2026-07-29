@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Barcode, Focus, Search, Volume2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import type { ReceivingOrderDetail } from "@/lib/receiving";
 import {
   mobileColors,
+  mobileGradient,
   hexAlpha,
   headingFont,
+  MobileBackButton,
   MobilePrimaryButton,
   MobileScanOverlay,
+  MobileIcon,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 
@@ -21,6 +25,14 @@ type AddressOption = {
 
 type MobileReceivingPanelProps = {
   orderId: string;
+  orderCode: string;
+  depositante: string;
+  supplier: string;
+  status: string;
+  eta: string;
+  noteNumber: string;
+  volumes: number;
+  skuCount: number;
   initialItems: ReceivingOrderDetail["items"];
   addresses: AddressOption[];
 };
@@ -40,15 +52,25 @@ type ReceivingItemState = {
   requireExpiry: boolean;
 };
 
+const FLASH_DURATION_MS = 1800;
+
 export function MobileReceivingPanel({
   orderId,
+  orderCode,
+  depositante,
+  supplier,
+  status,
+  eta,
+  noteNumber,
+  volumes,
+  skuCount,
   initialItems,
   addresses,
 }: MobileReceivingPanelProps) {
   const router = useRouter();
-  const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const overlayTimerRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [items, setItems] = useState<ReceivingItemState[]>(
     initialItems.map((item) => ({
       id: item.id,
@@ -66,10 +88,9 @@ export function MobileReceivingPanel({
     })),
   );
   const [enderecoId, setEnderecoId] = useState(addresses[0]?.id ?? "");
-  const [scanValue, setScanValue] = useState("");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,76 +107,96 @@ export function MobileReceivingPanel({
     return { expected, received, pending, percent };
   }, [items]);
 
-  const nextItem = useMemo(
-    () =>
-      items.find(
-        (item) => normalizeQuantity(item.receivedQuantityValue) < item.expectedQuantity,
-      ) ?? null,
-    [items],
-  );
+  const applyScanRef = useRef<(code: string) => void>(() => {});
+  const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
+
+  const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
+    onDetected: handleDetected,
+    requirePresenceGap: true,
+    confirmReads: 2,
+    confirmMisses: 4,
+  });
 
   useEffect(() => {
-    const timer = window.setTimeout(() => scanInputRef.current?.focus(), 180);
-    return () => window.clearTimeout(timer);
-  }, []);
+    if (scannerOpen) void startCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannerOpen]);
 
   useEffect(() => {
-    if (!activeItemId) {
-      return;
-    }
-
-    itemRefs.current[activeItemId]?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
+    if (!activeItemId) return;
+    itemRefs.current[activeItemId]?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [activeItemId]);
 
   useEffect(() => {
     return () => {
-      if (overlayTimerRef.current) {
-        window.clearTimeout(overlayTimerRef.current);
-      }
+      if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+      void audioContextRef.current?.close();
     };
   }, []);
 
-  function flash(next: ScanOverlayState) {
-    setOverlay(next);
-    if (overlayTimerRef.current) {
-      window.clearTimeout(overlayTimerRef.current);
-    }
-    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), 700);
-
-    if (!soundEnabled || typeof window === "undefined" || !next) {
-      return;
-    }
-
+  function unlockAudio() {
+    if (typeof window === "undefined") return;
     const AudioContextRef =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextRef) return;
 
-    if (!AudioContextRef) {
-      return;
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextRef();
     }
-
-    const context = new AudioContextRef();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.type = next.type === "ok" ? "sine" : "square";
-    oscillator.frequency.value = next.type === "ok" ? 880 : 220;
-    gain.gain.value = 0.04;
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.12);
-    oscillator.onended = () => void context.close();
+    if (audioContextRef.current.state === "suspended") {
+      void audioContextRef.current.resume();
+    }
   }
 
-  function focusScanInput() {
-    requestAnimationFrame(() => {
-      scanInputRef.current?.focus();
-      scanInputRef.current?.select();
-    });
+  function openScanner() {
+    // Must run inside this direct tap handler: mobile browsers only allow
+    // an AudioContext to unlock/resume during a genuine user gesture, and
+    // the barcode-detection callback that later triggers flash()/beep()
+    // runs async, well outside any gesture, so it can't unlock audio itself.
+    unlockAudio();
+    setScannerOpen(true);
+  }
+
+  function closeScanner() {
+    stopCamera(null);
+    setScannerOpen(false);
+  }
+
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
+
+    if (!next) return;
+
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(next.type === "ok" ? 60 : [70, 60, 70]);
+    }
+
+    const context = audioContextRef.current;
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+
+    const beep = (freq: number, type: OscillatorType, startTime: number, duration: number) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = freq;
+      gain.gain.value = 0.05;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    const now = context.currentTime;
+    if (next.type === "ok") {
+      beep(880, "sine", now, 0.12);
+    } else {
+      beep(220, "square", now, 0.1);
+      beep(180, "square", now + 0.14, 0.12);
+    }
   }
 
   function updateItem(
@@ -172,11 +213,7 @@ export function MobileReceivingPanel({
 
   function applyScan(rawValue: string) {
     const normalizedScan = normalizeScan(rawValue);
-
-    if (!normalizedScan) {
-      flash({ type: "err", title: "Código vazio", code: "—", sub: "Leia ou digite um código para localizar o item." });
-      return;
-    }
+    if (!normalizedScan) return;
 
     const matchedItem = items.find((item) =>
       [item.barcode, item.internalCode, item.sku]
@@ -187,7 +224,6 @@ export function MobileReceivingPanel({
     if (!matchedItem) {
       setActiveItemId(null);
       flash({ type: "err", title: "Não encontrado", code: rawValue, sub: "Código não encontrado neste recebimento." });
-      focusScanInput();
       return;
     }
 
@@ -202,7 +238,6 @@ export function MobileReceivingPanel({
     );
 
     setActiveItemId(matchedItem.id);
-    setScanValue("");
     flash({
       type: "ok",
       title: "Volume recebido",
@@ -211,8 +246,11 @@ export function MobileReceivingPanel({
     });
     setError(null);
     setMessage(null);
-    focusScanInput();
   }
+
+  useEffect(() => {
+    applyScanRef.current = applyScan;
+  });
 
   async function submitConference(finalizar: boolean) {
     setIsSaving(true);
@@ -241,12 +279,10 @@ export function MobileReceivingPanel({
 
       if (!response.ok) {
         setError(result.error ?? "Não foi possível salvar a conferência.");
-        flash({ type: "err", title: "Falha ao salvar", code: "—", sub: result.error ?? "Tente novamente." });
         return;
       }
 
       setMessage(result.message ?? "Conferência atualizada com sucesso.");
-      flash({ type: "ok", title: "Salvo", code: "—", sub: result.message ?? "Conferência atualizada." });
 
       if (finalizar) {
         router.push("/m/recebimento?feedback=concluido");
@@ -254,62 +290,71 @@ export function MobileReceivingPanel({
       }
     } catch {
       setError("Falha de comunicação com a API do recebimento.");
-      flash({ type: "err", title: "Falha de rede", code: "—", sub: "Falha de comunicação com a API do recebimento." });
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="relative space-y-4">
+    <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <MobileScanOverlay overlay={overlay} />
 
-      <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.violetLight }}>
-              Conferência inbound
-            </p>
-            <p className="mt-2 text-sm" style={{ color: mobileColors.muted }}>
-              Lance quantidade, lote e validade direto no celular.
-            </p>
-          </div>
-          <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: hexAlpha(mobileColors.violet, 0.15), color: mobileColors.violetLight }}>
-            {progress.percent}%
+      <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
+        <MobileBackButton onClick={() => router.push("/m/recebimento")} />
+        <div className="flex min-w-0 flex-1 flex-col gap-px">
+          <span className="text-[16px] font-extrabold" style={headingFont}>
+            Recebimento
+          </span>
+          <span className="truncate text-[12px]" style={{ color: mobileColors.muted }}>
+            {orderCode} · {depositante}
           </span>
         </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <MiniInfo label="Previsto" value={String(progress.expected)} />
-          <MiniInfo label="Recebido" value={String(progress.received)} />
-          <MiniInfo label="Pendente" value={String(progress.pending)} />
-        </div>
-      </section>
-
-      {nextItem ? (
-        <section
-          className="rounded-[24px] p-4"
-          style={{ border: `1px solid ${hexAlpha(mobileColors.violet, 0.3)}`, background: hexAlpha(mobileColors.violet, 0.1) }}
+        <span
+          className="rounded-full px-[11px] py-[5px] text-[11.5px] font-extrabold"
+          style={{ background: hexAlpha(mobileColors.violet, 0.16), color: mobileColors.violetLight }}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.violetLight }}>
-            Próximo item sugerido
-          </p>
-          <p className="mt-2 text-base font-semibold" style={headingFont}>{nextItem.sku}</p>
-          <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>{nextItem.description}</p>
-          <p className="mt-2 text-sm" style={{ color: mobileColors.text }}>
-            Falta{" "}
-            {Math.max(
-              nextItem.expectedQuantity - normalizeQuantity(nextItem.receivedQuantityValue),
-              0,
-            )}{" "}
-            {nextItem.unitLabel.toLowerCase()}
-          </p>
-        </section>
-      ) : null}
+          {progress.percent}%
+        </span>
+      </div>
 
-      <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.muted }}>
+      <div
+        className="app-scroll flex flex-1 flex-col gap-3.5 overflow-y-auto px-[18px]"
+        style={{ paddingBottom: 152 }}
+      >
+        <div
+          className="flex flex-col gap-3 rounded-[20px] p-[16px]"
+          style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: hexAlpha("#94A3B8", 0.045) }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span
+                className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px]"
+                style={{ background: hexAlpha(mobileColors.violet, 0.16), color: mobileColors.violetLight }}
+              >
+                <MobileIcon name="inbound" size={20} />
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[15px] font-extrabold" style={headingFont}>{supplier}</span>
+                <span className="text-[12px]" style={{ color: mobileColors.muted }}>NF {noteNumber} · {eta}</span>
+              </div>
+            </div>
+            <span
+              className="shrink-0 rounded-full px-[10px] py-[4px] text-[11px] font-extrabold"
+              style={{ background: hexAlpha(mobileColors.amber, 0.16), color: mobileColors.amber }}
+            >
+              {status}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <MiniInfo label="Previsto" value={String(progress.expected)} />
+            <MiniInfo label="Recebido" value={String(progress.received)} />
+            <MiniInfo label="Pendente" value={String(progress.pending)} />
+          </div>
+        </div>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
             Endereço destino
           </span>
           <select
@@ -318,208 +363,238 @@ export function MobileReceivingPanel({
             className="h-12 w-full rounded-2xl px-3 text-sm outline-none"
             style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
           >
-            {addresses.map((address) => (
-              <option key={address.id} value={address.id}>
-                {address.codigo} • {formatArea(address.area)}
-              </option>
-            ))}
+            {addresses.length ? (
+              addresses.map((address) => (
+                <option key={address.id} value={address.id}>
+                  {address.codigo} · {formatArea(address.area)}
+                </option>
+              ))
+            ) : (
+              <option value="">Nenhum endereço de recebimento disponível</option>
+            )}
           </select>
         </label>
 
-        <div className="mt-4 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.muted }}>
-            Leitura
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: mobileColors.dim }}>
+            {skuCount} {skuCount === 1 ? "item" : "itens"} · {volumes} volumes previstos
           </span>
-          <div className="flex items-center gap-2 rounded-2xl p-2" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424" }}>
-            <Barcode className="h-4 w-4" style={{ color: mobileColors.muted }} />
-            <input
-              ref={scanInputRef}
-              value={scanValue}
-              onChange={(event) => setScanValue(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applyScan(scanValue);
-                }
-              }}
-              onBlur={() => {
-                window.setTimeout(() => {
-                  scanInputRef.current?.focus();
-                }, 40);
-              }}
-              placeholder="Leia EAN, SKU ou código"
-              className="h-10 w-full bg-transparent text-sm outline-none"
-              style={{ color: mobileColors.text }}
-            />
-            <button
-              type="button"
-              onClick={() => applyScan(scanValue)}
-              className="rounded-xl px-3 py-2 text-sm font-semibold text-white"
-              style={{ background: mobileColors.violet }}
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </div>
+          {items.map((item) => {
+            const received = normalizeQuantity(item.receivedQuantityValue);
+            const missing = Math.max(item.expectedQuantity - received, 0);
+            const hasDivergence = received !== item.expectedQuantity;
+            const isActive = activeItemId === item.id;
 
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={focusScanInput}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
-              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.text }}
-            >
-              <Focus className="h-4 w-4" />
-              Focar
-            </button>
-            <button
-              type="button"
-              onClick={() => setSoundEnabled((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
-              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, color: mobileColors.text }}
-            >
-              <Volume2 className="h-4 w-4" />
-              {soundEnabled ? "Som ativo" : "Som desligado"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        {items.map((item) => {
-          const received = normalizeQuantity(item.receivedQuantityValue);
-          const missing = Math.max(item.expectedQuantity - received, 0);
-          const hasDivergence = received !== item.expectedQuantity;
-          const isActive = activeItemId === item.id;
-
-          return (
-            <div
-              key={item.id}
-              ref={(element) => {
-                itemRefs.current[item.id] = element;
-              }}
-              className="rounded-[24px] p-4 transition-colors"
-              style={{
-                border: `1px solid ${hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.5 : 0.14)}`,
-                background: hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.1 : 0.045),
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: mobileColors.text, ...headingFont }}>{item.sku}</p>
-                  <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>{item.description}</p>
-                  <p className="mt-1 text-xs" style={{ color: mobileColors.dim }}>
-                    Código {item.internalCode || "-"} • EAN {item.barcode || "-"}
-                  </p>
+            return (
+              <div
+                key={item.id}
+                ref={(element) => {
+                  itemRefs.current[item.id] = element;
+                }}
+                className="rounded-[20px] p-4 transition-colors"
+                style={{
+                  border: `1px solid ${hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.5 : 0.14)}`,
+                  background: hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.1 : 0.045),
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold" style={{ color: mobileColors.text, ...headingFont }}>{item.sku}</p>
+                    <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>{item.description}</p>
+                    <p className="mt-1 text-xs" style={{ color: mobileColors.dim }}>
+                      Código {item.internalCode || "-"} · EAN {item.barcode || "-"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}>
+                    {item.expectedQuantity} {item.unitLabel.toLowerCase()}
+                  </span>
                 </div>
-                <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}>
-                  {item.expectedQuantity} {item.unitLabel.toLowerCase()}
-                </span>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <InfoBadge label="Previsto" value={`${item.expectedQuantity}`} />
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                      Recebido
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={item.receivedQuantityValue}
+                      onChange={(event) =>
+                        updateItem(item.id, "receivedQuantityValue", event.target.value)
+                      }
+                      className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
+                    />
+                  </label>
+                  <InfoBadge label="Status" value={hasDivergence ? "A validar" : "OK"} />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                      Lote {item.requireLot ? "*" : ""}
+                    </span>
+                    <input
+                      value={item.lotValue}
+                      onChange={(event) => updateItem(item.id, "lotValue", event.target.value)}
+                      placeholder={item.requireLot ? "Obrigatório" : "Opcional"}
+                      className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
+                    />
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                      Validade {item.requireExpiry ? "*" : ""}
+                    </span>
+                    <input
+                      type="date"
+                      value={item.expiryValue}
+                      onChange={(event) => updateItem(item.id, "expiryValue", event.target.value)}
+                      className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
+                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
+                    />
+                  </label>
+                </div>
+
+                <p className="mt-3 text-sm" style={{ color: missing > 0 ? mobileColors.amber : mobileColors.green }}>
+                  {missing > 0
+                    ? `Faltam ${missing} ${item.unitLabel.toLowerCase()}.`
+                    : "Item recebido conforme previsto."}
+                </p>
               </div>
+            );
+          })}
+        </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <InfoBadge label="Previsto" value={`${item.expectedQuantity}`} />
-                <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    Recebido
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={item.receivedQuantityValue}
-                    onChange={(event) =>
-                      updateItem(item.id, "receivedQuantityValue", event.target.value)
-                    }
-                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                  />
-                </label>
-                <InfoBadge label="Status" value={hasDivergence ? "A validar" : "OK"} />
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    Lote {item.requireLot ? "*" : ""}
-                  </span>
-                  <input
-                    value={item.lotValue}
-                    onChange={(event) => updateItem(item.id, "lotValue", event.target.value)}
-                    placeholder={item.requireLot ? "Obrigatório" : "Opcional"}
-                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                  />
-                </label>
-
-                <label className="space-y-1">
-                  <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    Validade {item.requireExpiry ? "*" : ""}
-                  </span>
-                  <input
-                    type="date"
-                    value={item.expiryValue}
-                    onChange={(event) => updateItem(item.id, "expiryValue", event.target.value)}
-                    className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                  />
-                </label>
-              </div>
-
-              <p className="mt-3 text-sm" style={{ color: missing > 0 ? mobileColors.amber : mobileColors.green }}>
-                {missing > 0
-                  ? `Faltam ${missing} ${item.unitLabel.toLowerCase()}.`
-                  : "Item recebido conforme previsto."}
-              </p>
-            </div>
-          );
-        })}
-      </section>
-
-      {message ? (
-        <section
-          className="rounded-[24px] p-4 text-sm"
-          style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.1), color: mobileColors.green }}
-        >
-          {message}
-        </section>
-      ) : null}
-
-      {error ? (
-        <section
-          className="rounded-[24px] p-4 text-sm"
-          style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.1), color: mobileColors.redLight }}
-        >
-          <div className="flex gap-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{error}</p>
+        {message ? (
+          <div
+            className="rounded-[18px] p-4 text-sm"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.1), color: mobileColors.green }}
+          >
+            {message}
           </div>
-        </section>
-      ) : null}
+        ) : null}
+
+        {error ? (
+          <div
+            className="rounded-[18px] p-4 text-sm"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.1), color: mobileColors.redLight }}
+          >
+            <div className="flex gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       <div
-        className="sticky bottom-20 z-20 rounded-[24px] p-4 shadow-2xl"
-        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "rgba(10,17,32,0.95)" }}
+        className="left-1/2 flex w-full max-w-md -translate-x-1/2 flex-col gap-2.5 px-[18px] pt-3"
+        style={{
+          position: "fixed",
+          bottom: 0,
+          paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
+          background: "linear-gradient(180deg, rgba(10,17,32,0) 0%, #0A1120 22%)",
+        }}
       >
-        <div className="mb-3 flex items-center justify-between gap-3 text-sm" style={{ color: mobileColors.muted }}>
-          <span>{progress.percent}% concluído</span>
-          <span>{progress.pending} un pendente(s)</span>
-        </div>
+        <button
+          type="button"
+          onClick={openScanner}
+          className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
+          style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
+        >
+          <MobileIcon name="scan" size={20} strokeWidth={2} />
+          Bipar item
+        </button>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => void submitConference(false)}
             disabled={isSaving || !enderecoId}
-            className="h-11 rounded-xl text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-12 rounded-xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
             style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text, border: `1px solid ${hexAlpha("#94A3B8", 0.16)}` }}
           >
             {isSaving ? "Salvando..." : "Salvar conferência"}
           </button>
-          <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 44 }}>
-            {isSaving ? "Concluindo..." : "Concluir e lançar no estoque"}
+          <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 48 }}>
+            {isSaving ? "Concluindo..." : "Concluir"}
           </MobilePrimaryButton>
         </div>
       </div>
+
+      {scannerOpen ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#000" }}>
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.65) 100%)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "18px",
+              paddingTop: "calc(18px + env(safe-area-inset-top))",
+            }}
+          >
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, ...headingFont }}>
+              Bipe qualquer item do pedido
+            </span>
+            <button
+              type="button"
+              onClick={() => closeScanner()}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.14)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MobileIcon name="x" size={18} strokeWidth={2.6} />
+            </button>
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                width: 250,
+                height: 160,
+                borderRadius: 22,
+                border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
+              }}
+            />
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, padding: "0 24px calc(40px + env(safe-area-inset-bottom))", textAlign: "center" }}>
+            <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
+              {cameraStarting ? "Abrindo câmera..." : cameraMessage ?? "Posicione o código dentro da moldura"}
+            </span>
+          </div>
+
+          <MobileScanOverlay overlay={overlay} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -278,7 +278,9 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     }
   }
 
-  applyScanRef.current = applyScan;
+  useEffect(() => {
+    applyScanRef.current = applyScan;
+  });
 
   function cancelCurrentOrder() {
     if (!currentItem) return;
