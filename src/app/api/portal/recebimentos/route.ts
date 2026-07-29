@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
+import { generateReceivingCode } from "@/lib/receiving";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type PortalReceivingItemPayload = {
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
     }
 
     const volumes = items.reduce((sum, item) => sum + item.quantidade, 0);
-    const code = buildReceivingCode(depositante.codigo ?? "DEP");
+    const code = await generateReceivingCode(adminSupabase, depositante.codigo ?? "DEP");
     const observacoes = [
       `Tipo de recebimento: ${type}`,
       hour ? `Horário previsto: ${hour}` : "",
@@ -207,16 +208,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function buildReceivingCode(depositanteCodigo: string) {
-  const now = new Date();
-  const datePart = [
-    now.getFullYear().toString().slice(-2),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("");
-  const suffix = Math.floor(Math.random() * 900 + 100);
-
-  return `REC-${datePart}-${depositanteCodigo.slice(0, 3).toUpperCase()}-${suffix}`;
 }

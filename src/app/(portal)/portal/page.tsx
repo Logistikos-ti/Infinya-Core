@@ -74,6 +74,35 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           .eq("ativo", true)
           .order("nome")
       : { data: [] };
+  const { data: receivingItemRows } =
+    view === "recebimento" && receiving.length
+      ? await adminSupabase
+          .from("pedidos_recebimento_itens")
+          .select(
+            "id, pedido_recebimento_id, quantidade_prevista, quantidade_recebida, status, produto:produtos(sku, nome)",
+          )
+          .in(
+            "pedido_recebimento_id",
+            receiving.map((order) => order.id),
+          )
+      : { data: [] };
+  const receivingItemsByOrder = new Map<
+    string,
+    Array<{ id: string; sku: string; nome: string; expected: number; received: number; status: string }>
+  >();
+  for (const item of receivingItemRows ?? []) {
+    const list = receivingItemsByOrder.get(item.pedido_recebimento_id) ?? [];
+    const productRow = Array.isArray(item.produto) ? item.produto[0] : item.produto;
+    list.push({
+      id: item.id,
+      sku: productRow?.sku ?? "SKU",
+      nome: productRow?.nome ?? "Produto",
+      expected: Number(item.quantidade_prevista ?? 0),
+      received: Number(item.quantidade_recebida ?? 0),
+      status: item.status,
+    });
+    receivingItemsByOrder.set(item.pedido_recebimento_id, list);
+  }
   const [{ data: portalProductRows }, { data: portalStockRows }] =
     view === "pedidos"
       ? await Promise.all([
@@ -143,7 +172,10 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ) : null}
       {view === "recebimento" ? (
         <ReceivingViewClient
-          receiving={receiving}
+          receiving={receiving.map((order) => ({
+            ...order,
+            items: receivingItemsByOrder.get(order.id) ?? [],
+          }))}
           depositanteId={depositanteId}
           products={(receivingProductRows ?? []).map((product) => ({
             id: product.id,

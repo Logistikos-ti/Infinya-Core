@@ -7,6 +7,7 @@ import {
   matchNfeProductsToCatalog,
   parseNfeXml,
 } from "@/lib/nfe-import";
+import { generateReceivingCode } from "@/lib/receiving";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   allowedDocumentMimeTypes,
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const code = buildReceivingCode(depositante.codigo);
+  const code = await generateReceivingCode(adminSupabase, depositante.codigo);
   const previsao = extractForecastDate(parsedXml.issuedAt);
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_recebimento")
@@ -242,18 +243,6 @@ export async function POST(request: Request) {
     },
     { status: 201 },
   );
-}
-
-function buildReceivingCode(depositanteCodigo: string) {
-  const now = new Date();
-  const datePart = [
-    now.getFullYear().toString().slice(-2),
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-  ].join("");
-  const suffix = Math.floor(Math.random() * 900 + 100);
-
-  return `REC-${datePart}-${depositanteCodigo.slice(0, 3).toUpperCase()}-${suffix}`;
 }
 
 function extractForecastDate(issuedAt: string | null) {

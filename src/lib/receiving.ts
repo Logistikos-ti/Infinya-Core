@@ -1,5 +1,22 @@
 import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+export async function generateReceivingCode(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  depositanteCodigo: string,
+) {
+  const { data, error } = await adminSupabase.rpc("next_recebimento_codigo_seq");
+
+  if (error || data === null || typeof data === "undefined") {
+    throw new Error(
+      `Não foi possível gerar o código do recebimento: ${error?.message ?? "erro desconhecido"}`,
+    );
+  }
+
+  const prefix = (depositanteCodigo || "DEP").slice(0, 3).toUpperCase();
+  return `RC-${prefix}-${data}`;
+}
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 type ProductRelation =

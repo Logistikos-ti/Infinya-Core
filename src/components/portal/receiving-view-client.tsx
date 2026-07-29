@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 
+type ReceivingDetailItem = {
+  id: string;
+  sku: string;
+  nome: string;
+  expected: number;
+  received: number;
+  status: string;
+};
+
 type ReceivingItem = {
   id: string;
   code: string;
@@ -15,6 +24,7 @@ type ReceivingItem = {
   status: string;
   noteNumber: string;
   xmlAttached: boolean;
+  items: ReceivingDetailItem[];
 };
 
 type ProductOption = {
@@ -46,6 +56,7 @@ function emptyItemLine(): ItemLine {
 export function ReceivingViewClient({ receiving, depositanteId, products }: ReceivingViewClientProps) {
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [selected, setSelected] = useState<ReceivingItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
@@ -324,6 +335,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               {receiving.map((item) => (
                 <tr
                   key={item.id}
+                  onClick={() => setSelected(item)}
                   className="cursor-pointer border-b border-slate-200 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
                 >
                   <td className="px-5 py-3.5 font-display text-sm font-bold">
@@ -629,6 +641,132 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 <span className="text-lg leading-none">⇢</span>
                 {saving ? "Enviando..." : "Enviar solicitação"}
               </button>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {selected ? (
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detalhes do recebimento ${selected.code}`}
+        >
+          <button
+            type="button"
+            aria-label="Fechar detalhes do recebimento"
+            onClick={() => setSelected(null)}
+            className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-[3px]"
+          />
+          <aside
+            className="relative flex h-full w-[460px] max-w-[92vw] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-[-24px_0_60px_rgba(0,0,0,0.35)] dark:border-white/10 dark:bg-[#0c1526]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-6 py-6 dark:border-white/10">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-bold tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  RECEBIMENTO
+                </span>
+                <span className="font-display text-2xl font-bold leading-none text-slate-950 dark:text-white">
+                  {selected.code}
+                </span>
+                <span
+                  className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${statusStyle(selected.status).background} ${statusStyle(selected.status).color}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${statusStyle(selected.status).dot}`} />
+                  {displayStatus(selected.status)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-4.5 overflow-y-auto px-6 py-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-[15px] font-bold text-slate-900 dark:text-white">
+                  {selected.supplier ?? "Fornecedor não informado"}
+                </span>
+                <span className="text-[12.5px] text-slate-500 dark:text-slate-400">
+                  NF-e {selected.noteNumber || "-"} ·{" "}
+                  {selected.volumeCount ?? 0} {selected.volumeCount === 1 ? "vol." : "vols."}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">Data prevista</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{selected.eta ?? "-"}</span>
+                </div>
+                <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">Horário previsto</span>
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-white">
+                    {selected.etaTime ?? "-"}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">Volumes</span>
+                  <span className="font-display text-sm font-bold text-slate-900 dark:text-white">
+                    {selected.volumeCount ?? 0} {selected.volumeCount === 1 ? "vol." : "vols."}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">NF-e (XML)</span>
+                  <span
+                    className={`text-sm font-bold ${selected.xmlAttached ? "text-emerald-500" : "text-slate-500 dark:text-slate-400"}`}
+                  >
+                    {selected.xmlAttached ? "XML anexado" : "Sem XML"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
+                  Itens ({selected.items.length})
+                </h4>
+                {selected.items.length ? (
+                  <div className="space-y-2">
+                    {selected.items.map((item) => {
+                      const isDivergent = item.status === "DIVERGENCIA";
+                      const isDone = item.status === "RECEBIDO";
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3.5 dark:border-white/10"
+                        >
+                          <div className="flex min-w-0 flex-col gap-0.5">
+                            <span className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                              {item.nome}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{item.sku}</span>
+                          </div>
+                          <span
+                            className={`shrink-0 text-sm font-bold ${
+                              isDivergent
+                                ? "text-rose-500"
+                                : isDone
+                                  ? "text-emerald-500"
+                                  : "text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {item.received}/{item.expected}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/15 dark:text-slate-400">
+                    Nenhum item cadastrado para este recebimento ainda.
+                  </p>
+                )}
+              </div>
             </div>
           </aside>
         </div>
