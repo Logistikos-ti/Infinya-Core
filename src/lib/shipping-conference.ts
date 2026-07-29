@@ -249,7 +249,7 @@ function mapConferenceOrder(
     id: order.id,
     code: order.codigo,
     internalNumber: normalizeInternalOrderNumber(order.numero_wms),
-    displayNumber: formatWmsOrderNumber(order.numero_wms, order.codigo),
+    displayNumber: formatWmsOrderNumber(order.numero_wms, order.codigo, extractRelationName(order.depositante)),
     createdAtIso: ageMeta.createdAtIso,
     createdAt: ageMeta.createdAtLabel,
     ageLabel: ageMeta.ageLabel,
