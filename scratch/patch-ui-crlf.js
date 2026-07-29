@@ -1,0 +1,17 @@
+const fs = require('fs');
+const path = require('path');
+const p = path.join('src', 'components', 'expedicao', 'expedicao-client.tsx');
+let c = fs.readFileSync(p, 'utf8');
+
+const target = `                  </div>\n                </div>\n\n                {/* carrier + dock + specs */}`;
+const replace = `                  </div>\n                </div>\n\n                {/* Document buttons */}\n                <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>\n                  <button \n                    onClick={(e) => { e.stopPropagation(); window.open(\`/api/expedicao/\${sel.raw.id}/nota-fiscal-preview?disposition=inline\`, "_blank", "width=900,height=700"); }}\n                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: \`1px solid \${t.border}\`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}\n                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"\n                  >\n                    <FileText size={20} color={t.textSub} />\n                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>\n                  </button>\n                  <button \n                    onClick={(e) => { e.stopPropagation(); window.open(\`/api/expedicao/\${sel.raw.id}/danfe-simplificada?disposition=inline\`, "_blank", "width=900,height=700"); }}\n                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: \`1px solid \${t.border}\`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}\n                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"\n                  >\n                    <Receipt size={20} color={t.textSub} />\n                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>\n                  </button>\n                  <button \n                    onClick={(e) => { e.stopPropagation(); window.open(\`/api/expedicao/\${sel.raw.id}/anexos/etiqueta?disposition=inline\`, "_blank", "width=900,height=700"); }}\n                    style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: \`1px solid \${t.border}\`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}\n                    className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"\n                  >\n                    <Tag size={20} color={t.textSub} />\n                    <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>\n                  </button>\n                </div>\n\n                {/* carrier + dock + specs */}`;
+
+let cNormalized = c.replace(/\r\n/g, '\n');
+
+if (cNormalized.includes(target)) {
+  cNormalized = cNormalized.replace(target, replace);
+  fs.writeFileSync(p, cNormalized);
+  console.log('Successfully patched UI');
+} else {
+  console.log('Target not found in normalized text!');
+}

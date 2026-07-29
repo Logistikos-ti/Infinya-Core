@@ -1,0 +1,217 @@
+<div data-screen-label="Romaneio" style="display: flex; width: 100vw; height: 100vh; overflow: hidden; background: {{ t.appBg }}; color: {{ t.text }}; transition: background 0.35s ease, color 0.35s ease">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="width: 248px; flex-shrink: 0; display: flex; flex-direction: column; background: {{ t.sideBg }}; border-right: 1px solid {{ t.border }}; transition: background 0.35s ease">
+    <div style="padding: 24px 22px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid {{ t.border }}">
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.4em; color: {{ t.textSub }}">INFINOOS</span>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; background: linear-gradient(90deg, #60A5FA, #A78BFA); -webkit-background-clip: text; background-clip: text; color: transparent">WMS</span>
+    </div>
+    <nav style="flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="10">
+        <a href="{{ item.href }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; cursor: pointer; font-size: 14.5px; font-weight: {{ item.weight }}; color: {{ item.color }}; background: {{ item.bg }}; transition: all 0.18s ease" style-hover="background: {{ t.navHover }}">
+          <span style="width: 19px; height: 19px; display: flex; align-items: center; justify-content: center; opacity: {{ item.iconOpacity }}">{{ item.iconEl }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      </sc-for>
+    </nav>
+    <div style="padding: 14px 16px; border-top: 1px solid {{ t.border }}; display: flex; align-items: center; gap: 11px">
+      <div style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #8B5CF6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px">RA</div>
+      <div style="display: flex; flex-direction: column; min-width: 0">
+        <span style="font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rafael Alves</span>
+        <span style="font-size: 12px; color: {{ t.textSub }}">Supervisor · CD Cajamar</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden">
+
+    <!-- TOPBAR -->
+    <header style="flex-shrink: 0; height: 68px; display: flex; align-items: center; gap: 18px; padding: 0 28px; border-bottom: 1px solid {{ t.border }}; background: {{ t.barBg }}; transition: background 0.35s ease">
+      <div style="display: flex; align-items: center; gap: 10px; height: 42px; flex: 1; max-width: 420px; padding: 0 16px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}">
+        <span style="color: {{ t.textSub }}; font-size: 15px">⌕</span>
+        <input placeholder="Buscar romaneio, rota, motorista, placa..." style="flex: 1; border: none; outline: none; background: transparent; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px">
+      </div>
+      <div style="flex: 1"></div>
+      <button title="Notificações" style="position: relative; width: 42px; height: 42px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; cursor: pointer; display: flex; align-items: center; justify-content: center" style-hover="color: #8B5CF6"><span style="display: flex">{{ bellIcon }}</span><span style="position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px {{ t.barBg }}"></span></button>
+      <button sc-camel-on-click="{{ toggleTheme }}" title="Alternar tema" aria-label="Alternar tema" style="position: relative; width: 68px; height: 32px; padding: 0; border-radius: 999px; border: 1px solid {{ tog.border }}; background: {{ tog.track }}; cursor: pointer; transition: background 0.3s ease, border-color 0.3s ease; box-shadow: inset 0 1px 3px {{ tog.inset }}">
+        <span style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackMoon }}; transition: color 0.3s ease">☾</span>
+        <span style="position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackSun }}; transition: color 0.3s ease">☀</span>
+        <span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: {{ tog.knob }}; box-shadow: 0 1px 4px rgba(0,0,0,0.35); transform: translateX({{ tog.knobX }}); transition: transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease; font-size: 13px; color: {{ tog.knobIconColor }}">{{ tog.knobIcon }}</span>
+      </button>
+    </header>
+
+    <!-- CONTENT -->
+    <main style="flex: 1; overflow-y: auto; padding: 28px 32px 40px 32px">
+
+      <!-- title row -->
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 24px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{ t.textSub }}"><span>Expedição</span><span>›</span><span style="color: {{ t.text }}; font-weight: 600">Romaneio</span></div>
+          <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">Romaneios de carga</h1>
+          <p style="margin: 0; font-size: 14.5px; color: {{ t.textSub }}">Agrupamento de pedidos por rota, veículo e transportadora para o carregamento.</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <button style="height: 44px; padding: 0 18px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px" style-hover="border-color: #8B5CF6">⭳ Exportar</button>
+          <button style="height: 44px; padding: 0 20px; border: none; border-radius: 11px; background: linear-gradient(92deg, #3B82F6, #8B5CF6); color: #fff; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(99,102,241,0.32); display: flex; align-items: center; gap: 8px" style-hover="transform: translateY(-1px)">+ Novo romaneio</button>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="padding: 20px; border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; align-items: center; justify-content: space-between">
+              <span style="font-size: 13px; font-weight: 600; color: {{ t.textSub }}">{{ k.label }}</span>
+              <span style="width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: {{ k.iconBg }}; color: {{ k.iconColor }}">{{ k.iconEl }}</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 8px">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700">{{ k.value }}</span>
+              <span style="font-size: 13px; font-weight: 700; color: {{ k.deltaColor }}">{{ k.delta }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- filters -->
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+          <button style="height: 36px; padding: 0 15px; border-radius: 9px; font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid {{ f.border }}; background: {{ f.bg }}; color: {{ f.color }}; transition: all 0.18s ease; display: flex; align-items: center; gap: 8px">{{ f.label }}<sc-if value="{{ f.hasCount }}" hint-placeholder-val="{{ false }}"><span style="padding: 1px 8px; border-radius: 999px; font-size: 11px; background: {{ f.countBg }}; color: {{ f.countColor }}">{{ f.count }}</span></sc-if></button>
+        </sc-for>
+        <div style="flex: 1"></div>
+        <span style="font-size: 13px; color: {{ t.textSub }}">{{ rowsCount }} romaneios</span>
+      </div>
+
+      <!-- romaneios cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px">
+        <sc-for list="{{ romaneios }}" as="r" hint-placeholder-count="6">
+          <div sc-camel-on-click="{{ r.open }}" style="border-radius: 18px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; overflow: hidden; cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease" style-hover="transform: translateY(-4px); box-shadow: 0 18px 40px rgba(15,23,42,0.18); border-color: {{ t.hoverBorder }}">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid {{ t.border }}">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: {{ r.carrierBg }}; color: {{ r.carrierColor }}; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 800">{{ r.carrierInit }}</span>
+                <div style="display: flex; flex-direction: column; gap: 1px">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{ r.code }}</span>
+                  <span style="font-size: 12px; color: {{ t.textSub }}">{{ r.carrier }}</span>
+                </div>
+              </div>
+              <span style="display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: {{ r.statusBg }}; color: {{ r.statusColor }}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ r.statusDot }}"></span>{{ r.status }}</span>
+            </div>
+            <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+              <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px">
+                <span style="color: {{ t.textSub }}; display: flex">{{ pinIcon }}</span>
+                <span style="font-weight: 700">{{ r.route }}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px">
+                <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 11px; background: {{ t.softBg }}">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">{{ r.orders }}</span>
+                  <span style="font-size: 11px; color: {{ t.textSub }}">pedidos</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 11px; background: {{ t.softBg }}">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">{{ r.volumes }}</span>
+                  <span style="font-size: 11px; color: {{ t.textSub }}">volumes</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 11px; background: {{ t.softBg }}">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700">{{ r.weight }}</span>
+                  <span style="font-size: 11px; color: {{ t.textSub }}">peso</span>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 7px">
+                <div style="display: flex; justify-content: space-between; font-size: 12.5px"><span style="color: {{ t.textSub }}">Ocupação do veículo</span><span style="font-weight: 700; color: {{ r.capColor }}">{{ r.cap }}</span></div>
+                <div style="height: 7px; border-radius: 999px; background: {{ t.barTrack }}; overflow: hidden"><div style="height: 100%; width: {{ r.capW }}; border-radius: 999px; background: {{ r.capFill }}; transform-origin: left; animation: barGrow 0.8s ease"></div></div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid {{ t.border }}">
+                <div style="display: flex; align-items: center; gap: 9px">
+                  <span style="color: {{ t.textSub }}; display: flex">{{ truckIcon }}</span>
+                  <div style="display: flex; flex-direction: column; gap: 1px">
+                    <span style="font-size: 13px; font-weight: 700">{{ r.driver }}</span>
+                    <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; color: {{ t.textSub }}">{{ r.plate }} · {{ r.vehicle }}</span>
+                  </div>
+                </div>
+                <span style="font-size: 12.5px; font-weight: 700; color: {{ r.depColor }}">{{ r.departure }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============ DETAIL DRAWER ============ -->
+  <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 50; display: flex; justify-content: flex-end">
+    <div sc-camel-on-click="{{ closeDrawer }}" style="position: absolute; inset: 0; background: rgba(6,10,20,0.55); backdrop-filter: blur(3px); animation: overlayFade 0.25s ease"></div>
+    <div style="position: relative; width: 500px; max-width: 94vw; height: 100%; background: {{ t.drawerBg }}; border-left: 1px solid {{ t.border }}; box-shadow: -24px 0 60px rgba(0,0,0,0.35); display: flex; flex-direction: column; animation: drawerIn 0.32s cubic-bezier(.3,1,.4,1); overflow: hidden">
+
+      <div style="position: relative; padding: 24px 24px 20px 24px; border-bottom: 1px solid {{ t.border }}; overflow: hidden">
+        <div style="position: absolute; width: 260px; height: 260px; right: -80px; top: -120px; border-radius: 50%; background: radial-gradient(circle, rgba(139,92,246,0.28), transparent 70%); pointer-events: none"></div>
+        <div style="position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: {{ t.textSub }}">ROMANEIO</span>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; line-height: 1">{{ sel.code }}</span>
+            <span style="display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: {{ sel.statusBg }}; color: {{ sel.statusColor }}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ sel.statusDot }}"></span>{{ sel.status }}</span>
+          </div>
+          <button sc-camel-on-click="{{ closeDrawer }}" style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; font-size: 16px; cursor: pointer" style-hover="color: #8B5CF6">✕</button>
+        </div>
+      </div>
+
+      <div style="flex: 1; overflow-y: auto; padding: 24px">
+        <!-- transport summary -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px">
+          <sc-for list="{{ sel.specs }}" as="s" hint-placeholder-count="6">
+            <div style="padding: 14px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 5px">
+              <span style="font-size: 11.5px; color: {{ t.textSub }}">{{ s.k }}</span>
+              <span style="font-size: 14.5px; font-weight: 700">{{ s.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- totals -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px">
+          <div style="padding: 16px; border-radius: 14px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 11.5px; color: {{ t.textSub }}">Pedidos</span>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{ sel.orders }}</span>
+          </div>
+          <div style="padding: 16px; border-radius: 14px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 11.5px; color: {{ t.textSub }}">Volumes</span>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{ sel.volumes }}</span>
+          </div>
+          <div style="padding: 16px; border-radius: 14px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 11.5px; color: {{ t.textSub }}">Peso total</span>
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{ sel.weight }}</span>
+          </div>
+        </div>
+
+        <!-- orders in manifest -->
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between">
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700">Pedidos no romaneio</span>
+            <span style="font-size: 12.5px; color: {{ t.textSub }}">sequência de entrega</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <sc-for list="{{ sel.stops }}" as="s" hint-placeholder-count="5">
+              <div style="display: flex; align-items: center; gap: 13px; padding: 12px 14px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}">
+                <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; background: {{ t.softBg }}; color: {{ t.textSub }}">{{ s.seq }}</span>
+                <div style="display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0">
+                  <span style="font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.customer }}</span>
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; color: {{ t.textSub }}">{{ s.code }} · {{ s.city }}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1px; align-items: flex-end">
+                  <span style="font-size: 13px; font-weight: 700">{{ s.vol }}</span>
+                  <span style="font-size: 11px; color: {{ t.textSub }}">{{ s.weight }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex-shrink: 0; padding: 16px 24px; border-top: 1px solid {{ t.border }}; display: flex; gap: 10px; background: {{ t.drawerBg }}">
+        <button style="flex: 1; height: 46px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">⎙ Imprimir</button>
+        <button style="flex: 1; height: 46px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">✎ Editar</button>
+        <button style="flex: 1.3; height: 46px; border: none; border-radius: 11px; background: linear-gradient(92deg,#3B82F6,#8B5CF6); color: #fff; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(99,102,241,0.32)">⇢ Liberar carga</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</div>
+

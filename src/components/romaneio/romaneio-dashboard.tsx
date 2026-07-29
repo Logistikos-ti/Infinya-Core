@@ -24,23 +24,11 @@ const carriers: Record<string, string> = {
 };
 
 const statusStyle = (s: string) => {
-  if (s === "Em montagem")
+  if (s === "Aberto")
     return {
       statusBg: hex2("#8B5CF6", 0.16),
       statusColor: "#A78BFA",
       statusDot: "#8B5CF6",
-    };
-  if (s === "Aguardando")
-    return {
-      statusBg: hex2("#F59E0B", 0.16),
-      statusColor: "#F59E0B",
-      statusDot: "#F59E0B",
-    };
-  if (s === "Carregando")
-    return {
-      statusBg: hex2("#10B981", 0.14),
-      statusColor: "#10B981",
-      statusDot: "#10B981",
     };
   if (s === "Expedido")
     return {
@@ -78,12 +66,12 @@ const names = [
 ];
 
 const rawData = [
-  { code: "ROM-3120", carrier: "Frota Própria", route: "Rota SP Capital - Zona Sul", orders: 12, volumes: 38, weight: "412 kg", cap: 72, driver: "Anderson Melo", plate: "FQR-2H18", vehicle: "VUC 3/4", departure: "Sai 14:30", status: "Carregando" },
-  { code: "ROM-3121", carrier: "Jadlog", route: "Coleta ML - Interior", orders: 24, volumes: 61, weight: "188 kg", cap: 88, driver: "Coleta agendada", plate: "JAD-9021", vehicle: "Fiorino", departure: "Coleta 15h", status: "Aguardando" },
-  { code: "ROM-3122", carrier: "Frota Própria", route: "Rota SP Capital - Zona Oeste", orders: 8, volumes: 22, weight: "96 kg", cap: 45, driver: "Márcio Reis", plate: "GTA-4C55", vehicle: "VUC", departure: "Sai 16:00", status: "Em montagem" },
-  { code: "ROM-3123", carrier: "Total Express", route: "Grande SP - ABC", orders: 31, volumes: 74, weight: "523 kg", cap: 96, driver: "Coleta agendada", plate: "TEX-1188", vehicle: "Truck", departure: "Coleta 17h", status: "Aguardando" },
+  { code: "ROM-3120", carrier: "Frota Própria", route: "Rota SP Capital - Zona Sul", orders: 12, volumes: 38, weight: "412 kg", cap: 72, driver: "Anderson Melo", plate: "FQR-2H18", vehicle: "VUC 3/4", departure: "Sai 14:30", status: "Aberto" },
+  { code: "ROM-3121", carrier: "Jadlog", route: "Coleta ML - Interior", orders: 24, volumes: 61, weight: "188 kg", cap: 88, driver: "Coleta agendada", plate: "JAD-9021", vehicle: "Fiorino", departure: "Coleta 15h", status: "Aberto" },
+  { code: "ROM-3122", carrier: "Frota Própria", route: "Rota SP Capital - Zona Oeste", orders: 8, volumes: 22, weight: "96 kg", cap: 45, driver: "Márcio Reis", plate: "GTA-4C55", vehicle: "VUC", departure: "Sai 16:00", status: "Aberto" },
+  { code: "ROM-3123", carrier: "Total Express", route: "Grande SP - ABC", orders: 31, volumes: 74, weight: "523 kg", cap: 96, driver: "Coleta agendada", plate: "TEX-1188", vehicle: "Truck", departure: "Coleta 17h", status: "Aberto" },
   { code: "ROM-3118", carrier: "Loggi", route: "Same Day - Capital", orders: 18, volumes: 40, weight: "84 kg", cap: 60, driver: "Fábio Nunes", plate: "LOG-7742", vehicle: "Moto/Van", departure: "Saiu 11:20", status: "Expedido" },
-  { code: "ROM-3124", carrier: "Braspress", route: "Transferência - MG", orders: 15, volumes: 52, weight: "640 kg", cap: 82, driver: "Em separação", plate: "—", vehicle: "Truck", departure: "Prev. 18h", status: "Em montagem" },
+  { code: "ROM-3124", carrier: "Braspress", route: "Transferência - MG", orders: 15, volumes: 52, weight: "640 kg", cap: 82, driver: "Em separação", plate: "—", vehicle: "Truck", departure: "Prev. 18h", status: "Aberto" },
 ];
 
 const buildMockRomaneios = (): RomaneioUI[] => {
@@ -107,8 +95,8 @@ const buildMockRomaneios = (): RomaneioUI[] => {
     const depColor =
       r.status === "Expedido"
         ? "#8695AD" // textSub
-        : r.status === "Carregando"
-        ? "#10B981"
+        : r.status === "Aberto"
+        ? "#8B5CF6"
         : "inherit";
     return {
       ...r,
@@ -136,6 +124,9 @@ const mockRomaneios = buildMockRomaneios();
 
 export function RomaneioDashboard() {
   const [selectedRomaneio, setSelectedRomaneio] = useState<RomaneioUI | null>(null);
+  const [activeFilter, setActiveFilter] = useState("Todos");
+
+  const filteredRomaneios = mockRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
 
   const kpis = [
     {
@@ -177,11 +168,9 @@ export function RomaneioDashboard() {
   ];
 
   const filterDefs = [
-    { label: "Todos", active: true },
-    { label: "Em montagem", count: 3 },
-    { label: "Aguardando", count: 7 },
-    { label: "Carregando", count: 4 },
-    { label: "Expedidos", count: 4 },
+    { label: "Todos", count: mockRomaneios.length },
+    { label: "Aberto", count: mockRomaneios.filter(r => r.status === "Aberto").length },
+    { label: "Expedido", count: mockRomaneios.filter(r => r.status === "Expedido").length },
   ];
 
   return (
@@ -249,11 +238,12 @@ export function RomaneioDashboard() {
       {/* Filters */}
       <div className="flex items-center gap-2.5 mb-5 flex-wrap">
         {filterDefs.map((f, i) => {
-          const active = f.active;
+          const active = activeFilter === f.label;
           return (
             <button
               key={i}
-              className={`h-9 px-[15px] rounded-[9px] font-[family-name:var(--font-manrope)] text-[13px] font-bold flex items-center gap-2 transition-all duration-200 ${
+              onClick={() => setActiveFilter(f.label)}
+              className={`h-9 px-[15px] rounded-[9px] font-[family-name:var(--font-manrope)] text-[13px] font-bold flex items-center gap-2 transition-all duration-200 cursor-pointer ${
                 active
                   ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-transparent"
                   : "bg-white/70 dark:bg-[#101B30]/70 backdrop-blur-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50"
@@ -276,13 +266,13 @@ export function RomaneioDashboard() {
         })}
         <div className="flex-1" />
         <span className="text-[13px] text-slate-500 dark:text-slate-400">
-          {mockRomaneios.length} romaneios
+          {filteredRomaneios.length} romaneios
         </span>
       </div>
 
       {/* Romaneios Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
-        {mockRomaneios.map((r, i) => (
+        {filteredRomaneios.map((r, i) => (
           <RomaneioCard key={i} romaneio={r} onClick={() => setSelectedRomaneio(r)} />
         ))}
       </div>
