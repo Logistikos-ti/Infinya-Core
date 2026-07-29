@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowRight, ArrowUpDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, FileText, Package, Plus, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
-import type { ShippingOrderSummary } from "@/lib/shipping";
+import type { ShippingOrderDetail, ShippingOrderSummary } from "@/lib/shipping";
 import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
 
 const filters = [
@@ -15,7 +15,7 @@ const filters = [
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
-export function PortalOrdersView({ orders, products, depositanteId, depositanteName, openNewOrder = false }: {
+export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false }: {
   orders: ShippingOrderSummary[];
   products: Array<{
     id: string;
@@ -28,6 +28,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   }>;
   depositanteId: string;
   depositanteName: string;
+  selectedOrder: ShippingOrderDetail | null;
   openNewOrder?: boolean;
 }) {
   const router = useRouter();
@@ -173,6 +174,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           }}
         />
       ) : null}
+      {selectedOrder ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => router.push("/portal?view=pedidos")} /> : null}
     </>
   );
 }
@@ -262,8 +264,8 @@ function Pagination({
 
 function OrderRow({ order, now }: { order: ShippingOrderSummary; now: number }) {
   return (
-    <tr className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]">
-      <td className="px-5 py-[14px] font-display text-sm font-bold">{order.displayNumber || order.id}</td>
+    <tr className="border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]">
+      <td className="px-5 py-[14px] font-display text-sm font-bold"><a href={`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`} className="hover:text-violet-600">{order.displayNumber || order.id}</a></td>
       <td className="px-5 py-[14px]">
         <div className="flex flex-col gap-0.5">
           <span className="max-w-[200px] truncate text-sm font-semibold">{order.customer || "Cliente não informado"}</span>
@@ -279,6 +281,70 @@ function OrderRow({ order, now }: { order: ShippingOrderSummary; now: number }) 
       <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
     </tr>
   );
+}
+
+function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetail; onClose: () => void }) {
+  const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
+  const statusColor = order.status === "CANCELADO" ? "#EF4444" : order.status === "EXPEDIDO" ? "#10B981" : "#3B82F6";
+  const info = [
+    ["Canal", order.marketplace || order.channel || "Operação própria"],
+    ["Depositante", order.depositante],
+    ["Nota fiscal", order.invoice],
+    ["Criado", order.orderDate],
+    ["Data prevista", order.expectedDate],
+    ["Transportadora", order.carrierName],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-label="Detalhes do pedido">
+      <button type="button" aria-label="Fechar detalhes" onClick={onClose} className="absolute inset-0 cursor-default border-0 bg-slate-950/55 backdrop-blur-sm" />
+      <aside className="relative flex h-full w-[460px] max-w-[94vw] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0f172a]">
+        <header className="relative border-b border-slate-200 px-6 pb-5 pt-6 dark:border-white/10">
+          <div className="absolute -right-20 -top-28 h-64 w-64 rounded-full bg-violet-200/60 blur-2xl dark:bg-violet-600/20" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-slate-500">PEDIDO</p>
+              <h2 className="mt-2 font-display text-[26px] font-bold leading-none text-slate-950 dark:text-white">{order.displayNumber}</h2>
+              <span className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold" style={{ color: statusColor, background: `${statusColor}18` }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} /> {order.statusLabel}
+              </span>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><X className="h-4 w-4" /></button>
+          </div>
+        </header>
+        <div className="flex-1 overflow-y-auto p-6">
+          <section className="mb-5 flex items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.04]">
+            <div className="relative grid h-24 w-24 shrink-0 place-items-center">
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="9" className="text-slate-200 dark:text-white/10" /><circle cx="50" cy="50" r="41" fill="none" stroke={statusColor} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 41}`} strokeDashoffset={`${2 * Math.PI * 41 * (1 - progress / 100)}`} /></svg>
+              <span className="relative text-xl font-bold text-slate-950 dark:text-white">{progress}%</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">Cliente</p>
+              <p className="mt-1 truncate text-[15px] font-bold text-slate-950 dark:text-white">{order.customer}</p>
+              <p className="mt-1 text-xs text-slate-500">{order.destination}</p>
+              <div className="mt-3 flex gap-5"><span className="text-lg font-bold text-slate-950 dark:text-white">{order.itemCount}<small className="ml-1 text-xs font-medium text-slate-500">itens</small></span><span className="text-lg font-bold text-slate-950 dark:text-white">{order.units}<small className="ml-1 text-xs font-medium text-slate-500">un.</small></span></div>
+            </div>
+          </section>
+          <div className="mb-5 grid grid-cols-3 gap-3">
+            <DocumentTile icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={order.hasNfe} href={order.attachments.find((item) => item.kind === "XML_NF")?.viewHref} />
+            <DocumentTile icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={order.hasNfe} href={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} />
+            <DocumentTile icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={order.hasEtiqueta} href={order.attachments.find((item) => item.kind === "ETIQUETA")?.viewHref} />
+          </div>
+          <div className="mb-5 grid grid-cols-2 gap-3">{info.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-200 p-3 dark:border-white/10"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{value || "-"}</p></div>)}</div>
+          <section>
+            <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-slate-950 dark:text-white">Itens do pedido</h3><span className="text-xs text-slate-500">{order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0)} de {order.unitsRaw} conferidos</span></div>
+            <div className="space-y-2">{order.items.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-white/10"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${item.separatedQuantityRaw >= item.quantityRaw ? "bg-emerald-500 text-white" : "border border-slate-300 text-slate-400"}`}>{item.separatedQuantityRaw >= item.quantityRaw ? <CheckCircle2 className="h-4 w-4" /> : <Package className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white" title={item.name}>{item.name}</p><p className="text-xs text-slate-500">{item.sku}</p></div><span className="text-sm font-bold text-slate-700 dark:text-slate-200">{item.quantity} un.</span></div>)}</div>
+          </section>
+        </div>
+        <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]"><button type="button" onClick={onClose} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white">Fechar</button></footer>
+      </aside>
+    </div>
+  );
+}
+
+function DocumentTile({ icon, label, available, href }: { icon: React.ReactNode; label: string; available: boolean; href?: string | null }) {
+  const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] text-white ${available ? "bg-emerald-500" : "bg-slate-300"}`}>{available ? "✓" : "–"}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
+  return href && available ? <a href={href} target="_blank" rel="noreferrer" className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}</a> : <div className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 opacity-65 dark:border-white/10">{content}</div>;
 }
 
 function StatusBadge({ label }: { label: string }) {

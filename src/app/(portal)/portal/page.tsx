@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { requireRoleAccess } from "@/lib/auth";
 import { listReceivingOrdersFromDb } from "@/lib/receiving";
-import { listShippingOrdersFromDb } from "@/lib/shipping";
+import { getShippingOrderDetailFromDb, listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { SupportClient } from "@/components/portal/support-client";
 import { ProductStockCard } from "@/components/portal/product-stock-card";
@@ -38,6 +38,7 @@ type PortalPageProps = {
     search?: string;
     status?: string;
     new?: string;
+    order?: string;
   }>;
 };
 
@@ -91,6 +92,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
   const depositanteName = user.depositanteNome || user.nome;
+  const selectedOrder = params?.order
+    ? await getShippingOrderDetailFromDb(params.order, user)
+    : null;
   const totalUnits = stock.reduce(
     (sum, item) => sum + Number(item.rawQuantidade ?? 0),
     0,
@@ -117,6 +121,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           products={portalProducts}
           depositanteId={depositanteId}
           depositanteName={depositanteName}
+          selectedOrder={selectedOrder}
           openNewOrder={params?.new === "1"}
         />
       ) : null}
