@@ -24,6 +24,7 @@ type ExpedicaoPageProps = {
     marketplace?: string;
     page?: string;
     perPage?: string;
+    feedback?: string;
   }>;
 };
 
@@ -52,6 +53,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const marketplaceFilter = params?.marketplace?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
+  const feedback = params?.feedback?.trim() ?? "";
   
   // Operadores atuam para todos os depositantes; os dados operacionais
   // precisam seguir o mesmo acesso administrativo controlado usado no estoque.
@@ -122,7 +124,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   // Force a tiny mutation in ExpedicaoClient so we can see if it deployed
   return (
     <>
-      <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery, userRole: user.papel }} />
+      <ExpedicaoClient data={{ stats: shippingStats, queues: shippingQueues, orders: shippingOrders, totalOrders, depositanteOptions, productOptions: productOptionsWithStock, baseQuery, userRole: user.papel, feedback }} />
     </>
   );
 }

@@ -441,6 +441,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   return (
     <div className="w-full relative opacity-95">
+      {data.feedback === "nf-obrigatoria" || data.feedback === "nf-invalida" || data.feedback === "nf-duplicada" ? (
+        <div style={{ margin: "16px 28px 0", padding: "12px 16px", border: "1px solid rgba(244,63,94,.28)", borderRadius: 12, background: isDark ? "rgba(244,63,94,.12)" : "#FFF1F2", color: isDark ? "#FDA4AF" : "#BE123C", fontSize: 13, fontWeight: 700 }}>
+          {data.feedback === "nf-obrigatoria" ? "Anexe o XML válido da NF-e para criar o pedido manual." : data.feedback === "nf-invalida" ? "O XML informado não é uma NF-e válida ou não contém itens válidos." : "Já existe um pedido deste depositante com o mesmo número de NF-e."}
+        </div>
+      ) : null}
       <style>{`
         @keyframes icon-pulse {
           0% { transform: scale(1); }

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Download, Plus, Layers3, Truck, Clock, CheckCircle2 } from "lucide-react";
 import { RomaneioCard } from "./romaneio-card";
 import { RomaneioDrawer } from "./romaneio-drawer";
-import type { RomaneioRecordDetail, RomaneioSuggestionGroup } from "@/lib/romaneio-records";
+import type { RomaneioRecordListItem, RomaneioSuggestionGroup } from "@/lib/romaneio-records";
 import type { RomaneioUI, RomaneioStop } from "./romaneio-types";
 
 type RomaneioDashboardProps = {
-  records?: RomaneioRecordDetail[];
-  suggestions?: RomaneioSuggestionGroup[];
+  records: RomaneioRecordListItem[];
+  suggestions: RomaneioSuggestionGroup[];
 };
 
 // ==========================================
@@ -185,7 +185,7 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
   const allRomaneios = [...uiRecords, ...uiSuggestions];
   const filteredRomaneios = allRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
 
-  const today = new Date().toLocaleDateString("pt-BR");
+  const today = useMemo(() => new Date().toLocaleDateString("pt-BR"), []);
   
   const romaneiosHoje = uiRecords.filter(r => r.departure === today).length;
   const emCarregamento = uiRecords.filter(r => r.status === "Aberto").length;
