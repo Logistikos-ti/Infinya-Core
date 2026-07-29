@@ -326,6 +326,8 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
 
 function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetail; onClose: () => void }) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const hasNfe = order.attachments.some((attachment) => attachment.kind === "XML_NF" && attachment.status === "DISPONIVEL");
+  const hasEtiqueta = order.attachments.some((attachment) => attachment.kind === "ETIQUETA" && attachment.status === "DISPONIVEL");
   const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
   const statusColor = order.status === "CANCELADO" ? "#EF4444" : order.status === "EXPEDIDO" ? "#10B981" : "#3B82F6";
   const info = [
@@ -368,9 +370,9 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
             </div>
           </section>
           <div className="mb-5 grid grid-cols-3 gap-3">
-            <OrderDocumentCard icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={order.hasNfe} viewHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
-            <OrderDocumentCard icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={order.hasNfe} viewHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
-            <OrderDocumentCard icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={order.hasEtiqueta} viewHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+            <OrderDocumentCard icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={hasNfe} viewHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+            <OrderDocumentCard icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={hasNfe} allowUpload={false} viewHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+            <OrderDocumentCard icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={hasEtiqueta} viewHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
           </div>
           <div className="mb-5 grid grid-cols-2 gap-3">{info.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-200 p-3 dark:border-white/10"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{value || "-"}</p></div>)}</div>
           <section>
@@ -391,9 +393,10 @@ function LegacyOrderDocumentCard({ icon, label, available, viewHref, downloadHre
   return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
 }
 
-function OrderDocumentCard({ icon, label, available, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
+function OrderDocumentCard({ icon, label, available, allowUpload = true, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; allowUpload?: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
   const marker = available ? "\u2713" : "\u00d7";
   const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] font-black text-white ${available ? "bg-emerald-500" : "bg-rose-500"}`}>{marker}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
+  if (!available && !allowUpload) return <div className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 opacity-75 dark:border-white/10">{content}<span className="text-center text-[10px] font-bold text-slate-500">Gerada após a NF</span></div>;
   if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
   return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
 }

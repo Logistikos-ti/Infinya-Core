@@ -190,8 +190,6 @@ export function RomaneioDashboard() {
       <div className="flex items-end justify-between gap-5 flex-wrap mb-6 mt-6">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
-            <span>Expedição</span>
-            <span>›</span>
             <span className="text-slate-900 dark:text-slate-100 font-semibold">
               Romaneio
             </span>

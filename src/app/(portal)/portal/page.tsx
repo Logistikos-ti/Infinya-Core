@@ -65,6 +65,15 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   ]);
   const supportTickets =
     view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
+  const { data: receivingProductRows } =
+    view === "recebimento"
+      ? await adminSupabase
+          .from("produtos")
+          .select("id, nome, sku, unidade_estocagem")
+          .eq("depositante_id", depositanteId)
+          .eq("ativo", true)
+          .order("nome")
+      : { data: [] };
   const [{ data: portalProductRows }, { data: portalStockRows }] =
     view === "pedidos"
       ? await Promise.all([
@@ -133,7 +142,16 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         />
       ) : null}
       {view === "recebimento" ? (
-        <ReceivingViewClient receiving={receiving} />
+        <ReceivingViewClient
+          receiving={receiving}
+          depositanteId={depositanteId}
+          products={(receivingProductRows ?? []).map((product) => ({
+            id: product.id,
+            nome: product.nome,
+            sku: product.sku,
+            unidade: product.unidade_estocagem,
+          }))}
+        />
       ) : null}
       {view === "faturas" ? <InvoicesView /> : null}
       {view === "suporte" ? (

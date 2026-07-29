@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileText, Upload, X } from "lucide-react";
+import { Check, FileText, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
@@ -17,26 +17,45 @@ type ReceivingItem = {
   xmlAttached: boolean;
 };
 
+type ProductOption = {
+  id: string;
+  nome: string;
+  sku: string;
+  unidade: string;
+};
+
 type ReceivingViewClientProps = {
   receiving: ReceivingItem[];
+  depositanteId: string;
+  products: ProductOption[];
+};
+
+type ItemLine = {
+  key: string;
+  produtoId: string;
+  quantidade: string;
 };
 
 const inputClassName =
   "h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-white/10";
 
-export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
+function emptyItemLine(): ItemLine {
+  return { key: crypto.randomUUID(), produtoId: "", quantidade: "" };
+}
+
+export function ReceivingViewClient({ receiving, depositanteId, products }: ReceivingViewClientProps) {
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [xmlName, setXmlName] = useState("");
+  const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [type, setType] = useState("NF-e XML");
+  const [items, setItems] = useState<ItemLine[]>([emptyItemLine()]);
   const [form, setForm] = useState({
     supplier: "",
     nf: "",
     eta: "",
     hour: "",
-    volumes: "",
     notes: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,10 +78,71 @@ export function ReceivingViewClient({ receiving }: ReceivingViewClientProps) {
 
   function selectXml(file?: File) {
     if (!file) return;
-    setXmlName(file.name);
+    setXmlFile(file);
   }
 
-  async function submitRequest() {
+  function updateItemLine(key: string, field: "produtoId" | "quantidade", value: string) {
+    setItems((current) =>
+      current.map((line) => (line.key === key ? { ...line, [field]: value } : line)),
+    );
+  }
+
+  function addItemLine() {
+    setItems((current) => [...current, emptyItemLine()]);
+  }
+
+  function removeItemLine(key: string) {
+    setItems((current) => (current.length > 1 ? current.filter((line) => line.key !== key) : current));
+  }
+
+  async function submitXmlImport() {
+    if (!xmlFile) {
+      setError("Selecione um XML da NF-e antes de importar.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("depositanteId", depositanteId);
+      formData.append("arquivo", xmlFile);
+
+      const response = await fetch("/api/recebimento/importar-xml", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        unmatchedItems?: Array<{ descricao: string }>;
+      };
+
+      if (!response.ok) {
+        const unmatchedMessage = payload.unmatchedItems?.length
+          ? ` Itens sem vínculo: ${payload.unmatchedItems.slice(0, 4).map((item) => item.descricao).join(", ")}${payload.unmatchedItems.length > 4 ? "..." : ""}`
+          : "";
+        throw new Error(`${payload.error ?? "Falha ao importar o XML."}${unmatchedMessage}`);
+      }
+
+      resetAndClose();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "Não foi possível importar o XML.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetAndClose() {
+    closeDrawer();
+    setForm({ supplier: "", nf: "", eta: "", hour: "", notes: "" });
+    setXmlFile(null);
+    setItems([emptyItemLine()]);
+    router.refresh();
+  }
+
+  async function submitManualRequest() {
     setSaving(true);
     setError("");
     try {

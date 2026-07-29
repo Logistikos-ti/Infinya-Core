@@ -533,7 +533,7 @@ function buildDefaultShippingAttachments(
   origin: string,
 ): ShippingAttachment[] {
   const nfDocument =
-    documents.find((item) => item.tipo === "NF") ??
+    documents.find((item) => item.tipo === "NF" || item.tipo === "XML_NF") ??
     documents.find((item) => item.mime_type?.includes("xml"));
   const labelDocument = documents.find((item) => item.tipo === "ETIQUETA");
 
@@ -622,7 +622,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     (item as any).documentos,
   );
   const docs = Array.isArray((item as any).documentos) ? (item as any).documentos : [];
-  const hasNfe = docs.some((d: any) => d.tipo === "NF" || (d.mime_type && d.mime_type.includes("xml")));
+  const hasNfe = docs.some((d: any) => d.tipo === "NF" || d.tipo === "XML_NF" || (d.mime_type && d.mime_type.includes("xml")));
   const hasEtiqueta = docs.some((d: any) => d.tipo === "ETIQUETA");
   
   const items = (item.itens ?? []).map((it) => ({
