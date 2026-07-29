@@ -334,7 +334,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
         if (["EM_SEPARACAO", "SEPARADO"].includes(order.status)) return 25;
         return Number(order.conf ?? 0);
       }
-      case "sla": return Number(order.ageMinutes ?? order.ageHours ?? 0);
+      // The API exposes the canonical creation timestamp, not ageMinutes/ageHours.
+      // Use the exact elapsed time so SLA sorting follows the same age shown in the row.
+      case "sla": {
+        const createdAt = order.createdAtIso ? new Date(order.createdAtIso).getTime() : Number.NaN;
+        return Number.isFinite(createdAt) ? Math.max(0, Date.now() - createdAt) : Number.POSITIVE_INFINITY;
+      }
       case "status": return String(order.statusLabel || order.status || "");
     }
   };
