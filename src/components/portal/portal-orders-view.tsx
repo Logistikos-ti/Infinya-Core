@@ -37,6 +37,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "created", direction: "desc" });
   const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
+  const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
   const filteredOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, activeFilter)),
     [activeFilter, orders],
@@ -56,6 +57,10 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    setDetailVisible(Boolean(selectedOrder));
+  }, [selectedOrder]);
 
   function changeFilter(value: string) {
     setActiveFilter(value);
@@ -154,6 +159,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
                   order={order}
                   now={now}
                   onOpen={() => router.push(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
+                  onPrefetch={() => router.prefetch(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
                 />
               ))}
             </tbody>
@@ -179,7 +185,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           }}
         />
       ) : null}
-      {selectedOrder ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => router.push("/portal?view=pedidos")} /> : null}
+      {selectedOrder && detailVisible ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => { setDetailVisible(false); window.history.replaceState({}, "", "/portal?view=pedidos"); }} /> : null}
     </>
   );
 }
@@ -267,11 +273,13 @@ function Pagination({
   );
 }
 
-function OrderRow({ order, now, onOpen }: { order: ShippingOrderSummary; now: number; onOpen: () => void }) {
+function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSummary; now: number; onOpen: () => void; onPrefetch: () => void }) {
   return (
     <tr
       className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
       onClick={onOpen}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
