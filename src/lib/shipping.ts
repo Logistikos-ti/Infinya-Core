@@ -72,6 +72,7 @@ type RawShippingOrderDetailRow = {
   valor_total: number | string | null;
   quantidade_itens: number | null;
   quantidade_unidades: number | string | null;
+  created_at: string | null;
   data_pedido: string | null;
   previsao_envio_em: string | null;
   sincronizado_em: string | null;
@@ -189,6 +190,7 @@ export type ShippingOrderDetail = {
   itemCount: number;
   units: string;
   unitsRaw: number;
+  createdAtIso: string | null;
   orderDate: string;
   shipDate: string;
   expectedDate: string;
@@ -395,7 +397,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -487,6 +489,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     itemCount: Number(order.quantidade_itens ?? items.length),
     units: Number(order.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     unitsRaw: Number(order.quantidade_unidades ?? 0),
+    createdAtIso: order.created_at ?? order.data_pedido,
     orderDate: formatBusinessDateTimeOrFallback(order.data_pedido, "Sem data"),
     shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsÃ£o"),
     expectedDate,

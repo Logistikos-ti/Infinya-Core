@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+type PortalReceivingItemPayload = {
+  produtoId?: unknown;
+  quantidade?: unknown;
+};
+
 type PortalReceivingPayload = {
   supplier?: unknown;
   nf?: unknown;
   eta?: unknown;
   hour?: unknown;
-  volumes?: unknown;
   notes?: unknown;
   type?: unknown;
-  xmlName?: unknown;
+  items?: PortalReceivingItemPayload[];
 };
 
 export async function POST(request: Request) {
@@ -43,9 +47,13 @@ export async function POST(request: Request) {
     const eta = String(payload.eta ?? "").trim();
     const hour = String(payload.hour ?? "").trim();
     const notes = String(payload.notes ?? "").trim();
-    const type = String(payload.type ?? "NF-e XML").trim();
-    const xmlName = String(payload.xmlName ?? "").trim();
-    const volumes = Number(payload.volumes);
+    const type = String(payload.type ?? "Manual").trim();
+    const items = (Array.isArray(payload.items) ? payload.items : [])
+      .map((item) => ({
+        produtoId: String(item.produtoId ?? "").trim(),
+        quantidade: Number(item.quantidade),
+      }))
+      .filter((item) => item.produtoId && Number.isFinite(item.quantidade) && item.quantidade > 0);
 
     if (supplier.length < 2) {
       return NextResponse.json(
@@ -65,9 +73,9 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (!Number.isFinite(volumes) || volumes <= 0) {
+    if (!items.length) {
       return NextResponse.json(
-        { error: "Informe uma quantidade de volumes maior que zero." },
+        { error: "Adicione ao menos um item com produto e quantidade." },
         { status: 400 },
       );
     }
@@ -91,12 +99,34 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: ownedProducts, error: productsError } = await adminSupabase
+      .from("produtos")
+      .select("id")
+      .eq("depositante_id", depositante.id)
+      .in(
+        "id",
+        items.map((item) => item.produtoId),
+      );
+
+    if (productsError) {
+      throw new Error(
+        `Não foi possível validar os produtos informados: ${productsError.message}`,
+      );
+    }
+
+    const ownedProductIds = new Set((ownedProducts ?? []).map((product) => product.id));
+    if (items.some((item) => !ownedProductIds.has(item.produtoId))) {
+      return NextResponse.json(
+        { error: "Um ou mais produtos informados não pertencem ao seu depositante." },
+        { status: 400 },
+      );
+    }
+
+    const volumes = items.reduce((sum, item) => sum + item.quantidade, 0);
     const code = buildReceivingCode(depositante.codigo ?? "DEP");
     const observacoes = [
       `Tipo de recebimento: ${type}`,
-      `Volumes previstos: ${volumes}`,
       hour ? `Horário previsto: ${hour}` : "",
-      xmlName ? `XML selecionado: ${xmlName}` : "",
       notes ? `Observações: ${notes}` : "",
     ]
       .filter(Boolean)
@@ -122,6 +152,22 @@ export async function POST(request: Request) {
       throw new Error(
         `Não foi possível criar o recebimento: ${orderError?.message ?? "erro desconhecido"}`,
       );
+    }
+
+    const { error: itemsError } = await adminSupabase.from("pedidos_recebimento_itens").insert(
+      items.map((item) => ({
+        pedido_recebimento_id: order.id,
+        depositante_id: depositante.id,
+        produto_id: item.produtoId,
+        status: "PENDENTE",
+        quantidade_prevista: item.quantidade,
+        quantidade_recebida: 0,
+      })),
+    );
+
+    if (itemsError) {
+      await adminSupabase.from("pedidos_recebimento").delete().eq("id", order.id);
+      throw new Error(`Não foi possível gravar os itens do recebimento: ${itemsError.message}`);
     }
 
     const { error: taskError } = await adminSupabase

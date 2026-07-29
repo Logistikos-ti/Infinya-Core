@@ -326,15 +326,20 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
 
 function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetail; onClose: () => void }) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const hasNfe = order.attachments.some((attachment) => attachment.kind === "XML_NF" && attachment.status === "DISPONIVEL");
   const hasEtiqueta = order.attachments.some((attachment) => attachment.kind === "ETIQUETA" && attachment.status === "DISPONIVEL");
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
   const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
   const statusColor = order.status === "CANCELADO" ? "#EF4444" : order.status === "EXPEDIDO" ? "#10B981" : "#3B82F6";
   const info = [
     ["Canal", order.marketplace || order.channel || "Operação própria"],
     ["Depositante", order.depositante],
     ["Nota fiscal", order.invoice],
-    ["Criado", order.orderDate],
+    ["Criado", formatCreatedAt(order.createdAtIso, now)],
     ["Data prevista", order.expectedDate],
     ["Transportadora", order.carrierName],
   ];

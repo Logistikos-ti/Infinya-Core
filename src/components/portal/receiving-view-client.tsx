@@ -143,13 +143,22 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   }
 
   async function submitManualRequest() {
+    const validItems = items
+      .map((line) => ({ produtoId: line.produtoId, quantidade: Number(line.quantidade) }))
+      .filter((line) => line.produtoId && Number.isFinite(line.quantidade) && line.quantidade > 0);
+
+    if (!validItems.length) {
+      setError("Adicione ao menos um item com produto e quantidade.");
+      return;
+    }
+
     setSaving(true);
     setError("");
     try {
       const response = await fetch("/api/portal/recebimentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, type, xmlName }),
+        body: JSON.stringify({ ...form, type, items: validItems }),
       });
       const responseText = await response.text();
       let payload: { error?: string } = {};
@@ -166,17 +175,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
             `Não foi possível enviar a solicitação (HTTP ${response.status}).`,
         );
       }
-      closeDrawer();
-      setForm({
-        supplier: "",
-        nf: "",
-        eta: "",
-        hour: "",
-        volumes: "",
-        notes: "",
-      });
-      setXmlName("");
-      router.refresh();
+      resetAndClose();
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -186,6 +185,14 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     } finally {
       setSaving(false);
     }
+  }
+
+  function submitRequest() {
+    if (type === "NF-e XML") {
+      void submitXmlImport();
+      return;
+    }
+    void submitManualRequest();
   }
 
   const displayStatus = (status: string) => {
@@ -419,100 +426,6 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`flex w-full items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed p-5 text-left transition hover:border-violet-500 ${xmlName ? "border-emerald-500 bg-emerald-500/10" : "border-slate-300 bg-slate-50 dark:border-white/20 dark:bg-white/5"}`}
-              >
-                <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${xmlName ? "bg-emerald-500/15 text-emerald-500" : "bg-blue-500/15 text-blue-500"}`}
-                >
-                  {xmlName ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    <Upload className="h-5 w-5" />
-                  )}
-                </span>
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                    {xmlName || "Importar XML da NF-e"}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {xmlName
-                      ? "Fornecedor e itens preenchidos automaticamente"
-                      : "Arraste o arquivo ou clique para selecionar"}
-                  </span>
-                </span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xml,application/xml,text/xml"
-                className="hidden"
-                onChange={(event) => selectXml(event.target.files?.[0])}
-              />
-
-              <section className="space-y-3.5">
-                <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
-                  Dados da nota
-                </h4>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
-                  <label className="space-y-1.5 text-xs text-slate-500">
-                    Transportadora
-                    <input
-                      className={inputClassName}
-                      value={form.supplier}
-                      onChange={(event) =>
-                        updateField("supplier", event.target.value)
-                      }
-                      placeholder="Ex.: Transportes Rodoline"
-                    />
-                  </label>
-                  <label className="space-y-1.5 text-xs text-slate-500">
-                    Nº da NF-e
-                    <input
-                      className={inputClassName}
-                      value={form.nf}
-                      onChange={(event) =>
-                        updateField("nf", event.target.value)
-                      }
-                      placeholder="000000"
-                    />
-                  </label>
-                  <DatePickerInput
-                    label="Data prevista"
-                    name="dataPrevista"
-                    value={form.eta}
-                    onChange={(value) => updateField("eta", value)}
-                    compact
-                  />
-                  <label className="space-y-1.5 text-xs text-slate-500">
-                    Horário previsto
-                    <input
-                      type="time"
-                      className={inputClassName}
-                      value={form.hour}
-                      onChange={(event) =>
-                        updateField("hour", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="space-y-1.5 text-xs text-slate-500 sm:col-span-2">
-                    Qtd. de volumes
-                    <input
-                      type="number"
-                      min="1"
-                      className={inputClassName}
-                      value={form.volumes}
-                      onChange={(event) =>
-                        updateField("volumes", event.target.value)
-                      }
-                      placeholder="0"
-                    />
-                  </label>
-                </div>
-              </section>
-
               <section className="space-y-2">
                 <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
                   Tipo de recebimento
@@ -531,15 +444,166 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 </div>
               </section>
 
-              <label className="block space-y-1.5 text-xs text-slate-500">
-                Observações
-                <textarea
-                  className={`${inputClassName} min-h-20 resize-y py-3`}
-                  value={form.notes}
-                  onChange={(event) => updateField("notes", event.target.value)}
-                  placeholder="Ex.: entrega paletizada, agendar doca fria..."
-                />
-              </label>
+              {type === "NF-e XML" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`flex w-full items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed p-5 text-left transition hover:border-violet-500 ${xmlFile ? "border-emerald-500 bg-emerald-500/10" : "border-slate-300 bg-slate-50 dark:border-white/20 dark:bg-white/5"}`}
+                  >
+                    <span
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${xmlFile ? "bg-emerald-500/15 text-emerald-500" : "bg-blue-500/15 text-blue-500"}`}
+                    >
+                      {xmlFile ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <Upload className="h-5 w-5" />
+                      )}
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                        {xmlFile?.name ?? "Importar XML da NF-e"}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {xmlFile
+                          ? "Fornecedor e itens serão preenchidos automaticamente"
+                          : "Arraste o arquivo ou clique para selecionar"}
+                      </span>
+                    </span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xml,application/xml,text/xml"
+                    className="hidden"
+                    onChange={(event) => selectXml(event.target.files?.[0])}
+                  />
+                  <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                    O sistema lê o XML e vincula os itens aos produtos cadastrados por EAN, código interno ou nome.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <section className="space-y-3.5">
+                    <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
+                      Dados da nota
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Transportadora
+                        <input
+                          className={inputClassName}
+                          value={form.supplier}
+                          onChange={(event) =>
+                            updateField("supplier", event.target.value)
+                          }
+                          placeholder="Ex.: Transportes Rodoline"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Nº da NF-e
+                        <input
+                          className={inputClassName}
+                          value={form.nf}
+                          onChange={(event) =>
+                            updateField("nf", event.target.value)
+                          }
+                          placeholder="000000"
+                        />
+                      </label>
+                      <DatePickerInput
+                        label="Data prevista"
+                        name="dataPrevista"
+                        value={form.eta}
+                        onChange={(value) => updateField("eta", value)}
+                        compact
+                      />
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Horário previsto
+                        <input
+                          type="time"
+                          className={inputClassName}
+                          value={form.hour}
+                          onChange={(event) =>
+                            updateField("hour", event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
+                        Itens do recebimento
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={addItemLine}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-300"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Adicionar item
+                      </button>
+                    </div>
+                    <div className="space-y-2.5">
+                      {items.map((line) => (
+                        <div key={line.key} className="flex items-center gap-2">
+                          <select
+                            className={inputClassName}
+                            value={line.produtoId}
+                            onChange={(event) =>
+                              updateItemLine(line.key, "produtoId", event.target.value)
+                            }
+                          >
+                            <option value="">Selecione o produto</option>
+                            {products.map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.nome} · {product.sku}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="Qtd."
+                            className={`${inputClassName} w-24 shrink-0`}
+                            value={line.quantidade}
+                            onChange={(event) =>
+                              updateItemLine(line.key, "quantidade", event.target.value)
+                            }
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeItemLine(line.key)}
+                            disabled={items.length <= 1}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-400 transition hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+                            aria-label="Remover item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {products.length === 0 ? (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Nenhum produto cadastrado ainda para o seu depositante.
+                      </p>
+                    ) : null}
+                  </section>
+
+                  <label className="block space-y-1.5 text-xs text-slate-500">
+                    Observações
+                    <textarea
+                      className={`${inputClassName} min-h-20 resize-y py-3`}
+                      value={form.notes}
+                      onChange={(event) => updateField("notes", event.target.value)}
+                      placeholder="Ex.: entrega paletizada, agendar doca fria..."
+                    />
+                  </label>
+                </>
+              )}
+
               {error ? (
                 <p className="rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
                   {error}

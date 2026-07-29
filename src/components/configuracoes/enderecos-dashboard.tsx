@@ -112,7 +112,7 @@ export function EnderecosDashboard({
     setPrintOpen(true);
   }
 
-  function printSelectedLabels() {
+  function printSelectedLabels(format: "a4" | "thermal" = "thermal") {
     const selectedAddresses = filtered.filter((address) => (printSelection[address.id] ?? 0) > 0);
     if (!selectedAddresses.length) return;
 
@@ -132,7 +132,20 @@ export function EnderecosDashboard({
 
     const printWindow = window.open("", "_blank", "width=800,height=1000");
     if (!printWindow) return;
-    printWindow.document.write(`<!doctype html><html><head><title>Etiquetas de endereços</title><style>
+
+    const styles = format === "a4" ? `
+      @page { size: A4; margin: 12mm; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
+      body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 4mm; justify-content: space-between; }
+      .label { position: relative; width: calc(50% - 2mm); height: 35mm; padding: 3mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: .35mm dashed #ccc; border-radius: 2mm; page-break-inside: avoid; margin-bottom: 2mm; }
+      .ticket { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .label-head { position: relative; width: 100%; height: 6mm; display: flex; align-items: center; justify-content: center; margin-bottom: 2mm; }
+      .logo { position: absolute; top: 0; left: 0; width: 5mm; height: 5mm; object-fit: contain; filter: grayscale(1); }
+      .address { font-family: monospace; font-size: 13pt; font-weight: 800; line-height: 1; letter-spacing: .04em; }
+      .barcode { width: 100%; display: flex; justify-content: center; }
+      .barcode svg { display: block; width: 70mm; height: 16mm; }
+    ` : `
       @page { size: 100mm 150mm; margin: 0; }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; color: #111827; font-family: Arial, sans-serif; }
@@ -143,7 +156,9 @@ export function EnderecosDashboard({
       .address { font-family: monospace; font-size: 14pt; font-weight: 800; line-height: 1.1; letter-spacing: .04em; word-break: break-word; }
       .barcode { width: 86mm; margin-top: 1mm; }
       .barcode svg { display: block; width: 86mm; height: 30mm; }
-    </style></head><body>${labels}</body></html>`);
+    `;
+
+    printWindow.document.write(`<!doctype html><html><head><title>Etiquetas de endereços</title><style>${styles}</style></head><body>${labels}</body></html>`);
     printWindow.document.close();
     printWindow.focus();
     window.setTimeout(() => printWindow.print(), 250);
@@ -613,7 +628,8 @@ export function EnderecosDashboard({
             </div>
             <div className="mt-5 flex justify-end gap-3">
               <button type="button" onClick={() => setPrintOpen(false)} className="h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-violet-500/10">Cancelar</button>
-              <button type="button" onClick={printSelectedLabels} disabled={!Object.values(printSelection).some((quantity) => quantity > 0)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(99,102,241,0.28)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"><Printer className="h-4 w-4" />Imprimir etiquetas</button>
+              <button type="button" onClick={() => printSelectedLabels("thermal")} disabled={!Object.values(printSelection).some((quantity) => quantity > 0)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-5 text-sm font-bold text-slate-700 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200"><Printer className="h-4 w-4" />Térmica (10x15)</button>
+              <button type="button" onClick={() => printSelectedLabels("a4")} disabled={!Object.values(printSelection).some((quantity) => quantity > 0)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-[0_8px_22px_rgba(99,102,241,0.28)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"><Printer className="h-4 w-4" />Folha A4</button>
             </div>
           </div>
         </div>
