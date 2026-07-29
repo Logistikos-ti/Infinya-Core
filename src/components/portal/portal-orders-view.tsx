@@ -1,11 +1,13 @@
 "use client";
 
-import { ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, FileText, Package, Plus, Tag, X } from "lucide-react";
+import { ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, FileText, LoaderCircle, Package, Plus, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
 import type { ShippingOrderDetail, ShippingOrderSummary } from "@/lib/shipping";
 import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
+import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
+import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -38,6 +40,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
   const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
+  const [openingOrder, setOpeningOrder] = useState(false);
   const filteredOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, activeFilter)),
     [activeFilter, orders],
@@ -60,7 +63,13 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
 
   useEffect(() => {
     setDetailVisible(Boolean(selectedOrder));
+    if (selectedOrder) setOpeningOrder(false);
   }, [selectedOrder]);
+
+  function openOrder(orderId: string) {
+    setOpeningOrder(true);
+    router.push(`/portal?view=pedidos&order=${encodeURIComponent(orderId)}`);
+  }
 
   function changeFilter(value: string) {
     setActiveFilter(value);
@@ -158,7 +167,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
                   key={order.id}
                   order={order}
                   now={now}
-                  onOpen={() => router.push(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
+                  onOpen={() => openOrder(order.id)}
                   onPrefetch={() => router.prefetch(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
                 />
               ))}
@@ -186,6 +195,13 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
         />
       ) : null}
       {selectedOrder && detailVisible ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => { setDetailVisible(false); window.history.replaceState({}, "", "/portal?view=pedidos"); }} /> : null}
+      {openingOrder ? (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/20 backdrop-blur-[2px]">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-xl dark:border-white/10 dark:bg-[#101b30] dark:text-white">
+            <LoaderCircle className="h-5 w-5 animate-spin text-violet-500" /> Abrindo pedido...
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -309,6 +325,7 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
 }
 
 function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetail; onClose: () => void }) {
+  const [uploadOpen, setUploadOpen] = useState(false);
   const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
   const statusColor = order.status === "CANCELADO" ? "#EF4444" : order.status === "EXPEDIDO" ? "#10B981" : "#3B82F6";
   const info = [
@@ -351,9 +368,9 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
             </div>
           </section>
           <div className="mb-5 grid grid-cols-3 gap-3">
-            <DocumentTile icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={order.hasNfe} href={order.attachments.find((item) => item.kind === "XML_NF")?.viewHref} />
-            <DocumentTile icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={order.hasNfe} href={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} />
-            <DocumentTile icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={order.hasEtiqueta} href={order.attachments.find((item) => item.kind === "ETIQUETA")?.viewHref} />
+            <OrderDocumentCard icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={order.hasNfe} viewHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+            <OrderDocumentCard icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={order.hasNfe} viewHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+            <OrderDocumentCard icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={order.hasEtiqueta} viewHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
           </div>
           <div className="mb-5 grid grid-cols-2 gap-3">{info.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-200 p-3 dark:border-white/10"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{value || "-"}</p></div>)}</div>
           <section>
@@ -362,14 +379,23 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
           </section>
         </div>
         <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]"><button type="button" onClick={onClose} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white">Fechar</button></footer>
+        {uploadOpen ? <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#101b30]"><div className="mb-4 flex items-start justify-between gap-4"><div><h3 className="text-lg font-bold text-slate-950 dark:text-white">Anexar documento</h3><p className="mt-1 text-xs text-slate-500">Selecione o XML da NF ou a etiqueta de envio.</p></div><button type="button" onClick={() => setUploadOpen(false)} aria-label="Fechar upload" className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 dark:border-white/10"><X className="h-4 w-4" /></button></div><ShippingAttachmentUploadPanel depositanteId={order.depositanteId} pedidoExpedicaoId={order.id} /></div></div> : null}
       </aside>
     </div>
   );
 }
 
-function DocumentTile({ icon, label, available, href }: { icon: React.ReactNode; label: string; available: boolean; href?: string | null }) {
+function LegacyOrderDocumentCard({ icon, label, available, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
   const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] text-white ${available ? "bg-emerald-500" : "bg-slate-300"}`}>{available ? "✓" : "–"}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
-  return href && available ? <a href={href} target="_blank" rel="noreferrer" className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}</a> : <div className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 opacity-65 dark:border-white/10">{content}</div>;
+  if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left opacity-80 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
+  return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
+}
+
+function OrderDocumentCard({ icon, label, available, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
+  const marker = available ? "\\u2713" : "\\u00d7";
+  const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] font-black text-white ${available ? "bg-emerald-500" : "bg-rose-500"}`}>{marker}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
+  if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
+  return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
 }
 
 function StatusBadge({ label }: { label: string }) {
