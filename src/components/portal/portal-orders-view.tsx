@@ -149,7 +149,12 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
             </thead>
             <tbody>
               {pagedOrders.map((order) => (
-                <OrderRow key={order.id} order={order} now={now} />
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  now={now}
+                  onOpen={() => router.push(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
+                />
               ))}
             </tbody>
           </table>
@@ -262,10 +267,22 @@ function Pagination({
   );
 }
 
-function OrderRow({ order, now }: { order: ShippingOrderSummary; now: number }) {
+function OrderRow({ order, now, onOpen }: { order: ShippingOrderSummary; now: number; onOpen: () => void }) {
   return (
-    <tr className="border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]">
-      <td className="px-5 py-[14px] font-display text-sm font-bold"><a href={`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`} className="hover:text-violet-600">{order.displayNumber || order.id}</a></td>
+    <tr
+      className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Abrir pedido ${order.displayNumber || order.id}`}
+    >
+      <td className="px-5 py-[14px] font-display text-sm font-bold"><span className="hover:text-violet-600">{order.displayNumber || order.id}</span></td>
       <td className="px-5 py-[14px]">
         <div className="flex flex-col gap-0.5">
           <span className="max-w-[200px] truncate text-sm font-semibold">{order.customer || "Cliente não informado"}</span>
