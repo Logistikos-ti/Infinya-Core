@@ -392,7 +392,7 @@ function LegacyOrderDocumentCard({ icon, label, available, viewHref, downloadHre
 }
 
 function OrderDocumentCard({ icon, label, available, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
-  const marker = available ? "\\u2713" : "\\u00d7";
+  const marker = available ? "\u2713" : "\u00d7";
   const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] font-black text-white ${available ? "bg-emerald-500" : "bg-rose-500"}`}>{marker}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
   if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
   return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
