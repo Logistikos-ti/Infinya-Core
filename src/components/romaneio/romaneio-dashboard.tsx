@@ -185,112 +185,109 @@ export function RomaneioDashboard() {
   ];
 
   return (
-    <div className="flex-1 w-full flex flex-col min-w-0 bg-slate-50 dark:bg-[#0A1120]">
-      <main className="flex-1 overflow-y-auto p-7 md:p-8 md:px-8">
-        
-        {/* Title row */}
-        <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
-              <span>Expedição</span>
-              <span>›</span>
-              <span className="text-slate-900 dark:text-slate-100 font-semibold">
-                Romaneio
+    <>
+      {/* Title row */}
+      <div className="flex items-end justify-between gap-5 flex-wrap mb-6 mt-6">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
+            <span>Expedição</span>
+            <span>›</span>
+            <span className="text-slate-900 dark:text-slate-100 font-semibold">
+              Romaneio
+            </span>
+          </div>
+          <h1 className="m-0 font-[family-name:var(--font-space-grotesk)] text-[28px] font-bold text-slate-900 dark:text-slate-100">
+            Romaneios de carga
+          </h1>
+          <p className="m-0 text-[14.5px] text-slate-500 dark:text-slate-400">
+            Agrupamento de pedidos por rota, veículo e transportadora para o carregamento.
+          </p>
+        </div>
+        <div className="flex gap-2.5 items-center">
+          <button className="h-11 px-4 rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-[#101B30]/70 text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
+            <Download className="w-4 h-4" /> Exportar
+          </button>
+          <button className="h-11 px-5 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform">
+            <Plus className="w-4 h-4" strokeWidth={3} /> Novo romaneio
+          </button>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {kpis.map((k, i) => (
+          <div
+            key={i}
+            className="p-5 rounded-[16px] border border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-[#101B30]/70 backdrop-blur-sm flex flex-col gap-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
+                {k.label}
+              </span>
+              <span
+                className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center"
+                style={{ backgroundColor: k.iconBg, color: k.iconColor }}
+              >
+                {k.iconEl}
               </span>
             </div>
-            <h1 className="m-0 font-[family-name:var(--font-space-grotesk)] text-[28px] font-bold text-slate-900 dark:text-slate-100">
-              Romaneios de carga
-            </h1>
-            <p className="m-0 text-[14.5px] text-slate-500 dark:text-slate-400">
-              Agrupamento de pedidos por rota, veículo e transportadora para o carregamento.
-            </p>
-          </div>
-          <div className="flex gap-2.5 items-center">
-            <button className="h-11 px-4 rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
-              <Download className="w-4 h-4" /> Exportar
-            </button>
-            <button className="h-11 px-5 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform">
-              <Plus className="w-4 h-4" strokeWidth={3} /> Novo romaneio
-            </button>
-          </div>
-        </div>
-
-        {/* KPI cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {kpis.map((k, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-[16px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] flex flex-col gap-3"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
-                  {k.label}
-                </span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-[family-name:var(--font-space-grotesk)] text-[30px] font-bold text-slate-900 dark:text-slate-100">
+                {k.value}
+              </span>
+              {k.delta && (
                 <span
-                  className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center"
-                  style={{ backgroundColor: k.iconBg, color: k.iconColor }}
+                  className="text-[13px] font-bold"
+                  style={{ color: k.deltaColor }}
                 >
-                  {k.iconEl}
+                  {k.delta}
                 </span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-[family-name:var(--font-space-grotesk)] text-[30px] font-bold text-slate-900 dark:text-slate-100">
-                  {k.value}
-                </span>
-                {k.delta && (
-                  <span
-                    className="text-[13px] font-bold"
-                    style={{ color: k.deltaColor }}
-                  >
-                    {k.delta}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2.5 mb-5 flex-wrap">
-          {filterDefs.map((f, i) => {
-            const active = f.active;
-            return (
-              <button
-                key={i}
-                className={`h-9 px-[15px] rounded-[9px] font-[family-name:var(--font-manrope)] text-[13px] font-bold flex items-center gap-2 transition-all duration-200 ${
-                  active
-                    ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-transparent"
-                    : "bg-white dark:bg-[#101B30] text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                }`}
-              >
-                {f.label}
-                {f.count != null && (
-                  <span
-                    className={`px-2 py-[1px] rounded-full text-[11px] ${
-                      active
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    }`}
-                  >
-                    {f.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-          <div className="flex-1" />
-          <span className="text-[13px] text-slate-500 dark:text-slate-400">
-            {mockRomaneios.length} romaneios
-          </span>
-        </div>
+      {/* Filters */}
+      <div className="flex items-center gap-2.5 mb-5 flex-wrap">
+        {filterDefs.map((f, i) => {
+          const active = f.active;
+          return (
+            <button
+              key={i}
+              className={`h-9 px-[15px] rounded-[9px] font-[family-name:var(--font-manrope)] text-[13px] font-bold flex items-center gap-2 transition-all duration-200 ${
+                active
+                  ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-transparent"
+                  : "bg-white/70 dark:bg-[#101B30]/70 backdrop-blur-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              {f.label}
+              {f.count != null && (
+                <span
+                  className={`px-2 py-[1px] rounded-full text-[11px] ${
+                    active
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  {f.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <span className="text-[13px] text-slate-500 dark:text-slate-400">
+          {mockRomaneios.length} romaneios
+        </span>
+      </div>
 
-        {/* Romaneios Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
-          {mockRomaneios.map((r, i) => (
-            <RomaneioCard key={i} romaneio={r} onClick={() => setSelectedRomaneio(r)} />
-          ))}
-        </div>
-      </main>
+      {/* Romaneios Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
+        {mockRomaneios.map((r, i) => (
+          <RomaneioCard key={i} romaneio={r} onClick={() => setSelectedRomaneio(r)} />
+        ))}
+      </div>
 
       {selectedRomaneio && (
         <RomaneioDrawer
@@ -298,6 +295,6 @@ export function RomaneioDashboard() {
           onClose={() => setSelectedRomaneio(null)}
         />
       )}
-    </div>
+    </>
   );
 }
