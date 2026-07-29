@@ -57,6 +57,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selected, setSelected] = useState<ReceivingItem | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
@@ -206,6 +208,37 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     void submitManualRequest();
   }
 
+  async function cancelOrder() {
+    if (!selected) return;
+    if (!window.confirm(`Cancelar a solicitação ${selected.code}? Essa ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    setCancelling(true);
+    setCancelError("");
+    try {
+      const response = await fetch(`/api/portal/recebimentos/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Não foi possível cancelar o recebimento.");
+      }
+
+      setSelected(null);
+      router.refresh();
+    } catch (cancelErr) {
+      setCancelError(
+        cancelErr instanceof Error ? cancelErr.message : "Não foi possível cancelar o recebimento.",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   const displayStatus = (status: string) => {
     const labels: Record<string, string> = {
       AGUARDANDO: "Agendado",
@@ -215,6 +248,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       CONFERIDO: "Conferido",
       DIVERGENCIA: "Divergência",
       DIVERGÊNCIA: "Divergência",
+      CANCELADO: "Cancelado",
     };
     return labels[status] ?? status;
   };
@@ -240,6 +274,13 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         background: "bg-rose-500/10",
         color: "text-rose-600 dark:text-rose-300",
         dot: "bg-rose-500",
+      };
+    }
+    if (label === "Cancelado") {
+      return {
+        background: "bg-slate-500/10",
+        color: "text-slate-500 dark:text-slate-400",
+        dot: "bg-slate-400",
       };
     }
     return {
@@ -335,7 +376,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               {receiving.map((item) => (
                 <tr
                   key={item.id}
-                  onClick={() => setSelected(item)}
+                  onClick={() => {
+                    setCancelError("");
+                    setSelected(item);
+                  }}
                   className="cursor-pointer border-b border-slate-200 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
                 >
                   <td className="px-5 py-3.5 font-display text-sm font-bold">
@@ -768,6 +812,31 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 )}
               </div>
             </div>
+
+            {selected.status !== "CANCELADO" ? (
+              <div className="shrink-0 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+                {cancelError ? (
+                  <p className="mb-3 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                    {cancelError}
+                  </p>
+                ) : null}
+                {(selected.status === "AGUARDANDO" || selected.status === "RASCUNHO") &&
+                !selected.items.some((item) => item.received > 0) ? (
+                  <button
+                    type="button"
+                    onClick={cancelOrder}
+                    disabled={cancelling}
+                    className="h-11 w-full rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-wait disabled:opacity-60 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                  >
+                    {cancelling ? "Cancelando..." : "Cancelar solicitação"}
+                  </button>
+                ) : (
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                    Este recebimento já está em andamento no CD e não pode mais ser cancelado por aqui.
+                  </p>
+                )}
+              </div>
+            ) : null}
           </aside>
         </div>
       ) : null}
