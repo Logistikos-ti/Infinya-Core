@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
 import type { ShippingOrderDetail, ShippingOrderSummary } from "@/lib/shipping";
 import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
+import { PortalXmlOrderDrawer } from "@/components/portal/portal-xml-order-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 
@@ -39,6 +40,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "created", direction: "desc" });
   const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
+  const [xmlOrderOpen, setXmlOrderOpen] = useState(false);
   const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
   const [openingOrder, setOpeningOrder] = useState(false);
   const filteredOrders = useMemo(
@@ -94,14 +96,19 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
             Pedidos enviados ao CD para separação e expedição.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setNewOrderOpen(true)}
-          className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
-        >
-          <Plus className="h-4 w-4" />
-          Novo pedido
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setXmlOrderOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-[11px] border border-violet-200 bg-white px-4 text-sm font-extrabold text-violet-700 transition hover:-translate-y-px hover:border-violet-400 dark:border-violet-400/30 dark:bg-white/5 dark:text-violet-300">
+            <FileText className="h-4 w-4" /> Importar XML
+          </button>
+          <button
+            type="button"
+            onClick={() => setNewOrderOpen(true)}
+            className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
+          >
+            <Plus className="h-4 w-4" />
+            Novo pedido
+          </button>
+        </div>
       </div>
 
       <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
@@ -194,6 +201,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           }}
         />
       ) : null}
+      {xmlOrderOpen ? <PortalXmlOrderDrawer depositanteId={depositanteId} depositanteName={depositanteName} onClose={() => setXmlOrderOpen(false)} /> : null}
       {selectedOrder && detailVisible ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => { setDetailVisible(false); window.history.replaceState({}, "", "/portal?view=pedidos"); }} /> : null}
       {openingOrder ? (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/20 backdrop-blur-[2px]">

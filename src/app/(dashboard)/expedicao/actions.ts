@@ -417,8 +417,9 @@ export async function createManualShippingOrderAction(formData: FormData) {
 }
 
 export async function createXmlShippingOrderAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
-  const returnPath = "/expedicao";
+  const user = await requireRoleAccess(["DEPOSITANTE"]);
+  const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
+  const returnPath = requestedReturnPath.startsWith("/portal") ? requestedReturnPath : "/expedicao";
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "VENDA_DIRETA").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
@@ -607,7 +608,7 @@ export async function createXmlShippingOrderAction(formData: FormData) {
 
     revalidatePath("/expedicao");
     revalidatePath("/portal");
-    redirect("/expedicao?feedback=salvo");
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=salvo`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
     fail("erro");

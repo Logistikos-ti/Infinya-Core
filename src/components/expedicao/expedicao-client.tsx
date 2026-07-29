@@ -513,10 +513,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 <button onClick={setDivergence} style={{height: "36px", padding: "0 15px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: `${vt.divBg }`, color: `${vt.divColor }`, transition: "all 0.2s ease"}}>⚠ Divergências<span style={{padding: "1px 7px", borderRadius: "999px", fontSize: "11px", background: `${vt.divCountBg }`, color: `${vt.divCountColor }`}}>{divergenceCount }</span></button>
               </div>
               { showAdd  && (
-                <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-                  <Link href="/expedicao/novo-xml" className="inline-flex h-11 items-center gap-2 rounded-[11px] border border-violet-200 bg-white px-4 text-sm font-extrabold text-violet-700 transition hover:-translate-y-px hover:border-violet-400 dark:border-violet-400/30 dark:bg-white/5 dark:text-violet-300">Importar XML</Link>
-                  <button className="new-order-trigger" onClick={() => setNewOrderOpen(true)} style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
-                </div>
+                <button className="new-order-trigger" onClick={() => setNewOrderOpen(true)} style={{height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99,102,241,0.32)", display: "flex", alignItems: "center", gap: "8px"}} >{addBtnLabel }</button>
               )}
             </div>
           </div>
@@ -716,7 +713,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Listagem completa da fila de expedição por etapa do fluxo.</p>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <Link href="/expedicao/novo-xml" className="inline-flex h-11 items-center gap-2 rounded-[11px] border border-violet-200 bg-white px-4 text-sm font-extrabold text-violet-700 transition hover:-translate-y-px hover:border-violet-400 dark:border-violet-400/30 dark:bg-white/5 dark:text-violet-300">Importar XML</Link>
               <button className="new-order-trigger" onClick={() => setNewOrderOpen(true)} style={{ height: "44px", padding: "0 20px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)", display: "flex", alignItems: "center", gap: "8px" }}>
                 + Novo pedido
               </button>
