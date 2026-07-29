@@ -185,10 +185,17 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
   const allRomaneios = [...uiRecords, ...uiSuggestions];
   const filteredRomaneios = allRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
 
+  const today = new Date().toLocaleDateString("pt-BR");
+  
+  const romaneiosHoje = uiRecords.filter(r => r.departure === today).length;
+  const emCarregamento = uiRecords.filter(r => r.status === "Aberto").length;
+  const aguardandoSugestoes = uiSuggestions.length;
+  const expedidosHoje = uiRecords.filter(r => r.status === "Expedido" && r.departure === today).length;
+
   const kpis = [
     {
-      label: "Romaneios hoje",
-      value: "18",
+      label: "Criados hoje",
+      value: romaneiosHoje.toString(),
       delta: "",
       deltaColor: "#8695AD",
       iconEl: <Layers3 className="w-5 h-5" />,
@@ -196,8 +203,8 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
       iconColor: "#3B82F6",
     },
     {
-      label: "Em carregamento",
-      value: "4",
+      label: "Em carregamento (Abertos)",
+      value: emCarregamento.toString(),
       delta: "",
       deltaColor: "#10B981",
       iconEl: <Truck className="w-5 h-5" />,
@@ -205,8 +212,8 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
       iconColor: "#10B981",
     },
     {
-      label: "Aguardando",
-      value: "7",
+      label: "Sugestões (Aguardando)",
+      value: aguardandoSugestoes.toString(),
       delta: "",
       deltaColor: "#F59E0B",
       iconEl: <Clock className="w-5 h-5" />,
@@ -215,8 +222,8 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
     },
     {
       label: "Expedidos hoje",
-      value: "31",
-      delta: "▲ 8%",
+      value: expedidosHoje.toString(),
+      delta: "",
       deltaColor: "#10B981",
       iconEl: <CheckCircle2 className="w-5 h-5" />,
       iconBg: "rgba(139,92,246,0.14)",
