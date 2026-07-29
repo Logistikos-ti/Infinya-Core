@@ -73,26 +73,7 @@ export function RomaneioCard({ romaneio: r, onClick }: RomaneioCardProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-[7px]">
-          <div className="flex items-center justify-between text-[12.5px]">
-            <span className="text-slate-500 dark:text-slate-400">
-              Ocupação do veículo
-            </span>
-            <span
-              className="font-bold"
-              style={{ color: r.capColor }}
-            >
-              {r.cap}%
-            </span>
-          </div>
-          <div className="h-[7px] rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
-            <div
-              className="absolute top-0 left-0 h-full rounded-full transition-all duration-700 ease-out origin-left"
-              style={{ width: `${r.cap}%`, background: r.capFill }}
-            />
-          </div>
-        </div>
-
+        {/* Omitted vehicle occupancy info */}
         <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100 dark:border-slate-800/60">
           <div className="flex items-center gap-[9px] min-w-0">
             <Truck className="w-[18px] h-[18px] text-slate-400 dark:text-slate-500 shrink-0" />
