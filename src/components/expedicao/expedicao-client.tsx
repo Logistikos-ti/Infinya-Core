@@ -33,7 +33,9 @@ import {
   Receipt,
   Tag,
   Trash2,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { createManualShippingOrderAction, deleteShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
@@ -364,6 +366,17 @@ export function ExpedicaoClient({ data }: { data: any }) {
     "SLA": "sla",
     "Status": "status"
   };
+  const sortLabelByKey: Record<OrderSortKey, string> = {
+    order: "pedido",
+    customer: "cliente",
+    depositante: "depositante",
+    channel: "canal",
+    items: "itens",
+    conference: "conferência",
+    sla: "SLA",
+    status: "status"
+  };
+  const sortSummary = `ordenado por ${sortLabelByKey[sort.key]} (${sort.direction === "asc" ? "crescente" : "decrescente"})`;
 
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(sortedSearchedOrders.length / ITEMS_PER_PAGE) || 1;
@@ -538,7 +551,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
                 </React.Fragment>)}
                 <div style={{flex: "1"}}></div>
-                <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount} pedidos na fila</span>
+                <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount} pedidos na fila · {sortSummary}</span>
               </div>
               <div style={{overflowX: "auto"}}>
                 <table style={{width: "100%", borderCollapse: "collapse", minWidth: "960px"}}>
@@ -547,8 +560,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       {columns?.map((c: any, i: number) => <React.Fragment key={i}>
                         <th style={{padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: `${t.textSub }`, background: `${t.headBg }`, borderBottom: `1px solid ${t.border }`, whiteSpace: "nowrap"}}>
                           {sortKeyByColumn[c] ? (
-                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer" }}>
-                              {c}<ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: sort.key === sortKeyByColumn[c] ? 1 : 0.55 }} />
+                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: sort.key === sortKeyByColumn[c] ? "#8B5CF6" : "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer", transition: "color 0.18s ease" }}>
+                              {c}{sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />) : <ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: 0.55 }} />}
                             </button>
                           ) : c}
                         </th>
@@ -729,7 +742,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   </div>
                 </div>
                 <div style={{ flex: 1 }}></div>
-                <span style={{ fontSize: "13px", color: t.textSub }}>{ordersCount} pedidos</span>
+                <span style={{ fontSize: "13px", color: t.textSub }}>{ordersCount} pedidos · {sortSummary}</span>
               </div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "980px" }}>
@@ -738,8 +751,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       {columns.map((c: any, i: number) => (
                         <th key={i} style={{ padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: t.textSub, background: t.headBg, borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>
                           {sortKeyByColumn[c] ? (
-                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer" }}>
-                              {c}<ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: sort.key === sortKeyByColumn[c] ? 1 : 0.55 }} />
+                            <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: sort.key === sortKeyByColumn[c] ? "#8B5CF6" : "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer", transition: "color 0.18s ease" }}>
+                              {c}{sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />) : <ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: 0.55 }} />}
                             </button>
                           ) : c}
                         </th>
