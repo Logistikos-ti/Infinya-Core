@@ -43,8 +43,86 @@ const parser = new XMLParser({
   removeNSPrefix: true,
 });
 
+/**
+ * `file.text()` always assumes UTF-8, but a good share of Brazilian NF-e XMLs
+ * are emitted as ISO-8859-1. Decoding those as UTF-8 silently corrupts every
+ * accented character (supplier names, product descriptions) into U+FFFD, so
+ * honour the encoding declared in the XML prolog instead.
+ */
+export function decodeXmlBuffer(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(bytes);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(bytes);
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return new TextDecoder("utf-8").decode(bytes.subarray(3));
+  }
+
+  // The prolog is ASCII-safe in every encoding we care about, so it is safe to
+  // sniff it as latin1 before committing to a decoder.
+  const prolog = new TextDecoder("iso-8859-1").decode(bytes.subarray(0, 256));
+  const declared = prolog.match(/encoding\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
+
+  if (declared && declared !== "utf-8" && declared !== "utf8") {
+    try {
+      return new TextDecoder(declared).decode(bytes);
+    } catch {
+      // Unknown/unsupported label — fall through to UTF-8.
+    }
+  }
+
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+/**
+ * `file.text()` decodes whatever bytes were uploaded as UTF-8, so a binary
+ * file (ZIP, PDF, ...) renamed to .xml arrives here as mojibake instead of
+ * failing outright. Feeding that to the XML parser produces cryptic internal
+ * errors like `readTagExp returned undefined at position 147109`, which used
+ * to leak straight to the operator. Detect the common cases up front and
+ * explain, in plain Portuguese, what the person actually needs to send.
+ */
+function assertLooksLikeXml(xml: string) {
+  const head = xml.slice(0, 8);
+
+  if (head.startsWith("PK")) {
+    throw new Error(
+      "Você enviou um arquivo compactado (ZIP), não o XML da NF-e. Descompacte o arquivo e envie o .xml que está dentro dele.",
+    );
+  }
+
+  if (head.startsWith("%PDF")) {
+    throw new Error(
+      "Você enviou um PDF (provavelmente o DANFE), não o XML da NF-e. Envie o arquivo .xml emitido junto com a nota.",
+    );
+  }
+
+  // A NUL byte can never appear in a well-formed XML document, so it is a
+  // reliable binary marker. Deliberately NOT keying off U+FFFD counts here:
+  // NF-e XMLs are often emitted in ISO-8859-1, and decoding those as UTF-8
+  // legitimately produces many replacement chars for accented characters.
+  if (xml.includes("\u0000")) {
+    throw new Error(
+      "O arquivo enviado não é um XML de texto (parece estar corrompido ou em formato binário). Baixe novamente o XML da NF-e e tente de novo.",
+    );
+  }
+
+  if (!xml.includes("<")) {
+    throw new Error("O arquivo enviado não contém um XML de NF-e válido.");
+  }
+}
+
 export function parseNfeXml(xml: string): ParsedNfe {
-  const parsed = parser.parse(xml);
+  assertLooksLikeXml(xml);
+
+  let parsed;
+  try {
+    parsed = parser.parse(xml);
+  } catch {
+    throw new Error(
+      "Não foi possível ler o XML da NF-e: o arquivo parece estar incompleto ou corrompido. Baixe novamente o XML e tente de novo.",
+    );
+  }
   const envelope = parsed.nfeProc ?? parsed.NFe ?? parsed.enviNFe ?? parsed.procNFe ?? parsed;
   const nfe = envelope.NFe ?? envelope.nfe ?? envelope;
   const infNFe = nfe.infNFe ?? envelope.infNFe;

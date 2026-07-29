@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   ensureUserCanAccessDepositante,
-  requireApiModuleAccess,
+  requireApiUser,
 } from "@/lib/api-auth";
+import { getAccessDeniedErrorMessage } from "@/lib/auth";
+import { canAccessModule } from "@/lib/permissions";
 import {
+  decodeXmlBuffer,
   matchNfeProductsToCatalog,
   parseNfeXml,
 } from "@/lib/nfe-import";
@@ -19,10 +22,20 @@ import {
 const allowedXmlMimeTypes = new Set(["application/xml", "text/xml"]);
 
 export async function POST(request: Request) {
-  const auth = await requireApiModuleAccess("recebimento");
+  const auth = await requireApiUser();
 
   if (auth.response) {
     return auth.response;
+  }
+
+  // "recebimento" is an internal CD module that depositantes don't carry, but
+  // the portal lets them import their own NF-e XML. The depositante scope
+  // check further down keeps that confined to their own records.
+  if (!canAccessModule(auth.user, "recebimento") && auth.user.papel !== "DEPOSITANTE") {
+    return NextResponse.json(
+      { error: getAccessDeniedErrorMessage("recebimento") },
+      { status: 403 },
+    );
   }
 
   const formData = await request.formData();
@@ -75,7 +88,8 @@ export async function POST(request: Request) {
     return scopeError;
   }
 
-  const xmlText = await file.text();
+  const fileBuffer = await file.arrayBuffer();
+  const xmlText = decodeXmlBuffer(fileBuffer);
   let parsedXml;
 
   try {
@@ -207,7 +221,7 @@ export async function POST(request: Request) {
 
   const safeName = sanitizeFileName(file.name);
   const storagePath = `${depositanteId}/${new Date().getFullYear()}/${crypto.randomUUID()}-${safeName}`;
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const bytes = Buffer.from(fileBuffer);
 
   const uploadResult = await adminSupabase.storage.from(documentsBucketName).upload(storagePath, bytes, {
     contentType: file.type || "application/xml",
