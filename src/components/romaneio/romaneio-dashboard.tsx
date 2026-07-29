@@ -216,7 +216,7 @@ export function RomaneioDashboard() {
         {kpis.map((k, i) => (
           <div
             key={i}
-            className="p-5 rounded-[16px] border border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-[#101B30]/70 backdrop-blur-sm flex flex-col gap-3"
+            className="p-5 rounded-[16px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] flex flex-col gap-3"
           >
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">

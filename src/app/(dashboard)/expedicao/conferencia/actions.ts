@@ -263,7 +263,11 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect(completeRedirectTo);
   }
 
-  redirect(`${redirectBase}/${orderId}?feedback=${(intent === "complete" || intent === "force-pronto-romaneio") ? "concluido" : "salvo"}`);
+  if (intent === "force-pronto-romaneio" || intent === "complete") {
+    redirect(`${redirectBase}?feedback=concluido`);
+  }
+
+  redirect(`${redirectBase}/${orderId}?feedback=salvo`);
 }
 
 export async function markShippingOrderAsDivergentAction(formData: FormData) {
