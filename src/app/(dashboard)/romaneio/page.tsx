@@ -99,7 +99,7 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
           A estrutura persistente do romaneio ainda não existe neste banco. Rode a nova migration do Supabase.
         </div>
       ) : null}
-      <RomaneioDashboard />
+      <RomaneioDashboard records={records} suggestions={suggestions} />
     </>
   );
 }

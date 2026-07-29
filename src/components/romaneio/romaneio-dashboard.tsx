@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Download, Plus, Layers3, Truck, Clock, CheckCircle2 } from "lucide-react";
 import { RomaneioCard } from "./romaneio-card";
 import { RomaneioDrawer } from "./romaneio-drawer";
-import type { RomaneioUI } from "./romaneio-types";
+import type { RomaneioRecordDetail, RomaneioSuggestionGroup } from "@/lib/romaneio-records";
+import type { RomaneioUI, RomaneioStop } from "./romaneio-types";
+
+type RomaneioDashboardProps = {
+  records?: RomaneioRecordDetail[];
+  suggestions?: RomaneioSuggestionGroup[];
+};
 
 // ==========================================
 // MOCK DATA GENERATION (from original design)
@@ -65,68 +71,119 @@ const names = [
   "Loja Beta Ltda",
 ];
 
-const rawData = [
-  { code: "ROM-3120", carrier: "Frota Própria", route: "Rota SP Capital - Zona Sul", orders: 12, volumes: 38, weight: "412 kg", cap: 72, driver: "Anderson Melo", plate: "FQR-2H18", vehicle: "VUC 3/4", departure: "Sai 14:30", status: "Aberto" },
-  { code: "ROM-3121", carrier: "Jadlog", route: "Coleta ML - Interior", orders: 24, volumes: 61, weight: "188 kg", cap: 88, driver: "Coleta agendada", plate: "JAD-9021", vehicle: "Fiorino", departure: "Coleta 15h", status: "Aberto" },
-  { code: "ROM-3122", carrier: "Frota Própria", route: "Rota SP Capital - Zona Oeste", orders: 8, volumes: 22, weight: "96 kg", cap: 45, driver: "Márcio Reis", plate: "GTA-4C55", vehicle: "VUC", departure: "Sai 16:00", status: "Aberto" },
-  { code: "ROM-3123", carrier: "Total Express", route: "Grande SP - ABC", orders: 31, volumes: 74, weight: "523 kg", cap: 96, driver: "Coleta agendada", plate: "TEX-1188", vehicle: "Truck", departure: "Coleta 17h", status: "Aberto" },
-  { code: "ROM-3118", carrier: "Loggi", route: "Same Day - Capital", orders: 18, volumes: 40, weight: "84 kg", cap: 60, driver: "Fábio Nunes", plate: "LOG-7742", vehicle: "Moto/Van", departure: "Saiu 11:20", status: "Expedido" },
-  { code: "ROM-3124", carrier: "Braspress", route: "Transferência - MG", orders: 15, volumes: 52, weight: "640 kg", cap: 82, driver: "Em separação", plate: "—", vehicle: "Truck", departure: "Prev. 18h", status: "Aberto" },
-];
-
-const buildMockRomaneios = (): RomaneioUI[] => {
-  const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
-  return rawData.map((r) => {
-    const cc = carriers[r.carrier] || "#64748B";
-    const ss = statusStyle(r.status);
-    const cap = capColor(r.cap);
-    const nStops = Math.min(6, Math.max(3, Math.round(r.orders / 4)));
-    const stops = [];
-    for (let i = 0; i < nStops; i++) {
-      stops.push({
-        seq: i + 1,
-        customer: names[i % names.length],
-        code: "#EC-" + (48219 + i),
-        city: cities[i % cities.length],
-        vol: 2 + (i % 4) + " vol",
-        weight: 4 + i * 3 + " kg",
-      });
-    }
-    const depColor =
-      r.status === "Expedido"
-        ? "#8695AD" // textSub
-        : r.status === "Aberto"
-        ? "#8B5CF6"
-        : "inherit";
-    return {
-      ...r,
-      ...ss,
-      carrierColor: cc,
-      carrierBg: hex2(cc, 0.15),
-      carrierInit: r.carrier.slice(0, 2).toUpperCase(),
-      capColor: cap,
-      capFill: r.cap >= 95 ? "#EF4444" : r.cap >= 80 ? "linear-gradient(90deg,#F59E0B,#FBBF24)" : grad,
-      depColor,
-      specs: [
-        { k: "Transportadora", v: r.carrier },
-        { k: "Rota", v: r.route },
-        { k: "Motorista", v: r.driver },
-        { k: "Placa", v: r.plate },
-        { k: "Veículo", v: r.vehicle },
-        { k: "Saída prevista", v: r.departure },
-      ],
-      stops,
-    };
-  });
+const formatDisplayValue = (val: number | string) => {
+  if (typeof val === 'number') return val.toLocaleString("pt-BR");
+  return val.toString();
 };
 
-const mockRomaneios = buildMockRomaneios();
+const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
+  const cc = carriers[r.carrierName] || "#64748B";
+  const ss = statusStyle(r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado");
+  const cap = 70; // We don't have cap in DB for now
+  const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
+  
+  const stops: RomaneioStop[] = r.orders.map((o, i) => ({
+    seq: i + 1,
+    customer: o.customer,
+    code: o.code,
+    city: o.destination,
+    vol: o.units,
+    weight: o.total, // Using total instead of weight for now
+  }));
+  
+  return {
+    code: r.code,
+    carrier: r.carrierName,
+    route: r.destinations.join(" · ") || "N/A",
+    orders: r.orderCount,
+    volumes: r.totalUnitsRaw,
+    weight: r.totalValue, 
+    cap,
+    driver: r.driverName || "Não definido",
+    plate: r.vehiclePlate || "—",
+    vehicle: r.vehicleModel || "—",
+    departure: new Date(r.createdAt).toLocaleDateString("pt-BR"),
+    status: r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado",
+    carrierColor: cc,
+    carrierBg: hex2(cc, 0.15),
+    carrierInit: r.carrierName.slice(0, 2).toUpperCase(),
+    capColor: capColor(cap),
+    capFill: cap >= 95 ? "#EF4444" : cap >= 80 ? "linear-gradient(90deg,#F59E0B,#FBBF24)" : grad,
+    statusBg: ss.statusBg,
+    statusColor: ss.statusColor,
+    statusDot: ss.statusDot,
+    depColor: r.status === "LIBERADO" ? "#8695AD" : "#8B5CF6",
+    specs: [
+      { k: "Transportadora", v: r.carrierName },
+      { k: "Rota", v: r.destinations.join(" · ") || "N/A" },
+      { k: "Motorista", v: r.driverName || "—" },
+      { k: "Placa", v: r.vehiclePlate || "—" },
+      { k: "Veículo", v: r.vehicleModel || "—" },
+      { k: "Criação", v: new Date(r.createdAt).toLocaleString("pt-BR") },
+    ],
+    stops,
+  };
+};
 
-export function RomaneioDashboard() {
+const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
+  const cc = carriers[s.carrierName] || "#64748B";
+  const ss = {
+    statusBg: hex2("#F59E0B", 0.16),
+    statusColor: "#F59E0B",
+    statusDot: "#F59E0B",
+  };
+  const cap = 0; 
+  const grad = "linear-gradient(92deg,#F59E0B,#FBBF24)";
+  
+  const stops: RomaneioStop[] = s.orders.map((o, i) => ({
+    seq: i + 1,
+    customer: o.customer,
+    code: o.code,
+    city: o.destination,
+    vol: o.units,
+    weight: o.total,
+  }));
+  
+  return {
+    code: "NOVO",
+    carrier: s.carrierName,
+    route: s.destinations.join(" · ") || "N/A",
+    orders: s.orderCount,
+    volumes: s.totalUnitsRaw,
+    weight: s.totalValue, 
+    cap,
+    driver: "Sugestão",
+    plate: "—",
+    vehicle: "—",
+    departure: s.cutoff,
+    status: "Sugestão",
+    carrierColor: cc,
+    carrierBg: hex2(cc, 0.15),
+    carrierInit: s.carrierName.slice(0, 2).toUpperCase(),
+    capColor: capColor(cap),
+    capFill: grad,
+    statusBg: ss.statusBg,
+    statusColor: ss.statusColor,
+    statusDot: ss.statusDot,
+    depColor: "#F59E0B",
+    specs: [
+      { k: "Transportadora", v: s.carrierName },
+      { k: "Destinos", v: `${s.destinations.length} cidades` },
+      { k: "Pedidos", v: `${s.orderCount} pendentes` },
+      { k: "Valor Ref", v: s.totalValue },
+    ],
+    stops,
+  };
+};
+
+export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDashboardProps) {
   const [selectedRomaneio, setSelectedRomaneio] = useState<RomaneioUI | null>(null);
   const [activeFilter, setActiveFilter] = useState("Todos");
 
-  const filteredRomaneios = mockRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
+  const uiRecords = records.map(mapRecordToUI);
+  const uiSuggestions = suggestions.map(mapSuggestionToUI);
+  const allRomaneios = [...uiRecords, ...uiSuggestions];
+  const filteredRomaneios = allRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
 
   const kpis = [
     {
@@ -168,9 +225,10 @@ export function RomaneioDashboard() {
   ];
 
   const filterDefs = [
-    { label: "Todos", count: mockRomaneios.length },
-    { label: "Aberto", count: mockRomaneios.filter(r => r.status === "Aberto").length },
-    { label: "Expedido", count: mockRomaneios.filter(r => r.status === "Expedido").length },
+    { label: "Todos", count: allRomaneios.length },
+    { label: "Aberto", count: uiRecords.filter(r => r.status === "Aberto").length },
+    { label: "Sugestão", count: uiSuggestions.length },
+    { label: "Expedido", count: uiRecords.filter(r => r.status === "Expedido").length },
   ];
 
   return (
