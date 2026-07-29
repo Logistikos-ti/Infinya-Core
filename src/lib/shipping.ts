@@ -381,7 +381,7 @@ export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSumma
     },
     {
       status: "PRONTO_ROMANEIO",
-      label: "Pronto para romaneio",
+      label: "Pronto para Coleta",
       help: "Pedidos aptos para consolidação e despacho.",
     },
   ] as const;
@@ -1018,7 +1018,7 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
     case "CONFERIDO":
       return isOrderReleasedWithoutRomaneio(normalizedPayload) ? "Finalizado sem romaneio" : "Conferido";
     case "PRONTO_ROMANEIO":
-      return "Liberado para romaneio";
+      return "Pronto para Coleta";
     case "EXPEDIDO":
       return "Expedido";
     case "CANCELADO":

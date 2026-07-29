@@ -11,6 +11,7 @@ import {
   getSalesChannelLabel,
   type SalesChannelCode,
 } from "@/lib/sales-channels";
+import { parseNfeXml } from "@/lib/nfe-import";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -214,7 +215,49 @@ export async function createManualShippingOrderAction(formData: FormData) {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
   }
 
+  let parsedXmlFile: File;
+  try {
+    parsedXmlFile = readRequiredInvoiceUpload(xmlFile);
+  } catch {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-obrigatoria`);
+  }
+  const xmlBytes = Buffer.from(await parsedXmlFile.arrayBuffer());
+  const xmlText = xmlBytes.toString("utf8").replace(/^\uFEFF/, "");
+  let parsedNfe: ReturnType<typeof parseNfeXml>;
+
+  try {
+    parsedNfe = parseNfeXml(xmlText);
+  } catch {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-invalida`);
+  }
+
+  const invoiceNumberFromXml = parsedNfe.noteNumber.trim();
+  if (!invoiceNumberFromXml || invoiceNumberFromXml === "Sem numero") {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-invalida`);
+  }
+
   const adminSupabase = createSupabaseAdminClient();
+  const { data: existingOrders, error: existingOrdersError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, codigo, payload_origem")
+    .eq("depositante_id", depositanteId)
+    .limit(5000);
+
+  if (existingOrdersError) {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+  }
+
+  const normalizedInvoiceNumber = normalizeInvoiceNumber(invoiceNumberFromXml);
+  const duplicateOrder = (existingOrders ?? []).find((order) => {
+    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+    const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : {};
+    return normalizeInvoiceNumber(notaFiscal.numero) === normalizedInvoiceNumber;
+  });
+
+  if (duplicateOrder) {
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-duplicada`);
+  }
+
   const channelLabel = getSalesChannelLabel(salesChannelCode) ?? "Venda direta";
   const comercial = buildManualCommercialPayload({
     salesChannelCode,
@@ -240,7 +283,8 @@ export async function createManualShippingOrderAction(formData: FormData) {
       shipmentId: mercadoLivreShipmentId || null,
     },
     notaFiscal: {
-      numero: invoiceNumber || null,
+      numero: invoiceNumberFromXml,
+      chave: parsedNfe.accessKey,
     },
     transporte: {
       contato: {
@@ -332,21 +376,18 @@ export async function createManualShippingOrderAction(formData: FormData) {
       }
     }
 
-    const parsedXmlFile = readOptionalUpload(xmlFile);
     const parsedLabelFile = readOptionalUpload(labelFile);
 
-    if (parsedXmlFile) {
-      await storeOperationalDocumentFromBuffer({
-        adminSupabase,
-        depositanteId,
-        tipo: "NF",
-        fileName: parsedXmlFile.name,
-        mimeType: parsedXmlFile.type,
-        bytes: Buffer.from(await parsedXmlFile.arrayBuffer()),
-        pedidoExpedicaoId: createdOrder.id,
-        enviadoPor: user.id,
-      });
-    }
+    await storeOperationalDocumentFromBuffer({
+      adminSupabase,
+      depositanteId,
+      tipo: "NF",
+      fileName: parsedXmlFile.name,
+      mimeType: parsedXmlFile.type || "application/xml",
+      bytes: xmlBytes,
+      pedidoExpedicaoId: createdOrder.id,
+      enviadoPor: user.id,
+    });
 
     if (parsedLabelFile) {
       await storeOperationalDocumentFromBuffer({
@@ -438,6 +479,23 @@ function readOptionalUpload(value: FormDataEntryValue | null) {
   }
 
   return value;
+}
+
+function readRequiredInvoiceUpload(value: FormDataEntryValue | null) {
+  const file = readOptionalUpload(value);
+  if (!file || !file.name.toLowerCase().endsWith(".xml")) {
+    throw new Error("O XML da NF-e é obrigatório para criar o pedido manual.");
+  }
+  return file;
+}
+
+function normalizeInvoiceNumber(value: unknown) {
+  const normalized = String(value ?? "").trim().replace(/\D/g, "").replace(/^0+/, "");
+  return normalized || String(value ?? "").trim().toUpperCase();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

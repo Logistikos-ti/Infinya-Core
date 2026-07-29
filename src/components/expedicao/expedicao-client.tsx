@@ -1370,12 +1370,12 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 </section>
 
                 <section>
-                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Documentos (opcional)</h3>
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Documentos</h3>
                   <div style={{ display: "grid", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>
                       <Upload size={18} color="#3B82F6" />
                       <div style={{ flex: 1, minWidth: 0 }}><strong style={{ display: "block", color: t.text, fontSize: 13 }}>Nota fiscal (XML)</strong><small style={{ display: "block", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: t.textSub }}>{newOrderInvoiceFile?.name ?? "Nenhum arquivo selecionado"}</small></div>
-                      <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(59,130,246,.12)", color: "#2563EB", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="invoiceXml" accept=".xml,.html,.htm,text/xml,application/xml,text/html" onChange={(event) => setNewOrderInvoiceFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
+                      <label style={{ height: 34, display: "inline-flex", alignItems: "center", padding: "0 12px", borderRadius: 9, background: "rgba(59,130,246,.12)", color: "#2563EB", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Anexar<input type="file" name="invoiceXml" required accept=".xml,application/xml,text/xml" onChange={(event) => setNewOrderInvoiceFile(event.target.files?.[0] ?? null)} style={{ display: "none" }} /></label>
                       {newOrderInvoiceFile && <button type="button" onClick={async () => { const source = await newOrderInvoiceFile.text(); const isHtmlDocument = /<!doctype\s+html|<html[\s>]/i.test(source); const renderedSource = isHtmlDocument ? source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "") : buildInvoicePreviewHtml(source); setNewOrderPreviewZoom(100); setNewOrderPreview({ kind: "invoice", src: renderedSource, file: newOrderInvoiceFile }); }} style={{ height: 34, padding: "0 10px", borderRadius: 9, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Visualizar</button>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, border: `1px solid ${t.border}`, background: t.softBg }}>

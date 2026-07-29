@@ -48,7 +48,7 @@ export default async function NovoPedidoManualPage({
         badge="Cadastro manual"
       />
 
-      {feedback === "erro" ? (
+      {feedback === "erro" || feedback === "nf-obrigatoria" || feedback === "nf-invalida" || feedback === "nf-duplicada" ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
           Não foi possível criar o pedido manual. Revise os campos obrigatórios.
         </div>
@@ -253,10 +253,11 @@ export default async function NovoPedidoManualPage({
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Anexos iniciais</h2>
             <div className="mt-4 grid gap-4">
-              <Field label="XML da nota fiscal">
+              <Field label="XML da nota fiscal (obrigatório)">
                 <input
                   type="file"
                   name="invoiceXml"
+                  required
                   accept=".xml,application/xml,text/xml"
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:file:bg-zinc-800"
                 />

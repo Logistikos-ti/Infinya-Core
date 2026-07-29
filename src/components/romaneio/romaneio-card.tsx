@@ -44,12 +44,7 @@ export function RomaneioCard({ romaneio: r, onClick }: RomaneioCardProps) {
 
       {/* Body */}
       <div className="flex flex-col p-[18px] gap-[14px]">
-        <div className="flex items-center gap-2.5 text-[13.5px]">
-          <MapPin className="w-[17px] h-[17px] text-slate-400 dark:text-slate-500 shrink-0" />
-          <span className="font-bold text-slate-700 dark:text-slate-200 truncate">
-            {r.route}
-          </span>
-        </div>
+        {/* Omitted route info from card body */}
 
         <div className="grid grid-cols-3 gap-2.5">
           <div className="flex flex-col gap-[3px] p-2.5 rounded-[11px] bg-slate-50 dark:bg-slate-800/40">
