@@ -11,7 +11,7 @@ import {
   getSalesChannelLabel,
   type SalesChannelCode,
 } from "@/lib/sales-channels";
-import { parseNfeXml } from "@/lib/nfe-import";
+import { matchNfeProductsToCatalog, parseNfeXml } from "@/lib/nfe-import";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -215,7 +215,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
   }
 
-  let parsedXmlFile: File;
+  let parsedXmlFile: File | undefined;
   try {
     parsedXmlFile = readRequiredInvoiceUpload(xmlFile);
   } catch {
@@ -413,6 +413,204 @@ export async function createManualShippingOrderAction(formData: FormData) {
       throw error;
     }
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+  }
+}
+
+export async function createXmlShippingOrderAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
+  const returnPath = "/expedicao";
+  const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+  const salesChannelCode = String(formData.get("salesChannelCode") ?? "VENDA_DIRETA").trim() as SalesChannelCode;
+  const customStoreName = String(formData.get("customStoreName") ?? "").trim();
+  const carrierName = String(formData.get("carrierName") ?? "").trim();
+  const shippingService = String(formData.get("shippingService") ?? "").trim();
+  const labelFile = formData.get("shippingLabel");
+  const xmlFile = formData.get("invoiceXml");
+
+  const fail = (feedback: string): never => redirect(`${returnPath}?feedback=${feedback}`);
+
+  if (!depositanteId || !salesChannelCode) fail("erro");
+  if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) fail("erro");
+
+  const parsedXmlFile = (() => {
+    try {
+      return readRequiredInvoiceUpload(xmlFile);
+    } catch {
+      fail("nf-obrigatoria");
+      throw new Error("nf-obrigatoria");
+    }
+  })();
+
+  const xmlBytes = Buffer.from(await parsedXmlFile.arrayBuffer());
+  const xmlText = xmlBytes.toString("utf8").replace(/^\uFEFF/, "");
+  const parsedNfe = (() => {
+    try {
+      return parseNfeXml(xmlText);
+    } catch {
+      fail("nf-invalida");
+      throw new Error("nf-invalida");
+    }
+  })();
+
+  if (parsedNfe.direction !== "SAIDA") fail("xml-entrada");
+  const invoiceNumber = parsedNfe.noteNumber.trim();
+  if (!invoiceNumber || invoiceNumber === "Sem numero") fail("nf-invalida");
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: existingOrders, error: existingOrdersError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, payload_origem")
+    .eq("depositante_id", depositanteId)
+    .limit(5000);
+
+  if (existingOrdersError) fail("erro");
+  const duplicateOrder = (existingOrders ?? []).find((order) => {
+    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+    const notaFiscal = isRecord(payload.notaFiscal) ? payload.notaFiscal : {};
+    return normalizeInvoiceNumber(notaFiscal.numero) === normalizeInvoiceNumber(invoiceNumber);
+  });
+  if (duplicateOrder) fail("nf-duplicada");
+
+  const { data: catalog, error: catalogError } = await adminSupabase
+    .from("produtos")
+    .select("id, nome, sku, codigo_interno, codigo_externo, unidade_estocagem")
+    .eq("depositante_id", depositanteId)
+    .eq("ativo", true);
+
+  if (catalogError) fail("erro");
+  const matchedProducts = matchNfeProductsToCatalog(
+    parsedNfe.items,
+    (catalog ?? []).map((product) => ({
+      id: product.id,
+      nome: product.nome,
+      sku: product.sku || "",
+      codigo_interno: product.codigo_interno || "",
+      codigo_externo: product.codigo_externo,
+    })),
+  );
+
+  if (matchedProducts.unmatched.length > 0 || matchedProducts.matched.length !== parsedNfe.items.length) {
+    fail("xml-produtos-nao-mapeados");
+  }
+
+  const channelLabel = getSalesChannelLabel(salesChannelCode) ?? "Venda direta";
+  const totalUnits = matchedProducts.matched.reduce((sum, item) => sum + item.quantidade, 0);
+  const cityUf = parsedNfe.recipientAddress?.split(" | ")[2] ?? null;
+  const [clienteCidade, clienteUf] = cityUf?.split(" - ").map((value) => value.trim()) ?? [null, null];
+  const payloadOrigem = {
+    manual: true,
+    importadoPorXml: true,
+    criadoPor: { userId: user.id, nome: user.nome, em: new Date().toISOString() },
+    comercial: buildManualCommercialPayload({ salesChannelCode, customStoreName }),
+    destinatario: {
+      documento: parsedNfe.recipientDocument,
+      endereco: parsedNfe.recipientAddress,
+      numero: null,
+      telefone: null,
+    },
+    notaFiscal: {
+      numero: invoiceNumber,
+      chave: parsedNfe.accessKey,
+      protocolo: parsedNfe.protocolNumber,
+      status: parsedNfe.protocolStatusLabel,
+    },
+    transporte: {
+      contato: { nome: carrierName || parsedNfe.carrierName || null },
+      volumes: [{ quantidade: parsedNfe.volumeCount || 1, servico: shippingService || carrierName || parsedNfe.carrierName || null }],
+    },
+    xml: {
+      emitente: parsedNfe.supplierName,
+      documentoEmitente: parsedNfe.supplierDocument,
+      emitidoEm: parsedNfe.issuedAt,
+      pesoBruto: parsedNfe.grossWeight,
+      informacoesAdicionais: parsedNfe.additionalInfo,
+    },
+  };
+
+  const headerPayload = {
+    depositante_id: depositanteId,
+    codigo: buildManualShippingOrderCode(),
+    referencia_externa: `XML-${parsedNfe.accessKey || randomUUID()}`,
+    origem: "MANUAL",
+    canal: channelLabel,
+    status: "NOVO",
+    status_origem: "MANUAL",
+    numero_pedido: invoiceNumber,
+    numero_loja: parsedNfe.accessKey,
+    cliente_nome: parsedNfe.recipientName,
+    cliente_documento: parsedNfe.recipientDocument,
+    cliente_cidade: clienteCidade,
+    cliente_uf: clienteUf,
+    valor_total: parsedNfe.totalValue,
+    quantidade_itens: parsedNfe.items.length,
+    quantidade_unidades: totalUnits,
+    data_pedido: parsedNfe.issuedAt || new Date().toISOString(),
+    sincronizado_em: new Date().toISOString(),
+    payload_origem: payloadOrigem,
+    observacoes: parsedNfe.additionalInfo,
+  };
+
+  try {
+    const { data: createdOrder, error } = await adminSupabase
+      .from("pedidos_expedicao")
+      .insert(headerPayload)
+      .select("id")
+      .single();
+    const createdOrderId = createdOrder?.id;
+    if (error || !createdOrderId) fail("erro");
+
+    const catalogById = new Map((catalog ?? []).map((product) => [product.id, product]));
+    const itemRows = matchedProducts.matched.map((item) => {
+      const product = catalogById.get(item.productId);
+      return {
+        pedido_expedicao_id: createdOrderId,
+        depositante_id: depositanteId,
+        produto_id: item.productId,
+        codigo_produto: product?.codigo_externo || product?.codigo_interno || item.origemCodigo || item.origemEan,
+        sku: product?.sku || item.sku || null,
+        nome: product?.nome || item.nome,
+        unidade: product?.unidade_estocagem || "UNIDADE",
+        quantidade: item.quantidade,
+        payload_origem: { manual: true, importadoPorXml: true, origemCodigo: item.origemCodigo, origemEan: item.origemEan },
+      };
+    });
+    const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
+    if (itemError) {
+      await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrderId);
+      fail("erro");
+    }
+
+    await storeOperationalDocumentFromBuffer({
+      adminSupabase,
+      depositanteId,
+      tipo: "NF",
+      fileName: parsedXmlFile.name,
+      mimeType: parsedXmlFile.type || "application/xml",
+      bytes: xmlBytes,
+      pedidoExpedicaoId: createdOrderId,
+      enviadoPor: user.id,
+    });
+
+    const parsedLabelFile = readOptionalUpload(labelFile);
+    if (parsedLabelFile) {
+      await storeOperationalDocumentFromBuffer({
+        adminSupabase,
+        depositanteId,
+        tipo: "ETIQUETA",
+        fileName: parsedLabelFile.name,
+        mimeType: parsedLabelFile.type,
+        bytes: Buffer.from(await parsedLabelFile.arrayBuffer()),
+        pedidoExpedicaoId: createdOrderId,
+        enviadoPor: user.id,
+      });
+    }
+
+    revalidatePath("/expedicao");
+    revalidatePath("/portal");
+    redirect("/expedicao?feedback=salvo");
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    fail("erro");
   }
 }
 

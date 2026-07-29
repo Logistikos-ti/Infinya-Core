@@ -68,7 +68,7 @@ export function RomaneioCard({ romaneio: r, onClick }: RomaneioCardProps) {
               {r.weight}
             </span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              peso
+              valor
             </span>
           </div>
         </div>
