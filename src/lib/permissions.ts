@@ -175,7 +175,7 @@ export function canManageMultipleTenants(user: AppUserContext) {
 }
 
 export function canUploadOperationalDocuments(user: AppUserContext) {
-  return canAccessModule(user, "recebimento") || hasRoleAccess(user, ["ADMIN", "TI", "OPERADOR"]);
+  return canAccessModule(user, "recebimento") || hasRoleAccess(user, ["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
 }
 
 export function getPreferredWebRoute(user: AppUserContext) {

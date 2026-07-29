@@ -473,7 +473,7 @@ export async function uploadShippingAttachmentAction(
   _previousState: ShippingAttachmentUploadState,
   formData: FormData,
 ): Promise<ShippingAttachmentUploadState> {
-  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
 
   if (!canUploadOperationalDocuments(user)) {
     return {
@@ -567,6 +567,7 @@ export async function uploadShippingAttachmentAction(
     });
 
     revalidatePath("/expedicao");
+    revalidatePath("/portal");
     revalidatePath("/expedicao/conferencia");
     revalidatePath(`/expedicao/conferencia/${orderId}`);
     revalidatePath(`/expedicao/${orderId}`);
