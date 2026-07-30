@@ -111,7 +111,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState("");
-  const [newOrderCarrier, setNewOrderCarrier] = useState("Marketplace");
+  const [newOrderCarrier, setNewOrderCarrier] = useState("Mercado Livre");
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
@@ -1369,7 +1369,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                   <input type="hidden" name="shippingService" value={newOrderCarrier} />
                   {newOrderCarrier === "Outro" ? <input name="carrierName" required value={newOrderOtherCarrier} onChange={(event) => setNewOrderOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /> : <input type="hidden" name="carrierName" value={newOrderCarrier} />}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {["Correios", "Marketplace", "Outro"].map((carrier) => <button type="button" key={carrier} onClick={() => { setNewOrderCarrier(carrier); if (carrier !== "Outro") setNewOrderOtherCarrier(""); }} style={{ height: 38, padding: "0 15px", borderRadius: 10, border: `1.5px solid ${newOrderCarrier === carrier ? "#8B5CF6" : t.border}`, background: newOrderCarrier === carrier ? "rgba(139,92,246,.1)" : t.cardBg, color: newOrderCarrier === carrier ? t.text : t.textSub, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}>{carrier}</button>)}
+                    {["Correios", "Mercado Livre", "Shopee", "Amazon", "Magalu", "Shein", "TikTok Shop", "Kwai", "Outro"].map((carrier) => <button type="button" key={carrier} onClick={() => { setNewOrderCarrier(carrier); if (carrier !== "Outro") setNewOrderOtherCarrier(""); }} style={{ height: 38, padding: "0 15px", borderRadius: 10, border: `1.5px solid ${newOrderCarrier === carrier ? "#8B5CF6" : t.border}`, background: newOrderCarrier === carrier ? "rgba(139,92,246,.1)" : t.cardBg, color: newOrderCarrier === carrier ? t.text : t.textSub, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}>{carrier}</button>)}
                   </div>
                   {newOrderCarrier === "Outro" && <div style={{ marginTop: 8, color: t.textSub, fontSize: 11.5 }}>Informe a transportadora responsável pelo envio.</div>}
                 </section>

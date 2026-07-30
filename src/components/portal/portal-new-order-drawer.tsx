@@ -30,7 +30,7 @@ export function PortalNewOrderDrawer({
 }) {
   const [channel, setChannel] = useState("MERCADO_LIVRE");
   const [channelOpen, setChannelOpen] = useState(false);
-  const [carrier, setCarrier] = useState("Marketplace");
+  const [carrier, setCarrier] = useState("Mercado Livre");
   const [otherCarrier, setOtherCarrier] = useState("");
   const [selected, setSelected] = useState<SelectedProduct[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -130,7 +130,7 @@ export function PortalNewOrderDrawer({
             <section>
               <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Frete / transportadora</h3>
               {carrier === "Outro" ? <input required name="carrierName" value={otherCarrier} onChange={(event) => setOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" className="mb-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" /> : <input type="hidden" name="carrierName" value={carrier} />}
-              <div className="flex flex-wrap gap-2">{["Correios", "Marketplace", "Outro"].map((value) => <button type="button" key={value} onClick={() => setCarrier(value)} className={`rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:-translate-y-px ${carrier === value ? "border-cyan-400 bg-cyan-50 text-slate-900 dark:bg-cyan-400/10 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10"}`}>{value}</button>)}</div>
+              <div className="flex flex-wrap gap-2">{["Correios", "Mercado Livre", "Shopee", "Amazon", "Magalu", "Shein", "TikTok Shop", "Kwai", "Outro"].map((value) => <button type="button" key={value} onClick={() => setCarrier(value)} className={`rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:-translate-y-px ${carrier === value ? "border-cyan-400 bg-cyan-50 text-slate-900 dark:bg-cyan-400/10 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10"}`}>{value}</button>)}</div>
             </section>
 
             <section>
