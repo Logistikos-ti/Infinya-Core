@@ -72,6 +72,8 @@ export function MobileConferencePanel({
     },
   });
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    warningAfterMs: 10_000,
+    expireAfterMs: 40_000,
     disabled: isSubmitting,
     onExpire: () => {
       router.replace("/m/conferencia?feedback=inatividade");

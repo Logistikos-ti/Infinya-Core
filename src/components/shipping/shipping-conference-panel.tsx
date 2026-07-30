@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Camera, RefreshCw, Smartphone, Loader2, FileText, Route } from "lucide-react";
+import { Camera, RefreshCw, Smartphone, Loader2, FileText, Route, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
@@ -122,11 +122,14 @@ export function ShippingConferencePanel({
 
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedProductImage, setExpandedProductImage] = useState<{ url: string; name: string } | null>(null);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const quantityInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const conferenceFormRef = useRef<HTMLFormElement | null>(null);
 
   const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    warningAfterMs: 10_000,
+    expireAfterMs: 40_000,
     disabled: isSubmitting,
     onExpire: () => {
       router.replace(`${redirectBase}?feedback=inatividade`);
@@ -400,6 +403,23 @@ export function ShippingConferencePanel({
 
   return (
     <div style={{ flex: 1, minWidth: 0, overflowY: "auto", padding: "28px 32px", background: t.sideBg2, animation: "panelFadeIn 0.25s ease-out" }}>
+      {expandedProductImage ? (
+        <div role="dialog" aria-modal="true" aria-label={`Foto do produto ${expandedProductImage.name}`} onClick={() => setExpandedProductImage(null)} style={{ position: "fixed", inset: 0, zIndex: 120, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(15,23,42,.74)", backdropFilter: "blur(5px)", animation: "overlayFade .18s ease" }}>
+          <div onClick={(event) => event.stopPropagation()} style={{ width: "min(920px, 100%)", maxHeight: "min(88vh, 820px)", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 20, border: `1px solid ${isDark ? "rgba(148,163,184,.22)" : "#E2E8F0"}`, background: isDark ? "#101B30" : "#FFFFFF", boxShadow: "0 24px 80px rgba(15,23,42,.45)", animation: "popIn .2s ease" }}>
+            <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
+              <div style={{ width: 38, height: 38, display: "grid", placeItems: "center", borderRadius: 12, background: "rgba(139,92,246,.13)", color: "#7C3AED" }}>{boxIcon}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <strong style={{ display: "block", color: t.text, fontSize: 16 }}>{expandedProductImage.name}</strong>
+                <span style={{ display: "block", marginTop: 2, color: t.textSub, fontSize: 12 }}>Foto do produto para conferência</span>
+              </div>
+              <button type="button" onClick={() => setExpandedProductImage(null)} aria-label="Fechar foto do produto" style={{ width: 38, height: 38, display: "grid", placeItems: "center", border: 0, borderRadius: 12, background: t.softBg, color: t.textSub, cursor: "pointer" }}><X size={19} /></button>
+            </header>
+            <div style={{ minHeight: 0, flex: 1, display: "grid", placeItems: "center", padding: 24, background: isDark ? "#0A1120" : "#F8FAFC" }}>
+              <img src={expandedProductImage.url} alt={expandedProductImage.name} style={{ maxWidth: "100%", maxHeight: "calc(88vh - 130px)", objectFit: "contain", borderRadius: 12, background: "#FFFFFF" }} />
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div style={{ maxWidth: 840, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
         
         <InactivityWarningDialog
@@ -575,10 +595,13 @@ export function ShippingConferencePanel({
                     <input type="hidden" name="itemKitProgress" value={serializeKitProgress(item)} />
                     
                     <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1.5px solid ${checkBorder}`, background: checkBg, color: checkColor, fontWeight: 700 }}>{mark}</span>
-                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 10, background: thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>
-                      {/* @ts-ignore */}
-                      {item.imageUrl ? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : boxIcon}
-                    </div>
+                    {item.imageUrl ? (
+                      <button type="button" onClick={() => setExpandedProductImage({ url: item.imageUrl!, name: item.name })} title="Ampliar foto do produto" style={{ width: 44, height: 44, flexShrink: 0, padding: 0, border: `1px solid ${t.border}`, borderRadius: 10, background: thumbBg, overflow: "hidden", cursor: "zoom-in", transition: "transform .18s ease, box-shadow .18s ease" }} onMouseEnter={(event) => { event.currentTarget.style.transform = "translateY(-2px) scale(1.04)"; event.currentTarget.style.boxShadow = "0 8px 18px rgba(15,23,42,.18)"; }} onMouseLeave={(event) => { event.currentTarget.style.transform = ""; event.currentTarget.style.boxShadow = ""; }}>
+                        <img src={item.imageUrl} alt={`Ampliar foto de ${item.name}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </button>
+                    ) : (
+                      <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 10, background: thumbBg, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.92)", overflow: "hidden" }}>{boxIcon}</div>
+                    )}
                     
                     <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: nameColor }}>{item.name}</span>
@@ -615,10 +638,16 @@ export function ShippingConferencePanel({
             ⚠ Reportar divergência
           </button>
           <button 
-            type="submit"
-            form="shipping-conference-form"
-            name="intent"
-            value="force-pronto-romaneio"
+            type={full ? "button" : "submit"}
+            onClick={(e) => {
+              if (full) {
+                e.preventDefault();
+                panelRef.current?.openPreparationModal();
+              }
+            }}
+            form={full ? undefined : "shipping-conference-form"}
+            name={full ? undefined : "intent"}
+            value={full ? undefined : "force-pronto-romaneio"}
             disabled={!full || isSubmitting} 
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
