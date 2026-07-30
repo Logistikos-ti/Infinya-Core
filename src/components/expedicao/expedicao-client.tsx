@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import {
   createOperationalManualShippingOrderAction,
+  bulkDeleteShippingOrdersAction,
   deleteShippingOrderAction,
 } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
@@ -124,6 +125,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   type OrderSortKey = "order" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -470,12 +472,27 @@ export function ExpedicaoClient({ data }: { data: any }) {
   });
   
   const waves: any[] = [];
+  const selectedVisibleOrderIds = orders.filter((order: any) => selectedOrderIds.includes(order.id)).map((order: any) => order.id);
+  const allVisibleOrdersSelected = orders.length > 0 && selectedVisibleOrderIds.length === orders.length;
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds((current) => current.includes(orderId) ? current.filter((id) => id !== orderId) : [...current, orderId]);
+  };
+  const toggleVisibleOrderSelection = () => {
+    setSelectedOrderIds((current) => {
+      const visibleIds = orders.map((order: any) => order.id);
+      return allVisibleOrdersSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : [...new Set([...current, ...visibleIds])];
+    });
+  };
   const conferenceOrders: any[] = [];
   const scanIcon = <PackageSearch size={20} />;
   const alertIcon = <AlertTriangle size={20} />;
   const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
   const ordersCount = searchedOrders.length;
-  const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
+  const columns = canDeleteOrder
+    ? ["__select__", "Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
+    : ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
   const inlineOrderUploadFeedback = manualOrderResult.status === "error" && !manualOrderErrorDismissed
     ? {
@@ -636,6 +653,14 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
                 </React.Fragment>)}
                 <div style={{flex: "1"}}></div>
+                {canDeleteOrder && selectedOrderIds.length > 0 ? (
+                  <form action={bulkDeleteShippingOrdersAction} onSubmit={(event) => {
+                    if (!window.confirm(`Excluir ${selectedOrderIds.length} pedido(s) selecionado(s)? Documentos, itens e vínculos operacionais também serão removidos. Esta ação não pode ser desfeita.`)) event.preventDefault();
+                  }}>
+                    <input type="hidden" name="ids" value={JSON.stringify(selectedOrderIds)} />
+                    <button type="submit" style={{ height: "36px", padding: "0 14px", display: "inline-flex", alignItems: "center", gap: "7px", border: "1px solid rgba(244,63,94,.42)", borderRadius: "9px", background: isDark ? "rgba(244,63,94,.12)" : "#FFF1F2", color: "#E11D48", fontSize: "12.5px", fontWeight: 800, cursor: "pointer" }}><Trash2 size={15} />Excluir {selectedOrderIds.length}</button>
+                  </form>
+                ) : null}
                 <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount} pedidos na fila · {sortSummary}</span>
               </div>
               <div style={{overflowX: "auto"}}>
@@ -644,7 +669,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     <tr style={{textAlign: "left"}}>
                       {columns?.map((c: any, i: number) => <React.Fragment key={i}>
                         <th style={{padding: "13px 20px", fontSize: "12px", fontWeight: "700", letterSpacing: "0.04em", textTransform: "uppercase", color: `${t.textSub }`, background: `${t.headBg }`, borderBottom: `1px solid ${t.border }`, whiteSpace: "nowrap"}}>
-                          {sortKeyByColumn[c] ? (
+                          {c === "__select__" ? (
+                            <input type="checkbox" aria-label="Selecionar pedidos visíveis" checked={allVisibleOrdersSelected} onChange={toggleVisibleOrderSelection} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} />
+                          ) : sortKeyByColumn[c] ? (
                             <button type="button" onClick={() => changeSort(sortKeyByColumn[c]!)} aria-label={`Ordenar por ${c}`} aria-sort={sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: 0, border: 0, background: "transparent", color: sort.key === sortKeyByColumn[c] ? "#8B5CF6" : "inherit", font: "inherit", textTransform: "inherit", letterSpacing: "inherit", cursor: "pointer", transition: "color 0.18s ease" }}>
                               {c}{sort.key === sortKeyByColumn[c] ? (sort.direction === "asc" ? <ArrowUp size={13} strokeWidth={2.5} /> : <ArrowDown size={13} strokeWidth={2.5} />) : <ArrowUpDown size={13} strokeWidth={2.2} style={{ opacity: 0.55 }} />}
                             </button>
@@ -656,6 +683,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <tbody>
                     {orders?.map((o: any, i: number) => <React.Fragment key={i}>
                       <tr onClick={() => setSelectedOrder(o)} style={{borderBottom: `1px solid ${t.border }`, cursor: "pointer", transition: "background 0.15s ease"}} >
+                        {canDeleteOrder ? <td style={{ padding: "14px 12px 14px 20px", width: 42 }}><input type="checkbox" aria-label={`Selecionar ${o.code}`} checked={selectedOrderIds.includes(o.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleOrderSelection(o.id)} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} /></td> : null}
                         <td style={{padding: "14px 20px"}}><span style={{fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px"}}>{o.code }</span></td>
                         <td style={{padding: "14px 20px"}}>
                           <div style={{display: "flex", flexDirection: "column", gap: "2px"}}>

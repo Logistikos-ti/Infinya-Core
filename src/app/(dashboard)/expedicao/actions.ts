@@ -738,6 +738,57 @@ export async function deleteShippingOrderAction(formData: FormData) {
   redirect("/expedicao?feedback=excluido");
 }
 
+export async function bulkDeleteShippingOrdersAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI"]);
+
+  const rawIds = String(formData.get("ids") ?? "");
+  let ids: string[] = [];
+  try {
+    const parsed = JSON.parse(rawIds);
+    ids = Array.isArray(parsed)
+      ? [...new Set(parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0))]
+      : [];
+  } catch {
+    ids = [];
+  }
+
+  if (!ids.length) redirect("/expedicao?feedback=erro");
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: documents, error: documentsReadError } = await adminSupabase
+    .from("documentos_armazenados")
+    .select("caminho_storage")
+    .in("pedido_expedicao_id", ids);
+  if (documentsReadError) redirect("/expedicao?feedback=erro");
+
+  const storagePaths = (documents ?? [])
+    .map((document) => document.caminho_storage)
+    .filter((path): path is string => Boolean(path));
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await adminSupabase.storage.from(documentsBucketName).remove(storagePaths);
+    if (storageError) redirect("/expedicao?feedback=erro");
+  }
+
+  const cleanupSteps = [
+    adminSupabase.from("romaneios_carga_pedidos").delete().in("pedido_expedicao_id", ids),
+    adminSupabase.from("ondas_separacao_pedidos").delete().in("pedido_expedicao_id", ids),
+    adminSupabase.from("documentos_armazenados").delete().in("pedido_expedicao_id", ids),
+    adminSupabase.from("pedidos_expedicao_itens").delete().in("pedido_expedicao_id", ids),
+  ];
+  for (const cleanup of cleanupSteps) {
+    const { error } = await cleanup;
+    if (error) redirect("/expedicao?feedback=erro");
+  }
+
+  const { error } = await adminSupabase.from("pedidos_expedicao").delete().in("id", ids);
+  if (error) redirect("/expedicao?feedback=erro");
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/conferidos");
+  revalidatePath("/romaneio");
+  redirect("/expedicao?feedback=excluidos");
+}
+
 function buildManualShippingOrderCode() {
   return `MAN-${new Date()
     .toISOString()
