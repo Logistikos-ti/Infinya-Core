@@ -16,7 +16,6 @@ import {
   AppSidebar,
   type SidebarNavigationItem,
 } from "@/components/layout/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
 
 const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
@@ -138,19 +137,11 @@ export function PortalChrome({
           <div className="hidden flex-1 sm:block" />
           <button
             type="button"
-            onClick={() => router.push("/portal?view=pedidos&new=1")}
-            className="inline-flex h-11 items-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20"
-          >
-            + Novo pedido
-          </button>
-          <button
-            type="button"
             aria-label="Notificações"
             className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
           >
             <Bell className="h-4 w-4" />
           </button>
-          <ThemeToggle />
         </header>
 
         <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-5 lg:px-4">

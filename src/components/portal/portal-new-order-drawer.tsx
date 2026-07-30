@@ -29,6 +29,7 @@ export function PortalNewOrderDrawer({
   onClose: () => void;
 }) {
   const [channel, setChannel] = useState("MERCADO_LIVRE");
+  const [channelOpen, setChannelOpen] = useState(false);
   const [carrier, setCarrier] = useState("Marketplace");
   const [otherCarrier, setOtherCarrier] = useState("");
   const [selected, setSelected] = useState<SelectedProduct[]>([]);
@@ -82,14 +83,18 @@ export function PortalNewOrderDrawer({
 
             <section>
               <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Canal de venda</h3>
-              <div className="flex flex-wrap gap-2">
-                {SALES_CHANNEL_OPTIONS.filter((option) => ["MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
-                  const active = option.value === channel;
-                  const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
-                  const channelColors: Record<string, string> = { MERCADO_LIVRE: "#2D3277", SHOPEE: "#EE4D2D", AMAZON: "#FF9900", MAGALU: "#0086FF", SHEIN: "#111827", TIKTOK: "#111827", KWAI: "#FF6B35", SITE_PROPRIO: "#8B5CF6" };
-                  const channelColor = channelColors[option.value] ?? "#8B5CF6";
-                  return <button type="button" key={option.value} onClick={() => setChannel(option.value)} className={`inline-flex h-9 items-center gap-2 rounded-[10px] border px-3 text-xs font-bold transition hover:-translate-y-px ${active ? "border-violet-500 bg-violet-50 text-slate-950 dark:bg-violet-400/10 dark:text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-300 dark:border-white/10 dark:bg-white/5"}`}><span className="grid h-5 w-5 place-items-center rounded-md text-[9px] font-extrabold" style={{ background: `${channelColor}20`, color: channelColor }}>{initials[option.value]}</span>{option.label}</button>;
-                })}
+              <div className="relative">
+                <button type="button" aria-haspopup="listbox" aria-expanded={channelOpen} onClick={() => setChannelOpen((open) => !open)} className="flex h-12 w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 text-left text-sm font-semibold text-slate-900 outline-none transition hover:border-cyan-400 focus:border-cyan-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                  <span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-md bg-violet-100 text-[9px] font-extrabold text-violet-700 dark:bg-violet-400/15 dark:text-violet-200">{({ MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" } as Record<string, string>)[channel] ?? "VD"}</span>{SALES_CHANNEL_OPTIONS.find((option) => option.value === channel)?.label ?? "Venda direta"}</span>
+                  <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${channelOpen ? "rotate-180" : ""}`} />
+                </button>
+                {channelOpen ? <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-white/10 dark:bg-[#111b2e]">
+                  {SALES_CHANNEL_OPTIONS.filter((option) => ["VENDA_DIRETA", "MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
+                    const initials: Record<string, string> = { VENDA_DIRETA: "VD", MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
+                    const active = option.value === channel;
+                    return <button type="button" role="option" aria-selected={active} key={option.value} onClick={() => { setChannel(option.value); setChannelOpen(false); }} className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition hover:bg-cyan-50 dark:hover:bg-cyan-400/10 ${active ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300" : "text-slate-700 dark:text-slate-200"}`}><span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-md bg-violet-100 text-[9px] font-extrabold text-violet-700 dark:bg-violet-400/15 dark:text-violet-200">{initials[option.value]}</span>{option.label}</span>{active ? <Check className="h-4 w-4" /> : null}</button>;
+                  })}
+                </div> : null}
               </div>
             </section>
 

@@ -1,10 +1,15 @@
 "use client";
 
-import { FileCode2, Upload, X } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown, FileCode2, Upload, X } from "lucide-react";
 import { createXmlShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }: { depositanteId: string; depositanteName: string; onClose: () => void }) {
+  const [channel, setChannel] = useState("VENDA_DIRETA");
+  const [channelOpen, setChannelOpen] = useState(false);
+  const selectedChannel = SALES_CHANNEL_OPTIONS.find((option) => option.value === channel) ?? SALES_CHANNEL_OPTIONS[0];
+
   return (
     <div className="fixed inset-0 z-[85] flex justify-end" role="dialog" aria-modal="true" aria-label="Importar pedido via XML">
       <button type="button" aria-label="Fechar importação XML" onClick={onClose} className="absolute inset-0 cursor-default border-0 bg-slate-950/55 backdrop-blur-sm" />
@@ -25,11 +30,37 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">Depositante
               <input value={depositanteName} readOnly className="mt-2 h-12 w-full rounded-2xl border border-cyan-400 bg-white px-4 text-sm font-bold text-slate-900 outline-none dark:bg-white/5 dark:text-white" />
             </label>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">Canal de venda
-              <select name="salesChannelCode" defaultValue="VENDA_DIRETA" className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5 dark:text-white">
-                {SALES_CHANNEL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
+            <div className="relative text-xs font-bold text-slate-500 dark:text-slate-400">
+              <span>Canal de venda</span>
+              <input type="hidden" name="salesChannelCode" value={channel} />
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={channelOpen}
+                onClick={() => setChannelOpen((open) => !open)}
+                className="mt-2 flex h-12 w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 text-left text-sm font-semibold text-slate-900 outline-none transition hover:border-cyan-400 focus:border-cyan-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              >
+                <span>{selectedChannel.label}</span>
+                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${channelOpen ? "rotate-180" : ""}`} />
+              </button>
+              {channelOpen ? (
+                <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-white/10 dark:bg-[#111b2e]">
+                  {SALES_CHANNEL_OPTIONS.map((option) => (
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={option.value === channel}
+                      key={option.value}
+                      onClick={() => { setChannel(option.value); setChannelOpen(false); }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition hover:bg-cyan-50 dark:hover:bg-cyan-400/10 ${option.value === channel ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300" : "text-slate-700 dark:text-slate-200"}`}
+                    >
+                      <span>{option.label}</span>
+                      {option.value === channel ? <Check className="h-4 w-4" /> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <label className="block cursor-pointer rounded-2xl border border-dashed border-violet-300 bg-violet-50/70 p-5 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-500 dark:border-violet-400/40 dark:bg-violet-500/10 dark:text-slate-100">
               <span className="flex items-center gap-2"><FileCode2 className="h-5 w-5 text-violet-600" /> XML da NF-e de saída *</span>
               <span className="mt-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Obrigatório. O sistema identifica destinatário, itens, valores e transportadora.</span>
