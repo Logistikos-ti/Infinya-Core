@@ -93,7 +93,12 @@ export function MobileReceivingPanel({
   // resolved (receiving/staging areas when they exist).
   const [enderecoId] = useState(addresses[0]?.id ?? "");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  // Item currently being counted inside the camera overlay, so the operator can
+  // see how many units of it are still missing without leaving the scanner.
+  const [scanItemId, setScanItemId] = useState<string | null>(null);
+  // Item whose quantity just closed out and still needs lot/expiry: the scanner
+  // steps aside for this form, then hands control back to the camera.
+  const [lotPromptItemId, setLotPromptItemId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,6 +116,15 @@ export function MobileReceivingPanel({
 
     return { expected, received, pending, percent };
   }, [items]);
+
+  const scanItem = items.find((item) => item.id === scanItemId) ?? null;
+  const scanReceived = scanItem ? normalizeQuantity(scanItem.receivedQuantityValue) : 0;
+  const scanMissing = scanItem ? Math.max(scanItem.expectedQuantity - scanReceived, 0) : 0;
+  const lotPromptItem = items.find((item) => item.id === lotPromptItemId) ?? null;
+  const isLotPromptComplete = lotPromptItem
+    ? (!lotPromptItem.requireLot || Boolean(lotPromptItem.lotValue.trim())) &&
+      (!lotPromptItem.requireExpiry || Boolean(lotPromptItem.expiryValue.trim()))
+    : false;
 
   const applyScanRef = useRef<(code: string) => void>(() => {});
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
@@ -204,6 +218,14 @@ export function MobileReceivingPanel({
     }
   }
 
+  function confirmLotPrompt() {
+    setLotPromptItemId(null);
+    // Hand control straight back to the camera so the operator keeps the rhythm
+    // instead of having to press "Bipar item" again after every lot-controlled
+    // product.
+    openScanner();
+  }
+
   function updateItem(
     itemId: string,
     field: keyof Pick<ReceivingItemState, "receivedQuantityValue" | "lotValue" | "expiryValue">,
@@ -227,15 +249,30 @@ export function MobileReceivingPanel({
     );
 
     if (!matchedItem) {
-      setActiveItemId(null);
       flash({ type: "err", title: "Não encontrado", code: rawValue, sub: "Código não encontrado neste recebimento." });
       return;
     }
 
-    const nextQuantity = normalizeQuantity(matchedItem.receivedQuantityValue) + 1;
+    const current = normalizeQuantity(matchedItem.receivedQuantityValue);
 
-    setItems((current) =>
-      current.map((item) =>
+    if (current >= matchedItem.expectedQuantity) {
+      flash({
+        type: "warn",
+        title: "Quantidade completa",
+        code: matchedItem.sku,
+        sub: `Este item já tem as ${matchedItem.expectedQuantity} unidades previstas.`,
+      });
+      return;
+    }
+
+    const nextQuantity = current + 1;
+    const isComplete = nextQuantity >= matchedItem.expectedQuantity;
+    const needsLotOrExpiry =
+      (matchedItem.requireLot && !matchedItem.lotValue.trim()) ||
+      (matchedItem.requireExpiry && !matchedItem.expiryValue.trim());
+
+    setItems((list) =>
+      list.map((item) =>
         item.id === matchedItem.id
           ? { ...item, receivedQuantityValue: String(nextQuantity) }
           : item,
@@ -243,22 +280,33 @@ export function MobileReceivingPanel({
     );
 
     setActiveItemId(matchedItem.id);
-    // Auto-open items that still need lot/expiry, so the operator fills them
-    // while holding the product instead of hunting for them before submitting.
-    if (
-      (matchedItem.requireLot && !matchedItem.lotValue.trim()) ||
-      (matchedItem.requireExpiry && !matchedItem.expiryValue.trim())
-    ) {
-      setExpandedItemId(matchedItem.id);
-    }
+    setScanItemId(matchedItem.id);
+    setError(null);
+    setMessage(null);
+
     flash({
       type: "ok",
-      title: "Volume recebido",
+      title: isComplete ? "Item completo" : "Volume recebido",
       code: matchedItem.sku,
       sub: `${nextQuantity}/${matchedItem.expectedQuantity} recebido(s).`,
     });
-    setError(null);
-    setMessage(null);
+
+    if (!isComplete) {
+      return;
+    }
+
+    // Quantity closed out: hand the screen over to the lot/expiry form when the
+    // product requires it, otherwise clear the counter and keep scanning.
+    if (needsLotOrExpiry) {
+      window.setTimeout(() => {
+        closeScanner();
+        setScanItemId(null);
+        setLotPromptItemId(matchedItem.id);
+      }, FLASH_DURATION_MS);
+      return;
+    }
+
+    window.setTimeout(() => setScanItemId(null), FLASH_DURATION_MS);
   }
 
   useEffect(() => {
@@ -386,15 +434,8 @@ export function MobileReceivingPanel({
           </span>
           {items.map((item) => {
             const received = normalizeQuantity(item.receivedQuantityValue);
-            const missing = Math.max(item.expectedQuantity - received, 0);
             const isDone = item.expectedQuantity > 0 && received >= item.expectedQuantity;
             const isActive = activeItemId === item.id;
-            const isExpanded = expandedItemId === item.id;
-            // Surfaced on the collapsed row so the operator can see up front which
-            // items still block finishing, instead of discovering it on submit.
-            const missingRequired =
-              (item.requireLot && !item.lotValue.trim()) ||
-              (item.requireExpiry && !item.expiryValue.trim());
 
             return (
               <div
@@ -402,122 +443,47 @@ export function MobileReceivingPanel({
                 ref={(element) => {
                   itemRefs.current[item.id] = element;
                 }}
-                className="overflow-hidden rounded-[16px] transition-colors"
+                className="flex items-center gap-3 rounded-[16px] p-[14px] transition-colors"
                 style={{
                   border: `1px solid ${hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.5 : 0.14)}`,
                   background: hexAlpha(isActive ? mobileColors.violet : "#94A3B8", isActive ? 0.1 : 0.045),
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
-                  className="flex w-full items-center gap-3 p-[14px] text-left"
-                >
-                  <span
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
-                    style={{
-                      border: `2px solid ${
-                        isDone
-                          ? mobileColors.green
-                          : isActive
-                            ? mobileColors.violet
-                            : hexAlpha("#94A3B8", 0.35)
-                      }`,
-                      background: isDone
+                <span
+                  className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px]"
+                  style={{
+                    border: `2px solid ${
+                      isDone
                         ? mobileColors.green
                         : isActive
-                          ? hexAlpha(mobileColors.violet, 0.35)
-                          : "transparent",
-                    }}
-                  >
-                    {isDone ? <MobileIcon name="check" size={13} strokeWidth={3} /> : null}
+                          ? mobileColors.violet
+                          : hexAlpha("#94A3B8", 0.35)
+                    }`,
+                    background: isDone
+                      ? mobileColors.green
+                      : isActive
+                        ? hexAlpha(mobileColors.violet, 0.35)
+                        : "transparent",
+                  }}
+                >
+                  {isDone ? <MobileIcon name="check" size={13} strokeWidth={3} /> : null}
+                </span>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                  <span className="truncate text-[14.5px] font-extrabold" style={{ color: mobileColors.text }}>
+                    {item.description}
                   </span>
-
-                  <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <span className="truncate text-[14.5px] font-extrabold" style={{ color: mobileColors.text }}>
-                      {item.description}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-[12px] font-semibold" style={{ color: mobileColors.blueLight, ...headingFont }}>
-                        {item.sku}
-                      </span>
-                      {missingRequired ? (
-                        <span
-                          className="shrink-0 rounded-full px-1.5 py-[1px] text-[10px] font-bold"
-                          style={{ background: hexAlpha(mobileColors.amber, 0.16), color: mobileColors.amber }}
-                        >
-                          {item.requireLot && !item.lotValue.trim() ? "lote" : "validade"}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <span
-                    className="shrink-0 text-[15px] font-extrabold"
-                    style={{ color: isDone ? mobileColors.green : mobileColors.text, ...headingFont }}
-                  >
-                    {received}/{item.expectedQuantity}
+                  <span className="truncate text-[12px] font-semibold" style={{ color: mobileColors.blueLight, ...headingFont }}>
+                    {item.sku}
                   </span>
-                </button>
+                </div>
 
-                {isExpanded ? (
-                  <div className="border-t px-[14px] pb-[14px] pt-3" style={{ borderColor: hexAlpha("#94A3B8", 0.14) }}>
-                    <p className="mb-3 text-[11.5px]" style={{ color: mobileColors.dim }}>
-                      Código {item.internalCode || "-"} · EAN {item.barcode || "-"}
-                    </p>
-
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                        Recebido
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={item.receivedQuantityValue}
-                        onChange={(event) =>
-                          updateItem(item.id, "receivedQuantityValue", event.target.value)
-                        }
-                        className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                        style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                      />
-                    </label>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                          Lote {item.requireLot ? "*" : ""}
-                        </span>
-                        <input
-                          value={item.lotValue}
-                          onChange={(event) => updateItem(item.id, "lotValue", event.target.value)}
-                          placeholder={item.requireLot ? "Obrigatório" : "Opcional"}
-                          className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                          style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                        />
-                      </label>
-
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                          Validade {item.requireExpiry ? "*" : ""}
-                        </span>
-                        <input
-                          type="date"
-                          value={item.expiryValue}
-                          onChange={(event) => updateItem(item.id, "expiryValue", event.target.value)}
-                          className="h-11 w-full rounded-2xl px-3 text-sm outline-none"
-                          style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
-                        />
-                      </label>
-                    </div>
-
-                    <p className="mt-3 text-[12.5px]" style={{ color: missing > 0 ? mobileColors.amber : mobileColors.green }}>
-                      {missing > 0
-                        ? `Faltam ${missing} ${item.unitLabel.toLowerCase()}.`
-                        : "Item recebido conforme previsto."}
-                    </p>
-                  </div>
-                ) : null}
+                <span
+                  className="shrink-0 text-[15px] font-extrabold"
+                  style={{ color: isDone ? mobileColors.green : mobileColors.text, ...headingFont }}
+                >
+                  {received}/{item.expectedQuantity}
+                </span>
               </div>
             );
           })}
@@ -629,7 +595,18 @@ export function MobileReceivingPanel({
             </button>
           </div>
 
-          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 20,
+            }}
+          >
             <div
               style={{
                 width: 250,
@@ -638,6 +615,56 @@ export function MobileReceivingPanel({
                 border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
               }}
             />
+
+            {scanItem ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9, padding: "0 24px" }}>
+                <span
+                  style={{ color: "#fff", fontSize: 14, fontWeight: 800, textAlign: "center", ...headingFont }}
+                >
+                  {scanItem.description}
+                </span>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, ...headingFont }}>
+                  {scanReceived} de {scanItem.expectedQuantity} unidades
+                </span>
+                {scanItem.expectedQuantity <= 12 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 7, maxWidth: 260 }}>
+                    {Array.from({ length: scanItem.expectedQuantity }).map((_, index) => {
+                      const collected = index < scanReceived;
+                      return (
+                        <span
+                          key={index}
+                          style={{
+                            width: 13,
+                            height: 13,
+                            borderRadius: "50%",
+                            background: collected ? mobileColors.green : "transparent",
+                            border: `2px solid ${collected ? mobileColors.green : "rgba(255,255,255,0.45)"}`,
+                            transition: "background 0.2s ease",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ width: 220, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.18)", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: 999,
+                        background: mobileColors.green,
+                        width: `${Math.round((scanReceived / scanItem.expectedQuantity) * 100)}%`,
+                        transition: "width 0.3s ease",
+                      }}
+                    />
+                  </div>
+                )}
+                {scanMissing > 0 ? (
+                  <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12.5 }}>
+                    Faltam {scanMissing} {scanMissing === 1 ? "unidade" : "unidades"}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div style={{ position: "relative", zIndex: 2, padding: "0 24px calc(40px + env(safe-area-inset-bottom))", textAlign: "center" }}>
@@ -647,6 +674,91 @@ export function MobileReceivingPanel({
           </div>
 
           <MobileScanOverlay overlay={overlay} />
+        </div>
+      ) : null}
+
+      {lotPromptItem ? (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(5,7,13,0.75)", display: "flex", alignItems: "flex-end" }}
+        >
+          <div
+            className="w-full"
+            style={{
+              background: mobileColors.bgAlt,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTop: `1px solid ${hexAlpha("#94A3B8", 0.16)}`,
+              padding: "22px 18px calc(22px + env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <span
+                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
+                style={{ background: hexAlpha(mobileColors.green, 0.16), color: mobileColors.green }}
+              >
+                <MobileIcon name="check" size={20} strokeWidth={2.6} />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="truncate text-[15px] font-extrabold" style={{ color: mobileColors.text }}>
+                  {lotPromptItem.description}
+                </span>
+                <span className="text-[12px]" style={{ color: mobileColors.muted }}>
+                  {lotPromptItem.expectedQuantity} de {lotPromptItem.expectedQuantity} bipadas
+                </span>
+              </div>
+            </div>
+
+            {lotPromptItem.requireLot ? (
+              <label className="mb-3 flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                  Lote *
+                </span>
+                <input
+                  autoFocus
+                  value={lotPromptItem.lotValue}
+                  onChange={(event) => updateItem(lotPromptItem.id, "lotValue", event.target.value)}
+                  placeholder="Informe o lote"
+                  className="h-12 w-full rounded-2xl px-3.5 text-base outline-none"
+                  style={{ border: `1px solid ${hexAlpha(mobileColors.violet, 0.35)}`, background: "#0B1424", color: mobileColors.text }}
+                />
+              </label>
+            ) : null}
+
+            {lotPromptItem.requireExpiry ? (
+              <label className="mb-3 flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                  Validade *
+                </span>
+                <input
+                  type="date"
+                  value={lotPromptItem.expiryValue}
+                  onChange={(event) => updateItem(lotPromptItem.id, "expiryValue", event.target.value)}
+                  className="h-12 w-full rounded-2xl px-3.5 text-base outline-none"
+                  style={{ border: `1px solid ${hexAlpha(mobileColors.violet, 0.35)}`, background: "#0B1424", color: mobileColors.text }}
+                />
+              </label>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={confirmLotPrompt}
+              disabled={!isLotPromptComplete}
+              className="mt-1 flex h-[56px] w-full items-center justify-center gap-2 rounded-[17px] text-[16px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-45"
+              style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
+            >
+              <MobileIcon name="scan" size={19} strokeWidth={2} />
+              Salvar e continuar bipando
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setLotPromptItemId(null)}
+              className="mt-2 h-11 w-full rounded-xl text-[13px] font-bold"
+              style={{ color: mobileColors.muted }}
+            >
+              Preencher depois
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
