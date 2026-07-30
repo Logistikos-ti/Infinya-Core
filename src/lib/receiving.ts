@@ -2,9 +2,25 @@ import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+/**
+ * Three-letter tag used in receiving codes (RC-JOH-2607201). Derived from the
+ * depositante's name rather than its `codigo` because most codigos are numeric
+ * ("021"), which would produce unreadable codes like RC-021-2607201. Accents
+ * are stripped so "Dêvi" and "Volcà" yield DEV/VOL instead of broken output.
+ */
+export function buildDepositantePrefix(depositanteNome: string | null | undefined) {
+  const letters = (depositanteNome ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase();
+
+  return letters.slice(0, 3) || "DEP";
+}
+
 export async function generateReceivingCode(
   adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
-  depositanteCodigo: string,
+  depositanteNome: string | null | undefined,
 ) {
   const { data, error } = await adminSupabase.rpc("next_recebimento_codigo_seq");
 
@@ -14,8 +30,7 @@ export async function generateReceivingCode(
     );
   }
 
-  const prefix = (depositanteCodigo || "DEP").slice(0, 3).toUpperCase();
-  return `RC-${prefix}-${data}`;
+  return `RC-${buildDepositantePrefix(depositanteNome)}-${data}`;
 }
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;

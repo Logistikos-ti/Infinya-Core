@@ -160,7 +160,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const code = await generateReceivingCode(adminSupabase, depositante.codigo);
+  const code = await generateReceivingCode(adminSupabase, depositante.nome);
   const previsao = extractForecastDate(parsedXml.issuedAt);
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_recebimento")

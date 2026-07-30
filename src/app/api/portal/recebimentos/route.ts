@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     const adminSupabase = createSupabaseAdminClient();
     const { data: depositante, error: depositanteError } = await adminSupabase
       .from("depositantes")
-      .select("id, codigo")
+      .select("id, codigo, nome")
       .eq("id", auth.user.depositanteId)
       .maybeSingle();
 
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     }
 
     const volumes = items.reduce((sum, item) => sum + item.quantidade, 0);
-    const code = await generateReceivingCode(adminSupabase, depositante.codigo ?? "DEP");
+    const code = await generateReceivingCode(adminSupabase, depositante.nome);
     const observacoes = [
       `Tipo de recebimento: ${type}`,
       hour ? `Horário previsto: ${hour}` : "",
