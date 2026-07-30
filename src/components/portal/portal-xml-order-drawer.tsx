@@ -1,13 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, FileCode2, Upload, X } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import { Check, ChevronDown, FileCode2, LoaderCircle, Upload, X } from "lucide-react";
 import { createXmlShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
+
+function SubmitXmlButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button type="submit" disabled={pending} className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-px disabled:cursor-wait disabled:opacity-70">
+      {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+      {pending ? "Importando XML..." : "Criar pedido pelo XML"}
+    </button>
+  );
+}
 
 export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }: { depositanteId: string; depositanteName: string; onClose: () => void }) {
   const [channel, setChannel] = useState("VENDA_DIRETA");
   const [channelOpen, setChannelOpen] = useState(false);
+  const [xmlFile, setXmlFile] = useState<File | null>(null);
   const selectedChannel = SALES_CHANNEL_OPTIONS.find((option) => option.value === channel) ?? SALES_CHANNEL_OPTIONS[0];
 
   return (
@@ -61,11 +74,12 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
                 </div>
               ) : null}
             </div>
-            <label className="block cursor-pointer rounded-2xl border border-dashed border-violet-300 bg-violet-50/70 p-5 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-500 dark:border-violet-400/40 dark:bg-violet-500/10 dark:text-slate-100">
-              <span className="flex items-center gap-2"><FileCode2 className="h-5 w-5 text-violet-600" /> XML da NF-e de saída *</span>
+            <label className={`block cursor-pointer rounded-2xl border border-dashed p-5 text-sm font-bold transition hover:-translate-y-px ${xmlFile ? "border-emerald-400 bg-emerald-50/70 text-slate-800 dark:border-emerald-400/50 dark:bg-emerald-500/10 dark:text-slate-100" : "border-violet-300 bg-violet-50/70 text-slate-800 hover:border-violet-500 dark:border-violet-400/40 dark:bg-violet-500/10 dark:text-slate-100"}`}>
+              <span className="flex items-center gap-2"><FileCode2 className={`h-5 w-5 ${xmlFile ? "text-emerald-600" : "text-violet-600"}`} /> XML da NF-e de saída *</span>
               <span className="mt-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Obrigatório. O sistema identifica destinatário, itens, valores e transportadora.</span>
-              <span className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-violet-700 shadow-sm dark:bg-white/10 dark:text-violet-200"><Upload className="h-4 w-4" /> Selecionar XML</span>
-              <input type="file" name="invoiceXml" required accept=".xml,application/xml,text/xml" className="sr-only" />
+              <span className={`mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold shadow-sm ${xmlFile ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200" : "bg-white text-violet-700 dark:bg-white/10 dark:text-violet-200"}`}>{xmlFile ? <Check className="h-4 w-4" /> : <Upload className="h-4 w-4" />}{xmlFile ? "XML selecionado" : "Selecionar XML"}</span>
+              <input type="file" name="invoiceXml" required accept=".xml,application/xml,text/xml" onChange={(event) => setXmlFile(event.target.files?.[0] ?? null)} className="sr-only" />
+              {xmlFile ? <span className="mt-3 block truncate text-xs font-semibold text-emerald-700 dark:text-emerald-200">{xmlFile.name} · {(xmlFile.size / 1024).toFixed(1)} KB</span> : null}
             </label>
             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">Transportadora (opcional)
               <input name="carrierName" placeholder="Ex.: Correios, Shopee Xpress" className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5 dark:text-white" />
@@ -77,7 +91,7 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
           </div>
           <footer className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white/95 px-6 py-4 dark:border-white/10 dark:bg-[#0c1424]/95">
             <button type="button" onClick={onClose} className="h-12 rounded-xl border border-slate-200 bg-white px-5 text-sm font-extrabold text-slate-900 transition hover:-translate-y-px hover:border-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white">Cancelar</button>
-            <button type="submit" className="h-12 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-px">Criar pedido pelo XML</button>
+            <SubmitXmlButton />
           </footer>
         </form>
       </aside>
