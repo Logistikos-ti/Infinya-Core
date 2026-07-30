@@ -89,6 +89,23 @@ function buildInvoicePreviewHtml(xml: string) {
   return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#fff;color:#111827}body{padding:24px;font-family:Arial,sans-serif}.sheet{width:min(100%,920px);margin:0 auto;border:1px solid #111827;background:#fff}.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:16px 18px;border-bottom:2px solid #111827}.title{font-size:18px;font-weight:800;letter-spacing:.04em}.subtitle{margin-top:4px;font-size:11px;color:#4b5563}.nf-title{text-align:right;font-size:12px;font-weight:800}.nf-title small{display:block;margin-top:4px;font-size:10px;font-weight:400;color:#4b5563}.document{padding:14px 18px}.line{min-height:16px;padding:2px 0;border-bottom:1px solid #d1d5db;font-family:Arial,sans-serif;font-size:11px;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere}.line:first-child{font-weight:700}.raw{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}</style></head><body><div class="sheet"><div class="sheet-head"><div><div class="title">NOTA FISCAL ELETRÔNICA</div><div class="subtitle">Documento fiscal original anexado ao pedido</div></div><div class="nf-title">NF-e<small>Documento completo</small></div></div><div class="document">${lines || fallback}</div></div></body></html>`;
 }
 
+function getOrderUploadFeedback(feedback?: string) {
+  switch (feedback) {
+    case "nf-obrigatoria":
+      return { title: "Anexo obrigat\u00f3rio", detail: "Anexe o arquivo XML da NF-e antes de enviar o pedido ao CD." };
+    case "nf-invalida":
+      return { title: "NF-e inv\u00e1lida", detail: "O XML n\u00e3o foi reconhecido como uma NF-e v\u00e1lida ou n\u00e3o cont\u00e9m os dados necess\u00e1rios da nota." };
+    case "nf-duplicada":
+      return { title: "NF-e duplicada", detail: "J\u00e1 existe um pedido deste depositante com o mesmo n\u00famero de NF-e. Confira a nota antes de tentar novamente." };
+    case "xml-produtos-nao-mapeados":
+      return { title: "Produtos n\u00e3o mapeados", detail: "A NF-e foi lida, mas um ou mais produtos ainda n\u00e3o est\u00e3o vinculados ao cat\u00e1logo do depositante." };
+    case "erro":
+      return { title: "N\u00e3o foi poss\u00edvel subir o pedido", detail: "O sistema n\u00e3o conseguiu concluir a importa\u00e7\u00e3o. Confira o XML, tente novamente e, se o problema persistir, envie os detalhes para o suporte." };
+    default:
+      return null;
+  }
+}
+
 export function ExpedicaoClient({ data }: { data: any }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -439,12 +456,24 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const ordersCount = searchedOrders.length;
   const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
+  const orderUploadFeedback = getOrderUploadFeedback(data.feedback);
 
   return (
     <div className="w-full relative opacity-95">
-      {data.feedback === "nf-obrigatoria" || data.feedback === "nf-invalida" || data.feedback === "nf-duplicada" ? (
-        <div style={{ margin: "16px 28px 0", padding: "12px 16px", border: "1px solid rgba(244,63,94,.28)", borderRadius: 12, background: isDark ? "rgba(244,63,94,.12)" : "#FFF1F2", color: isDark ? "#FDA4AF" : "#BE123C", fontSize: 13, fontWeight: 700 }}>
-          {data.feedback === "nf-obrigatoria" ? "Anexe o XML válido da NF-e para criar o pedido manual." : data.feedback === "nf-invalida" ? "O XML informado não é uma NF-e válida ou não contém itens válidos." : "Já existe um pedido deste depositante com o mesmo número de NF-e."}
+      {orderUploadFeedback ? (
+        <div role="dialog" aria-modal="true" aria-labelledby="order-upload-feedback-title" style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", padding: 20, background: "rgba(15, 23, 42, .62)", backdropFilter: "blur(4px)", animation: "overlayFade .18s ease" }}>
+          <div style={{ width: "min(520px, 100%)", borderRadius: 20, border: `1px solid ${isDark ? "rgba(248,113,113,.35)" : "#FECDD3"}`, background: isDark ? "#111827" : "#FFFFFF", boxShadow: "0 24px 80px rgba(15,23,42,.32)", overflow: "hidden", animation: "popIn .2s ease" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "24px 24px 18px" }}>
+              <span style={{ width: 44, height: 44, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 14, background: isDark ? "rgba(248,113,113,.14)" : "#FFF1F2", color: "#E11D48" }}><AlertTriangle size={22} /></span>
+              <div style={{ minWidth: 0 }}>
+                <h2 id="order-upload-feedback-title" style={{ margin: 0, color: isDark ? "#F8FAFC" : "#0F172A", fontSize: 18, fontWeight: 800 }}>{orderUploadFeedback.title}</h2>
+                <p style={{ margin: "9px 0 0", color: isDark ? "#CBD5E1" : "#475569", fontSize: 14, lineHeight: 1.55 }}>{orderUploadFeedback.detail}</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 24px 20px", borderTop: `1px solid ${isDark ? "#273449" : "#E2E8F0"}` }}>
+              <button type="button" onClick={() => router.replace("/expedicao")} style={{ height: 42, padding: "0 20px", border: 0, borderRadius: 11, background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 18px rgba(99,102,241,.25)" }}>Fechar</button>
+            </div>
+          </div>
         </div>
       ) : null}
       <style>{`
