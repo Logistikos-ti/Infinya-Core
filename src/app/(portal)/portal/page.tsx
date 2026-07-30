@@ -42,6 +42,7 @@ type PortalPageProps = {
     status?: string;
     new?: string;
     order?: string;
+    feedback?: string;
   }>;
 };
 
@@ -164,6 +165,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           depositanteName={depositanteName}
           selectedOrder={selectedOrder}
           openNewOrder={params?.new === "1"}
+          feedback={params?.feedback}
         />
       ) : null}
       {view === "produtos" ? (

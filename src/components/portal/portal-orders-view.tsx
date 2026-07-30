@@ -18,7 +18,7 @@ const filters = [
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
-export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false }: {
+export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false, feedback }: {
   orders: ShippingOrderSummary[];
   products: Array<{
     id: string;
@@ -33,6 +33,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   depositanteName: string;
   selectedOrder: ShippingOrderDetail | null;
   openNewOrder?: boolean;
+  feedback?: string;
 }) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("");
@@ -210,8 +211,30 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           </div>
         </div>
       ) : null}
+      {feedbackDetails(feedback) ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="order-upload-error-title" className="w-full max-w-[460px] rounded-3xl border border-rose-200 bg-white p-6 shadow-2xl dark:border-rose-400/30 dark:bg-[#101b30]">
+            <div className="flex items-start gap-4">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300">!</div>
+              <div className="min-w-0">
+                <h2 id="order-upload-error-title" className="text-lg font-extrabold text-slate-950 dark:text-white">Não foi possível subir o pedido</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{feedbackDetails(feedback)}</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => router.replace("/portal?view=pedidos")} className="mt-6 h-11 w-full rounded-xl bg-slate-950 text-sm font-extrabold text-white transition hover:-translate-y-px hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">Fechar</button>
+          </div>
+        </div>
+      ) : null}
     </>
   );
+}
+
+function feedbackDetails(feedback?: string) {
+  if (feedback === "nf-obrigatoria") return "Anexe o arquivo XML da nota fiscal antes de enviar o pedido.";
+  if (feedback === "nf-invalida") return "A XML não é válida ou não contém a estrutura necessária da NF-e, incluindo número da nota.";
+  if (feedback === "nf-duplicada") return "Já existe um pedido deste depositante com o mesmo número de NF-e. Confira a nota antes de tentar novamente.";
+  if (feedback === "erro") return "O sistema não conseguiu concluir a criação. Verifique os dados do pedido e tente novamente.";
+  return null;
 }
 
 function matchesFilter(order: ShippingOrderSummary, filter: string) {
