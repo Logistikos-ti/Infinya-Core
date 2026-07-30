@@ -11,7 +11,7 @@ import {
   getSalesChannelLabel,
   type SalesChannelCode,
 } from "@/lib/sales-channels";
-import { matchNfeProductsToCatalog, parseNfeXml } from "@/lib/nfe-import";
+import { decodeXmlBuffer, matchNfeProductsToCatalog, parseNfeXml } from "@/lib/nfe-import";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -222,7 +222,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-obrigatoria`);
   }
   const xmlBytes = Buffer.from(await parsedXmlFile.arrayBuffer());
-  const xmlText = xmlBytes.toString("utf8").replace(/^\uFEFF/, "");
+  const xmlText = decodeXmlBuffer(xmlBytes.buffer.slice(xmlBytes.byteOffset, xmlBytes.byteOffset + xmlBytes.byteLength));
   let parsedNfe: ReturnType<typeof parseNfeXml>;
 
   try {
@@ -443,7 +443,7 @@ export async function createXmlShippingOrderAction(formData: FormData) {
   })();
 
   const xmlBytes = Buffer.from(await parsedXmlFile.arrayBuffer());
-  const xmlText = xmlBytes.toString("utf8").replace(/^\uFEFF/, "");
+  const xmlText = decodeXmlBuffer(xmlBytes.buffer.slice(xmlBytes.byteOffset, xmlBytes.byteOffset + xmlBytes.byteLength));
   const parsedNfe = (() => {
     try {
       return parseNfeXml(xmlText);
