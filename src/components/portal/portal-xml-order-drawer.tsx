@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, ChevronDown, FileCode2, LoaderCircle, Upload, X } from "lucide-react";
-import { createXmlShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
+import { Check, ChevronDown, CircleAlert, FileCode2, LoaderCircle, Upload, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createXmlShippingOrderAction, type ManualShippingOrderSubmissionState } from "@/app/(dashboard)/expedicao/actions";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 function SubmitXmlButton() {
@@ -18,12 +19,33 @@ function SubmitXmlButton() {
 }
 
 export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }: { depositanteId: string; depositanteName: string; onClose: () => void }) {
+  const router = useRouter();
   const [channel, setChannel] = useState("VENDA_DIRETA");
   const [channelOpen, setChannelOpen] = useState(false);
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [carrier, setCarrier] = useState("Outro");
   const [otherCarrier, setOtherCarrier] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(true);
+  const [submission, submitXmlOrder] = useActionState(
+    createXmlShippingOrderAction,
+    { status: "idle" } as ManualShippingOrderSubmissionState,
+  );
   const selectedChannel = SALES_CHANNEL_OPTIONS.find((option) => option.value === channel) ?? SALES_CHANNEL_OPTIONS[0];
+
+  useEffect(() => {
+    if (submission.status !== "idle") setFeedbackOpen(true);
+    if (submission.status === "success") router.refresh();
+  }, [router, submission.status]);
+
+  const closeFeedback = () => {
+    if (submission.status === "success") {
+      onClose();
+      router.replace("/portal?view=pedidos");
+      router.refresh();
+      return;
+    }
+    setFeedbackOpen(false);
+  };
 
   return (
     <div className="fixed inset-0 z-[85] flex justify-end" role="dialog" aria-modal="true" aria-label="Importar pedido via XML">
@@ -38,9 +60,8 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
           <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><X className="h-5 w-5" /></button>
         </header>
 
-        <form action={createXmlShippingOrderAction} className="flex min-h-0 flex-1 flex-col">
+        <form action={submitXmlOrder} className="flex min-h-0 flex-1 flex-col">
           <div className="flex-1 space-y-6 overflow-y-auto px-6 pb-28 pt-6">
-            <input type="hidden" name="returnPath" value="/portal?view=pedidos" />
             <input type="hidden" name="depositanteId" value={depositanteId} />
             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">Depositante
               <input value={depositanteName} readOnly className="mt-2 h-12 w-full rounded-2xl border border-cyan-400 bg-white px-4 text-sm font-bold text-slate-900 outline-none dark:bg-white/5 dark:text-white" />
@@ -99,6 +120,27 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
             <SubmitXmlButton />
           </footer>
         </form>
+
+        {submission.status !== "idle" && feedbackOpen ? (
+          <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-5 backdrop-blur-sm">
+            <section className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl ${submission.status === "success" ? "border-emerald-200 bg-white dark:border-emerald-400/30 dark:bg-[#101c2e]" : "border-rose-200 bg-white dark:border-rose-400/30 dark:bg-[#101c2e]"}`}>
+              <div className={`grid h-12 w-12 place-items-center rounded-2xl ${submission.status === "success" ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300" : "bg-rose-100 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"}`}>
+                {submission.status === "success" ? <Check className="h-6 w-6" /> : <CircleAlert className="h-6 w-6" />}
+              </div>
+              <h3 className="mt-4 text-xl font-extrabold text-slate-950 dark:text-white">
+                {submission.status === "success" ? "Pedido importado com sucesso" : "Não foi possível importar o pedido"}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {submission.detail || (submission.status === "success" ? "O pedido já está disponível em Meus pedidos." : "Revise o XML e tente novamente.")}
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button type="button" onClick={closeFeedback} className={`h-11 rounded-xl px-5 text-sm font-extrabold text-white transition hover:-translate-y-px ${submission.status === "success" ? "bg-emerald-500 shadow-lg shadow-emerald-500/20" : "bg-rose-500 shadow-lg shadow-rose-500/20"}`}>
+                  {submission.status === "success" ? "Ver meus pedidos" : "Fechar"}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
       </aside>
     </div>
   );

@@ -497,10 +497,50 @@ function parseManualInvoiceMetadata(xml: string) {
   }
 }
 
-export async function createXmlShippingOrderAction(formData: FormData) {
+class XmlShippingOrderSubmissionError extends Error {
+  constructor(
+    public readonly feedback: string,
+    detail?: string,
+  ) {
+    super(detail ?? feedback);
+  }
+}
+
+function getXmlImportFeedbackDetail(feedback: string) {
+  const details: Record<string, string> = {
+    "nf-obrigatoria": "Anexe o XML da NF-e para criar o pedido.",
+    "nf-invalida": "O arquivo selecionado não contém uma NF-e válida.",
+    "xml-entrada": "Envie uma NF-e de saída para criar um pedido de expedição.",
+    "nf-duplicada": "Já existe um pedido com este número de nota fiscal para este depositante.",
+    "xml-produtos-nao-mapeados": "Há item(ns) da NF-e sem produto correspondente no catálogo do depositante.",
+    erro: "Não foi possível importar o pedido. Revise os dados e tente novamente.",
+  };
+
+  return details[feedback] ?? details.erro;
+}
+
+export async function createXmlShippingOrderAction(
+  _previousState: ManualShippingOrderSubmissionState,
+  formData: FormData,
+): Promise<ManualShippingOrderSubmissionState> {
+  try {
+    return await createXmlShippingOrderSubmission(formData);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    if (error instanceof XmlShippingOrderSubmissionError) {
+      return { status: "error", feedback: error.feedback, detail: error.message };
+    }
+
+    return {
+      status: "error",
+      feedback: "erro",
+      detail: error instanceof Error && error.message ? error.message : getXmlImportFeedbackDetail("erro"),
+    };
+  }
+}
+
+async function createXmlShippingOrderSubmission(formData: FormData): Promise<ManualShippingOrderSubmissionState> {
   const user = await requireRoleAccess(["DEPOSITANTE"]);
-  const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
-  const returnPath = requestedReturnPath.startsWith("/portal") ? requestedReturnPath : "/expedicao";
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "VENDA_DIRETA").trim() as SalesChannelCode;
   const customStoreName = String(formData.get("customStoreName") ?? "").trim();
@@ -509,7 +549,9 @@ export async function createXmlShippingOrderAction(formData: FormData) {
   const labelFile = formData.get("shippingLabel");
   const xmlFile = formData.get("invoiceXml");
 
-  const fail = (feedback: string): never => redirect(`${returnPath}?feedback=${feedback}`);
+  const fail = (feedback: string, detail = getXmlImportFeedbackDetail(feedback)): never => {
+    throw new XmlShippingOrderSubmissionError(feedback, detail);
+  };
 
   if (!depositanteId || !salesChannelCode) fail("erro");
   if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) fail("erro");
@@ -632,68 +674,67 @@ export async function createXmlShippingOrderAction(formData: FormData) {
     observacoes: parsedNfe.additionalInfo,
   };
 
-  try {
-    const { data: createdOrder, error } = await adminSupabase
-      .from("pedidos_expedicao")
-      .insert(headerPayload)
-      .select("id")
-      .single();
-    const createdOrderId = createdOrder?.id;
-    if (error || !createdOrderId) fail("erro");
+  const { data: createdOrder, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .insert(headerPayload)
+    .select("id, numero_wms")
+    .single();
+  const createdOrderId = createdOrder?.id;
+  if (error || !createdOrderId) fail("erro", error?.message || getXmlImportFeedbackDetail("erro"));
 
-    const catalogById = new Map((catalog ?? []).map((product) => [product.id, product]));
-    const itemRows = matchedProducts.matched.map((item) => {
-      const product = catalogById.get(item.productId);
-      return {
-        pedido_expedicao_id: createdOrderId,
-        depositante_id: depositanteId,
-        produto_id: item.productId,
-        codigo_produto: product?.codigo_externo || product?.codigo_interno || item.origemCodigo || item.origemEan,
-        sku: product?.sku || item.sku || null,
-        nome: product?.nome || item.nome,
-        unidade: product?.unidade_estocagem || "UNIDADE",
-        quantidade: item.quantidade,
-        payload_origem: { manual: true, importadoPorXml: true, origemCodigo: item.origemCodigo, origemEan: item.origemEan },
-      };
-    });
-    const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
-    if (itemError) {
-      await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrderId);
-      fail("erro");
-    }
+  const catalogById = new Map((catalog ?? []).map((product) => [product.id, product]));
+  const itemRows = matchedProducts.matched.map((item) => {
+    const product = catalogById.get(item.productId);
+    return {
+      pedido_expedicao_id: createdOrderId,
+      depositante_id: depositanteId,
+      produto_id: item.productId,
+      codigo_produto: product?.codigo_externo || product?.codigo_interno || item.origemCodigo || item.origemEan,
+      sku: product?.sku || item.sku || null,
+      nome: product?.nome || item.nome,
+      unidade: product?.unidade_estocagem || "UNIDADE",
+      quantidade: item.quantidade,
+      payload_origem: { manual: true, importadoPorXml: true, origemCodigo: item.origemCodigo, origemEan: item.origemEan },
+    };
+  });
+  const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
+  if (itemError) {
+    await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrderId);
+    fail("erro", itemError.message || getXmlImportFeedbackDetail("erro"));
+  }
 
+  await storeOperationalDocumentFromBuffer({
+    adminSupabase,
+    depositanteId,
+    tipo: "NF",
+    fileName: parsedXmlFile.name,
+    mimeType: parsedXmlFile.type || "application/xml",
+    bytes: xmlBytes,
+    pedidoExpedicaoId: createdOrderId,
+    enviadoPor: user.id,
+  });
+
+  const parsedLabelFile = readOptionalUpload(labelFile);
+  if (parsedLabelFile) {
     await storeOperationalDocumentFromBuffer({
       adminSupabase,
       depositanteId,
-      tipo: "NF",
-      fileName: parsedXmlFile.name,
-      mimeType: parsedXmlFile.type || "application/xml",
-      bytes: xmlBytes,
+      tipo: "ETIQUETA",
+      fileName: parsedLabelFile.name,
+      mimeType: parsedLabelFile.type,
+      bytes: Buffer.from(await parsedLabelFile.arrayBuffer()),
       pedidoExpedicaoId: createdOrderId,
       enviadoPor: user.id,
     });
-
-    const parsedLabelFile = readOptionalUpload(labelFile);
-    if (parsedLabelFile) {
-      await storeOperationalDocumentFromBuffer({
-        adminSupabase,
-        depositanteId,
-        tipo: "ETIQUETA",
-        fileName: parsedLabelFile.name,
-        mimeType: parsedLabelFile.type,
-        bytes: Buffer.from(await parsedLabelFile.arrayBuffer()),
-        pedidoExpedicaoId: createdOrderId,
-        enviadoPor: user.id,
-      });
-    }
-
-    revalidatePath("/expedicao");
-    revalidatePath("/portal");
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=salvo`);
-  } catch (error) {
-    if (isRedirectError(error)) throw error;
-    fail("erro");
   }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/portal");
+  return {
+    status: "success",
+    feedback: "salvo",
+    detail: `Pedido ${createdOrder?.numero_wms ? `WMS-${String(createdOrder.numero_wms).padStart(6, "0")}` : ""} criado com sucesso.`.trim(),
+  };
 }
 
 export async function deleteShippingOrderAction(formData: FormData) {
