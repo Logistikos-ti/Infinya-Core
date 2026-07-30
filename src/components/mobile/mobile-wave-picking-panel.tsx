@@ -76,7 +76,7 @@ function normalizeQuantity(value: string) {
   return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
 
-const FLASH_DURATION_MS = 1800;
+const FLASH_DURATION_MS = 1300;
 
 export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: MobileWavePickingPanelProps) {
   const router = useRouter();
@@ -88,11 +88,15 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
+  // Brief green outline on the camera frame, used instead of the full-screen
+  // flash while counting intermediate units of the same product.
+  const [framePulse, setFramePulse] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
   const completionFormRef = useRef<HTMLFormElement | null>(null);
   const autoSubmittedRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
+  const framePulseTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -129,6 +133,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
       if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
       void audioContextRef.current?.close();
     };
   }, []);
@@ -176,15 +181,14 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     closeTimerRef.current = window.setTimeout(() => closeScanner(), delay);
   }
 
-  function flash(next: ScanOverlayState) {
-    setOverlay(next);
-    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
-
-    if (!next) return;
-
+  /**
+   * Vibration + beep, split out from flash() so a partial scan can confirm
+   * itself without taking over the screen: mid-count units only pulse the
+   * camera frame, and the full-screen flash is saved for the last unit.
+   */
+  function playFeedback(feedbackType: "ok" | "err" | "warn") {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(next.type === "ok" ? 60 : [70, 60, 70]);
+      navigator.vibrate(feedbackType === "ok" ? 60 : [70, 60, 70]);
     }
 
     const context = audioContextRef.current;
@@ -193,10 +197,10 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       void context.resume();
     }
 
-    const beep = (freq: number, type: OscillatorType, startTime: number, duration: number) => {
+    const beep = (freq: number, wave: OscillatorType, startTime: number, duration: number) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      oscillator.type = type;
+      oscillator.type = wave;
       oscillator.frequency.value = freq;
       gain.gain.value = 0.05;
       oscillator.connect(gain);
@@ -205,12 +209,30 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       oscillator.stop(startTime + duration);
     };
     const now = context.currentTime;
-    if (next.type === "ok") {
+    if (feedbackType === "ok") {
       beep(880, "sine", now, 0.12);
     } else {
       beep(220, "square", now, 0.1);
       beep(180, "square", now + 0.14, 0.12);
     }
+  }
+
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
+
+    if (next) {
+      playFeedback(next.type);
+    }
+  }
+
+  /** Confirms a mid-count unit: green frame border + the usual beep/vibration. */
+  function pulseFrame() {
+    playFeedback("ok");
+    setFramePulse(true);
+    if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
+    framePulseTimerRef.current = window.setTimeout(() => setFramePulse(false), 420);
   }
 
   function persistDraft(itemsToSave: WaveItemState[]) {
@@ -274,7 +296,10 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         closeScanner();
       }, FLASH_DURATION_MS);
     } else {
-      flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity}` });
+      // Mid-count unit: keep the camera visible and just pulse the frame, so
+      // the operator can scan the next unit without waiting out a full-screen
+      // flash between every single one.
+      pulseFrame();
     }
   }
 
@@ -559,7 +584,11 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                 width: 250,
                 height: 160,
                 borderRadius: 22,
-                border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
+                border: `2.5px ${framePulse ? "solid" : "dashed"} ${
+                  framePulse ? mobileColors.green : hexAlpha("#ffffff", 0.7)
+                }`,
+                boxShadow: framePulse ? `0 0 22px ${hexAlpha(mobileColors.green, 0.65)}` : "none",
+                transition: "border-color 0.12s ease, box-shadow 0.12s ease",
               }}
             />
           </div>

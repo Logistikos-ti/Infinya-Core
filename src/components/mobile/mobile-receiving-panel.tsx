@@ -52,7 +52,7 @@ type ReceivingItemState = {
   requireExpiry: boolean;
 };
 
-const FLASH_DURATION_MS = 1800;
+const FLASH_DURATION_MS = 1300;
 
 export function MobileReceivingPanel({
   orderId,
@@ -70,6 +70,7 @@ export function MobileReceivingPanel({
   const router = useRouter();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const overlayTimerRef = useRef<number | null>(null);
+  const framePulseTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [items, setItems] = useState<ReceivingItemState[]>(
     initialItems.map((item) => ({
@@ -101,6 +102,9 @@ export function MobileReceivingPanel({
   const [lotPromptItemId, setLotPromptItemId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
+  // Brief green outline on the camera frame, used instead of the full-screen
+  // flash while counting intermediate units of the same product.
+  const [framePulse, setFramePulse] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +153,7 @@ export function MobileReceivingPanel({
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+      if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
       void audioContextRef.current?.close();
     };
   }, []);
@@ -181,15 +186,14 @@ export function MobileReceivingPanel({
     setScannerOpen(false);
   }
 
-  function flash(next: ScanOverlayState) {
-    setOverlay(next);
-    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
-
-    if (!next) return;
-
+  /**
+   * Vibration + beep, split out from flash() so a partial scan can confirm
+   * itself without taking over the screen: mid-count units only pulse the
+   * camera frame, and the full-screen flash is saved for the last unit.
+   */
+  function playFeedback(feedbackType: "ok" | "err" | "warn") {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(next.type === "ok" ? 60 : [70, 60, 70]);
+      navigator.vibrate(feedbackType === "ok" ? 60 : [70, 60, 70]);
     }
 
     const context = audioContextRef.current;
@@ -198,10 +202,10 @@ export function MobileReceivingPanel({
       void context.resume();
     }
 
-    const beep = (freq: number, type: OscillatorType, startTime: number, duration: number) => {
+    const beep = (freq: number, wave: OscillatorType, startTime: number, duration: number) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      oscillator.type = type;
+      oscillator.type = wave;
       oscillator.frequency.value = freq;
       gain.gain.value = 0.05;
       oscillator.connect(gain);
@@ -210,12 +214,30 @@ export function MobileReceivingPanel({
       oscillator.stop(startTime + duration);
     };
     const now = context.currentTime;
-    if (next.type === "ok") {
+    if (feedbackType === "ok") {
       beep(880, "sine", now, 0.12);
     } else {
       beep(220, "square", now, 0.1);
       beep(180, "square", now + 0.14, 0.12);
     }
+  }
+
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
+
+    if (next) {
+      playFeedback(next.type);
+    }
+  }
+
+  /** Confirms a mid-count unit: green frame border + the usual beep/vibration. */
+  function pulseFrame() {
+    playFeedback("ok");
+    setFramePulse(true);
+    if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
+    framePulseTimerRef.current = window.setTimeout(() => setFramePulse(false), 420);
   }
 
   function confirmLotPrompt() {
@@ -284,16 +306,20 @@ export function MobileReceivingPanel({
     setError(null);
     setMessage(null);
 
+    if (!isComplete) {
+      // Mid-count unit: keep the camera visible and just pulse the frame, so
+      // the operator can scan the next unit without waiting out a full-screen
+      // flash between every single one.
+      pulseFrame();
+      return;
+    }
+
     flash({
       type: "ok",
-      title: isComplete ? "Item completo" : "Volume recebido",
+      title: "Item completo",
       code: matchedItem.sku,
       sub: `${nextQuantity}/${matchedItem.expectedQuantity} recebido(s).`,
     });
-
-    if (!isComplete) {
-      return;
-    }
 
     // Quantity closed out: hand the screen over to the lot/expiry form when the
     // product requires it, otherwise clear the counter and keep scanning.
@@ -624,7 +650,11 @@ export function MobileReceivingPanel({
                 width: 250,
                 height: 160,
                 borderRadius: 22,
-                border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
+                border: `2.5px ${framePulse ? "solid" : "dashed"} ${
+                  framePulse ? mobileColors.green : hexAlpha("#ffffff", 0.7)
+                }`,
+                boxShadow: framePulse ? `0 0 22px ${hexAlpha(mobileColors.green, 0.65)}` : "none",
+                transition: "border-color 0.12s ease, box-shadow 0.12s ease",
               }}
             />
           </div>
