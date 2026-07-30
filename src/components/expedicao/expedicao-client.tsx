@@ -112,6 +112,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState("");
   const [newOrderCarrier, setNewOrderCarrier] = useState("Mercado Livre");
+  const [newOrderSubmitting, setNewOrderSubmitting] = useState(false);
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
@@ -1252,7 +1253,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
             </div>
 
-            <form action={createManualShippingOrderAction} style={{ minHeight: 0, display: "flex", flex: 1, flexDirection: "column" }}>
+            <form action={createManualShippingOrderAction} onSubmit={(event) => { if (newOrderSubmitting) { event.preventDefault(); return; } setNewOrderSubmitting(true); }} style={{ minHeight: 0, display: "flex", flex: 1, flexDirection: "column" }}>
               <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 120px", display: "flex", flexDirection: "column", gap: 24 }}>
                 <input type="hidden" name="salesChannelCode" value={newOrderChannel} />
                 <input type="hidden" name="returnPath" value="/expedicao" />
@@ -1394,7 +1395,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
               <div className="new-order-footer" style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
                 <div><div style={{ color: t.textSub, fontSize: 12 }}>Total de itens</div><strong style={{ color: t.text, fontSize: 20 }}>{totalNewOrderUnits}</strong></div>
-                <div style={{ display: "flex", gap: 14 }}><button className="new-order-cancel" type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer", transition: "border-color .18s ease, box-shadow .18s ease" }}>Cancelar</button><button className="new-order-submit" type="submit" disabled={selectedItems.length === 0} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)", transition: "transform .18s ease, box-shadow .18s ease" }}>⇢ Enviar ao CD</button></div>
+                <div style={{ display: "flex", gap: 14 }}><button className="new-order-cancel" type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer", transition: "border-color .18s ease, box-shadow .18s ease" }}>Cancelar</button><button className="new-order-submit" type="submit" disabled={selectedItems.length === 0 || newOrderSubmitting} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 || newOrderSubmitting ? "wait" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)", transition: "transform .18s ease, box-shadow .18s ease", opacity: newOrderSubmitting ? .72 : 1 }}>{newOrderSubmitting ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Enviando ao CD...</> : "⇢ Enviar ao CD"}</button></div>
               </div>
             </form>
             {newOrderPreview && <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.72)", animation: "overlayFade .2s ease" }}>

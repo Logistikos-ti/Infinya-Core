@@ -31,6 +31,9 @@ import { listSupportTicketsFromDb } from "@/lib/support";
 import { PortalOrdersView } from "@/components/portal/portal-orders-view";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PortalPageProps = {
   searchParams?: Promise<{
     view?: string;
