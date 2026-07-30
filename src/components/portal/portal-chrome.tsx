@@ -16,6 +16,7 @@ import {
   AppSidebar,
   type SidebarNavigationItem,
 } from "@/components/layout/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
 
 const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
@@ -142,6 +143,7 @@ export function PortalChrome({
           >
             <Bell className="h-4 w-4" />
           </button>
+          <ThemeToggle />
         </header>
 
         <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-5 lg:px-4">
