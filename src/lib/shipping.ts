@@ -30,6 +30,7 @@ type RawShippingOrderRow = {
   quantidade_itens: number | null;
   quantidade_unidades: number | string | null;
   created_at: string | null;
+  updated_at: string | null;
   data_pedido: string | null;
   previsao_envio_em: string | null;
   sincronizado_em: string | null;
@@ -126,6 +127,7 @@ export type ShippingOrderSummary = {
   units: string;
   itemCount: number;
   createdAtIso: string | null;
+  updatedAtIso: string | null;
   createdAt: string;
   orderDate: string;
   ageLabel: string;
@@ -241,7 +243,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -333,8 +335,18 @@ export async function listShippingStatsFromDb(
     ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(item.status) ||
     (item.status === "CONFERIDO" && !item.releasedWithoutRomaneio),
   ).length;
-  const prontos = orders.filter((item) => item.status === "PRONTO_ROMANEIO").length;
-  const expedidos = orders.filter((item) => item.status === "EXPEDIDO").length;
+  const currentMonth = getMonthKeyInSaoPaulo(new Date());
+  const previousMonthDate = new Date();
+  previousMonthDate.setUTCDate(1);
+  previousMonthDate.setUTCMonth(previousMonthDate.getUTCMonth() - 1);
+  const previousMonth = getMonthKeyInSaoPaulo(previousMonthDate);
+  const dispatchedOrders = orders.filter((item) => item.status === "EXPEDIDO");
+  const expedidosNoMes = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.updatedAtIso || item.createdAtIso) === currentMonth).length;
+  const expedidosNoMesAnterior = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.updatedAtIso || item.createdAtIso) === previousMonth).length;
+  const dispatchVariation = expedidosNoMesAnterior === 0
+    ? (expedidosNoMes > 0 ? 100 : 0)
+    : Math.round(((expedidosNoMes - expedidosNoMesAnterior) / expedidosNoMesAnterior) * 100);
+  const dispatchDeltaDirection = dispatchVariation > 0 ? "up" : dispatchVariation < 0 ? "down" : "neutral";
 
   return [
     {
@@ -356,11 +368,13 @@ export async function listShippingStatsFromDb(
       help: "Pedidos já em separação ou conferência.",
     },
     {
-      label: "Expedidos",
-      value: String(expedidos),
-      help: prontos
-        ? `${prontos} pedido(s) também já pronto(s) para romaneio.`
-        : "Nenhum pedido aguardando romaneio no momento.",
+      label: "Expedidos este mês",
+      value: String(expedidosNoMes),
+      delta: dispatchVariation === 0 ? "" : `${Math.abs(dispatchVariation)}%`,
+      deltaDirection: dispatchDeltaDirection,
+      help: expedidosNoMesAnterior
+        ? `${expedidosNoMesAnterior} pedido(s) expedido(s) no mês anterior.`
+        : "Sem expedições registradas no mês anterior.",
     },
   ] as const;
 }
@@ -665,6 +679,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     units: Number(item.quantidade_unidades ?? 0).toLocaleString("pt-BR"),
     itemCount: Number(item.quantidade_itens ?? 0),
     createdAtIso: ageMeta.createdAtIso,
+    updatedAtIso: item.updated_at,
     createdAt: ageMeta.createdAtLabel,
     orderDate: formatDateTimeInSaoPaulo(item.data_pedido, "Hoje"),
     ageLabel: ageMeta.ageLabel,
@@ -681,6 +696,21 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     createdBySource: createdByName ? "Pedido manual" : item.origem === "BLING" ? "Integração Bling" : "Sistema",
     items,
   };
+}
+
+function getMonthKeyInSaoPaulo(value: string | Date | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return year && month ? `${year}-${month}` : null;
 }
 
 function extractRelationName(value: RelationName) {

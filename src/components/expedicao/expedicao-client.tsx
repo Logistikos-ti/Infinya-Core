@@ -218,7 +218,16 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: data.stats[0]?.delta || "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
     { label: "Em conferência", value: data.stats[2]?.value || 0, delta: data.stats[2]?.delta || "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
     { label: "Aguardando separação", value: data.stats[1]?.value || 0, delta: data.stats[1]?.delta || "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
-    { label: "Expedidos hoje", value: data.stats[3]?.value || 0, delta: data.stats[3]?.delta || "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", deltaColor: "#10B981" }
+    {
+      label: "Expedidos este mês",
+      value: data.stats[3]?.value || 0,
+      delta: data.stats[3]?.delta || "",
+      deltaDirection: data.stats[3]?.deltaDirection || "neutral",
+      iconEl: <CheckCircle2 size={20} />,
+      iconBg: "rgba(245,158,11,0.15)",
+      iconColor: "#F59E0B",
+      deltaColor: data.stats[3]?.deltaDirection === "down" ? "#EF4444" : "#10B981",
+    }
   ];
 
   const flowCards = [
@@ -620,7 +629,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </div>
                 <div style={{display: "flex", alignItems: "baseline", gap: "8px"}}>
                   <span style={{fontFamily: "'Space Grotesk', sans-serif", fontSize: "30px", fontWeight: "700"}}>{k.value }</span>
-                  { k.delta ? <span style={{fontSize: "13px", fontWeight: "700", color: `${k.deltaColor }`}}>{k.delta }</span> : null }
+                  { k.delta ? <span style={{display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "13px", fontWeight: "700", color: `${k.deltaColor }`}}>{k.deltaDirection === "down" ? <ArrowDown size={14} strokeWidth={2.6} /> : <ArrowUp size={14} strokeWidth={2.6} />}{k.delta }</span> : null }
                 </div>
               </div>
             </React.Fragment>)}
