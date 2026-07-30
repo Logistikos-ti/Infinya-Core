@@ -16,6 +16,24 @@ type RecebimentoListClientProps = {
   totalOrders: number;
 };
 
+function statusMeta(status: string): { label: string; color: string } {
+  switch (status) {
+    case "EM_RECEBIMENTO":
+      return { label: "Em recebimento", color: mobileColors.blue };
+    case "RECEBIDO_PARCIAL":
+      return { label: "Parcial", color: mobileColors.amber };
+    case "RECEBIDO":
+      return { label: "Recebido", color: mobileColors.green };
+    case "DIVERGENCIA":
+      return { label: "Divergência", color: mobileColors.red };
+    case "CANCELADO":
+      return { label: "Cancelado", color: mobileColors.dim };
+    default:
+      // RASCUNHO / AGUARDANDO
+      return { label: "Agendado", color: mobileColors.amber };
+  }
+}
+
 export function RecebimentoListClient({ orders, totalOrders }: RecebimentoListClientProps) {
   const router = useRouter();
 
@@ -26,15 +44,18 @@ export function RecebimentoListClient({ orders, totalOrders }: RecebimentoListCl
       count={String(totalOrders)}
       onBack={() => router.push("/m/inicio")}
       emptyLabel="Nenhum recebimento disponível no momento."
-      items={orders.map((order) => ({
-        icon: "inbound",
-        iconColor: mobileColors.violet,
-        title: order.code,
-        tag: order.status,
-        tagColor: mobileColors.green,
-        sub: `${order.depositante} • ${order.volumeCount} volumes`,
-        onClick: () => router.push(`/m/recebimento/${order.id}`),
-      }))}
+      items={orders.map((order) => {
+        const meta = statusMeta(order.status);
+        return {
+          icon: "inbound",
+          iconColor: mobileColors.violet,
+          title: order.code,
+          tag: meta.label,
+          tagColor: meta.color,
+          sub: `${order.depositante} • ${order.volumeCount} volumes`,
+          onClick: () => router.push(`/m/recebimento/${order.id}`),
+        };
+      })}
     />
   );
 }

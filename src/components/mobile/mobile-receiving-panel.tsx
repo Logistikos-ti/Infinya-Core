@@ -87,7 +87,11 @@ export function MobileReceivingPanel({
       requireExpiry: item.requireExpiry,
     })),
   );
-  const [enderecoId, setEnderecoId] = useState(addresses[0]?.id ?? "");
+  // The operator no longer picks a destination here: addressing is handled as
+  // its own step (finalizing creates an "ENDERECAMENTO" task). We still need a
+  // destination for the stock entry, so default to the first address the page
+  // resolved (receiving/staging areas when they exist).
+  const [enderecoId] = useState(addresses[0]?.id ?? "");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
@@ -353,27 +357,19 @@ export function MobileReceivingPanel({
           </div>
         </div>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-            Endereço destino
-          </span>
-          <select
-            value={enderecoId}
-            onChange={(event) => setEnderecoId(event.target.value)}
-            className="h-12 w-full rounded-2xl px-3 text-sm outline-none"
-            style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`, background: "#0B1424", color: mobileColors.text }}
+        {!enderecoId ? (
+          <div
+            className="rounded-[18px] p-4 text-sm"
+            style={{
+              border: `1px solid ${hexAlpha(mobileColors.amber, 0.3)}`,
+              background: hexAlpha(mobileColors.amber, 0.1),
+              color: mobileColors.amber,
+            }}
           >
-            {addresses.length ? (
-              addresses.map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.codigo} · {formatArea(address.area)}
-                </option>
-              ))
-            ) : (
-              <option value="">Nenhum endereço de recebimento disponível</option>
-            )}
-          </select>
-        </label>
+            Nenhum endereço ativo cadastrado no armazém, então esta conferência não pode ser
+            concluída. Fale com a operação.
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-2.5">
           <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: mobileColors.dim }}>
@@ -617,22 +613,6 @@ function InfoBadge({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatArea(area: string) {
-  switch (area) {
-    case "RECEBIMENTO":
-      return "Recebimento";
-    case "PULMAO":
-      return "Armazenagem";
-    case "PICKING":
-      return "Picking";
-    case "BLOQUEADO":
-      return "Bloqueado";
-    case "EXPEDICAO":
-      return "Expedição";
-    default:
-      return area;
-  }
-}
 
 function normalizeScan(value: string) {
   return value.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "").toLocaleLowerCase("pt-BR");
