@@ -21,6 +21,8 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
   const [channel, setChannel] = useState("VENDA_DIRETA");
   const [channelOpen, setChannelOpen] = useState(false);
   const [xmlFile, setXmlFile] = useState<File | null>(null);
+  const [carrier, setCarrier] = useState("Outro");
+  const [otherCarrier, setOtherCarrier] = useState("");
   const selectedChannel = SALES_CHANNEL_OPTIONS.find((option) => option.value === channel) ?? SALES_CHANNEL_OPTIONS[0];
 
   return (
@@ -81,9 +83,12 @@ export function PortalXmlOrderDrawer({ depositanteId, depositanteName, onClose }
               <input type="file" name="invoiceXml" required accept=".xml,application/xml,text/xml" onChange={(event) => setXmlFile(event.target.files?.[0] ?? null)} className="sr-only" />
               {xmlFile ? <span className="mt-3 block truncate text-xs font-semibold text-emerald-700 dark:text-emerald-200">{xmlFile.name} · {(xmlFile.size / 1024).toFixed(1)} KB</span> : null}
             </label>
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">Transportadora (opcional)
-              <input name="carrierName" placeholder="Ex.: Correios, Shopee Xpress" className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5 dark:text-white" />
-            </label>
+            <section>
+              <h3 className="mb-3 text-xs font-bold text-slate-500 dark:text-slate-400">Frete / transportadora (opcional)</h3>
+              {carrier === "Outro" ? <input name="carrierName" value={otherCarrier} onChange={(event) => setOtherCarrier(event.target.value)} placeholder="Digite o nome ou deixe a XML informar" className="mb-3 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none focus:border-cyan-400 dark:border-white/10 dark:bg-white/5 dark:text-white" /> : <input type="hidden" name="carrierName" value={carrier} />}
+              <div className="flex flex-wrap gap-2">{["Correios", "Mercado Livre", "Shopee", "Amazon", "Magalu", "Shein", "TikTok Shop", "Kwai", "Outro"].map((value) => <button type="button" key={value} onClick={() => { setCarrier(value); if (value !== "Outro") setOtherCarrier(""); }} className={`rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:-translate-y-px ${carrier === value ? "border-cyan-400 bg-cyan-50 text-slate-900 dark:bg-cyan-400/10 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10"}`}>{value}</button>)}</div>
+              <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">Se ficar em “Outro” sem preencher, a transportadora será aproveitada da própria XML.</p>
+            </section>
             <label className="block cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
               <span className="flex items-center gap-2"><Upload className="h-5 w-5 text-violet-500" /> Etiqueta de envio (opcional)</span>
               <input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg,.zpl,application/pdf,image/png,image/jpeg,text/plain" className="mt-3 block w-full text-xs font-medium" />
