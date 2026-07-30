@@ -349,7 +349,7 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
       </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
       <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatCreatedAt(order.createdAtIso, now)}</td>
-      <td className="px-5 py-[14px]"><StatusBadge label={repairMojibake(order.statusLabel || order.status)} /></td>
+      <td className="px-5 py-[14px]"><StatusBadge status={order.status} label={repairMojibake(order.statusLabel || order.status)} /></td>
       <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
     </tr>
   );
@@ -365,7 +365,8 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
     return () => window.clearInterval(interval);
   }, []);
   const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
-  const statusColor = order.status === "CANCELADO" ? "#EF4444" : order.status === "EXPEDIDO" ? "#10B981" : "#3B82F6";
+  const statusStyle = getOperationalStatusStyle(order.status);
+  const statusColor = statusStyle.color;
   const info = [
     ["Canal", order.marketplace || order.channel || "Operação própria"],
     ["Depositante", order.depositante],
@@ -386,7 +387,7 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
               <p className="text-xs font-bold tracking-[0.14em] text-slate-500">PEDIDO</p>
               <h2 className="mt-2 font-display text-[26px] font-bold leading-none text-slate-950 dark:text-white">{order.displayNumber}</h2>
               <span className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold" style={{ color: statusColor, background: `${statusColor}18` }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} /> {order.statusLabel}
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} /> {repairMojibake(order.statusLabel)}
               </span>
             </div>
             <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><X className="h-4 w-4" /></button>
@@ -437,19 +438,28 @@ function OrderDocumentCard({ icon, label, available, allowUpload = true, viewHre
   return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
 }
 
-function StatusBadge({ label }: { label: string }) {
-  const normalized = label.toLocaleLowerCase("pt-BR");
-  const color = normalized.includes("cancel")
-    ? { bg: "rgba(239,68,68,.12)", text: "#EF4444", dot: "#EF4444" }
-    : normalized.includes("exped") || normalized.includes("confer")
-      ? { bg: "rgba(16,185,129,.12)", text: "#059669", dot: "#10B981" }
-      : normalized.includes("separa")
-        ? { bg: "rgba(59,130,246,.12)", text: "#2563EB", dot: "#3B82F6" }
-        : { bg: "rgba(245,158,11,.14)", text: "#D97706", dot: "#F59E0B" };
+function getOperationalStatusStyle(status: string) {
+  const colors: Record<string, { background: string; color: string }> = {
+    NOVO: { background: "rgba(100,116,139,.15)", color: "#64748B" },
+    EM_SEPARACAO: { background: "rgba(59,130,246,.15)", color: "#3B82F6" },
+    SEPARADO: { background: "rgba(59,130,246,.15)", color: "#3B82F6" },
+    EM_CONFERENCIA: { background: "rgba(139,92,246,.15)", color: "#8B5CF6" },
+    CONFERIDO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
+    PRONTO_ROMANEIO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
+    EXPEDIDO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
+    CANCELADO: { background: "rgba(239,68,68,.15)", color: "#EF4444" },
+    DIVERGENTE: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
+  };
+
+  return colors[status] ?? colors.NOVO;
+}
+
+function StatusBadge({ status, label }: { status: string; label: string }) {
+  const color = getOperationalStatusStyle(status);
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: color.bg, color: color.text }}>
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color.dot }} />
-      {label || "Recebido"}
+    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: color.background, color: color.color }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color.color }} />
+      {label || "Novo"}
     </span>
   );
 }
