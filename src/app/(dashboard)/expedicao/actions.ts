@@ -31,10 +31,6 @@ export type ManualShippingOrderSubmissionState = {
   detail?: string;
 };
 
-export const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = {
-  status: "idle",
-};
-
 class ManualShippingOrderSubmissionError extends Error {
   constructor(
     readonly feedback: string,

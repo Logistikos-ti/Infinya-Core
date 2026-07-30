@@ -40,12 +40,13 @@ import {
 import {
   createOperationalManualShippingOrderAction,
   deleteShippingOrderAction,
-  initialManualShippingOrderSubmissionState,
 } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { createPortal } from "react-dom";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
+
+const initialManualShippingOrderSubmissionState = { status: "idle" };
 
 function xmlPreviewValue(xml: string, tag: string) {
   if (typeof DOMParser !== "undefined") {
