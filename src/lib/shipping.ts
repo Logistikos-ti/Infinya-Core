@@ -425,7 +425,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
       return null;
     }
 
-    throw new Error(`NÃ£o foi possÃ­vel carregar o pedido de expediÃ§Ã£o: ${error.message}`);
+    throw new Error(`Não foi possível carregar o pedido de expedição: ${error.message}`);
   }
 
   if (!data) {
@@ -509,7 +509,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     unitsRaw: Number(order.quantidade_unidades ?? 0),
     createdAtIso: order.created_at ?? order.data_pedido,
     orderDate: formatBusinessDateTimeOrFallback(order.data_pedido, "Sem data"),
-    shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsÃ£o"),
+    shipDate: formatDateOrFallback(order.previsao_envio_em, "Sem previsão"),
     expectedDate,
     syncedAt: formatDateTimeInSaoPaulo(order.sincronizado_em, "Ainda não sincronizado"),
     marketplace,
@@ -521,7 +521,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     releasedToRomaneio,
     suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
     suppliesTotalCostRaw,
-    notes: order.observacoes?.trim() || "Sem observaÃ§Ãµes.",
+    notes: order.observacoes?.trim() || "Sem observações.",
     attachments,
     supplies,
     items,
@@ -541,7 +541,7 @@ async function listShippingAttachments(orderId: string, invoice: string, origin:
       return buildDefaultShippingAttachments([], invoice, orderId, origin);
     }
 
-    throw new Error(`NÃ£o foi possÃ­vel carregar os anexos do pedido: ${error.message}`);
+    throw new Error(`Não foi possível carregar os anexos do pedido: ${error.message}`);
   }
 
   return buildDefaultShippingAttachments((data ?? []) as RawStoredDocumentRow[], invoice, orderId, origin);
@@ -564,7 +564,7 @@ function buildDefaultShippingAttachments(
       nfDocument,
       orderId,
       invoice !== "Ainda não vinculada" ? `XML da NF ${invoice}` : "XML da nota fiscal",
-      "Anexe aqui o XML da nota fiscal quando o documento estiver disponÃ­vel no fluxo fiscal.",
+      "Anexe aqui o XML da nota fiscal quando o documento estiver disponível no fluxo fiscal.",
       `/api/expedicao/${orderId}/nota-fiscal-preview?disposition=inline`,
     ),
     buildAttachment(
@@ -572,7 +572,7 @@ function buildDefaultShippingAttachments(
       labelDocument,
       orderId,
       "Etiqueta do marketplace",
-      "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logÃ­stico.",
+      "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
       null,
     ),
   ];
@@ -620,9 +620,9 @@ function buildAttachment(
 export function listShippingFlowSteps() {
   return [
     "Receber pedido do canal integrado",
-    "Reservar itens e abrir separaÃ§Ã£o",
-    "Conferir volumes e divergÃªncias",
-    "Gerar romaneio e liberar expediÃ§Ã£o",
+    "Reservar itens e abrir separação",
+    "Conferir volumes e divergências",
+    "Gerar romaneio e liberar expedição",
   ] as const;
 }
 
@@ -912,7 +912,7 @@ function extractPlatformOrderNumber(
 }
 
 function extractExpectedDate(payload: Record<string, unknown>, fallbackDate: string | null) {
-  return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsÃ£o");
+  return formatDateOrFallback(readString(payload.dataPrevista) ?? fallbackDate, "Sem previsão");
 }
 
 export function extractCarrierName(payload: Record<string, unknown>) {
