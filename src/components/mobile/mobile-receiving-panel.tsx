@@ -547,7 +547,18 @@ export function MobileReceivingPanel({
       </div>
 
       {scannerOpen ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#000" }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            background: "#000",
+            // Without this the middle section's `flex: 1` is inert and the
+            // focus frame stacks right under the header instead of centering.
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <video
             ref={videoRef}
             playsInline
@@ -595,16 +606,17 @@ export function MobileReceivingPanel({
             </button>
           </div>
 
+          {/* Only the frame lives in the centered area, so it stays put in the
+              middle of the screen instead of being pushed up once the unit
+              progress appears. */}
           <div
             style={{
               position: "relative",
               zIndex: 2,
               flex: 1,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 20,
             }}
           >
             <div
@@ -615,12 +627,23 @@ export function MobileReceivingPanel({
                 border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}`,
               }}
             />
+          </div>
 
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 9,
+              padding: "0 24px calc(36px + env(safe-area-inset-bottom))",
+              textAlign: "center",
+            }}
+          >
             {scanItem ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9, padding: "0 24px" }}>
-                <span
-                  style={{ color: "#fff", fontSize: 14, fontWeight: 800, textAlign: "center", ...headingFont }}
-                >
+              <>
+                <span style={{ color: "#fff", fontSize: 14, fontWeight: 800, ...headingFont }}>
                   {scanItem.description}
                 </span>
                 <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, ...headingFont }}>
@@ -663,14 +686,12 @@ export function MobileReceivingPanel({
                     Faltam {scanMissing} {scanMissing === 1 ? "unidade" : "unidades"}
                   </span>
                 ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div style={{ position: "relative", zIndex: 2, padding: "0 24px calc(40px + env(safe-area-inset-bottom))", textAlign: "center" }}>
-            <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
-              {cameraStarting ? "Abrindo câmera..." : cameraMessage ?? "Posicione o código dentro da moldura"}
-            </span>
+              </>
+            ) : (
+              <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
+                {cameraStarting ? "Abrindo câmera..." : cameraMessage ?? "Posicione o código dentro da moldura"}
+              </span>
+            )}
           </div>
 
           <MobileScanOverlay overlay={overlay} />
