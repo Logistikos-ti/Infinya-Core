@@ -16,6 +16,7 @@ import {
   AppSidebar,
   type SidebarNavigationItem,
 } from "@/components/layout/app-sidebar";
+import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
 
@@ -171,6 +172,11 @@ export function PortalChrome({
           })}
         </nav>
       </main>
+
+      <FirstAccessPasswordDialog
+        isVisible={user.forcePasswordReset}
+        userName={user.nome}
+      />
     </div>
   );
 }
