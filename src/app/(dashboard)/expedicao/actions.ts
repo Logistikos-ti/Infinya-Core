@@ -25,6 +25,25 @@ type ShippingSupplyPayloadItem = {
   totalCost: number;
 };
 
+export type ManualShippingOrderSubmissionState = {
+  status: "idle" | "success" | "error";
+  feedback?: string;
+  detail?: string;
+};
+
+export const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = {
+  status: "idle",
+};
+
+class ManualShippingOrderSubmissionError extends Error {
+  constructor(
+    readonly feedback: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export async function updateShippingOrderAction(formData: FormData) {
   await requireRoleAccess(["ADMIN", "TI"]);
 
@@ -168,11 +187,18 @@ export async function updateShippingOrderAction(formData: FormData) {
 
 export async function createManualShippingOrderAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
+  const inlineResponse = String(formData.get("inlineResponse") ?? "") === "1";
 
   const requestedReturnPath = String(formData.get("returnPath") ?? "/expedicao").trim();
   const returnPath = requestedReturnPath.startsWith("/expedicao") || requestedReturnPath.startsWith("/portal")
     ? requestedReturnPath
     : "/expedicao";
+  const fail = (feedback: string, detail: string): never => {
+    if (inlineResponse) {
+      throw new ManualShippingOrderSubmissionError(feedback, detail);
+    }
+    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=${feedback}`);
+  };
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const numeroPedido = String(formData.get("numeroPedido") ?? "").trim();
   const numeroLoja = String(formData.get("numeroLoja") ?? "").trim();
@@ -208,32 +234,32 @@ export async function createManualShippingOrderAction(formData: FormData) {
   const labelFile = formData.get("shippingLabel");
 
   if (!depositanteId || !numeroPedido || !clienteNome || !salesChannelCode) {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+    fail("erro", "Preencha depositante, n\u00famero do pedido, destinat\u00e1rio e canal de venda antes de enviar.");
   }
 
   if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+    fail("erro", "O depositante selecionado n\u00e3o corresponde ao perfil autenticado.");
   }
 
   let parsedXmlFile: File | undefined;
   try {
     parsedXmlFile = readRequiredInvoiceUpload(xmlFile);
   } catch {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-obrigatoria`);
+    fail("nf-obrigatoria", "Anexe o arquivo XML da NF-e antes de enviar o pedido ao CD.");
   }
   const xmlBytes = Buffer.from(await parsedXmlFile.arrayBuffer());
   const xmlText = decodeXmlBuffer(xmlBytes.buffer.slice(xmlBytes.byteOffset, xmlBytes.byteOffset + xmlBytes.byteLength));
-  let parsedNfe: ReturnType<typeof parseNfeXml>;
+  let invoiceMetadata: { noteNumber: string; accessKey: string | null };
 
   try {
-    parsedNfe = parseNfeXml(xmlText);
-  } catch {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-invalida`);
+    invoiceMetadata = parseManualInvoiceMetadata(xmlText);
+  } catch (error) {
+    fail("nf-invalida", error instanceof Error ? error.message : "O XML n\u00e3o foi reconhecido como uma NF-e v\u00e1lida.");
   }
 
-  const invoiceNumberFromXml = parsedNfe.noteNumber.trim();
+  const invoiceNumberFromXml = invoiceMetadata.noteNumber.trim();
   if (!invoiceNumberFromXml || invoiceNumberFromXml === "Sem numero") {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-invalida`);
+    fail("nf-invalida", "O XML enviado n\u00e3o possui n\u00famero de NF-e identific\u00e1vel.");
   }
 
   const adminSupabase = createSupabaseAdminClient();
@@ -244,7 +270,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     .limit(5000);
 
   if (existingOrdersError) {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+    fail("erro", existingOrdersError.message || "N\u00e3o foi poss\u00edvel consultar pedidos existentes para validar duplicidade.");
   }
 
   const normalizedInvoiceNumber = normalizeInvoiceNumber(invoiceNumberFromXml);
@@ -255,7 +281,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
   });
 
   if (duplicateOrder) {
-    redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=nf-duplicada`);
+    fail("nf-duplicada", "J\u00e1 existe um pedido deste depositante com o mesmo n\u00famero de NF-e.");
   }
 
   const channelLabel = getSalesChannelLabel(salesChannelCode) ?? "Venda direta";
@@ -284,7 +310,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     },
     notaFiscal: {
       numero: invoiceNumberFromXml,
-      chave: parsedNfe.accessKey,
+      chave: invoiceMetadata.accessKey,
     },
     transporte: {
       contato: {
@@ -336,7 +362,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
       .single();
 
     if (error || !createdOrder) {
-      redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+      fail("erro", error?.message || "O pedido n\u00e3o p\u00f4de ser criado.");
     }
 
     if (selectedProductIds.length > 0) {
@@ -371,7 +397,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
         const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
         if (itemError) {
           await adminSupabase.from("pedidos_expedicao").delete().eq("id", createdOrder.id);
-          redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+          fail("erro", itemError.message || "O pedido foi criado, mas n\u00e3o foi poss\u00edvel gravar os itens.");
         }
       }
     }
@@ -405,6 +431,9 @@ export async function createManualShippingOrderAction(formData: FormData) {
     revalidatePath("/expedicao");
     revalidatePath("/portal");
     revalidatePath(`/expedicao/${createdOrder.id}`);
+    if (inlineResponse) {
+      return { status: "success" } satisfies ManualShippingOrderSubmissionState;
+    }
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=salvo`);
   } catch (error) {
     // O Next.js implementa redirect() lançando um sinal interno; ele não pode
@@ -412,7 +441,62 @@ export async function createManualShippingOrderAction(formData: FormData) {
     if (isRedirectError(error)) {
       throw error;
     }
+    if (error instanceof ManualShippingOrderSubmissionError) {
+      return { status: "error", feedback: error.feedback, detail: error.message } satisfies ManualShippingOrderSubmissionState;
+    }
+    if (inlineResponse) {
+      return {
+        status: "error",
+        feedback: "erro",
+        detail: error instanceof Error ? error.message : "N\u00e3o foi poss\u00edvel concluir o envio do pedido.",
+      } satisfies ManualShippingOrderSubmissionState;
+    }
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=erro`);
+  }
+}
+
+export async function createOperationalManualShippingOrderAction(
+  _previousState: ManualShippingOrderSubmissionState,
+  formData: FormData,
+): Promise<ManualShippingOrderSubmissionState> {
+  formData.set("inlineResponse", "1");
+  const result = await createManualShippingOrderAction(formData);
+
+  return result ?? {
+    status: "error",
+    feedback: "erro",
+    detail: "N\u00e3o foi poss\u00edvel concluir o envio do pedido.",
+  };
+}
+
+function parseManualInvoiceMetadata(xml: string) {
+  try {
+    const parsed = parseNfeXml(xml);
+    return {
+      noteNumber: parsed.noteNumber,
+      accessKey: parsed.accessKey,
+    };
+  } catch (canonicalXmlError) {
+    // Alguns clientes exportam o DANFE como XML/HTML de impress\u00e3o. Esse
+    // documento n\u00e3o possui `infNFe`, mas ainda traz a NF e pode ser usado
+    // no cadastro manual, que j\u00e1 recebe os itens pelo formul\u00e1rio.
+    const documentText = xml
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+      .trim();
+    const invoiceMatch = documentText.match(/(?:\bNF-?e\b|\bN[º°o]\s*|N[ÚU]MERO\s+(?:DA\s+)?NF-?e?)\s*[:#]?\s*(\d{3,})/i);
+    const accessKeyMatch = documentText.match(/CHAVE\s+DE\s+ACESSO\s*:?\s*([0-9\s.-]{40,70})/i);
+    const noteNumber = invoiceMatch?.[1]?.trim() ?? "";
+    const accessKey = accessKeyMatch?.[1]?.replace(/\D/g, "") || null;
+    const looksLikeInvoice = /DANFE|NOTA\s+FISCAL|NF-?e/i.test(documentText);
+
+    if (looksLikeInvoice && noteNumber) {
+      return { noteNumber, accessKey };
+    }
+
+    throw canonicalXmlError;
   }
 }
 

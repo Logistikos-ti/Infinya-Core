@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useActionState, useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,11 @@ import {
   ArrowUp,
   ArrowDown
 } from "lucide-react";
-import { createManualShippingOrderAction, deleteShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
+import {
+  createOperationalManualShippingOrderAction,
+  deleteShippingOrderAction,
+  initialManualShippingOrderSubmissionState,
+} from "@/app/(dashboard)/expedicao/actions";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { createPortal } from "react-dom";
@@ -129,13 +133,24 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState("");
   const [newOrderCarrier, setNewOrderCarrier] = useState("Mercado Livre");
-  const [newOrderSubmitting, setNewOrderSubmitting] = useState(false);
+  const [manualOrderResult, submitManualOrder, isSubmittingManualOrder] = useActionState(
+    createOperationalManualShippingOrderAction,
+    initialManualShippingOrderSubmissionState,
+  );
+  const [manualOrderErrorDismissed, setManualOrderErrorDismissed] = useState(false);
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
   const [newOrderPreview, setNewOrderPreview] = useState<{ kind: "invoice" | "label"; src: string; file?: File } | null>(null);
   const [newOrderPreviewZoom, setNewOrderPreviewZoom] = useState(100);
   const newOrderPreviewFrameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (manualOrderResult.status !== "success") return;
+    setNewOrderOpen(false);
+    setManualOrderErrorDismissed(false);
+    router.refresh();
+  }, [manualOrderResult.status, router]);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";
@@ -456,7 +471,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const ordersCount = searchedOrders.length;
   const columns = ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
-  const orderUploadFeedback = getOrderUploadFeedback(data.feedback);
+  const inlineOrderUploadFeedback = manualOrderResult.status === "error" && !manualOrderErrorDismissed
+    ? {
+        title: "N\u00e3o foi poss\u00edvel subir o pedido",
+        detail: manualOrderResult.detail || getOrderUploadFeedback(manualOrderResult.feedback)?.detail || "Confira os dados informados e tente novamente.",
+        isInline: true,
+      }
+    : null;
+  const feedbackFromRedirect = getOrderUploadFeedback(data.feedback);
+  const orderUploadFeedback = inlineOrderUploadFeedback ?? (feedbackFromRedirect ? { ...feedbackFromRedirect, isInline: false } : null);
 
   return (
     <div className="w-full relative opacity-95">
@@ -471,7 +494,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 24px 20px", borderTop: `1px solid ${isDark ? "#273449" : "#E2E8F0"}` }}>
-              <button type="button" onClick={() => router.replace("/expedicao")} style={{ height: 42, padding: "0 20px", border: 0, borderRadius: 11, background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 18px rgba(99,102,241,.25)" }}>Fechar</button>
+              <button type="button" onClick={() => {
+                if (orderUploadFeedback.isInline) {
+                  setManualOrderErrorDismissed(true);
+                  return;
+                }
+                router.replace("/expedicao");
+              }} style={{ height: 42, padding: "0 20px", border: 0, borderRadius: 11, background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 18px rgba(99,102,241,.25)" }}>Fechar</button>
             </div>
           </div>
         </div>
@@ -1282,7 +1311,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
             </div>
 
-            <form action={createManualShippingOrderAction} onSubmit={(event) => { if (newOrderSubmitting) { event.preventDefault(); return; } setNewOrderSubmitting(true); }} style={{ minHeight: 0, display: "flex", flex: 1, flexDirection: "column" }}>
+            <form action={submitManualOrder} onSubmit={() => setManualOrderErrorDismissed(false)} style={{ minHeight: 0, display: "flex", flex: 1, flexDirection: "column" }}>
               <div style={{ flex: 1, overflowY: "auto", padding: "22px 26px 120px", display: "flex", flexDirection: "column", gap: 24 }}>
                 <input type="hidden" name="salesChannelCode" value={newOrderChannel} />
                 <input type="hidden" name="returnPath" value="/expedicao" />
@@ -1424,7 +1453,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
               <div className="new-order-footer" style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "16px 26px", borderTop: `1px solid ${t.border}`, background: t.drawerBg }}>
                 <div><div style={{ color: t.textSub, fontSize: 12 }}>Total de itens</div><strong style={{ color: t.text, fontSize: 20 }}>{totalNewOrderUnits}</strong></div>
-                <div style={{ display: "flex", gap: 14 }}><button className="new-order-cancel" type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer", transition: "border-color .18s ease, box-shadow .18s ease" }}>Cancelar</button><button className="new-order-submit" type="submit" disabled={selectedItems.length === 0 || newOrderSubmitting} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 || newOrderSubmitting ? "wait" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)", transition: "transform .18s ease, box-shadow .18s ease", opacity: newOrderSubmitting ? .72 : 1 }}>{newOrderSubmitting ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Enviando ao CD...</> : "⇢ Enviar ao CD"}</button></div>
+                <div style={{ display: "flex", gap: 14 }}><button className="new-order-cancel" type="button" onClick={() => setNewOrderOpen(false)} style={{ height: 48, padding: "0 18px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontWeight: 750, cursor: "pointer", transition: "border-color .18s ease, box-shadow .18s ease" }}>Cancelar</button><button className="new-order-submit" type="submit" disabled={selectedItems.length === 0 || isSubmittingManualOrder} style={{ height: 48, padding: "0 22px", border: 0, borderRadius: 11, background: selectedItems.length === 0 ? t.softBg : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedItems.length === 0 ? t.textSub : "#fff", fontWeight: 800, cursor: selectedItems.length === 0 || isSubmittingManualOrder ? "wait" : "pointer", boxShadow: selectedItems.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,.3)", transition: "transform .18s ease, box-shadow .18s ease", opacity: isSubmittingManualOrder ? .72 : 1 }}>{isSubmittingManualOrder ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Enviando ao CD...</> : "⇢ Enviar ao CD"}</button></div>
               </div>
             </form>
             {newOrderPreview && <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.72)", animation: "overlayFade .2s ease" }}>
