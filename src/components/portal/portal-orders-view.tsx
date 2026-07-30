@@ -18,7 +18,7 @@ const filters = [
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
-export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false, feedback }: {
+export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false, feedback, search = "" }: {
   orders: ShippingOrderSummary[];
   products: Array<{
     id: string;
@@ -34,6 +34,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   selectedOrder: ShippingOrderDetail | null;
   openNewOrder?: boolean;
   feedback?: string;
+  search?: string;
 }) {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("");
@@ -45,8 +46,8 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
   const [openingOrder, setOpeningOrder] = useState(false);
   const filteredOrders = useMemo(
-    () => orders.filter((order) => matchesFilter(order, activeFilter)),
-    [activeFilter, orders],
+    () => orders.filter((order) => matchesFilter(order, activeFilter) && matchesSearch(order, search)),
+    [activeFilter, orders, search],
   );
   const sortedOrders = useMemo(
     () => [...filteredOrders].sort((left, right) => compareOrders(left, right, sort)),
@@ -58,6 +59,10 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -246,6 +251,23 @@ function matchesFilter(order: ShippingOrderSummary, filter: string) {
   if (filter === "Expedido") return order.status === "EXPEDIDO";
   if (filter === "Cancelado") return order.status === "CANCELADO";
   return false;
+}
+
+function matchesSearch(order: ShippingOrderSummary, search: string) {
+  const query = repairMojibake(search).trim().toLocaleLowerCase("pt-BR");
+  if (!query) return true;
+
+  return [
+    order.displayNumber,
+    order.code,
+    order.externalNumber,
+    order.storeNumber,
+    order.customer,
+    order.marketplace,
+    order.channel,
+  ]
+    .filter(Boolean)
+    .some((value) => repairMojibake(String(value)).toLocaleLowerCase("pt-BR").includes(query));
 }
 
 const PAGE_SIZE = 10;

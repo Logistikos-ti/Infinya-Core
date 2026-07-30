@@ -40,6 +40,7 @@ type PortalPageProps = {
     page?: string;
     search?: string;
     status?: string;
+    q?: string;
     new?: string;
     order?: string;
     feedback?: string;
@@ -54,6 +55,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const productsPage = parsePositivePage(params?.page);
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
+  const ordersSearch = params?.q?.trim() ?? "";
   const depositanteId = user.depositanteId ?? "";
   const adminSupabase = createSupabaseAdminClient();
   const [orders, receiving, stock] = await Promise.all([
@@ -166,6 +168,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           selectedOrder={selectedOrder}
           openNewOrder={params?.new === "1"}
           feedback={params?.feedback}
+          search={ordersSearch}
         />
       ) : null}
       {view === "produtos" ? (

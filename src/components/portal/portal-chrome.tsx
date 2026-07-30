@@ -70,9 +70,13 @@ export function PortalChrome({
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentView = searchParams.get("view") ?? "inicio";
+  const searchParamsString = searchParams.toString();
+  const searchParamKey = currentView === "produtos" ? "search" : "q";
+  const searchValue = searchParams.get(searchParamKey) ?? "";
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
+  const [search, setSearch] = useState(searchValue);
 
   useEffect(() => {
     const collapsed = window.localStorage.getItem(
@@ -98,6 +102,35 @@ export function PortalChrome({
       String(sidebarWidth),
     );
   }, [isCollapsed, preferenceLoaded, sidebarWidth]);
+
+  useEffect(() => {
+    setSearch(searchValue);
+  }, [searchValue]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const normalizedSearch = search.trim();
+      const nextView = currentView === "inicio" && normalizedSearch ? "pedidos" : currentView;
+      const nextKey = nextView === "produtos" ? "search" : "q";
+      const params = new URLSearchParams(searchParamsString);
+
+      params.set("view", nextView);
+      params.delete(nextKey === "search" ? "q" : "search");
+      if (normalizedSearch) {
+        params.set(nextKey, normalizedSearch);
+      } else {
+        params.delete(nextKey);
+      }
+
+      const nextUrl = `${pathname}?${params.toString()}`;
+      const currentUrl = `${pathname}?${searchParamsString}`;
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl);
+      }
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [currentView, pathname, router, search, searchParamsString]);
 
   const activePath =
     currentView === "inicio" ? "/portal" : `${pathname}?view=${currentView}`;
@@ -132,7 +165,9 @@ export function PortalChrome({
             <Search className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               aria-label="Buscar no portal"
-              placeholder="Buscar pedido, cliente, canal..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={currentView === "produtos" ? "Filtrar produtos..." : "Buscar pedido, cliente, canal..."}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
             />
           </div>
