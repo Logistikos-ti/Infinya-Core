@@ -13,7 +13,7 @@ import {
 } from "@/components/mobile/mobile-kit";
 
 type OperationsSnapshot = {
-  picking: { count: number };
+  picking: { count: number; activeWaves: number; awaitingWave: number };
   receiving: { count: number };
   conference: { count: number; divergentItems: number };
 };
@@ -87,8 +87,17 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
       <div className="app-scroll flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] pb-[10px] pt-1">
         <TaskCard
           title="Separação"
-          sub="Onda de separação pendente"
-          badge={snapshot.picking.count > 0 ? String(snapshot.picking.count) : undefined}
+          // The badge mirrors what the screen lists (waves). When there is no
+          // wave yet, the subtitle still surfaces orders waiting to be grouped,
+          // so that work is not hidden.
+          sub={
+            snapshot.picking.activeWaves > 0
+              ? `${snapshot.picking.activeWaves} onda${snapshot.picking.activeWaves === 1 ? "" : "s"} em andamento`
+              : snapshot.picking.awaitingWave > 0
+                ? `${snapshot.picking.awaitingWave} pedido${snapshot.picking.awaitingWave === 1 ? "" : "s"} aguardando onda`
+                : "Nenhuma onda pendente"
+          }
+          badge={snapshot.picking.activeWaves > 0 ? String(snapshot.picking.activeWaves) : undefined}
           icon="pick"
           color={mobileColors.blue}
           onClick={() => router.push("/m/separacao")}

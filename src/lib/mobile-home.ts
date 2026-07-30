@@ -45,7 +45,12 @@ export type MobileQueueSnapshot = {
 
 export type MobileOperationsSnapshot = {
   receiving: MobileQueueSnapshot;
-  picking: MobileQueueSnapshot;
+  picking: MobileQueueSnapshot & {
+    /** Waves the operator will actually find on the Separação screen. */
+    activeWaves: number;
+    /** Orders released for picking but not yet grouped into a wave. */
+    awaitingWave: number;
+  };
   conference: MobileQueueSnapshot & {
     divergentItems: number;
   };
@@ -78,7 +83,9 @@ export async function getMobileOperationsSnapshot(
     : Promise.resolve({
         count: 0,
         first: null,
-      } satisfies MobileQueueSnapshot);
+        activeWaves: 0,
+        awaitingWave: 0,
+      } satisfies MobileOperationsSnapshot["picking"]);
 
   const conferencePromise = includeShipping
     ? getConferenceSnapshot(supabase, depositanteId)
@@ -146,20 +153,41 @@ async function getReceivingSnapshot(
 async function getPickingSnapshot(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   depositanteId?: string,
-): Promise<MobileQueueSnapshot> {
+): Promise<MobileOperationsSnapshot["picking"]> {
+  // SEPARADO is deliberately excluded: those orders are already picked, so
+  // counting them made the home badge claim pending work that did not exist.
   let query = supabase
     .from("pedidos_expedicao")
     .select("id, codigo, numero_pedido, numero_loja, cliente_nome, payload_origem", {
       count: "exact",
     })
-    .in("status", ["NOVO", "EM_SEPARACAO", "SEPARADO"])
+    .in("status", ["NOVO", "EM_SEPARACAO"])
     .order("created_at", { ascending: false });
 
   if (depositanteId) {
     query = query.eq("depositante_id", depositanteId);
   }
 
-  const { data, count, error } = await query.limit(1);
+  let awaitingWaveQuery = supabase
+    .from("pedidos_expedicao")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "NOVO");
+
+  if (depositanteId) {
+    awaitingWaveQuery = awaitingWaveQuery.eq("depositante_id", depositanteId);
+  }
+
+  const [{ data, count, error }, { count: awaitingWave }, { count: activeWaves }] =
+    await Promise.all([
+      query.limit(1),
+      awaitingWaveQuery,
+      // The Separação screen lists waves, so the badge has to count waves too --
+      // counting orders made it show a number with nothing behind it.
+      supabase
+        .from("ondas_separacao")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["PENDENTE", "EM_SEPARACAO"]),
+    ]);
 
   if (error) {
     throw new Error(`Não foi possível carregar o snapshot de separação: ${error.message}`);
@@ -169,6 +197,8 @@ async function getPickingSnapshot(
 
   return {
     count: count ?? 0,
+    activeWaves: activeWaves ?? 0,
+    awaitingWave: awaitingWave ?? 0,
     first: first
       ? {
           id: first.id,
