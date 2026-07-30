@@ -948,6 +948,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
               : sel.raw.createdBySource || "Sistema",
             sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
+            fullWidth: true,
           }
         ];
 
@@ -1107,7 +1108,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 {/* carrier + dock + specs */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
                   {specs.map((s: any, i: number) => (
-                    <div key={i} style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
                       <span style={{ fontSize: "14.5px", fontWeight: "700" }}>{s.v}</span>
                       {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
@@ -1214,6 +1215,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
               : sel.raw.createdBySource || "Sistema",
             sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
+            fullWidth: true,
           }
         ];
 
@@ -1296,7 +1298,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                 {/* carrier + dock + specs */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
                   {specs.map((s: any, i: number) => (
-                    <div key={i} style={{ padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
                       <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
                       {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
