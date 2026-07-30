@@ -42,8 +42,8 @@ export function FirstAccessPasswordDialog({
 
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-[30px] border border-cyan-200 bg-white p-6 shadow-2xl dark:border-cyan-500/30 dark:bg-slate-950 md:p-8">
-        <div className="space-y-3">
+      <div className="w-full max-w-xl rounded-[30px] border border-cyan-200 bg-white p-7 shadow-2xl dark:border-cyan-500/30 dark:bg-slate-950 sm:p-8 md:p-10">
+        <div className="space-y-4">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-300">
             Primeiro acesso
           </p>
@@ -56,8 +56,8 @@ export function FirstAccessPasswordDialog({
           </p>
         </div>
 
-        <form action={formAction} className="mt-6 space-y-4">
-          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+        <form action={formAction} className="mt-8 space-y-6">
+          <label className="block space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
             <span className="font-medium">Nova senha</span>
             <input
               type="password"
@@ -68,7 +68,7 @@ export function FirstAccessPasswordDialog({
             />
           </label>
 
-          <label className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+          <label className="block space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
             <span className="font-medium">Confirmar nova senha</span>
             <input
               type="password"
@@ -85,7 +85,7 @@ export function FirstAccessPasswordDialog({
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
             Depois de salvar, o sistema libera automaticamente o restante da navegação.
           </div>
 
