@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
-  ClipboardCheck,
   FileText,
   House,
   LogOut,
@@ -91,7 +90,7 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
         ? [{ href: "/m/recebimento", label: "Recebimento", icon: PackageCheck, match: ["/m/recebimento"] } satisfies MobileNavigationItem]
         : []),
       ...(canAccessModule(user, "expedicao")
-        ? [{ href: "/m/separacao", label: "Separação", icon: ScanLine, match: ["/m/separacao", "/m/conferencia"] } satisfies MobileNavigationItem]
+        ? [{ href: "/m/separacao", label: "Separação", icon: ScanLine, match: ["/m/separacao"] } satisfies MobileNavigationItem]
         : []),
       ...(canAccessModule(user, "estoque")
         ? [{ href: "/m/estoque", label: "Inventário", icon: Boxes, match: ["/m/estoque", "/m/inventario"] } satisfies MobileNavigationItem]
@@ -127,12 +126,8 @@ export function getMobileNavigationItems(user: AppUserContext): MobileNavigation
       icon: ScanLine,
       match: ["/m/separacao"],
     });
-    items.push({
-      href: "/m/conferencia",
-      label: "Conf.",
-      icon: ClipboardCheck,
-      match: ["/m/conferencia"],
-    });
+    // Conferência is a desktop-only process, so it is deliberately not exposed
+    // in the collector navigation. The /m/conferencia route still exists.
   }
 
   if (canAccessModule(user, "estoque")) {
