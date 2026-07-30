@@ -220,7 +220,7 @@ async function upsertShippingOrder({
 
   if (saleOrder.itens.length) {
     const itemsPayload = saleOrder.itens.map((item, index) => {
-      const matchedProductByCode = matchProductByCode(productsByCode, item.codigo);
+      const matchedProductByCode = matchProductByCode(productsByCode, item.codigo, item.gtin);
       const resolvedMatch = resolveCommercialKitMatch({
         itemCode: item.codigo,
         itemDescription: item.descricao,
@@ -366,7 +366,11 @@ async function loadProductsByCode(
   items: BlingSaleOrderPayload["itens"],
 ) {
   const candidateCodes = Array.from(
-    new Set(items.map((item) => item.codigo?.trim()).filter((item): item is string => Boolean(item))),
+    new Set(
+      items
+        .flatMap((item) => [item.codigo?.trim(), item.gtin?.trim()])
+        .filter((item): item is string => Boolean(item))
+    ),
   );
 
   if (!candidateCodes.length) {
@@ -460,17 +464,20 @@ async function loadCommercialKitRules(
     );
 }
 
-function matchProductByCode(products: ProductLookupForCommercialKit[], code: string | null) {
-  if (!code) {
+function matchProductByCode(products: ProductLookupForCommercialKit[], code: string | null, gtin?: string | null) {
+  const normalizedCode = code?.trim().toLocaleLowerCase("pt-BR") || null;
+  const normalizedGtin = gtin?.trim().toLocaleLowerCase("pt-BR") || null;
+
+  if (!normalizedCode && !normalizedGtin) {
     return null;
   }
 
-  const normalizedCode = code.trim().toLocaleLowerCase("pt-BR");
-
   return (
-    products.find((item) => item.codigo_interno.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
-    products.find((item) => item.codigo_externo?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
-    products.find((item) => item.sku?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) ??
+    (normalizedCode ? products.find((item) => item.codigo_interno.trim().toLocaleLowerCase("pt-BR") === normalizedCode) : null) ??
+    (normalizedGtin ? products.find((item) => item.codigo_externo?.trim().toLocaleLowerCase("pt-BR") === normalizedGtin) : null) ??
+    (normalizedCode ? products.find((item) => item.codigo_externo?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) : null) ??
+    (normalizedGtin ? products.find((item) => item.sku?.trim().toLocaleLowerCase("pt-BR") === normalizedGtin) : null) ??
+    (normalizedCode ? products.find((item) => item.sku?.trim().toLocaleLowerCase("pt-BR") === normalizedCode) : null) ??
     null
   );
 }

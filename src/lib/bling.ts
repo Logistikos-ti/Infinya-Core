@@ -52,6 +52,7 @@ export type BlingSaleOrderPayload = {
   itens: Array<{
     id: string | null;
     codigo: string | null;
+    gtin: string | null;
     descricao: string | null;
     quantidade: number;
     unidade: string | null;
@@ -659,6 +660,10 @@ function normalizeBlingSaleOrderItem(value: unknown) {
       stringifyValue(item.codigo) ??
       stringifyValue(produto.codigo) ??
       stringifyValue(produto.id),
+    gtin:
+      stringifyValue(item.gtin) ??
+      stringifyValue(produto.gtin) ??
+      stringifyValue(produto.gtinEan),
     descricao:
       stringifyValue(item.descricao) ??
       stringifyValue(produto.nome) ??
