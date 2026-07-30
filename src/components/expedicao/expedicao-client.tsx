@@ -941,7 +941,14 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
           { k: "Nota fiscal", v: sel.raw.nfe },
-          { k: "Corte (SLA)", v: sel.sla }
+          { k: "Corte (SLA)", v: sel.sla },
+          {
+            k: "Criado por",
+            v: sel.raw.createdByName
+              ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
+              : sel.raw.createdBySource || "Sistema",
+            sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
+          }
         ];
 
         const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
@@ -1103,6 +1110,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     <div key={i} style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
                       <span style={{ fontSize: "14.5px", fontWeight: "700" }}>{s.v}</span>
+                      {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
                     </div>
                   ))}
                 </div>
@@ -1199,7 +1207,14 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
           { k: "Nota fiscal", v: sel.raw.nfe },
-          { k: "Corte (SLA)", v: sel.sla }
+          { k: "Corte (SLA)", v: sel.sla },
+          {
+            k: "Criado por",
+            v: sel.raw.createdByName
+              ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
+              : sel.raw.createdBySource || "Sistema",
+            sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
+          }
         ];
 
         const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
@@ -1284,6 +1299,7 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     <div key={i} style={{ padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
                       <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
                       <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
+                      {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
                     </div>
                   ))}
                 </div>

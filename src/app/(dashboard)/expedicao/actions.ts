@@ -291,6 +291,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     criadoPor: {
       userId: user.id,
       nome: user.nome,
+      papel: user.papel,
       em: new Date().toISOString(),
     },
     comercial,
@@ -581,7 +582,7 @@ export async function createXmlShippingOrderAction(formData: FormData) {
   const payloadOrigem = {
     manual: true,
     importadoPorXml: true,
-    criadoPor: { userId: user.id, nome: user.nome, em: new Date().toISOString() },
+    criadoPor: { userId: user.id, nome: user.nome, papel: user.papel, em: new Date().toISOString() },
     comercial: buildManualCommercialPayload({ salesChannelCode, customStoreName }),
     destinatario: {
       documento: parsedNfe.recipientDocument,

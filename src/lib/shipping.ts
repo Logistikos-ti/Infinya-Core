@@ -136,6 +136,10 @@ export type ShippingOrderSummary = {
   nfe: string;
   hasNfe: boolean;
   hasEtiqueta: boolean;
+  createdByName: string | null;
+  createdByRole: string | null;
+  createdByAt: string | null;
+  createdBySource: string;
   items?: {
     name: string;
     sku: string;
@@ -610,6 +614,10 @@ export function listShippingFlowSteps() {
 
 async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<ShippingOrderSummary> {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
+  const createdBy = isRecord(payload.criadoPor) ? payload.criadoPor : {};
+  const createdByName = typeof createdBy.nome === "string" && createdBy.nome.trim() ? createdBy.nome.trim() : null;
+  const createdByRole = typeof createdBy.papel === "string" && createdBy.papel.trim() ? createdBy.papel.trim() : null;
+  const createdByAtRaw = typeof createdBy.em === "string" ? createdBy.em : null;
   const storeDisplay = extractStore(payload, item.numero_loja);
   const marketplace = extractMarketplace(payload);
   const carrierName = extractCarrierName(payload);
@@ -667,6 +675,10 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     nfe,
     hasNfe,
     hasEtiqueta,
+    createdByName,
+    createdByRole,
+    createdByAt: createdByAtRaw ? formatDateTimeInSaoPaulo(createdByAtRaw, "") : null,
+    createdBySource: createdByName ? "Pedido manual" : item.origem === "BLING" ? "Integração Bling" : "Sistema",
     items,
   };
 }
