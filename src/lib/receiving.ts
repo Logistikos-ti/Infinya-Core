@@ -71,6 +71,11 @@ type RawOrderRow = {
     id: string;
     quantidade_prevista: number | string | null;
   }> | null;
+  documentos?: Array<{
+    id: string;
+    mime_type: string | null;
+    nome_arquivo: string | null;
+  }> | null;
 };
 
 type RawTaskRow = {
@@ -211,7 +216,7 @@ export async function listReceivingOrdersFromDb(
   let query = supabase
     .from("pedidos_recebimento")
     .select(
-      "id, codigo, status, previsto_para, nota_fiscal_numero, fornecedor_nome, observacoes, referencia_externa, created_at, depositante_id, depositante:depositantes(nome), itens:pedidos_recebimento_itens(id, quantidade_prevista)",
+      "id, codigo, status, previsto_para, nota_fiscal_numero, fornecedor_nome, observacoes, referencia_externa, created_at, depositante_id, depositante:depositantes(nome), itens:pedidos_recebimento_itens(id, quantidade_prevista), documentos:documentos_armazenados(id, mime_type, nome_arquivo)",
     )
     .order("created_at", { ascending: false });
 
@@ -416,6 +421,21 @@ export async function listReceivingStatsFromDb(
   ] as const;
 }
 
+/**
+ * Whether the order actually has the NF-e XML stored. This used to be inferred
+ * from an "XML selecionado: <arquivo>" note the legacy portal wrote into
+ * observacoes -- but that flow only ever recorded the file *name*, never the
+ * file, so the flag was reporting an attachment that did not exist. Now that
+ * the portal uploads through the real importer, check the stored documents.
+ */
+function hasXmlDocument(documentos: RawOrderRow["documentos"]) {
+  return (documentos ?? []).some(
+    (documento) =>
+      documento.mime_type?.toLowerCase().includes("xml") ||
+      documento.nome_arquivo?.toLowerCase().endsWith(".xml"),
+  );
+}
+
 function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
   const quantities = (item.itens ?? []).map((entry) =>
     Number(entry.quantidade_prevista ?? 0),
@@ -442,7 +462,7 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
     etaRaw: item.previsto_para,
     status: item.status,
     noteNumber: item.nota_fiscal_numero ?? "-",
-    xmlAttached: Boolean(item.observacoes?.match(/XML selecionado:/i)),
+    xmlAttached: hasXmlDocument(item.documentos),
     skuCount: (item.itens ?? []).length,
     volumeCount: volumeNote
       ? Number(volumeNote)
