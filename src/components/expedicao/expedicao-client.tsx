@@ -139,6 +139,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     initialManualShippingOrderSubmissionState,
   );
   const [manualOrderErrorDismissed, setManualOrderErrorDismissed] = useState(false);
+  const [manualOrderSuccessVisible, setManualOrderSuccessVisible] = useState(false);
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
@@ -150,7 +151,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (manualOrderResult.status !== "success") return;
     setNewOrderOpen(false);
     setManualOrderErrorDismissed(false);
+    setManualOrderSuccessVisible(true);
     router.refresh();
+
+    const timeout = window.setTimeout(() => setManualOrderSuccessVisible(false), 5000);
+    return () => window.clearTimeout(timeout);
   }, [manualOrderResult.status, router]);
 
   const isOrders = activeTab === "orders";
@@ -484,6 +489,16 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   return (
     <div className="w-full relative opacity-95">
+      {manualOrderSuccessVisible ? (
+        <div role="status" aria-live="polite" style={{ position: "fixed", top: 22, right: 22, zIndex: 130, width: "min(390px, calc(100vw - 32px))", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, border: `1px solid ${isDark ? "rgba(52,211,153,.35)" : "#A7F3D0"}`, background: isDark ? "#102A23" : "#ECFDF5", color: isDark ? "#D1FAE5" : "#065F46", boxShadow: "0 16px 36px rgba(15,23,42,.18)", animation: "popIn .2s ease" }}>
+          <span style={{ width: 34, height: 34, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 10, background: isDark ? "rgba(16,185,129,.2)" : "#D1FAE5", color: "#059669" }}><CheckCircle2 size={19} /></span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <strong style={{ display: "block", fontSize: 14, fontWeight: 800 }}>Pedido adicionado com sucesso</strong>
+            <span style={{ display: "block", marginTop: 2, fontSize: 12, opacity: .82 }}>O pedido já está disponível na fila de expedição.</span>
+          </div>
+          <button type="button" aria-label="Fechar confirmação" onClick={() => setManualOrderSuccessVisible(false)} style={{ width: 28, height: 28, display: "grid", placeItems: "center", border: 0, borderRadius: 8, background: "transparent", color: "inherit", cursor: "pointer" }}><X size={17} /></button>
+        </div>
+      ) : null}
       {orderUploadFeedback ? (
         <div role="dialog" aria-modal="true" aria-labelledby="order-upload-feedback-title" style={{ position: "fixed", inset: 0, zIndex: 120, display: "grid", placeItems: "center", padding: 20, background: "rgba(15, 23, 42, .62)", backdropFilter: "blur(4px)", animation: "overlayFade .18s ease" }}>
           <div style={{ width: "min(520px, 100%)", borderRadius: 20, border: `1px solid ${isDark ? "rgba(248,113,113,.35)" : "#FECDD3"}`, background: isDark ? "#111827" : "#FFFFFF", boxShadow: "0 24px 80px rgba(15,23,42,.32)", overflow: "hidden", animation: "popIn .2s ease" }}>
