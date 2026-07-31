@@ -93,14 +93,14 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    await updateCycleCountItem({
+    const result = await updateCycleCountItem({
       userId: auth.user.id,
       cycleCountItemId: id,
       countedQuantity,
       observacoes: String(payload?.observacoes ?? "").trim(),
     });
 
-    return Response.json({ message: "Contagem do item registrada com sucesso." });
+    return Response.json({ message: "Contagem do item registrada com sucesso.", result });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Falha ao registrar a contagem." },

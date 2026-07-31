@@ -1,0 +1,69 @@
+import { notFound, redirect } from "next/navigation";
+import { getCurrentUserContext } from "@/lib/auth";
+import { canAccessModule } from "@/lib/permissions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { MobileCycleCountPanel } from "./mobile-cycle-count-panel";
+
+type RelationName =
+  | { nome?: string; sku?: string; codigo?: string; area?: string }
+  | Array<{ nome?: string; sku?: string; codigo?: string; area?: string }>
+  | null;
+
+function extractField(value: RelationName, field: "nome" | "sku" | "codigo" | "area") {
+  const row = Array.isArray(value) ? value[0] : value;
+  return row?.[field] ?? "";
+}
+
+export default async function MobileStockCycleCountPage({
+  params,
+}: {
+  params: Promise<{ depositanteId: string; estoqueId: string }>;
+}) {
+  const { depositanteId, estoqueId } = await params;
+  const user = await getCurrentUserContext();
+
+  if (!user || !user.ativo) {
+    redirect("/m/login");
+  }
+
+  if (!canAccessModule(user, "estoque")) {
+    redirect("/m/inicio");
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: depositanteRow } = await adminSupabase
+    .from("depositantes")
+    .select("id, nome")
+    .eq("id", depositanteId)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (!depositanteRow || !filterDepositanteOptionsByUser(user, [depositanteRow]).length) {
+    notFound();
+  }
+
+  const { data: estoqueRow } = await adminSupabase
+    .from("estoque")
+    .select("id, quantidade, produto:produtos(nome, sku), endereco:enderecos(codigo, area)")
+    .eq("id", estoqueId)
+    .eq("depositante_id", depositanteId)
+    .maybeSingle();
+
+  if (!estoqueRow) {
+    notFound();
+  }
+
+  return (
+    <MobileCycleCountPanel
+      depositanteId={depositanteId}
+      depositanteNome={depositanteRow.nome}
+      estoqueId={estoqueRow.id}
+      produtoNome={extractField(estoqueRow.produto, "nome") || "Produto"}
+      produtoSku={extractField(estoqueRow.produto, "sku") || "Sem SKU"}
+      enderecoCodigo={extractField(estoqueRow.endereco, "codigo") || "Sem endereço"}
+      enderecoArea={extractField(estoqueRow.endereco, "area")}
+      quantidadeSistema={Number(estoqueRow.quantidade ?? 0)}
+    />
+  );
+}
