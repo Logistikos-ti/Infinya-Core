@@ -117,6 +117,13 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
           color={mobileColors.amber}
           onClick={() => router.push("/m/estoque")}
         />
+        <TaskCard
+          title="Romaneio"
+          sub="Cargas consolidadas e expedição"
+          icon="truck"
+          color={mobileColors.cyan}
+          onClick={() => router.push("/m/romaneio")}
+        />
       </div>
     </div>
   );
