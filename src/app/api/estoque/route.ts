@@ -2,6 +2,29 @@ import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/ap
 import { registerInitialStock } from "@/lib/stock-initial";
 import { listStockBalancesFromDb, listStockExpiryAlertsFromDb } from "@/lib/stock";
 
+function parseOperationalQuantity(value: string | number | undefined) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const raw = String(value ?? "").trim().replace(/\s/g, "");
+  if (!raw) {
+    return 0;
+  }
+
+  // Operadores normalmente digitam milhares no formato pt-BR (ex.: 1.005).
+  // A vírgula continua sendo o separador decimal para casos que exigirem fração.
+  if (raw.includes(",")) {
+    return Number(raw.replace(/\./g, "").replace(",", "."));
+  }
+
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
+    return Number(raw.replace(/\./g, ""));
+  }
+
+  return Number(raw);
+}
+
 export async function GET(request: Request) {
   const auth = await requireApiModuleAccess("estoque");
 
@@ -53,7 +76,7 @@ export async function POST(request: Request) {
   const depositanteId = auth.user.depositanteId ?? String(payload.depositanteId ?? "").trim();
   const enderecoCodigo = String(payload.enderecoCodigo ?? "").trim();
   const produtoCodigo = String(payload.produtoCodigo ?? "").trim();
-  const quantidade = Number(payload.quantidade ?? 0);
+  const quantidade = parseOperationalQuantity(payload.quantidade);
   const lote = String(payload.lote ?? "").trim() || null;
   const validadeEm = String(payload.validadeEm ?? "").trim() || null;
 
