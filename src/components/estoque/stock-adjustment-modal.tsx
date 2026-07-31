@@ -48,7 +48,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
       let endpoint = "/api/estoque/ajuste";
       let bodyData: any = {
         stockId: sourceStockId,
-        quantityDiff,
+        targetQuantity: Number(newQuantity),
         reason,
         depositanteId: selectedBalance?.depositanteId || sku.depositanteId || skuBalances[0]?.depositanteId,
       };
@@ -64,7 +64,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
           depositanteId: sku.depositanteId || skuBalances[0]?.depositanteId,
           enderecoCodigo: newLotAddress.trim(),
           produtoCodigo: sku.sku,
-          quantidade: quantityDiff,
+          quantidade: Number(newQuantity),
           lote: newLotCode.trim(),
           validadeEm: newLotValidade.trim(),
         };

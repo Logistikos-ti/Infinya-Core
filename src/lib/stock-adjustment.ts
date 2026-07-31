@@ -5,13 +5,13 @@ type AdjustStockInput = {
   userId: string;
   depositanteId: string;
   stockId: string;
-  quantityDiff: number; // positive for addition, negative for subtraction
+  targetQuantity: number;
   reason: string;
 };
 
 export async function adjustStockBalance(input: AdjustStockInput) {
-  if (input.quantityDiff === 0) {
-    throw new Error("A diferença de quantidade deve ser diferente de zero.");
+  if (!Number.isFinite(input.targetQuantity) || input.targetQuantity < 0) {
+    throw new Error("A quantidade final deve ser um número igual ou maior que zero.");
   }
 
   const supabase = createSupabaseAdminClient();
@@ -38,7 +38,12 @@ export async function adjustStockBalance(input: AdjustStockInput) {
 
   const currentQuantity = Number(stock.quantidade ?? 0);
   const reservedQuantity = Number(stock.quantidade_reservada ?? 0);
-  const newQuantity = currentQuantity + input.quantityDiff;
+  const newQuantity = input.targetQuantity;
+  const quantityDiff = newQuantity - currentQuantity;
+
+  if (quantityDiff === 0) {
+    throw new Error("A nova quantidade não pode ser igual à quantidade atual.");
+  }
 
   if (newQuantity < reservedQuantity) {
     throw new Error(`A nova quantidade (${newQuantity}) não pode ser menor que a quantidade já reservada (${reservedQuantity}).`);
@@ -55,7 +60,7 @@ export async function adjustStockBalance(input: AdjustStockInput) {
   }
 
   // Registrar movimentação
-  const type = input.quantityDiff > 0 ? "AJUSTE_POSITIVO" : "AJUSTE_NEGATIVO";
+  const type = quantityDiff > 0 ? "AJUSTE_POSITIVO" : "AJUSTE_NEGATIVO";
   
   const movement = {
     id: randomUUID(),
@@ -67,7 +72,7 @@ export async function adjustStockBalance(input: AdjustStockInput) {
     endereco_destino_id: type === "AJUSTE_POSITIVO" ? stock.endereco_id : null,
     usuario_id: input.userId,
     tipo: type,
-    quantidade: Math.abs(input.quantityDiff),
+    quantidade: Math.abs(quantityDiff),
     lote: stock.lote,
     validade_em: stock.validade_em,
     fabricacao_em: stock.fabricacao_em,

@@ -11,23 +11,23 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as
     | {
         stockId?: string;
-        quantityDiff?: string | number;
+        targetQuantity?: string | number;
         reason?: string;
         depositanteId?: string;
       }
     | null;
 
-  if (!payload || !payload.stockId || !payload.quantityDiff || !payload.reason) {
+  if (!payload || !payload.stockId || payload.targetQuantity === undefined || !payload.reason) {
     return Response.json({ error: "Faltam dados obrigatórios para o ajuste." }, { status: 400 });
   }
 
   const stockId = String(payload.stockId).trim();
-  const quantityDiff = Number(payload.quantityDiff);
+  const targetQuantity = Number(payload.targetQuantity);
   const reason = String(payload.reason).trim();
   const depositanteId = auth.user.depositanteId ?? String(payload.depositanteId ?? "").trim();
 
-  if (quantityDiff === 0) {
-    return Response.json({ error: "A diferença deve ser diferente de zero." }, { status: 400 });
+  if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
+    return Response.json({ error: "Informe uma quantidade final igual ou maior que zero." }, { status: 400 });
   }
 
   const depositanteAccess = ensureUserCanAccessDepositante(auth.user, depositanteId);
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       userId: auth.user.id,
       depositanteId,
       stockId,
-      quantityDiff,
+      targetQuantity,
       reason,
     });
 
