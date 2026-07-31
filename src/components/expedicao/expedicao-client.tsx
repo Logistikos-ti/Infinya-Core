@@ -800,7 +800,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             onMouseEnter={(event) => { event.currentTarget.style.background = t.rowHover; }}
                             onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
                           >
-                            <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.code}</span></td>
+                            <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.displayNumber || order.code}</span></td>
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13.5px", fontWeight: 700, color: issueColor }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: issueColor }} />{issueType}</span></td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
                             <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{order.owner || "A definir"}</td>
