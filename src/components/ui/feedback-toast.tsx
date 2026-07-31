@@ -15,6 +15,7 @@ function FeedbackToastInner() {
       if (feedback === "criado") toast.success("Criado com sucesso!");
       else if (feedback === "salvo") toast.success("Atualizado com sucesso!");
       else if (feedback === "excluido") toast.success("Excluído com sucesso!");
+      else if (feedback === "excluidos") toast.success("Pedidos excluídos com sucesso!");
       else if (feedback === "concluido") toast.success("Operação concluída com sucesso!");
       else if (feedback === "incompleto") toast.warning("Operação concluída parcialmente. Faltam itens.");
       else if (feedback === "vinculos") toast.error("Não foi possível excluir. O item já possui vínculos.");
