@@ -753,18 +753,25 @@ export function ExpedicaoClient({ data }: { data: any }) {
             </div>
           )}
           
-          {/* DIVERGÊNCIAS VIEW (simplified) */}
+          {/* DIVERGÊNCIAS VIEW */}
           {isDivergence && (
             <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
-              <div style={{ padding: "22px 24px", borderBottom: `1px solid ${t.border}` }}>
-                <h2 style={{ margin: 0, color: t.text }}>Divergências</h2>
-                <p style={{ margin: "6px 0 0", color: t.textSub }}>{divergences.length} divergência(s) encontrada(s).</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
+                <span style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(239,68,68,0.14)", color: "#EF4444", flexShrink: 0 }}>
+                  {alertIcon}
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "15.5px", fontWeight: 700, color: t.text }}>Divergências & pendências</span>
+                  <span style={{ fontSize: "12.5px", color: t.textSub }}>Pedidos travados aguardando tratativa antes da expedição.</span>
+                </div>
+                <div style={{ flex: 1 }} />
+                <span style={{ fontSize: "13px", color: t.textSub, whiteSpace: "nowrap" }}>{divergences.length} pendência{divergences.length === 1 ? "" : "s"}</span>
               </div>
               {divergences.length === 0 ? (
                 <div style={{ padding: "44px 24px", textAlign: "center", color: t.textSub }}>Nenhuma divergência pendente.</div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "760px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px" }}>
                     <thead>
                       <tr style={{ textAlign: "left", background: t.headBg }}>
                         {divColumns.map((column) => <th key={column} style={{ padding: "13px 20px", color: t.textSub, fontSize: "12px", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", borderBottom: `1px solid ${t.border}`, whiteSpace: "nowrap" }}>{column}</th>)}
@@ -774,14 +781,31 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       {divergences.map((order: any) => {
                         const picking = order.raw?.payload_origem?.separacao;
                         const reason = picking?.motivoCancelamento || (order.status === "CANCELADO" ? "Pedido cancelado" : "Divergência operacional");
+                        const isStockIssue = /estoque/i.test(reason);
+                        const issueType = order.status === "ERRO"
+                          ? "Erro de integração"
+                          : isStockIssue
+                            ? "Falta de estoque"
+                            : order.status === "CANCELADO"
+                              ? "Cancelamento"
+                              : "Divergência operacional";
+                        const issueColor = order.status === "ERRO" ? "#F97316" : "#EF4444";
+                        const registeredBy = order.raw?.createdByName
+                          ? [order.raw.createdByName, order.raw.createdByRole].filter(Boolean).join(" · ")
+                          : order.raw?.createdBySource || "Sistema";
                         return (
-                          <tr key={order.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                            <td style={{ padding: "16px 20px", fontWeight: 800, color: t.text, whiteSpace: "nowrap" }}>{order.code}</td>
-                            <td style={{ padding: "16px 20px", color: t.text, whiteSpace: "nowrap" }}>{order.customer || "Sem cliente"}</td>
-                            <td style={{ padding: "16px 20px", color: t.textSub, whiteSpace: "nowrap" }}>{order.owner || "-"}</td>
-                            <td style={{ padding: "16px 20px", color: "#EF4444", fontWeight: 700, whiteSpace: "nowrap" }}>{reason}</td>
-                            <td style={{ padding: "16px 20px", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 12px", borderRadius: "999px", background: "rgba(239,68,68,0.14)", color: "#EF4444", fontSize: "12.5px", fontWeight: 700 }}><span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#EF4444" }} />Aguardando tratativa</span></td>
-                            <td style={{ padding: "16px 20px", textAlign: "right" }}><button type="button" onClick={() => router.push(`/expedicao/${order.id}`)} style={{ border: `1px solid ${t.border}`, borderRadius: "9px", background: t.inputBg, color: t.text, padding: "8px 13px", fontWeight: 700, cursor: "pointer" }}>Abrir pedido</button></td>
+                          <tr
+                            key={order.id}
+                            style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease" }}
+                            onMouseEnter={(event) => { event.currentTarget.style.background = t.rowHover; }}
+                            onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
+                          >
+                            <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.code}</span></td>
+                            <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13.5px", fontWeight: 700, color: issueColor }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: issueColor }} />{issueType}</span></td>
+                            <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
+                            <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{order.owner || "A definir"}</td>
+                            <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub }}>{registeredBy}</td>
+                            <td style={{ padding: "14px 20px", textAlign: "right" }}><button type="button" onClick={() => router.push(`/expedicao/${order.id}`)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", transition: "border-color 0.15s ease" }} onMouseEnter={(event) => { event.currentTarget.style.borderColor = "#8B5CF6"; }} onMouseLeave={(event) => { event.currentTarget.style.borderColor = t.border; }}>Tratar</button></td>
                           </tr>
                         );
                       })}
