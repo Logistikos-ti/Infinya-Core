@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Clock,
   CheckCircle2,
+  PackageCheck,
   Box,
   Truck,
   ListChecks,
@@ -120,7 +121,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const [activeTab, setActiveTab] = useState("orders");
   const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
-  const [activeFilter, setActiveFilter] = useState("todos");
+  const [activeFilter, setActiveFilter] = useState("aguardando");
   const [currentPage, setCurrentPage] = useState(1);
   type OrderSortKey = "order" | "invoice" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
@@ -243,11 +244,25 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { onClick: () => router.push("/expedicao/conferidos"), kicker: "PÓS-CONFERÊNCIA", iconEl: <FileCheck2 size={20} className="animated-icon" />, iconBg: "rgba(16,185,129,0.15)", accent: "#10B981", title: "Conferidos", desc: "Acompanhar pedidos já conferidos, com ou sem romaneio, antes da etapa final de despacho.", btnBg: "rgba(16,185,129,0.15)", btnColor: "#10B981", cta: "Ver Conferidos" },
   ];
 
+  const matchesOperationalFilter = (order: any, filterId: string) => {
+    if (filterId === "todos") return true;
+    if (filterId === "aguardando") return order.status === "NOVO";
+    if (filterId === "separacao") return order.status === "EM_SEPARACAO";
+    if (filterId === "conferencia") return order.status === "EM_CONFERENCIA" || order.status === "SEPARADO";
+    if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO";
+    if (filterId === "expedido") return order.status === "EXPEDIDO";
+    if (filterId === "atrasados") return order.ageTone === "LATE";
+    return false;
+  };
+
   const tableFiltersDef = [
-    { id: 'todos', label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
-    { id: 'aguardando', label: "Aguardando", count: data.orders.filter((o: any) => o.status === "NOVO").length, hasCount: true, isAlert: false },
-    { id: 'conferencia', label: "Em conferência", count: data.orders.filter((o: any) => o.status === "EM_CONFERENCIA" || o.status === "SEPARADO").length, hasCount: true, isAlert: false },
-    { id: 'atrasados', label: "Atrasados", count: data.orders.filter((o: any) => o.ageTone === "LATE").length, hasCount: true, isAlert: true }
+    { id: "aguardando", label: "Aguardando", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "aguardando")).length, hasCount: true, isAlert: false },
+    { id: "separacao", label: "Em separação", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "separacao")).length, hasCount: true, isAlert: false },
+    { id: "conferencia", label: "Em conferência", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
+    { id: "pronto-coleta", label: "Pronto para coleta", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
+    { id: "expedido", label: "Expedido", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "expedido")).length, hasCount: true, isAlert: false },
+    { id: "atrasados", label: "Atrasados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "atrasados")).length, hasCount: true, isAlert: true },
+    { id: "todos", label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
   ];
 
   const filters = tableFiltersDef.map(f => {
@@ -274,6 +289,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: 'separacao', label: 'Em separação', icon: 'ClipboardList', accent: '#3B82F6', statusFilter: 'EM_SEPARACAO' },
     { id: 'conferencia', label: 'Em conferência', icon: 'Scan', accent: '#8B5CF6', statusFilter: 'EM_CONFERENCIA' },
     { id: 'conferido', label: 'Conferido', icon: 'CheckCircle2', accent: '#10B981', statusFilter: 'CONFERIDO' },
+    { id: 'pronto-coleta', label: 'Pronto para coleta', icon: 'PackageCheck', accent: '#10B981', statusFilter: 'PRONTO_ROMANEIO' },
     { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' }
   ];
   
@@ -283,7 +299,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
-      if (s.id === 'expedido') return o.status === 'EXPEDIDO' || o.status === 'PRONTO_ROMANEIO';
+      if (s.id === 'expedido') return o.status === 'EXPEDIDO';
       return o.status === s.statusFilter;
     }).length : data.orders.length;
 
@@ -293,6 +309,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (s.id === 'separacao') iconEl = <ClipboardList size={16} />;
     if (s.id === 'conferencia') iconEl = <Scan size={16} />;
     if (s.id === 'conferido') iconEl = <CheckCircle2 size={16} />;
+    if (s.id === 'pronto-coleta') iconEl = <PackageCheck size={16} />;
     if (s.id === 'expedido') iconEl = <Truck size={16} />;
 
     // bg hex with opacity for iconBg
@@ -349,15 +366,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return { color: "#64748B", bg: "rgba(148,163,184,0.15)", init };
   };
 
-  const filteredDataOrders = activeFilter === "todos" ? data.orders : data.orders.filter((o: any) => {
-    const stage = stagesDefs.find(s => s.id === activeFilter);
-    if (stage && stage.statusFilter) {
-      if (activeFilter === 'expedido') return o.status === 'EXPEDIDO' || o.status === 'PRONTO_ROMANEIO';
-      if (activeFilter === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
-      return o.status === stage.statusFilter;
-    }
-    return true;
-  });
+  const filteredDataOrders = data.orders.filter((order: any) => matchesOperationalFilter(order, activeFilter));
 
   const searchedOrders = filteredDataOrders.filter((o: any) => {
     if (!searchQuery) return true;
