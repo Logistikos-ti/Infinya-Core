@@ -122,7 +122,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
   const [activeFilter, setActiveFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
-  type OrderSortKey = "order" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
+  type OrderSortKey = "order" | "invoice" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -374,6 +374,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       : (order.channel && order.channel !== "BLING" ? order.channel : (order.carrierName || "N/A"));
     switch (key) {
       case "order": return String(order.displayNumber || order.code || order.id || "");
+      case "invoice": return String(order.nfe || "");
       case "customer": return String(order.customer || "");
       case "depositante": return String(order.depositante || "");
       case "channel": return String(carrier || "");
@@ -412,6 +413,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const sortKeyByColumn: Record<string, OrderSortKey | undefined> = {
     "Pedido": "order",
+    "NF-e": "invoice",
     "Cliente": "customer",
     "Depositante": "depositante",
     "Canal": "channel",
@@ -423,6 +425,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
   const sortLabelByKey: Record<OrderSortKey, string> = {
     order: "pedido",
+    invoice: "NF-e",
     customer: "cliente",
     depositante: "depositante",
     channel: "canal",
@@ -500,8 +503,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
   const ordersCount = searchedOrders.length;
   const columns = canDeleteOrder
-    ? ["__select__", "Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
-    : ["Pedido", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
+    ? ["__select__", "Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
+    : ["Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
   const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
   const inlineOrderUploadFeedback = manualOrderResult.status === "error" && !manualOrderErrorDismissed
     ? {
@@ -694,6 +697,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       <tr onClick={() => setSelectedOrder(o)} style={{borderBottom: `1px solid ${t.border }`, cursor: "pointer", transition: "background 0.15s ease"}} >
                         {canDeleteOrder ? <td style={{ padding: "14px 12px 14px 20px", width: 42 }}><input type="checkbox" aria-label={`Selecionar ${o.code}`} checked={selectedOrderIds.includes(o.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleOrderSelection(o.id)} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} /></td> : null}
                         <td style={{padding: "14px 20px"}}><span style={{fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px"}}>{o.code }</span></td>
+                        <td style={{ padding: "14px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>{o.raw?.nfe || "-"}</td>
                         <td style={{padding: "14px 20px"}}>
                           <div style={{display: "flex", flexDirection: "column", gap: "2px"}}>
                             <span style={{fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px"}}>{o.customer }</span>
@@ -884,7 +888,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <tbody>
                     {orders.length === 0 ? (
                       <tr>
-                        <td colSpan={9} style={{ padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500" }}>
+                        <td colSpan={columns.length} style={{ padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500" }}>
                           Nenhum pedido encontrado para este filtro.
                         </td>
                       </tr>
@@ -892,6 +896,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       orders.map((o: any, i: number) => (
                         <tr key={i} onClick={() => setSelectedOrder(o)} style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}>
                         <td style={{ padding: "14px 20px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px" }}>{o.code}</span></td>
+                        <td style={{ padding: "14px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>{o.raw?.nfe || "-"}</td>
                         <td style={{ padding: "14px 20px" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                             <span style={{ fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "190px" }}>{o.customer}</span>

@@ -159,7 +159,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           <table className="w-full min-w-[860px] border-collapse text-left">
             <thead>
               <tr>
-                {["Pedido", "Cliente", "Canal", "Itens", "Criado", "Status", ""].map((label) => (
+                {["Pedido", "NF-e", "Cliente", "Canal", "Itens", "Criado", "Status", ""].map((label) => (
                   <th
                     key={label || "action"}
                     className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-[13px] text-[12px] font-bold uppercase tracking-[0.04em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
@@ -262,6 +262,7 @@ function matchesSearch(order: ShippingOrderSummary, search: string) {
     order.code,
     order.externalNumber,
     order.storeNumber,
+    order.nfe,
     order.customer,
     order.marketplace,
     order.channel,
@@ -271,11 +272,12 @@ function matchesSearch(order: ShippingOrderSummary, search: string) {
 }
 
 const PAGE_SIZE = 10;
-type SortKey = "order" | "customer" | "channel" | "items" | "created" | "status";
+type SortKey = "order" | "invoice" | "customer" | "channel" | "items" | "created" | "status";
 
 function sortKeyForLabel(label: string): SortKey {
   return ({
     Pedido: "order",
+    "NF-e": "invoice",
     Cliente: "customer",
     Canal: "channel",
     Itens: "items",
@@ -285,6 +287,7 @@ function sortKeyForLabel(label: string): SortKey {
 }
 
 function sortLabel(key: SortKey) {
+  if (key === "invoice") return "NF-e";
   return ({ order: "pedido", customer: "cliente", channel: "canal", items: "itens", created: "criação", status: "status" } as Record<SortKey, string>)[key];
 }
 
@@ -296,6 +299,7 @@ function compareOrders(
   const value = (order: ShippingOrderSummary) => {
     switch (sort.key) {
       case "order": return order.displayNumber || order.id;
+      case "invoice": return order.nfe || "";
       case "customer": return order.customer || "";
       case "channel": return repairMojibake(order.marketplace || order.channel || "");
       case "items": return order.itemCount;
@@ -360,6 +364,7 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
       aria-label={`Abrir pedido ${order.displayNumber || order.id}`}
     >
       <td className="px-5 py-[14px] font-display text-sm font-bold"><span className="hover:text-violet-600">{order.displayNumber || order.id}</span></td>
+      <td className="px-5 py-[14px] font-display text-sm font-semibold text-slate-700 dark:text-slate-200">{order.nfe || "-"}</td>
       <td className="px-5 py-[14px]">
         <div className="flex flex-col gap-0.5">
           <span className="max-w-[200px] truncate text-sm font-semibold">{order.customer || "Cliente não informado"}</span>
