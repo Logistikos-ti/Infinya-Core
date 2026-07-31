@@ -36,6 +36,9 @@ export const receivingConferenceItemSchema = z.object({
 export const receivingConferenceSchema = z.object({
   enderecoId: z.string().uuid("Selecione um endereço válido."),
   finalizar: z.boolean().default(false),
+  // Set when the operator reviewed the divergent items and chose to close the
+  // receiving anyway. Without it, finalizar is rejected if anything is short.
+  confirmarDivergencia: z.boolean().default(false),
   items: z
     .array(receivingConferenceItemSchema)
     .min(1, "É preciso informar ao menos um item para a conferência."),
