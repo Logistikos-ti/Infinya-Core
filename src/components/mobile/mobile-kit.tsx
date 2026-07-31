@@ -237,6 +237,9 @@ export function MobileScanOverlay({ overlay }: { overlay: ScanOverlayState }) {
 export type MobileListItem = {
   icon: MobileIconName;
   iconColor: string;
+  // When set, shows the product photo instead of the icon square; the icon
+  // stays as a fallback for items with no photo on file.
+  imageUrl?: string | null;
   title: string;
   tag: string;
   tagColor: string;
@@ -312,14 +315,20 @@ export function MobileListShell({
                   height: 44,
                   flexShrink: 0,
                   borderRadius: 12,
+                  overflow: "hidden",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: hexAlpha(it.iconColor, 0.16),
+                  background: it.imageUrl ? "#fff" : hexAlpha(it.iconColor, 0.16),
                   color: it.iconColor,
                 }}
               >
-                <MobileIcon name={it.icon} size={22} />
+                {it.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                ) : (
+                  <MobileIcon name={it.icon} size={22} />
+                )}
               </span>
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>

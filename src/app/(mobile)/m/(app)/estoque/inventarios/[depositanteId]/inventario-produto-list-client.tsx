@@ -8,6 +8,7 @@ type ProdutoRow = {
   nome: string;
   sku: string;
   endereco: string;
+  imagemUrl: string | null;
 };
 
 export function InventarioProdutoListClient({
@@ -31,6 +32,7 @@ export function InventarioProdutoListClient({
       items={produtos.map((p) => ({
         icon: "box",
         iconColor: mobileColors.amber,
+        imageUrl: p.imagemUrl,
         title: p.nome,
         tag: `End. ${p.endereco}`,
         tagColor: mobileColors.amber,
