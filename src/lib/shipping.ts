@@ -142,6 +142,7 @@ export type ShippingOrderSummary = {
   createdByRole: string | null;
   createdByAt: string | null;
   createdBySource: string;
+  divergenceReporter: string | null;
   cancellationReporter: string | null;
   cancellationReason: string | null;
   items?: {
@@ -631,6 +632,7 @@ export function listShippingFlowSteps() {
 async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<ShippingOrderSummary> {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const createdBy = isRecord(payload.criadoPor) ? payload.criadoPor : {};
+  const divergence = isRecord(payload.divergencia) ? payload.divergencia : {};
   const cancellation = isRecord(payload.separacao) ? payload.separacao : {};
   const createdByName = typeof createdBy.nome === "string" && createdBy.nome.trim() ? createdBy.nome.trim() : null;
   const createdByRole = typeof createdBy.papel === "string" && createdBy.papel.trim() ? createdBy.papel.trim() : null;
@@ -639,6 +641,10 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     typeof cancellation.canceladoPorNome === "string" && cancellation.canceladoPorNome.trim()
       ? cancellation.canceladoPorNome.trim()
       : null;
+  const divergenceReporter =
+    typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim()
+      ? divergence.registradoPorNome.trim()
+      : cancellationReporter;
   const cancellationReason =
     typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim()
       ? cancellation.motivoCancelamento.trim()
@@ -705,6 +711,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     createdByRole,
     createdByAt: createdByAtRaw ? formatDateTimeInSaoPaulo(createdByAtRaw, "") : null,
     createdBySource: createdByName ? "Pedido manual" : item.origem === "BLING" ? "Integração Bling" : "Sistema",
+    divergenceReporter,
     cancellationReporter,
     cancellationReason,
     items,
