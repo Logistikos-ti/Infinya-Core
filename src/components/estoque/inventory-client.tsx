@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { InventoryKpis } from "./inventory-kpis";
 import { InventoryToolbar } from "./inventory-toolbar";
@@ -11,9 +10,32 @@ import { InventoryAlerts } from "./inventory-alerts";
 import { InventoryDetailDrawer } from "./inventory-detail-drawer";
 import { InitialStockModal } from "./initial-stock-modal";
 
+const INVENTORY_VIEW_STATE_KEY = "infinoos-wms:inventory-view";
+
+type InventoryViewState = {
+  isBySku?: boolean;
+  q?: string;
+  owner?: string;
+  cat?: string;
+  statusFilter?: string;
+};
+
+function readInventoryViewState(): InventoryViewState {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    return JSON.parse(window.sessionStorage.getItem(INVENTORY_VIEW_STATE_KEY) ?? "{}") as InventoryViewState;
+  } catch {
+    return {};
+  }
+}
+
 export function InventoryClient({ data }: { data: any }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [viewStateLoaded, setViewStateLoaded] = useState(false);
 
   const [isBySku, setIsBySku] = useState(true);
   const [selectedSku, setSelectedSku] = useState<any>(null);
@@ -23,6 +45,27 @@ export function InventoryClient({ data }: { data: any }) {
   const [owner, setOwner] = useState("");
   const [cat, setCat] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+
+  useEffect(() => {
+    const savedViewState = readInventoryViewState();
+    setIsBySku(savedViewState.isBySku ?? true);
+    setQ(savedViewState.q ?? "");
+    setOwner(savedViewState.owner ?? "");
+    setCat(savedViewState.cat ?? "");
+    setStatusFilter(savedViewState.statusFilter ?? "todos");
+    setViewStateLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!viewStateLoaded) {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      INVENTORY_VIEW_STATE_KEY,
+      JSON.stringify({ isBySku, q, owner, cat, statusFilter }),
+    );
+  }, [isBySku, q, owner, cat, statusFilter, viewStateLoaded]);
 
   // Base themes to match the exact HTML visual prototype
   const t = {
