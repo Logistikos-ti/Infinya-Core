@@ -1,6 +1,27 @@
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { adjustStockBalance } from "@/lib/stock-adjustment";
 
+function parseOperationalQuantity(value: string | number | undefined) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const raw = String(value ?? "").trim().replace(/\s/g, "");
+  if (!raw) {
+    return 0;
+  }
+
+  if (raw.includes(",")) {
+    return Number(raw.replace(/\./g, "").replace(",", "."));
+  }
+
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
+    return Number(raw.replace(/\./g, ""));
+  }
+
+  return Number(raw);
+}
+
 export async function POST(request: Request) {
   const auth = await requireApiModuleAccess("estoque");
 
@@ -22,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const stockId = String(payload.stockId).trim();
-  const targetQuantity = Number(payload.targetQuantity);
+  const targetQuantity = parseOperationalQuantity(payload.targetQuantity);
   const reason = String(payload.reason).trim();
   const depositanteId = auth.user.depositanteId ?? String(payload.depositanteId ?? "").trim();
 
