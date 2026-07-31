@@ -779,11 +779,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </thead>
                     <tbody>
                       {divergences.map((order: any) => {
-                        const picking = order.raw?.payload_origem?.separacao;
-                        const reason = picking?.motivoCancelamento || (order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
+                        const reason = order.raw?.cancellationReason || (order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
                         const issueType = order.status === "ERRO" ? "Erro de integração" : "Sem estoque";
                         const issueColor = order.status === "ERRO" ? "#F97316" : "#EF4444";
-                        const registeredBy = picking?.canceladoPorNome
+                        const registeredBy = order.raw?.cancellationReporter
                           || (order.raw?.createdByName
                             ? [order.raw.createdByName, order.raw.createdByRole].filter(Boolean).join(" · ")
                             : order.raw?.createdBySource || "Sistema");
