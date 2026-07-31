@@ -114,7 +114,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     onDetected: handleDetected,
     requirePresenceGap: true,
     confirmReads: 2,
-    confirmMisses: 4,
   });
 
   useEffect(() => {

@@ -35,13 +35,17 @@ type UseCameraBarcodeScannerOptions = {
    */
   confirmReads?: number;
   /**
-   * Only used together with requirePresenceGap: how many consecutive
-   * no-code frames are required before a held code is considered to have
-   * left the frame. A single dropped frame from autofocus/motion should
-   * not be enough to let the same physical barcode re-count itself.
-   * Defaults to 1.
+   * Only used together with requirePresenceGap: how long the same code must
+   * go unseen before it counts as a fresh presentation. Measured from the
+   * last time the decoder saw it, so holding a barcode still keeps refreshing
+   * the window and never auto-counts, while genuinely swapping units clears
+   * it. Defaults to 600ms.
+   *
+   * This replaced a consecutive-miss counter, which deadlocked: any stray
+   * detection reset the counter, so a second unit of the same product could
+   * not be scanned without restarting the camera.
    */
-  confirmMisses?: number;
+  presenceGapMs?: number;
 };
 
 const CAMERA_ERROR_MESSAGES: Record<string, string> = {
@@ -79,7 +83,7 @@ export function useCameraBarcodeScanner({
   successCooldownMs = 1500,
   requirePresenceGap = false,
   confirmReads = 1,
-  confirmMisses = 1,
+  presenceGapMs = 600,
 }: UseCameraBarcodeScannerOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<ScannerControlsLike | null>(null);
@@ -90,9 +94,9 @@ export function useCameraBarcodeScanner({
   const lastCodeRef = useRef<string>("");
   const lastDetectedAtRef = useRef<number>(0);
   const presentCodeRef = useRef<string>("");
+  const presentCodeLastSeenAtRef = useRef(0);
   const pendingReadCodeRef = useRef<string>("");
   const pendingReadCountRef = useRef(0);
-  const missStreakRef = useRef(0);
 
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
@@ -119,9 +123,19 @@ export function useCameraBarcodeScanner({
       }
 
       if (requirePresenceGap) {
-        if (presentCodeRef.current === normalizedCode) {
+        const seenAt = Date.now();
+        // Measured from the last sighting rather than from a miss counter, so
+        // this self-heals: even if the decoder never reports a clean "no code"
+        // frame, a real gap between sightings still counts as a new unit.
+        const wasAway = seenAt - presentCodeLastSeenAtRef.current >= presenceGapMs;
+        const isSameCodeStillInView = presentCodeRef.current === normalizedCode && !wasAway;
+
+        presentCodeLastSeenAtRef.current = seenAt;
+
+        if (isSameCodeStillInView) {
           return;
         }
+
         presentCodeRef.current = normalizedCode;
         onDetected(normalizedCode);
         return;
@@ -139,13 +153,11 @@ export function useCameraBarcodeScanner({
       lastDetectedAtRef.current = now;
       onDetected(normalizedCode);
     },
-    [onDetected, successCooldownMs, requirePresenceGap],
+    [onDetected, successCooldownMs, requirePresenceGap, presenceGapMs],
   );
 
   const registerRawDetection = useCallback(
     (rawCode: string) => {
-      missStreakRef.current = 0;
-
       const normalizedCode = normalizeCode(rawCode);
       if (!normalizedCode) {
         return;
@@ -170,19 +182,15 @@ export function useCameraBarcodeScanner({
     [confirmReads, emitDetection],
   );
 
+  /**
+   * A frame decoded nothing. Only the confirm-reads streak is reset here --
+   * releasing the held code is driven purely by how long it has gone unseen
+   * (see emitDetection), so a flaky decoder cannot deadlock the scanner.
+   */
   const markMiss = useCallback(() => {
     pendingReadCodeRef.current = "";
     pendingReadCountRef.current = 0;
-
-    if (!requirePresenceGap) {
-      return;
-    }
-
-    missStreakRef.current += 1;
-    if (missStreakRef.current >= confirmMisses) {
-      presentCodeRef.current = "";
-    }
-  }, [requirePresenceGap, confirmMisses]);
+  }, []);
 
   const cleanupStream = useCallback(() => {
     controlsRef.current?.stop();
@@ -203,9 +211,9 @@ export function useCameraBarcodeScanner({
     }
 
     presentCodeRef.current = "";
+    presentCodeLastSeenAtRef.current = 0;
     pendingReadCodeRef.current = "";
     pendingReadCountRef.current = 0;
-    missStreakRef.current = 0;
   }, []);
 
   const stopCamera = useCallback(

@@ -137,7 +137,6 @@ export function MobileReceivingPanel({
     onDetected: handleDetected,
     requirePresenceGap: true,
     confirmReads: 2,
-    confirmMisses: 4,
   });
 
   useEffect(() => {
