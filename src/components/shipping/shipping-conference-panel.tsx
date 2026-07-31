@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
-import { ShippingConferenceDocumentsPanel, type ShippingConferenceDocumentsPanelRef } from "@/components/shipping/shipping-conference-documents-panel";
+import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -46,7 +46,6 @@ export function ShippingConferencePanel({
   redirectBase = "/expedicao/conferencia",
   documents,
 }: ShippingConferencePanelProps) {
-  const panelRef = useRef<ShippingConferenceDocumentsPanelRef>(null);
   const router = useRouter();
 
   const { theme } = useTheme();
@@ -443,7 +442,7 @@ export function ShippingConferencePanel({
             }}
           >
             {feedback === "concluido"
-              ? "Conferência concluída. Revise os documentos e escolha se o pedido vai para romaneio ou se será liberado sem romaneio."
+              ? "Pedido preparado para romaneio e movido para pronto para coleta."
               : feedback === "liberado-romaneio"
                 ? "Pedido liberado para romaneio com sucesso."
                 : feedback === "liberado-sem-romaneio"
@@ -622,7 +621,6 @@ export function ShippingConferencePanel({
 
         {full && documents && documents.depositanteId && (
           <ShippingConferenceDocumentsPanel
-            ref={panelRef}
             orderId={order.id}
             depositanteId={documents.depositanteId}
             attachments={documents.attachments}
@@ -638,16 +636,10 @@ export function ShippingConferencePanel({
             ⚠ Reportar divergência
           </button>
           <button 
-            type={full ? "button" : "submit"}
-            onClick={(e) => {
-              if (full) {
-                e.preventDefault();
-                panelRef.current?.openPreparationModal();
-              }
-            }}
-            form={full ? undefined : "shipping-conference-form"}
-            name={full ? undefined : "intent"}
-            value={full ? undefined : "force-pronto-romaneio"}
+            type="submit"
+            form="shipping-conference-form"
+            name="intent"
+            value="force-pronto-romaneio"
             disabled={!full || isSubmitting} 
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
