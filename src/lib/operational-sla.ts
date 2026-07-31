@@ -27,18 +27,27 @@ export function buildOperationalSlaMeta(value: string | null | undefined): Opera
     };
   }
 
-  const diffMs = Date.now() - date.getTime();
-  const diffHours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+  const diffMs = Math.max(0, Date.now() - date.getTime());
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  let ageLabel = "Hoje";
+  let ageLabel = "há menos de 1 minuto";
   let tone: OperationalSlaTone = "fresh";
 
+  if (diffMinutes === 0) {
+    ageLabel = "há menos de 1 minuto";
+  } else if (diffMinutes < 60) {
+    ageLabel = `há ${diffMinutes} ${diffMinutes === 1 ? "minuto" : "minutos"}`;
+  } else if (diffHours < 24) {
+    ageLabel = `há ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`;
+  } else {
+    ageLabel = `há ${diffDays} ${diffDays === 1 ? "dia" : "dias"}`;
+  }
+
   if (diffHours >= 72) {
-    ageLabel = `${diffDays}d em fila`;
     tone = "critical";
   } else if (diffHours >= 24) {
-    ageLabel = diffDays <= 1 ? "1d em fila" : `${diffDays}d em fila`;
     tone = "warning";
   }
 
