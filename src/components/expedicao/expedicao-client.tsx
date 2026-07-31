@@ -782,7 +782,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         const reason = order.raw?.cancellationReason || (order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
                         const issueType = order.status === "ERRO" ? "Erro de integração" : "Sem estoque";
                         const issueColor = order.status === "ERRO" ? "#F97316" : "#EF4444";
-                        const registeredBy = order.raw?.cancellationReporter
+                        const registeredBy = order.raw?.divergenceReporter
+                          || order.raw?.cancellationReporter
                           || (order.raw?.createdByName
                             ? [order.raw.createdByName, order.raw.createdByRole].filter(Boolean).join(" · ")
                             : order.raw?.createdBySource || "Sistema");

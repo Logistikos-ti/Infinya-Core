@@ -731,6 +731,12 @@ export async function cancelPickingOrderAction(orderId: string) {
       status: "CANCELADO",
       payload_origem: {
         ...payload,
+        divergencia: {
+          tipo: "SEM_ESTOQUE",
+          registradoEm: now,
+          registradoPor: user.id,
+          registradoPorNome: user.nome,
+        },
         separacao: {
           ...currentPicking,
           cancelado: true,
