@@ -16,6 +16,7 @@ type FancySelectInputProps = {
   onChange: (value: string) => void;
   options: FancySelectOption[];
   disabled?: boolean;
+  menuClassName?: string;
 };
 
 export function FancySelectInput({
@@ -25,6 +26,7 @@ export function FancySelectInput({
   onChange,
   options,
   disabled = false,
+  menuClassName,
 }: FancySelectInputProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -85,7 +87,12 @@ export function FancySelectInput({
       </button>
 
       {open ? (
-        <div className="absolute z-50 left-0 right-0 top-full mt-2 max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950">
+        <div
+          className={cn(
+            "absolute z-50 left-0 right-0 top-full mt-2 max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950",
+            menuClassName,
+          )}
+        >
           {options.map((option) => {
             const selected = option.value === value;
 

@@ -147,7 +147,7 @@ export function StockTransferForm({
       </div>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.6fr_1.1fr_0.8fr]">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.9fr_1.35fr_1.85fr_0.7fr]">
           <FancySelectInput
             label="Depositante"
             name="depositanteId"
@@ -185,6 +185,7 @@ export function StockTransferForm({
                 : [{ value: "", label: "Selecione um saldo de origem primeiro" }]
             }
             disabled={!selectedSource || !destinationOptions.length}
+            menuClassName="min-w-[22rem]"
           />
 
           <label className="space-y-1">
