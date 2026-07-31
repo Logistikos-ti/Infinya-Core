@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { FileCheck2, FileText, Package2, Paperclip, Printer, Route } from "lucide-react";
+import { FileCheck2, FileText, Package2, Paperclip, Printer, Route, X } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -32,6 +32,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   const [confirmReleaseWithoutRomaneio, setConfirmReleaseWithoutRomaneio] = useState(false);
   const [preparationOpen, setPreparationOpen] = useState(false);
   const [danfeScanCode, setDanfeScanCode] = useState("");
+  const [labelScanCode, setLabelScanCode] = useState("");
   const [danfeValidation, setDanfeValidation] = useState<{
     valid: boolean;
     noteNumber: string | null;
@@ -40,6 +41,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   }>({ valid: false, noteNumber: null, recipientName: null, message: "" });
   const [validatingDanfe, setValidatingDanfe] = useState(false);
   const [confirmMissingLabel, setConfirmMissingLabel] = useState(false);
+  const [attachmentUploadOpen, setAttachmentUploadOpen] = useState(false);
   const [printMessage, setPrintMessage] = useState("");
   const xmlAttachment = (attachments || []).find((attachment) => attachment?.kind === "XML_NF");
   const labelAttachment = (attachments || []).find((attachment) => attachment?.kind === "ETIQUETA");
@@ -111,7 +113,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
       
-      <div className="flex items-start gap-4 border-b border-slate-200 px-[22px] py-[20px] dark:border-zinc-800/80">
+      <div className="hidden">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-violet-500/10 text-violet-500">
           <Paperclip className="h-5 w-5" />
         </span>
@@ -135,8 +137,8 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
         </span>
       </div>
 
-      <div className="flex flex-col gap-4 p-[18px_22px_22px_22px]">
-        <div className="grid gap-[14px] 2xl:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 p-[18px_22px_22px_22px] sm:grid-cols-4">
+        <div className="contents">
           <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido para consulta e impressão fiscal."
@@ -147,6 +149,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
           printLabel="Imprimir NF"
           downloadLabel="Baixar NF"
           unlocked={unlocked}
+          onMissingDocument={() => setAttachmentUploadOpen(true)}
           badgeBg="bg-blue-500/10"
           badgeText="text-blue-600 dark:text-blue-400"
         />
@@ -161,19 +164,20 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
           printLabel="Imprimir etiqueta"
           downloadLabel="Baixar etiqueta"
           unlocked={unlocked}
+          onMissingDocument={() => setAttachmentUploadOpen(true)}
           badgeBg="bg-emerald-500/10"
           badgeText="text-emerald-600 dark:text-emerald-400"
         />
       </div>
 
-      <div className="grid gap-4 2xl:grid-cols-2">
+      <div className="contents">
         <div className="h-full">
           <ShippingDanfePanel orderId={orderId} />
         </div>
 
-        <div className="h-full">
+        <div className="hidden">
           {canUploadAttachments ? (
-            <div className="flex h-full flex-col gap-[12px] rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+            <div className="hidden">
               <div className="flex items-center gap-2.5">
                 <span className="flex text-amber-500">
                   <FileText className="h-4 w-4" />
@@ -194,7 +198,11 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
+      {canUploadAttachments ? (
+        <DocumentActionButton icon={<Paperclip className="h-5 w-5" />} label="Anexar documentos" onClick={() => setAttachmentUploadOpen(true)} />
+      ) : null}
+
+      <div className="col-span-full flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
         <div className="flex flex-1 min-w-[160px] items-center gap-4">
           <span className="flex text-violet-500">
             <Route className="h-5 w-5" />
@@ -208,6 +216,30 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
         </div>
       </div>
       </div>
+
+      {attachmentUploadOpen && typeof document !== "undefined" ? createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-zinc-800">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400">
+                  <Paperclip className="h-5 w-5" />
+                </span>
+                <div>
+                  <h4 className="font-['Space_Grotesk'] text-[17px] font-bold text-slate-950 dark:text-white">Anexar documentos</h4>
+                  <p className="text-[13px] text-slate-500 dark:text-zinc-400">Escolha o tipo de documento e envie o arquivo.</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setAttachmentUploadOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-5">
+              <ShippingAttachmentUploadPanel depositanteId={depositanteId} pedidoExpedicaoId={orderId} />
+            </div>
+          </div>
+        </div>, document.body
+      ) : null}
 
       {preparationOpen && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
@@ -287,15 +319,43 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
               </div>
             ) : null}
             {danfeValidation.valid ? (
-              <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm dark:bg-zinc-900">
-                <p className="font-bold text-slate-900 dark:text-white">NF {danfeValidation.noteNumber}</p>
-                <p className="mt-1 text-slate-600 dark:text-zinc-300">Destinatário: {danfeValidation.recipientName}</p>
+              <div className="mt-4 flex flex-col gap-4">
+                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm dark:bg-zinc-900">
+                  <p className="font-bold text-slate-900 dark:text-white">NF {danfeValidation.noteNumber}</p>
+                  <p className="mt-1 text-slate-600 dark:text-zinc-300">Destinatário: {danfeValidation.recipientName}</p>
+                </div>
+                {hasShippingLabel ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Etiqueta de envio</p>
+                    <p className="text-sm text-slate-600 dark:text-zinc-300 mb-1">
+                      Bipe a etiqueta de envio do pedido para confirmar.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        value={labelScanCode}
+                        onChange={(event) => setLabelScanCode(event.target.value)}
+                        placeholder="Bipe a etiqueta..."
+                        className="h-12 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+                    <p className="font-bold text-amber-700 dark:text-amber-300">Etiqueta ausente</p>
+                    <p className="mt-1 text-amber-600 dark:text-amber-400">Este pedido não possui etiqueta de envio anexada. O pedido será liberado sem etiqueta.</p>
+                  </div>
+                )}
               </div>
             ) : null}
-            <div className="mt-6 flex justify-end">
-              <button type="button" onClick={() => setPreparationOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 dark:border-zinc-700 dark:text-zinc-200">
-                Fechar
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => setPreparationOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900">
+                Cancelar
               </button>
+              {danfeValidation.valid && (!hasShippingLabel || labelScanCode.trim().length >= 5) ? (
+                <button type="submit" form={formId} name="intent" value="release-romaneio" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100">
+                  Confirmar e liberar
+                </button>
+              ) : null}
             </div>
           </div>
         </div>, document.body
@@ -370,6 +430,7 @@ function AttachmentStatusCard({
   badgeBg,
   badgeText,
   unlocked,
+  onMissingDocument,
 }: {
   title: string;
   subtitle: string;
@@ -382,9 +443,33 @@ function AttachmentStatusCard({
   unlocked: boolean;
   badgeBg: string;
   badgeText: string;
+  onMissingDocument: () => void;
 }) {
   const available = attachment?.status === "DISPONIVEL";
+  void subtitle;
+  void emptyLabel;
+  void iconColor;
+  void badgeBg;
+  void badgeText;
 
+  if (unlocked && attachment?.viewHref && attachment.href) {
+    return (
+      <ShippingAttachmentPreviewDialog
+        label={attachment.label}
+        viewHref={attachment.viewHref}
+        downloadHref={attachment.href}
+        printLabel={printLabel}
+        downloadLabel={downloadLabel}
+        customTrigger={(openPreview) => (
+          <DocumentActionButton icon={icon} label={title} available={available} onClick={openPreview} />
+        )}
+      />
+    );
+  }
+
+  return <DocumentActionButton icon={icon} label={title} available={available} onClick={onMissingDocument} />;
+
+  /* Legacy detailed card retained here for patch safety.
   return (
     <div className="flex flex-col gap-2 rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
       <div className="flex items-start gap-2.5">
@@ -417,5 +502,31 @@ function AttachmentStatusCard({
         </div>
       ) : null}
     </div>
+  );
+  */
+}
+
+function DocumentActionButton({
+  icon,
+  label,
+  available = false,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  available?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-[94px] flex-col items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-center transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10"
+    >
+      <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${available ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-violet-500/10 text-violet-600 dark:text-violet-400"}`}>
+        {icon}
+      </span>
+      <span className="text-[13px] font-bold leading-tight text-slate-800 dark:text-zinc-100">{label}</span>
+    </button>
   );
 }

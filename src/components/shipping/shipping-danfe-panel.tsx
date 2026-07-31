@@ -12,28 +12,24 @@ export function ShippingDanfePanel({ orderId }: ShippingDanfePanelProps) {
   const downloadHref = `/api/expedicao/${orderId}/danfe-simplificada`;
 
   return (
-    <div className="flex h-full flex-col gap-2.5 rounded-[14px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
-      <div className="flex items-center gap-2.5">
-        <span className="flex text-fuchsia-500">
-          <ReceiptText className="h-4 w-4" />
-        </span>
-        <h3 className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">
-          DANFE simplificada
-        </h3>
-      </div>
-      <p className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
-        Gera um PDF resumido da NF-e a partir do XML anexado ao pedido, útil para conferência e acompanhamento do volume.
-      </p>
-
-      <div className="mt-0.5 flex flex-wrap gap-2">
-        <ShippingAttachmentPreviewDialog
-          label="DANFE simplificada"
-          viewHref={previewHref}
-          downloadHref={downloadHref}
-          printLabel="Imprimir"
-          downloadLabel="Baixar"
-        />
-      </div>
-    </div>
+    <ShippingAttachmentPreviewDialog
+      label="DANFE simplificada"
+      viewHref={previewHref}
+      downloadHref={downloadHref}
+      printLabel="Imprimir"
+      downloadLabel="Baixar"
+      customTrigger={(openPreview) => (
+        <button
+          type="button"
+          onClick={openPreview}
+          className="group flex min-h-[94px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-center transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <ReceiptText className="h-5 w-5" />
+          </span>
+          <span className="text-[13px] font-bold leading-tight text-slate-800 dark:text-zinc-100">DANFE simplificada</span>
+        </button>
+      )}
+    />
   );
 }
