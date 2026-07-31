@@ -545,25 +545,15 @@ export function MobileReceivingPanel({
           background: "linear-gradient(180deg, rgba(10,17,32,0) 0%, #0A1120 22%)",
         }}
       >
-        <button
-          type="button"
-          onClick={openScanner}
-          className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white"
-          style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
-        >
-          <MobileIcon name="scan" size={20} strokeWidth={2} />
-          Bipar item
-        </button>
-
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => void submitConference(false)}
-            disabled={isSaving || !enderecoId}
-            className="h-12 rounded-xl text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text, border: `1px solid ${hexAlpha("#94A3B8", 0.16)}` }}
+            onClick={openScanner}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-extrabold text-white"
+            style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
           >
-            {isSaving ? "Salvando..." : "Salvar conferência"}
+            <MobileIcon name="scan" size={18} strokeWidth={2} />
+            Bipar item
           </button>
           <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 48 }}>
             {isSaving ? "Concluindo..." : "Concluir"}
