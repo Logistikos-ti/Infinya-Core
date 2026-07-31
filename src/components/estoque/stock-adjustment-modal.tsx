@@ -12,6 +12,21 @@ type StockAdjustmentModalProps = {
   t: any;
 };
 
+function parseStockQuantity(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+
+  // Some legacy rows reach the client formatted as pt-BR (for example, "1.005").
+  // Normalize them before calculating or submitting the final balance.
+  const normalized = raw.includes(",")
+    ? raw.replace(/\./g, "").replace(",", ".")
+    : raw.replace(/\.(?=\d{3}(?:\D|$))/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }: StockAdjustmentModalProps) {
   const [sourceStockId, setSourceStockId] = useState("");
   const [newQuantity, setNewQuantity] = useState("");
@@ -26,9 +41,10 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
   const skuIdToFind = sku.productId || sku.sku;
   const skuBalances = allBalances.filter((b) => (b.productId || b.sku) === skuIdToFind);
   const selectedBalance = skuBalances.find((b) => b.id === sourceStockId);
-  const currentQty = selectedBalance ? selectedBalance.rawQuantidade : 0;
+  const currentQty = selectedBalance ? parseStockQuantity(selectedBalance.rawQuantidade) : 0;
   
-  const quantityDiff = (selectedBalance || isNewLot) && newQuantity !== "" ? Number(newQuantity) - currentQty : 0;
+  const requestedQuantity = parseStockQuantity(newQuantity);
+  const quantityDiff = (selectedBalance || isNewLot) && newQuantity !== "" ? requestedQuantity - currentQty : 0;
   const isPositive = quantityDiff > 0;
   const isNegative = quantityDiff < 0;
 
@@ -48,7 +64,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
       let endpoint = "/api/estoque/ajuste";
       let bodyData: any = {
         stockId: sourceStockId,
-        targetQuantity: Number(newQuantity),
+        targetQuantity: requestedQuantity,
         reason,
         depositanteId: selectedBalance?.depositanteId || sku.depositanteId || skuBalances[0]?.depositanteId,
       };
@@ -64,7 +80,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
           depositanteId: sku.depositanteId || skuBalances[0]?.depositanteId,
           enderecoCodigo: newLotAddress.trim(),
           produtoCodigo: sku.sku,
-          quantidade: Number(newQuantity),
+          quantidade: requestedQuantity,
           lote: newLotCode.trim(),
           validadeEm: newLotValidade.trim(),
         };
@@ -135,7 +151,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
               { value: "NEW_LOT", label: "+ Cadastrar novo endereço/lote" },
               ...skuBalances.map((b) => ({
                 value: b.id,
-                label: `${b.enderecoNome || "Sem endereço"} ${b.lote ? `(Lote: ${b.lote})` : ""} - Atual: ${b.rawQuantidade} un`,
+                label: `${b.enderecoNome || "Sem endereço"} ${b.lote ? `(Lote: ${b.lote})` : ""} - Atual: ${parseStockQuantity(b.rawQuantidade).toLocaleString("pt-BR")} un`,
               }))
             ]}
           />
@@ -161,7 +177,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1 }}>
               <label style={{ fontSize: "13px", fontWeight: 600, color: t.textSub }}>Quantidade Atual</label>
               <div style={{ padding: "12px", borderRadius: "8px", background: t.softBg, border: `1px solid ${t.border}`, fontSize: "14px", color: t.text, fontWeight: 700 }}>
-                {sourceStockId ? `${currentQty} un` : "-"}
+                {sourceStockId ? `${currentQty.toLocaleString("pt-BR")} un` : "-"}
               </div>
             </div>
             
@@ -182,7 +198,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
 
           {quantityDiff !== 0 && (
             <div style={{ fontSize: "13px", fontWeight: 600, color: isPositive ? "#10B981" : "#EF4444", display: "flex", alignItems: "center", gap: "4px" }}>
-              {isPositive ? `+ ${Math.abs(quantityDiff)} unidades (Ajuste Positivo)` : `- ${Math.abs(quantityDiff)} unidades (Ajuste Negativo)`}
+              {isPositive ? `+ ${Math.abs(quantityDiff).toLocaleString("pt-BR")} unidades (Ajuste Positivo)` : `- ${Math.abs(quantityDiff).toLocaleString("pt-BR")} unidades (Ajuste Negativo)`}
             </div>
           )}
 
