@@ -555,7 +555,15 @@ export function MobileReceivingPanel({
             <MobileIcon name="scan" size={18} strokeWidth={2} />
             Bipar item
           </button>
-          <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 48 }}>
+          <MobilePrimaryButton
+            onClick={() => void submitConference(true)}
+            disabled={isSaving || !enderecoId}
+            style={{
+              height: 48,
+              background: isSaving || !enderecoId ? undefined : mobileColors.green,
+              boxShadow: isSaving || !enderecoId ? undefined : "0 10px 26px rgba(16,185,129,0.4)",
+            }}
+          >
             {isSaving ? "Concluindo..." : "Concluir"}
           </MobilePrimaryButton>
         </div>
