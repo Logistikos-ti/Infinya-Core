@@ -239,7 +239,7 @@ async function syncShippingOrderFromBling({
           ]
             .filter(Boolean)
             .join(" ")
-        : "Schema de expedição ainda não aplicado no banco.",
+        : upsertResult.attachmentSummary ?? "Schema de expedição ainda não aplicado no banco.",
       updatedBlingConfig: refreshedConfig,
     };
   } catch (error) {
@@ -283,6 +283,17 @@ async function upsertShippingOrder({
 
   if (existingOrderError) {
     throw new Error(existingOrderError.message);
+  }
+
+  const isNewOrder = !existingOrder;
+  const situacaoRaw = saleOrder.situacao?.toLocaleLowerCase("pt-BR") || "";
+  const isOpen = situacaoRaw.includes("aberto") || situacaoRaw.includes("andamento");
+
+  if (isNewOrder && !isOpen) {
+    return {
+      synced: false,
+      attachmentSummary: `Pedido ignorado (status no Bling: '${saleOrder.situacao}'). O WMS só importa novos pedidos 'Em aberto'.`
+    };
   }
 
   const productsByCode = await loadProductsByCode(adminSupabase, depositanteId, saleOrder.itens);

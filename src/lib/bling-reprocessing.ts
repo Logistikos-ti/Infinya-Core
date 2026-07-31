@@ -167,6 +167,17 @@ async function upsertShippingOrder({
     throw new Error(existingOrderError.message);
   }
 
+  const isNewOrder = !existingOrder;
+  const situacaoRaw = saleOrder.situacao?.toLocaleLowerCase("pt-BR") || "";
+  const isOpen = situacaoRaw.includes("aberto") || situacaoRaw.includes("andamento");
+
+  if (isNewOrder && !isOpen) {
+    return {
+      synced: false,
+      attachmentSummary: `Pedido ignorado (status no Bling: '${saleOrder.situacao}'). O WMS só importa novos pedidos 'Em aberto'.`
+    };
+  }
+
   const productsByCode = await loadProductsByCode(adminSupabase, depositanteId, saleOrder.itens);
   const commercialKitRules = await loadCommercialKitRules(adminSupabase, depositanteId);
   const preservedStatus = resolveShippingStatus({
