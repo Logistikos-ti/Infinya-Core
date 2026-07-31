@@ -32,9 +32,11 @@ export async function createRomaneioRecordAction(formData: FormData) {
     transportadoraNome: getString(formData, "transportadoraNome") || null,
   });
 
+  const isMobile = getString(formData, "isMobile") === "true";
+
   revalidatePath("/romaneio");
   revalidatePath("/m/romaneio");
-  redirect(`/romaneio/${romaneioId}?feedback=criado`);
+  redirect(isMobile ? `/m/romaneio?feedback=criado` : `/romaneio/${romaneioId}?feedback=criado`);
 }
 
 export async function updateRomaneioRecordAction(formData: FormData) {

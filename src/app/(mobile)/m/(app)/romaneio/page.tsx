@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { FileDown, Layers3, Truck } from "lucide-react";
+import { FileDown, Layers3, Truck, ArrowRight } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import {
   listRomaneioRecordsFromDb,
   listRomaneioSuggestionsFromDb,
 } from "@/lib/romaneio-records";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
+import { GerarRomaneioForm } from "./gerar-romaneio-btn";
 
 export default async function MobileRomaneioPage() {
   const user = await requireModuleAccess("romaneio");
@@ -132,18 +133,51 @@ export default async function MobileRomaneioPage() {
         )}
       </section>
 
-      <section className="space-y-3">
-        <div className="rounded-[24px] px-4 py-4" style={cardStyle}>
-          <div className="flex items-center gap-2" style={{ color: mobileColors.text }}>
-            <Layers3 className="h-4 w-4" style={{ color: mobileColors.violetLight }} />
-            <h2 className="text-sm font-semibold" style={headingFont}>Fila sugerida</h2>
-          </div>
-          <p className="mt-2 text-xs" style={{ color: mobileColors.muted }}>
-            {suggestions.length
-              ? `${suggestions.length} grupo(s) aguardando consolidação no desktop.`
-              : "Sem grupos pendentes para consolidação."}
-          </p>
+      <section className="space-y-3 mt-6">
+        <div className="flex items-center gap-2 px-2 pb-1" style={{ color: mobileColors.text }}>
+          <Layers3 className="h-4 w-4" style={{ color: mobileColors.violetLight }} />
+          <h2 className="text-sm font-semibold" style={headingFont}>Fila sugerida para criação</h2>
         </div>
+        
+        {suggestions.length ? (
+          suggestions.map((suggestion, i) => (
+            <article key={i} className="overflow-hidden rounded-[24px] p-4" style={cardStyle}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
+                      style={{ border: `1px solid ${hexAlpha(mobileColors.cyan, 0.2)}`, background: hexAlpha(mobileColors.cyan, 0.1), color: mobileColors.cyan }}
+                    >
+                      SUGESTÃO
+                    </span>
+                  </div>
+
+                  <h2 className="mt-3 flex items-center gap-2 text-lg font-semibold" style={{ color: mobileColors.text, ...headingFont }}>
+                    <Truck className="h-4 w-4" style={{ color: mobileColors.cyan }} />
+                    <span className="truncate">{suggestion.carrierName}</span>
+                  </h2>
+
+                  <p className="mt-1 text-sm" style={{ color: mobileColors.muted }}>
+                    {suggestion.orders.length} pedidos • {suggestion.totalUnits} un • {suggestion.totalValue}
+                  </p>
+                  <p className="mt-1 text-sm" style={{ color: mobileColors.dim }}>
+                    Destinos: {suggestion.destinations.join(" · ")}
+                  </p>
+                </div>
+              </div>
+
+              <GerarRomaneioForm suggestion={suggestion} />
+            </article>
+          ))
+        ) : (
+          <div
+            className="rounded-[24px] px-4 py-8 text-center text-sm"
+            style={{ border: `1px dashed ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.muted }}
+          >
+            Sem grupos pendentes para consolidação.
+          </div>
+        )}
       </section>
     </div>
   );
