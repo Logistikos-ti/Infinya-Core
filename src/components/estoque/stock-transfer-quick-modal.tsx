@@ -70,7 +70,7 @@ export function StockTransferQuickModal({ sku, allBalances, allAddresses, onClos
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}></div>
-      <div style={{ position: "relative", width: "420px", background: t.cardBg, borderRadius: "16px", border: `1px solid ${t.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.4)", display: "flex", flexDirection: "column", overflow: "hidden", animation: "modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+      <div style={{ position: "relative", width: "420px", background: t.cardBg, borderRadius: "16px", border: `1px solid ${t.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.4)", display: "flex", flexDirection: "column", overflow: "visible", animation: "modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }}>
         
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: t.headBg }}>
@@ -128,6 +128,7 @@ export function StockTransferQuickModal({ sku, allBalances, allAddresses, onClos
                     label: a.codigo,
                   }))
                 ]}
+                menuClassName="min-w-[18rem]"
               />
             </div>
             
