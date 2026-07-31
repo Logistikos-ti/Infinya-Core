@@ -13,6 +13,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateShippingDanfeScan } from "@/lib/shipping-danfe-validation";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
+import { autoAssignOrderToRomaneio } from "@/lib/romaneio-records";
 
 type KitProgressEntry = {
   componentProductId: string;
@@ -240,6 +241,18 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect(`${redirectBase}/${orderId}?feedback=erro`);
   }
 
+  let assignedRomaneioCodigo = "";
+  if (isReleaseToRomaneio) {
+    try {
+      const assigned = await autoAssignOrderToRomaneio({ user, orderId });
+      if (assigned?.codigo) {
+        assignedRomaneioCodigo = assigned.codigo;
+      }
+    } catch (error) {
+      console.error("Auto assign to romaneio failed:", error);
+    }
+  }
+
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/conferencia");
   revalidatePath("/expedicao/conferidos");
@@ -255,6 +268,9 @@ export async function saveShippingConferenceAction(formData: FormData) {
   }
 
   if (isReleaseToRomaneio) {
+    if (assignedRomaneioCodigo) {
+      redirect(`/expedicao/conferidos?feedback=liberado-romaneio&romaneio=${assignedRomaneioCodigo}`);
+    }
     redirect("/expedicao/conferidos?feedback=liberado-romaneio");
   }
 

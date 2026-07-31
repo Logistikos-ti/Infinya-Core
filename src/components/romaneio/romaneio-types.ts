@@ -8,6 +8,10 @@ export type RomaneioStop = {
 };
 
 export type RomaneioUI = {
+  id: string | null;
+  orderIds: string[];
+  transportadoraId: string | null;
+  transportadoraNome: string | null;
   code: string;
   carrier: string;
   route: string;

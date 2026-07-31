@@ -1,5 +1,6 @@
 import type { AppUserContext } from "@/lib/auth";
 import { formatShippingStatusLabel } from "@/lib/shipping";
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
@@ -7,6 +8,7 @@ type RelationName = { nome?: string } | { nome?: string }[] | null;
 type RawRomaneioOrderRow = {
   id: string;
   codigo: string;
+  numero_wms: number | string | null;
   status: string;
   numero_pedido: string | null;
   numero_loja: string | null;
@@ -169,7 +171,7 @@ async function listRomaneioOrdersFromDb(user: AppUserContext, filters?: Romaneio
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, numero_wms, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .in("status", [...ROMANEIO_STATUSES])
     .order("previsao_envio_em", { ascending: true, nullsFirst: false })
@@ -222,7 +224,7 @@ function mapRomaneioOrderSummary(item: RawRomaneioOrderRow) {
 
   return {
     id: item.id,
-    code: item.codigo,
+    code: formatWmsOrderNumber(item.numero_wms, item.codigo, extractRelationName(item.depositante)),
     externalNumber: extractPlatformOrderNumber(payload, item.numero_pedido, item.numero_loja, item.codigo),
     depositanteId: item.depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",

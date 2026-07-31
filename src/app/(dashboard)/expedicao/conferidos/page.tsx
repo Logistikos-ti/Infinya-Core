@@ -12,6 +12,7 @@ type ShippingConferidosPageProps = {
     depositante?: string;
     pedido?: string;
     feedback?: string;
+    romaneio?: string;
   }>;
 };
 
@@ -19,6 +20,7 @@ export default async function ShippingConferidosPage({ searchParams }: ShippingC
   const user = await requireModuleAccess("expedicao");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback?.trim() ?? "";
+  const romaneio = params?.romaneio?.trim() ?? "";
   const pedidoFilter = params?.pedido?.trim() ?? "";
   const depositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
@@ -65,9 +67,18 @@ export default async function ShippingConferidosPage({ searchParams }: ShippingC
               : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
           }`}
         >
-          {feedback === "liberado-romaneio"
-            ? "Pedido liberado para romaneio com sucesso."
-            : "Pedido liberado sem romaneio e mantido na fila de conferidos."}
+          {feedback === "liberado-romaneio" ? (
+            romaneio ? (
+              <>
+                Pedido adicionado ao romaneio{" "}
+                <span className="font-extrabold text-indigo-900 dark:text-indigo-100">{romaneio}</span> com sucesso.
+              </>
+            ) : (
+              "Pedido liberado para romaneio com sucesso."
+            )
+          ) : (
+            "Pedido liberado sem romaneio e mantido na fila de conferidos."
+          )}
         </div>
       ) : null}
 

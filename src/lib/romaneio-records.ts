@@ -1,5 +1,6 @@
 import type { AppUserContext } from "@/lib/auth";
 import { formatShippingStatusLabel } from "@/lib/shipping";
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
@@ -7,6 +8,7 @@ type RelationName = { nome?: string } | { nome?: string }[] | null;
 type RawShippingOrderRow = {
   id: string;
   codigo: string;
+  numero_wms: number | string | null;
   status: string;
   numero_pedido: string | null;
   numero_loja: string | null;
@@ -463,7 +465,7 @@ async function listAvailableShippingOrdersForRomaneio(user: AppUserContext, filt
   let query = admin
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, numero_wms, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .in("status", [...SUGGESTION_SOURCE_STATUSES])
     .order("data_pedido", { ascending: true, nullsFirst: false })
@@ -568,7 +570,7 @@ async function listShippingOrdersByIds(orderIds: string[]) {
   const { data, error } = await admin
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
+      "id, codigo, numero_wms, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
     )
     .in("id", ids);
 
@@ -626,7 +628,7 @@ function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
 
   return {
     id: item.id,
-    code: item.codigo,
+    code: formatWmsOrderNumber(item.numero_wms, item.codigo, extractRelationName(item.depositante)),
     externalNumber: extractPlatformOrderNumber(payload, item.numero_pedido, item.numero_loja, item.codigo),
     depositanteId: item.depositante_id,
     depositante: extractRelationName(item.depositante) ?? "Sem depositante",
@@ -840,4 +842,84 @@ function readString(value: unknown) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export async function autoAssignOrderToRomaneio({ user, orderId }: { user: AppUserContext; orderId: string }) {
+  const admin = createSupabaseAdminClient();
+  
+  // 1. Get the order details to know the carrier
+  const { data: order, error: orderError } = await admin
+    .from("pedidos_expedicao")
+    .select("transportadora_nome")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderError || !order) {
+    throw new Error("Order not found or could not be loaded");
+  }
+  
+  const transportadora = order.transportadora_nome?.trim() || "Sem transportadora";
+  
+  // 2. Find an ABERTO romaneio for this transportadora
+  const { data: romaneios, error: romaneioError } = await admin
+    .from("romaneios_carga")
+    .select("id, codigo")
+    .eq("status", "ABERTO")
+    .eq("transportadora_nome", transportadora)
+    .order("criado_em", { ascending: false })
+    .limit(1);
+    
+  let romaneioId;
+  let romaneioCodigo;
+  
+  if (romaneioError || !romaneios || romaneios.length === 0) {
+    // 3. If none exists, create one
+    const codigo = buildRomaneioCode();
+    
+    const { data: newRomaneio, error: createError } = await admin
+      .from("romaneios_carga")
+      .insert({
+        codigo,
+        status: "ABERTO",
+        transportadora_nome: transportadora,
+        criado_por: user.name,
+      })
+      .select("id, codigo")
+      .maybeSingle();
+      
+    if (createError || !newRomaneio) {
+      throw new Error("Failed to create new romaneio: " + (createError?.message ?? "Unknown"));
+    }
+    
+    romaneioId = newRomaneio.id;
+    romaneioCodigo = newRomaneio.codigo;
+  } else {
+    romaneioId = romaneios[0].id;
+    romaneioCodigo = romaneios[0].codigo;
+  }
+  
+  // 4. Link the order to the romaneio
+  const { data: currentLinks } = await admin
+    .from("romaneios_carga_pedidos")
+    .select("sequencia")
+    .eq("romaneio_id", romaneioId)
+    .order("sequencia", { ascending: false })
+    .limit(1);
+
+  const nextSequence = currentLinks && currentLinks.length > 0 ? currentLinks[0].sequencia + 1 : 1;
+
+  const { error: linkError } = await admin
+    .from("romaneios_carga_pedidos")
+    .insert({
+      romaneio_id: romaneioId,
+      pedido_expedicao_id: orderId,
+      sequencia: nextSequence,
+      adicionado_por: user.name,
+    });
+    
+  if (linkError && !linkError.message.includes("duplicate key")) {
+    throw new Error("Failed to link order to romaneio: " + linkError.message);
+  }
+  
+  return { id: romaneioId, codigo: romaneioCodigo };
 }

@@ -92,6 +92,10 @@ const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
   }));
   
   return {
+    id: r.id,
+    orderIds: r.orders.map(o => o.id),
+    transportadoraId: r.transportadoraId,
+    transportadoraNome: r.carrierName,
     code: r.code,
     carrier: r.carrierName,
     route: r.destinations.join(" · ") || "N/A",
@@ -145,6 +149,10 @@ const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
   }));
   
   return {
+    id: null,
+    orderIds: s.orders.map(o => o.id),
+    transportadoraId: s.transportadoraId,
+    transportadoraNome: s.carrierName,
     code: "NOVO",
     carrier: s.carrierName,
     route: s.destinations.join(" · ") || "N/A",

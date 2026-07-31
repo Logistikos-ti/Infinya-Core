@@ -1,4 +1,6 @@
 import { Printer, Edit2, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { createRomaneioRecordAction } from "@/app/(dashboard)/romaneio/actions";
 import type { RomaneioUI } from "./romaneio-types";
 
 type RomaneioDrawerProps = {
@@ -139,15 +141,27 @@ export function RomaneioDrawer({ romaneio: r, onClose }: RomaneioDrawerProps) {
 
         {/* Footer Actions */}
         <div className="shrink-0 p-4 px-6 border-t border-slate-200 dark:border-slate-800/60 flex gap-2.5 bg-slate-50 dark:bg-[#0C1526]">
-          <button className="flex-1 h-[46px] rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center justify-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
-            <Printer className="w-4 h-4" /> Imprimir
-          </button>
-          <button className="flex-1 h-[46px] rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center justify-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
-            <Edit2 className="w-4 h-4" /> Editar
-          </button>
-          <button className="flex-[1.3] h-[46px] rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center justify-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform">
-            Liberar carga <ArrowRight className="w-4 h-4" />
-          </button>
+          {r.status === "Sugestão" ? (
+            <form action={createRomaneioRecordAction} className="w-full flex gap-2.5">
+              {r.orderIds.map((id) => (
+                <input key={id} type="hidden" name="pedidoIds" value={id} />
+              ))}
+              <input type="hidden" name="transportadoraId" value={r.transportadoraId || ""} />
+              <input type="hidden" name="transportadoraNome" value={r.transportadoraNome || ""} />
+              <button type="submit" className="flex-[1.3] h-[46px] rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center justify-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform w-full">
+                Gerar Romaneio <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          ) : (
+            <>
+              <Link href={`/romaneio/${r.id}`} className="flex-1 h-[46px] rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#101B30] text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center justify-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
+                <Edit2 className="w-4 h-4" /> Ver Detalhes
+              </Link>
+              <a href={`/api/romaneio/${r.id}/pdf`} target="_blank" rel="noreferrer" className="flex-[1.3] h-[46px] rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center justify-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform">
+                <Printer className="w-4 h-4" /> Imprimir Romaneio
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>

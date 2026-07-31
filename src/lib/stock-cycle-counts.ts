@@ -73,6 +73,10 @@ type CreateCycleCountInput = {
   observacoes?: string;
   blindCount?: boolean;
   skuId?: string;
+  // Scopes the count to a single stock position (one product at one address)
+  // instead of sweeping every balance for the depositante/area/sku. Used by
+  // the mobile quick-count flow, where the operator counts one spot at a time.
+  estoqueId?: string;
 };
 
 type UpdateCycleCountItemInput = {
@@ -317,11 +321,16 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     throw new Error(`NÃ£o foi possÃ­vel abrir a contagem: ${headerError.message}`);
   }
 
-  const { data: stockRows, error: stockError } = await supabase
+  let stockQuery = supabase
     .from("estoque")
     .select("id, depositante_id, produto_id, endereco_id, quantidade, endereco:enderecos(area)")
-    .eq("depositante_id", input.depositanteId)
-    .gt("quantidade", 0);
+    .eq("depositante_id", input.depositanteId);
+
+  // The single-position path (mobile quick count) still needs to count spots the
+  // system shows at zero, so it skips the ">0" sweep filter used for bulk audits.
+  stockQuery = input.estoqueId ? stockQuery.eq("id", input.estoqueId) : stockQuery.gt("quantidade", 0);
+
+  const { data: stockRows, error: stockError } = await stockQuery;
 
   if (stockError) {
     throw new Error(`NÃ£o foi possÃ­vel capturar os saldos para contagem: ${stockError.message}`);
@@ -351,24 +360,27 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     throw new Error("Nenhum saldo foi encontrado para abrir a contagem com esse filtro.");
   }
 
-  const { error: itemInsertError } = await supabase.from("contagens_estoque_itens").insert(
-    filteredRows.map((row) => ({
-      contagem_id: countHeader.id,
-      depositante_id: row.depositante_id,
-      estoque_id: row.id,
-      produto_id: row.produto_id,
-      endereco_id: row.endereco_id,
-      quantidade_sistema: row.quantidade,
-      status: "PENDENTE",
-      ajuste_status: "NAO_NECESSARIO",
-    })),
-  );
+  const { data: insertedItems, error: itemInsertError } = await supabase
+    .from("contagens_estoque_itens")
+    .insert(
+      filteredRows.map((row) => ({
+        contagem_id: countHeader.id,
+        depositante_id: row.depositante_id,
+        estoque_id: row.id,
+        produto_id: row.produto_id,
+        endereco_id: row.endereco_id,
+        quantidade_sistema: row.quantidade,
+        status: "PENDENTE",
+        ajuste_status: "NAO_NECESSARIO",
+      })),
+    )
+    .select("id");
 
   if (itemInsertError) {
     throw new Error(`NÃ£o foi possÃ­vel registrar os itens da contagem: ${itemInsertError.message}`);
   }
 
-  return { id: countHeader.id };
+  return { id: countHeader.id, itemIds: (insertedItems ?? []).map((item) => item.id as string) };
 }
 
 export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
@@ -418,6 +430,8 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
   if (error) {
     throw new Error(`NÃ£o foi possÃ­vel registrar a contagem do item: ${error.message}`);
   }
+
+  return { status, divergence, systemQuantity };
 }
 
 export async function registerSecondCycleCount(input: RegisterSecondCountInput) {

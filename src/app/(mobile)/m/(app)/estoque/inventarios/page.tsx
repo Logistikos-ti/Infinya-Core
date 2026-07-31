@@ -1,60 +1,48 @@
-import Link from "next/link";
-import { StockCycleCountCreateForm } from "@/components/estoque/stock-cycle-count-create-form";
-import { getMobileStockPageData } from "../_lib";
-import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
-
-const areaOptions = [
-  { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Armazenagem" },
-  { value: "PICKING", label: "Picking" },
-  { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "Expedição" },
-];
+import { redirect } from "next/navigation";
+import { getCurrentUserContext } from "@/lib/auth";
+import { canAccessModule } from "@/lib/permissions";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { InventarioDepositanteListClient } from "./inventario-depositante-list-client";
 
 export default async function MobileStockInventariosPage() {
-  const data = await getMobileStockPageData();
+  const user = await getCurrentUserContext();
 
-  return (
-    <div className="space-y-4 p-[18px]">
-      <Link
-        href="/m/estoque"
-        className="inline-flex items-center gap-2 text-sm font-medium transition"
-        style={{ color: mobileColors.muted }}
-      >
-        &#8249; Voltar para estoque
-      </Link>
+  if (!user || !user.ativo) {
+    redirect("/m/login");
+  }
 
-      <StockCycleCountCreateForm
-        available={data.cycleCountsResult.available}
-        depositantes={data.depositanteOptions.map((item) => ({
-          value: item.id,
-          label: item.nome,
-        }))}
-        areas={areaOptions}
-        defaultDepositanteId={data.defaultDepositanteId}
-        canSelectDepositante={data.canSelectDepositante}
-      />
+  if (!canAccessModule(user, "estoque")) {
+    redirect("/m/inicio");
+  }
 
-      {data.cycleCountsResult.available && data.cycleCountsResult.data.length ? (
-        <section className="rounded-[24px] p-4" style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) }}>
-          <p className="text-sm font-semibold" style={{ color: mobileColors.text, ...headingFont }}>Contagens recentes</p>
-          <div className="mt-3 space-y-3">
-            {data.cycleCountsResult.data.map((count) => (
-              <Link
-                key={count.id}
-                href={`/estoque/inventarios/${count.id}`}
-                className="block rounded-2xl px-4 py-3 text-sm transition"
-                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
-              >
-                <p className="font-medium" style={{ color: mobileColors.text }}>{count.titulo}</p>
-                <p className="mt-1 text-xs" style={{ color: mobileColors.dim }}>
-                  {count.area} • {count.status} • {count.createdAt}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: depositantesRows } = await adminSupabase
+    .from("depositantes")
+    .select("id, nome, codigo")
+    .eq("ativo", true)
+    .order("nome");
+
+  const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantesRows ?? []);
+  const visibleIds = visibleDepositantes.map((item) => item.id);
+
+  const { data: estoqueRows } = visibleIds.length
+    ? await adminSupabase.from("estoque").select("depositante_id").in("depositante_id", visibleIds)
+    : { data: [] };
+
+  const countByDepositante = new Map<string, number>();
+  for (const row of estoqueRows ?? []) {
+    countByDepositante.set(row.depositante_id, (countByDepositante.get(row.depositante_id) ?? 0) + 1);
+  }
+
+  const depositantes = visibleDepositantes
+    .map((dep) => ({
+      id: dep.id,
+      nome: dep.nome,
+      codigo: dep.codigo,
+      produtosEmEstoque: countByDepositante.get(dep.id) ?? 0,
+    }))
+    .filter((dep) => dep.produtosEmEstoque > 0);
+
+  return <InventarioDepositanteListClient depositantes={depositantes} />;
 }
