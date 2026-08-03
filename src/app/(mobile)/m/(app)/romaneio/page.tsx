@@ -3,7 +3,7 @@ import { FileDown, Truck } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listRomaneioRecordsFromDb } from "@/lib/romaneio-records";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
-import { getCarrierBrand } from "@/components/romaneio/romaneio-dashboard";
+import { getCarrierBrand } from "@/lib/carrier-branding";
 
 type MobileRomaneioPageProps = {
   searchParams?: Promise<{
