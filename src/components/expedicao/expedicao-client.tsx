@@ -182,6 +182,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const isConference = activeTab === "conference";
   const isDivergence = activeTab === "divergence";
   const isPedidosFull = activeTab === "pedidos_full";
+  const ordersForOperationalQueue = isPedidosFull
+    ? data.orders
+    : data.orders.filter(
+        (order: any) =>
+          order.status !== "EXPEDIDO" ||
+          isFromCurrentMonthInSaoPaulo(order.dispatchedAtIso || order.updatedAtIso || order.createdAtIso),
+      );
 
   const setOrders = () => setActiveTab("orders");
   const setDivergence = () => setActiveTab("divergence");
@@ -271,20 +278,20 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return false;
   };
 
-  const expedidosNoMesAtual = data.orders.filter(
+  const expedidosNoMesAtual = ordersForOperationalQueue.filter(
     (order: any) =>
       order.status === "EXPEDIDO" &&
       isFromCurrentMonthInSaoPaulo(order.dispatchedAtIso || order.updatedAtIso || order.createdAtIso),
   ).length;
 
   const tableFiltersDef = [
-    { id: "aguardando", label: "Aguardando", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "aguardando")).length, hasCount: true, isAlert: false },
-    { id: "separacao", label: "Em separação", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "separacao")).length, hasCount: true, isAlert: false },
-    { id: "conferencia", label: "Em conferência", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
-    { id: "pronto-coleta", label: "Pronto para coleta", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
+    { id: "aguardando", label: "Aguardando", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "aguardando")).length, hasCount: true, isAlert: false },
+    { id: "separacao", label: "Em separação", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "separacao")).length, hasCount: true, isAlert: false },
+    { id: "conferencia", label: "Em conferência", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
+    { id: "pronto-coleta", label: "Pronto para coleta", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
     { id: "expedido", label: "Expedido", count: expedidosNoMesAtual, hasCount: true, isAlert: false },
     { id: "atrasados", label: "Atrasados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "atrasados")).length, hasCount: true, isAlert: true },
-    { id: "todos", label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
+    { id: "todos", label: "Todos", count: ordersForOperationalQueue.length, hasCount: false, isAlert: false },
   ];
 
   const filters = tableFiltersDef.map(f => {
@@ -321,7 +328,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
-      if (s.id === 'expedido') return o.status === 'EXPEDIDO' && isFromCurrentMonthInSaoPaulo(o.dispatchedAtIso || o.updatedAtIso || o.createdAtIso);
+      if (s.id === 'expedido') return o.status === 'EXPEDIDO';
       return o.status === s.statusFilter;
     }).length : data.orders.length;
 
@@ -388,7 +395,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return { color: "#64748B", bg: "rgba(148,163,184,0.15)", init };
   };
 
-  const filteredDataOrders = data.orders.filter((order: any) => matchesOperationalFilter(order, activeFilter));
+  const filteredDataOrders = ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, activeFilter));
 
   const searchedOrders = filteredDataOrders.filter((o: any) => {
     if (!searchQuery) return true;
