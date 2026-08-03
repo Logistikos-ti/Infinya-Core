@@ -1,4 +1,4 @@
-import { CheckCircle2, Link2, RefreshCw, ShieldCheck } from "lucide-react";
+import { CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
 import type {
   DepositanteBlingConfig,
   DepositanteMercadoLivreConfig,
@@ -51,6 +51,7 @@ export function PortalIntegrationsView({
           description="Importa pedidos e acompanha a operação comercial conectada ao seu ERP."
           connected={Boolean(bling?.connected)}
           account={bling?.companyName}
+          provider="bling"
           href={`/api/integracoes/bling/oauth/start?depositanteId=${encodeURIComponent(depositanteId)}&portal=1`}
         />
         <IntegrationCard
@@ -58,6 +59,7 @@ export function PortalIntegrationsView({
           description="Conecta pedidos, etiquetas e rastreamento da sua conta de vendedor."
           connected={Boolean(mercadoLivre?.connected)}
           account={mercadoLivre?.nickname}
+          provider="mercado-livre"
           href={`/api/integracoes/mercado-livre/oauth/start?depositanteId=${encodeURIComponent(depositanteId)}&portal=1`}
         />
       </div>
@@ -76,19 +78,19 @@ function IntegrationCard({
   connected,
   account,
   href,
+  provider,
 }: {
   title: string;
   description: string;
   connected: boolean;
   account: string | null | undefined;
   href: string;
+  provider: "bling" | "mercado-livre";
 }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-violet-500 text-white">
-          <Link2 className="h-5 w-5" />
-        </div>
+        <IntegrationLogo provider={provider} />
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${connected ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}>
           {connected ? "Conectado" : "Não conectado"}
         </span>
@@ -108,5 +110,27 @@ function IntegrationCard({
         {connected ? `Reconectar ${title}` : `Conectar ${title}`}
       </a>
     </article>
+  );
+}
+
+function IntegrationLogo({ provider }: { provider: "bling" | "mercado-livre" }) {
+  if (provider === "bling") {
+    return (
+      <div
+        aria-label="Bling"
+        className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-[#00a859] px-2 text-[16px] font-extrabold tracking-[-0.08em] text-white shadow-sm"
+      >
+        bling
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-label="Mercado Livre"
+      className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-[#ffe600] px-2 text-[12px] font-black tracking-[-0.08em] text-[#1f4e96] shadow-sm"
+    >
+      ML
+    </div>
   );
 }
