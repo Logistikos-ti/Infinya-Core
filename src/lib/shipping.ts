@@ -128,6 +128,7 @@ export type ShippingOrderSummary = {
   itemCount: number;
   createdAtIso: string | null;
   updatedAtIso: string | null;
+  dispatchedAtIso: string | null;
   createdAt: string;
   orderDate: string;
   ageLabel: string;
@@ -344,8 +345,8 @@ export async function listShippingStatsFromDb(
   previousMonthDate.setUTCMonth(previousMonthDate.getUTCMonth() - 1);
   const previousMonth = getMonthKeyInSaoPaulo(previousMonthDate);
   const dispatchedOrders = orders.filter((item) => item.status === "EXPEDIDO");
-  const expedidosNoMes = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.updatedAtIso || item.createdAtIso) === currentMonth).length;
-  const expedidosNoMesAnterior = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.updatedAtIso || item.createdAtIso) === previousMonth).length;
+  const expedidosNoMes = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.dispatchedAtIso || item.updatedAtIso || item.createdAtIso) === currentMonth).length;
+  const expedidosNoMesAnterior = dispatchedOrders.filter((item) => getMonthKeyInSaoPaulo(item.dispatchedAtIso || item.updatedAtIso || item.createdAtIso) === previousMonth).length;
   const dispatchVariation = expedidosNoMesAnterior === 0
     ? (expedidosNoMes > 0 ? 100 : 0)
     : Math.round(((expedidosNoMes - expedidosNoMesAnterior) / expedidosNoMesAnterior) * 100);
@@ -632,6 +633,7 @@ export function listShippingFlowSteps() {
 async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<ShippingOrderSummary> {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const createdBy = isRecord(payload.criadoPor) ? payload.criadoPor : {};
+  const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
   const divergence = isRecord(payload.divergencia) ? payload.divergencia : {};
   const cancellation = isRecord(payload.separacao) ? payload.separacao : {};
   const createdByName = typeof createdBy.nome === "string" && createdBy.nome.trim() ? createdBy.nome.trim() : null;
@@ -659,6 +661,11 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
   const ageMeta = buildOperationalSlaMeta(item.created_at ?? item.data_pedido ?? null);
   const releasedWithoutRomaneio = isOrderReleasedWithoutRomaneio(payload);
   const releasedToRomaneio = isOrderReleasedToRomaneio(payload, item.status);
+  const dispatchedAtIso =
+    readString(payload.expedidoEm) ||
+    readString(payload.expedido_em) ||
+    readString(conference.liberadoParaRomaneioEm) ||
+    null;
   const nfe = await resolveStoredInvoiceNumber(
     extractInvoice(payload, (item as any).documentos),
     (item as any).documentos,
@@ -697,6 +704,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     itemCount: Number(item.quantidade_itens ?? 0),
     createdAtIso: ageMeta.createdAtIso,
     updatedAtIso: item.updated_at,
+    dispatchedAtIso,
     createdAt: ageMeta.createdAtLabel,
     orderDate: formatDateTimeInSaoPaulo(item.data_pedido, "Hoje"),
     ageLabel: ageMeta.ageLabel,
