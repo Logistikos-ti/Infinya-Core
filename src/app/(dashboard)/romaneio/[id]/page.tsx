@@ -155,6 +155,7 @@ export default async function RomaneioDetailPage({
                 <thead className="bg-slate-50 text-slate-500 dark:bg-zinc-950/60 dark:text-slate-400">
                   <tr>
                     <th className="px-4 py-3 font-medium">Pedido</th>
+                    <th className="px-4 py-3 font-medium">Nota Fiscal</th>
                     <th className="px-4 py-3 font-medium">Depositante</th>
                     <th className="px-4 py-3 font-medium">Cliente</th>
                     <th className="px-4 py-3 font-medium">Destino</th>
@@ -171,6 +172,7 @@ export default async function RomaneioDetailPage({
                         <div className="font-medium">{order.externalNumber}</div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">{order.code}</div>
                       </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200 font-medium">{order.invoiceNumber}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{order.depositante}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{order.customer}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{order.destination}</td>

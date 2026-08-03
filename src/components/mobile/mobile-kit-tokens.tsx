@@ -24,6 +24,8 @@ export const mobileColors = {
   amber: "#F59E0B",
   red: "#EF4444",
   redLight: "#F87171",
+  cyan: "#06B6D4",
+  cyanLight: "#22D3EE",
 } as const;
 
 export const mobileGradient = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
@@ -32,6 +34,9 @@ export const headingFont: CSSProperties = { fontFamily: "var(--font-space-grotes
 export const bodyFont: CSSProperties = { fontFamily: "var(--font-manrope), sans-serif" };
 
 export function hexAlpha(hex: string, alpha: number) {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return `rgba(148, 163, 184, ${alpha})`;
+  }
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
@@ -66,7 +71,8 @@ export type MobileIconName =
   | "check"
   | "x"
   | "vibrate"
-  | "code";
+  | "code"
+  | "truck";
 
 export function MobileIcon({
   name,
@@ -178,6 +184,17 @@ export function MobileIcon({
       return svg(<path d="M2 9v6M22 9v6M6 6h12v12H6z" />, size, strokeWidth);
     case "code":
       return svg(<path d="M4 5v14M8 5v14M11 5v14M14 5v14M17 5v14M20 5v14" />, size, strokeWidth);
+    case "truck":
+      return svg(
+        <>
+          <path d="M10 17h4V5H2v12h3" />
+          <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1" />
+          <circle cx="7.5" cy="17.5" r="2.5" />
+          <circle cx="17.5" cy="17.5" r="2.5" />
+        </>,
+        size,
+        strokeWidth,
+      );
     default:
       return null;
   }
@@ -216,15 +233,8 @@ export function MobileInfinityLoader({
 }: {
   size?: number;
   label?: string | null;
-  // Overrides the brand gradient with a flat color -- used inline on a
-  // colored button, where the gradient's own blues/violets can blend into a
-  // same-toned background instead of reading as a spinner. Accepts
-  // "currentColor" to inherit the surrounding text color (handles buttons
-  // whose text flips between light/dark across themes automatically).
   color?: string;
   trackColor?: string;
-  // Only applied when trackColor is set -- lets the faint background ring
-  // use the same currentColor as the trace without going full-opacity.
   trackOpacity?: number;
 }) {
   const gradientId = "mobileInfinityLoaderGradient";

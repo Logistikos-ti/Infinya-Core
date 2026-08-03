@@ -12,22 +12,7 @@ type RomaneioDashboardProps = {
   suggestions: RomaneioSuggestionGroup[];
 };
 
-// ==========================================
-// MOCK DATA GENERATION (from original design)
-// ==========================================
-const hex2 = (h: string, a: number) => {
-  const n = parseInt(h.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-};
-
-const carriers: Record<string, string> = {
-  Jadlog: "#E11D48",
-  Correios: "#2563EB",
-  "Total Express": "#7C3AED",
-  Loggi: "#F59E0B",
-  Braspress: "#0891B2",
-  "Frota Própria": "#10B981",
-};
+import { getCarrierBrand, hexToRgba as hex2 } from "@/lib/carrier-branding";
 
 const statusStyle = (s: string) => {
   if (s === "Aberto")
@@ -51,47 +36,27 @@ const statusStyle = (s: string) => {
 
 const capColor = (c: number) => (c >= 95 ? "#EF4444" : c >= 80 ? "#F59E0B" : "#10B981");
 
-const cities = [
-  "São Paulo · SP",
-  "Guarulhos · SP",
-  "Osasco · SP",
-  "Campinas · SP",
-  "Santos · SP",
-  "Barueri · SP",
-  "São Bernardo · SP",
-];
-const names = [
-  "Marina Costa",
-  "Bruno Almeida",
-  "Carla Menezes",
-  "Diego Ferreira",
-  "Patrícia Lima",
-  "Renato Souza",
-  "Fernanda Dias",
-  "Loja Beta Ltda",
-];
-
-const formatDisplayValue = (val: number | string) => {
-  if (typeof val === 'number') return val.toLocaleString("pt-BR");
-  return val.toString();
-};
-
-const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
-  const cc = carriers[r.carrierName] || "#64748B";
+const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
+  const brand = getCarrierBrand(r.carrierName);
   const ss = statusStyle(r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado");
   const cap = 70; // We don't have cap in DB for now
   const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
   
-  const stops: RomaneioStop[] = r.orders.map((o, i) => ({
+  const stops: RomaneioStop[] = r.orders.map((o: any, i: number) => ({
     seq: i + 1,
     customer: o.customer,
     code: o.code,
     city: o.destination,
+    invoiceNumber: o.invoiceNumber || "Sem NF",
     vol: o.units,
     weight: o.total, // Using total instead of weight for now
   }));
   
   return {
+    id: r.id,
+    orderIds: r.orders.map((o: any) => o.id),
+    transportadoraId: r.transportadoraId,
+    transportadoraNome: r.carrierName,
     code: r.code,
     carrier: r.carrierName,
     route: r.destinations.join(" · ") || "N/A",
@@ -104,9 +69,9 @@ const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
     vehicle: r.vehicleModel || "—",
     departure: new Date(r.createdAt).toLocaleDateString("pt-BR"),
     status: r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado",
-    carrierColor: cc,
-    carrierBg: hex2(cc, 0.15),
-    carrierInit: r.carrierName.slice(0, 2).toUpperCase(),
+    carrierColor: brand.color,
+    carrierBg: brand.bg,
+    carrierInit: brand.init,
     capColor: capColor(cap),
     capFill: cap >= 95 ? "#EF4444" : cap >= 80 ? "linear-gradient(90deg,#F59E0B,#FBBF24)" : grad,
     statusBg: ss.statusBg,
@@ -126,7 +91,7 @@ const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
 };
 
 const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
-  const cc = carriers[s.carrierName] || "#64748B";
+  const brand = getCarrierBrand(s.carrierName);
   const ss = {
     statusBg: hex2("#F59E0B", 0.16),
     statusColor: "#F59E0B",
@@ -140,11 +105,16 @@ const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
     customer: o.customer,
     code: o.code,
     city: o.destination,
+    invoiceNumber: o.invoiceNumber || "Sem NF",
     vol: o.units,
     weight: o.total,
   }));
   
   return {
+    id: null,
+    orderIds: s.orders.map(o => o.id),
+    transportadoraId: s.transportadoraId,
+    transportadoraNome: s.carrierName,
     code: "NOVO",
     carrier: s.carrierName,
     route: s.destinations.join(" · ") || "N/A",
@@ -157,9 +127,9 @@ const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
     vehicle: "—",
     departure: s.cutoff,
     status: "Sugestão",
-    carrierColor: cc,
-    carrierBg: hex2(cc, 0.15),
-    carrierInit: s.carrierName.slice(0, 2).toUpperCase(),
+    carrierColor: brand.color,
+    carrierBg: brand.bg,
+    carrierInit: brand.init,
     capColor: capColor(cap),
     capFill: grad,
     statusBg: ss.statusBg,

@@ -3,11 +3,16 @@ export type RomaneioStop = {
   customer: string;
   code: string;
   city: string;
+  invoiceNumber: string;
   vol: string;
   weight: string;
 };
 
 export type RomaneioUI = {
+  id: string | null;
+  orderIds: string[];
+  transportadoraId: string | null;
+  transportadoraNome: string | null;
   code: string;
   carrier: string;
   route: string;

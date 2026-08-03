@@ -32,9 +32,11 @@ export async function createRomaneioRecordAction(formData: FormData) {
     transportadoraNome: getString(formData, "transportadoraNome") || null,
   });
 
+  const isMobile = getString(formData, "isMobile") === "true";
+
   revalidatePath("/romaneio");
   revalidatePath("/m/romaneio");
-  redirect(`/romaneio/${romaneioId}?feedback=criado`);
+  redirect(isMobile ? `/m/romaneio?feedback=criado` : `/romaneio/${romaneioId}?feedback=criado`);
 }
 
 export async function updateRomaneioRecordAction(formData: FormData) {
@@ -96,3 +98,122 @@ export async function cancelRomaneioRecordAction(formData: FormData) {
   revalidatePath("/m/romaneio");
   redirect(`/romaneio/${romaneioId}?feedback=cancelado`);
 }
+
+export async function validateAndAssignOrderDanfeAction(params: {
+  orderId: string;
+  scannedDanfe: string;
+}) {
+  try {
+    const user = await requireModuleAccess("expedicao");
+    const { validateAndAssignOrderDanfeToRomaneio } = await import("@/lib/romaneio-records");
+
+    const result = await validateAndAssignOrderDanfeToRomaneio({
+      user,
+      orderId: params.orderId,
+      scannedDanfe: params.scannedDanfe,
+    });
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath(`/expedicao/conferencia/${params.orderId}`);
+    revalidatePath("/conferencia");
+    revalidatePath(`/conferencia/${params.orderId}`);
+    revalidatePath("/m/conferencia");
+    revalidatePath(`/m/conferencia/${params.orderId}`);
+    revalidatePath("/romaneio");
+    revalidatePath("/m/romaneio");
+
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao validar DANFE e atribuir ao romaneio.";
+    return {
+      ok: false,
+      message,
+    };
+  }
+}
+
+export async function listSavedDriversAction(transportadoraNome?: string | null) {
+  await requireModuleAccess("romaneio");
+  const { listSavedDriversFromDb } = await import("@/lib/romaneio-records");
+  return listSavedDriversFromDb(transportadoraNome);
+}
+
+export async function uploadRomaneioPhotoAction(params: {
+  romaneioId: string;
+  type: "operador" | "motorista";
+  base64Data: string;
+}) {
+  await requireModuleAccess("romaneio");
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createSupabaseAdminClient();
+
+  try {
+    const matches = params.base64Data.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+    const contentType = matches ? matches[1] : "image/jpeg";
+    const base64Clean = matches ? matches[2] : params.base64Data;
+    const buffer = Buffer.from(base64Clean, "base64");
+
+    const filePath = `romaneios/${params.romaneioId}/${params.type}-${Date.now()}.jpg`;
+
+    const { error: uploadError } = await admin.storage
+      .from("wms-documentos")
+      .upload(filePath, buffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      // If upload fails, return the data uri directly as fallback
+      return { url: params.base64Data };
+    }
+
+    const { data: urlData } = admin.storage.from("wms-documentos").getPublicUrl(filePath);
+    return { url: urlData.publicUrl || params.base64Data };
+  } catch (err) {
+    return { url: params.base64Data };
+  }
+}
+
+export async function completeRomaneioWithDoubleCheckAction(params: {
+  romaneioId: string;
+  driverData: {
+    nome: string;
+    documento: string;
+    veiculoModelo: string;
+    veiculoPlaca: string;
+  };
+  photos: {
+    operadorUrl?: string | null;
+    motoristaUrl?: string | null;
+  };
+  scannedOrderIds: string[];
+}) {
+  try {
+    const user = await requireModuleAccess("romaneio");
+    const { completeRomaneioWithDoubleCheck } = await import("@/lib/romaneio-records");
+
+    const result = await completeRomaneioWithDoubleCheck({
+      user,
+      romaneioId: params.romaneioId,
+      driverData: params.driverData,
+      photos: params.photos,
+      scannedOrderIds: params.scannedOrderIds,
+    });
+
+    revalidatePath("/romaneio");
+    revalidatePath(`/romaneio/${params.romaneioId}`);
+    revalidatePath("/m/romaneio");
+    revalidatePath("/expedicao");
+    revalidatePath("/m/expedicao");
+
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao finalizar romaneio.";
+    return {
+      ok: false,
+      message,
+    };
+  }
+}
+
