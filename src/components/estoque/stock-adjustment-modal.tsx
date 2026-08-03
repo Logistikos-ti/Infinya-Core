@@ -28,7 +28,7 @@ function parseStockQuantity(value: unknown) {
 }
 
 export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }: StockAdjustmentModalProps) {
-  const [sourceStockId, setSourceStockId] = useState("");
+  const [sourceStockId, setSourceStockId] = useState("TOTAL_PRODUCT");
   const [newQuantity, setNewQuantity] = useState("");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,11 +40,13 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
 
   const skuIdToFind = sku.productId || sku.sku;
   const skuBalances = allBalances.filter((b) => (b.productId || b.sku) === skuIdToFind);
+  const isTotalProduct = sourceStockId === "TOTAL_PRODUCT";
   const selectedBalance = skuBalances.find((b) => b.id === sourceStockId);
-  const currentQty = selectedBalance ? parseStockQuantity(selectedBalance.rawQuantidade) : 0;
+  const totalProductQty = skuBalances.reduce((total, balance) => total + parseStockQuantity(balance.rawQuantidade), 0);
+  const currentQty = isTotalProduct ? totalProductQty : selectedBalance ? parseStockQuantity(selectedBalance.rawQuantidade) : 0;
   
   const requestedQuantity = parseStockQuantity(newQuantity);
-  const quantityDiff = (selectedBalance || isNewLot) && newQuantity !== "" ? requestedQuantity - currentQty : 0;
+  const quantityDiff = (selectedBalance || isNewLot || isTotalProduct) && newQuantity !== "" ? requestedQuantity - currentQty : 0;
   const isPositive = quantityDiff > 0;
   const isNegative = quantityDiff < 0;
 
@@ -63,7 +65,8 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
     try {
       let endpoint = "/api/estoque/ajuste";
       let bodyData: any = {
-        stockId: sourceStockId,
+        stockId: isTotalProduct ? undefined : sourceStockId,
+        stockIds: isTotalProduct ? skuBalances.map((balance) => balance.id).filter(Boolean) : undefined,
         targetQuantity: requestedQuantity,
         reason,
         depositanteId: selectedBalance?.depositanteId || sku.depositanteId || skuBalances[0]?.depositanteId,
@@ -147,6 +150,7 @@ export function StockAdjustmentModal({ sku, allBalances, onClose, onSuccess, t }
               setNewLotValidade("");
             }}
             options={[
+              { value: "TOTAL_PRODUCT", label: `Saldo total do produto - Atual: ${totalProductQty.toLocaleString("pt-BR")} un` },
               { value: "", label: "Selecione o endereço..." },
               { value: "NEW_LOT", label: "+ Cadastrar novo endereço/lote" },
               ...skuBalances.map((b) => ({
