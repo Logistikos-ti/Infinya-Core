@@ -319,7 +319,7 @@ export function MobileListShell({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: it.imageUrl ? "#fff" : hexAlpha(it.iconColor, 0.16),
+                  background: it.imageUrl ? "transparent" : hexAlpha(it.iconColor, 0.16),
                   color: it.iconColor,
                 }}
               >
