@@ -1,17 +1,7 @@
 import type { AppUserContext } from "@/lib/auth";
 
-const enabledDepositantes = new Set(["vegpet", "johnskull"]);
-
-function normalize(value: string | null | undefined) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-    .replace(/[^a-z0-9]/g, "");
-}
-
 export function isPortalIntegrationEnabled(depositanteName: string | null | undefined) {
-  return enabledDepositantes.has(normalize(depositanteName));
+  return Boolean(depositanteName?.trim());
 }
 
 export function canManagePortalIntegrations(
@@ -24,7 +14,6 @@ export function canManagePortalIntegrations(
 
   return (
     user.papel === "DEPOSITANTE" &&
-    user.depositanteId === depositanteId &&
-    isPortalIntegrationEnabled(user.depositanteNome)
+    user.depositanteId === depositanteId
   );
 }
