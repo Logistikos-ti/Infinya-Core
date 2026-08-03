@@ -167,7 +167,11 @@ export default async function MobileRomaneioPage() {
                 </div>
               </div>
 
-              <GerarRomaneioForm suggestion={suggestion} />
+              <GerarRomaneioForm
+                orderIds={suggestion.orders.map((o) => o.id)}
+                transportadoraId={suggestion.transportadoraId}
+                carrierName={suggestion.carrierName}
+              />
             </article>
           ))
         ) : (

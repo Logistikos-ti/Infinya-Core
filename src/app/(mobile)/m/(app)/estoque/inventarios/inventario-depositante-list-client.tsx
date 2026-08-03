@@ -7,6 +7,7 @@ type DepositanteRow = {
   id: string;
   nome: string;
   codigo: string;
+  logoUrl: string | null;
   produtosEmEstoque: number;
 };
 
@@ -23,6 +24,7 @@ export function InventarioDepositanteListClient({ depositantes }: { depositantes
       items={depositantes.map((dep) => ({
         icon: "user",
         iconColor: mobileColors.amber,
+        imageUrl: dep.logoUrl,
         title: dep.nome,
         tag: dep.codigo,
         tagColor: mobileColors.violetLight,

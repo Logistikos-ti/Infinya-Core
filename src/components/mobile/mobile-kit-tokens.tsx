@@ -24,6 +24,8 @@ export const mobileColors = {
   amber: "#F59E0B",
   red: "#EF4444",
   redLight: "#F87171",
+  cyan: "#06B6D4",
+  cyanLight: "#22D3EE",
 } as const;
 
 export const mobileGradient = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
@@ -32,6 +34,9 @@ export const headingFont: CSSProperties = { fontFamily: "var(--font-space-grotes
 export const bodyFont: CSSProperties = { fontFamily: "var(--font-manrope), sans-serif" };
 
 export function hexAlpha(hex: string, alpha: number) {
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) {
+    return `rgba(148, 163, 184, ${alpha})`;
+  }
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
@@ -66,7 +71,8 @@ export type MobileIconName =
   | "check"
   | "x"
   | "vibrate"
-  | "code";
+  | "code"
+  | "truck";
 
 export function MobileIcon({
   name,
@@ -178,6 +184,18 @@ export function MobileIcon({
       return svg(<path d="M2 9v6M22 9v6M6 6h12v12H6z" />, size, strokeWidth);
     case "code":
       return svg(<path d="M4 5v14M8 5v14M11 5v14M14 5v14M17 5v14M20 5v14" />, size, strokeWidth);
+    case "truck":
+      return svg(
+        <>
+          <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+          <path d="M15 18H9" />
+          <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14v10Z" />
+          <circle cx="17" cy="18.5" r="2.5" />
+          <circle cx="7" cy="18.5" r="2.5" />
+        </>,
+        size,
+        strokeWidth,
+      );
     default:
       return null;
   }

@@ -19,7 +19,7 @@ export default async function MobileStockInventariosPage() {
   const adminSupabase = createSupabaseAdminClient();
   const { data: depositantesRows } = await adminSupabase
     .from("depositantes")
-    .select("id, nome, codigo")
+    .select("id, nome, codigo, logo_url")
     .eq("ativo", true)
     .order("nome");
 
@@ -40,6 +40,7 @@ export default async function MobileStockInventariosPage() {
       id: dep.id,
       nome: dep.nome,
       codigo: dep.codigo,
+      logoUrl: dep.logo_url ?? null,
       produtosEmEstoque: countByDepositante.get(dep.id) ?? 0,
     }))
     .filter((dep) => dep.produtosEmEstoque > 0);

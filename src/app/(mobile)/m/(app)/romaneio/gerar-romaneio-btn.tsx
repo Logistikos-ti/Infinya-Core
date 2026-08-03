@@ -3,18 +3,23 @@
 import { useFormStatus } from "react-dom";
 import { MobilePrimaryButton, MobileIcon } from "@/components/mobile/mobile-kit";
 import { createRomaneioRecordAction } from "@/app/(dashboard)/romaneio/actions";
-import type { RomaneioSuggestionDetail } from "@/lib/romaneio-records";
 
-export function GerarRomaneioForm({ suggestion }: { suggestion: RomaneioSuggestionDetail }) {
+type GerarRomaneioFormProps = {
+  orderIds: string[];
+  transportadoraId?: string | null;
+  carrierName?: string | null;
+};
+
+export function GerarRomaneioForm({ orderIds, transportadoraId, carrierName }: GerarRomaneioFormProps) {
   return (
     <form action={createRomaneioRecordAction} className="mt-4">
-      {suggestion.orders.map((order) => (
-        <input key={order.id} type="hidden" name="pedidoIds" value={order.id} />
+      {orderIds.map((id) => (
+        <input key={id} type="hidden" name="pedidoIds" value={id} />
       ))}
-      <input type="hidden" name="transportadoraId" value={suggestion.transportadoraId || ""} />
-      <input type="hidden" name="transportadoraNome" value={suggestion.carrierName || ""} />
+      <input type="hidden" name="transportadoraId" value={transportadoraId || ""} />
+      <input type="hidden" name="transportadoraNome" value={carrierName || ""} />
       <input type="hidden" name="isMobile" value="true" />
-      
+
       <SubmitButton />
     </form>
   );
@@ -30,7 +35,7 @@ function SubmitButton() {
       ) : (
         <>
           <span>Gerar Romaneio</span>
-          <MobileIcon name="scan" size={18} />
+          <MobileIcon name="truck" size={18} />
         </>
       )}
     </MobilePrimaryButton>
