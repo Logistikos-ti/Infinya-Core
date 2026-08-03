@@ -241,8 +241,8 @@ export type MobileListItem = {
   // stays as a fallback for items with no photo on file.
   imageUrl?: string | null;
   title: string;
-  tag: string;
-  tagColor: string;
+  tag?: string;
+  tagColor?: string;
   sub: string;
   onClick: () => void;
 };
@@ -333,18 +333,20 @@ export function MobileListShell({
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 15.5, fontWeight: 800, ...headingFont }}>{it.title}</span>
-                  <span
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      fontSize: 10,
-                      fontWeight: 800,
-                      background: hexAlpha(it.tagColor, 0.16),
-                      color: it.tagColor,
-                    }}
-                  >
-                    {it.tag}
-                  </span>
+                  {it.tag && it.tagColor ? (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background: hexAlpha(it.tagColor, 0.16),
+                        color: it.tagColor,
+                      }}
+                    >
+                      {it.tag}
+                    </span>
+                  ) : null}
                 </div>
                 <span
                   style={{
