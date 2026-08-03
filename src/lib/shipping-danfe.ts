@@ -125,51 +125,43 @@ export function buildInvoicePreviewHtmlFromXml(xml: string, options?: { carrierN
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NF-e ${escapeHtml(parsed.noteNumber)}</title>
   <style>
-    @page { size: A4 portrait; margin: 11mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #f1f5f9; color: #0f172a; font: 12px/1.38 Arial, Helvetica, sans-serif; }
-    .page { width: min(210mm, 100%); min-height: 297mm; margin: 0 auto; padding: 11mm; background: #fff; }
-    .header { display: grid; grid-template-columns: 1fr 155px; border: 2px solid #0f172a; }
-    .brand { min-height: 92px; padding: 16px; border-right: 1px solid #0f172a; }
-    .brand h1 { margin: 0; font-size: 22px; letter-spacing: .06em; }
-    .brand p { margin: 6px 0 0; color: #475569; font-size: 11px; }
-    .nf-id { display: grid; place-items: center; padding: 12px; text-align: center; }
-    .nf-id strong { font-size: 17px; }
-    .nf-id span { display: block; margin-top: 4px; font-size: 11px; }
-    .section { margin-top: 10px; border: 1px solid #0f172a; }
-    .section-title { margin: 0; padding: 5px 8px; border-bottom: 1px solid #0f172a; background: #e2e8f0; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .field { min-height: 48px; padding: 7px 8px; border-right: 1px solid #cbd5e1; }
-    .field:last-child { border-right: 0; }
-    .field label { display: block; margin-bottom: 4px; color: #64748b; font-size: 9px; font-weight: 700; text-transform: uppercase; }
-    .field strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
-    .wide { grid-column: 1 / -1; border-top: 1px solid #cbd5e1; border-right: 0; }
-    table { width: 100%; border-collapse: collapse; }
-    th { padding: 6px 7px; background: #0f172a; color: #fff; font-size: 9px; text-align: left; text-transform: uppercase; }
-    td { padding: 7px; border-top: 1px solid #cbd5e1; font-size: 10px; vertical-align: top; }
-    tr:nth-child(even) td { background: #f8fafc; }
+    body { margin: 0; background: #fff; color: #000; font: 10px/1.2 "Times New Roman", Times, serif; }
+    .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 7mm 8mm; background: #fff; }
+    .receipt, .wrapper, .section { width: 100%; border: 1px solid #000; border-collapse: collapse; }
+    .receipt td, .wrapper td, .wrapper th, .section td { border: 1px solid #000; padding: 3px 4px; vertical-align: top; }
+    .receipt { margin-bottom: 4px; } .receipt .nfe { width: 19%; text-align: center; font-weight: 700; font-size: 12px; }
+    .receipt p { margin: 2px 0; } .dash { border-top: 1px dashed #000; margin: 4px 0; }
+    .issuer { width: 40%; height: 118px; } .issuer h2 { margin: 11px 4px 6px; font-size: 14px; } .issuer p { margin: 4px; }
+    .danfe { width: 20%; text-align: center; vertical-align: middle !important; } .danfe h1 { margin: 3px 0; font-size: 19px; } .danfe h3 { margin: 5px 0; font-size: 9px; } .danfe p { margin: 3px 0; font-weight: 700; }
+    .key { width: 40%; text-align: center; } .key p { margin: 4px 0; } .key .bars { height: 47px; margin: 6px 8px 3px; background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px, #000 4px 5px, transparent 5px 8px); }
+    .caption { font-size: 8px; font-weight: 700; } .value { font-size: 10px; font-weight: 700; overflow-wrap: anywhere; }
+    .field-grid { display: grid; grid-template-columns: repeat(3, 1fr); } .field { min-height: 37px; padding: 4px; border-right: 1px solid #000; } .field:last-child { border-right: 0; }
+    .field label { display: block; margin-bottom: 4px; font-size: 8px; } .field strong { font-size: 10px; overflow-wrap: anywhere; }
+    .wide { grid-column: 1 / -1; border-top: 1px solid #000; border-right: 0; } .section { margin-top: 4px; }
+    .section-title { margin: 0; padding: 2px 4px; border-bottom: 1px solid #000; font-size: 9px; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; } th { padding: 4px; background: #fff; color: #000; font-size: 8px; text-align: left; border: 1px solid #000; } td { padding: 4px; border: 1px solid #000; font-size: 9px; vertical-align: top; }
+    tr:nth-child(even) td { background: #fff; }
     .number { text-align: right; white-space: nowrap; }
-    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .summary .field { min-height: 54px; }
-    .barcode { margin-top: 10px; border: 1px solid #0f172a; padding: 10px; }
-    .barcode .bars { height: 42px; margin-top: 7px; background: repeating-linear-gradient(90deg, #111 0 2px, transparent 2px 4px, #111 4px 5px, transparent 5px 8px); }
-    .barcode code { display: block; margin-top: 5px; text-align: center; font-size: 10px; letter-spacing: .11em; overflow-wrap: anywhere; }
-    .footer { margin-top: 10px; color: #64748b; font-size: 10px; text-align: right; }
-    @media print { body { background: #fff; } .page { width: auto; min-height: auto; padding: 0; } }
+    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } .summary .field { min-height: 43px; }
+    .barcode { margin-top: 4px; border: 1px solid #000; padding: 5px; } .barcode .bars { height: 43px; margin-top: 5px; background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px, #000 4px 5px, transparent 5px 8px); } .barcode code { display: block; margin-top: 3px; text-align: center; font-size: 9px; letter-spacing: .08em; overflow-wrap: anywhere; }
+    .footer { margin-top: 5px; border-top: 1px solid #000; padding-top: 3px; font-size: 8px; text-align: right; }
+    @media print { .page { width: auto; min-height: auto; padding: 0; } }
   </style>
 </head>
 <body>
   <main class="page">
-    <header class="header">
-      <div class="brand"><h1>NOTA FISCAL ELETRONICA</h1><p>Documento fiscal completo anexado ao pedido</p></div>
-      <div class="nf-id"><strong>NF-e ${escapeHtml(parsed.noteNumber)}</strong><span>Serie 1</span><span>${parsed.direction}</span></div>
-    </header>
-    <section class="section"><h2 class="section-title">Emitente</h2><div class="grid"><div class="field wide"><label>Razao social</label><strong>${escapeHtml(parsed.supplierName)}</strong></div><div class="field"><label>CNPJ / CPF</label><strong>${escapeHtml(parsed.supplierDocument || "Nao informado")}</strong></div><div class="field"><label>Data de emissao</label><strong>${escapeHtml(issuedAt)}</strong></div><div class="field"><label>Protocolo</label><strong>${escapeHtml(parsed.protocolNumber || "Nao informado")}</strong></div></div></section>
-    <section class="section"><h2 class="section-title">Destinatario / Remetente</h2><div class="grid"><div class="field wide"><label>Nome / Razao social</label><strong>${escapeHtml(parsed.recipientName)}</strong></div><div class="field"><label>CNPJ / CPF</label><strong>${escapeHtml(parsed.recipientDocument || "Nao informado")}</strong></div><div class="field wide"><label>Endereco completo</label><strong>${escapeHtml(parsed.recipientAddress || "Nao informado")}</strong></div></div></section>
-    <section class="section"><h2 class="section-title">Itens da nota fiscal</h2><table><thead><tr><th>#</th><th>Codigo</th><th>Descricao</th><th>NCM</th><th class="number">Quantidade</th></tr></thead><tbody>${itemRows}</tbody></table></section>
-    <section class="section"><h2 class="section-title">Totais e transporte</h2><div class="summary"><div class="field"><label>Valor total da nota</label><strong>${total}</strong></div><div class="field"><label>Volumes</label><strong>${Math.max(1, parsed.volumeCount)}</strong></div><div class="field"><label>Transportadora</label><strong>${escapeHtml(carrierName)}</strong></div></div></section>
-    <section class="barcode"><strong>Chave de acesso</strong><div class="bars"></div><code>${escapeHtml(accessKey)}</code></section>
-    <footer class="footer">NF-e ${escapeHtml(parsed.noteNumber)} | Documento fiscal completo</footer>
+    <table class="receipt"><tbody><tr><td colspan="2"><p><b>DANFE PADRAO - RECEBEMOS DE ${escapeHtml(parsed.supplierName)} OS PRODUTOS E/OU SERVICOS CONSTANTES DA NF-e INDICADA AO LADO.</b></p><p><b>Emissao:</b> ${escapeHtml(issuedAt)} &nbsp; <b>Dest/Reme:</b> ${escapeHtml(parsed.recipientName)} &nbsp; <b>Valor Total:</b> ${total}</p></td><td class="nfe" rowspan="2">NF-e<br />No ${escapeHtml(parsed.noteNumber)}<br />Serie 1</td></tr><tr><td>DATA DO RECEBIMENTO:<br /><br /></td><td>IDENTIFICACAO E ASSINATURA DO RECEBEDOR:<br /><br /></td></tr></tbody></table>
+    <div class="dash"></div>
+    <table class="wrapper"><tbody><tr><td class="issuer"><h2>${escapeHtml(parsed.supplierName)}</h2><p>CNPJ: ${escapeHtml(parsed.supplierDocument || "Nao informado")}</p><p>Emitente da NF-e</p></td><td class="danfe"><h1>DANFE</h1><h3>DOCUMENTO AUXILIAR DA NOTA FISCAL ELETRONICA</h3><p>${parsed.direction === "SAIDA" ? "1-SAIDA" : "0-ENTRADA"}</p><p>No ${escapeHtml(parsed.noteNumber)}</p><p>SERIE 1</p><p>Folha 1 de 1</p></td><td class="key"><div class="bars"></div><p class="caption">CHAVE DE ACESSO</p><p class="value">${escapeHtml(accessKey)}</p><p>Consulta de autenticidade no portal nacional da NF-e</p><p>PROTOCOLO: ${escapeHtml(parsed.protocolNumber || "Nao informado")}</p></td></tr></tbody></table>
+    <section class="section"><h2 class="section-title">NATUREZA DA OPERACAO</h2><div class="field-grid"><div class="field wide"><strong>${escapeHtml(parsed.additionalInfo || "Remessa para armazenagem")}</strong></div></div></section>
+    <section class="section"><h2 class="section-title">DESTINATARIO / REMETENTE</h2><div class="field-grid"><div class="field wide"><label>Nome / Razao social</label><strong>${escapeHtml(parsed.recipientName)}</strong></div><div class="field"><label>CNPJ / CPF</label><strong>${escapeHtml(parsed.recipientDocument || "Nao informado")}</strong></div><div class="field"><label>Data de emissao</label><strong>${escapeHtml(issuedAt)}</strong></div><div class="field"><label>Valor total</label><strong>${total}</strong></div><div class="field wide"><label>Endereco completo</label><strong>${escapeHtml(parsed.recipientAddress || "Nao informado")}</strong></div></div></section>
+    <section class="section"><h2 class="section-title">ITENS DA NOTA FISCAL</h2><table><thead><tr><th>#</th><th>Codigo</th><th>Descricao do produto / servico</th><th>NCM/SH</th><th class="number">Quantidade</th></tr></thead><tbody>${itemRows}</tbody></table></section>
+    <section class="section"><h2 class="section-title">TRANSPORTADOR / VOLUMES TRANSPORTADOS</h2><div class="summary"><div class="field"><label>Nome / Razao social</label><strong>${escapeHtml(carrierName)}</strong></div><div class="field"><label>Quantidade</label><strong>${Math.max(1, parsed.volumeCount)} volume(s)</strong></div><div class="field"><label>Peso bruto</label><strong>${parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "Nao informado"}</strong></div></div></section>
+    <section class="section"><h2 class="section-title">DADOS ADICIONAIS</h2><div class="field-grid"><div class="field wide"><strong>${escapeHtml(parsed.additionalInfo || "Sem informacoes adicionais.")}</strong></div></div></section>
+    <section class="barcode"><strong>CHAVE DE ACESSO</strong><div class="bars"></div><code>${escapeHtml(accessKey)}</code></section>
+    <footer class="footer">NF-e ${escapeHtml(parsed.noteNumber)} | DANFE padrao para conferência e impressao</footer>
   </main>
 </body>
 </html>`;
