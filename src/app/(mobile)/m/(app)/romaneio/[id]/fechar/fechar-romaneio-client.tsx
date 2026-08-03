@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,9 +10,12 @@ import {
   Barcode,
   Camera,
   CameraOff,
+  Check,
   CheckCircle2,
+  ChevronDown,
   FileDown,
   IdCard,
+  List,
   Loader2,
   PackageCheck,
   RotateCcw,
@@ -20,6 +23,7 @@ import {
   Truck,
   Upload,
   User,
+  X,
 } from "lucide-react";
 import {
   completeRomaneioWithDoubleCheckAction,
@@ -27,6 +31,7 @@ import {
 } from "@/app/(dashboard)/romaneio/actions";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { getCarrierBrand } from "@/lib/carrier-branding";
 import type { RomaneioRecordDetail, SavedDriver } from "@/lib/romaneio-records";
 
 type FecharRomaneioClientProps = {
@@ -54,7 +59,11 @@ export function FecharRomaneioClient({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [framePulse, setFramePulse] = useState<"success" | "error" | null>(null);
+  const [showOrderListModal, setShowOrderListModal] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
+  const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Driver state
   const [selectedDriverKey, setSelectedDriverKey] = useState<string>("");
@@ -76,6 +85,7 @@ export function FecharRomaneioClient({
   const totalOrders = romaneio.orders.length;
   const scannedCount = scannedIds.size;
   const isDoubleCheckComplete = totalOrders > 0 && scannedCount >= totalOrders;
+  const carrierBrand = getCarrierBrand(romaneio.carrierName);
 
   // Sound effects
   function playBeep(success: boolean) {
@@ -88,50 +98,28 @@ export function FecharRomaneioClient({
       gain.connect(ctx.destination);
 
       if (success) {
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(850, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1250, ctx.currentTime + 0.15);
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
         osc.start();
         osc.stop(ctx.currentTime + 0.15);
       } else {
         osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(250, ctx.currentTime);
-        osc.frequency.setValueAtTime(180, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(240, ctx.currentTime);
+        osc.frequency.setValueAtTime(160, ctx.currentTime + 0.12);
         gain.gain.setValueAtTime(0.4, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.25);
         osc.start();
         osc.stop(ctx.currentTime + 0.25);
       }
     } catch {
-      // AudioContext not allowed or unsupported
+      // AudioContext not supported
     }
   }
 
-  // Camera barcode scanner for double check
-  const {
-    videoRef: barcodeVideoRef,
-    cameraSupported: barcodeCamSupported,
-    cameraEnabled: barcodeCamEnabled,
-    cameraStarting: barcodeCamStarting,
-    toggleCamera: toggleBarcodeCamera,
-  } = useCameraBarcodeScanner({
-    onDetected: (code) => {
-      handleDoubleCheckScan(code);
-    },
-  });
-
-  // Focus scan input on load
-  useEffect(() => {
-    if (step === "double_check") {
-      setTimeout(() => {
-        scanInputRef.current?.focus();
-      }, 300);
-    }
-  }, [step]);
-
   // Handle barcode/DANFE scan in double check
-  function handleDoubleCheckScan(rawCode?: string) {
+  const handleDoubleCheckScan = useCallback((rawCode?: string) => {
     const code = (rawCode || scanInput).trim();
     if (!code) return;
 
@@ -146,9 +134,19 @@ export function FecharRomaneioClient({
         order.id,
         order.code,
         order.externalNumber,
+        (order as any).invoiceNumber,
         (order as any).danfe_simplificada,
+        (order as any).numero_nota,
+        (order as any).chave_nfe,
+        (order as any).chave_acesso,
+        (order as any).tracking_code,
         (order as any).payload_origem?.danfe_simplificada,
         (order as any).payload_origem?.chave_nfe,
+        (order as any).payload_origem?.chave_acesso,
+        (order as any).payload_origem?.numero_nota,
+        (order as any).payload_origem?.nota_fiscal?.numero,
+        (order as any).payload_origem?.nota_fiscal?.chave,
+        (order as any).payload_origem?.codigo_rastreamento,
       ]
         .filter(Boolean)
         .map((t) => String(t).toLowerCase().replace(/[^a-z0-9]/g, ""));
@@ -159,32 +157,82 @@ export function FecharRomaneioClient({
     if (matched) {
       if (scannedIds.has(matched.id)) {
         playBeep(true);
+        setFramePulse("success");
         setScanFeedback({
           type: "success",
-          message: `Volume ${matched.externalNumber || matched.code} já estava bipado.`,
+          message: `Volume ${matched.externalNumber || matched.code} já conferido anteriormente.`,
         });
       } else {
         playBeep(true);
-        setScannedIds((prev) => {
-          const next = new Set(prev);
-          next.add(matched.id);
-          return next;
-        });
+        setFramePulse("success");
+        const nextSet = new Set(scannedIds);
+        nextSet.add(matched.id);
+        setScannedIds(nextSet);
+
+        const isLastOne = nextSet.size >= totalOrders;
         setScanFeedback({
           type: "success",
-          message: `✔ Volume ${matched.externalNumber || matched.code} conferido com sucesso!`,
+          message: isLastOne
+            ? `✔ Todos os ${totalOrders} volumes conferidos!`
+            : `✔ Volume ${matched.externalNumber || matched.code} conferido com sucesso!`,
         });
+
+        if (isLastOne) {
+          // Auto advance to driver step after 1.2s
+          if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+          autoAdvanceTimerRef.current = setTimeout(() => {
+            setStep("motorista");
+          }, 1200);
+        }
       }
     } else {
       playBeep(false);
+      setFramePulse("error");
       setScanFeedback({
         type: "error",
-        message: `❌ Código "${code}" não pertence a esta carga (${romaneio.carrierName})!`,
+        message: `❌ Código não pertence a esta carga (${romaneio.carrierName})!`,
       });
     }
 
+    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    pulseTimerRef.current = setTimeout(() => {
+      setFramePulse(null);
+    }, 600);
+
     scanInputRef.current?.focus();
-  }
+  }, [scanInput, romaneio.orders, romaneio.carrierName, scannedIds, totalOrders]);
+
+  // Camera barcode scanner
+  const {
+    videoRef,
+    cameraSupported,
+    cameraEnabled,
+    cameraStarting,
+    cameraMessage,
+    startCamera,
+    stopCamera,
+    toggleCamera,
+  } = useCameraBarcodeScanner({
+    onDetected: handleDoubleCheckScan,
+    requirePresenceGap: true,
+    confirmReads: 1,
+    presenceGapMs: 500,
+  });
+
+  // Auto start camera on double_check step
+  useEffect(() => {
+    if (step === "double_check") {
+      void startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+      if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+    };
+  }, [step, startCamera, stopCamera]);
 
   // Handle selecting a saved driver
   function handleSelectSavedDriver(key: string) {
@@ -226,7 +274,6 @@ export function FecharRomaneioClient({
         setMotoristaPhoto(dataUrl);
       }
       setActivePhotoTarget(null);
-      // Reset input
       if (photoInputRef.current) photoInputRef.current.value = "";
     };
     reader.readAsDataURL(file);
@@ -251,7 +298,6 @@ export function FecharRomaneioClient({
     setSubmitError(null);
 
     try {
-      // 1. Upload photos if present
       let opUrl: string | null = null;
       let motUrl: string | null = null;
 
@@ -273,7 +319,6 @@ export function FecharRomaneioClient({
         motUrl = res.url;
       }
 
-      // 2. Complete romaneio
       await completeRomaneioWithDoubleCheckAction({
         romaneioId: romaneio.id,
         driverData: {
@@ -302,6 +347,584 @@ export function FecharRomaneioClient({
     background: hexAlpha("#94A3B8", 0.045),
   };
 
+  // =========================================================================
+  // STEP 1: DOUBLE CHECK / BIPAGEM FULLSCREEN COM CÂMERA AUTOMÁTICA
+  // =========================================================================
+  if (step === "double_check") {
+    const progressPercent = totalOrders > 0 ? Math.round((scannedCount / totalOrders) * 100) : 0;
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 300,
+          background: "#000",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* Live Camera Video */}
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+
+        {/* Cinematic Vignette Overlay */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.85) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Top Header HUD */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 18px",
+            paddingTop: "calc(16px + env(safe-area-inset-top))",
+            gap: 10,
+          }}
+        >
+          <Link
+            href="/m/romaneio"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              textDecoration: "none",
+            }}
+          >
+            &#8249;
+          </Link>
+
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, textAlign: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <span
+                style={{
+                  padding: "2px 7px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  backgroundColor: carrierBrand.bg,
+                  color: carrierBrand.color,
+                }}
+              >
+                {carrierBrand.init}
+              </span>
+              <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, ...headingFont }}>
+                {romaneio.code}
+              </span>
+            </div>
+            <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
+              {romaneio.carrierName}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowOrderListModal(true)}
+            style={{
+              height: 38,
+              padding: "0 12px",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            <List className="h-4 w-4 text-amber-400" />
+            <span>Lista</span>
+          </button>
+        </div>
+
+        {/* Center Scanner Reticle */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              width: 260,
+              height: 170,
+              borderRadius: 24,
+              border: `3px ${framePulse ? "solid" : "dashed"} ${
+                framePulse === "success"
+                  ? mobileColors.green
+                  : framePulse === "error"
+                  ? mobileColors.red
+                  : "rgba(255,255,255,0.85)"
+              }`,
+              boxShadow:
+                framePulse === "success"
+                  ? `0 0 28px ${hexAlpha(mobileColors.green, 0.75)}`
+                  : framePulse === "error"
+                  ? `0 0 28px ${hexAlpha(mobileColors.red, 0.75)}`
+                  : "0 0 20px rgba(0,0,0,0.4)",
+              transition: "all 0.15s ease",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+            }}
+          >
+            {cameraStarting && (
+              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600 }}>
+                Iniciando câmera...
+              </span>
+            )}
+            {!cameraSupported && (
+              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, textAlign: "center", padding: 12 }}>
+                Câmera indisponível. Use o leitor ou digite o código abaixo.
+              </span>
+            )}
+          </div>
+
+          <span
+            style={{
+              color: "rgba(255,255,255,0.85)",
+              fontSize: 13,
+              fontWeight: 600,
+              textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+            }}
+          >
+            Aponte para a DANFE / Etiqueta do pacote
+          </span>
+        </div>
+
+        {/* Bottom HUD - Progress & Feedback */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+            padding: "0 20px calc(20px + env(safe-area-inset-bottom))",
+            textAlign: "center",
+          }}
+        >
+          {/* Scan Feedback Banner */}
+          {scanFeedback && (
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 360,
+                padding: "10px 14px",
+                borderRadius: 16,
+                fontSize: 12.5,
+                fontWeight: 700,
+                backgroundColor:
+                  scanFeedback.type === "success"
+                    ? "rgba(16, 185, 129, 0.25)"
+                    : "rgba(239, 68, 68, 0.25)",
+                border: `1px solid ${
+                  scanFeedback.type === "success" ? mobileColors.green : mobileColors.red
+                }`,
+                color: scanFeedback.type === "success" ? "#6EE7B7" : "#FCA5A5",
+                backdropFilter: "blur(12px)",
+                animation: "fade-in 0.2s ease",
+              }}
+            >
+              {scanFeedback.message}
+            </div>
+          )}
+
+          {/* Progress Section: Bolinhas (<= 10) OU Barrinha (> 10) */}
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              background: "rgba(0,0,0,0.65)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              borderRadius: 20,
+              padding: "14px 16px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                fontSize: 13,
+                fontWeight: 800,
+                ...headingFont,
+              }}
+            >
+              <span style={{ color: "#fff" }}>Conferência de Carga</span>
+              <span style={{ color: isDoubleCheckComplete ? mobileColors.green : mobileColors.amber }}>
+                {scannedCount} de {totalOrders} {totalOrders === 1 ? "pedido" : "pedidos"} ({progressPercent}%)
+              </span>
+            </div>
+
+            {/* IF <= 10 PEDIDOS: EXIBE BOLINHAS */}
+            {totalOrders <= 10 ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                  padding: "4px 0",
+                }}
+              >
+                {Array.from({ length: totalOrders }).map((_, idx) => {
+                  const isChecked = idx < scannedCount;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        backgroundColor: isChecked ? mobileColors.green : "rgba(255,255,255,0.12)",
+                        border: `2px solid ${
+                          isChecked ? mobileColors.green : "rgba(255,255,255,0.35)"
+                        }`,
+                        boxShadow: isChecked
+                          ? `0 0 10px ${hexAlpha(mobileColors.green, 0.6)}`
+                          : "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#000",
+                        fontSize: 12,
+                        fontWeight: 900,
+                        transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                        transform: isChecked ? "scale(1.08)" : "scale(1)",
+                      }}
+                    >
+                      {isChecked && <Check className="h-3.5 w-3.5 stroke-[3.5]" />}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* IF > 10 PEDIDOS: EXIBE BARRINHA DE PROGRESSÃO */
+              <div
+                style={{
+                  width: "100%",
+                  height: 10,
+                  borderRadius: 999,
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    borderRadius: 999,
+                    background: `linear-gradient(90deg, ${mobileColors.amber} 0%, ${mobileColors.green} 100%)`,
+                    width: `${Math.min(100, progressPercent)}%`,
+                    transition: "width 0.3s ease",
+                    boxShadow: `0 0 12px ${hexAlpha(mobileColors.green, 0.5)}`,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Quick Manual Input / Gun Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleDoubleCheckScan();
+            }}
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              display: "flex",
+              gap: 8,
+            }}
+          >
+            <div style={{ position: "relative", flex: 1 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  insetY: 0,
+                  left: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  pointerEvents: "none",
+                  color: "rgba(255,255,255,0.4)",
+                }}
+              >
+                <Barcode className="h-4 w-4" />
+              </div>
+              <input
+                ref={scanInputRef}
+                type="text"
+                value={scanInput}
+                onChange={(e) => setScanInput(e.target.value)}
+                placeholder="Digitar / bipar leitor..."
+                style={{
+                  width: "100%",
+                  height: 44,
+                  borderRadius: 14,
+                  backgroundColor: "rgba(0,0,0,0.65)",
+                  backdropFilter: "blur(14px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  paddingLeft: 38,
+                  paddingRight: 12,
+                  fontSize: 13,
+                  color: "#fff",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!scanInput.trim()}
+              style={{
+                height: 44,
+                padding: "0 16px",
+                borderRadius: 14,
+                backgroundColor: scanInput.trim() ? mobileColors.amber : "rgba(255,255,255,0.1)",
+                color: scanInput.trim() ? "#000" : "rgba(255,255,255,0.4)",
+                fontWeight: 800,
+                fontSize: 13,
+                border: "none",
+                cursor: scanInput.trim() ? "pointer" : "default",
+              }}
+            >
+              Bipar
+            </button>
+          </form>
+
+          {/* Action button if complete */}
+          {isDoubleCheckComplete && (
+            <button
+              type="button"
+              onClick={() => setStep("motorista")}
+              style={{
+                width: "100%",
+                maxWidth: 360,
+                height: 48,
+                borderRadius: 16,
+                backgroundColor: mobileColors.green,
+                color: "#000",
+                fontSize: 14,
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                boxShadow: `0 8px 24px ${hexAlpha(mobileColors.green, 0.4)}`,
+                border: "none",
+                cursor: "pointer",
+                animation: "pulse 1.5s infinite",
+              }}
+            >
+              <span>Avançar para Motorista</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Modal: Lista de Pedidos no Romaneio */}
+        {showOrderListModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 400,
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div
+              style={{
+                maxHeight: "80vh",
+                background: "#0A1120",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                border: "1px solid rgba(255,255,255,0.15)",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  padding: "16px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                <div>
+                  <h3 style={{ color: "#fff", fontWeight: 800, fontSize: 16, ...headingFont }}>
+                    Volumes do Romaneio ({scannedCount}/{totalOrders})
+                  </h3>
+                  <span style={{ color: mobileColors.muted, fontSize: 12 }}>
+                    Toque para marcar manualmente se necessário
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowOrderListModal(false)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "none",
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }} className="space-y-2">
+                {romaneio.orders.map((order) => {
+                  const isScanned = scannedIds.has(order.id);
+                  return (
+                    <div
+                      key={order.id}
+                      onClick={() => {
+                        setScannedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(order.id)) next.delete(order.id);
+                          else next.add(order.id);
+                          return next;
+                        });
+                      }}
+                      style={{
+                        padding: 12,
+                        borderRadius: 16,
+                        border: `1px solid ${
+                          isScanned ? hexAlpha(mobileColors.green, 0.4) : "rgba(255,255,255,0.1)"
+                        }`,
+                        background: isScanned
+                          ? hexAlpha(mobileColors.green, 0.1)
+                          : "rgba(255,255,255,0.04)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>
+                            {order.externalNumber || order.code}
+                          </span>
+                          <span style={{ color: mobileColors.amber, fontSize: 12, fontWeight: 600 }}>
+                            {order.invoiceNumber}
+                          </span>
+                        </div>
+                        <p style={{ color: mobileColors.muted, fontSize: 12, marginTop: 2 }}>
+                          {order.customer} • {order.destination}
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          backgroundColor: isCheckedStyle(isScanned),
+                          border: `1.5px solid ${
+                            isScanned ? mobileColors.green : "rgba(255,255,255,0.3)"
+                          }`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#000",
+                        }}
+                      >
+                        {isScanned && <Check className="h-4 w-4 stroke-[3]" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ padding: "14px 18px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowOrderListModal(false)}
+                  style={{
+                    width: "100%",
+                    height: 46,
+                    borderRadius: 14,
+                    background: mobileColors.amber,
+                    color: "#000",
+                    fontWeight: 800,
+                    fontSize: 14,
+                    border: "none",
+                  }}
+                >
+                  Confirmar e Voltar para a Câmera
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEPS 2, 3 & 4 (MOTORISTA, FOTOS, CONCLUÍDO)
+  // =========================================================================
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {/* Hidden file input for photo capture */}
@@ -316,8 +939,13 @@ export function FecharRomaneioClient({
 
       {/* Header */}
       <div style={{ flexShrink: 0, padding: "18px 18px 14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-        <Link
-          href="/m/romaneio"
+        <button
+          type="button"
+          onClick={() => {
+            if (step === "motorista") setStep("double_check");
+            else if (step === "fotos") setStep("motorista");
+            else router.push("/m/romaneio");
+          }}
           style={{
             width: 40,
             height: 40,
@@ -335,7 +963,7 @@ export function FecharRomaneioClient({
           }}
         >
           &#8249;
-        </Link>
+        </button>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
           <span style={{ fontSize: 16, fontWeight: 800, ...headingFont }}>Fechar Romaneio</span>
           <span style={{ fontSize: 12, color: mobileColors.muted }}>
@@ -353,175 +981,11 @@ export function FecharRomaneioClient({
             flexShrink: 0,
           }}
         >
-          {step === "double_check" ? "1. Double Check" : step === "motorista" ? "2. Motorista" : step === "fotos" ? "3. Fotos" : "Concluído"}
+          {step === "motorista" ? "2. Motorista" : step === "fotos" ? "3. Fotos" : "Concluído"}
         </span>
       </div>
 
       <div className="app-scroll space-y-4 px-[18px] pb-[32px]" style={{ flex: 1, overflowY: "auto" }}>
-        {/* ========================================================================= */}
-        {/* STEP 1: DOUBLE CHECK / BIPAGEM DE VOLUMES */}
-        {/* ========================================================================= */}
-        {step === "double_check" && (
-          <div className="space-y-4">
-            {/* Progress Card */}
-            <div className="rounded-[24px] p-4" style={cardStyle}>
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span style={{ color: mobileColors.muted }}>Conferência de Volumes</span>
-                <span style={{ color: isDoubleCheckComplete ? mobileColors.green : mobileColors.amber }}>
-                  {scannedCount} de {totalOrders} volumes ({Math.round((scannedCount / Math.max(1, totalOrders)) * 100)}%)
-                </span>
-              </div>
-              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, (scannedCount / Math.max(1, totalOrders)) * 100)}%`,
-                    background: isDoubleCheckComplete ? mobileColors.green : mobileColors.amber,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Scanner Input */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleDoubleCheckScan();
-              }}
-              className="space-y-2"
-            >
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                  <Barcode className="h-5 w-5" />
-                </div>
-                <input
-                  ref={scanInputRef}
-                  type="text"
-                  value={scanInput}
-                  onChange={(e) => setScanInput(e.target.value)}
-                  placeholder="Bipar DANFE Simplificada do volume..."
-                  className="h-12 w-full rounded-2xl border border-white/15 bg-slate-900 pl-11 pr-4 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={toggleBarcodeCamera}
-                  disabled={!barcodeCamSupported}
-                  className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-xl text-xs font-semibold ${
-                    barcodeCamEnabled
-                      ? "bg-rose-500 text-white"
-                      : "border border-white/10 bg-slate-900 text-slate-200"
-                  }`}
-                >
-                  {barcodeCamEnabled ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                  {barcodeCamStarting ? "Iniciando câmera..." : barcodeCamEnabled ? "Desligar Câmera" : "Ler pela Câmera"}
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={!scanInput.trim()}
-                  className="flex h-10 px-5 items-center justify-center gap-2 rounded-xl bg-amber-500 text-xs font-bold text-slate-950 shadow hover:bg-amber-400 disabled:opacity-50"
-                >
-                  Bipar
-                </button>
-              </div>
-            </form>
-
-            {/* Camera View */}
-            {barcodeCamEnabled && (
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
-                <video ref={barcodeVideoRef} playsInline muted className="aspect-video w-full object-cover" />
-              </div>
-            )}
-
-            {/* Scan Feedback Banner */}
-            {scanFeedback && (
-              <div
-                className={`rounded-2xl p-3.5 text-xs font-semibold transition animate-in fade-in ${
-                  scanFeedback.type === "success"
-                    ? "border border-emerald-500/30 bg-emerald-950/40 text-emerald-300"
-                    : "border border-rose-500/40 bg-rose-950/40 text-rose-300"
-                }`}
-              >
-                {scanFeedback.message}
-              </div>
-            )}
-
-            {/* Volumes Checklist */}
-            <div className="space-y-2">
-              <p className="px-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Lista de Volumes ({totalOrders})
-              </p>
-              {romaneio.orders.map((order) => {
-                const isScanned = scannedIds.has(order.id);
-                return (
-                  <div
-                    key={order.id}
-                    className={`flex items-center justify-between rounded-2xl p-3.5 transition ${
-                      isScanned
-                        ? "border border-emerald-500/30 bg-emerald-950/20 text-emerald-100"
-                        : "border border-white/10 bg-white/5 text-slate-200"
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-white">{order.externalNumber || order.code}</span>
-                        {isScanned && (
-                          <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 uppercase">
-                            Conferido
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-slate-400">
-                        {order.customer} • {order.destination}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setScannedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(order.id)) next.delete(order.id);
-                          else next.add(order.id);
-                          return next;
-                        });
-                      }}
-                      className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                        isScanned
-                          ? "bg-emerald-500 text-slate-950 font-bold"
-                          : "border border-white/15 bg-white/5 text-slate-400"
-                      }`}
-                    >
-                      {isScanned ? <CheckCircle2 className="h-5 w-5" /> : <Barcode className="h-4 w-4" />}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Advance Button */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setStep("motorista")}
-                disabled={!isDoubleCheckComplete}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Avançar para Dados do Motorista
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              {!isDoubleCheckComplete && (
-                <p className="mt-2 text-center text-[11px] text-slate-400">
-                  Bipe todos os {totalOrders} volumes para liberar o próximo passo.
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* ========================================================================= */}
         {/* STEP 2: DADOS DO MOTORISTA */}
         {/* ========================================================================= */}
@@ -609,7 +1073,7 @@ export function FecharRomaneioClient({
                 className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 font-semibold text-slate-300 hover:bg-white/10"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Voltar
+                Voltar à Câmera
               </button>
               <button
                 type="button"
@@ -805,4 +1269,8 @@ export function FecharRomaneioClient({
       </div>
     </div>
   );
+}
+
+function isCheckedStyle(scanned: boolean) {
+  return scanned ? mobileColors.green : "transparent";
 }
