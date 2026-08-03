@@ -28,9 +28,17 @@ export function RomaneioDrawer({ romaneio: r, onClose }: RomaneioDrawerProps) {
               <span className="text-xs font-bold tracking-[0.12em] text-slate-500 dark:text-slate-400">
                 ROMANEIO
               </span>
-              <span className="font-[family-name:var(--font-space-grotesk)] text-[26px] font-bold leading-none text-slate-900 dark:text-slate-100">
-                {r.code}
-              </span>
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center font-[family-name:var(--font-space-grotesk)] text-[13px] font-extrabold"
+                  style={{ backgroundColor: r.carrierBg, color: r.carrierColor }}
+                >
+                  {r.carrierInit}
+                </span>
+                <span className="font-[family-name:var(--font-space-grotesk)] text-[24px] font-bold leading-none text-slate-900 dark:text-slate-100">
+                  {r.code}
+                </span>
+              </div>
               <span
                 className="inline-flex items-center gap-[7px] self-start px-3 py-[5px] rounded-full text-[12.5px] font-bold"
                 style={{ backgroundColor: r.statusBg, color: r.statusColor }}

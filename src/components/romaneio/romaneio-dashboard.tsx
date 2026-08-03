@@ -20,14 +20,65 @@ const hex2 = (h: string, a: number) => {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 };
 
-const carriers: Record<string, string> = {
-  Jadlog: "#E11D48",
-  Correios: "#2563EB",
-  "Total Express": "#7C3AED",
-  Loggi: "#F59E0B",
-  Braspress: "#0891B2",
-  "Frota Própria": "#10B981",
-};
+function getCarrierBrand(rawName: string) {
+  const name = (rawName || "").trim();
+  const lower = name.toLowerCase();
+
+  if (lower.includes("shopee")) {
+    return { color: "#EE4D2D", bg: hex2("#EE4D2D", 0.16), init: "SH" };
+  }
+  if (lower.includes("mercado") || lower.includes("meli")) {
+    return { color: "#2D3277", bg: hex2("#FFE600", 0.35), init: "ML" };
+  }
+  if (lower.includes("amazon")) {
+    return { color: "#FF9900", bg: hex2("#FF9900", 0.16), init: "AM" };
+  }
+  if (lower.includes("magalu") || lower.includes("magazine")) {
+    return { color: "#0086FF", bg: hex2("#0086FF", 0.16), init: "MG" };
+  }
+  if (lower.includes("jadlog")) {
+    return { color: "#E11D48", bg: hex2("#E11D48", 0.16), init: "JD" };
+  }
+  if (lower.includes("correio") || lower.includes("sedex") || lower.includes("pac")) {
+    return { color: "#2563EB", bg: hex2("#2563EB", 0.16), init: "CR" };
+  }
+  if (lower.includes("total express") || lower.includes("totalexpress")) {
+    return { color: "#7C3AED", bg: hex2("#7C3AED", 0.16), init: "TX" };
+  }
+  if (lower.includes("loggi")) {
+    return { color: "#0284C7", bg: hex2("#0284C7", 0.16), init: "LG" };
+  }
+  if (lower.includes("braspress")) {
+    return { color: "#0891B2", bg: hex2("#0891B2", 0.16), init: "BP" };
+  }
+  if (lower.includes("manda") || lower.includes("mandae")) {
+    return { color: "#16A34A", bg: hex2("#16A34A", 0.16), init: "MD" };
+  }
+  if (lower.includes("sequoia")) {
+    return { color: "#DC2626", bg: hex2("#DC2626", 0.16), init: "SQ" };
+  }
+  if (lower.includes("azul")) {
+    return { color: "#0284C7", bg: hex2("#0284C7", 0.16), init: "AZ" };
+  }
+  if (lower.includes("latam")) {
+    return { color: "#BE123C", bg: hex2("#BE123C", 0.16), init: "LA" };
+  }
+  if (lower.includes("gollog") || lower.includes("gol")) {
+    return { color: "#EA580C", bg: hex2("#EA580C", 0.16), init: "GL" };
+  }
+  if (lower.includes("kangu")) {
+    return { color: "#F97316", bg: hex2("#F97316", 0.16), init: "KG" };
+  }
+  if (lower.includes("melhor envio")) {
+    return { color: "#06B6D4", bg: hex2("#06B6D4", 0.16), init: "ME" };
+  }
+  if (lower.includes("própria") || lower.includes("propria")) {
+    return { color: "#10B981", bg: hex2("#10B981", 0.16), init: "FP" };
+  }
+
+  const init = name.length >= 2 ? name.slice(0, 2).toUpperCase() : (name || "TR").toUpperCase();
+  return { color: "#64748B", bg: hex2("#64748B", 0.14), init };
+}
 
 const statusStyle = (s: string) => {
   if (s === "Aberto")
@@ -51,33 +102,8 @@ const statusStyle = (s: string) => {
 
 const capColor = (c: number) => (c >= 95 ? "#EF4444" : c >= 80 ? "#F59E0B" : "#10B981");
 
-const cities = [
-  "São Paulo · SP",
-  "Guarulhos · SP",
-  "Osasco · SP",
-  "Campinas · SP",
-  "Santos · SP",
-  "Barueri · SP",
-  "São Bernardo · SP",
-];
-const names = [
-  "Marina Costa",
-  "Bruno Almeida",
-  "Carla Menezes",
-  "Diego Ferreira",
-  "Patrícia Lima",
-  "Renato Souza",
-  "Fernanda Dias",
-  "Loja Beta Ltda",
-];
-
-const formatDisplayValue = (val: number | string) => {
-  if (typeof val === 'number') return val.toLocaleString("pt-BR");
-  return val.toString();
-};
-
 const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
-  const cc = carriers[r.carrierName] || "#64748B";
+  const brand = getCarrierBrand(r.carrierName);
   const ss = statusStyle(r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado");
   const cap = 70; // We don't have cap in DB for now
   const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
@@ -108,9 +134,9 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
     vehicle: r.vehicleModel || "—",
     departure: new Date(r.createdAt).toLocaleDateString("pt-BR"),
     status: r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado",
-    carrierColor: cc,
-    carrierBg: hex2(cc, 0.15),
-    carrierInit: r.carrierName.slice(0, 2).toUpperCase(),
+    carrierColor: brand.color,
+    carrierBg: brand.bg,
+    carrierInit: brand.init,
     capColor: capColor(cap),
     capFill: cap >= 95 ? "#EF4444" : cap >= 80 ? "linear-gradient(90deg,#F59E0B,#FBBF24)" : grad,
     statusBg: ss.statusBg,
@@ -130,7 +156,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
 };
 
 const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
-  const cc = carriers[s.carrierName] || "#64748B";
+  const brand = getCarrierBrand(s.carrierName);
   const ss = {
     statusBg: hex2("#F59E0B", 0.16),
     statusColor: "#F59E0B",
@@ -165,9 +191,9 @@ const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
     vehicle: "—",
     departure: s.cutoff,
     status: "Sugestão",
-    carrierColor: cc,
-    carrierBg: hex2(cc, 0.15),
-    carrierInit: s.carrierName.slice(0, 2).toUpperCase(),
+    carrierColor: brand.color,
+    carrierBg: brand.bg,
+    carrierInit: brand.init,
     capColor: capColor(cap),
     capFill: grad,
     statusBg: ss.statusBg,
