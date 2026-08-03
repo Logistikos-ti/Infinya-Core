@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Barcode, Camera, CameraOff, Focus, Volume2 } from "lucide-react";
+import { AlertTriangle, Barcode, Camera, CameraOff, Focus, Truck, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
@@ -55,6 +56,7 @@ export function MobileConferencePanel({
   const [wrongProductScans, setWrongProductScans] = useState(order.wrongProductScans);
   const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDanfeModalOpen, setIsDanfeModalOpen] = useState(false);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const recentScanTimerRef = useRef<number | null>(null);
@@ -826,18 +828,37 @@ export function MobileConferencePanel({
         </div>
 
         <div className="grid grid-cols-1 gap-2">
-          <Button
-            type="submit"
-            name="intent"
-            value="complete"
-            className="h-11 bg-amber-500 text-slate-950 hover:bg-amber-400"
-            disabled={isSubmitting}
-            onClick={() => setIsSubmitting(true)}
-          >
-            {isSubmitting ? "Processando conferência..." : "Concluir conferência"}
-          </Button>
+          {completionPercent === 100 ? (
+            <Button
+              type="button"
+              className="h-12 bg-emerald-500 font-bold text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400"
+              onClick={() => setIsDanfeModalOpen(true)}
+            >
+              <Truck className="mr-2 h-5 w-5" />
+              Preparar para Romaneio
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              name="intent"
+              value="complete"
+              className="h-11 bg-amber-500 text-slate-950 hover:bg-amber-400"
+              disabled={isSubmitting}
+              onClick={() => setIsSubmitting(true)}
+            >
+              {isSubmitting ? "Processando conferência..." : "Concluir conferência"}
+            </Button>
+          )}
         </div>
       </div>
+
+      <DanfeRomaneioModal
+        isOpen={isDanfeModalOpen}
+        onClose={() => setIsDanfeModalOpen(false)}
+        orderId={order.id}
+        orderCode={order.code}
+        customerName={order.customer}
+      />
     </form>
   );
 }

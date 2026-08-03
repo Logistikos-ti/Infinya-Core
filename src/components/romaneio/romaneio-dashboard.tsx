@@ -76,13 +76,13 @@ const formatDisplayValue = (val: number | string) => {
   return val.toString();
 };
 
-const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
+const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
   const cc = carriers[r.carrierName] || "#64748B";
   const ss = statusStyle(r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado");
   const cap = 70; // We don't have cap in DB for now
   const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
   
-  const stops: RomaneioStop[] = r.orders.map((o, i) => ({
+  const stops: RomaneioStop[] = r.orders.map((o: any, i: number) => ({
     seq: i + 1,
     customer: o.customer,
     code: o.code,
@@ -93,7 +93,7 @@ const mapRecordToUI = (r: RomaneioRecordDetail): RomaneioUI => {
   
   return {
     id: r.id,
-    orderIds: r.orders.map(o => o.id),
+    orderIds: r.orders.map((o: any) => o.id),
     transportadoraId: r.transportadoraId,
     transportadoraNome: r.carrierName,
     code: r.code,

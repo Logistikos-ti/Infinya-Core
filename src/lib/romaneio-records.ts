@@ -844,60 +844,144 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export async function autoAssignOrderToRomaneio({ user, orderId }: { user: AppUserContext; orderId: string }) {
+export type SavedDriver = {
+  nome: string;
+  documento: string;
+  veiculoModelo: string;
+  veiculoPlaca: string;
+  transportadoraNome?: string | null;
+};
+
+export async function listSavedDriversFromDb(transportadoraNome?: string | null): Promise<SavedDriver[]> {
   const admin = createSupabaseAdminClient();
-  
-  // 1. Get the order details to know the carrier
+  let query = admin
+    .from("romaneios_carga")
+    .select("motorista_nome, motorista_documento, veiculo_modelo, veiculo_placa, transportadora_nome")
+    .not("motorista_nome", "is", null)
+    .order("atualizado_em", { ascending: false });
+
+  if (transportadoraNome && transportadoraNome.trim()) {
+    query = query.ilike("transportadora_nome", `%${transportadoraNome.trim()}%`);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const drivers: SavedDriver[] = [];
+
+  for (const row of data) {
+    const nome = row.motorista_nome?.trim();
+    if (!nome) continue;
+    const key = `${nome.toLowerCase()}|${(row.motorista_documento ?? "").trim().toLowerCase()}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      drivers.push({
+        nome,
+        documento: row.motorista_documento?.trim() ?? "",
+        veiculoModelo: row.veiculo_modelo?.trim() ?? "",
+        veiculoPlaca: row.veiculo_placa?.trim() ?? "",
+        transportadoraNome: row.transportadora_nome?.trim() ?? null,
+      });
+    }
+  }
+
+  return drivers;
+}
+
+export async function validateAndAssignOrderDanfeToRomaneio({
+  user,
+  orderId,
+  scannedDanfe,
+}: {
+  user: AppUserContext;
+  orderId: string;
+  scannedDanfe?: string;
+}) {
+  const admin = createSupabaseAdminClient();
+
+  // 1. Get the order details
   const { data: order, error: orderError } = await admin
     .from("pedidos_expedicao")
-    .select("transportadora_nome")
+    .select("id, codigo, numero_wms, numero_pedido, referencia_externa, payload_origem, transportadora_nome, status")
     .eq("id", orderId)
     .maybeSingle();
 
   if (orderError || !order) {
-    throw new Error("Order not found or could not be loaded");
+    throw new Error("Pedido não encontrado no banco de dados.");
   }
-  
-  const transportadora = order.transportadora_nome?.trim() || "Sem transportadora";
-  
-  // 2. Find an ABERTO romaneio for this transportadora
-  const { data: romaneios, error: romaneioError } = await admin
+
+  // 2. Validate DANFE / code
+  const danfe = (scannedDanfe || "").trim();
+
+  // Determine carrier name
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  let carrierName = order.transportadora_nome?.trim() || extractCarrierName(payload);
+  if (!carrierName || carrierName === "Transportadora não informada") {
+    // Check marketplace hints in payload
+    if (payload.mercadoLivre) carrierName = "Mercado Livre";
+    else if (payload.shopee) carrierName = "Shopee";
+    else if (payload.mandae) carrierName = "Mandaê";
+    else carrierName = "Transportadora Padrão";
+  }
+
+  // Update order status to PRONTO_ROMANEIO and save danfe key if provided
+  const updatedPayload = {
+    ...payload,
+    ...(danfe ? { danfe_simplificada: danfe } : {}),
+    danfe_conferida_em: new Date().toISOString(),
+    danfe_conferida_por: user.nome || user.email,
+  };
+
+  await admin
+    .from("pedidos_expedicao")
+    .update({
+      status: "PRONTO_ROMANEIO",
+      payload_origem: updatedPayload,
+      transportadora_nome: carrierName,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+
+  // 3. Find an ABERTO romaneio for this carrier
+  const { data: romaneios } = await admin
     .from("romaneios_carga")
     .select("id, codigo")
     .eq("status", "ABERTO")
-    .eq("transportadora_nome", transportadora)
+    .ilike("transportadora_nome", carrierName)
     .order("criado_em", { ascending: false })
     .limit(1);
-    
-  let romaneioId;
-  let romaneioCodigo;
-  
-  if (romaneioError || !romaneios || romaneios.length === 0) {
-    // 3. If none exists, create one
+
+  let romaneioId: string;
+  let romaneioCodigo: string;
+
+  if (!romaneios || romaneios.length === 0) {
+    // Create new romaneio
     const codigo = buildRomaneioCode();
-    
     const { data: newRomaneio, error: createError } = await admin
       .from("romaneios_carga")
       .insert({
         codigo,
         status: "ABERTO",
-        transportadora_nome: transportadora,
-        criado_por: user.name,
+        transportadora_nome: carrierName,
+        criado_por: user.nome || user.email,
       })
       .select("id, codigo")
-      .maybeSingle();
-      
+      .single();
+
     if (createError || !newRomaneio) {
-      throw new Error("Failed to create new romaneio: " + (createError?.message ?? "Unknown"));
+      throw new Error(`Falha ao abrir romaneio para ${carrierName}: ${createError?.message}`);
     }
-    
+
     romaneioId = newRomaneio.id;
     romaneioCodigo = newRomaneio.codigo;
   } else {
     romaneioId = romaneios[0].id;
     romaneioCodigo = romaneios[0].codigo;
   }
-  
+
   // 4. Link the order to the romaneio
   const { data: currentLinks } = await admin
     .from("romaneios_carga_pedidos")
@@ -908,18 +992,126 @@ export async function autoAssignOrderToRomaneio({ user, orderId }: { user: AppUs
 
   const nextSequence = currentLinks && currentLinks.length > 0 ? currentLinks[0].sequencia + 1 : 1;
 
-  const { error: linkError } = await admin
+  await admin
     .from("romaneios_carga_pedidos")
-    .insert({
-      romaneio_id: romaneioId,
-      pedido_expedicao_id: orderId,
-      sequencia: nextSequence,
-      adicionado_por: user.name,
-    });
-    
-  if (linkError && !linkError.message.includes("duplicate key")) {
-    throw new Error("Failed to link order to romaneio: " + linkError.message);
+    .upsert(
+      {
+        romaneio_id: romaneioId,
+        pedido_expedicao_id: orderId,
+        sequencia: nextSequence,
+        adicionado_por: user.nome || user.email,
+      },
+      { onConflict: "romaneio_id,pedido_expedicao_id" },
+    );
+
+  // Count total orders in this romaneio
+  const { count } = await admin
+    .from("romaneios_carga_pedidos")
+    .select("*", { count: "exact", head: true })
+    .eq("romaneio_id", romaneioId);
+
+  return {
+    ok: true,
+    romaneioId,
+    romaneioCodigo,
+    codigo: romaneioCodigo,
+    carrierName,
+    orderCode: order.codigo,
+    totalOrders: count ?? 1,
+  };
+}
+
+export const autoAssignOrderToRomaneio = validateAndAssignOrderDanfeToRomaneio;
+
+export async function completeRomaneioWithDoubleCheck({
+  user,
+  romaneioId,
+  driverData,
+  photos,
+  scannedOrderIds,
+}: {
+  user: AppUserContext;
+  romaneioId: string;
+  driverData: {
+    nome: string;
+    documento: string;
+    veiculoModelo: string;
+    veiculoPlaca: string;
+  };
+  photos: {
+    operadorUrl?: string | null;
+    motoristaUrl?: string | null;
+  };
+  scannedOrderIds: string[];
+}) {
+  const admin = createSupabaseAdminClient();
+
+  // 1. Fetch romaneio and all linked orders
+  const { data: romaneio, error: romError } = await admin
+    .from("romaneios_carga")
+    .select("*")
+    .eq("id", romaneioId)
+    .maybeSingle();
+
+  if (romError || !romaneio) {
+    throw new Error("Romaneio não encontrado.");
   }
-  
-  return { id: romaneioId, codigo: romaneioCodigo };
+
+  const { data: links, error: linkErr } = await admin
+    .from("romaneios_carga_pedidos")
+    .select("pedido_expedicao_id")
+    .eq("romaneio_id", romaneioId);
+
+  if (linkErr || !links || links.length === 0) {
+    throw new Error("Este romaneio não possui pedidos vinculados.");
+  }
+
+  const allOrderIds = links.map((l) => l.pedido_expedicao_id);
+  const scannedSet = new Set(scannedOrderIds);
+  const missingOrders = allOrderIds.filter((id) => !scannedSet.has(id));
+
+  if (missingOrders.length > 0) {
+    throw new Error(
+      `Ainda faltam ${missingOrders.length} pedido(s) a serem conferidos no double check de embarque.`,
+    );
+  }
+
+  // 2. Build metadata
+  const obsPayload = {
+    foto_operador_url: photos.operadorUrl ?? null,
+    foto_motorista_url: photos.motoristaUrl ?? null,
+    conferido_em: new Date().toISOString(),
+    conferido_por: user.nome || user.email,
+  };
+
+  // 3. Update romaneio to LIBERADO
+  const { error: updateRomError } = await admin
+    .from("romaneios_carga")
+    .update({
+      status: "LIBERADO",
+      motorista_nome: driverData.nome.trim(),
+      motorista_documento: driverData.documento.trim(),
+      veiculo_modelo: driverData.veiculoModelo.trim(),
+      veiculo_placa: driverData.veiculoPlaca.trim().toUpperCase(),
+      observacoes: JSON.stringify(obsPayload),
+      liberado_por: user.nome || user.email,
+      liberado_em: new Date().toISOString(),
+      atualizado_em: new Date().toISOString(),
+    })
+    .eq("id", romaneioId);
+
+  if (updateRomError) {
+    throw new Error(`Falha ao finalizar romaneio: ${updateRomError.message}`);
+  }
+
+  // 4. Update all linked orders to EXPEDIDO
+  await admin
+    .from("pedidos_expedicao")
+    .update({
+      status: "EXPEDIDO",
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", allOrderIds);
+
+  return { ok: true, romaneioId, codigo: romaneio.codigo };
 }

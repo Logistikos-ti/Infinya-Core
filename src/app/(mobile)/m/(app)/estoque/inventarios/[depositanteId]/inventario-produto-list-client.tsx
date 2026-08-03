@@ -7,7 +7,6 @@ type ProdutoRow = {
   estoqueId: string;
   nome: string;
   sku: string;
-  endereco: string;
   imagemUrl: string | null;
 };
 
@@ -34,8 +33,6 @@ export function InventarioProdutoListClient({
         iconColor: mobileColors.amber,
         imageUrl: p.imagemUrl,
         title: p.nome,
-        tag: `End. ${p.endereco}`,
-        tagColor: mobileColors.amber,
         sub: p.sku,
         onClick: () => router.push(`/m/estoque/inventarios/${depositanteId}/${p.estoqueId}`),
       }))}

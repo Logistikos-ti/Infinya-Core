@@ -241,8 +241,8 @@ export type MobileListItem = {
   // stays as a fallback for items with no photo on file.
   imageUrl?: string | null;
   title: string;
-  tag: string;
-  tagColor: string;
+  tag?: string;
+  tagColor?: string;
   sub: string;
   onClick: () => void;
 };
@@ -333,18 +333,20 @@ export function MobileListShell({
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ fontSize: 15.5, fontWeight: 800, ...headingFont }}>{it.title}</span>
-                  <span
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      fontSize: 10,
-                      fontWeight: 800,
-                      background: hexAlpha(it.tagColor, 0.16),
-                      color: it.tagColor,
-                    }}
-                  >
-                    {it.tag}
-                  </span>
+                  {it.tag && it.tagColor ? (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        background: hexAlpha(it.tagColor, 0.16),
+                        color: it.tagColor,
+                      }}
+                    >
+                      {it.tag}
+                    </span>
+                  ) : null}
                 </div>
                 <span
                   style={{
@@ -436,8 +438,10 @@ export function MobileFlowShell({
   subtitle: string;
   tag: string;
   tagColor: string;
-  progressPct: string;
-  progressLabel: string;
+  // Omit when the flow has a single step (nothing to show real progress
+  // against) -- hides the progress bar entirely instead of a fake percentage.
+  progressPct?: string;
+  progressLabel?: string;
   onBack: () => void;
   done: boolean;
   doneTitle?: string;
@@ -474,23 +478,25 @@ export function MobileFlowShell({
         </span>
       </div>
 
-      <div style={{ flexShrink: 0, padding: "0 18px 14px 18px" }}>
-        <div style={{ height: 7, borderRadius: 999, background: hexAlpha("#94A3B8", 0.12), overflow: "hidden" }}>
-          <div
-            style={{
-              height: "100%",
-              width: progressPct,
-              borderRadius: 999,
-              background: mobileGradient,
-              transition: "width 0.4s ease",
-            }}
-          />
+      {progressPct ? (
+        <div style={{ flexShrink: 0, padding: "0 18px 14px 18px" }}>
+          <div style={{ height: 7, borderRadius: 999, background: hexAlpha("#94A3B8", 0.12), overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: progressPct,
+                borderRadius: 999,
+                background: mobileGradient,
+                transition: "width 0.4s ease",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            <span style={{ fontSize: 11.5, color: mobileColors.muted }}>{progressLabel}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: mobileColors.violetLight }}>{progressPct}</span>
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-          <span style={{ fontSize: 11.5, color: mobileColors.muted }}>{progressLabel}</span>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: mobileColors.violetLight }}>{progressPct}</span>
-        </div>
-      </div>
+      ) : null}
 
       <div className="app-scroll" style={{ flex: 1, overflowY: "auto", padding: "0 18px 18px 18px", display: "flex", flexDirection: "column" }}>
         {done ? (

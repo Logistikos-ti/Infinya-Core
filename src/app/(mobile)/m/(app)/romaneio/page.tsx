@@ -243,6 +243,16 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  {record.status === "ABERTO" ? (
+                    <Link
+                      href={`/m/romaneio/${record.id}/fechar`}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3 text-xs font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Fechar Romaneio
+                    </Link>
+                  ) : null}
+
                   <Link
                     href={`/romaneio/${record.id}`}
                     className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-xs font-semibold transition"
@@ -252,7 +262,7 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
                       color: mobileColors.text,
                     }}
                   >
-                    Abrir detalhe no WMS
+                    Detalhes
                   </Link>
                 </div>
               </article>
