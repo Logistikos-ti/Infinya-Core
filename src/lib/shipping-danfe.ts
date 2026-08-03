@@ -16,6 +16,141 @@ export function buildSimplifiedDanfePdfFromXml(xml: string, options?: { carrierN
   return buildSimplifiedDanfePdf(parseNfeXml(xml), options);
 }
 
+export function buildFullDanfePdfFromXml(xml: string, options?: { carrierName?: string | null }) {
+  const parsed = parseNfeXml(xml);
+  const accessKey = digitsOnly(parsed.accessKey);
+  const carrierName = options?.carrierName?.trim() || parsed.carrierName || "NAO INFORMADO";
+  const operations: string[] = [];
+  const width = 595;
+  const height = 842;
+  const margin = 28;
+
+  drawJpeg(operations, margin, 750, 165, 60);
+  strokeRect(operations, margin, 742, width - margin * 2, 72, BLACK, 1.1);
+  line(operations, 395, 742, 395, 814, BLACK, 0.8);
+  text(operations, 411, 787, "DOCUMENTO AUXILIAR DA", 8, DARK, true);
+  text(operations, 411, 771, "NOTA FISCAL ELETRONICA", 12, BLACK, true);
+  text(operations, 411, 755, `NF-e ${safeAscii(parsed.noteNumber)} | SERIE 1`, 9, BLACK, true);
+
+  fullField(operations, margin, 680, 270, 54, "EMITENTE", safeAscii(parsed.supplierName), `CNPJ: ${safeAscii(parsed.supplierDocument ?? "NAO INFORMADO")}`);
+  fullField(operations, 302, 680, 265, 54, "DESTINATARIO / REMETENTE", safeAscii(parsed.recipientName), safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"));
+  fullField(operations, margin, 625, 170, 44, "DATA DE EMISSAO", formatDateTime(parsed.issuedAt));
+  fullField(operations, 200, 625, 180, 44, "TRANSPORTADORA", safeAscii(carrierName));
+  fullField(operations, 380, 625, 187, 44, "VALOR TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+
+  text(operations, margin, 603, "ITENS DA NOTA FISCAL", 9, BLACK, true);
+  tableHeader(operations, margin, 580, [30, 85, 275, 85, 64], ["#", "CODIGO", "DESCRICAO", "NCM", "QTD"]);
+  let rowY = 562;
+  parsed.items.slice(0, 20).forEach((item, index) => {
+    if (index % 2 === 0) fillRect(operations, margin, rowY - 6, 539, 17, LIGHT);
+    text(operations, margin + 9, rowY, String(index + 1), 7.5, DARK, false);
+    text(operations, margin + 34, rowY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 15), 7.5, DARK, false);
+    text(operations, margin + 119, rowY, truncate(safeAscii(item.descricao), 47), 7.5, DARK, false);
+    text(operations, margin + 394, rowY, truncate(safeAscii(item.ncm ?? "-"), 13), 7.5, DARK, false);
+    text(operations, margin + 512, rowY, item.quantidade.toLocaleString("pt-BR"), 7.5, DARK, false);
+    line(operations, margin, rowY - 7, width - margin, rowY - 7, [0.75, 0.75, 0.75], 0.3);
+    rowY -= 17;
+  });
+  if (parsed.items.length > 20) text(operations, margin, rowY, `+ ${parsed.items.length - 20} itens nao exibidos nesta pagina`, 7, GRAY, false);
+
+  const bottomY = 130;
+  fullField(operations, margin, bottomY + 76, 175, 48, "VOLUMES", String(Math.max(1, parsed.volumeCount)));
+  fullField(operations, 203, bottomY + 76, 175, 48, "PESO BRUTO", parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO");
+  fullField(operations, 378, bottomY + 76, 189, 48, "PROTOCOLO", safeAscii(parsed.protocolNumber ?? "NAO INFORMADO"));
+  strokeRect(operations, margin, bottomY, width - margin * 2, 66, BLACK, 0.8);
+  text(operations, margin + 8, bottomY + 51, "CHAVE DE ACESSO", 7.5, BLACK, true);
+  if (accessKey.length === 44) {
+    drawCode128(operations, accessKey, margin + 8, bottomY + 18, width - margin * 2 - 16, 26);
+    text(operations, margin + 8, bottomY + 8, accessKey, 7, BLACK, false);
+  } else {
+    text(operations, margin + 8, bottomY + 25, "CHAVE DE ACESSO NAO INFORMADA NO XML", 8, BLACK, true);
+  }
+  text(operations, margin, 48, `NF-e ${safeAscii(parsed.noteNumber)} | Documento fiscal completo`, 7.2, GRAY, false);
+  text(operations, width - margin - 56, 48, "Pagina 1 de 1", 7.2, GRAY, false);
+
+  return createSimplePdf(operations.join("\n"), width, height);
+}
+
+/**
+ * Renders the complete fiscal-document preview used by the "Nota fiscal"
+ * action. The thermal 4x6 DANFE remains a separate operational document.
+ */
+export function buildInvoicePreviewHtmlFromXml(xml: string, options?: { carrierName?: string | null }) {
+  const parsed = parseNfeXml(xml);
+  const carrierName = options?.carrierName?.trim() || parsed.carrierName || "Nao informado";
+  const issuedAt = parsed.issuedAt
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(parsed.issuedAt))
+    : "Nao informada";
+  const total = parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const accessKey = parsed.accessKey || "Nao informada";
+  const itemRows = parsed.items
+    .map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(item.codigo || item.ean || "-")}</td>
+        <td>${escapeHtml(item.descricao)}</td>
+        <td>${escapeHtml(item.ncm || "-")}</td>
+        <td class="number">${item.quantidade.toLocaleString("pt-BR")}</td>
+      </tr>`)
+    .join("");
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NF-e ${escapeHtml(parsed.noteNumber)}</title>
+  <style>
+    @page { size: A4 portrait; margin: 11mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f1f5f9; color: #0f172a; font: 12px/1.38 Arial, Helvetica, sans-serif; }
+    .page { width: min(210mm, 100%); min-height: 297mm; margin: 0 auto; padding: 11mm; background: #fff; }
+    .header { display: grid; grid-template-columns: 1fr 155px; border: 2px solid #0f172a; }
+    .brand { min-height: 92px; padding: 16px; border-right: 1px solid #0f172a; }
+    .brand h1 { margin: 0; font-size: 22px; letter-spacing: .06em; }
+    .brand p { margin: 6px 0 0; color: #475569; font-size: 11px; }
+    .nf-id { display: grid; place-items: center; padding: 12px; text-align: center; }
+    .nf-id strong { font-size: 17px; }
+    .nf-id span { display: block; margin-top: 4px; font-size: 11px; }
+    .section { margin-top: 10px; border: 1px solid #0f172a; }
+    .section-title { margin: 0; padding: 5px 8px; border-bottom: 1px solid #0f172a; background: #e2e8f0; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field { min-height: 48px; padding: 7px 8px; border-right: 1px solid #cbd5e1; }
+    .field:last-child { border-right: 0; }
+    .field label { display: block; margin-bottom: 4px; color: #64748b; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .field strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
+    .wide { grid-column: 1 / -1; border-top: 1px solid #cbd5e1; border-right: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 6px 7px; background: #0f172a; color: #fff; font-size: 9px; text-align: left; text-transform: uppercase; }
+    td { padding: 7px; border-top: 1px solid #cbd5e1; font-size: 10px; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .number { text-align: right; white-space: nowrap; }
+    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .summary .field { min-height: 54px; }
+    .barcode { margin-top: 10px; border: 1px solid #0f172a; padding: 10px; }
+    .barcode .bars { height: 42px; margin-top: 7px; background: repeating-linear-gradient(90deg, #111 0 2px, transparent 2px 4px, #111 4px 5px, transparent 5px 8px); }
+    .barcode code { display: block; margin-top: 5px; text-align: center; font-size: 10px; letter-spacing: .11em; overflow-wrap: anywhere; }
+    .footer { margin-top: 10px; color: #64748b; font-size: 10px; text-align: right; }
+    @media print { body { background: #fff; } .page { width: auto; min-height: auto; padding: 0; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div class="brand"><h1>NOTA FISCAL ELETRONICA</h1><p>Documento fiscal completo anexado ao pedido</p></div>
+      <div class="nf-id"><strong>NF-e ${escapeHtml(parsed.noteNumber)}</strong><span>Serie 1</span><span>${parsed.direction}</span></div>
+    </header>
+    <section class="section"><h2 class="section-title">Emitente</h2><div class="grid"><div class="field wide"><label>Razao social</label><strong>${escapeHtml(parsed.supplierName)}</strong></div><div class="field"><label>CNPJ / CPF</label><strong>${escapeHtml(parsed.supplierDocument || "Nao informado")}</strong></div><div class="field"><label>Data de emissao</label><strong>${escapeHtml(issuedAt)}</strong></div><div class="field"><label>Protocolo</label><strong>${escapeHtml(parsed.protocolNumber || "Nao informado")}</strong></div></div></section>
+    <section class="section"><h2 class="section-title">Destinatario / Remetente</h2><div class="grid"><div class="field wide"><label>Nome / Razao social</label><strong>${escapeHtml(parsed.recipientName)}</strong></div><div class="field"><label>CNPJ / CPF</label><strong>${escapeHtml(parsed.recipientDocument || "Nao informado")}</strong></div><div class="field wide"><label>Endereco completo</label><strong>${escapeHtml(parsed.recipientAddress || "Nao informado")}</strong></div></div></section>
+    <section class="section"><h2 class="section-title">Itens da nota fiscal</h2><table><thead><tr><th>#</th><th>Codigo</th><th>Descricao</th><th>NCM</th><th class="number">Quantidade</th></tr></thead><tbody>${itemRows}</tbody></table></section>
+    <section class="section"><h2 class="section-title">Totais e transporte</h2><div class="summary"><div class="field"><label>Valor total da nota</label><strong>${total}</strong></div><div class="field"><label>Volumes</label><strong>${Math.max(1, parsed.volumeCount)}</strong></div><div class="field"><label>Transportadora</label><strong>${escapeHtml(carrierName)}</strong></div></div></section>
+    <section class="barcode"><strong>Chave de acesso</strong><div class="bars"></div><code>${escapeHtml(accessKey)}</code></section>
+    <footer class="footer">NF-e ${escapeHtml(parsed.noteNumber)} | Documento fiscal completo</footer>
+  </main>
+</body>
+</html>`;
+}
+
 export function buildSimplifiedDanfePdf(parsed: ParsedNfe, options?: { carrierName?: string | null }) {
   const accessKey = digitsOnly(parsed.accessKey);
   const carrierName = options?.carrierName?.trim() || parsed.carrierName || "NAO INFORMADO";
@@ -105,6 +240,13 @@ function boxedField(operations: string[], x: number, y: number, width: number, h
   }
 }
 
+function fullField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string) {
+  strokeRect(operations, x, y, width, height, BLACK, 0.7);
+  text(operations, x + 6, y + height - 11, label, 6.2, GRAY, true);
+  text(operations, x + 6, secondary ? y + height - 25 : y + 11, truncate(value, Math.max(12, Math.floor(width / 4.5))), 8, BLACK, true);
+  if (secondary) text(operations, x + 6, y + 10, truncate(secondary, Math.max(12, Math.floor(width / 5.1))), 6.9, DARK, false);
+}
+
 function wrapText(value: string, maxLength: number) {
   const words = value.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -163,11 +305,11 @@ const CODE128_PATTERNS = [
   "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213", "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132", "221231", "213212", "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211", "212123", "212321", "232121", "111323", "131123", "131321", "112313", "132113", "132311", "211313", "231113", "231311", "112133", "112331", "132131", "113123", "113321", "133121", "313121", "211331", "231131", "213113", "213311", "213131", "311123", "311321", "331121", "312113", "312311", "332111", "314111", "221411", "431111", "111224", "111422", "121124", "121421", "141122", "141221", "112214", "112412", "122114", "122411", "142112", "142211", "241211", "221114", "413111", "241112", "134111", "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112", "421211", "212141", "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311", "113141", "114131", "311141", "411131", "211412", "211214", "211232", "2331112",
 ] as const;
 
-function createSimplePdf(contentStream: string) {
+function createSimplePdf(contentStream: string, pageWidth = PAGE_WIDTH, pageHeight = PAGE_HEIGHT) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 6 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 6 0 R >> >> /Contents 5 0 R >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`,
     createJpegObject(),
@@ -208,6 +350,15 @@ function line(operations: string[], x1: number, y1: number, x2: number, y2: numb
 
 function escapePdfString(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)").replace(/\r?\n/g, " ");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function digitsOnly(value: string | null) {

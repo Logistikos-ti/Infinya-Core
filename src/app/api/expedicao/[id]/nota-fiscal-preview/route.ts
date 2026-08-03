@@ -12,7 +12,7 @@ import {
   updateDepositanteBlingConfig,
 } from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
+import { buildFullDanfePdfFromXml } from "@/lib/shipping-danfe";
 import { extractCarrierName } from "@/lib/shipping";
 import { documentsBucketName } from "@/lib/storage";
 
@@ -108,7 +108,10 @@ export async function GET(_request: Request, { params }: RouteProps) {
       }
 
       const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-      const pdfBytes = buildSimplifiedDanfePdfFromXml(source, {
+      // Nota fiscal and DANFE simplificada are intentionally different views:
+      // the first is a full fiscal-document preview; the second stays the 4x6
+      // operational document used in conference and shipping.
+      const pdfBytes = buildFullDanfePdfFromXml(source, {
         carrierName: extractCarrierName(payload),
       });
 
