@@ -18,6 +18,7 @@ import {
   MobileBackButton,
   MobileScanOverlay,
   MobileIcon,
+  MobileButtonSpinner,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 
@@ -681,7 +682,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
           </span>
         ))}
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Finalizando..." : "Concluir"}
+          {isSubmitting ? <MobileButtonSpinner /> : "Concluir"}
         </button>
       </form>
     </div>

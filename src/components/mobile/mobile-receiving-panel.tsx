@@ -14,6 +14,7 @@ import {
   MobilePrimaryButton,
   MobileScanOverlay,
   MobileIcon,
+  MobileButtonSpinner,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 
@@ -582,7 +583,7 @@ export function MobileReceivingPanel({
               boxShadow: isSaving || !enderecoId ? undefined : "0 10px 26px rgba(16,185,129,0.4)",
             }}
           >
-            {isSaving ? "Concluindo..." : "Concluir"}
+            {isSaving ? <MobileButtonSpinner /> : "Concluir"}
           </MobilePrimaryButton>
         </div>
       </div>
@@ -894,7 +895,7 @@ export function MobileReceivingPanel({
               className="flex h-[56px] w-full items-center justify-center gap-2 rounded-[17px] text-[16px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
               style={{ background: mobileColors.amber, boxShadow: "0 10px 26px rgba(245,158,11,0.35)" }}
             >
-              {isSaving ? "Concluindo..." : "Concluir com divergência"}
+              {isSaving ? <MobileButtonSpinner /> : "Concluir com divergência"}
             </button>
 
             <button

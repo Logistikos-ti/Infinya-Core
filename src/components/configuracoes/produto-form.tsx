@@ -13,6 +13,7 @@ import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/
 import { cn } from "@/lib/utils";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { Space_Grotesk } from "next/font/google";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
@@ -941,12 +942,14 @@ export function ProdutoForm({
           Salvar rascunho
         </button>
         <Button type="submit" disabled={isPending} className={cn(spaceGrotesk.className, "h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold shadow-lg shadow-violet-500/30 hover:-translate-y-[1px] transition-all")}>
-          <Check className="w-4 h-4 mr-2" />
-          {isPending
-            ? "Salvando..."
-            : defaultValues?.id
-              ? "Salvar alterações"
-              : "Cadastrar produto"}
+          {isPending ? (
+            <MobileButtonSpinner />
+          ) : (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              {defaultValues?.id ? "Salvar alterações" : "Cadastrar produto"}
+            </>
+          )}
         </Button>
       </div>
 

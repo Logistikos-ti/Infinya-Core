@@ -8,6 +8,7 @@ import {
   FancySelectInput,
   type FancySelectOption,
 } from "@/components/ui/fancy-select-input";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type DepositanteOption = FancySelectOption;
 type AddressOption = FancySelectOption & { area: string };
@@ -232,8 +233,14 @@ export function StockTransferForm({
             disabled={isSubmitting}
             className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
           >
-            <MoveRight className="h-4 w-4" />
-            {isSubmitting ? "Transferindo..." : "Transferir estoque"}
+            {isSubmitting ? (
+              <MobileButtonSpinner size={20} />
+            ) : (
+              <>
+                <MoveRight className="h-4 w-4" />
+                Transferir estoque
+              </>
+            )}
           </Button>
         </div>
       </form>

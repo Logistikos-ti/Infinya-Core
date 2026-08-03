@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square, Plus, Trash2, Check } from "lucide-react";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import { createShippingWaveAction, startShippingWaveAction, deleteShippingWavesAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 export function ShippingPickingWavesView({
   orders,
@@ -273,7 +274,13 @@ export function ShippingPickingWavesView({
                 Cancelar
               </button>
               <button onClick={handleDeleteSelected} disabled={deletingWaves || selectedForDelete.length === 0} style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 20px", borderRadius: "11px", border: "none", background: "#EF4444", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: (deletingWaves || selectedForDelete.length === 0) ? "not-allowed" : "pointer", opacity: (deletingWaves || selectedForDelete.length === 0) ? 0.6 : 1, transition: "transform 0.2s" }} onMouseEnter={(e) => { if(!deletingWaves && selectedForDelete.length > 0) e.currentTarget.style.transform = "translateY(-1px)" }} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-                <Trash2 size={18} /> {deletingWaves ? "Excluindo..." : `Excluir (${selectedForDelete.length})`}
+                {deletingWaves ? (
+                  <MobileButtonSpinner size={20} />
+                ) : (
+                  <>
+                    <Trash2 size={18} /> {`Excluir (${selectedForDelete.length})`}
+                  </>
+                )}
               </button>
             </>
           ) : (

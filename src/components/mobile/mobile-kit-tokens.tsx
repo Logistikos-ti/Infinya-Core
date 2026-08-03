@@ -187,11 +187,10 @@ export function MobileIcon({
     case "truck":
       return svg(
         <>
-          <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-          <path d="M15 18H9" />
-          <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14v10Z" />
-          <circle cx="17" cy="18.5" r="2.5" />
-          <circle cx="7" cy="18.5" r="2.5" />
+          <path d="M10 17h4V5H2v12h3" />
+          <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1" />
+          <circle cx="7.5" cy="17.5" r="2.5" />
+          <circle cx="17.5" cy="17.5" r="2.5" />
         </>,
         size,
         strokeWidth,
@@ -227,34 +226,44 @@ const INFINITY_LOOP_POINTS = (() => {
 
 export function MobileInfinityLoader({
   size = 132,
-  label = "Carregando",
+  label = null,
+  color,
+  trackColor,
+  trackOpacity,
 }: {
   size?: number;
   label?: string | null;
+  color?: string;
+  trackColor?: string;
+  trackOpacity?: number;
 }) {
   const gradientId = "mobileInfinityLoaderGradient";
+  const stroke = color ?? `url(#${gradientId})`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
       <svg width={size} height={size / 2} viewBox="0 0 100 50" role="img" aria-label="Carregando">
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3B82F6" />
-            <stop offset="55%" stopColor="#8B5CF6" />
-            <stop offset="100%" stopColor="#60A5FA" />
-          </linearGradient>
-        </defs>
+        {!color ? (
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="55%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="#60A5FA" />
+            </linearGradient>
+          </defs>
+        ) : null}
         <polyline
           points={INFINITY_LOOP_POINTS}
           fill="none"
-          stroke="rgba(148,163,184,0.16)"
+          stroke={trackColor ?? "rgba(148,163,184,0.16)"}
+          strokeOpacity={trackColor ? trackOpacity : undefined}
           strokeWidth={4}
           strokeLinecap="round"
         />
         <polyline
           points={INFINITY_LOOP_POINTS}
           fill="none"
-          stroke={`url(#${gradientId})`}
+          stroke={stroke}
           strokeWidth={4}
           strokeLinecap="round"
           pathLength={100}
@@ -269,6 +278,21 @@ export function MobileInfinityLoader({
       ) : null}
     </div>
   );
+}
+
+// Compact inline variant for button loading states -- no label, small
+// enough to sit where the button's own text was. Defaults to currentColor
+// so it automatically matches whatever text color the button already has
+// (including buttons that flip between light/dark text across themes)
+// without needing a color prop per call site.
+export function MobileButtonSpinner({
+  size = 26,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return <MobileInfinityLoader size={size} label={null} color={color} trackColor="currentColor" trackOpacity={0.25} />;
 }
 
 export function MobileFullScreenLoader({ label }: { label?: string | null }) {

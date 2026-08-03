@@ -8,6 +8,7 @@ import { savePickingProgressAction } from "@/app/(dashboard)/expedicao/separacao
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { PickingOperatorOption, ShippingPickingOrder } from "@/lib/shipping-picking";
 import { useTheme } from "next-themes";
 
@@ -447,7 +448,7 @@ export function ShippingPickingPanel({
                   disabled={isSubmitting}
                   className="flex h-[52px] items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-7 font-['Manrope'] text-[15px] font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-[1px] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Enviando..." : "Ir para conferência →"}
+                  {isSubmitting ? <MobileButtonSpinner size={20} /> : "Ir para conferência →"}
                 </button>
               </div>
             ) : currentItem && (

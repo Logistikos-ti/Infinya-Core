@@ -11,6 +11,7 @@ import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
 import type { ShippingAttachment } from "@/lib/shipping";
 
@@ -648,7 +649,13 @@ export function ShippingConferencePanel({
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
           >
-            {full ? <Route size={18} /> : checkIcon} {finishLabel}
+            {isSubmitting ? (
+              <MobileButtonSpinner size={20} />
+            ) : (
+              <>
+                {full ? <Route size={18} /> : checkIcon} {finishLabel}
+              </>
+            )}
           </button>
         </div>
 

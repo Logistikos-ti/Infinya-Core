@@ -8,6 +8,7 @@ import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
 import { cancelPickingOrderAction, savePickingWaveProgressAction, updateItemPickingQuantityAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 
 type WavePickingItemState = ShippingPickingOrder["items"][number] & {
@@ -486,7 +487,7 @@ export function ShippingPickingInterface({
                 ))}
                 
                 <button type="submit" disabled={isSubmitting} style={{ display: "none" }}>
-                  {isSubmitting ? "Finalizando..." : "Ir para conferência →"}
+                  {isSubmitting ? <MobileButtonSpinner size={20} /> : "Ir para conferência →"}
                 </button>
               </form>
             </div>

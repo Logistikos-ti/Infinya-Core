@@ -12,6 +12,7 @@ import {
   MobileBackButton,
   MobileScanOverlay,
   MobileIcon,
+  MobileButtonSpinner,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 
@@ -464,7 +465,7 @@ export function MobileCycleCountPanel({
             className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
             style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
           >
-            {isSaving ? "Confirmando..." : "Confirmar contagem"}
+            {isSaving ? <MobileButtonSpinner /> : "Confirmar contagem"}
           </button>
         </div>
       ) : null}

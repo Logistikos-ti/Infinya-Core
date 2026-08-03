@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type CycleCountCompleteButtonProps = {
   cycleCountId: string;
@@ -34,7 +35,7 @@ export function CycleCountCompleteButton({ cycleCountId }: CycleCountCompleteBut
         });
       }}
     >
-      {isPending ? "Concluindo..." : "Concluir contagem"}
+      {isPending ? <MobileButtonSpinner /> : "Concluir contagem"}
     </Button>
   );
 }

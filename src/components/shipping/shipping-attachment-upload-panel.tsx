@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, FileUp, Paperclip, UploadCloud } from "lucide-react";
 import { uploadShippingAttachmentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type ShippingAttachmentUploadPanelProps = {
   depositanteId: string;
@@ -118,7 +119,7 @@ export function ShippingAttachmentUploadPanel({
           className="flex h-[38px] w-full items-center justify-center gap-2 rounded-[9px] bg-violet-600 px-4 text-[12.5px] font-bold text-white transition-all hover:bg-violet-700 disabled:opacity-50"
         >
           <UploadCloud className="h-4 w-4" />
-          {isUploading ? "Enviando..." : "Enviar anexo"}
+          {isUploading ? <MobileButtonSpinner /> : "Enviar anexo"}
         </button>
       )}
 

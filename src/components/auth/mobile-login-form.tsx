@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { loginAction, type LoginActionState } from "@/app/(auth)/login/actions";
-import { mobileColors, hexAlpha, bodyFont, MobilePrimaryButton } from "@/components/mobile/mobile-kit";
+import { mobileColors, hexAlpha, bodyFont, MobilePrimaryButton, MobileButtonSpinner } from "@/components/mobile/mobile-kit";
 
 const initialState: LoginActionState = {
   error: null,
@@ -71,7 +71,7 @@ export function MobileLoginForm({ redirectTo = "/dashboard", submitLabel = "Entr
         )}
 
         <MobilePrimaryButton type="submit" disabled={isPending} style={{ height: 52, marginTop: 4 }}>
-          {isPending ? "Entrando..." : submitLabel}
+          {isPending ? <MobileButtonSpinner /> : submitLabel}
         </MobilePrimaryButton>
       </form>
     </div>

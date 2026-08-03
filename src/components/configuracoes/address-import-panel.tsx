@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 export function AddressImportPanel() {
   const router = useRouter();
@@ -139,7 +140,7 @@ export function AddressImportPanel() {
           disabled={!canSubmit}
           className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_8px_24px_rgba(34,211,238,0.18)] transition hover:bg-primary/85 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-white/10 dark:disabled:text-slate-500"
         >
-          {isUploading ? "Importando..." : "Importar endereçamento"}
+          {isUploading ? <MobileButtonSpinner /> : "Importar endereçamento"}
         </button>
       </form>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, CameraOff, Focus, Search, Volume2 } from "lucide-react";
 import type { ReceivingOrderDetail } from "@/lib/receiving";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type AddressOption = {
   id: string;
@@ -664,7 +665,7 @@ export function ReceivingConferencePanel({
           disabled={isSaving || !enderecoId}
           className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
         >
-          {isSaving ? "Salvando..." : "Salvar conferência"}
+          {isSaving ? <MobileButtonSpinner size={20} /> : "Salvar conferência"}
         </button>
         <button
           type="button"
@@ -672,7 +673,7 @@ export function ReceivingConferencePanel({
           disabled={isSaving || !enderecoId}
           className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
         >
-          {isSaving ? "Concluindo..." : "Concluir e lançar no estoque"}
+          {isSaving ? <MobileButtonSpinner /> : "Concluir e lançar no estoque"}
         </button>
       </div>
     </div>
