@@ -500,21 +500,43 @@ export function MobileCycleCountPanel({
               position: "relative",
               zIndex: 2,
               display: "flex",
-              alignItems: "center",
+              alignItems: "flex-start",
               justifyContent: "space-between",
+              gap: 12,
               padding: "18px",
               paddingTop: "calc(18px + env(safe-area-inset-top))",
             }}
           >
-            <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, ...headingFont }}>
-              {scanPhase === "address" ? "Aponte para o endereço" : "Aponte para o produto"}
-            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {scanPhase === "address" ? "Bipe o endereço" : "Bipe o produto"}
+              </span>
+              <span
+                style={{
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: scanPhase === "address" ? 22 : 17,
+                  lineHeight: 1.15,
+                  display: "-webkit-box",
+                  WebkitLineClamp: scanPhase === "address" ? 1 : 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  ...headingFont,
+                }}
+              >
+                {scanPhase === "address" ? enderecoCodigo : produtoNome}
+              </span>
+              {scanPhase === "product" ? (
+                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, ...headingFont }}>{produtoSku}</span>
+              ) : null}
+            </div>
             <button
               type="button"
               onClick={() => router.push(`/m/estoque/inventarios/${depositanteId}`)}
               style={{
                 width: 38,
                 height: 38,
+                flexShrink: 0,
                 borderRadius: 12,
                 background: "rgba(255,255,255,0.14)",
                 color: "#fff",
