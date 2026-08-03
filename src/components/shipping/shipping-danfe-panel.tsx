@@ -22,12 +22,12 @@ export function ShippingDanfePanel({ orderId }: ShippingDanfePanelProps) {
         <button
           type="button"
           onClick={openPreview}
-          className="group flex min-h-[94px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-center transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10"
+          className="group flex min-h-[96px] w-full flex-col items-center justify-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-slate-50 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-violet-500/40 dark:hover:bg-zinc-800/80"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-transform group-hover:scale-105">
             <ReceiptText className="h-5 w-5" />
           </span>
-          <span className="text-[13px] font-bold leading-tight text-slate-800 dark:text-zinc-100">DANFE simplificada</span>
+          <span className="text-sm font-bold leading-tight text-slate-800 dark:text-zinc-100">DANFE simplificada</span>
         </button>
       )}
     />

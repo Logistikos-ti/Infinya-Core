@@ -48,6 +48,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
 
+
   useImperativeHandle(ref, () => ({
     openPreparationModal: () => {
       setPreparationOpen(true);
@@ -106,43 +107,15 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   }
 
   return (
-    <div
-      id="documentos-impressao"
-      className="overflow-hidden rounded-[18px] border border-slate-200 bg-white/80 shadow-sm backdrop-blur-xl dark:border-zinc-800/80 dark:bg-zinc-900/80 animate-[docExpand_0.4s_cubic-bezier(.3,1,.4,1)]"
-    >
+    <div id="documentos-impressao" className="w-full">
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
-      
-      <div className="hidden">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-violet-500/10 text-violet-500">
-          <Paperclip className="h-5 w-5" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-          <h3 className="font-['Space_Grotesk'] text-[16px] font-bold text-slate-950 dark:text-white">
-            Documentos e impressão
-          </h3>
-          <p className="text-[13px] leading-[1.45] text-slate-500 dark:text-zinc-400">
-            Revise os documentos e libere obrigatoriamente o pedido para romaneio.
-          </p>
-        </div>
 
-        <span
-          className={`shrink-0 rounded-[10px] px-3 py-[6px] text-center text-[11px] font-extrabold tracking-[0.03em] leading-[1.3] ${
-            unlocked
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          }`}
-        >
-          {unlocked ? "DOCUMENTOS LIBERADOS" : "LIBERA APÓS 100%"}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 p-[18px_22px_22px_22px] sm:grid-cols-4">
-        <div className="contents">
-          <AttachmentStatusCard
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <AttachmentStatusCard
           title="Nota fiscal"
-          subtitle="XML anexado ao pedido para consulta e impressão fiscal."
-          icon={<FileCheck2 className="h-4 w-4" />}
+          subtitle="XML anexado ao pedido"
+          icon={<FileCheck2 className="h-5 w-5" />}
           iconColor="text-blue-500"
           attachment={xmlAttachment}
           emptyLabel="NF pendente"
@@ -156,8 +129,8 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
 
         <AttachmentStatusCard
           title="Etiqueta de envio"
-          subtitle="Etiqueta operacional do marketplace ou anexada manualmente."
-          icon={<Package2 className="h-4 w-4" />}
+          subtitle="Etiqueta operacional"
+          icon={<Package2 className="h-5 w-5" />}
           iconColor="text-emerald-500"
           attachment={labelAttachment}
           emptyLabel="Etiqueta pendente"
@@ -168,53 +141,8 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
           badgeBg="bg-emerald-500/10"
           badgeText="text-emerald-600 dark:text-emerald-400"
         />
-      </div>
 
-      <div className="contents">
-        <div className="h-full">
-          <ShippingDanfePanel orderId={orderId} />
-        </div>
-
-        <div className="hidden">
-          {canUploadAttachments ? (
-            <div className="hidden">
-              <div className="flex items-center gap-2.5">
-                <span className="flex text-amber-500">
-                  <FileText className="h-4 w-4" />
-                </span>
-                <h4 className="flex-1 text-[14px] font-bold text-slate-900 dark:text-white">
-                  Anexar documentos
-                </h4>
-              </div>
-              <p className="text-[12.5px] leading-[1.45] text-slate-500 dark:text-slate-400">
-                Anexe manualmente o XML da NF ou a etiqueta quando o pedido não vier completo pela integração.
-              </p>
-              <ShippingAttachmentUploadPanel
-                depositanteId={depositanteId}
-                pedidoExpedicaoId={orderId}
-              />
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {canUploadAttachments ? (
-        <DocumentActionButton icon={<Paperclip className="h-5 w-5" />} label="Anexar documentos" onClick={() => setAttachmentUploadOpen(true)} />
-      ) : null}
-
-      <div className="col-span-full flex flex-wrap items-center gap-4 rounded-[14px] border border-slate-200 bg-slate-50 p-[16px_18px] dark:border-slate-800 dark:bg-slate-950/60">
-        <div className="flex flex-1 min-w-[160px] items-center gap-4">
-          <span className="flex text-violet-500">
-            <Route className="h-5 w-5" />
-          </span>
-          <div className="flex flex-col gap-[2px]">
-            <h4 className="text-[14px] font-bold text-slate-900 dark:text-white">
-              Destinação do pedido
-            </h4>
-            <p className="text-[12px] text-slate-500 dark:text-slate-400">{releaseHelp}</p>
-          </div>
-        </div>
-      </div>
+        <ShippingDanfePanel orderId={orderId} />
       </div>
 
       {attachmentUploadOpen && typeof document !== "undefined" ? createPortal(
@@ -521,12 +449,12 @@ function DocumentActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[94px] flex-col items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-slate-50 px-3 text-center transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:shadow-md dark:border-slate-800 dark:bg-slate-950/60 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10"
+      className="group flex min-h-[96px] w-full flex-col items-center justify-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-slate-50 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-violet-500/40 dark:hover:bg-zinc-800/80"
     >
-      <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${available ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-violet-500/10 text-violet-600 dark:text-violet-400"}`}>
+      <span className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-transform group-hover:scale-105 ${available ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20"}`}>
         {icon}
       </span>
-      <span className="text-[13px] font-bold leading-tight text-slate-800 dark:text-zinc-100">{label}</span>
+      <span className="text-sm font-bold leading-tight text-slate-800 dark:text-zinc-100">{label}</span>
     </button>
   );
 }

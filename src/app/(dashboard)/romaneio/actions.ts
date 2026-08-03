@@ -103,23 +103,34 @@ export async function validateAndAssignOrderDanfeAction(params: {
   orderId: string;
   scannedDanfe: string;
 }) {
-  const user = await requireModuleAccess("expedicao");
-  const { validateAndAssignOrderDanfeToRomaneio } = await import("@/lib/romaneio-records");
+  try {
+    const user = await requireModuleAccess("expedicao");
+    const { validateAndAssignOrderDanfeToRomaneio } = await import("@/lib/romaneio-records");
 
-  const result = await validateAndAssignOrderDanfeToRomaneio({
-    user,
-    orderId: params.orderId,
-    scannedDanfe: params.scannedDanfe,
-  });
+    const result = await validateAndAssignOrderDanfeToRomaneio({
+      user,
+      orderId: params.orderId,
+      scannedDanfe: params.scannedDanfe,
+    });
 
-  revalidatePath("/conferencia");
-  revalidatePath(`/conferencia/${params.orderId}`);
-  revalidatePath("/m/conferencia");
-  revalidatePath(`/m/conferencia/${params.orderId}`);
-  revalidatePath("/romaneio");
-  revalidatePath("/m/romaneio");
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath(`/expedicao/conferencia/${params.orderId}`);
+    revalidatePath("/conferencia");
+    revalidatePath(`/conferencia/${params.orderId}`);
+    revalidatePath("/m/conferencia");
+    revalidatePath(`/m/conferencia/${params.orderId}`);
+    revalidatePath("/romaneio");
+    revalidatePath("/m/romaneio");
 
-  return result;
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao validar DANFE e atribuir ao romaneio.";
+    return {
+      ok: false,
+      message,
+    };
+  }
 }
 
 export async function listSavedDriversAction(transportadoraNome?: string | null) {
@@ -178,23 +189,31 @@ export async function completeRomaneioWithDoubleCheckAction(params: {
   };
   scannedOrderIds: string[];
 }) {
-  const user = await requireModuleAccess("romaneio");
-  const { completeRomaneioWithDoubleCheck } = await import("@/lib/romaneio-records");
+  try {
+    const user = await requireModuleAccess("romaneio");
+    const { completeRomaneioWithDoubleCheck } = await import("@/lib/romaneio-records");
 
-  const result = await completeRomaneioWithDoubleCheck({
-    user,
-    romaneioId: params.romaneioId,
-    driverData: params.driverData,
-    photos: params.photos,
-    scannedOrderIds: params.scannedOrderIds,
-  });
+    const result = await completeRomaneioWithDoubleCheck({
+      user,
+      romaneioId: params.romaneioId,
+      driverData: params.driverData,
+      photos: params.photos,
+      scannedOrderIds: params.scannedOrderIds,
+    });
 
-  revalidatePath("/romaneio");
-  revalidatePath(`/romaneio/${params.romaneioId}`);
-  revalidatePath("/m/romaneio");
-  revalidatePath("/expedicao");
-  revalidatePath("/m/expedicao");
+    revalidatePath("/romaneio");
+    revalidatePath(`/romaneio/${params.romaneioId}`);
+    revalidatePath("/m/romaneio");
+    revalidatePath("/expedicao");
+    revalidatePath("/m/expedicao");
 
-  return result;
+    return result;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao finalizar romaneio.";
+    return {
+      ok: false,
+      message,
+    };
+  }
 }
 

@@ -148,6 +148,17 @@ export function isRomaneioRecordsSchemaMissing(error: { code?: string; message?:
   );
 }
 
+export async function resolveValidUserId(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  userId?: string | null,
+): Promise<string | null> {
+  if (!userId) return null;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) return null;
+  const { data } = await supabase.from("usuarios").select("id").eq("id", userId).maybeSingle();
+  return data?.id ?? null;
+}
+
 export async function listRomaneioSuggestionsFromDb(
   user: AppUserContext,
   filters?: RomaneioRecordFilters,
@@ -308,6 +319,7 @@ export async function createRomaneioRecordFromOrders(params: {
 
   const code = buildRomaneioCode();
   const admin = createSupabaseAdminClient();
+  const validUserId = await resolveValidUserId(admin, params.user.id);
 
   const { data: created, error: createError } = await admin
     .from("romaneios_carga")
@@ -316,7 +328,7 @@ export async function createRomaneioRecordFromOrders(params: {
       transportadora_id: matchedTransportadora?.id ?? null,
       transportadora_nome: matchedTransportadora?.nome ?? carrierName,
       transportadora_cnpj: matchedTransportadora?.cnpj ?? null,
-      criado_por: params.user.id,
+      criado_por: validUserId,
     })
     .select("*")
     .single();
@@ -383,12 +395,13 @@ export async function releaseRomaneioRecord(params: { user: AppUserContext; roma
   const admin = createSupabaseAdminClient();
   const links = await listRomaneioLinksByRecordIds([params.romaneioId]);
   const orderIds = links.map((item) => item.pedido_expedicao_id);
+  const validUserId = await resolveValidUserId(admin, params.user.id);
 
   const { error: updateRecordError } = await admin
     .from("romaneios_carga")
     .update({
       status: "LIBERADO",
-      liberado_por: params.user.id,
+      liberado_por: validUserId,
       liberado_em: new Date().toISOString(),
       cancelado_por: null,
       cancelado_em: null,
@@ -415,12 +428,13 @@ export async function cancelRomaneioRecord(params: { user: AppUserContext; roman
   const admin = createSupabaseAdminClient();
   const links = await listRomaneioLinksByRecordIds([params.romaneioId]);
   const orderIds = links.map((item) => item.pedido_expedicao_id);
+  const validUserId = await resolveValidUserId(admin, params.user.id);
 
   const { error: updateRecordError } = await admin
     .from("romaneios_carga")
     .update({
       status: "CANCELADO",
-      cancelado_por: params.user.id,
+      cancelado_por: validUserId,
       cancelado_em: new Date().toISOString(),
     })
     .eq("id", params.romaneioId);
@@ -930,6 +944,7 @@ export async function validateAndAssignOrderDanfeToRomaneio({
   // Update order status to PRONTO_ROMANEIO and save danfe key if provided
   const updatedPayload = {
     ...payload,
+    transportadora: carrierName,
     ...(danfe ? { danfe_simplificada: danfe } : {}),
     danfe_conferida_em: new Date().toISOString(),
     danfe_conferida_por: user.nome || user.email,
@@ -940,7 +955,6 @@ export async function validateAndAssignOrderDanfeToRomaneio({
     .update({
       status: "PRONTO_ROMANEIO",
       payload_origem: updatedPayload,
-      transportadora_nome: carrierName,
       updated_at: new Date().toISOString(),
     })
     .eq("id", orderId);
@@ -957,6 +971,8 @@ export async function validateAndAssignOrderDanfeToRomaneio({
   let romaneioId: string;
   let romaneioCodigo: string;
 
+  const validUserId = await resolveValidUserId(admin, user.id);
+
   if (!romaneios || romaneios.length === 0) {
     // Create new romaneio
     const codigo = buildRomaneioCode();
@@ -966,7 +982,7 @@ export async function validateAndAssignOrderDanfeToRomaneio({
         codigo,
         status: "ABERTO",
         transportadora_nome: carrierName,
-        criado_por: user.nome || user.email,
+        criado_por: validUserId,
       })
       .select("id, codigo")
       .single();
@@ -999,7 +1015,6 @@ export async function validateAndAssignOrderDanfeToRomaneio({
         romaneio_id: romaneioId,
         pedido_expedicao_id: orderId,
         sequencia: nextSequence,
-        adicionado_por: user.nome || user.email,
       },
       { onConflict: "romaneio_id,pedido_expedicao_id" },
     );
@@ -1084,6 +1099,8 @@ export async function completeRomaneioWithDoubleCheck({
     conferido_por: user.nome || user.email,
   };
 
+  const validUserId = await resolveValidUserId(admin, user.id);
+
   // 3. Update romaneio to LIBERADO
   const { error: updateRomError } = await admin
     .from("romaneios_carga")
@@ -1094,7 +1111,7 @@ export async function completeRomaneioWithDoubleCheck({
       veiculo_modelo: driverData.veiculoModelo.trim(),
       veiculo_placa: driverData.veiculoPlaca.trim().toUpperCase(),
       observacoes: JSON.stringify(obsPayload),
-      liberado_por: user.nome || user.email,
+      liberado_por: validUserId,
       liberado_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),
     })
