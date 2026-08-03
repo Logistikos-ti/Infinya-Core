@@ -1,18 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Download, Plus, Layers3, Truck, Clock, CheckCircle2 } from "lucide-react";
+import { Download, Plus, Layers3, Truck, CheckCircle2, PackageX } from "lucide-react";
 import { RomaneioCard } from "./romaneio-card";
 import { RomaneioDrawer } from "./romaneio-drawer";
 import type { RomaneioRecordListItem, RomaneioSuggestionGroup } from "@/lib/romaneio-records";
 import type { RomaneioUI, RomaneioStop } from "./romaneio-types";
+import { getCarrierBrand, hexToRgba as hex2 } from "@/lib/carrier-branding";
 
 type RomaneioDashboardProps = {
   records: RomaneioRecordListItem[];
-  suggestions: RomaneioSuggestionGroup[];
+  suggestions?: RomaneioSuggestionGroup[];
 };
-
-import { getCarrierBrand, hexToRgba as hex2 } from "@/lib/carrier-branding";
 
 const statusStyle = (s: string) => {
   if (s === "Aberto")
@@ -39,7 +38,7 @@ const capColor = (c: number) => (c >= 95 ? "#EF4444" : c >= 80 ? "#F59E0B" : "#1
 const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
   const brand = getCarrierBrand(r.carrierName);
   const ss = statusStyle(r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado");
-  const cap = 70; // We don't have cap in DB for now
+  const cap = 70;
   const grad = "linear-gradient(92deg,#3B82F6,#8B5CF6)";
   
   const stops: RomaneioStop[] = r.orders.map((o: any, i: number) => ({
@@ -49,7 +48,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
     city: o.destination,
     invoiceNumber: o.invoiceNumber || "Sem NF",
     vol: o.units,
-    weight: o.total, // Using total instead of weight for now
+    weight: o.total,
   }));
   
   return {
@@ -90,77 +89,19 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
   };
 };
 
-const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
-  const brand = getCarrierBrand(s.carrierName);
-  const ss = {
-    statusBg: hex2("#F59E0B", 0.16),
-    statusColor: "#F59E0B",
-    statusDot: "#F59E0B",
-  };
-  const cap = 0; 
-  const grad = "linear-gradient(92deg,#F59E0B,#FBBF24)";
-  
-  const stops: RomaneioStop[] = s.orders.map((o, i) => ({
-    seq: i + 1,
-    customer: o.customer,
-    code: o.code,
-    city: o.destination,
-    invoiceNumber: o.invoiceNumber || "Sem NF",
-    vol: o.units,
-    weight: o.total,
-  }));
-  
-  return {
-    id: null,
-    orderIds: s.orders.map(o => o.id),
-    transportadoraId: s.transportadoraId,
-    transportadoraNome: s.carrierName,
-    code: "NOVO",
-    carrier: s.carrierName,
-    route: s.destinations.join(" · ") || "N/A",
-    orders: s.orderCount,
-    volumes: s.totalUnitsRaw,
-    weight: s.totalValue, 
-    cap,
-    driver: "Sugestão",
-    plate: "—",
-    vehicle: "—",
-    departure: s.cutoff,
-    status: "Sugestão",
-    carrierColor: brand.color,
-    carrierBg: brand.bg,
-    carrierInit: brand.init,
-    capColor: capColor(cap),
-    capFill: grad,
-    statusBg: ss.statusBg,
-    statusColor: ss.statusColor,
-    statusDot: ss.statusDot,
-    depColor: "#F59E0B",
-    specs: [
-      { k: "Transportadora", v: s.carrierName },
-      { k: "Destinos", v: `${s.destinations.length} cidades` },
-      { k: "Pedidos", v: `${s.orderCount} pendentes` },
-      { k: "Valor Ref", v: s.totalValue },
-    ],
-    stops,
-  };
-};
-
-export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDashboardProps) {
+export function RomaneioDashboard({ records = [] }: RomaneioDashboardProps) {
   const [selectedRomaneio, setSelectedRomaneio] = useState<RomaneioUI | null>(null);
   const [activeFilter, setActiveFilter] = useState("Todos");
 
-  const uiRecords = records.map(mapRecordToUI);
-  const uiSuggestions = suggestions.map(mapSuggestionToUI);
-  const allRomaneios = [...uiRecords, ...uiSuggestions];
+  const allRomaneios = useMemo(() => records.map(mapRecordToUI), [records]);
   const filteredRomaneios = allRomaneios.filter((r) => activeFilter === "Todos" || r.status === activeFilter);
 
   const today = useMemo(() => new Date().toLocaleDateString("pt-BR"), []);
   
-  const romaneiosHoje = uiRecords.filter(r => r.departure === today).length;
-  const emCarregamento = uiRecords.filter(r => r.status === "Aberto").length;
-  const aguardandoSugestoes = uiSuggestions.length;
-  const expedidosHoje = uiRecords.filter(r => r.status === "Expedido" && r.departure === today).length;
+  const romaneiosHoje = allRomaneios.filter(r => r.departure === today).length;
+  const emCarregamento = allRomaneios.filter(r => r.status === "Aberto").length;
+  const expedidosHoje = allRomaneios.filter(r => r.status === "Expedido" && r.departure === today).length;
+  const totalExpedidos = allRomaneios.filter(r => r.status === "Expedido").length;
 
   const kpis = [
     {
@@ -182,15 +123,6 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
       iconColor: "#10B981",
     },
     {
-      label: "Sugestões (Aguardando)",
-      value: aguardandoSugestoes.toString(),
-      delta: "",
-      deltaColor: "#F59E0B",
-      iconEl: <Clock className="w-5 h-5" />,
-      iconBg: "rgba(245,158,11,0.14)",
-      iconColor: "#F59E0B",
-    },
-    {
       label: "Expedidos hoje",
       value: expedidosHoje.toString(),
       delta: "",
@@ -199,13 +131,21 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
       iconBg: "rgba(139,92,246,0.14)",
       iconColor: "#8B5CF6",
     },
+    {
+      label: "Total Expedidos",
+      value: totalExpedidos.toString(),
+      delta: "",
+      deltaColor: "#8695AD",
+      iconEl: <Layers3 className="w-5 h-5" />,
+      iconBg: "rgba(148,163,184,0.14)",
+      iconColor: "#94A3B8",
+    },
   ];
 
   const filterDefs = [
     { label: "Todos", count: allRomaneios.length },
-    { label: "Aberto", count: uiRecords.filter(r => r.status === "Aberto").length },
-    { label: "Sugestão", count: uiSuggestions.length },
-    { label: "Expedido", count: uiRecords.filter(r => r.status === "Expedido").length },
+    { label: "Aberto", count: allRomaneios.filter(r => r.status === "Aberto").length },
+    { label: "Expedido", count: allRomaneios.filter(r => r.status === "Expedido").length },
   ];
 
   return (
@@ -228,9 +168,6 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
         <div className="flex gap-2.5 items-center">
           <button className="h-11 px-4 rounded-[11px] border border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-[#101B30]/70 text-slate-900 dark:text-slate-100 font-[family-name:var(--font-manrope)] text-sm font-bold flex items-center gap-2 hover:border-violet-500 dark:hover:border-violet-400 transition-colors">
             <Download className="w-4 h-4" /> Exportar
-          </button>
-          <button className="h-11 px-5 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white font-[family-name:var(--font-manrope)] text-sm font-extrabold flex items-center gap-2 shadow-[0_8px_22px_rgba(99,102,241,0.32)] hover:-translate-y-[1px] transition-transform">
-            <Plus className="w-4 h-4" strokeWidth={3} /> Novo romaneio
           </button>
         </div>
       </div>
@@ -305,12 +242,26 @@ export function RomaneioDashboard({ records = [], suggestions = [] }: RomaneioDa
         </span>
       </div>
 
-      {/* Romaneios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
-        {filteredRomaneios.map((r, i) => (
-          <RomaneioCard key={i} romaneio={r} onClick={() => setSelectedRomaneio(r)} />
-        ))}
-      </div>
+      {/* Romaneios Grid or Empty State */}
+      {filteredRomaneios.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-[18px]">
+          {filteredRomaneios.map((r, i) => (
+            <RomaneioCard key={i} romaneio={r} onClick={() => setSelectedRomaneio(r)} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-[20px] border border-dashed border-slate-300 dark:border-slate-800/80 bg-white/40 dark:bg-[#101B30]/40 p-12 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mb-3">
+            <PackageX className="h-7 w-7" />
+          </div>
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+            Nenhum romaneio encontrado
+          </h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+            Os romaneios serão criados automaticamente conforme as DANFEs forem conferidas no fluxo de expedição.
+          </p>
+        </div>
+      )}
 
       {selectedRomaneio && (
         <RomaneioDrawer
