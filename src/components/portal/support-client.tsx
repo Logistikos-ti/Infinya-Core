@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, CircleHelp, Loader2, Send, X } from "lucide-react";
+import { ArrowRight, CircleHelp, Send, X } from "lucide-react";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { SupportTicket } from "@/lib/support";
 import {
   UnreadMessageBadge,
@@ -227,8 +228,7 @@ export function SupportClient({
               disabled={submitting}
               className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition enabled:hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {submitting ? "Enviando..." : "Enviar chamado"}
+              {submitting ? <MobileButtonSpinner size={20} /> : "Enviar chamado"}
             </button>
             {feedback ? (
               <p
@@ -413,11 +413,7 @@ function TicketDrawer({
             aria-label="Enviar comentário"
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {sendingComment ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            {sendingComment ? <MobileButtonSpinner size={18} /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </aside>

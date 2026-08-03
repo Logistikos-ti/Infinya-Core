@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type CycleCountItemFormProps = {
   itemId: string;
@@ -118,13 +119,13 @@ export function CycleCountItemForm({
 
         <div className="flex items-end">
           <Button type="submit" disabled={isPending} className="h-[46px]">
-            {isPending
-              ? mode === "second"
-                ? "Salvando segunda..."
-                : "Salvando..."
-              : mode === "second"
-                ? "Salvar segunda contagem"
-                : "Salvar contagem"}
+            {isPending ? (
+              <MobileButtonSpinner />
+            ) : mode === "second" ? (
+              "Salvar segunda contagem"
+            ) : (
+              "Salvar contagem"
+            )}
           </Button>
         </div>
       </div>

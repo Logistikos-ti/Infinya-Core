@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { loginAction, type LoginActionState } from "@/app/(auth)/login/actions";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 const initialState: LoginActionState = {
   error: null,
@@ -73,7 +74,7 @@ export function LoginForm({ redirectTo = "/dashboard", submitLabel = "Entrar na 
           disabled={isPending}
           className="h-[52px] mt-2 border-none rounded-xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-manrope text-[16px] font-extrabold tracking-[0.01em] cursor-pointer shadow-[0_10px_28px_rgba(99,102,241,0.35)] transition-all duration-200 hover:shadow-[0_14px_36px_rgba(99,102,241,0.5)] hover:-translate-y-px active:translate-y-0 disabled:opacity-70 disabled:pointer-events-none"
         >
-          {isPending ? "Entrando..." : submitLabel}
+          {isPending ? <MobileButtonSpinner /> : submitLabel}
         </button>
       </form>
 

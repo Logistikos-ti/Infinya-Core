@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type DepositanteOption = {
   id: string;
@@ -169,7 +170,7 @@ export function ReceivingXmlImportPanel({
           disabled={!canSubmit}
           className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
         >
-          {isUploading ? "Importando..." : "Importar XML"}
+          {isUploading ? <MobileButtonSpinner /> : "Importar XML"}
         </button>
       </form>
     </div>

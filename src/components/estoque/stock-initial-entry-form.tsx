@@ -9,6 +9,7 @@ import {
   type FancySelectOption,
 } from "@/components/ui/fancy-select-input";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type DepositanteOption = FancySelectOption;
 
@@ -392,8 +393,14 @@ export function StockInitialEntryForm({
             disabled={isSubmitting}
             className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
           >
-            <Save className="h-4 w-4" />
-            {isSubmitting ? "Lançando..." : "Lançar estoque inicial"}
+            {isSubmitting ? (
+              <MobileButtonSpinner size={20} />
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Lançar estoque inicial
+              </>
+            )}
           </Button>
         </div>
       </form>

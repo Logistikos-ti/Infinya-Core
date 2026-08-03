@@ -11,6 +11,7 @@ import { InactivityWarningDialog } from "@/components/operations/inactivity-warn
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type ShippingPickingWavePanelProps = {
   orders: ShippingPickingOrder[];
@@ -789,7 +790,7 @@ export function ShippingPickingWavePanel({
                   className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 disabled:cursor-progress disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   disabled={isSubmitting || isResetting}
                 >
-                  {isResetting ? "Cancelando..." : "Cancelar separacao"}
+                  {isResetting ? <MobileButtonSpinner size={20} /> : "Cancelar separacao"}
                 </button>
 
                 <button
@@ -800,7 +801,7 @@ export function ShippingPickingWavePanel({
                   disabled={isSubmitting || isResetting}
                 >
                   <PackageCheck className="h-4 w-4" />
-                  {isSubmitting ? "Concluindo..." : "Concluir separacao"}
+                  {isSubmitting ? <MobileButtonSpinner size={20} /> : "Concluir separacao"}
                 </button>
               </div>
             </div>

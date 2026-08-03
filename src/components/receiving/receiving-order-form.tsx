@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { receivingOrderDraftSchema } from "@/lib/validations/receiving";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type ReceivingOrderItemState = {
   produtoId: string;
@@ -476,7 +477,7 @@ export function ReceivingOrderForm({
             disabled={!canSubmit || isSubmitting || !availableProducts.length}
             className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300"
           >
-            {isSubmitting ? "Salvando..." : "Abrir recebimento"}
+            {isSubmitting ? <MobileButtonSpinner /> : "Abrir recebimento"}
           </button>
           <button
             type="button"

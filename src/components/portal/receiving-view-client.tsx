@@ -4,6 +4,7 @@ import { Check, FileText, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type ReceivingDetailItem = {
   id: string;
@@ -683,7 +684,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 disabled:cursor-wait disabled:opacity-60"
               >
                 <span className="text-lg leading-none">⇢</span>
-                {saving ? "Enviando..." : "Enviar solicitação"}
+                {saving ? <MobileButtonSpinner /> : "Enviar solicitação"}
               </button>
             </div>
           </aside>
@@ -828,7 +829,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     disabled={cancelling}
                     className="h-11 w-full rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-wait disabled:opacity-60 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
                   >
-                    {cancelling ? "Cancelando..." : "Cancelar solicitação"}
+                    {cancelling ? <MobileButtonSpinner size={20} /> : "Cancelar solicitação"}
                   </button>
                 ) : (
                   <p className="text-center text-xs text-slate-500 dark:text-slate-400">

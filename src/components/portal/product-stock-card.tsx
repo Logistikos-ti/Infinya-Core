@@ -3,6 +3,7 @@
 import { Settings2, Package } from "lucide-react";
 import { useState } from "react";
 import type { StockBalance } from "@/lib/stock";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 export function ProductStockCard({ item }: { item: StockBalance }) {
   const quantity = Number(item.rawQuantidade ?? 0);
@@ -315,7 +316,7 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
                 disabled={saving}
                 className="h-12 flex-1 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg shadow-blue-500/20 disabled:opacity-60"
               >
-                {saving ? "Salvando..." : "Salvar limites"}
+                {saving ? <MobileButtonSpinner /> : "Salvar limites"}
               </button>
             </div>
           </div>

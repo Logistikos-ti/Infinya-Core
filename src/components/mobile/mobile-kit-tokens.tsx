@@ -212,14 +212,20 @@ export function MobileInfinityLoader({
   label = "Carregando",
   color,
   trackColor,
+  trackOpacity,
 }: {
   size?: number;
   label?: string | null;
   // Overrides the brand gradient with a flat color -- used inline on a
   // colored button, where the gradient's own blues/violets can blend into a
-  // same-toned background instead of reading as a spinner.
+  // same-toned background instead of reading as a spinner. Accepts
+  // "currentColor" to inherit the surrounding text color (handles buttons
+  // whose text flips between light/dark across themes automatically).
   color?: string;
   trackColor?: string;
+  // Only applied when trackColor is set -- lets the faint background ring
+  // use the same currentColor as the trace without going full-opacity.
+  trackOpacity?: number;
 }) {
   const gradientId = "mobileInfinityLoaderGradient";
   const stroke = color ?? `url(#${gradientId})`;
@@ -240,6 +246,7 @@ export function MobileInfinityLoader({
           points={INFINITY_LOOP_POINTS}
           fill="none"
           stroke={trackColor ?? "rgba(148,163,184,0.16)"}
+          strokeOpacity={trackColor ? trackOpacity : undefined}
           strokeWidth={4}
           strokeLinecap="round"
         />
@@ -264,15 +271,18 @@ export function MobileInfinityLoader({
 }
 
 // Compact inline variant for button loading states -- no label, small
-// enough to sit where the button's own text was.
+// enough to sit where the button's own text was. Defaults to currentColor
+// so it automatically matches whatever text color the button already has
+// (including buttons that flip between light/dark text across themes)
+// without needing a color prop per call site.
 export function MobileButtonSpinner({
   size = 26,
-  color = "#fff",
+  color = "currentColor",
 }: {
   size?: number;
   color?: string;
 }) {
-  return <MobileInfinityLoader size={size} label={null} color={color} trackColor="rgba(255,255,255,0.25)" />;
+  return <MobileInfinityLoader size={size} label={null} color={color} trackColor="currentColor" trackOpacity={0.25} />;
 }
 
 export function MobileFullScreenLoader({ label }: { label?: string | null }) {

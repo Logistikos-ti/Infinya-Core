@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Download, Layers, ScanBarcode, CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
+import { X, Download, Layers, ScanBarcode, CheckCircle2, RotateCcw } from "lucide-react";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any; onClose: () => void; produtos: any[]; enderecos: any[] }) {
   const router = useRouter();
@@ -298,8 +299,7 @@ export function InitialStockModal({ t, onClose, produtos, enderecos }: { t: any;
             onMouseEnter={(e) => { if(productData && locationData && !isSubmitting) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
             onMouseLeave={(e) => { if(productData && locationData && !isSubmitting) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
           >
-            {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isSubmitting ? "Lançando..." : "Lançar entrada"}
+            {isSubmitting ? <MobileButtonSpinner size={20} /> : "Lançar entrada"}
           </button>
         </div>
 

@@ -5,6 +5,7 @@ import { useActionState, useMemo, useState } from "react";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { saveDepositanteAction } from "@/app/(dashboard)/configuracoes/depositantes/actions";
 import { Button } from "@/components/ui/button";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { EmailContato, MetodoRetirada, TelefoneContato } from "@/lib/depositantes";
 
 type DepositanteFormProps = {
@@ -422,11 +423,13 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
           disabled={isPending}
           className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400"
         >
-          {isPending
-            ? "Salvando..."
-            : defaultValues?.id
-              ? "Salvar alterações"
-              : "Criar depositante"}
+          {isPending ? (
+            <MobileButtonSpinner />
+          ) : defaultValues?.id ? (
+            "Salvar alterações"
+          ) : (
+            "Criar depositante"
+          )}
         </Button>
       </div>
     </form>

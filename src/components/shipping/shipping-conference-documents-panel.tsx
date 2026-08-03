@@ -8,6 +8,7 @@ import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
 import type { ShippingAttachment } from "@/lib/shipping";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type ShippingConferenceDocumentsPanelProps = {
   orderId: string;
@@ -310,7 +311,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
                 disabled={validatingDanfe || !danfeScanCode.trim()}
                 className="h-12 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white disabled:opacity-50"
               >
-                {validatingDanfe ? "Validando..." : "Validar"}
+                {validatingDanfe ? <MobileButtonSpinner size={20} /> : "Validar"}
               </button>
             </div>
             {danfeValidation.message ? (
