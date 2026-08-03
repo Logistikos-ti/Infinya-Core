@@ -274,7 +274,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const expedidosNoMesAtual = data.orders.filter(
     (order: any) =>
       order.status === "EXPEDIDO" &&
-      isFromCurrentMonthInSaoPaulo(order.updatedAtIso || order.createdAtIso),
+      isFromCurrentMonthInSaoPaulo(order.dispatchedAtIso || order.updatedAtIso || order.createdAtIso),
   ).length;
 
   const tableFiltersDef = [
@@ -321,7 +321,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
-      if (s.id === 'expedido') return o.status === 'EXPEDIDO' && isFromCurrentMonthInSaoPaulo(o.updatedAtIso || o.createdAtIso);
+      if (s.id === 'expedido') return o.status === 'EXPEDIDO' && isFromCurrentMonthInSaoPaulo(o.dispatchedAtIso || o.updatedAtIso || o.createdAtIso);
       return o.status === s.statusFilter;
     }).length : data.orders.length;
 
