@@ -20,7 +20,7 @@ const hex2 = (h: string, a: number) => {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 };
 
-function getCarrierBrand(rawName: string) {
+export function getCarrierBrand(rawName: string) {
   const name = (rawName || "").trim();
   const lower = name.toLowerCase();
 
