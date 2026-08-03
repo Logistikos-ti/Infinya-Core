@@ -9,19 +9,15 @@ import {
   ArrowRight,
   Barcode,
   Camera,
-  CameraOff,
   Check,
   CheckCircle2,
-  ChevronDown,
   FileDown,
   IdCard,
   List,
   Loader2,
   PackageCheck,
   RotateCcw,
-  Sparkles,
   Truck,
-  Upload,
   User,
   X,
 } from "lucide-react";
@@ -54,16 +50,16 @@ export function FecharRomaneioClient({
 
   // Double check state
   const [scannedIds, setScannedIds] = useState<Set<string>>(new Set());
-  const [scanInput, setScanInput] = useState("");
   const [scanFeedback, setScanFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
   const [framePulse, setFramePulse] = useState<"success" | "error" | null>(null);
   const [showOrderListModal, setShowOrderListModal] = useState(false);
-  const scanInputRef = useRef<HTMLInputElement | null>(null);
   const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const barcodeBufferRef = useRef<string>("");
+  const barcodeLastKeyTimeRef = useRef<number>(0);
 
   // Driver state
   const [selectedDriverKey, setSelectedDriverKey] = useState<string>("");
@@ -98,16 +94,16 @@ export function FecharRomaneioClient({
       gain.connect(ctx.destination);
 
       if (success) {
-        osc.frequency.setValueAtTime(850, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1250, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.14);
         osc.start();
-        osc.stop(ctx.currentTime + 0.15);
+        osc.stop(ctx.currentTime + 0.14);
       } else {
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(240, ctx.currentTime);
-        osc.frequency.setValueAtTime(160, ctx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(160, ctx.currentTime + 0.15);
         gain.gain.setValueAtTime(0.4, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.25);
         osc.start();
@@ -119,11 +115,9 @@ export function FecharRomaneioClient({
   }
 
   // Handle barcode/DANFE scan in double check
-  const handleDoubleCheckScan = useCallback((rawCode?: string) => {
-    const code = (rawCode || scanInput).trim();
+  const handleDoubleCheckScan = useCallback((rawCode: string) => {
+    const code = (rawCode || "").trim();
     if (!code) return;
-
-    setScanInput("");
 
     // Normalize for matching
     const clean = code.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -134,6 +128,7 @@ export function FecharRomaneioClient({
         order.id,
         order.code,
         order.externalNumber,
+        order.invoiceNumber,
         (order as any).invoiceNumber,
         (order as any).danfe_simplificada,
         (order as any).numero_nota,
@@ -198,25 +193,20 @@ export function FecharRomaneioClient({
     pulseTimerRef.current = setTimeout(() => {
       setFramePulse(null);
     }, 600);
+  }, [romaneio.orders, romaneio.carrierName, scannedIds, totalOrders]);
 
-    scanInputRef.current?.focus();
-  }, [scanInput, romaneio.orders, romaneio.carrierName, scannedIds, totalOrders]);
-
-  // Camera barcode scanner
+  // Camera barcode scanner with automatic detection
   const {
     videoRef,
     cameraSupported,
-    cameraEnabled,
     cameraStarting,
-    cameraMessage,
     startCamera,
     stopCamera,
-    toggleCamera,
   } = useCameraBarcodeScanner({
     onDetected: handleDoubleCheckScan,
     requirePresenceGap: true,
     confirmReads: 1,
-    presenceGapMs: 500,
+    presenceGapMs: 400,
   });
 
   // Auto start camera on double_check step
@@ -233,6 +223,36 @@ export function FecharRomaneioClient({
       if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
     };
   }, [step, startCamera, stopCamera]);
+
+  // Background hardware barcode reader listener (USB/Bluetooth gun)
+  useEffect(() => {
+    if (step !== "double_check") return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // If typing in an actual input (e.g. modal), don't intercept
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const now = Date.now();
+      if (now - barcodeLastKeyTimeRef.current > 150) {
+        barcodeBufferRef.current = "";
+      }
+      barcodeLastKeyTimeRef.current = now;
+
+      if (e.key === "Enter") {
+        if (barcodeBufferRef.current.trim()) {
+          handleDoubleCheckScan(barcodeBufferRef.current.trim());
+          barcodeBufferRef.current = "";
+        }
+      } else if (e.key.length === 1) {
+        barcodeBufferRef.current += e.key;
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [step, handleDoubleCheckScan]);
 
   // Handle selecting a saved driver
   function handleSelectSavedDriver(key: string) {
@@ -348,7 +368,7 @@ export function FecharRomaneioClient({
   };
 
   // =========================================================================
-  // STEP 1: DOUBLE CHECK / BIPAGEM FULLSCREEN COM CÂMERA AUTOMÁTICA
+  // STEP 1: DOUBLE CHECK / CÂMERA AUTOMÁTICA EM TELA CHEIA
   // =========================================================================
   if (step === "double_check") {
     const progressPercent = totalOrders > 0 ? Math.round((scannedCount / totalOrders) * 100) : 0;
@@ -365,7 +385,7 @@ export function FecharRomaneioClient({
           overflow: "hidden",
         }}
       >
-        {/* Live Camera Video */}
+        {/* Live Camera Video Feed */}
         <video
           ref={videoRef}
           playsInline
@@ -484,8 +504,8 @@ export function FecharRomaneioClient({
         >
           <div
             style={{
-              width: 260,
-              height: 170,
+              width: 270,
+              height: 180,
               borderRadius: 24,
               border: `3px ${framePulse ? "solid" : "dashed"} ${
                 framePulse === "success"
@@ -514,7 +534,7 @@ export function FecharRomaneioClient({
             )}
             {!cameraSupported && (
               <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, textAlign: "center", padding: 12 }}>
-                Câmera indisponível. Use o leitor ou digite o código abaixo.
+                Câmera indisponível neste navegador.
               </span>
             )}
           </div>
@@ -540,7 +560,7 @@ export function FecharRomaneioClient({
             flexDirection: "column",
             alignItems: "center",
             gap: 12,
-            padding: "0 20px calc(20px + env(safe-area-inset-bottom))",
+            padding: "0 20px calc(24px + env(safe-area-inset-bottom))",
             textAlign: "center",
           }}
         >
@@ -621,8 +641,8 @@ export function FecharRomaneioClient({
                     <div
                       key={idx}
                       style={{
-                        width: 22,
-                        height: 22,
+                        width: 24,
+                        height: 24,
                         borderRadius: "50%",
                         backgroundColor: isChecked ? mobileColors.green : "rgba(255,255,255,0.12)",
                         border: `2px solid ${
@@ -672,74 +692,6 @@ export function FecharRomaneioClient({
             )}
           </div>
 
-          {/* Quick Manual Input / Gun Bar */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleDoubleCheckScan();
-            }}
-            style={{
-              width: "100%",
-              maxWidth: 360,
-              display: "flex",
-              gap: 8,
-            }}
-          >
-            <div style={{ position: "relative", flex: 1 }}>
-              <div
-                style={{
-                  position: "absolute",
-                  insetY: 0,
-                  left: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  pointerEvents: "none",
-                  color: "rgba(255,255,255,0.4)",
-                }}
-              >
-                <Barcode className="h-4 w-4" />
-              </div>
-              <input
-                ref={scanInputRef}
-                type="text"
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                placeholder="Digitar / bipar leitor..."
-                style={{
-                  width: "100%",
-                  height: 44,
-                  borderRadius: 14,
-                  backgroundColor: "rgba(0,0,0,0.65)",
-                  backdropFilter: "blur(14px)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  paddingLeft: 38,
-                  paddingRight: 12,
-                  fontSize: 13,
-                  color: "#fff",
-                  outline: "none",
-                }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={!scanInput.trim()}
-              style={{
-                height: 44,
-                padding: "0 16px",
-                borderRadius: 14,
-                backgroundColor: scanInput.trim() ? mobileColors.amber : "rgba(255,255,255,0.1)",
-                color: scanInput.trim() ? "#000" : "rgba(255,255,255,0.4)",
-                fontWeight: 800,
-                fontSize: 13,
-                border: "none",
-                cursor: scanInput.trim() ? "pointer" : "default",
-              }}
-            >
-              Bipar
-            </button>
-          </form>
-
           {/* Action button if complete */}
           {isDoubleCheckComplete && (
             <button
@@ -761,7 +713,6 @@ export function FecharRomaneioClient({
                 boxShadow: `0 8px 24px ${hexAlpha(mobileColors.green, 0.4)}`,
                 border: "none",
                 cursor: "pointer",
-                animation: "pulse 1.5s infinite",
               }}
             >
               <span>Avançar para Motorista</span>
