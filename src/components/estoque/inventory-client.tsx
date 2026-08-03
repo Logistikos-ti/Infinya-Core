@@ -10,6 +10,7 @@ import { InventoryTableLot } from "./inventory-table-lot";
 import { InventoryAlerts } from "./inventory-alerts";
 import { InventoryDetailDrawer } from "./inventory-detail-drawer";
 import { InitialStockModal } from "./initial-stock-modal";
+import { InventoryRecentMovements } from "./inventory-recent-movements";
 
 const INVENTORY_VIEW_STATE_KEY = "infinoos-wms:inventory-view";
 
@@ -229,6 +230,7 @@ export function InventoryClient({ data }: { data: any }) {
         <InventoryTableLot t={t} balances={filteredBalances} />
       )}
 
+      <InventoryRecentMovements t={t} movements={data.stockMovements || []} />
       <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
 
       {selectedSku && (
@@ -237,6 +239,7 @@ export function InventoryClient({ data }: { data: any }) {
           sku={selectedSku}
           allBalances={data.stockBalances}
           allAddresses={data.enderecosInventario}
+          movements={data.stockMovements}
           onClose={() => setSelectedSku(null)}
         />
       )}
