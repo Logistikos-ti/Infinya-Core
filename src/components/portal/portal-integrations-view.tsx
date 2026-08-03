@@ -48,6 +48,7 @@ export function PortalIntegrationsView({
       <div className="grid gap-5 md:grid-cols-2">
         <IntegrationCard
           title="Bling"
+          benefit="Pedidos entram automaticamente no WMS, reduzindo digitação, retrabalho e o tempo entre a venda e a separação."
           description="Importa pedidos e acompanha a operação comercial conectada ao seu ERP."
           connected={Boolean(bling?.connected)}
           account={bling?.companyName}
@@ -56,6 +57,7 @@ export function PortalIntegrationsView({
         />
         <IntegrationCard
           title="Mercado Livre"
+          benefit="Centraliza pedidos e documentos de envio para a operação preparar e despachar com menos conferências manuais."
           description="Conecta pedidos, etiquetas e rastreamento da sua conta de vendedor."
           connected={Boolean(mercadoLivre?.connected)}
           account={mercadoLivre?.nickname}
@@ -79,6 +81,7 @@ function IntegrationCard({
   account,
   href,
   provider,
+  benefit,
 }: {
   title: string;
   description: string;
@@ -86,6 +89,7 @@ function IntegrationCard({
   account: string | null | undefined;
   href: string;
   provider: "bling" | "mercado-livre";
+  benefit: string;
 }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
@@ -97,6 +101,19 @@ function IntegrationCard({
       </div>
       <h2 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">{title}</h2>
       <p className="mt-2 min-h-11 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+        <span className="font-bold text-slate-800 dark:text-white">Ganho operacional: </span>
+        {benefit}
+      </p>
+      <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-4 dark:border-white/10">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Mensalidade</p>
+          <p className="mt-0.5 text-xl font-extrabold text-slate-950 dark:text-white">R$ 49,90<span className="ml-1 text-xs font-medium text-slate-500 dark:text-slate-400">/mês</span></p>
+        </div>
+        <p className="max-w-40 text-right text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+          A cobrança inicia na próxima fatura após a conexão.
+        </p>
+      </div>
       {connected ? (
         <p className="mt-4 truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
           Conta: {account || "Conectada"}
