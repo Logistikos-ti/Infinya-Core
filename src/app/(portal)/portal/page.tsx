@@ -460,7 +460,16 @@ function ProductsView({
             Saldo em estoque armazenado no CD Infinoos Cajamar.
           </p>
         </div>
-        <ProductSearchInput value={search} />
+        <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:flex-nowrap">
+          <a
+            href="/api/portal/produtos/exportar"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-[#101b30] dark:text-slate-100 dark:hover:border-violet-400 dark:hover:text-white"
+          >
+            <FileDown className="h-4 w-4" />
+            Exportar
+          </a>
+          <ProductSearchInput value={search} />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {visibleProducts.map((item) => {
