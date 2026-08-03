@@ -715,7 +715,20 @@ function matchesRecordFilters(item: RomaneioRecordListItem, filters?: RomaneioRe
 function extractCarrierName(payload: Record<string, unknown>) {
   const transporte = isRecord(payload.transporte) ? payload.transporte : null;
   const transportador = transporte && isRecord(transporte.contato) ? transporte.contato : null;
-  return readString(transportador?.nome) ?? "Transportadora não informada";
+  const comercial = isRecord(payload.comercial) ? payload.comercial : null;
+
+  return (
+    readString(transportador?.nome) ??
+    readString(transporte?.transportadoraNome) ??
+    readString(transporte?.nome) ??
+    readString(payload.transportadora) ??
+    readString(payload.carrier) ??
+    (comercial?.canalVenda && typeof comercial.canalVenda === "string" ? comercial.canalVenda : null) ??
+    (payload.mercadoLivre ? "Mercado Livre" : null) ??
+    (payload.shopee ? "Shopee" : null) ??
+    (payload.mandae ? "Mandaê" : null) ??
+    "Transportadora não informada"
+  );
 }
 
 function extractPlatformOrderNumber(
@@ -919,7 +932,7 @@ export async function validateAndAssignOrderDanfeToRomaneio({
   // 1. Get the order details
   const { data: order, error: orderError } = await admin
     .from("pedidos_expedicao")
-    .select("id, codigo, numero_wms, numero_pedido, referencia_externa, payload_origem, transportadora_nome, status")
+    .select("id, codigo, numero_wms, numero_pedido, referencia_externa, payload_origem, status")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -932,7 +945,7 @@ export async function validateAndAssignOrderDanfeToRomaneio({
 
   // Determine carrier name
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  let carrierName = order.transportadora_nome?.trim() || extractCarrierName(payload);
+  let carrierName = extractCarrierName(payload);
   if (!carrierName || carrierName === "Transportadora não informada") {
     // Check marketplace hints in payload
     if (payload.mercadoLivre) carrierName = "Mercado Livre";
