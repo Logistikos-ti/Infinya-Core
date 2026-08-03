@@ -11,6 +11,7 @@ import {
   Receipt,
   Search,
   Truck,
+  PlugZap,
 } from "lucide-react";
 import {
   AppSidebar,
@@ -19,8 +20,9 @@ import {
 import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppUserContext } from "@/lib/auth";
+import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 
-const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
+const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   {
     href: "/portal",
     label: "Início",
@@ -59,6 +61,16 @@ const portalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   },
 ];
 
+function getPortalNavigation(user: AppUserContext): ReadonlyArray<SidebarNavigationItem> {
+  if (!isPortalIntegrationEnabled(user.depositanteNome)) return basePortalNavigation;
+
+  return [
+    ...basePortalNavigation.slice(0, 5),
+    { href: "/portal?view=integracoes", label: "Integrações", icon: PlugZap, module: "dashboard" },
+    ...basePortalNavigation.slice(5),
+  ];
+}
+
 export function PortalChrome({
   children,
   user,
@@ -77,6 +89,7 @@ export function PortalChrome({
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [search, setSearch] = useState(searchValue);
+  const portalNavigation = getPortalNavigation(user);
 
   useEffect(() => {
     const collapsed = window.localStorage.getItem(

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { requireApiRoleAccess } from "@/lib/api-auth";
+import { requireApiUser } from "@/lib/api-auth";
 import { buildBlingConnectionConfig, exchangeBlingAuthorizationCode, fetchBlingCompanyInfo, getBlingWebhookUrl } from "@/lib/bling";
 import { updateDepositanteBlingConfig } from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { canManagePortalIntegrations } from "@/lib/portal-integration-access";
 
 const oauthStateCookieName = "bling_oauth_state";
 
 export async function GET(request: Request) {
-  const auth = await requireApiRoleAccess(["ADMIN", "TI"]);
+  const auth = await requireApiUser();
 
   if (auth.response) {
     return auth.response;
@@ -28,13 +29,14 @@ export async function GET(request: Request) {
 
   const rawCookieValue = decodeURIComponent(oauthCookie.split("=").slice(1).join("="));
 
-  let cookiePayload: { state: string; depositanteId: string; createdAt: number } | null = null;
+  let cookiePayload: { state: string; depositanteId: string; createdAt: number; returnToPortal?: boolean } | null = null;
 
   try {
     cookiePayload = JSON.parse(rawCookieValue) as {
       state: string;
       depositanteId: string;
       createdAt: number;
+      returnToPortal?: boolean;
     };
   } catch {
     cookiePayload = null;
@@ -42,6 +44,12 @@ export async function GET(request: Request) {
 
   if (!cookiePayload || cookiePayload.state !== state || !cookiePayload.depositanteId) {
     return NextResponse.redirect(new URL("/configuracoes/integracoes?feedback=erro", request.url));
+  }
+
+  const isBackoffice = auth.user.papel === "ADMIN" || auth.user.papel === "TI";
+  const isOwnPortalIntegration = Boolean(cookiePayload.returnToPortal) && canManagePortalIntegrations(auth.user, cookiePayload.depositanteId);
+  if (!isBackoffice && !isOwnPortalIntegration) {
+    return NextResponse.redirect(new URL("/portal?view=integracoes&feedback=erro&motivo=Sem%20permiss%C3%A3o%20para%20concluir%20esta%20integra%C3%A7%C3%A3o.", request.url));
   }
 
   try {
@@ -85,15 +93,16 @@ export async function GET(request: Request) {
       throw new Error(updateError.message);
     }
 
-    const response = NextResponse.redirect(
-      new URL("/configuracoes/integracoes?feedback=bling-conectado", request.url),
-    );
+    const response = NextResponse.redirect(new URL(
+      isOwnPortalIntegration ? "/portal?view=integracoes&feedback=bling-conectado" : "/configuracoes/integracoes?feedback=bling-conectado",
+      request.url,
+    ));
     response.cookies.delete(oauthStateCookieName);
     return response;
   } catch (error) {
     const response = NextResponse.redirect(
       new URL(
-        `/configuracoes/integracoes?feedback=erro&motivo=${encodeURIComponent(
+        `${isOwnPortalIntegration ? "/portal?view=integracoes" : "/configuracoes/integracoes"}&feedback=erro&motivo=${encodeURIComponent(
           error instanceof Error ? error.message : "Falha ao concluir a autenticação no Bling.",
         )}`,
         request.url,

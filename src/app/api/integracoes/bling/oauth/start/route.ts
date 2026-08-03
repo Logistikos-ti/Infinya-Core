@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
-import { requireApiRoleAccess } from "@/lib/api-auth";
+import { requireApiUser } from "@/lib/api-auth";
 import { assertBlingCredentials, buildBlingAuthorizationUrl, createBlingOAuthState } from "@/lib/bling";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { canManagePortalIntegrations } from "@/lib/portal-integration-access";
 
 const oauthStateCookieName = "bling_oauth_state";
 
 export async function GET(request: Request) {
-  const auth = await requireApiRoleAccess(["ADMIN", "TI"]);
+  const auth = await requireApiUser();
 
   if (auth.response) {
     return auth.response;
+  }
+
+  const url = new URL(request.url);
+  const depositanteId = url.searchParams.get("depositanteId")?.trim() ?? "";
+  const portalRequest = url.searchParams.get("portal") === "1";
+  const isBackoffice = auth.user.papel === "ADMIN" || auth.user.papel === "TI";
+  const isOwnPortalIntegration = portalRequest && canManagePortalIntegrations(auth.user, depositanteId);
+
+  if (!depositanteId || (!isBackoffice && !isOwnPortalIntegration)) {
+    return NextResponse.redirect(new URL(portalRequest ? "/portal?view=integracoes&feedback=erro" : "/configuracoes/integracoes?feedback=erro", request.url));
   }
 
   try {
@@ -23,13 +34,6 @@ export async function GET(request: Request) {
         request.url,
       ),
     );
-  }
-
-  const url = new URL(request.url);
-  const depositanteId = url.searchParams.get("depositanteId")?.trim() ?? "";
-
-  if (!depositanteId) {
-    return NextResponse.redirect(new URL("/configuracoes/integracoes?feedback=erro", request.url));
   }
 
   const supabase = await createSupabaseServerClient();
@@ -51,6 +55,7 @@ export async function GET(request: Request) {
       state,
       depositanteId,
       createdAt: Date.now(),
+      returnToPortal: isOwnPortalIntegration,
     }),
     {
       httpOnly: true,
