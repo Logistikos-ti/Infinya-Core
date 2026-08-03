@@ -96,7 +96,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
       // extensÃ£o .xml. Nesse caso, o navegador deve renderizar o documento
       // original, em vez de tentar interpretÃ¡-lo como NF-e fiscal padrÃ£o.
       if (isHtmlDocument(source)) {
-        const html = source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+        const html = enforceA4Layout(source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ""));
         return new NextResponse(html, {
           status: 200,
           headers: {
@@ -277,4 +277,18 @@ function isGzipBuffer(value: Buffer) {
 
 function isHtmlDocument(value: string) {
   return /<!doctype\s+html|<html[\s>]/i.test(value);
+}
+
+function enforceA4Layout(html: string) {
+  const printStyle = `<style id="infinoos-a4-print-layout">
+    @page { size: A4 portrait; margin: 8mm; }
+    @media print {
+      html, body { width: 210mm !important; min-height: 297mm !important; margin: 0 !important; }
+      .wrapper { max-width: 194mm !important; }
+    }
+  </style>`;
+
+  return /<\/head>/i.test(html)
+    ? html.replace(/<\/head>/i, `${printStyle}</head>`)
+    : `${printStyle}${html}`;
 }
