@@ -9,6 +9,7 @@ import {
   hexAlpha,
   MobileIcon,
   MobileInfinityLoader,
+  MobileButtonSpinner,
   MobileFullScreenLoader,
   type MobileIconName,
 } from "@/components/mobile/mobile-kit-tokens";
@@ -20,7 +21,7 @@ import {
  * fonts, icons) live in mobile-kit-tokens.tsx so Server Components can
  * use them too — this file re-exports them for convenience.
  */
-export { mobileColors, mobileGradient, headingFont, bodyFont, hexAlpha, MobileIcon, MobileInfinityLoader, MobileFullScreenLoader };
+export { mobileColors, mobileGradient, headingFont, bodyFont, hexAlpha, MobileIcon, MobileInfinityLoader, MobileButtonSpinner, MobileFullScreenLoader };
 export type { MobileIconName };
 
 // ─────────────────────────────────────────────────────────────

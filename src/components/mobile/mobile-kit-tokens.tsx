@@ -210,33 +210,43 @@ const INFINITY_LOOP_POINTS = (() => {
 export function MobileInfinityLoader({
   size = 132,
   label = "Carregando",
+  color,
+  trackColor,
 }: {
   size?: number;
   label?: string | null;
+  // Overrides the brand gradient with a flat color -- used inline on a
+  // colored button, where the gradient's own blues/violets can blend into a
+  // same-toned background instead of reading as a spinner.
+  color?: string;
+  trackColor?: string;
 }) {
   const gradientId = "mobileInfinityLoaderGradient";
+  const stroke = color ?? `url(#${gradientId})`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
       <svg width={size} height={size / 2} viewBox="0 0 100 50" role="img" aria-label="Carregando">
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3B82F6" />
-            <stop offset="55%" stopColor="#8B5CF6" />
-            <stop offset="100%" stopColor="#60A5FA" />
-          </linearGradient>
-        </defs>
+        {!color ? (
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="55%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="#60A5FA" />
+            </linearGradient>
+          </defs>
+        ) : null}
         <polyline
           points={INFINITY_LOOP_POINTS}
           fill="none"
-          stroke="rgba(148,163,184,0.16)"
+          stroke={trackColor ?? "rgba(148,163,184,0.16)"}
           strokeWidth={4}
           strokeLinecap="round"
         />
         <polyline
           points={INFINITY_LOOP_POINTS}
           fill="none"
-          stroke={`url(#${gradientId})`}
+          stroke={stroke}
           strokeWidth={4}
           strokeLinecap="round"
           pathLength={100}
@@ -251,6 +261,18 @@ export function MobileInfinityLoader({
       ) : null}
     </div>
   );
+}
+
+// Compact inline variant for button loading states -- no label, small
+// enough to sit where the button's own text was.
+export function MobileButtonSpinner({
+  size = 26,
+  color = "#fff",
+}: {
+  size?: number;
+  color?: string;
+}) {
+  return <MobileInfinityLoader size={size} label={null} color={color} trackColor="rgba(255,255,255,0.25)" />;
 }
 
 export function MobileFullScreenLoader({ label }: { label?: string | null }) {

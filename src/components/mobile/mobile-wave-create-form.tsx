@@ -10,6 +10,7 @@ import {
   MobileBackButton,
   MobilePrimaryButton,
   MobileIcon,
+  MobileButtonSpinner,
 } from "@/components/mobile/mobile-kit";
 
 type EligibleOrder = {
@@ -208,7 +209,7 @@ export function MobileWaveCreateForm({ orders, depositantes }: MobileWaveCreateF
           </p>
         ) : null}
         <MobilePrimaryButton onClick={handleCreate} disabled={isCreating || !selectedIds.length}>
-          {isCreating ? "Criando onda..." : "Criar onda e iniciar"}
+          {isCreating ? <MobileButtonSpinner /> : "Criar onda e iniciar"}
         </MobilePrimaryButton>
       </div>
     </div>
