@@ -3,6 +3,7 @@ export type RomaneioStop = {
   customer: string;
   code: string;
   city: string;
+  invoiceNumber: string;
   vol: string;
   weight: string;
 };

@@ -63,6 +63,7 @@ export type RomaneioRecordOrder = {
   customer: string;
   destination: string;
   carrierName: string;
+  invoiceNumber: string;
   status: string;
   statusLabel: string;
   unitsRaw: number;
@@ -631,6 +632,44 @@ function mapRomaneioRecordListItem(row: RawRomaneioRow, orders: RomaneioRecordOr
   } satisfies RomaneioRecordListItem;
 }
 
+export function extractInvoiceNumber(payload: Record<string, unknown> | null | undefined, fallback?: string): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback || "Sem NF";
+  }
+
+  // 1. Direct notaFiscal object
+  const notaFiscal = payload.notaFiscal || payload.nota_fiscal || payload.nfe;
+  if (notaFiscal && typeof notaFiscal === "object") {
+    const nfObj = notaFiscal as Record<string, unknown>;
+    if (nfObj.numero) return `NF ${String(nfObj.numero).trim()}`;
+    if (nfObj.chave && typeof nfObj.chave === "string" && nfObj.chave.length === 44) {
+      const numFromKey = parseInt(nfObj.chave.substring(25, 34), 10);
+      if (!isNaN(numFromKey) && numFromKey > 0) return `NF ${numFromKey}`;
+    }
+  }
+
+  // 2. Direct string fields
+  if (payload.numero_nota) return `NF ${String(payload.numero_nota).trim()}`;
+  if (payload.numero_nf) return `NF ${String(payload.numero_nf).trim()}`;
+  if (payload.nota_fiscal && typeof payload.nota_fiscal === "string") return `NF ${payload.nota_fiscal.trim()}`;
+
+  // 3. From danfe_simplificada / danfe
+  const danfe = payload.danfe_simplificada || payload.danfe || payload.chave_nfe || payload.chave_acesso;
+  if (typeof danfe === "string" && danfe.trim().length === 44) {
+    const numFromKey = parseInt(danfe.trim().substring(25, 34), 10);
+    if (!isNaN(numFromKey) && numFromKey > 0) return `NF ${numFromKey}`;
+  }
+
+  // 4. In fiscal / nfe sub-objects
+  if (payload.fiscal && typeof payload.fiscal === "object") {
+    const fisc = payload.fiscal as Record<string, unknown>;
+    if (fisc.numero) return `NF ${String(fisc.numero).trim()}`;
+    if (fisc.numero_nota) return `NF ${String(fisc.numero_nota).trim()}`;
+  }
+
+  return fallback || "Sem NF";
+}
+
 function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
@@ -649,6 +688,7 @@ function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
     customer,
     destination,
     carrierName: extractCarrierName(payload),
+    invoiceNumber: extractInvoiceNumber(payload),
     status: item.status,
     statusLabel: formatShippingStatusLabel(item.status),
     unitsRaw,

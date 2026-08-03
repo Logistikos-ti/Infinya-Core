@@ -113,6 +113,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
     customer: o.customer,
     code: o.code,
     city: o.destination,
+    invoiceNumber: o.invoiceNumber || "Sem NF",
     vol: o.units,
     weight: o.total, // Using total instead of weight for now
   }));
@@ -170,6 +171,7 @@ const mapSuggestionToUI = (s: RomaneioSuggestionGroup): RomaneioUI => {
     customer: o.customer,
     code: o.code,
     city: o.destination,
+    invoiceNumber: o.invoiceNumber || "Sem NF",
     vol: o.units,
     weight: o.total,
   }));

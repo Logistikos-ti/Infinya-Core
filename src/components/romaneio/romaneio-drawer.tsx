@@ -130,7 +130,7 @@ export function RomaneioDrawer({ romaneio: r, onClose }: RomaneioDrawerProps) {
                       {s.customer}
                     </span>
                     <span className="font-[family-name:var(--font-space-grotesk)] text-[11.5px] text-slate-500 dark:text-slate-400">
-                      {s.code} · {s.city}
+                      {s.code} · {s.invoiceNumber || "Sem NF"}
                     </span>
                   </div>
                   <div className="flex flex-col gap-[1px] items-end shrink-0">
