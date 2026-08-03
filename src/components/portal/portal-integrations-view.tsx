@@ -114,23 +114,13 @@ function IntegrationCard({
 }
 
 function IntegrationLogo({ provider }: { provider: "bling" | "mercado-livre" }) {
-  if (provider === "bling") {
-    return (
-      <div
-        aria-label="Bling"
-        className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-[#00a859] px-2 text-[16px] font-extrabold tracking-[-0.08em] text-white shadow-sm"
-      >
-        bling
-      </div>
-    );
-  }
-
   return (
-    <div
-      aria-label="Mercado Livre"
-      className="flex h-11 min-w-11 items-center justify-center rounded-xl bg-[#ffe600] px-2 text-[12px] font-black tracking-[-0.08em] text-[#1f4e96] shadow-sm"
-    >
-      ML
+    <div className="flex h-11 w-11 shrink-0 overflow-hidden rounded-xl shadow-sm">
+      <img
+        src={provider === "bling" ? "/integrations/bling.png" : "/integrations/mercado-livre.png"}
+        alt={provider === "bling" ? "Bling" : "Mercado Livre"}
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 }
