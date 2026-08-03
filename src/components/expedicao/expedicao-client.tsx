@@ -50,6 +50,22 @@ import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
 const initialManualShippingOrderSubmissionState = { status: "idle" };
 
+function isFromCurrentMonthInSaoPaulo(value: string | null | undefined) {
+  if (!value) return false;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  });
+
+  const currentMonth = formatter.format(new Date());
+  return formatter.format(date) === currentMonth;
+}
+
 function xmlPreviewValue(xml: string, tag: string) {
   if (typeof DOMParser !== "undefined") {
     const document = new DOMParser().parseFromString(xml, "application/xml");
@@ -255,12 +271,18 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return false;
   };
 
+  const expedidosNoMesAtual = data.orders.filter(
+    (order: any) =>
+      order.status === "EXPEDIDO" &&
+      isFromCurrentMonthInSaoPaulo(order.updatedAtIso || order.createdAtIso),
+  ).length;
+
   const tableFiltersDef = [
     { id: "aguardando", label: "Aguardando", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "aguardando")).length, hasCount: true, isAlert: false },
     { id: "separacao", label: "Em separação", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "separacao")).length, hasCount: true, isAlert: false },
     { id: "conferencia", label: "Em conferência", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
     { id: "pronto-coleta", label: "Pronto para coleta", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
-    { id: "expedido", label: "Expedido", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "expedido")).length, hasCount: true, isAlert: false },
+    { id: "expedido", label: "Expedido", count: expedidosNoMesAtual, hasCount: true, isAlert: false },
     { id: "atrasados", label: "Atrasados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "atrasados")).length, hasCount: true, isAlert: true },
     { id: "todos", label: "Todos", count: data.orders.length, hasCount: false, isAlert: false },
   ];
@@ -299,7 +321,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
-      if (s.id === 'expedido') return o.status === 'EXPEDIDO';
+      if (s.id === 'expedido') return o.status === 'EXPEDIDO' && isFromCurrentMonthInSaoPaulo(o.updatedAtIso || o.createdAtIso);
       return o.status === s.statusFilter;
     }).length : data.orders.length;
 
