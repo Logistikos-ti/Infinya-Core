@@ -25,48 +25,72 @@ export function buildFullDanfePdfFromXml(xml: string, options?: { carrierName?: 
   const height = 842;
   const margin = 28;
 
-  drawJpeg(operations, margin, 750, 165, 60);
-  strokeRect(operations, margin, 742, width - margin * 2, 72, BLACK, 1.1);
-  line(operations, 395, 742, 395, 814, BLACK, 0.8);
-  text(operations, 411, 787, "DOCUMENTO AUXILIAR DA", 8, DARK, true);
-  text(operations, 411, 771, "NOTA FISCAL ELETRONICA", 12, BLACK, true);
-  text(operations, 411, 755, `NF-e ${safeAscii(parsed.noteNumber)} | SERIE 1`, 9, BLACK, true);
+  // Standard DANFE structure, intentionally modelled after the former
+  // SmartGo document: receipt stub, issuer/DANFE/barcode header and fiscal
+  // sections. It is distinct from the compact 4x6 operational DANFE.
+  strokeRect(operations, margin, 755, width - margin * 2, 56, BLACK, 0.9);
+  line(operations, 430, 755, 430, 811, BLACK, 0.7);
+  text(operations, margin + 7, 794, `RECEBEMOS DE ${truncate(safeAscii(parsed.supplierName), 73)} OS PRODUTOS E/OU SERVICOS CONSTANTES DA NF-e INDICADA AO LADO.`, 7.1, BLACK, true);
+  text(operations, margin + 7, 779, `EMISSAO: ${formatDateTime(parsed.issuedAt)}   DEST/REME: ${truncate(safeAscii(parsed.recipientName), 32)}   VALOR TOTAL: ${parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`, 7.1, BLACK, false);
+  text(operations, margin + 7, 762, "DATA DO RECEBIMENTO: ____________________     IDENTIFICACAO E ASSINATURA DO RECEBEDOR: ______________________________", 6.5, BLACK, false);
+  text(operations, 452, 793, "NF-e", 12, BLACK, true);
+  text(operations, 446, 778, `No ${safeAscii(parsed.noteNumber)}`, 9, BLACK, true);
+  text(operations, 446, 764, "SERIE 1", 8, BLACK, true);
+  line(operations, margin, 748, width - margin, 748, BLACK, 0.5);
 
-  fullField(operations, margin, 680, 270, 54, "EMITENTE", safeAscii(parsed.supplierName), `CNPJ: ${safeAscii(parsed.supplierDocument ?? "NAO INFORMADO")}`);
-  fullField(operations, 302, 680, 265, 54, "DESTINATARIO / REMETENTE", safeAscii(parsed.recipientName), safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"));
-  fullField(operations, margin, 625, 170, 44, "DATA DE EMISSAO", formatDateTime(parsed.issuedAt));
-  fullField(operations, 200, 625, 180, 44, "TRANSPORTADORA", safeAscii(carrierName));
-  fullField(operations, 380, 625, 187, 44, "VALOR TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+  strokeRect(operations, margin, 623, 220, 116, BLACK, 0.9);
+  text(operations, margin + 9, 717, truncate(safeAscii(parsed.supplierName), 35), 12, BLACK, true);
+  text(operations, margin + 9, 698, `CNPJ: ${safeAscii(parsed.supplierDocument ?? "NAO INFORMADO")}`, 8, BLACK, false);
+  text(operations, margin + 9, 681, "ENDERECO E DADOS DO EMITENTE", 7.2, GRAY, true);
+  text(operations, margin + 9, 666, "Consulte o XML original para dados fiscais completos.", 7.1, DARK, false);
+  strokeRect(operations, 248, 623, 118, 116, BLACK, 0.9);
+  text(operations, 278, 714, "DANFE", 16, BLACK, true);
+  text(operations, 260, 696, "DOCUMENTO AUXILIAR DA", 6.8, BLACK, false);
+  text(operations, 256, 684, "NOTA FISCAL ELETRONICA", 6.8, BLACK, false);
+  text(operations, 262, 660, parsed.direction === "SAIDA" ? "1 - SAIDA" : "0 - ENTRADA", 8, BLACK, true);
+  text(operations, 276, 645, `No ${safeAscii(parsed.noteNumber)}`, 9, BLACK, true);
+  text(operations, 278, 632, "SERIE 1", 8, BLACK, true);
+  strokeRect(operations, 374, 623, 193, 116, BLACK, 0.9);
+  text(operations, 383, 716, "CHAVE DE ACESSO", 7, BLACK, true);
+  if (accessKey.length === 44) {
+    drawCode128(operations, accessKey, 383, 670, 175, 31);
+    text(operations, 384, 658, accessKey, 6.8, BLACK, false);
+  } else {
+    text(operations, 383, 681, "CHAVE NAO INFORMADA", 8, BLACK, true);
+  }
+  text(operations, 383, 643, "Consulta de autenticidade no portal nacional da NF-e", 5.8, DARK, false);
+  text(operations, 383, 632, `PROTOCOLO: ${safeAscii(parsed.protocolNumber ?? "NAO INFORMADO")}`, 6.3, DARK, false);
 
-  text(operations, margin, 603, "ITENS DA NOTA FISCAL", 9, BLACK, true);
-  tableHeader(operations, margin, 580, [30, 85, 275, 85, 64], ["#", "CODIGO", "DESCRICAO", "NCM", "QTD"]);
-  let rowY = 562;
-  parsed.items.slice(0, 20).forEach((item, index) => {
+  fullField(operations, margin, 585, 539, 28, "NATUREZA DA OPERACAO", safeAscii(parsed.additionalInfo ?? "Remessa para armazenagem"));
+  fullField(operations, margin, 531, 350, 45, "DESTINATARIO / REMETENTE", safeAscii(parsed.recipientName), safeAscii(parsed.recipientAddress ?? "NAO INFORMADO"));
+  fullField(operations, 378, 531, 189, 45, "CNPJ / CPF", safeAscii(parsed.recipientDocument ?? "NAO INFORMADO"));
+  fullField(operations, margin, 480, 160, 40, "DATA DE EMISSAO", formatDateTime(parsed.issuedAt));
+  fullField(operations, 188, 480, 190, 40, "TRANSPORTADORA", safeAscii(carrierName));
+  fullField(operations, 378, 480, 189, 40, "VALOR TOTAL DA NOTA", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+
+  text(operations, margin, 459, "ITENS DA NOTA FISCAL", 8.2, BLACK, true);
+  tableHeader(operations, margin, 439, [25, 72, 220, 55, 45, 42, 80], ["#", "CODIGO", "DESCRICAO", "NCM", "CFOP", "UN", "QTDE"]);
+  let rowY = 422;
+  parsed.items.slice(0, 14).forEach((item, index) => {
     if (index % 2 === 0) fillRect(operations, margin, rowY - 6, 539, 17, LIGHT);
-    text(operations, margin + 9, rowY, String(index + 1), 7.5, DARK, false);
-    text(operations, margin + 34, rowY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 15), 7.5, DARK, false);
-    text(operations, margin + 119, rowY, truncate(safeAscii(item.descricao), 47), 7.5, DARK, false);
-    text(operations, margin + 394, rowY, truncate(safeAscii(item.ncm ?? "-"), 13), 7.5, DARK, false);
-    text(operations, margin + 512, rowY, item.quantidade.toLocaleString("pt-BR"), 7.5, DARK, false);
+    text(operations, margin + 8, rowY, String(index + 1), 6.8, DARK, false);
+    text(operations, margin + 29, rowY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 13), 6.8, DARK, false);
+    text(operations, margin + 100, rowY, truncate(safeAscii(item.descricao), 39), 6.8, DARK, false);
+    text(operations, margin + 320, rowY, truncate(safeAscii(item.ncm ?? "-"), 9), 6.8, DARK, false);
+    text(operations, margin + 375, rowY, truncate(safeAscii(item.cfop ?? "-"), 7), 6.8, DARK, false);
+    text(operations, margin + 420, rowY, "UN", 6.8, DARK, false);
+    text(operations, margin + 490, rowY, item.quantidade.toLocaleString("pt-BR"), 6.8, DARK, false);
     line(operations, margin, rowY - 7, width - margin, rowY - 7, [0.75, 0.75, 0.75], 0.3);
     rowY -= 17;
   });
-  if (parsed.items.length > 20) text(operations, margin, rowY, `+ ${parsed.items.length - 20} itens nao exibidos nesta pagina`, 7, GRAY, false);
+  if (parsed.items.length > 14) text(operations, margin, rowY, `+ ${parsed.items.length - 14} itens disponiveis no XML original`, 6.8, GRAY, false);
 
-  const bottomY = 130;
-  fullField(operations, margin, bottomY + 76, 175, 48, "VOLUMES", String(Math.max(1, parsed.volumeCount)));
-  fullField(operations, 203, bottomY + 76, 175, 48, "PESO BRUTO", parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO");
-  fullField(operations, 378, bottomY + 76, 189, 48, "PROTOCOLO", safeAscii(parsed.protocolNumber ?? "NAO INFORMADO"));
-  strokeRect(operations, margin, bottomY, width - margin * 2, 66, BLACK, 0.8);
-  text(operations, margin + 8, bottomY + 51, "CHAVE DE ACESSO", 7.5, BLACK, true);
-  if (accessKey.length === 44) {
-    drawCode128(operations, accessKey, margin + 8, bottomY + 18, width - margin * 2 - 16, 26);
-    text(operations, margin + 8, bottomY + 8, accessKey, 7, BLACK, false);
-  } else {
-    text(operations, margin + 8, bottomY + 25, "CHAVE DE ACESSO NAO INFORMADA NO XML", 8, BLACK, true);
-  }
-  text(operations, margin, 48, `NF-e ${safeAscii(parsed.noteNumber)} | Documento fiscal completo`, 7.2, GRAY, false);
-  text(operations, width - margin - 56, 48, "Pagina 1 de 1", 7.2, GRAY, false);
+  fullField(operations, margin, 144, 180, 48, "TRANSPORTADOR / VOLUMES", safeAscii(carrierName), `VOLUMES: ${Math.max(1, parsed.volumeCount)}`);
+  fullField(operations, 210, 144, 180, 48, "PESO BRUTO", parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO");
+  fullField(operations, 390, 144, 177, 48, "INFORMACOES COMPLEMENTARES", truncate(safeAscii(parsed.additionalInfo ?? "Sem informacoes adicionais"), 32));
+  fullField(operations, margin, 88, 539, 45, "DADOS ADICIONAIS", safeAscii(parsed.additionalInfo ?? "Documento fiscal gerado a partir do XML da NF-e."));
+  text(operations, margin, 52, `NF-e ${safeAscii(parsed.noteNumber)} | Documento fiscal completo`, 7.2, GRAY, false);
+  text(operations, width - margin - 56, 52, "Folha 1 de 1", 7.2, GRAY, false);
 
   return createSimplePdf(operations.join("\n"), width, height);
 }
