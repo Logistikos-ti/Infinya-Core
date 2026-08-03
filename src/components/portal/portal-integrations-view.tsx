@@ -102,7 +102,7 @@ function IntegrationCard({
       ) : null}
       <a
         href={href}
-        className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5 hover:shadow-violet-500/35"
+        className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold !text-white shadow-lg shadow-violet-500/20 transition hover:-translate-y-0.5 hover:!text-white hover:shadow-violet-500/35"
       >
         <RefreshCw className="h-4 w-4" />
         {connected ? `Reconectar ${title}` : `Conectar ${title}`}
