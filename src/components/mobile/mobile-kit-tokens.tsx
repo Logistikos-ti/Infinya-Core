@@ -209,7 +209,7 @@ const INFINITY_LOOP_POINTS = (() => {
 
 export function MobileInfinityLoader({
   size = 132,
-  label = "Carregando",
+  label = null,
   color,
   trackColor,
   trackOpacity,
