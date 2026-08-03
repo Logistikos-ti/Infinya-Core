@@ -24,6 +24,9 @@ type DanfeRomaneioModalProps = {
   customerName: string;
   carrierHint?: string;
   onSuccess?: () => void;
+  isDesktop?: boolean;
+  redirectRomaneioUrl?: string;
+  redirectConferenceUrl?: string;
 };
 
 export function DanfeRomaneioModal({
@@ -34,6 +37,9 @@ export function DanfeRomaneioModal({
   customerName,
   carrierHint,
   onSuccess,
+  isDesktop = false,
+  redirectRomaneioUrl,
+  redirectConferenceUrl,
 }: DanfeRomaneioModalProps) {
   const router = useRouter();
   const [scanValue, setScanValue] = useState("");
@@ -45,6 +51,10 @@ export function DanfeRomaneioModal({
     carrierName: string;
     totalOrders: number;
   } | null>(null);
+
+  const romaneioTargetUrl = redirectRomaneioUrl || (isDesktop ? "/romaneio" : "/m/romaneio");
+  const conferenceQueueUrl =
+    redirectConferenceUrl || (isDesktop ? "/expedicao/conferencia?feedback=romaneio_ok" : "/m/conferencia?feedback=romaneio_ok");
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -169,7 +179,7 @@ export function DanfeRomaneioModal({
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => router.push(`/m/romaneio`)}
+                  onClick={() => router.push(romaneioTargetUrl)}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 font-semibold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400"
                 >
                   <Truck className="h-4 w-4" />
@@ -179,7 +189,7 @@ export function DanfeRomaneioModal({
                   type="button"
                   onClick={() => {
                     onClose();
-                    router.push(`/m/conferencia?feedback=romaneio_ok`);
+                    router.push(conferenceQueueUrl);
                   }}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10"
                 >

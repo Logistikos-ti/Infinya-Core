@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
+import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -50,6 +51,7 @@ export function ShippingConferencePanel({
 
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [isDanfeModalOpen, setIsDanfeModalOpen] = useState(false);
 
   const t = isDark
     ? {
@@ -636,17 +638,31 @@ export function ShippingConferencePanel({
             ⚠ Reportar divergência
           </button>
           <button 
-            type="submit"
-            form="shipping-conference-form"
-            name="intent"
-            value="force-pronto-romaneio"
+            type="button"
+            onClick={() => {
+              if (full) {
+                setIsDanfeModalOpen(true);
+              }
+            }}
             disabled={!full || isSubmitting} 
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
           >
-            {full ? <Route size={18} /> : checkIcon} {isSubmitting ? "Finalizando..." : finishLabel}
+            {full ? <Route size={18} /> : checkIcon} {finishLabel}
           </button>
         </div>
+
+        <DanfeRomaneioModal
+          isOpen={isDanfeModalOpen}
+          onClose={() => setIsDanfeModalOpen(false)}
+          orderId={order.id}
+          orderCode={order.code}
+          customerName={order.customer}
+          carrierHint={order.marketplace}
+          isDesktop={true}
+          redirectRomaneioUrl="/romaneio"
+          redirectConferenceUrl="/expedicao/conferencia?feedback=romaneio_ok"
+        />
 
       </div>
       <style dangerouslySetInnerHTML={{ __html: `
