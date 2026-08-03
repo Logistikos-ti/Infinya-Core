@@ -84,31 +84,12 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
           </div>
         )}
 
-        <section
-          className="overflow-hidden rounded-[24px] p-5"
-          style={{
-            border: `1px solid ${hexAlpha(mobileColors.violet, 0.25)}`,
-            background: `linear-gradient(140deg, ${hexAlpha(mobileColors.blue, 0.12)}, ${hexAlpha(mobileColors.violet, 0.12)})`,
-          }}
-        >
-          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: mobileColors.violetLight }}>
-            Romaneio operacional
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>
-            Cargas consolidadas
-          </h1>
-          <p className="mt-2 text-sm leading-6" style={{ color: mobileColors.muted }}>
-            Consulte romaneios já criados, revise a carga e emita o PDF direto no app.
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <MiniStat label="Romaneios" value={String(records.length)} />
-            <MiniStat label="Pedidos" value={String(totalOrders)} />
-          </div>
-          <div className="mt-2">
-            <MiniStat label="Grupos sugeridos" value={String(suggestions.length)} />
-          </div>
-        </section>
+        {/* 3 Stat Cards igual a aba inicial */}
+        <div className="flex gap-2.5">
+          <StatCard value={records.length} label="romaneios" color={mobileColors.violetLight} />
+          <StatCard value={totalOrders} label="pedidos" color={mobileColors.blueLight} />
+          <StatCard value={suggestions.length} label="sugestões" color={mobileColors.cyan} />
+        </div>
 
         {/* Sugestões de Criação */}
         <section className="space-y-3">
@@ -290,24 +271,26 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
   );
 }
 
-function MiniStat({
-  label,
+function StatCard({
   value,
+  label,
+  color,
 }: {
+  value: string | number;
   label: string;
-  value: string;
+  color: string;
 }) {
   return (
     <div
-      className="rounded-2xl px-3 py-3"
-      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.05) }}
+      className="flex flex-1 flex-col gap-0.5 rounded-[14px] px-[14px] py-[13px]"
+      style={{ background: hexAlpha(color, 0.1), border: `1px solid ${hexAlpha(color, 0.22)}` }}
     >
-      <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-        {label}
-      </p>
-      <p className="mt-2 text-xl font-semibold" style={{ color: mobileColors.text, ...headingFont }}>
+      <span className="text-[22px] font-bold" style={{ color, ...headingFont }}>
         {value}
-      </p>
+      </span>
+      <span className="text-[11.5px]" style={{ color: mobileColors.muted }}>
+        {label}
+      </span>
     </div>
   );
 }
