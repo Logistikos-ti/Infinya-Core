@@ -1,18 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw } from "lucide-react";
+import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { StockTransferQuickModal } from "./stock-transfer-quick-modal";
 import { StockAdjustmentModal } from "./stock-adjustment-modal";
 import { StockInventoryModal } from "./stock-inventory-modal";
+import { StockManualExitModal } from "./stock-manual-exit-modal";
 
 export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses = [], movements = [], onClose }: { t: any; sku: any; allBalances?: any[]; allAddresses?: any[]; movements?: any[]; onClose: () => void }) {
   const [barWidth, setBarWidth] = useState("0%");
   const [showTransfer, setShowTransfer] = useState(false);
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showManualExit, setShowManualExit] = useState(false);
   
   const skuIdToFind = sku.productId || sku.sku;
   const skuBalances = allBalances.filter((b: any) => (b.productId || b.sku) === skuIdToFind);
@@ -195,7 +197,7 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
         </div>
 
         {/* Footer Actions */}
-        <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, background: t.drawerBg, display: "flex", gap: "12px", zIndex: 10 }}>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, background: t.drawerBg, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px", zIndex: 10 }}>
           <button onClick={() => setShowAdjustment(true)} style={{ flex: 1, height: "46px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
             <ArrowRightLeft size={16} /> Ajustar
           </button>
@@ -204,6 +206,9 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           </button>
           <button onClick={() => setShowInventory(true)} style={{ flex: 1, height: "46px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 14px rgba(99,102,241,0.25)" }}>
             <RotateCcw size={16} /> Inventariar
+          </button>
+          <button onClick={() => setShowManualExit(true)} style={{ height: "46px", borderRadius: "12px", border: "1px solid rgba(239,68,68,.45)", background: "rgba(239,68,68,.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+            <LogOut size={16} /> Saída manual
           </button>
         </div>
       </div>
@@ -243,6 +248,19 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           onClose={() => setShowInventory(false)}
           onSuccess={() => {
             setShowInventory(false);
+          }}
+        />
+      )}
+
+      {showManualExit && (
+        <StockManualExitModal
+          sku={sku}
+          allBalances={allBalances}
+          t={t}
+          onClose={() => setShowManualExit(false)}
+          onSuccess={() => {
+            setShowManualExit(false);
+            window.location.reload();
           }}
         />
       )}
