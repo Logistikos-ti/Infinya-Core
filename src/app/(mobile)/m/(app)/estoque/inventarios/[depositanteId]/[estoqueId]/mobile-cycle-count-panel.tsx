@@ -142,8 +142,6 @@ export function MobileCycleCountPanel({
       subtitle={depositanteNome}
       tag={confirmed ? "Contado" : enderecoCodigo}
       tagColor={mobileColors.amber}
-      progressPct={confirmed ? "100%" : "60%"}
-      progressLabel={confirmed ? "Produto contado" : "Conte e confirme a quantidade"}
       onBack={() => router.push(`/m/estoque/inventarios/${depositanteId}`)}
       done={confirmed}
       doneTitle={match ? "Contagem confere!" : "Divergência registrada"}
