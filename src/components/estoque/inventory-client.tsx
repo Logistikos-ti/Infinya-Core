@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { InventoryKpis } from "./inventory-kpis";
 import { InventoryToolbar } from "./inventory-toolbar";
@@ -159,7 +160,48 @@ export function InventoryClient({ data }: { data: any }) {
             </span>
             Estoque inicial
           </button>
-          
+
+          {data.isAdmin ? (
+            <Link
+              href="/estoque/inventarios/pendencias"
+              style={{
+                height: "44px",
+                padding: "0 18px",
+                borderRadius: "11px",
+                border: data.pendingAdjustmentsCount > 0 ? "1px solid #F59E0B" : `1px solid ${t.border}`,
+                background: data.pendingAdjustmentsCount > 0 ? "rgba(245,158,11,0.1)" : t.inputBg,
+                color: data.pendingAdjustmentsCount > 0 ? "#B45309" : t.text,
+                fontFamily: "'Manrope', sans-serif",
+                fontSize: "14px",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                textDecoration: "none",
+              }}
+            >
+              Pendências de ajuste
+              {data.pendingAdjustmentsCount > 0 ? (
+                <span
+                  style={{
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 999,
+                    background: "#F59E0B",
+                    color: "#fff",
+                    fontSize: "11.5px",
+                    fontWeight: 800,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "0 6px",
+                  }}
+                >
+                  {data.pendingAdjustmentsCount}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
         </div>
       </div>
 

@@ -15,6 +15,22 @@ export type CycleCountSummary = {
   divergentItems: number;
 };
 
+export type PendingCycleCountAdjustment = {
+  itemId: string;
+  cycleCountId: string;
+  titulo: string;
+  depositante: string;
+  sku: string;
+  productName: string;
+  endereco: string;
+  area: string;
+  systemQuantity: string;
+  countedQuantity: string;
+  divergence: string;
+  countedBy: string;
+  countedAt: string;
+};
+
 export type CycleCountDetail = {
   id: string;
   titulo: string;
@@ -181,6 +197,69 @@ export async function listCycleCountsFromDb(
   return { available: true, data: summaries };
 }
 
+export async function listPendingCycleCountAdjustments(
+  depositanteId?: string,
+): Promise<CycleCountTablesResult<PendingCycleCountAdjustment[]>> {
+  const supabase = createSupabaseAdminClient();
+
+  let query = supabase
+    .from("contagens_estoque_itens")
+    .select(
+      "id, contagem_id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), depositante_id, produto:produtos(sku, nome), endereco:enderecos(codigo, area), depositante:depositantes(nome), contagem:contagens_estoque(titulo)",
+    )
+    .eq("ajuste_status", "PENDENTE_APROVACAO")
+    .order("contado_em", { ascending: true });
+
+  if (depositanteId) {
+    query = query.eq("depositante_id", depositanteId);
+  }
+
+  const { data, error } = await query;
+
+  if (isMissingCycleCountTables(error)) {
+    return { available: false, data: [] };
+  }
+
+  if (error) {
+    throw new Error(`NÃ£o foi possÃ­vel carregar as pendÃªncias de ajuste: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    contagem_id: string;
+    quantidade_sistema: number | string;
+    quantidade_contada: number | string | null;
+    segunda_quantidade_contada: number | string | null;
+    divergencia: number | string;
+    segunda_divergencia: number | string | null;
+    contado_em: string | null;
+    contado_por: RelationName;
+    produto: { sku?: string; nome?: string } | Array<{ sku?: string; nome?: string }> | null;
+    endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
+    depositante: RelationName;
+    contagem: { titulo?: string } | Array<{ titulo?: string }> | null;
+  }>;
+
+  return {
+    available: true,
+    data: rows.map((row) => ({
+      itemId: row.id,
+      cycleCountId: row.contagem_id,
+      titulo: extractRelationField(row.contagem, "titulo") ?? "Contagem",
+      depositante: extractRelationName(row.depositante) ?? "Sem depositante",
+      sku: extractRelationField(row.produto, "sku") ?? "SKU",
+      productName: extractRelationField(row.produto, "nome") ?? "Produto",
+      endereco: extractRelationField(row.endereco, "codigo") ?? "-",
+      area: extractRelationField(row.endereco, "area") ?? "-",
+      systemQuantity: Number(row.quantidade_sistema ?? 0).toLocaleString("pt-BR"),
+      countedQuantity: Number(row.segunda_quantidade_contada ?? row.quantidade_contada ?? 0).toLocaleString("pt-BR"),
+      divergence: Number(row.segunda_divergencia ?? row.divergencia ?? 0).toLocaleString("pt-BR"),
+      countedBy: extractRelationName(row.contado_por) ?? "-",
+      countedAt: row.contado_em ? formatDateTimePtBr(row.contado_em) : "-",
+    })),
+  };
+}
+
 export async function getStockCycleCountAvailability() {
   const result = await listCycleCountsFromDb();
   return result.available;
@@ -214,7 +293,7 @@ export async function getCycleCountDetailFromDb(
   const { data: itemRows, error: itemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios(nome), contado_em, contado_por:usuarios(nome), segunda_contado_em, segunda_contado_por:usuarios(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
+      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios!contagens_estoque_itens_ajuste_aprovado_por_fkey(nome), contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), segunda_contado_em, segunda_contado_por:usuarios!contagens_estoque_itens_segunda_contado_por_fkey(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
     )
     .eq("contagem_id", id)
     .order("created_at", { ascending: true });

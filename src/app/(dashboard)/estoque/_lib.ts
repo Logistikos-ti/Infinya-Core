@@ -1,5 +1,5 @@
 import { requireModuleAccess } from "@/lib/auth";
-import { canManageMultipleTenants } from "@/lib/permissions";
+import { canManageMultipleTenants, isAdminUser } from "@/lib/permissions";
 import {
   listStockBalancesFromDb,
   listStockExpiryAlertsFromDb,
@@ -7,7 +7,7 @@ import {
   listStockStatsFromDb,
   listStockTraceabilityProtocolsFromDb,
 } from "@/lib/stock";
-import { listCycleCountsFromDb } from "@/lib/stock-cycle-counts";
+import { listCycleCountsFromDb, listPendingCycleCountAdjustments } from "@/lib/stock-cycle-counts";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
@@ -84,6 +84,9 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
     listStockStatsFromDb(user, filters, stockBalances),
   ]);
   const cycleCountsResult = await listCycleCountsFromDb(filters.depositanteId);
+  const pendingAdjustments = isAdminUser(user)
+    ? await listPendingCycleCountAdjustments(filters.depositanteId)
+    : { available: true, data: [] };
   const stockTransferSources = stockBalances
     .filter(
       (item) =>
@@ -115,7 +118,9 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
     traceabilityProtocols,
     stockStatsCards,
     cycleCountsResult,
+    pendingAdjustmentsCount: pendingAdjustments.data.length,
     stockTransferSources,
     canSelectDepositante: canManageMultipleTenants(user),
+    isAdmin: isAdminUser(user),
   };
 }
