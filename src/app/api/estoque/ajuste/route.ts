@@ -32,17 +32,21 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as
     | {
         stockId?: string;
+        stockIds?: string[];
         targetQuantity?: string | number;
         reason?: string;
         depositanteId?: string;
       }
     | null;
 
-  if (!payload || !payload.stockId || payload.targetQuantity === undefined || !payload.reason) {
+  if (!payload || (!payload.stockId && !payload.stockIds?.length) || payload.targetQuantity === undefined || !payload.reason) {
     return Response.json({ error: "Faltam dados obrigatórios para o ajuste." }, { status: 400 });
   }
 
-  const stockId = String(payload.stockId).trim();
+  const stockId = String(payload.stockId ?? "").trim();
+  const stockIds = Array.isArray(payload.stockIds)
+    ? payload.stockIds.map((value) => String(value).trim()).filter(Boolean)
+    : [];
   const targetQuantity = parseOperationalQuantity(payload.targetQuantity);
   const reason = String(payload.reason).trim();
   const depositanteId = auth.user.depositanteId ?? String(payload.depositanteId ?? "").trim();
@@ -61,6 +65,7 @@ export async function POST(request: Request) {
       userId: auth.user.id,
       depositanteId,
       stockId,
+      stockIds,
       targetQuantity,
       reason,
     });
