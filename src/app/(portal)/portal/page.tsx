@@ -30,6 +30,9 @@ import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 import { PortalOrdersView } from "@/components/portal/portal-orders-view";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
+import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
+import { PortalIntegrationsView } from "@/components/portal/portal-integrations-view";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,7 +54,8 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const user = await requireRoleAccess(["DEPOSITANTE"]);
   const params = await searchParams;
   const requestedView = params?.view ?? "inicio";
-  const view = normalizeView(requestedView);
+  const integrationsEnabled = isPortalIntegrationEnabled(user.depositanteNome);
+  const view = normalizeView(requestedView, integrationsEnabled);
   const productsPage = parsePositivePage(params?.page);
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
@@ -136,6 +140,19 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
   const depositanteName = user.depositanteNome || user.nome;
+  const { data: integrationDepositante } =
+    view === "integracoes"
+      ? await adminSupabase
+          .from("depositantes")
+          .select("configuracoes, observacoes")
+          .eq("id", depositanteId)
+          .maybeSingle()
+      : { data: null };
+  const integrationConfig = parseDepositanteConfiguracoes(
+    integrationDepositante?.configuracoes
+      ? JSON.stringify(integrationDepositante.configuracoes)
+      : integrationDepositante?.observacoes ?? null,
+  );
   const selectedOrder = params?.order
     ? await getShippingOrderDetailFromDb(params.order, user)
     : null;
@@ -197,17 +214,25 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       {view === "suporte" ? (
         <SupportView initialTickets={supportTickets} />
       ) : null}
+      {view === "integracoes" ? (
+        <PortalIntegrationsView
+          depositanteId={depositanteId}
+          bling={integrationConfig.bling}
+          mercadoLivre={integrationConfig.mercadoLivre}
+          feedback={params?.feedback}
+        />
+      ) : null}
     </div>
   );
 }
 
-function normalizeView(value: string) {
+function normalizeView(value: string, integrationsEnabled: boolean) {
   if (value === "orders") return "pedidos";
   if (value === "receiving") return "recebimento";
   if (value === "products") return "produtos";
   if (value === "invoices") return "faturas";
   if (value === "support") return "suporte";
-  return ["pedidos", "recebimento", "produtos", "faturas", "suporte"].includes(
+  return ["pedidos", "recebimento", "produtos", "faturas", "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
     value,
   )
     ? value
@@ -459,7 +484,7 @@ function ProductsView({
             amber: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
             emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
           }[stockStatus.tone];
-          return <ProductStockCard item={item} />;
+          return <ProductStockCard key={item.id} item={item} />;
           return (
             <div
               key={item.id}
