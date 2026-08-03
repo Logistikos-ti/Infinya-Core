@@ -87,7 +87,7 @@ export async function adjustStockBalance(input: AdjustStockInput) {
         produto_id: change.stock.produto_id,
         endereco_origem_id: type === "AJUSTE_NEGATIVO" ? change.stock.endereco_id : null,
         endereco_destino_id: type === "AJUSTE_POSITIVO" ? change.stock.endereco_id : null,
-        tipo,
+        tipo: type,
         quantidade: Math.abs(change.difference),
         referencia_tipo: "AJUSTE_MANUAL",
         observacoes: input.reason,
