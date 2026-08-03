@@ -108,6 +108,9 @@ export function MobileReceivingPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Items short at the moment "Concluir" was pressed, shown for review before
+  // the operator decides to close anyway or go back and keep scanning.
+  const [divergenceReview, setDivergenceReview] = useState<ReceivingItemState[] | null>(null);
 
   const progress = useMemo(() => {
     const expected = items.reduce((sum, item) => sum + item.expectedQuantity, 0);
@@ -338,7 +341,20 @@ export function MobileReceivingPanel({
     applyScanRef.current = applyScan;
   });
 
-  async function submitConference(finalizar: boolean) {
+  function getShortItems() {
+    return items.filter((item) => normalizeQuantity(item.receivedQuantityValue) !== item.expectedQuantity);
+  }
+
+  function handleConcluirClick() {
+    const shortItems = getShortItems();
+    if (shortItems.length === 0) {
+      void submitConference(true);
+      return;
+    }
+    setDivergenceReview(shortItems);
+  }
+
+  async function submitConference(finalizar: boolean, confirmarDivergencia = false) {
     setIsSaving(true);
     setError(null);
     setMessage(null);
@@ -352,6 +368,7 @@ export function MobileReceivingPanel({
         body: JSON.stringify({
           enderecoId,
           finalizar,
+          confirmarDivergencia,
           items: items.map((item) => ({
             id: item.id,
             quantidadeRecebida: normalizeQuantity(item.receivedQuantityValue),
@@ -371,7 +388,8 @@ export function MobileReceivingPanel({
       setMessage(result.message ?? "Conferência atualizada com sucesso.");
 
       if (finalizar) {
-        router.push("/m/recebimento?feedback=concluido");
+        setDivergenceReview(null);
+        router.push(`/m/recebimento?feedback=${confirmarDivergencia ? "incompleto" : "concluido"}`);
         return;
       }
     } catch {
@@ -555,7 +573,15 @@ export function MobileReceivingPanel({
             <MobileIcon name="scan" size={18} strokeWidth={2} />
             Bipar item
           </button>
-          <MobilePrimaryButton onClick={() => void submitConference(true)} disabled={isSaving || !enderecoId} style={{ height: 48 }}>
+          <MobilePrimaryButton
+            onClick={handleConcluirClick}
+            disabled={isSaving || !enderecoId}
+            style={{
+              height: 48,
+              background: isSaving || !enderecoId ? undefined : mobileColors.green,
+              boxShadow: isSaving || !enderecoId ? undefined : "0 10px 26px rgba(16,185,129,0.4)",
+            }}
+          >
             {isSaving ? "Concluindo..." : "Concluir"}
           </MobilePrimaryButton>
         </div>
@@ -797,6 +823,88 @@ export function MobileReceivingPanel({
               style={{ color: mobileColors.muted }}
             >
               Preencher depois
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {divergenceReview ? (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(5,7,13,0.75)", display: "flex", alignItems: "flex-end" }}
+        >
+          <div
+            className="w-full"
+            style={{
+              background: mobileColors.bgAlt,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTop: `1px solid ${hexAlpha("#94A3B8", 0.16)}`,
+              padding: "22px 18px calc(22px + env(safe-area-inset-bottom))",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <span
+                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
+                style={{ background: hexAlpha(mobileColors.amber, 0.16), color: mobileColors.amber }}
+              >
+                <AlertTriangle className="h-5 w-5" strokeWidth={2.4} />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px] font-extrabold" style={{ color: mobileColors.text }}>
+                  {divergenceReview.length === 1 ? "1 item não bateu a quantidade" : `${divergenceReview.length} itens não bateram a quantidade`}
+                </span>
+                <span className="text-[12px]" style={{ color: mobileColors.muted }}>
+                  Confira o que falta antes de concluir.
+                </span>
+              </div>
+            </div>
+
+            <div className="app-scroll mb-4 flex flex-col gap-2 overflow-y-auto">
+              {divergenceReview.map((item) => {
+                const received = normalizeQuantity(item.receivedQuantityValue);
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 rounded-2xl px-3.5 py-3"
+                    style={{ border: `1px solid ${hexAlpha(mobileColors.amber, 0.25)}`, background: hexAlpha(mobileColors.amber, 0.06) }}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate text-[13.5px] font-bold" style={{ color: mobileColors.text }}>
+                        {item.description}
+                      </span>
+                      <span className="text-[11.5px]" style={{ color: mobileColors.muted }}>
+                        {item.sku}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-[14px] font-extrabold" style={{ color: mobileColors.amber, ...headingFont }}>
+                      {received}/{item.expectedQuantity}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void submitConference(true, true)}
+              disabled={isSaving}
+              className="flex h-[56px] w-full items-center justify-center gap-2 rounded-[17px] text-[16px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ background: mobileColors.amber, boxShadow: "0 10px 26px rgba(245,158,11,0.35)" }}
+            >
+              {isSaving ? "Concluindo..." : "Concluir com divergência"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDivergenceReview(null)}
+              disabled={isSaving}
+              className="mt-2 h-11 w-full rounded-xl text-[13px] font-bold disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ color: mobileColors.muted }}
+            >
+              Voltar para o recebimento
             </button>
           </div>
         </div>

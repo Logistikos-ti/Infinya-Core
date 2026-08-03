@@ -194,13 +194,32 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  if (parsed.data.finalizar && normalizedItems.some((item) => item.status !== "RECEBIDO")) {
+  const hasIncompleteItems = normalizedItems.some((item) => item.status !== "RECEBIDO");
+
+  if (parsed.data.finalizar && hasIncompleteItems && !parsed.data.confirmarDivergencia) {
     return NextResponse.json(
       {
         error:
           "Para concluir o recebimento, todos os itens precisam estar totalmente recebidos e sem divergência.",
+        divergentItems: normalizedItems
+          .filter((item) => item.status !== "RECEBIDO")
+          .map((item) => ({
+            sku: item.productSku,
+            nome: item.productName,
+            previsto: item.expected,
+            recebido: item.received,
+          })),
       },
       { status: 400 },
+    );
+  }
+
+  // The operator reviewed the shortfall and chose to close anyway: items
+  // still untouched (PENDENTE) are recorded as DIVERGENCIA instead, so the
+  // saved history shows they were missing, not simply "not started yet".
+  if (parsed.data.finalizar && parsed.data.confirmarDivergencia && hasIncompleteItems) {
+    normalizedItems = normalizedItems.map((item) =>
+      item.status === "PENDENTE" ? { ...item, status: "DIVERGENCIA" as const } : item,
     );
   }
 
@@ -228,7 +247,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const hasDivergence = normalizedItems.some((item) => item.status === "DIVERGENCIA");
   const orderStatus = parsed.data.finalizar
-    ? "RECEBIDO"
+    ? hasDivergence
+      ? "DIVERGENCIA"
+      : "RECEBIDO"
     : calculateOrderStatus(normalizedItems.map((item) => item.status));
 
   const { error: statusUpdateError } = await adminSupabase
@@ -259,6 +280,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (parsed.data.finalizar) {
     for (const item of normalizedItems) {
+      if (item.received <= 0) continue;
+
       const existingStock = await findExistingStock(
         adminSupabase,
         order.depositante_id,
@@ -351,7 +374,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   return NextResponse.json({
     message: parsed.data.finalizar
-      ? `Recebimento concluído e lançado no estoque em ${address.codigo}.`
+      ? hasDivergence
+        ? `Recebimento concluído com divergência e lançado no estoque em ${address.codigo}.`
+        : `Recebimento concluído e lançado no estoque em ${address.codigo}.`
       : hasDivergence
         ? "Conferência salva com divergência já registrada para tratativa."
         : "Conferência salva com sucesso.",
