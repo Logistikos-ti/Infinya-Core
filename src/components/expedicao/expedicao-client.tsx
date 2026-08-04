@@ -42,13 +42,15 @@ import {
   createOperationalManualShippingOrderAction,
   bulkDeleteShippingOrdersAction,
   deleteShippingOrderAction,
+  type ManualShippingOrderSubmissionState,
 } from "@/app/(dashboard)/expedicao/actions";
+import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { createPortal } from "react-dom";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 
-const initialManualShippingOrderSubmissionState = { status: "idle" };
+const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = { status: "idle" };
 
 function isFromCurrentMonthInSaoPaulo(value: string | null | undefined) {
   if (!value) return false;
@@ -146,6 +148,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   type OrderSortKey = "order" | "invoice" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [treatingDivergenceOrder, setTreatingDivergenceOrder] = useState<any | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -831,7 +834,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                           <tr
                             key={order.id}
                             style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease" }}
-                            onMouseEnter={(event) => { event.currentTarget.style.background = t.rowHover; }}
+                            onMouseEnter={(event) => { event.currentTarget.style.background = t.softBg; }}
                             onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
                           >
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.displayNumber || order.code}</span></td>
@@ -839,7 +842,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
                             <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{depositante}</td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub }}>{registeredBy}</td>
-                            <td style={{ padding: "14px 20px", textAlign: "right" }}><button type="button" onClick={() => router.push(`/expedicao/${order.id}`)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", transition: "border-color 0.15s ease" }} onMouseEnter={(event) => { event.currentTarget.style.borderColor = "#8B5CF6"; }} onMouseLeave={(event) => { event.currentTarget.style.borderColor = t.border; }}>Tratar</button></td>
+                            <td style={{ padding: "14px 20px", textAlign: "right" }}><button type="button" onClick={() => setTreatingDivergenceOrder({ ...order, cancellationReason: reason, divergenceReporter: registeredBy, depositante })} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", transition: "border-color 0.15s ease" }} onMouseEnter={(event) => { event.currentTarget.style.borderColor = "#8B5CF6"; }} onMouseLeave={(event) => { event.currentTarget.style.borderColor = t.border; }}>Tratar</button></td>
                           </tr>
                         );
                       })}
@@ -1619,6 +1622,13 @@ const moves = getTimelineSteps(sel.raw.status, sel);
           </aside>
         </div>
       )}
+
+      {/* Slide-over Drawer para Tratamento de Divergências */}
+      <ShippingDivergenceDrawer
+        order={treatingDivergenceOrder}
+        isOpen={Boolean(treatingDivergenceOrder)}
+        onClose={() => setTreatingDivergenceOrder(null)}
+      />
       
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes drawerIn {
