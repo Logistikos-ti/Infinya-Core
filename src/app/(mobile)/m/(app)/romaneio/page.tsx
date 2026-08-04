@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Truck } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { listRomaneioRecordsFromDb } from "@/lib/romaneio-records";
-import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
+import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 
 type MobileRomaneioPageProps = {
@@ -171,7 +171,7 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
                               <p className="truncate text-sm font-semibold" style={{ color: mobileColors.text }}>
                                 {order.code}
                               </p>
-                              <span className="text-xs font-medium text-amber-400">
+                              <span className="text-xs font-medium" style={{ color: mobileColors.amber }}>
                                 {order.invoiceNumber}
                               </span>
                             </div>
@@ -200,7 +200,8 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
                     <div className="mt-4 flex">
                       <Link
                         href={`/m/romaneio/${record.id}/fechar`}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 px-4 py-3.5 text-xs font-bold text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.98] transition hover:bg-amber-400"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-xs font-extrabold text-white active:scale-[0.98] transition"
+                        style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
                       >
                         <Truck className="h-4 w-4" />
                         Fechar Romaneio

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { MobilePrimaryButton, MobileIcon } from "@/components/mobile/mobile-kit";
+import { MobilePrimaryButton, MobileIcon, MobileButtonSpinner } from "@/components/mobile/mobile-kit";
 import { createRomaneioRecordAction } from "@/app/(dashboard)/romaneio/actions";
 
 type GerarRomaneioFormProps = {
@@ -31,7 +31,7 @@ function SubmitButton() {
   return (
     <MobilePrimaryButton type="submit" disabled={pending} style={{ height: 48, borderRadius: 14 }}>
       {pending ? (
-        <span>Gerando...</span>
+        <MobileButtonSpinner />
       ) : (
         <>
           <span>Gerar Romaneio</span>
