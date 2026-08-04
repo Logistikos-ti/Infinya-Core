@@ -50,6 +50,14 @@ export function FecharRomaneioClient({
 
   // Double check state
   const [scannedIds, setScannedIds] = useState<Set<string>>(new Set());
+  // Mirrors scannedIds synchronously so handleDoubleCheckScan never reads a
+  // stale snapshot: two barcodes scanned back-to-back (well within a single
+  // React render) previously both closed over the same pre-update Set,
+  // computed their own "+1" copy from it, and the second setScannedIds call
+  // clobbered the first -- losing a scanned order the operator had already
+  // confirmed. Reading/writing this ref instead of the state value keeps
+  // every scan additive regardless of render timing.
+  const scannedIdsRef = useRef<Set<string>>(new Set());
   const [scanFeedback, setScanFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -77,6 +85,13 @@ export function FecharRomaneioClient({
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Keep the ref in sync with every state change, including the manual
+  // tap-to-toggle path in the "ver lista" drawer, so it's always the
+  // source of truth handleDoubleCheckScan reads from.
+  useEffect(() => {
+    scannedIdsRef.current = scannedIds;
+  }, [scannedIds]);
 
   const totalOrders = romaneio.orders.length;
   const scannedCount = scannedIds.size;
@@ -150,7 +165,7 @@ export function FecharRomaneioClient({
     });
 
     if (matched) {
-      if (scannedIds.has(matched.id)) {
+      if (scannedIdsRef.current.has(matched.id)) {
         playBeep(true);
         setFramePulse("success");
         setScanFeedback({
@@ -160,8 +175,13 @@ export function FecharRomaneioClient({
       } else {
         playBeep(true);
         setFramePulse("success");
-        const nextSet = new Set(scannedIds);
+        // Read/write scannedIdsRef synchronously (not the scannedIds state
+        // captured in this callback's closure) so two scans landing before
+        // React re-renders still both count -- see the comment on
+        // scannedIdsRef's declaration.
+        const nextSet = new Set(scannedIdsRef.current);
         nextSet.add(matched.id);
+        scannedIdsRef.current = nextSet;
         setScannedIds(nextSet);
 
         const isLastOne = nextSet.size >= totalOrders;
@@ -193,7 +213,7 @@ export function FecharRomaneioClient({
     pulseTimerRef.current = setTimeout(() => {
       setFramePulse(null);
     }, 600);
-  }, [romaneio.orders, romaneio.carrierName, scannedIds, totalOrders]);
+  }, [romaneio.orders, romaneio.carrierName, totalOrders]);
 
   // Camera barcode scanner with automatic detection
   const {
