@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   FileDown,
   IdCard,
+  Keyboard,
   List,
   PackageCheck,
   RotateCcw,
@@ -64,6 +65,13 @@ export function FecharRomaneioClient({
   } | null>(null);
   const [framePulse, setFramePulse] = useState<"success" | "error" | null>(null);
   const [showOrderListModal, setShowOrderListModal] = useState(false);
+  // Manual entry: the DANFE simplificada's barcode encodes the 44-digit
+  // chave de acesso as a single long, thin Code128 -- exactly the kind of
+  // barcode that's hard to frame with a phone camera (same complaint as
+  // boleto barcodes). The digits are also printed as text right next to
+  // it, so typing them in is a reliable fallback, not just an emergency one.
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState("");
   const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const barcodeBufferRef = useRef<string>("");
@@ -597,6 +605,30 @@ export function FecharRomaneioClient({
           >
             Aponte para a DANFE / Etiqueta do pacote
           </span>
+
+          {/* DANFE simplificada's barcode is long and thin -- hard to frame
+              fully, same problem as a boleto. Typing the printed digits is
+              a reliable alternative, not just a last resort. */}
+          <button
+            type="button"
+            onClick={() => setShowManualEntry(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            <Keyboard className="h-4 w-4" style={{ color: mobileColors.amber }} />
+            Digitar código da DANFE
+          </button>
         </div>
 
         {/* Bottom HUD - Progress & Feedback */}
@@ -768,6 +800,101 @@ export function FecharRomaneioClient({
             </button>
           )}
         </div>
+
+        {/* Modal: Digitar código da DANFE manualmente */}
+        {showManualEntry && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 450,
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div
+              onClick={() => setShowManualEntry(false)}
+              style={{ position: "absolute", inset: 0 }}
+            />
+            <div
+              style={{
+                position: "relative",
+                background: "#0A1120",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                border: "1px solid rgba(255,255,255,0.15)",
+                padding: "20px 18px calc(20px + env(safe-area-inset-bottom))",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h3 style={{ color: "#fff", fontWeight: 800, fontSize: 16, ...headingFont }}>
+                  Digitar código da DANFE
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowManualEntry(false)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "none",
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <p style={{ color: mobileColors.muted, fontSize: 12.5, lineHeight: 1.5 }}>
+                Digite a chave de acesso de 44 dígitos impressa abaixo do código de barras da DANFE, ou o número do pedido.
+              </p>
+
+              <input
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && manualCode.trim()) {
+                    handleDoubleCheckScan(manualCode.trim());
+                    setManualCode("");
+                    setShowManualEntry(false);
+                  }
+                }}
+                placeholder="Ex: 3525 0812 3456 7800 0123 4550 0100 0100 0112 3456 7890"
+                className="h-12 w-full rounded-xl px-3 text-sm tracking-wide outline-none"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!manualCode.trim()) return;
+                  handleDoubleCheckScan(manualCode.trim());
+                  setManualCode("");
+                  setShowManualEntry(false);
+                }}
+                disabled={!manualCode.trim()}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
+              >
+                <Keyboard className="h-4 w-4" />
+                Confirmar leitura
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modal: Lista de Pedidos no Romaneio */}
         {showOrderListModal && (
