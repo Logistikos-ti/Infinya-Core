@@ -475,7 +475,7 @@ export function ShippingPickingWavesView({
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: "2px" }}>
                             <span style={{ fontSize: "13.5px", fontWeight: "700", color: t.text }}>{order.displayNumber}</span>
-                            <span style={{ fontSize: "12px", color: t.textSub }}>{order.depositante || 'Sem depositante'} · {order.totalUnits || 0} volumes</span>
+                            <span style={{ fontSize: "12px", color: t.textSub }}>NF {order.invoiceNumber || 'não informada'} · {order.marketplace || '—'}</span>
                           </div>
                         </div>
                       );

@@ -22,6 +22,7 @@ export default async function MobileNovaOndaPage() {
         displayNumber: order.displayNumber,
         depositanteId: order.depositanteId,
         depositante: order.depositante,
+        invoiceNumber: order.invoiceNumber,
         marketplace: order.marketplace,
         totalItems: order.totalItems,
         totalUnits: order.totalUnits,
