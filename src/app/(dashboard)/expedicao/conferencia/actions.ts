@@ -312,16 +312,37 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
   const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
   const now = new Date().toISOString();
 
+  let operatorName = user.nome || "Operador";
+  if (operatorId) {
+    const { data: opData } = await adminSupabase
+      .from("usuarios")
+      .select("nome")
+      .eq("id", operatorId)
+      .maybeSingle();
+    if (opData?.nome) {
+      operatorName = opData.nome;
+    }
+  }
+
   await adminSupabase
     .from("pedidos_expedicao")
     .update({
-      status: "DIVERGENCIA",
+      status: "CANCELADO",
       payload_origem: {
         ...payload,
         conferencia: {
           ...currentConference,
           marcadoComoDivergenteEm: now,
           produtoErradoCount: wrongProductScans,
+          operadorNome: operatorName,
+        },
+        divergencia: {
+          registradoPorNome: operatorName,
+          motivo: wrongProductScans > 0 
+            ? `Divergência: ${wrongProductScans} produto(s) incorreto(s) bipado(s).` 
+            : "Divergência reportada durante a conferência.",
+          tipo: "Conferência",
+          registradoEm: now,
         },
       },
     })
@@ -331,7 +352,7 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
   revalidatePath("/expedicao/conferencia");
   revalidatePath(`/expedicao/conferencia/${orderId}`);
 
-  redirect("/expedicao?status=DIVERGENCIA");
+  redirect("/expedicao");
 }
 
 export async function releaseShippingOrderToRomaneioAction(formData: FormData) {

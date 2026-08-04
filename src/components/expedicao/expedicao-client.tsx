@@ -229,7 +229,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const showAdd = true;
   const addBtnLabel = "+ Novo pedido";
-  const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO").length;
+  const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO").length;
   const availableProducts = (data.productOptions ?? []).filter((produto: any) => produto.depositante_id === newOrderDepositante);
   const selectedItems = newOrderItems.map((item) => ({ ...item, product: availableProducts.find((produto: any) => produto.id === item.id) ?? data.productOptions?.find((produto: any) => produto.id === item.id) })).filter((item) => item.product);
   const totalNewOrderUnits = selectedItems.reduce((total, item) => total + item.quantity, 0);
@@ -374,7 +374,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
       "PRONTO_ROMANEIO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
       "EXPEDIDO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
       "CANCELADO": { bg: "rgba(239,68,68,0.15)", color: "#EF4444" },
-      "DIVERGENTE": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" }
+      "DIVERGENTE": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
+      "DIVERGENCIA": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" }
     };
     const mapped = statusMap[s] || { bg: "rgba(148,163,184,0.15)", color: "#64748B" };
     return { statusBg: mapped.bg, statusColor: mapped.color, statusDot: mapped.color };
@@ -538,7 +539,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const conferenceOrders: any[] = [];
   const scanIcon = <PackageSearch size={20} />;
   const alertIcon = <AlertTriangle size={20} />;
-  const divergences = data.orders.filter((o: any) => o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
+  const divergences = data.orders.filter((o: any) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
   const ordersCount = searchedOrders.length;
   const columns = canDeleteOrder
     ? ["__select__", "Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
@@ -808,9 +809,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </thead>
                     <tbody>
                       {divergences.map((order: any) => {
-                        const reason = order.raw?.cancellationReason || (order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
-                        const issueType = order.status === "ERRO" ? "Erro de integração" : "Sem estoque";
-                        const issueColor = order.status === "ERRO" ? "#F97316" : "#EF4444";
+                        const isDiv = order.status === "DIVERGENCIA" || order.status === "DIVERGENTE";
+                        const reason = order.raw?.cancellationReason || (isDiv ? "Divergência reportada durante a conferência/separação." : order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
+                        const issueType = order.status === "ERRO" ? "Erro de integração" : isDiv ? "Divergência" : "Cancelado";
+                        const issueColor = order.status === "ERRO" ? "#F97316" : isDiv ? "#F59E0B" : "#EF4444";
                         const registeredBy = order.raw?.divergenceReporter
                           || order.raw?.cancellationReporter
                           || (order.raw?.createdByName

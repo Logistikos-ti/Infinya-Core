@@ -648,9 +648,9 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
       ? divergence.registradoPorNome.trim()
       : cancellationReporter;
   const cancellationReason =
-    typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim()
-      ? cancellation.motivoCancelamento.trim()
-      : null;
+    (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
+    (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
+    (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
   const storeDisplay = extractStore(payload, item.numero_loja);
   const marketplace = extractMarketplace(payload);
   const carrierName = extractCarrierName(payload);
@@ -1093,6 +1093,9 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
       return "Expedido";
     case "CANCELADO":
       return "Cancelado";
+    case "DIVERGENCIA":
+    case "DIVERGENTE":
+      return "Divergência";
     default:
       return status;
   }
