@@ -215,6 +215,12 @@ export type ShippingOrderDetail = {
   suppliesTotalCost: string;
   suppliesTotalCostRaw: number;
   notes: string;
+  cancellationReason?: string | null;
+  divergenceReporter?: string | null;
+  cancellationReporter?: string | null;
+  createdByName?: string | null;
+  createdByRole?: string | null;
+  createdBySource?: string | null;
   attachments: ShippingAttachment[];
   supplies: Array<{
     id: string;
@@ -483,6 +489,25 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     };
   });
 
+  const createdBy = isRecord(payload.criadoPor) ? payload.criadoPor : {};
+  const conference = isRecord(payload.conferencia) ? payload.conferencia : {};
+  const divergence = isRecord(payload.divergencia) ? payload.divergencia : {};
+  const cancellation = isRecord(payload.separacao) ? payload.separacao : {};
+  const createdByName = typeof createdBy.nome === "string" && createdBy.nome.trim() ? createdBy.nome.trim() : null;
+  const createdByRole = typeof createdBy.papel === "string" && createdBy.papel.trim() ? createdBy.papel.trim() : null;
+  const cancellationReporter =
+    typeof cancellation.canceladoPorNome === "string" && cancellation.canceladoPorNome.trim()
+      ? cancellation.canceladoPorNome.trim()
+      : null;
+  const divergenceReporter =
+    (typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim() ? divergence.registradoPorNome.trim() : null) ||
+    (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
+    cancellationReporter;
+  const cancellationReason =
+    (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
+    (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
+    (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
+
   return {
     id: order.id,
     code: order.codigo,
@@ -526,6 +551,12 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
     suppliesTotalCostRaw,
     notes: order.observacoes?.trim() || "Sem observações.",
+    cancellationReason,
+    divergenceReporter,
+    cancellationReporter,
+    createdByName,
+    createdByRole,
+    createdBySource: createdByName ? "Pedido manual" : order.origem === "BLING" ? "Integração Bling" : "Sistema",
     attachments,
     supplies,
     items,

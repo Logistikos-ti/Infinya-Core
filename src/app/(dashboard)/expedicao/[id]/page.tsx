@@ -67,6 +67,29 @@ export default async function ShippingOrderDetailPage({
         </div>
       ) : null}
 
+      {order.cancellationReason ? (
+        <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-5 backdrop-blur-md dark:border-amber-500/30">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 font-bold text-xs text-zinc-950">
+              !
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                Divergência / Ocorrência Registrada
+              </h3>
+              <p className="text-sm text-slate-800 dark:text-zinc-200 font-medium">
+                {order.cancellationReason}
+              </p>
+              {order.divergenceReporter ? (
+                <p className="text-xs text-slate-600 dark:text-zinc-400">
+                  Registrado por: <strong className="text-slate-900 dark:text-zinc-200">{order.divergenceReporter}</strong>
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-200">
           <Eye className="h-4 w-4 text-slate-500 dark:text-slate-400" />
