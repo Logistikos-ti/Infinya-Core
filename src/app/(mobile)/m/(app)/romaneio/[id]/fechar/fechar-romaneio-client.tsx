@@ -407,7 +407,8 @@ export function FecharRomaneioClient({
       });
 
       if (!result?.ok) {
-        throw new Error(result?.message || "Falha ao finalizar o romaneio.");
+        setSubmitError(result?.message || "Falha ao finalizar o romaneio.");
+        return;
       }
 
       setStep("concluido");
