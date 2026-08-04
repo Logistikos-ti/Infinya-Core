@@ -20,6 +20,7 @@ function FeedbackToastInner() {
       else if (feedback === "incompleto") toast.warning("Operação concluída parcialmente. Faltam itens.");
       else if (feedback === "vinculos") toast.error("Não foi possível excluir. O item já possui vínculos.");
       else if (feedback === "inatividade") toast.error("Sessão expirada por inatividade. O pedido foi devolvido para a fila.");
+      else if (["liberado", "liberado-romaneio", "finalizado", "expedido"].includes(feedback)) toast.success("Operação concluída com sucesso!");
       else toast.error("Não foi possível concluir a operação solicitada.");
 
       // Clean up the URL by removing the feedback param
