@@ -644,9 +644,9 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
       ? cancellation.canceladoPorNome.trim()
       : null;
   const divergenceReporter =
-    typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim()
-      ? divergence.registradoPorNome.trim()
-      : cancellationReporter;
+    (typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim() ? divergence.registradoPorNome.trim() : null) ||
+    (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
+    cancellationReporter;
   const cancellationReason =
     (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
     (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
