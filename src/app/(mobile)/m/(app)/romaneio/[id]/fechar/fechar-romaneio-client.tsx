@@ -1220,21 +1220,21 @@ export function FecharRomaneioClient({
               <button
                 type="button"
                 onClick={() => setStep("double_check")}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-semibold"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-semibold"
                 style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar à Câmera
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Voltar à Câmera</span>
               </button>
               <button
                 type="button"
                 onClick={() => setStep("fotos")}
                 disabled={!driverName.trim() || !driverDoc.trim() || !vehiclePlate.trim()}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
-                Avançar para Fotos
-                <ArrowRight className="h-4 w-4" />
+                <span>Avançar para Fotos</span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -1365,25 +1365,25 @@ export function FecharRomaneioClient({
                 type="button"
                 onClick={() => setStep("motorista")}
                 disabled={isSubmitting}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-semibold disabled:opacity-50"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-semibold disabled:opacity-50"
                 style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Voltar</span>
               </button>
               <button
                 type="button"
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
                 {isSubmitting ? (
                   <MobileButtonSpinner />
                 ) : (
                   <>
-                    <PackageCheck className="h-4 w-4" />
-                    Finalizar Romaneio
+                    <PackageCheck className="h-4 w-4 shrink-0" />
+                    <span>Finalizar Romaneio</span>
                   </>
                 )}
               </button>
@@ -1447,11 +1447,11 @@ export function FecharRomaneioClient({
               <Link
                 href={`/api/romaneio/${romaneio.id}/pdf`}
                 target="_blank"
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-extrabold text-white"
+                className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white"
                 style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
-                <FileDown className="h-4 w-4" />
-                Abrir / Imprimir PDF do Romaneio
+                <FileDown className="h-4 w-4 shrink-0" />
+                <span>Abrir / Imprimir PDF do Romaneio</span>
               </Link>
               <Link
                 href="/m/romaneio"
