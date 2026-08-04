@@ -168,8 +168,14 @@ export function buildInvoicePreviewHtmlFromXml(xml: string, options?: { carrierN
 }
 
 export function buildSimplifiedDanfePdf(parsed: ParsedNfe, options?: { carrierName?: string | null }) {
-  const accessKey = digitsOnly(parsed.accessKey);
   const carrierName = options?.carrierName?.trim() || parsed.carrierName || "NAO INFORMADO";
+  const volumeTotal = Math.max(1, parsed.volumeCount);
+  const pages = Array.from({ length: volumeTotal }, (_, index) => buildSimplifiedDanfePage(parsed, carrierName, index + 1, volumeTotal));
+  return pages.length === 1 ? createSimplePdf(pages[0]) : createMultiPagePdf(pages);
+}
+
+function buildSimplifiedDanfePage(parsed: ParsedNfe, carrierName: string, volumeNumber: number, volumeTotal: number) {
+  const accessKey = digitsOnly(parsed.accessKey);
   const operations: string[] = [];
 
   drawJpeg(operations, 14, 386, 110, 41);
@@ -219,9 +225,8 @@ export function buildSimplifiedDanfePdf(parsed: ParsedNfe, options?: { carrierNa
     itemY -= 14;
   }
 
-  const volumeTotal = Math.max(1, parsed.volumeCount);
   boxedField(operations, 14, 113, 84, 28, "TOTAL", parsed.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
-  boxedField(operations, 102, 113, 84, 28, "VOLUME", `1/${volumeTotal}`);
+  boxedField(operations, 102, 113, 84, 28, "VOLUME", `${volumeNumber}/${volumeTotal}`);
   boxedField(operations, 190, 113, 84, 28, "ENVIO", carrierName);
 
   text(operations, 14, 99, `PESO BRUTO: ${parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO"}`, 5.8, DARK, false);
@@ -238,7 +243,7 @@ export function buildSimplifiedDanfePdf(parsed: ParsedNfe, options?: { carrierNa
   text(operations, 14, 13, `NF ${safeAscii(parsed.noteNumber)} | Documento operacional`, 6.3, GRAY, false);
   text(operations, 206, 13, "4 x 6", 6.3, GRAY, false);
 
-  return createSimplePdf(operations.join("\n"));
+  return operations.join("\n");
 }
 
 function boxedField(operations: string[], x: number, y: number, width: number, height: number, label: string, value: string, secondary?: string | string[]) {
@@ -330,6 +335,40 @@ function createSimplePdf(contentStream: string, pageWidth = PAGE_WIDTH, pageHeig
     `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`,
     createJpegObject(),
   ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [0];
+  objects.forEach((content, index) => {
+    offsets.push(Buffer.byteLength(pdf, "latin1"));
+    pdf += `${index + 1} 0 obj\n${content}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, "latin1");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let index = 1; index <= objects.length; index += 1) pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return Buffer.from(pdf, "latin1");
+}
+
+function createMultiPagePdf(contentStreams: string[]) {
+  const pageCount = contentStreams.length;
+  const firstSharedObject = 3 + pageCount * 2;
+  const fontObject = firstSharedObject;
+  const imageObject = firstSharedObject + 1;
+  const pageReferences = contentStreams.map((_, index) => `${3 + index * 2} 0 R`).join(" ");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    `<< /Type /Pages /Count ${pageCount} /Kids [${pageReferences}] >>`,
+  ];
+
+  contentStreams.forEach((contentStream, index) => {
+    const pageObject = 3 + index * 2;
+    const contentObject = pageObject + 1;
+    objects.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_WIDTH} ${PAGE_HEIGHT}] /Resources << /Font << /F1 ${fontObject} 0 R >> /XObject << /Im1 ${imageObject} 0 R >> >> /Contents ${contentObject} 0 R >>`,
+      `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`,
+    );
+  });
+  objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", createJpegObject());
+
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [0];
   objects.forEach((content, index) => {
