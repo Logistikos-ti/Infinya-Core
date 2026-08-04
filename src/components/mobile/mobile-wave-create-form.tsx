@@ -18,6 +18,7 @@ type EligibleOrder = {
   displayNumber: string;
   depositanteId: string;
   depositante: string;
+  invoiceNumber: string;
   marketplace: string;
   totalItems: number;
   totalUnits: number;
@@ -174,7 +175,7 @@ export function MobileWaveCreateForm({ orders, depositantes }: MobileWaveCreateF
                     className="overflow-hidden text-ellipsis whitespace-nowrap text-[12px]"
                     style={{ color: mobileColors.muted }}
                   >
-                    {order.depositante || "Sem depositante"} · {order.marketplace || "—"}
+                    NF {order.invoiceNumber || "não informada"} · {order.marketplace || "—"}
                   </span>
                 </div>
                 <span className="shrink-0 text-[13px] font-bold" style={{ color: mobileColors.text, ...headingFont }}>

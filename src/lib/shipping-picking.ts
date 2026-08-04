@@ -189,6 +189,7 @@ export type ShippingPickingOrder = {
   ageLabel: string;
   ageTone: OperationalSlaTone;
   externalNumber: string;
+  invoiceNumber: string;
   marketplace: string;
   customer: string;
   destination: string;
@@ -477,6 +478,7 @@ function mapPickingOrder(
       order.numero_loja,
       order.codigo,
     ),
+    invoiceNumber: extractPickingInvoiceNumber(payload),
     marketplace: extractMarketplace(payload),
     customer: order.cliente_nome?.trim() || readString(payloadContact?.nome) || "Cliente n?o informado",
     destination:
@@ -1022,6 +1024,21 @@ function extractPickingPayload(payload: Record<string, unknown>): PickingPayload
     cancelledAt: readString(picking?.canceladaEm),
     returnReason: readString(picking?.motivoRetornoFila),
   };
+}
+
+function extractPickingInvoiceNumber(payload: Record<string, unknown>) {
+  const notaFiscal =
+    readRecord(payload.notaFiscal) ??
+    readRecord(payload.nota_fiscal) ??
+    readRecord(payload.nfe);
+
+  return (
+    readString(notaFiscal?.numero) ??
+    readString(notaFiscal?.numeroNota) ??
+    readString(payload.numero_nota) ??
+    readString(payload.numeroNota) ??
+    "NF não informada"
+  );
 }
 
 function matchesStockToItem(stock: RawPickingStockRow, item: RawPickingOrderItemRow) {
