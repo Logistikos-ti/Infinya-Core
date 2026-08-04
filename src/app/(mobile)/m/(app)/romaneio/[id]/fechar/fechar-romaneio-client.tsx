@@ -77,6 +77,25 @@ export function FecharRomaneioClient({
   const [vehiclePlate, setVehiclePlate] = useState(romaneio.vehiclePlate || "");
   const [vehicleModel, setVehicleModel] = useState(romaneio.vehicleModel || "");
 
+  // Saved drivers grouped by transportadora, this romaneio's own carrier
+  // pinned first so the relevant group doesn't get buried among others.
+  const driverGroups = useMemo(() => {
+    const groups = new Map<string, SavedDriver[]>();
+    for (const driver of savedDrivers) {
+      const key = driver.transportadoraNome?.trim() || "Sem transportadora";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(driver);
+    }
+
+    return Array.from(groups.entries()).sort(([a], [b]) => {
+      if (a === romaneio.carrierName) return -1;
+      if (b === romaneio.carrierName) return 1;
+      if (a === "Sem transportadora") return 1;
+      if (b === "Sem transportadora") return -1;
+      return a.localeCompare(b, "pt-BR");
+    });
+  }, [savedDrivers, romaneio.carrierName]);
+
   // Photo state
   const [operadorPhoto, setOperadorPhoto] = useState<string | null>(null);
   const [motoristaPhoto, setMotoristaPhoto] = useState<string | null>(null);
@@ -1127,10 +1146,17 @@ export function FecharRomaneioClient({
                   className="mt-2 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white focus:border-amber-400 focus:outline-none"
                 >
                   <option value="">-- Selecione ou preencha novo abaixo --</option>
-                  {savedDrivers.map((d, i) => (
-                    <option key={i} value={`${d.nome}|${d.documento}`}>
-                      {d.nome} {d.documento ? `(Doc: ${d.documento})` : ""} {d.veiculoPlaca ? `[Placa: ${d.veiculoPlaca}]` : ""}
-                    </option>
+                  {driverGroups.map(([transportadoraNome, drivers]) => (
+                    <optgroup
+                      key={transportadoraNome}
+                      label={transportadoraNome === romaneio.carrierName ? `${transportadoraNome} (esta carga)` : transportadoraNome}
+                    >
+                      {drivers.map((d, i) => (
+                        <option key={i} value={`${d.nome}|${d.documento}`}>
+                          {d.nome} {d.documento ? `(Doc: ${d.documento})` : ""} {d.veiculoPlaca ? `[Placa: ${d.veiculoPlaca}]` : ""}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
