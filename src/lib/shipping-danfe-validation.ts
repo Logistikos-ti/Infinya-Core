@@ -51,7 +51,9 @@ export async function validateShippingDanfeScan(
     const parsed = parseNfeXml(xmlBytes.toString("utf-8"));
     const accessKey = normalizeDanfeCode(parsed.accessKey ?? "");
     const noteNumber = normalizeDanfeCode(parsed.noteNumber);
-    const valid = normalizedScan === accessKey || normalizedScan === noteNumber;
+    // Code 128 C prints an odd-length invoice number with a harmless leading zero.
+    const scannedNoteNumber = normalizedScan.replace(/^0+(?=\d)/, "");
+    const valid = normalizedScan === accessKey || scannedNoteNumber === noteNumber;
 
     return {
       valid,

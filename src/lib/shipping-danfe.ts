@@ -176,6 +176,9 @@ export function buildSimplifiedDanfePdf(parsed: ParsedNfe, options?: { carrierNa
 
 function buildSimplifiedDanfePage(parsed: ParsedNfe, carrierName: string, volumeNumber: number, volumeTotal: number) {
   const accessKey = digitsOnly(parsed.accessKey);
+  // The 44-digit access key becomes too dense for reliable scanning on a 4 x 6 label.
+  // Use the invoice number as the operational barcode and keep the key as a reference.
+  const conferenceCode = digitsOnly(parsed.noteNumber).padStart(6, "0");
   const operations: string[] = [];
 
   drawJpeg(operations, 14, 386, 110, 41);
@@ -231,12 +234,15 @@ function buildSimplifiedDanfePage(parsed: ParsedNfe, carrierName: string, volume
 
   text(operations, 14, 99, `PESO BRUTO: ${parsed.grossWeight != null ? `${parsed.grossWeight.toLocaleString("pt-BR")} kg` : "NAO INFORMADO"}`, 5.8, DARK, false);
   text(operations, 14, 90, `DADOS: ${truncate(safeAscii(parsed.additionalInfo ?? "Sem informacoes adicionais"), 54)}`, 5.8, DARK, false);
-  text(operations, 14, 79, "CHAVE DE ACESSO - BIPAR PARA LIBERAR ROMANEIO", 6.2, BLACK, true);
-  if (accessKey.length === 44) {
-    drawCode128(operations, accessKey, 14, 40, 260, 34);
-    text(operations, 14, 31, accessKey, 6.2, BLACK, false);
+  text(operations, 14, 79, "CODIGO DE CONFERENCIA - BIPAR PARA LIBERAR ROMANEIO", 6.2, BLACK, true);
+  if (conferenceCode) {
+    drawCode128(operations, conferenceCode, 14, 40, 260, 34);
+    text(operations, 14, 31, `NF ${safeAscii(parsed.noteNumber)}`, 6.2, BLACK, false);
+    if (accessKey.length === 44) {
+      text(operations, 14, 22, `CHAVE: ${accessKey}`, 4.8, GRAY, false);
+    }
   } else {
-    text(operations, 14, 53, "CHAVE NAO INFORMADA NO XML", 8, BLACK, true);
+    text(operations, 14, 53, "NF NAO INFORMADA NO XML", 8, BLACK, true);
   }
 
   line(operations, MARGIN, 25, PAGE_WIDTH - MARGIN, 25, BLACK, 0.8);
