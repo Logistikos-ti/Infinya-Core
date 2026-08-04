@@ -856,7 +856,7 @@ export function FecharRomaneioClient({
               </div>
 
               <p style={{ color: mobileColors.muted, fontSize: 12.5, lineHeight: 1.5 }}>
-                Digite a chave de acesso de 44 dígitos impressa abaixo do código de barras da DANFE, ou o número do pedido.
+                Digite só o número da NF (mais rápido) — ou, se preferir, a chave de acesso completa de 44 dígitos impressa abaixo do código de barras, ou o número do pedido.
               </p>
 
               <input
@@ -872,7 +872,7 @@ export function FecharRomaneioClient({
                     setShowManualEntry(false);
                   }
                 }}
-                placeholder="Ex: 3525 0812 3456 7800 0123 4550 0100 0100 0112 3456 7890"
+                placeholder="Ex: 66459"
                 className="h-12 w-full rounded-xl px-3 text-sm tracking-wide outline-none"
                 style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
               />
