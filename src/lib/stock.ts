@@ -142,6 +142,8 @@ export type StockMovement = {
   type: string;
   quantity: number;
   createdAt: string;
+  observation: string;
+  operatorName: string;
 };
 
 export type StockTraceabilityProtocol = {
@@ -620,6 +622,8 @@ function mapMovementSummary(item: RawMovementRow): StockMovement {
     type: item.tipo,
     quantity: Number(item.quantidade ?? 0),
     createdAt: item.created_at,
+    observation: item.observacoes?.trim() || "Sem observação operacional.",
+    operatorName: extractUserName(item.criado_por) || "Sistema",
   };
 }
 

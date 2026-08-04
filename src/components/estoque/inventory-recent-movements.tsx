@@ -1,76 +1,76 @@
 "use client";
 
-import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, ClipboardPenLine, History } from "lucide-react";
-
 type InventoryRecentMovementsProps = {
   t: any;
   movements: any[];
 };
 
-function getMovementPresentation(type: string) {
-  if (type === "ENTRADA" || type === "AJUSTE_POSITIVO") {
-    return { label: type === "ENTRADA" ? "Entrada de estoque" : "Ajuste positivo", color: "#10B981", icon: ArrowDownRight, sign: "+" };
+function movementLabel(type: string) {
+  switch (type) {
+    case "ENTRADA": return "Entrada de estoque";
+    case "SAIDA": return "Saída de estoque";
+    case "TRANSFERENCIA": return "Movimentação interna";
+    case "AJUSTE_POSITIVO": return "Ajuste positivo";
+    case "AJUSTE_NEGATIVO": return "Ajuste negativo";
+    case "BLOQUEIO": return "Bloqueio de estoque";
+    case "DESBLOQUEIO": return "Desbloqueio de estoque";
+    default: return type || "Movimentação de estoque";
   }
-  if (type === "SAIDA" || type === "AJUSTE_NEGATIVO") {
-    return { label: type === "SAIDA" ? "Saída de estoque" : "Ajuste negativo", color: "#EF4444", icon: ArrowUpRight, sign: "-" };
-  }
-  if (type === "TRANSFERENCIA") {
-    return { label: "Transferência interna", color: "#3B82F6", icon: ArrowLeftRight, sign: "" };
-  }
-  return { label: type || "Movimentação", color: "#8B5CF6", icon: ClipboardPenLine, sign: "" };
 }
 
-function formatDateTime(value: string) {
+function movementColor(type: string) {
+  if (type === "SAIDA" || type === "AJUSTE_NEGATIVO" || type === "BLOQUEIO") return "#EF4444";
+  if (type === "TRANSFERENCIA") return "#3B82F6";
+  if (type === "AJUSTE_POSITIVO") return "#8B5CF6";
+  return "#10B981";
+}
+
+function formatSaoPauloDateTime(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Agora";
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
+  if (Number.isNaN(date.getTime())) return "Data não informada";
+
+  const parts = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
-  }).format(date);
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const read = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${read("day")}/${read("month")}/${read("year")} às ${read("hour")}:${read("minute")}`;
 }
 
 export function InventoryRecentMovements({ t, movements }: InventoryRecentMovementsProps) {
   const recentMovements = movements.slice(0, 8);
 
   return (
-    <section style={{ marginTop: 24, borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, overflow: "hidden" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "rgba(59,130,246,.12)", color: "#3B82F6" }}>
-          <History size={18} />
-        </span>
-        <div style={{ display: "grid", gap: 2 }}>
-          <strong style={{ color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 15.5 }}>Movimentações recentes</strong>
-          <span style={{ color: t.textSub, fontSize: 12.5 }}>Entradas, saídas, transferências e ajustes registrados no estoque.</span>
-        </div>
-        <span style={{ marginLeft: "auto", color: t.textSub, fontSize: 13 }}>{recentMovements.length} registros</span>
-      </header>
-
+    <section style={{ marginTop: 24, borderRadius: 16, border: `1px solid ${t.border}`, background: t.cardBg, padding: "18px 20px 10px" }}>
+      <strong style={{ display: "block", marginBottom: 15, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 15.5 }}>Movimentações recentes</strong>
       {recentMovements.length ? (
-        <div style={{ display: "grid" }}>
-          {recentMovements.map((movement) => {
-            const presentation = getMovementPresentation(String(movement.type ?? ""));
-            const Icon = presentation.icon;
+        <div style={{ display: "grid", gap: 0 }}>
+          {recentMovements.map((movement, index) => {
+            const color = movementColor(String(movement.type ?? ""));
             return (
-              <div key={movement.id} style={{ display: "grid", gridTemplateColumns: "42px minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "13px 20px", borderBottom: `1px solid ${t.border}` }}>
-                <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", color: presentation.color, background: `${presentation.color}18` }}>
-                  <Icon size={17} />
-                </span>
-                <div style={{ minWidth: 0, display: "grid", gap: 2 }}>
-                  <strong style={{ color: t.text, fontSize: 13.5 }}>{presentation.label}</strong>
-                  <span style={{ color: t.textSub, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={movement.label}>{movement.label}</span>
-                  {movement.reference ? <span style={{ color: t.textFaint, fontSize: 11.5 }}>{movement.reference}</span> : null}
+              <div key={movement.id} style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1fr)", columnGap: 8, minHeight: 66 }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <span style={{ width: 10, height: 10, marginTop: 4, borderRadius: 99, flexShrink: 0, background: color, boxShadow: `0 0 0 3px ${color}22` }} />
+                  {index < recentMovements.length - 1 ? <span style={{ flex: 1, width: 2, marginTop: 4, background: t.border }} /> : null}
                 </div>
-                <div style={{ display: "grid", gap: 3, justifyItems: "end", textAlign: "right" }}>
-                  <strong style={{ color: presentation.color, fontSize: 13.5 }}>{presentation.sign}{Number(movement.quantity ?? 0).toLocaleString("pt-BR")} un</strong>
-                  <span style={{ color: t.textSub, fontSize: 11.5 }}>{formatDateTime(movement.createdAt)}</span>
+                <div style={{ display: "grid", alignContent: "start", gap: 4, paddingBottom: 14 }}>
+                  <strong style={{ color: t.text, fontSize: 13.5 }}>{movementLabel(String(movement.type ?? ""))}</strong>
+                  <span style={{ color: t.textSub, fontSize: 12.5, lineHeight: 1.45 }}>
+                    {formatSaoPauloDateTime(movement.createdAt)} · {movement.observation || movement.reference}
+                  </span>
+                  <span style={{ color: t.textFaint, fontSize: 11.5 }}>Operador: {movement.operatorName || "Sistema"}</span>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div style={{ padding: "28px 20px", color: t.textSub, fontSize: 13.5 }}>Nenhuma movimentação foi registrada para os filtros atuais.</div>
+        <div style={{ padding: "6px 0 16px", color: t.textSub, fontSize: 13.5 }}>Nenhuma movimentação foi registrada para os filtros atuais.</div>
       )}
     </section>
   );
