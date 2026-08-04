@@ -76,23 +76,13 @@ export function FecharRomaneioClient({
   const [vehiclePlate, setVehiclePlate] = useState(romaneio.vehiclePlate || "");
   const [vehicleModel, setVehicleModel] = useState(romaneio.vehicleModel || "");
 
-  // Saved drivers grouped by transportadora, this romaneio's own carrier
-  // pinned first so the relevant group doesn't get buried among others.
-  const driverGroups = useMemo(() => {
-    const groups = new Map<string, SavedDriver[]>();
-    for (const driver of savedDrivers) {
-      const key = driver.transportadoraNome?.trim() || "Sem transportadora";
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(driver);
-    }
-
-    return Array.from(groups.entries()).sort(([a], [b]) => {
-      if (a === romaneio.carrierName) return -1;
-      if (b === romaneio.carrierName) return 1;
-      if (a === "Sem transportadora") return 1;
-      if (b === "Sem transportadora") return -1;
-      return a.localeCompare(b, "pt-BR");
-    });
+  // Only show drivers already saved under this romaneio's own
+  // transportadora -- a driver from a different carrier's roster showing
+  // up here would just be a wrong-carrier mix-up, not a helpful shortcut.
+  const filteredDrivers = useMemo(() => {
+    const carrier = romaneio.carrierName?.trim().toLowerCase();
+    if (!carrier) return [];
+    return savedDrivers.filter((driver) => driver.transportadoraNome?.trim().toLowerCase().includes(carrier));
   }, [savedDrivers, romaneio.carrierName]);
 
   // Photo state
@@ -1137,11 +1127,12 @@ export function FecharRomaneioClient({
         {/* ========================================================================= */}
         {step === "motorista" && (
           <div className="space-y-4">
-            {/* Quick saved driver selector */}
-            {savedDrivers.length > 0 && (
+            {/* Quick saved driver selector -- only drivers already saved
+                under this romaneio's own transportadora. */}
+            {filteredDrivers.length > 0 && (
               <div className="rounded-[24px] p-4" style={cardStyle}>
                 <label className="block text-xs font-semibold" style={{ color: mobileColors.muted }}>
-                  Selecionar Motorista Frequente ({savedDrivers.length} salvos)
+                  Motoristas de {romaneio.carrierName} ({filteredDrivers.length} salvo{filteredDrivers.length === 1 ? "" : "s"})
                 </label>
                 <select
                   value={selectedDriverKey}
@@ -1150,17 +1141,10 @@ export function FecharRomaneioClient({
                   style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                 >
                   <option value="">-- Selecione ou preencha novo abaixo --</option>
-                  {driverGroups.map(([transportadoraNome, drivers]) => (
-                    <optgroup
-                      key={transportadoraNome}
-                      label={transportadoraNome === romaneio.carrierName ? `${transportadoraNome} (esta carga)` : transportadoraNome}
-                    >
-                      {drivers.map((d, i) => (
-                        <option key={i} value={`${d.nome}|${d.documento}`}>
-                          {d.nome} {d.documento ? `(Doc: ${d.documento})` : ""} {d.veiculoPlaca ? `[Placa: ${d.veiculoPlaca}]` : ""}
-                        </option>
-                      ))}
-                    </optgroup>
+                  {filteredDrivers.map((d, i) => (
+                    <option key={i} value={`${d.nome}|${d.documento}`}>
+                      {d.nome} {d.documento ? `(Doc: ${d.documento})` : ""} {d.veiculoPlaca ? `[Placa: ${d.veiculoPlaca}]` : ""}
+                    </option>
                   ))}
                 </select>
               </div>
