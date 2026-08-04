@@ -815,7 +815,7 @@ export function FecharRomaneioClient({
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>
-                            {order.externalNumber || order.code}
+                            {order.code}
                           </span>
                           <span style={{ color: mobileColors.amber, fontSize: 12, fontWeight: 600 }}>
                             {order.invoiceNumber}

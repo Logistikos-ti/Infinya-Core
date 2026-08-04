@@ -156,7 +156,7 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="truncate text-sm font-semibold" style={{ color: mobileColors.text }}>
-                                {order.externalNumber || order.code}
+                                {order.code}
                               </p>
                               <span className="text-xs font-medium text-amber-400">
                                 {order.invoiceNumber}
