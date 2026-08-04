@@ -544,7 +544,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const columns = canDeleteOrder
     ? ["__select__", "Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
     : ["Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
-  const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Responsável", "Registrado por", ""];
+  const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Depositante", "Registrado por", ""];
   const inlineOrderUploadFeedback = manualOrderResult.status === "error" && !manualOrderErrorDismissed
     ? {
         title: "N\u00e3o foi poss\u00edvel subir o pedido",
@@ -822,7 +822,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                           || (order.createdByName || order.raw?.createdByName
                             ? [order.createdByName || order.raw?.createdByName, order.createdByRole || order.raw?.createdByRole].filter(Boolean).join(" · ")
                             : order.createdBySource || order.raw?.createdBySource || "Sistema");
-                        const responsible = order.owner || order.divergenceReporter || order.depositante || "A definir";
+                        const depositante = order.depositante || order.raw?.depositante || order.owner || "-";
                         return (
                           <tr
                             key={order.id}
@@ -833,7 +833,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.displayNumber || order.code}</span></td>
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13.5px", fontWeight: 700, color: issueColor }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: issueColor }} />{issueType}</span></td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
-                            <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{responsible}</td>
+                            <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{depositante}</td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub }}>{registeredBy}</td>
                             <td style={{ padding: "14px 20px", textAlign: "right" }}><button type="button" onClick={() => router.push(`/expedicao/${order.id}`)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", transition: "border-color 0.15s ease" }} onMouseEnter={(event) => { event.currentTarget.style.borderColor = "#8B5CF6"; }} onMouseLeave={(event) => { event.currentTarget.style.borderColor = t.border; }}>Tratar</button></td>
                           </tr>
