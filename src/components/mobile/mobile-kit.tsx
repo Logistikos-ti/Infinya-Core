@@ -257,6 +257,7 @@ export function MobileListShell({
   onCreate,
   items,
   emptyLabel,
+  beforeItems,
 }: {
   title: string;
   subtitle: string;
@@ -266,6 +267,7 @@ export function MobileListShell({
   onCreate?: () => void;
   items: MobileListItem[];
   emptyLabel?: string;
+  beforeItems?: ReactNode;
 }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -302,6 +304,7 @@ export function MobileListShell({
         className="app-scroll"
         style={{ flex: 1, overflowY: "auto", padding: "0 18px 18px 18px", display: "flex", flexDirection: "column", gap: 11 }}
       >
+        {beforeItems}
         {items.length ? (
           items.map((it, i) => (
             <MobileCard
