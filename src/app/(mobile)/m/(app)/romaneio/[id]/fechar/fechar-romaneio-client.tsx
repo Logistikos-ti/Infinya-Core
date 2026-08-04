@@ -339,7 +339,7 @@ export function FecharRomaneioClient({
         motUrl = res.url;
       }
 
-      await completeRomaneioWithDoubleCheckAction({
+      const result = await completeRomaneioWithDoubleCheckAction({
         romaneioId: romaneio.id,
         driverData: {
           nome: driverName,
@@ -353,6 +353,10 @@ export function FecharRomaneioClient({
         },
         scannedOrderIds: Array.from(scannedIds),
       });
+
+      if (!result?.ok) {
+        throw new Error(result?.message || "Falha ao finalizar o romaneio.");
+      }
 
       setStep("concluido");
     } catch (err: any) {

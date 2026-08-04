@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireModuleAccess } from "@/lib/auth";
 import {
   cancelRomaneioRecord,
@@ -125,6 +126,7 @@ export async function validateAndAssignOrderDanfeAction(params: {
 
     return result;
   } catch (err: unknown) {
+    if (isRedirectError(err)) throw err;
     const message = err instanceof Error ? err.message : "Erro ao validar DANFE e atribuir ao romaneio.";
     return {
       ok: false,
@@ -144,7 +146,16 @@ export async function uploadRomaneioPhotoAction(params: {
   type: "operador" | "motorista";
   base64Data: string;
 }) {
-  await requireModuleAccess("romaneio");
+  try {
+    await requireModuleAccess("romaneio");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    // Auth check failed for a non-redirect reason -- don't block the whole
+    // finalize flow over a photo, fall back to the raw capture like the
+    // storage-upload failure path below already does.
+    return { url: params.base64Data };
+  }
+
   const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
   const admin = createSupabaseAdminClient();
 
@@ -209,6 +220,7 @@ export async function completeRomaneioWithDoubleCheckAction(params: {
 
     return result;
   } catch (err: unknown) {
+    if (isRedirectError(err)) throw err;
     const message = err instanceof Error ? err.message : "Erro ao finalizar romaneio.";
     return {
       ok: false,
