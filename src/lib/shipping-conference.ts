@@ -30,6 +30,8 @@ type RawConferenceItemRow = {
   payload_origem: Record<string, unknown> | null;
   produto?: {
     codigo_externo?: string | null;
+    codigo_externo_pack?: string | null;
+    quantidade_por_embalagem?: number | string | null;
     imagem_principal_url?: string | null;
   } | null;
 };
@@ -81,6 +83,8 @@ export type ShippingConferenceItem = {
   code: string;
   sku: string;
   barcode: string;
+  packBarcode: string;
+  packQuantity: number;
   name: string;
   unit: string;
   isKit: boolean;
@@ -223,7 +227,7 @@ export async function getShippingConferenceOrderFromDb(user: AppUserContext, id:
 
 function buildConferenceOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, numero_wms, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo, imagem_principal_url))",
+    "id, codigo, numero_wms, created_at, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo, codigo_externo_pack, quantidade_por_embalagem, imagem_principal_url))",
   );
 }
 
@@ -300,6 +304,8 @@ function mapConferenceItem(
   const itemCode = hydratedItem.codigo_produto?.trim() || "-";
   const itemSku = hydratedItem.sku?.trim() || "-";
   const itemBarcode = hydratedItem.produto?.codigo_externo?.trim() || "-";
+  const itemPackBarcode = hydratedItem.produto?.codigo_externo_pack?.trim() || "";
+  const itemPackQuantity = Number(hydratedItem.produto?.quantidade_por_embalagem ?? 12) || 12;
 
   if (!isKit) {
     const requestedQuantity = requestedKits;
@@ -312,6 +318,8 @@ function mapConferenceItem(
       code: itemCode,
       sku: itemSku,
       barcode: itemBarcode,
+      packBarcode: itemPackBarcode,
+      packQuantity: itemPackQuantity,
       name: hydratedItem.nome,
       unit: hydratedItem.unidade?.trim() || "UN",
       isKit: false,
@@ -323,7 +331,7 @@ function mapConferenceItem(
       hasQuantityDivergence: confirmedQuantity !== requestedQuantity,
       kitComponents: [],
       imageUrl: hydratedItem.produto?.imagem_principal_url || fallbackImageMap.get(itemSku) || fallbackImageMap.get(itemCode) || null,
-      scanTargets: [itemBarcode, itemCode, itemSku].filter(Boolean),
+      scanTargets: [itemBarcode, itemPackBarcode, itemCode, itemSku].filter(Boolean),
     } satisfies ShippingConferenceItem;
   }
 
@@ -352,6 +360,8 @@ function mapConferenceItem(
     code: itemCode,
     sku: itemSku,
     barcode: itemBarcode,
+    packBarcode: itemPackBarcode,
+    packQuantity: itemPackQuantity,
     name: hydratedItem.nome,
     unit: hydratedItem.unidade?.trim() || "UN",
     isKit: true,

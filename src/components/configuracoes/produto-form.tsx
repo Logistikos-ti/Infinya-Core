@@ -33,6 +33,7 @@ type ProdutoFormProps = {
     sku?: string;
     nome?: string;
     eanGtin?: string;
+    eanGtinPack?: string;
     categoria?: string;
     fornecedor?: string;
     tipoProduto?: "SIMPLES" | "KIT";
@@ -70,6 +71,7 @@ export function ProdutoForm({
   const [state, formAction, isPending] = useActionState(saveProdutoAction, initialState);
 
   const [eanGtinValue, setEanGtinValue] = useState(defaultValues?.eanGtin ?? "");
+  const [eanGtinPackValue, setEanGtinPackValue] = useState(defaultValues?.eanGtinPack ?? "");
   const [imagePreviewUrl, setImagePreviewUrl] = useState(defaultValues?.imagemPrincipalUrl?.trim() ?? "");
   const [removeImage, setRemoveImage] = useState(false);
   const [depositanteId, setDepositanteId] = useState(defaultValues?.depositanteId ?? (depositantes.length === 1 ? depositantes[0]?.id ?? "" : ""));
@@ -314,7 +316,7 @@ export function ProdutoForm({
                 </div>
               </label>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">SKU <span className="text-rose-500">*</span></span>
                   <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
@@ -330,7 +332,7 @@ export function ProdutoForm({
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-bold text-slate-500">EAN / GTIN</span>
+                  <span className="text-[13px] font-bold text-slate-500">EAN / GTIN unitário</span>
                   <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
                     <Barcode className="w-4 h-4 text-slate-400 mr-2" />
                     <input ref={eanInputRef} name="eanGtin" value={eanGtinValue} onChange={e => setEanGtinValue(e.target.value)} placeholder="0000000000000" 
@@ -340,6 +342,17 @@ export function ProdutoForm({
                         {cameraEnabled ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
                       </button>
                     )}
+                  </div>
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[13px] font-bold text-slate-500">EAN / GTIN do pack</span>
+                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <Barcode className="w-4 h-4 text-slate-400 mr-2" />
+                    <input name="eanGtinPack" value={eanGtinPackValue} onChange={e => {
+                      setEanGtinPackValue(e.target.value);
+                      if (e.target.value && !quantidadePorEmbalagem) setQuantidadePorEmbalagem("12");
+                    }} placeholder="Pack com 12 unidades"
+                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
               </div>
@@ -606,13 +619,13 @@ export function ProdutoForm({
                   </div>
                 </div>
 
-                <label className="flex flex-col gap-2.5" style={{ opacity: isUnit ? 0.5 : 1 }}>
-                  <span className="text-[13px] font-bold text-slate-500">{isUnit ? 'Qtd. por embalagem' : 'Qtd. por ' + unidadeEstocagem.toLowerCase()}</span>
+                <label className="flex flex-col gap-2.5" style={{ opacity: isUnit && !eanGtinPackValue ? 0.5 : 1 }}>
+                  <span className="text-[13px] font-bold text-slate-500">{eanGtinPackValue ? 'Unidades por pack' : isUnit ? 'Qtd. por embalagem' : 'Qtd. por ' + unidadeEstocagem.toLowerCase()}</span>
                   <div className={cn("flex items-center h-[42px] px-3 rounded-xl border-2 focus-within:border-violet-500",
-                       isUnit ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                       isUnit && !eanGtinPackValue ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   )}>
                     <input name="quantidadePorEmbalagem" value={quantidadePorEmbalagem} onChange={e => setQuantidadePorEmbalagem(e.target.value)}
-                      placeholder={isUnit ? 'N/A p/ unidade' : 'Ex: 12'} disabled={isUnit}
+                      placeholder={isUnit && !eanGtinPackValue ? 'N/A p/ unidade' : 'Ex: 12'} disabled={isUnit && !eanGtinPackValue}
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>

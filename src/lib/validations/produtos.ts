@@ -27,6 +27,12 @@ export const produtoFormSchema = z
       .max(20, "O EAN/GTIN deve ter no maximo 20 caracteres.")
       .optional()
       .or(z.literal("")),
+    eanGtinPack: z
+      .string()
+      .trim()
+      .max(20, "O EAN/GTIN do pack deve ter no maximo 20 caracteres.")
+      .optional()
+      .or(z.literal("")),
     fornecedor: z
       .string()
       .trim()
@@ -63,6 +69,14 @@ export const produtoFormSchema = z
     ativo: z.coerce.boolean().default(true),
   })
   .superRefine((data, ctx) => {
+    if (data.eanGtinPack && data.eanGtinPack === data.eanGtin) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O GTIN do pack deve ser diferente do GTIN unitario.",
+        path: ["eanGtinPack"],
+      });
+    }
+
     if (data.unidadeEstocagem === "CAIXA" || data.unidadeEstocagem === "PACK") {
       if (!data.quantidadePorEmbalagem || data.quantidadePorEmbalagem < 1) {
         ctx.addIssue({
@@ -71,6 +85,14 @@ export const produtoFormSchema = z
           path: ["quantidadePorEmbalagem"],
         });
       }
+    }
+
+    if (data.eanGtinPack && (!data.quantidadePorEmbalagem || data.quantidadePorEmbalagem < 1)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe quantas unidades existem no pack.",
+        path: ["quantidadePorEmbalagem"],
+      });
     }
   });
 
