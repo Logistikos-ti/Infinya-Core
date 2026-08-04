@@ -66,6 +66,8 @@ export function MobileManualExitPanel({
   const [countInputValue, setCountInputValue] = useState("1");
   const [reason, setReason] = useState<(typeof REASONS)[number]["value"] | null>(null);
   const [reasonDetail, setReasonDetail] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,6 +75,8 @@ export function MobileManualExitPanel({
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const countInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
 
   const applyScanRef = useRef<(code: string) => void>(() => {});
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
@@ -105,6 +109,28 @@ export function MobileManualExitPanel({
   useEffect(() => {
     if (editingCount) countInputRef.current?.focus();
   }, [editingCount]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  function handlePhotoSelected(file: File | null) {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreviewUrl(null);
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function selectReason(value: (typeof REASONS)[number]["value"]) {
+    setReason(value);
+    if (value !== "AVARIA") handlePhotoSelected(null);
+  }
 
   function playFeedback(feedbackType: "ok" | "err") {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -208,16 +234,27 @@ export function MobileManualExitPanel({
     const reasonText = reason === "OUTRO" ? reasonDetail.trim() : reasonLabel;
 
     try {
-      const response = await fetch("/api/estoque/saida-manual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          depositanteId,
-          stockId: estoqueId,
-          quantity: count,
-          reason: reasonText,
-        }),
-      });
+      let response: Response;
+      if (photoFile) {
+        const formData = new FormData();
+        formData.set("depositanteId", depositanteId);
+        formData.set("stockId", estoqueId);
+        formData.set("quantity", String(count));
+        formData.set("reason", reasonText);
+        formData.set("photo", photoFile);
+        response = await fetch("/api/estoque/saida-manual", { method: "POST", body: formData });
+      } else {
+        response = await fetch("/api/estoque/saida-manual", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            depositanteId,
+            stockId: estoqueId,
+            quantity: count,
+            reason: reasonText,
+          }),
+        });
+      }
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Não foi possível registrar a saída.");
 
@@ -421,7 +458,7 @@ export function MobileManualExitPanel({
                         <button
                           key={item.value}
                           type="button"
-                          onClick={() => setReason(item.value)}
+                          onClick={() => selectReason(item.value)}
                           className="rounded-full px-[14px] py-[8px] text-[13px] font-bold"
                           style={{
                             background: active ? hexAlpha(mobileColors.red, 0.18) : "rgba(5,7,13,0.5)",
@@ -445,6 +482,70 @@ export function MobileManualExitPanel({
                     />
                   ) : null}
                 </div>
+
+                {reason === "AVARIA" ? (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                      Foto da avaria (opcional)
+                    </span>
+
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(event) => handlePhotoSelected(event.target.files?.[0] ?? null)}
+                    />
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => handlePhotoSelected(event.target.files?.[0] ?? null)}
+                    />
+
+                    {photoPreviewUrl ? (
+                      <div className="flex items-center gap-3 rounded-[15px] p-3" style={{ background: "rgba(5,7,13,0.5)", border: `1px solid ${hexAlpha("#94A3B8", 0.2)}` }}>
+                        <div className="h-[64px] w-[64px] shrink-0 overflow-hidden rounded-[11px]">
+                          <Image src={photoPreviewUrl} alt="Foto da avaria" width={64} height={64} unoptimized className="h-full w-full object-cover" />
+                        </div>
+                        <span className="min-w-0 flex-1 truncate text-[12.5px]" style={{ color: mobileColors.muted }}>
+                          {photoFile?.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handlePhotoSelected(null)}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+                          style={{ background: hexAlpha(mobileColors.red, 0.14), color: mobileColors.redLight }}
+                        >
+                          <MobileIcon name="x" size={16} strokeWidth={2.4} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="flex h-[48px] flex-1 items-center justify-center gap-2 rounded-[13px] text-[13px] font-bold"
+                          style={{ background: "rgba(5,7,13,0.5)", border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.text }}
+                        >
+                          <MobileIcon name="scan" size={16} />
+                          Tirar foto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => galleryInputRef.current?.click()}
+                          className="flex h-[48px] flex-1 items-center justify-center gap-2 rounded-[13px] text-[13px] font-bold"
+                          style={{ background: "rgba(5,7,13,0.5)", border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.text }}
+                        >
+                          <MobileIcon name="clip" size={16} />
+                          Anexar foto
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
