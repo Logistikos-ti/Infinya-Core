@@ -785,7 +785,7 @@ export function FecharRomaneioClient({
                     Volumes do Romaneio ({scannedCount}/{totalOrders})
                   </h3>
                   <span style={{ color: mobileColors.muted, fontSize: 12 }}>
-                    Toque para marcar manualmente se necessário
+                    Toque em um pendente para bipar com a câmera
                   </span>
                 </div>
                 <button
@@ -814,12 +814,13 @@ export function FecharRomaneioClient({
                     <div
                       key={order.id}
                       onClick={() => {
-                        setScannedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(order.id)) next.delete(order.id);
-                          else next.add(order.id);
-                          return next;
-                        });
+                        // Orders can no longer be ticked off by tapping --
+                        // that let operators confirm a volume was loaded
+                        // without ever scanning it. Tapping a pending order
+                        // now just closes this list, dropping the operator
+                        // back on the live camera view so they scan it for
+                        // real; already-scanned orders are a no-op here.
+                        if (!isScanned) setShowOrderListModal(false);
                       }}
                       style={{
                         padding: 12,
@@ -833,7 +834,7 @@ export function FecharRomaneioClient({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        cursor: "pointer",
+                        cursor: isScanned ? "default" : "pointer",
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
