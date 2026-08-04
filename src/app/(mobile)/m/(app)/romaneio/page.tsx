@@ -79,6 +79,19 @@ export default async function MobileRomaneioPage({ searchParams }: MobileRomanei
           </div>
         )}
 
+        {feedback === "ja-finalizado" && (
+          <div
+            className="rounded-[15px] px-4 py-3 text-sm font-semibold"
+            style={{
+              background: hexAlpha(mobileColors.amber, 0.1),
+              border: `1px solid ${hexAlpha(mobileColors.amber, 0.2)}`,
+              color: mobileColors.amber,
+            }}
+          >
+            Este romaneio já foi finalizado.
+          </div>
+        )}
+
         {/* 3 Stat Cards */}
         <div className="flex gap-2.5">
           <StatCard value={records.length} label="romaneios" color={mobileColors.violetLight} />
