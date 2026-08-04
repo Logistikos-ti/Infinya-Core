@@ -47,7 +47,7 @@ async function waitForVideoElement(getVideo: () => HTMLVideoElement | null, time
 export function useFacePhotoCapture({
   onCaptured,
   confirmReads = 6,
-  minFaceWidthRatio = 0.28,
+  minFaceWidthRatio = 0.22,
 }: UseFacePhotoCaptureOptions) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -197,8 +197,13 @@ export function useFacePhotoCapture({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "user" },
-          width: { ideal: 1280 },
-          height: { ideal: 1280 },
+          // Portrait-ish (3:4), not the square 1280x1280 this used to
+          // request: forcing a square frame from a sensor that isn't
+          // square made the browser crop hard to hit that ratio, and with
+          // object-fit: cover stretching that already-cropped square to
+          // fill a tall phone screen, it read as an aggressive zoom.
+          width: { ideal: 720 },
+          height: { ideal: 960 },
         },
         audio: false,
       });
@@ -215,11 +220,13 @@ export function useFacePhotoCapture({
       setCameraEnabled(true);
       setCameraStarting(false);
 
+      // The manual "Capturar foto" button is always shown once the camera
+      // is enabled (see the client component), so this message stays the
+      // same either way -- automatic detection, when it works, just means
+      // the operator may never need to tap it.
+      setCameraMessage("Encaixe o rosto na moldura ou toque para capturar.");
       if (detectorRef.current) {
-        setCameraMessage("Encaixe o rosto na moldura.");
         runFaceDetectionLoop();
-      } else {
-        setCameraMessage("Encaixe o rosto na moldura e toque para capturar.");
       }
     } catch (error) {
       cleanupStream();

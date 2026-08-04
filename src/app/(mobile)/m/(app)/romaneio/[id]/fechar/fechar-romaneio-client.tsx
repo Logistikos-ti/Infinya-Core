@@ -1029,7 +1029,11 @@ export function FecharRomaneioClient({
             <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
               {faceCapture.cameraStarting ? "Abrindo câmera..." : faceCapture.cameraMessage ?? "Encaixe o rosto na moldura."}
             </span>
-            {faceCapture.cameraEnabled && !faceCapture.faceDetectionSupported ? (
+            {faceCapture.cameraEnabled ? (
+              // Always available, even when the browser claims to support
+              // automatic face detection -- that support check only proves
+              // the API exists, not that it actually finds a face on this
+              // device, so this stays the one guaranteed way to capture.
               <button
                 type="button"
                 onClick={faceCapture.captureManually}
