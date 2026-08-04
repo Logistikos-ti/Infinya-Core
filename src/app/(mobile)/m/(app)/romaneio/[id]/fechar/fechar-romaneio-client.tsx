@@ -441,7 +441,10 @@ export function FecharRomaneioClient({
           overflow: "hidden",
         }}
       >
-        {/* Live Camera Video Feed */}
+        {/* Live Camera Video Feed. object-fit: contain (not cover) so the
+            full frame is always visible, never cropped/zoomed to fill the
+            screen -- important here since a DANFE's barcode is long and
+            thin, and cropping made it hard to fit the whole thing in view. */}
         <video
           ref={videoRef}
           playsInline
@@ -451,7 +454,8 @@ export function FecharRomaneioClient({
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
+            background: "#000",
           }}
         />
 
@@ -560,9 +564,12 @@ export function FecharRomaneioClient({
         >
           <div
             style={{
-              width: 270,
-              height: 180,
-              borderRadius: 24,
+              // Wider and shorter than a generic scan box -- a DANFE's
+              // barcode (like a boleto's) is long and thin, so a
+              // near-square frame made it hard to fit the whole thing in.
+              width: 320,
+              height: 130,
+              borderRadius: 20,
               border: `3px ${framePulse ? "solid" : "dashed"} ${
                 framePulse === "success"
                   ? mobileColors.green
@@ -1059,6 +1066,10 @@ export function FecharRomaneioClient({
           button on browsers without automatic face detection). */}
       {faceCameraTarget ? (
         <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#000", display: "flex", flexDirection: "column" }}>
+          {/* object-fit: contain (not cover): cover crops the frame to
+              fill the screen, and any mismatch between the camera's actual
+              aspect ratio and the phone screen's makes that crop look like
+              an aggressive zoom. contain always shows the whole frame. */}
           <video
             ref={faceCapture.videoRef}
             playsInline
@@ -1068,7 +1079,7 @@ export function FecharRomaneioClient({
               inset: 0,
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
               transform: "scaleX(-1)",
             }}
           />
