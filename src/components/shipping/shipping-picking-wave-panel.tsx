@@ -288,7 +288,8 @@ export function ShippingPickingWavePanel({
         return false;
       }
 
-      const nextSeparated = Math.min(currentSeparated + 1, matchedItem.requestedQuantity);
+      const scannedQuantity = getScanIncrement(matchedItem, normalizedScan);
+      const nextSeparated = Math.min(currentSeparated + scannedQuantity, matchedItem.requestedQuantity);
 
       setItems((current) =>
         current.map((item) =>
@@ -300,7 +301,7 @@ export function ShippingPickingWavePanel({
 
       setActiveItemId(matchedItem.compositeId);
       setFeedback(
-        `Leitura aplicada em ${matchedItem.sku}. Total: ${nextSeparated}/${matchedItem.requestedQuantity}.`,
+        `Leitura aplicada em ${matchedItem.sku}${scannedQuantity > 1 ? ` (+${scannedQuantity} unidades do pack)` : ""}. Total: ${nextSeparated}/${matchedItem.requestedQuantity}.`,
         "success",
       );
     }
@@ -884,6 +885,12 @@ function serializeKitProgress(item: WavePickingItemState) {
 function matchesItemScan(item: WavePickingItemState, normalizedScan: string) {
   const scanTargets = item.scanTargets.map(normalizeScanValue).filter(Boolean);
   return scanTargets.includes(normalizedScan);
+}
+
+function getScanIncrement(item: WavePickingItemState, normalizedScan: string) {
+  return item.packBarcode && normalizeScanValue(item.packBarcode) === normalizedScan
+    ? Math.max(item.packQuantity || 12, 1)
+    : 1;
 }
 
 function findMatchingKitComponent(item: WavePickingItemState, normalizedScan: string) {

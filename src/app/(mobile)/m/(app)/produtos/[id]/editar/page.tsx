@@ -41,7 +41,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
     supabase
       .from("produtos")
       .select(
-        "id, depositante_id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
+        "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -117,6 +117,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
           sku: product.sku ?? "",
           nome: product.nome,
           eanGtin: product.codigo_externo ?? "",
+          eanGtinPack: product.codigo_externo_pack ?? "",
           categoria: product.categoria ?? "",
           tipoProduto: "SIMPLES",
           metodoRetirada: product.metodo_retirada,

@@ -30,6 +30,8 @@ type RawPickingOrderItemRow = {
   payload_origem: Record<string, unknown> | null;
   produto?: {
     codigo_externo?: string | null;
+    codigo_externo_pack?: string | null;
+    quantidade_por_embalagem?: number | string | null;
   } | null;
 };
 
@@ -144,6 +146,8 @@ export type ShippingPickingItem = {
   code: string;
   sku: string;
   barcode: string;
+  packBarcode: string;
+  packQuantity: number;
   name: string;
   unit: string;
   isKit: boolean;
@@ -560,6 +564,8 @@ function mapPickingItem(
   const itemCode = hydratedItem.codigo_produto?.trim() || "-";
   const itemSku = hydratedItem.sku?.trim() || "-";
   const itemBarcode = hydratedItem.produto?.codigo_externo?.trim() || "-";
+  const itemPackBarcode = hydratedItem.produto?.codigo_externo_pack?.trim() || "";
+  const itemPackQuantity = Number(hydratedItem.produto?.quantidade_por_embalagem ?? 12) || 12;
   const componentDefinitions = normalizeKitComponentDefinitions(hydratedItem.payload_origem);
   const isKit = isKitProduct(
     isPayloadKit(hydratedItem.payload_origem) ? "KIT" : "SIMPLES",
@@ -572,6 +578,8 @@ function mapPickingItem(
       itemCode,
       itemSku,
       itemBarcode,
+      itemPackBarcode,
+      itemPackQuantity,
     });
   }
 
@@ -651,6 +659,8 @@ function mapPickingItem(
     code: itemCode,
     sku: itemSku,
     barcode: itemBarcode,
+    packBarcode: itemPackBarcode,
+    packQuantity: itemPackQuantity,
     name: hydratedItem.nome,
     unit: hydratedItem.unidade?.trim() || "UN",
     isKit: true,
@@ -684,6 +694,8 @@ function mapSimplePickingItem(
     itemCode: string;
     itemSku: string;
     itemBarcode: string;
+    itemPackBarcode: string;
+    itemPackQuantity: number;
   },
 ) {
   const requestedQuantity = meta.requestedKits;
@@ -742,6 +754,8 @@ function mapSimplePickingItem(
     code: meta.itemCode,
     sku: meta.itemSku,
     barcode: meta.itemBarcode,
+    packBarcode: meta.itemPackBarcode,
+    packQuantity: meta.itemPackQuantity,
     name: item.nome,
     unit: item.unidade?.trim() || "UN",
     isKit: false,
@@ -751,14 +765,14 @@ function mapSimplePickingItem(
     remainingQuantity: Math.max(requestedQuantity - separatedQuantity, 0),
     shortageQuantity: remaining,
     kitComponents: [],
-    scanTargets: [meta.itemBarcode, meta.itemCode, meta.itemSku].filter(Boolean),
+    scanTargets: [meta.itemBarcode, meta.itemPackBarcode, meta.itemCode, meta.itemSku].filter(Boolean),
     routeLines,
   } satisfies ShippingPickingItem;
 }
 
 function buildPickingOrdersQuery(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   return supabase.from("pedidos_expedicao").select(
-    "id, codigo, numero_wms, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo))",
+    "id, codigo, numero_wms, created_at, data_pedido, origem, status, numero_pedido, numero_loja, cliente_nome, cliente_cidade, cliente_uf, quantidade_itens, quantidade_unidades, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, produto_id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(codigo_externo, codigo_externo_pack, quantidade_por_embalagem))",
   );
 }
 

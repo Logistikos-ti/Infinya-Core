@@ -25,6 +25,7 @@ export type ProdutoActionState = {
       | "sku"
       | "nome"
       | "eanGtin"
+      | "eanGtinPack"
       | "fornecedor"
       | "categoria"
       | "tamanho"
@@ -74,6 +75,7 @@ export async function saveProdutoAction(
     sku: String(formData.get("sku") ?? "").trim().toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     eanGtin: String(formData.get("eanGtin") ?? "").trim(),
+    eanGtinPack: String(formData.get("eanGtinPack") ?? "").trim(),
     fornecedor: String(formData.get("fornecedor") ?? "").trim(),
     categoria: String(formData.get("categoria") ?? "").trim(),
     tamanho: String(formData.get("tamanho") ?? "").trim(),
@@ -107,6 +109,7 @@ export async function saveProdutoAction(
         sku: flattened.sku?.[0] ?? "",
         nome: flattened.nome?.[0] ?? "",
         eanGtin: flattened.eanGtin?.[0] ?? "",
+        eanGtinPack: flattened.eanGtinPack?.[0] ?? "",
         fornecedor: flattened.fornecedor?.[0] ?? "",
         categoria: flattened.categoria?.[0] ?? "",
         tamanho: flattened.tamanho?.[0] ?? "",
@@ -132,6 +135,7 @@ export async function saveProdutoAction(
     const resolvedInternalCode = resolveProductInternalCode(parsed.data.codigoInterno, parsed.data.nome);
     const resolvedSku = resolveProductSku(parsed.data.sku, resolvedInternalCode);
     const normalizedEan = normalizeBarcode(parsed.data.eanGtin);
+    const normalizedPackEan = normalizeBarcode(parsed.data.eanGtinPack);
     const currentImageUrl = String(formData.get("currentImageUrl") ?? "").trim() || null;
     const currentImageStoragePath =
       String(formData.get("currentImageStoragePath") ?? "").trim() || null;
@@ -155,24 +159,21 @@ export async function saveProdutoAction(
       };
     }
 
-    if (normalizedEan) {
-      const duplicateBarcodeQuery = adminSupabase
-        .from("produtos")
-        .select("id, nome, depositante:depositantes(nome)")
-        .eq("codigo_externo", normalizedEan)
-        .limit(1);
+    for (const barcode of [
+      { value: normalizedEan, field: "eanGtin" as const, label: "unitario" },
+      { value: normalizedPackEan, field: "eanGtinPack" as const, label: "do pack" },
+    ]) {
+      if (!barcode.value) continue;
 
-      if (parsed.data.id) {
-        duplicateBarcodeQuery.neq("id", parsed.data.id);
-      }
-
-      const { data: duplicateBarcode, error: duplicateBarcodeError } = await duplicateBarcodeQuery.maybeSingle();
+      const [unitResult, packResult] = await Promise.all([
+        findDuplicateBarcode(adminSupabase, "codigo_externo", barcode.value, parsed.data.id),
+        findDuplicateBarcode(adminSupabase, "codigo_externo_pack", barcode.value, parsed.data.id),
+      ]);
+      const duplicateBarcode = unitResult.data ?? packResult.data;
+      const duplicateBarcodeError = unitResult.error ?? packResult.error;
 
       if (duplicateBarcodeError) {
-        return {
-          success: false,
-          message: `Nao foi possivel validar o EAN/GTIN: ${duplicateBarcodeError.message}`,
-        };
+        return { success: false, message: `Nao foi possivel validar o EAN/GTIN: ${duplicateBarcodeError.message}` };
       }
 
       if (duplicateBarcode) {
@@ -180,9 +181,7 @@ export async function saveProdutoAction(
         return {
           success: false,
           message: `Ja existe um produto com esse EAN/GTIN${depositanteNome ? ` no depositante ${depositanteNome}` : ""}: ${duplicateBarcode.nome}.`,
-          errors: {
-            eanGtin: "Este EAN/GTIN ja esta cadastrado.",
-          },
+          errors: { [barcode.field]: `Este EAN/GTIN ${barcode.label} ja esta cadastrado.` },
         };
       }
     }
@@ -232,6 +231,7 @@ export async function saveProdutoAction(
       depositante_id: parsed.data.depositanteId,
       codigo_interno: resolvedInternalCode,
       codigo_externo: normalizedEan,
+      codigo_externo_pack: normalizedPackEan,
       sku: resolvedSku,
       nome: finalNome,
       fornecedor: parsed.data.fornecedor || null,
@@ -240,7 +240,7 @@ export async function saveProdutoAction(
       metodo_retirada: parsed.data.metodoRetirada,
       unidade_estocagem: parsed.data.unidadeEstocagem,
       quantidade_por_embalagem:
-        parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK"
+        parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK" || normalizedPackEan
           ? parsed.data.quantidadePorEmbalagem ?? null
           : null,
       descricao: parsed.data.descricao || null,
@@ -719,6 +719,25 @@ function validateProdutoImageFile(file: File) {
   }
 
   return null;
+}
+
+async function findDuplicateBarcode(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  column: "codigo_externo" | "codigo_externo_pack",
+  barcode: string,
+  productId?: string,
+) {
+  const query = adminSupabase
+    .from("produtos")
+    .select("id, nome, depositante:depositantes(nome)")
+    .eq(column, barcode)
+    .limit(1);
+
+  if (productId) {
+    query.neq("id", productId);
+  }
+
+  return query.maybeSingle();
 }
 
 async function resolveProdutoImageUpload({

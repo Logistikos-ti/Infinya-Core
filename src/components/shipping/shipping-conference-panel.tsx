@@ -329,7 +329,8 @@ export function ShippingConferencePanel({
         return false;
       }
 
-      const nextConfirmed = Math.min(currentConfirmed + 1, matchedItem.requestedQuantity);
+      const scannedQuantity = getScanIncrement(matchedItem, normalizedScan);
+      const nextConfirmed = Math.min(currentConfirmed + scannedQuantity, matchedItem.requestedQuantity);
 
       setItems((current) =>
         current.map((item) =>
@@ -734,6 +735,12 @@ function matchesItemScan(item: ConferenceItemState, normalizedScan: string) {
   return item.scanTargets
     .filter(Boolean)
     .some((value) => normalizeScanValue(value) === normalizedScan);
+}
+
+function getScanIncrement(item: ConferenceItemState, normalizedScan: string) {
+  return item.packBarcode && normalizeScanValue(item.packBarcode) === normalizedScan
+    ? Math.max(item.packQuantity || 12, 1)
+    : 1;
 }
 
 function findMatchingKitComponent(item: ConferenceItemState, normalizedScan: string) {
