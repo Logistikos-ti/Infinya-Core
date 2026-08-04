@@ -27,6 +27,7 @@ import {
 } from "@/app/(dashboard)/romaneio/actions";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import type { RomaneioRecordDetail, SavedDriver } from "@/lib/romaneio-records";
 
@@ -79,8 +80,12 @@ export function FecharRomaneioClient({
   // Photo state
   const [operadorPhoto, setOperadorPhoto] = useState<string | null>(null);
   const [motoristaPhoto, setMotoristaPhoto] = useState<string | null>(null);
-  const [activePhotoTarget, setActivePhotoTarget] = useState<"operador" | "motorista" | null>(null);
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [faceCameraTarget, setFaceCameraTarget] = useState<"operador" | "motorista" | null>(null);
+  const [faceCaptureFlash, setFaceCaptureFlash] = useState(false);
+  // Mirrors faceCameraTarget synchronously so the capture callback always
+  // knows which card to fill in, even though it's registered once on mount
+  // (see useFacePhotoCapture below) rather than re-created per target.
+  const faceCameraTargetRef = useRef<"operador" | "motorista" | null>(null);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -294,30 +299,41 @@ export function FecharRomaneioClient({
     }
   }
 
-  // Trigger file input for photo capture
-  function triggerPhotoCapture(target: "operador" | "motorista") {
-    setActivePhotoTarget(target);
-    photoInputRef.current?.click();
+  // Open the in-app face-capture camera for a given photo card.
+  function openFaceCamera(target: "operador" | "motorista") {
+    faceCameraTargetRef.current = target;
+    setFaceCameraTarget(target);
   }
 
-  // Handle photo file selected
-  function handlePhotoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !activePhotoTarget) return;
+  // Fired by useFacePhotoCapture once a well-framed face has been
+  // auto-captured (or the operator tapped the manual fallback button).
+  const handleFaceCaptured = useCallback((dataUrl: string) => {
+    if (faceCameraTargetRef.current === "operador") {
+      setOperadorPhoto(dataUrl);
+    } else if (faceCameraTargetRef.current === "motorista") {
+      setMotoristaPhoto(dataUrl);
+    }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (activePhotoTarget === "operador") {
-        setOperadorPhoto(dataUrl);
-      } else if (activePhotoTarget === "motorista") {
-        setMotoristaPhoto(dataUrl);
-      }
-      setActivePhotoTarget(null);
-      if (photoInputRef.current) photoInputRef.current.value = "";
-    };
-    reader.readAsDataURL(file);
-  }
+    // Brief success flash over the camera view before it closes, mirroring
+    // the scan-confirmation flashes used elsewhere in this flow.
+    setFaceCaptureFlash(true);
+    window.setTimeout(() => {
+      setFaceCaptureFlash(false);
+      faceCameraTargetRef.current = null;
+      setFaceCameraTarget(null);
+    }, 700);
+  }, []);
+
+  const faceCapture = useFacePhotoCapture({ onCaptured: handleFaceCaptured });
+
+  useEffect(() => {
+    if (faceCameraTarget) {
+      void faceCapture.startCamera();
+    } else {
+      faceCapture.stopCamera(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faceCameraTarget]);
 
   // Final submission
   async function handleFinalSubmit() {
@@ -903,15 +919,147 @@ export function FecharRomaneioClient({
   // =========================================================================
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      {/* Hidden file input for photo capture */}
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handlePhotoFileChange}
-        className="hidden"
-      />
+      {/* In-app face-capture camera: fits the face in the oval guide and
+          auto-captures once framed well (falls back to a manual capture
+          button on browsers without automatic face detection). */}
+      {faceCameraTarget ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#000", display: "flex", flexDirection: "column" }}>
+          <video
+            ref={faceCapture.videoRef}
+            playsInline
+            muted
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: "scaleX(-1)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.7) 100%)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "18px",
+              paddingTop: "calc(18px + env(safe-area-inset-top))",
+            }}
+          >
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, ...headingFont }}>
+              {faceCameraTarget === "operador" ? "Foto do Operador" : "Foto do Motorista / Carga"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                faceCameraTargetRef.current = null;
+                setFaceCameraTarget(null);
+              }}
+              style={{
+                width: 38,
+                height: 38,
+                flexShrink: 0,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.14)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                width: 230,
+                height: 290,
+                borderRadius: "50%",
+                border: `3px solid ${faceCapture.faceAligned ? mobileColors.green : "rgba(255,255,255,0.75)"}`,
+                boxShadow: faceCapture.faceAligned ? `0 0 0 8px ${hexAlpha(mobileColors.green, 0.18)}` : "none",
+                transition: "border-color 200ms ease, box-shadow 200ms ease",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 14,
+              padding: "0 24px calc(32px + env(safe-area-inset-bottom))",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
+              {faceCapture.cameraStarting ? "Abrindo câmera..." : faceCapture.cameraMessage ?? "Encaixe o rosto na moldura."}
+            </span>
+            {faceCapture.cameraEnabled && !faceCapture.faceDetectionSupported ? (
+              <button
+                type="button"
+                onClick={faceCapture.captureManually}
+                style={{
+                  height: 52,
+                  padding: "0 28px",
+                  borderRadius: 16,
+                  background: mobileColors.amber,
+                  color: "#000",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  border: "none",
+                }}
+              >
+                Capturar foto
+              </button>
+            ) : null}
+          </div>
+
+          {faceCaptureFlash ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 3,
+                background: "rgba(16,185,129,0.22)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <span
+                style={{
+                  width: 84,
+                  height: 84,
+                  borderRadius: "50%",
+                  background: mobileColors.green,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Check className="h-10 w-10 stroke-[3]" style={{ color: "#05130D" }} />
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Header */}
       <div style={{ flexShrink: 0, padding: "18px 18px 14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -1088,12 +1236,13 @@ export function FecharRomaneioClient({
               </div>
 
               {operadorPhoto ? (
-                <div className="relative overflow-hidden rounded-2xl border border-white/15">
-                  <img src={operadorPhoto} alt="Foto Operador" className="aspect-video w-full object-cover" />
+                <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06]">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-200">Foto capturada e protegida</span>
                   <button
                     type="button"
-                    onClick={() => triggerPhotoCapture("operador")}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/90"
+                    onClick={() => openFaceCamera("operador")}
+                    className="mt-1 flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Tirar novamente
@@ -1102,7 +1251,7 @@ export function FecharRomaneioClient({
               ) : (
                 <button
                   type="button"
-                  onClick={() => triggerPhotoCapture("operador")}
+                  onClick={() => openFaceCamera("operador")}
                   className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-white/5 text-slate-300 hover:border-amber-400 hover:bg-white/10"
                 >
                   <Camera className="h-8 w-8 text-amber-400" />
@@ -1126,12 +1275,13 @@ export function FecharRomaneioClient({
               </div>
 
               {motoristaPhoto ? (
-                <div className="relative overflow-hidden rounded-2xl border border-white/15">
-                  <img src={motoristaPhoto} alt="Foto Motorista" className="aspect-video w-full object-cover" />
+                <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06]">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-200">Foto capturada e protegida</span>
                   <button
                     type="button"
-                    onClick={() => triggerPhotoCapture("motorista")}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/90"
+                    onClick={() => openFaceCamera("motorista")}
+                    className="mt-1 flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Tirar novamente
@@ -1140,7 +1290,7 @@ export function FecharRomaneioClient({
               ) : (
                 <button
                   type="button"
-                  onClick={() => triggerPhotoCapture("motorista")}
+                  onClick={() => openFaceCamera("motorista")}
                   className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-white/5 text-slate-300 hover:border-amber-400 hover:bg-white/10"
                 >
                   <Camera className="h-8 w-8 text-amber-400" />
