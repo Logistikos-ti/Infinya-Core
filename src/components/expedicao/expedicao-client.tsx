@@ -114,6 +114,10 @@ function buildInvoicePreviewHtml(xml: string) {
 
 function getOrderUploadFeedback(feedback?: string) {
   switch (feedback) {
+    case "divergencia-reaberta-separacao":
+      return { title: "Separação reaberta com sucesso", detail: "O pedido foi devolvido para a fila de separação (picking) e está pronto para nova coleta." };
+    case "divergencia-cancelada":
+      return { title: "Cancelamento confirmado", detail: "A divergência foi tratada e o pedido foi marcado como cancelado definitivamente." };
     case "nf-obrigatoria":
       return { title: "Anexo obrigat\u00f3rio", detail: "Anexe o arquivo XML da NF-e antes de enviar o pedido ao CD." };
     case "nf-invalida":
@@ -123,7 +127,7 @@ function getOrderUploadFeedback(feedback?: string) {
     case "xml-produtos-nao-mapeados":
       return { title: "Produtos n\u00e3o mapeados", detail: "A NF-e foi lida, mas um ou mais produtos ainda n\u00e3o est\u00e3o vinculados ao cat\u00e1logo do depositante." };
     case "erro":
-      return { title: "N\u00e3o foi poss\u00edvel subir o pedido", detail: "O sistema n\u00e3o conseguiu concluir a importa\u00e7\u00e3o. Confira o XML, tente novamente e, se o problema persistir, envie os detalhes para o suporte." };
+      return { title: "N\u00e3o foi poss\u00edvel concluir a ação", detail: "O sistema n\u00e3o conseguiu concluir a operação. Tente novamente e, se o problema persistir, contate o suporte." };
     default:
       return null;
   }

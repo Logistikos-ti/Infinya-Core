@@ -928,3 +928,139 @@ function mapSupplyKindLabel(kind: string) {
       return "Outro";
   }
 }
+
+export async function resolveShippingOrderDivergenceAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const adminSupabase = createSupabaseAdminClient();
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const resolutionType = String(formData.get("resolutionType") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+
+  if (!orderId) {
+    redirect("/expedicao?feedback=erro");
+  }
+
+  const { data: order, error } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, quantidade_separada, payload_origem)")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error || !order) {
+    redirect(`/expedicao/${orderId}?feedback=erro`);
+  }
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentHistory = Array.isArray(payload.historicoDivergencias) ? payload.historicoDivergencias : [];
+  const now = new Date().toISOString();
+
+  const treatmentRecord = {
+    tratadoEm: now,
+    tratadoPorNome: user.nome || "Operador",
+    tratadoPorId: user.id,
+    acao: resolutionType,
+    observacao: notes || null,
+    divergenciaAnterior: payload.divergencia || payload.conferencia || null,
+    statusAnterior: order.status,
+  };
+
+  const updatedHistory = [...currentHistory, treatmentRecord];
+
+  if (resolutionType === "REABRIR_SEPARACAO") {
+    await adminSupabase
+      .from("pedidos_expedicao_itens")
+      .update({
+        quantidade_separada: 0,
+      })
+      .eq("pedido_expedicao_id", orderId);
+
+    const updatedPayload = {
+      ...payload,
+      conferencia: null,
+      divergencia: null,
+      separacao: null,
+      tratamentoDivergencia: treatmentRecord,
+      historicoDivergencias: updatedHistory,
+    };
+
+    await adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: "EM_SEPARACAO",
+        payload_origem: updatedPayload,
+      })
+      .eq("id", orderId);
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/separacao");
+    revalidatePath(`/expedicao/${orderId}`);
+
+    redirect("/expedicao?feedback=divergencia-reaberta-separacao");
+  }
+
+  if (resolutionType === "REINICIAR_CONFERENCIA") {
+    const items = (order.itens ?? []) as Array<{ id: string; quantidade: number | string | null }>;
+    for (const item of items) {
+      await adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({
+          quantidade_separada: Number(item.quantidade ?? 1),
+        })
+        .eq("id", item.id);
+    }
+
+    const updatedPayload = {
+      ...payload,
+      conferencia: {
+        reiniciadaEm: now,
+        reiniciadaPorNome: user.nome,
+        produtoErradoCount: 0,
+      },
+      divergencia: null,
+      separacao: null,
+      tratamentoDivergencia: treatmentRecord,
+      historicoDivergencias: updatedHistory,
+    };
+
+    await adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: "EM_CONFERENCIA",
+        payload_origem: updatedPayload,
+      })
+      .eq("id", orderId);
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath(`/expedicao/${orderId}`);
+
+    redirect(`/expedicao/conferencia/${orderId}?feedback=conferencia-reiniciada`);
+  }
+
+  if (resolutionType === "CANCELAR_DEFINITIVO") {
+    const updatedPayload = {
+      ...payload,
+      divergenciaTratada: true,
+      tratamentoDivergencia: treatmentRecord,
+      historicoDivergencias: updatedHistory,
+    };
+
+    await adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: "CANCELADO",
+        payload_origem: updatedPayload,
+      })
+      .eq("id", orderId);
+
+    revalidatePath("/expedicao");
+    revalidatePath(`/expedicao/${orderId}`);
+
+    redirect("/expedicao?feedback=divergencia-cancelada");
+  }
+
+  redirect(`/expedicao/${orderId}?feedback=opcao-invalida`);
+}
+

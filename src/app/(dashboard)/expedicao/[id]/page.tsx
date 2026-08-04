@@ -6,6 +6,7 @@ import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
+import { ShippingDivergenceTreatmentPanel } from "@/components/shipping/shipping-divergence-treatment-panel";
 import { ShippingGeneratedLabelPanel } from "@/components/shipping/shipping-generated-label-panel";
 import { ShippingMercadoLivreSyncPanel } from "@/components/shipping/shipping-mercado-livre-sync-panel";
 import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
@@ -67,27 +68,14 @@ export default async function ShippingOrderDetailPage({
         </div>
       ) : null}
 
-      {order.cancellationReason ? (
-        <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-5 backdrop-blur-md dark:border-amber-500/30">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 font-bold text-xs text-zinc-950">
-              !
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                Divergência / Ocorrência Registrada
-              </h3>
-              <p className="text-sm text-slate-800 dark:text-zinc-200 font-medium">
-                {order.cancellationReason}
-              </p>
-              {order.divergenceReporter ? (
-                <p className="text-xs text-slate-600 dark:text-zinc-400">
-                  Registrado por: <strong className="text-slate-900 dark:text-zinc-200">{order.divergenceReporter}</strong>
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </div>
+      {order.cancellationReason || order.status === "DIVERGENCIA" || order.status === "CANCELADO" || order.status === "ERRO" ? (
+        <ShippingDivergenceTreatmentPanel
+          orderId={order.id}
+          orderNumber={order.displayNumber || order.code}
+          divergenceReason={order.cancellationReason || "Divergência registrada durante o fluxo de expedição."}
+          reportedBy={order.divergenceReporter}
+          status={order.statusLabel}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
