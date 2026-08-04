@@ -54,6 +54,33 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
     return { dot: t.textSub, halo: "transparent", qtyColor: "#10B981", sign: "+" };
   };
 
+  const movementLabel = (type: string) => {
+    if (type.includes("ENTRADA")) return "Entrada de estoque";
+    if (type.includes("SAIDA")) return "Sa\u00edda de estoque";
+    if (type.includes("RESERVA")) return "Reserva de estoque";
+    if (type.includes("AJUSTE") || type.includes("INVENTARIO")) return "Ajuste de invent\u00e1rio";
+    if (type.includes("TRANSFERENCIA")) return "Movimenta\u00e7\u00e3o interna";
+    return type;
+  };
+
+  const formatMovementDateTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Data n\u00e3o informada";
+
+    const parts = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+
+    return `${part("day")}/${part("month")}/${part("year")} \u00e0s ${part("hour")}:${part("minute")}`;
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
       <div 
@@ -172,6 +199,32 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           )}
 
           {skuMovements.length > 0 && (
+            <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "14px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Movimenta\u00e7\u00f5es recentes</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {skuMovements.map((m, i) => {
+                  const colors = getColors(m.type);
+                  return (
+                    <div key={m.id || `${m.createdAt}-${i}`} style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr)", columnGap: "10px", minHeight: "61px" }}>
+                      <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+                        {i < skuMovements.length - 1 && <span style={{ position: "absolute", top: "13px", bottom: "-6px", width: "2px", background: t.border }} />}
+                        <span style={{ position: "relative", zIndex: 1, marginTop: "4px", width: "11px", height: "11px", borderRadius: "50%", background: colors.dot, boxShadow: `0 0 0 4px ${colors.halo}` }} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{movementLabel(m.type)}</span>
+                        <span style={{ fontSize: "11.5px", lineHeight: 1.45, color: t.textSub }}>
+                          {formatMovementDateTime(m.createdAt)} \u00b7 {m.observation || m.reference || "Sem observa\u00e7\u00e3o"}
+                        </span>
+                        <span style={{ fontSize: "11.5px", lineHeight: 1.35, color: t.textSub }}>Operador: {m.operatorName || "Sistema"}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {false && skuMovements.length > 0 && (
             <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Últimas movimentações</span>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
