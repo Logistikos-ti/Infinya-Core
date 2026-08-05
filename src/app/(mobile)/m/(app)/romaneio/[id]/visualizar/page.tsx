@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { FileDown, IdCard, PackageCheck, Truck, User } from "lucide-react";
+import { CheckCircle2, FileDown, IdCard, PackageCheck, Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { getCarrierBrand } from "@/lib/carrier-branding";
@@ -139,32 +140,10 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
             </h2>
             <div className="grid grid-cols-2 gap-3">
               {conferencia.fotoOperadorUrl && (
-                <div className="space-y-1.5">
-                  <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: mobileColors.muted }}>
-                    <User className="h-3.5 w-3.5" />
-                    Operador
-                  </span>
-                  <img
-                    src={conferencia.fotoOperadorUrl}
-                    alt="Foto do operador"
-                    className="aspect-square w-full rounded-2xl object-cover"
-                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}` }}
-                  />
-                </div>
+                <PhotoCheck icon={<User className="h-3.5 w-3.5" />} label="Operador" />
               )}
               {conferencia.fotoMotoristaUrl && (
-                <div className="space-y-1.5">
-                  <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: mobileColors.muted }}>
-                    <Truck className="h-3.5 w-3.5" />
-                    Motorista / Carga
-                  </span>
-                  <img
-                    src={conferencia.fotoMotoristaUrl}
-                    alt="Foto do motorista"
-                    className="aspect-square w-full rounded-2xl object-cover"
-                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.16)}` }}
-                  />
-                </div>
+                <PhotoCheck icon={<Truck className="h-3.5 w-3.5" />} label="Motorista / Carga" />
               )}
             </div>
           </div>
@@ -229,6 +208,21 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PhotoCheck({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div
+      className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl"
+      style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.06) }}
+    >
+      <CheckCircle2 className="h-7 w-7" style={{ color: mobileColors.green }} />
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: mobileColors.green }}>
+        {icon}
+        {label}
+      </span>
     </div>
   );
 }
