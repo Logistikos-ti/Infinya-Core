@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   return new NextResponse(pdfBytes, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="romaneios-resumo-${stamp}.pdf"`,
+      "Content-Disposition": `attachment; filename="romaneios-resumo-${stamp}.pdf"`,
     },
   });
 }
