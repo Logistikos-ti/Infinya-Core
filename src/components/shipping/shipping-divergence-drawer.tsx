@@ -50,6 +50,8 @@ type ShippingDivergenceDrawerProps = {
   order: DivergenceOrderData | null;
   isOpen: boolean;
   onClose: () => void;
+  readOnly?: boolean;
+  redirectTo?: string;
 };
 
 type ActionType = "PROSSEGUIR_COM_DIVERGENCIA" | "CANCELAR_DEFINITIVO";
@@ -58,6 +60,8 @@ export function ShippingDivergenceDrawer({
   order,
   isOpen,
   onClose,
+  readOnly = false,
+  redirectTo = "",
 }: ShippingDivergenceDrawerProps) {
   const [selectedAction, setSelectedAction] = useState<ActionType>("PROSSEGUIR_COM_DIVERGENCIA");
   const [notes, setNotes] = useState("");
@@ -84,6 +88,10 @@ export function ShippingDivergenceDrawer({
   const nfe = order.nfe || order.raw?.nfe || "Não vinculada";
   const total = order.total || order.raw?.total || "R$ 0,00";
   const channel = order.channel || order.raw?.channel || "Bling";
+
+  const tratamento = order.raw?.payload_origem?.tratamentoDivergencia 
+    || order.raw?.tratamentoDivergencia 
+    || (order as any).tratamentoDivergencia;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -129,25 +137,30 @@ export function ShippingDivergenceDrawer({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-zinc-800">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                Tratamento de Divergência
-              </span>
-              <span className="text-xs text-slate-400 dark:text-zinc-500">•</span>
-              <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
-                Canal: {channel}
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+              <AlertTriangle className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-bold text-slate-950 dark:text-white font-mono">
-              {orderNumber}
-            </h2>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {orderNumber}
+                </h3>
+                <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  {readOnly ? "Visualização de Divergência" : "Tratamento de Divergência"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                {readOnly 
+                  ? "Detalhes completos do pedido travado e status da tratativa" 
+                  : "Defina a tratativa para destravar o fluxo deste pedido no armazém"}
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fechar menu lateral"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-950 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white transition"
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
           >
             <X className="h-5 w-5" />
           </button>
@@ -155,96 +168,126 @@ export function ShippingDivergenceDrawer({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Card da Ocorrência */}
-          <div className="rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent p-5 dark:border-amber-500/30">
-            <div className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/30">
-                <AlertTriangle className="h-5 w-5" />
+          
+          {/* Card: Ocorrência Registrada */}
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Info className="h-4 w-4" />
               </div>
-              <div className="space-y-1.5 min-w-0">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  Motivo da Divergência Reportada
-                </span>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white leading-relaxed">
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Ocorrência / Motivo da Divergência:
+                </h4>
+                <p className="text-sm font-medium text-slate-800 dark:text-zinc-200 leading-relaxed">
                   {reason}
                 </p>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-zinc-400 pt-1">
-                  <span>Registrado por: <strong className="text-slate-900 dark:text-zinc-200">{reporter}</strong></span>
-                  {order.orderDate ? (
-                    <span>Data: <strong className="text-slate-900 dark:text-zinc-200">{order.orderDate}</strong></span>
-                  ) : null}
-                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 pt-1">
+                  Registrado por: <strong className="text-slate-700 dark:text-zinc-300">{reporter}</strong>
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Dados do Pedido e Depositante */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-3 flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5" />
+          {/* Dados do Pedido */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Informações do Pedido
-            </h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Depositante</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{depositante}</span>
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" /> Depositante
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {depositante}
+                </span>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Cliente</span>
-                <span className="font-semibold text-slate-900 dark:text-white truncate block">{customer}</span>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" /> Destinatário / Cliente
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {customer}
+                </span>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Destino</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{destination}</span>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> NF-e
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {nfe}
+                </span>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Transportadora</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{carrier}</span>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <Store className="h-3.5 w-3.5" /> Canal / Origem
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {channel}
+                </span>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Nota Fiscal (NF-e)</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{nfe}</span>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <Truck className="h-3.5 w-3.5" /> Transportadora
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {carrier}
+                </span>
               </div>
-              <div>
-                <span className="text-xs text-slate-500 dark:text-zinc-400 block">Valor Total</span>
-                <span className="font-semibold text-slate-900 dark:text-white">{total}</span>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mb-1 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Cidade / Destino
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
+                  {destination}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Itens do Pedido */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <Package className="h-3.5 w-3.5" />
-                Produtos do Pedido ({items.length})
-              </h3>
+          {/* Lista de Itens do Pedido */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                Itens do Pedido ({items.length})
+              </h4>
+              <span className="text-xs text-slate-400">
+                Qtd. Pedida vs Separada
+              </span>
             </div>
+
             {items.length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-zinc-400 py-3 text-center">
-                Nenhum detalhamento de produto disponível.
-              </p>
+              <div className="rounded-xl border border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-zinc-800 dark:text-zinc-400">
+                Nenhum item listado para este pedido.
+              </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-100 text-slate-400 dark:border-zinc-800 dark:text-zinc-500">
+                  <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
                     <tr>
-                      <th className="pb-2 font-medium">Produto</th>
-                      <th className="pb-2 font-medium">SKU / Código</th>
-                      <th className="pb-2 font-medium text-center">Qtd Solicitada</th>
-                      <th className="pb-2 font-medium text-center">Qtd Separada</th>
+                      <th className="py-2.5 px-3">Produto / SKU</th>
+                      <th className="py-2.5 text-center w-20">Qtd. Pedida</th>
+                      <th className="py-2.5 text-center w-24">Qtd. Separada</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
                     {items.map((item: any, idx: number) => (
-                      <tr key={idx} className="py-2.5">
-                        <td className="py-2.5 pr-2 font-medium text-slate-900 dark:text-white max-w-[220px] truncate">
-                          {item.name || item.nome || "Item"}
+                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/30">
+                        <td className="py-2.5 px-3">
+                          <p className="font-bold text-slate-900 dark:text-white leading-tight">
+                            {item.name || item.nome || "Item sem nome"}
+                          </p>
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400">
+                            SKU: {item.sku || "-"}
+                          </span>
                         </td>
-                        <td className="py-2.5 pr-2 font-mono text-slate-500 dark:text-zinc-400">
-                          {item.sku || item.codigo_produto || "-"}
-                        </td>
-                        <td className="py-2.5 text-center font-bold text-slate-900 dark:text-white">
+                        <td className="py-2.5 text-center font-semibold text-slate-700 dark:text-zinc-300">
                           {item.quantity ?? item.quantidade ?? 1}
                         </td>
                         <td className="py-2.5 text-center">
@@ -264,113 +307,169 @@ export function ShippingDivergenceDrawer({
             )}
           </div>
 
-          {/* Seleção de Ações Disponíveis */}
-          <form id="divergence-resolution-form" onSubmit={handleSubmit} className="space-y-4">
-            <input type="hidden" name="orderId" value={order.id} />
-            <input type="hidden" name="resolutionType" value={selectedAction} />
+          {/* READ ONLY: Exibe Status da Tratativa */}
+          {readOnly ? (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                Status da Tratativa
+              </h4>
 
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-zinc-300 block mb-2.5">
-                Escolha a Ação de Resolução:
-              </label>
-              <div className="grid gap-3">
-                {/* Opção 1: Prosseguir com Divergência */}
-                <div
-                  onClick={() => setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA")}
-                  className={`cursor-pointer rounded-2xl border p-4 transition ${
-                    selectedAction === "PROSSEGUIR_COM_DIVERGENCIA"
-                      ? getActionConfig("PROSSEGUIR_COM_DIVERGENCIA").borderActive
-                      : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="h-4 w-4" />
+              {tratamento ? (
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                      {tratamento.acao === "PROSSEGUIR_COM_DIVERGENCIA"
+                        ? "Prosseguir com Divergência (Autorizado)"
+                        : tratamento.acao === "CANCELAR_DEFINITIVO"
+                        ? "Cancelamento Definitivo Confirmado"
+                        : tratamento.acao || "Tratado"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300">
+                    Tratado por: <strong>{tratamento.tratadoPorNome || "Depositante"}</strong>
+                    {tratamento.tratadoEm && ` em ${new Date(tratamento.tratadoEm).toLocaleString("pt-BR")}`}
+                  </p>
+                  {tratamento.observacao && (
+                    <div className="mt-2 rounded-xl bg-white/60 p-2.5 text-xs text-slate-700 dark:bg-zinc-900/60 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-800">
+                      <strong>Observação:</strong> {tratamento.observacao}
                     </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Prosseguir com Divergência
-                        </h4>
-                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                          Liberar para Envio
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.
-                      </p>
-                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 dark:border-amber-500/20 dark:bg-amber-500/10 flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h5 className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                      Aguardando Tratativa do Depositante
+                    </h5>
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                      O pedido está bloqueado aguardando o depositante definir no portal se autoriza a expedição mesmo com a divergência ou se confirma o cancelamento.
+                    </p>
                   </div>
                 </div>
+              )}
+            </div>
+          ) : (
+            /* SELEÇÃO DE AÇÕES DE RESOLUÇÃO (Depositante / Operador com ação ativa) */
+            <form id="divergence-resolution-form" onSubmit={handleSubmit} className="space-y-4">
+              <input type="hidden" name="orderId" value={order.id} />
+              <input type="hidden" name="resolutionType" value={selectedAction} />
+              {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
 
-                {/* Opção 2: Cancelar Definitivo */}
-                <div
-                  onClick={() => setSelectedAction("CANCELAR_DEFINITIVO")}
-                  className={`cursor-pointer rounded-2xl border p-4 transition ${
-                    selectedAction === "CANCELAR_DEFINITIVO"
-                      ? getActionConfig("CANCELAR_DEFINITIVO").borderActive
-                      : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
-                      <XCircle className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Confirmar Cancelamento Definitivo
-                        </h4>
-                        <span className="rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                          Encerramento
-                        </span>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-zinc-300 block mb-2.5">
+                  Escolha a Ação de Resolução:
+                </label>
+                <div className="grid gap-3">
+                  {/* Opção 1: Prosseguir com Divergência */}
+                  <div
+                    onClick={() => setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA")}
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      selectedAction === "PROSSEGUIR_COM_DIVERGENCIA"
+                        ? getActionConfig("PROSSEGUIR_COM_DIVERGENCIA").borderActive
+                        : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-4 w-4" />
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.
-                      </p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                            Prosseguir com Divergência
+                          </h4>
+                          <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            Liberar para Envio
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Opção 2: Cancelar Definitivo */}
+                  <div
+                    onClick={() => setSelectedAction("CANCELAR_DEFINITIVO")}
+                    className={`cursor-pointer rounded-2xl border p-4 transition ${
+                      selectedAction === "CANCELAR_DEFINITIVO"
+                        ? getActionConfig("CANCELAR_DEFINITIVO").borderActive
+                        : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+                        <XCircle className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                            Confirmar Cancelamento Definitivo
+                          </h4>
+                          <span className="rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                            Encerramento
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Observações Opcionais */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1.5">
-                Observação do Tratamento (Opcional):
-              </label>
-              <textarea
-                name="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ex: Produto avariado reposto no estoque, autorizado retorno para picking..."
-                rows={2}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-amber-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-              />
-            </div>
-          </form>
+              {/* Observações Opcionais */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1.5">
+                  Observação do Tratamento (Opcional):
+                </label>
+                <textarea
+                  name="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ex: Autorizado envio sem o item faltante conforme alinhamento com cliente final..."
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                />
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Footer with Action Button */}
         <div className="border-t border-slate-200 bg-slate-50/50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
-          <button
-            type="submit"
-            form="divergence-resolution-form"
-            disabled={isPending}
-            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm shadow-md transition disabled:opacity-50 ${activeConfig.btnColor}`}
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Processando...
-              </>
-            ) : (
-              <>
-                Confirmar {activeConfig.title}
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
+          {readOnly ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 px-6 text-sm font-bold border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+            >
+              Fechar Visualização
+            </button>
+          ) : (
+            <button
+              type="submit"
+              form="divergence-resolution-form"
+              disabled={isPending}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm shadow-md transition disabled:opacity-50 ${activeConfig.btnColor}`}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  Confirmar {activeConfig.title}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

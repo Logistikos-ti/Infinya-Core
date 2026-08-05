@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, FileText, LoaderCircle, Package, Plus, Tag, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LoaderCircle, Package, Plus, Tag, X, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
@@ -9,6 +9,7 @@ import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawe
 import { PortalXmlOrderDrawer } from "@/components/portal/portal-xml-order-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -37,14 +38,22 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   search?: string;
 }) {
   const router = useRouter();
+  const [viewMode, setViewMode] = useState<"orders" | "divergences">("orders");
   const [activeFilter, setActiveFilter] = useState("");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "created", direction: "desc" });
   const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
   const [xmlOrderOpen, setXmlOrderOpen] = useState(false);
+  const [treatingDivergenceOrder, setTreatingDivergenceOrder] = useState<ShippingOrderSummary | null>(null);
   const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
   const [openingOrder, setOpeningOrder] = useState(false);
+
+  const divergenceOrders = useMemo(
+    () => orders.filter((o) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter)),
+    [orders]
+  );
+
   const filteredOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, activeFilter) && matchesSearch(order, search)),
     [activeFilter, orders, search],
@@ -103,6 +112,23 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode(viewMode === "divergences" ? "orders" : "divergences")}
+            className={`inline-flex h-11 items-center gap-2 rounded-[11px] border px-4 text-sm font-extrabold transition hover:-translate-y-px ${
+              viewMode === "divergences"
+                ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300"
+                : "border-amber-200 bg-white text-amber-700 hover:border-amber-400 dark:border-amber-400/30 dark:bg-white/5 dark:text-amber-300"
+            }`}
+          >
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Divergências
+            {divergenceOrders.length > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-extrabold text-white">
+                {divergenceOrders.length}
+              </span>
+            )}
+          </button>
           <button type="button" onClick={() => setXmlOrderOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-[11px] border border-violet-200 bg-white px-4 text-sm font-extrabold text-violet-700 transition hover:-translate-y-px hover:border-violet-400 dark:border-violet-400/30 dark:bg-white/5 dark:text-violet-300">
             <FileText className="h-4 w-4" /> Importar XML
           </button>
@@ -117,85 +143,219 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
         </div>
       </div>
 
-      <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
-        {filters.map((filter) => {
-          const active = activeFilter === filter.value;
-          const count = orders.filter((order) => matchesFilter(order, filter.value)).length;
-          return (
-            <button
-              key={filter.label}
-              type="button"
-              aria-pressed={active}
-              onClick={() => changeFilter(filter.value)}
-              className={`inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[9px] border px-3.5 text-[13px] font-bold transition-all ${active ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"}`}
-              style={active ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" } : undefined}
-            >
-              {filter.label}
-              <span
-                className={`text-[11px] leading-none ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"}`}
-                style={{
-                  minWidth: 22,
-                  height: 20,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0 6px",
-                  borderRadius: 9999,
-                  lineHeight: 1,
-                }}
-              >
-                {count}
+      {viewMode === "divergences" ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-5 w-5" />
               </span>
-            </button>
-          );
-        })}
-        <span className="ml-auto text-[13px] text-slate-500 dark:text-slate-400">
-          {sortedOrders.length} pedidos · ordenado por {sortLabel(sort.key)} ({sort.direction === "asc" ? "crescente" : "decrescente"})
-        </span>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] border-collapse text-left">
-            <thead>
-              <tr>
-                {["Pedido", "NF-e", "Cliente", "Canal", "Itens", "Criado", "Status", ""].map((label) => (
-                  <th
-                    key={label || "action"}
-                    className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-[13px] text-[12px] font-bold uppercase tracking-[0.04em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
-                  >
-                    {label ? (
-                      <button type="button" aria-sort={sort.key === sortKeyForLabel(label) ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} onClick={() => changeSort(sortKeyForLabel(label))} className="inline-flex items-center gap-1.5 transition-colors hover:text-violet-600">
-                        {label}
-                        <ArrowUpDown className={`h-3.5 w-3.5 ${sort.key === sortKeyForLabel(label) ? "text-violet-500" : "opacity-50"}`} />
-                      </button>
-                    ) : null}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {pagedOrders.map((order) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  now={now}
-                  onOpen={() => openOrder(order.id)}
-                  onPrefetch={() => router.prefetch(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!sortedOrders.length ? (
-          <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-            Nenhum pedido encontrado.
+              <div>
+                <h2 className="font-display text-base font-bold text-slate-950 dark:text-white">
+                  Divergências & pendências
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Pedidos travados aguardando sua tratativa antes da expedição pelo CD.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                {divergenceOrders.length} pendência{divergenceOrders.length === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewMode("orders")}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+              >
+                <ChevronLeft className="h-4 w-4" /> Voltar para pedidos
+              </button>
+            </div>
           </div>
-        ) : null}
-      </div>
-      {sortedOrders.length ? (
-        <Pagination page={page} totalPages={totalPages} total={sortedOrders.length} onPageChange={setPage} />
-      ) : null}
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
+            {divergenceOrders.length === 0 ? (
+              <div className="px-6 py-14 text-center text-sm text-slate-500 dark:text-slate-400">
+                Nenhuma divergência pendente para seus pedidos.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[850px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-[12px] font-bold uppercase tracking-[0.04em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                      <th className="px-5 py-3.5">Pedido</th>
+                      <th className="px-5 py-3.5">Tipo</th>
+                      <th className="px-5 py-3.5">Problema / Divergência</th>
+                      <th className="px-5 py-3.5">Registrado por</th>
+                      <th className="px-5 py-3.5">Tratativa</th>
+                      <th className="px-5 py-3.5 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {divergenceOrders.map((order) => {
+                      const isDiv = order.status === "DIVERGENCIA" || order.status === "DIVERGENTE" || Boolean(order.divergenceReporter || order.cancellationReporter || order.cancellationReason);
+                      const reason = order.cancellationReason || (isDiv ? "Divergência reportada durante a conferência/separação." : order.status === "ERRO" ? "Falha no processamento do pedido." : "Sem estoque para concluir a separação.");
+                      const issueType = order.status === "ERRO" ? "Erro de integração" : isDiv ? "Divergência" : "Cancelado";
+                      const issueColor = order.status === "ERRO" ? "#F97316" : isDiv ? "#F59E0B" : "#EF4444";
+                      const registeredBy = order.divergenceReporter || order.cancellationReporter || order.createdByName || order.createdBySource || "Sistema";
+                      const tratamento = order.tratamentoDivergencia;
+
+                      let tratativaEl;
+                      if (tratamento?.acao === "PROSSEGUIR_COM_DIVERGENCIA") {
+                        tratativaEl = (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Prosseguir c/ Divergência
+                          </span>
+                        );
+                      } else if (tratamento?.acao === "CANCELAR_DEFINITIVO") {
+                        tratativaEl = (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-400">
+                            <XCircle className="h-3.5 w-3.5" /> Cancelado Definitivo
+                          </span>
+                        );
+                      } else if (tratamento?.acao) {
+                        tratativaEl = (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-xs font-bold text-violet-600 dark:text-violet-400">
+                            {tratamento.acao}
+                          </span>
+                        );
+                      } else {
+                        tratativaEl = (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                            <Clock className="h-3.5 w-3.5" /> Pendente de tratativa
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <tr
+                          key={order.id}
+                          onClick={() => setTreatingDivergenceOrder(order)}
+                          className="cursor-pointer border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
+                        >
+                          <td className="whitespace-nowrap px-5 py-3.5 font-display text-sm font-bold text-slate-900 dark:text-white">
+                            {order.displayNumber || order.code}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: issueColor }}>
+                              <span className="h-2 w-2 rounded-full" style={{ background: issueColor }} />
+                              {issueType}
+                            </span>
+                          </td>
+                          <td className="max-w-[280px] px-5 py-3.5 text-xs text-slate-600 dark:text-slate-300">
+                            {reason}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                            {registeredBy}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5">
+                            {tratativaEl}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 text-right">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTreatingDivergenceOrder(order);
+                              }}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-3.5 text-xs font-bold text-white shadow-sm transition hover:opacity-90"
+                            >
+                              {tratamento ? "Ver tratativa" : "Tratar"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
+            {filters.map((filter) => {
+              const active = activeFilter === filter.value;
+              const count = orders.filter((order) => matchesFilter(order, filter.value)).length;
+              return (
+                <button
+                  key={filter.label}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => changeFilter(filter.value)}
+                  className={`inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-[9px] border px-3.5 text-[13px] font-bold transition-all ${active ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"}`}
+                  style={active ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" } : undefined}
+                >
+                  {filter.label}
+                  <span
+                    className={`text-[11px] leading-none ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"}`}
+                    style={{
+                      minWidth: 22,
+                      height: 20,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 6px",
+                      borderRadius: 9999,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+            <span className="ml-auto text-[13px] text-slate-500 dark:text-slate-400">
+              {sortedOrders.length} pedidos · ordenado por {sortLabel(sort.key)} ({sort.direction === "asc" ? "crescente" : "decrescente"})
+            </span>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px] border-collapse text-left">
+                <thead>
+                  <tr>
+                    {["Pedido", "NF-e", "Cliente", "Canal", "Itens", "Criado", "Status", ""].map((label) => (
+                      <th
+                        key={label || "action"}
+                        className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-[13px] text-[12px] font-bold uppercase tracking-[0.04em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
+                      >
+                        {label ? (
+                          <button type="button" aria-sort={sort.key === sortKeyForLabel(label) ? (sort.direction === "asc" ? "ascending" : "descending") : "none"} onClick={() => changeSort(sortKeyForLabel(label))} className="inline-flex items-center gap-1.5 transition-colors hover:text-violet-600">
+                            {label}
+                            <ArrowUpDown className={`h-3.5 w-3.5 ${sort.key === sortKeyForLabel(label) ? "text-violet-500" : "opacity-50"}`} />
+                          </button>
+                        ) : null}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedOrders.map((order) => (
+                    <OrderRow
+                      key={order.id}
+                      order={order}
+                      now={now}
+                      onOpen={() => openOrder(order.id)}
+                      onPrefetch={() => router.prefetch(`/portal?view=pedidos&order=${encodeURIComponent(order.id)}`)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!sortedOrders.length ? (
+              <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                Nenhum pedido encontrado.
+              </div>
+            ) : null}
+          </div>
+          {sortedOrders.length ? (
+            <Pagination page={page} totalPages={totalPages} total={sortedOrders.length} onPageChange={setPage} />
+          ) : null}
+        </>
+      )}
+
       {newOrderOpen ? (
         <PortalNewOrderDrawer
           depositanteId={depositanteId}
@@ -209,6 +369,16 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
       ) : null}
       {xmlOrderOpen ? <PortalXmlOrderDrawer depositanteId={depositanteId} depositanteName={depositanteName} onClose={() => setXmlOrderOpen(false)} /> : null}
       {selectedOrder && detailVisible ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => { setDetailVisible(false); window.history.replaceState({}, "", "/portal?view=pedidos"); }} /> : null}
+      
+      {/* Slide-over Drawer para Tratamento / Visualização de Divergências pelo Depositante */}
+      <ShippingDivergenceDrawer
+        order={treatingDivergenceOrder}
+        isOpen={Boolean(treatingDivergenceOrder)}
+        onClose={() => setTreatingDivergenceOrder(null)}
+        readOnly={Boolean(treatingDivergenceOrder?.divergenciaTratada || treatingDivergenceOrder?.tratamentoDivergencia)}
+        redirectTo="/portal?view=pedidos"
+      />
+
       {openingOrder ? (
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/20 backdrop-blur-[2px]">
           <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-xl dark:border-white/10 dark:bg-[#101b30] dark:text-white">

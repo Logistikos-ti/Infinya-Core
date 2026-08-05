@@ -146,6 +146,14 @@ export type ShippingOrderSummary = {
   divergenceReporter: string | null;
   cancellationReporter: string | null;
   cancellationReason: string | null;
+  tratamentoDivergencia?: {
+    acao?: string;
+    tipo?: string;
+    observacao?: string | null;
+    tratadoPorNome?: string;
+    tratadoEm?: string;
+  } | null;
+  divergenciaTratada?: boolean;
   items?: {
     name: string;
     sku: string;
@@ -753,6 +761,10 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     divergenceReporter,
     cancellationReporter,
     cancellationReason,
+    tratamentoDivergencia: isRecord(payload.tratamentoDivergencia)
+      ? (payload.tratamentoDivergencia as any)
+      : null,
+    divergenciaTratada: Boolean(payload.divergenciaTratada),
     items,
   };
 }

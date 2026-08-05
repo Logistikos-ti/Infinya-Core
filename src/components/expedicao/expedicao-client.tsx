@@ -36,7 +36,8 @@ import {
   Trash2,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  XCircle
 } from "lucide-react";
 import {
   createOperationalManualShippingOrderAction,
@@ -551,7 +552,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const columns = canDeleteOrder
     ? ["__select__", "Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
     : ["Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""];
-  const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Depositante", "Registrado por", ""];
+  const divColumns = ["Pedido", "Tipo", "Problema / Divergência", "Depositante", "Registrado por", "Tratativa", ""];
   const inlineOrderUploadFeedback = manualOrderResult.status === "error" && !manualOrderErrorDismissed
     ? {
         title: "N\u00e3o foi poss\u00edvel subir o pedido",
@@ -829,11 +830,42 @@ export function ExpedicaoClient({ data }: { data: any }) {
                           || (order.createdByName || order.raw?.createdByName
                             ? [order.createdByName || order.raw?.createdByName, order.createdByRole || order.raw?.createdByRole].filter(Boolean).join(" · ")
                             : order.createdBySource || order.raw?.createdBySource || "Sistema");
-                        const depositante = order.depositante || order.raw?.depositante || order.owner || "-";
+                        const tratamento = order.tratamentoDivergencia
+                          || order.raw?.payload_origem?.tratamentoDivergencia
+                          || order.raw?.tratamentoDivergencia;
+
+                        let tratativaEl;
+                        if (tratamento?.acao === "PROSSEGUIR_COM_DIVERGENCIA") {
+                          tratativaEl = (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(16,185,129,0.15)", color: "#10B981" }}>
+                              <CheckCircle2 size={13} /> Prosseguir c/ Divergência
+                            </span>
+                          );
+                        } else if (tratamento?.acao === "CANCELAR_DEFINITIVO") {
+                          tratativaEl = (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(239,68,68,0.15)", color: "#EF4444" }}>
+                              <XCircle size={13} /> Cancelado Definitivo
+                            </span>
+                          );
+                        } else if (tratamento?.acao) {
+                          tratativaEl = (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(139,92,246,0.15)", color: "#8B5CF6" }}>
+                              {tratamento.acao}
+                            </span>
+                          );
+                        } else {
+                          tratativaEl = (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: 700, background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
+                              <Clock size={13} /> Aguardando depositante
+                            </span>
+                          );
+                        }
+
                         return (
                           <tr
                             key={order.id}
-                            style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease" }}
+                            onClick={() => setTreatingDivergenceOrder({ ...order, cancellationReason: reason, divergenceReporter: registeredBy, depositante })}
+                            style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease", cursor: "pointer" }}
                             onMouseEnter={(event) => { event.currentTarget.style.background = t.softBg; }}
                             onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
                           >
@@ -842,7 +874,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
                             <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{depositante}</td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub }}>{registeredBy}</td>
-                            <td style={{ padding: "14px 20px", textAlign: "right" }}><button type="button" onClick={() => setTreatingDivergenceOrder({ ...order, cancellationReason: reason, divergenceReporter: registeredBy, depositante })} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer", transition: "border-color 0.15s ease" }} onMouseEnter={(event) => { event.currentTarget.style.borderColor = "#8B5CF6"; }} onMouseLeave={(event) => { event.currentTarget.style.borderColor = t.border; }}>Tratar</button></td>
+                            <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}>{tratativaEl}</td>
+                            <td style={{ padding: "14px 20px", textAlign: "right" }}><span style={{ color: t.textSub, fontWeight: "700", fontSize: "16px" }}>›</span></td>
                           </tr>
                         );
                       })}
@@ -1623,11 +1656,12 @@ const moves = getTimelineSteps(sel.raw.status, sel);
         </div>
       )}
 
-      {/* Slide-over Drawer para Tratamento de Divergências */}
+      {/* Slide-over Drawer para Detalhes / Visualização de Divergências pelo Operador */}
       <ShippingDivergenceDrawer
         order={treatingDivergenceOrder}
         isOpen={Boolean(treatingDivergenceOrder)}
         onClose={() => setTreatingDivergenceOrder(null)}
+        readOnly={true}
       />
       
       <style dangerouslySetInnerHTML={{__html: `

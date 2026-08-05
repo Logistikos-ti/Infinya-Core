@@ -930,35 +930,46 @@ function mapSupplyKindLabel(kind: string) {
 }
 
 export async function resolveShippingOrderDivergenceAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
   const adminSupabase = createSupabaseAdminClient();
 
   const orderId = String(formData.get("orderId") ?? "").trim();
   const resolutionType = String(formData.get("resolutionType") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+  const redirectTo = String(formData.get("redirectTo") ?? "").trim();
+
+  const isDepositante = user.papel === "DEPOSITANTE";
+  const defaultBasePath = isDepositante ? "/portal?view=pedidos" : "/expedicao";
+  const defaultErrorPath = redirectTo || (isDepositante ? "/portal?view=pedidos" : `/expedicao/${orderId}`);
 
   if (!orderId) {
-    redirect("/expedicao?feedback=erro");
+    redirect(`${defaultBasePath}${defaultBasePath.includes("?") ? "&" : "?"}feedback=erro`);
   }
 
   const { data: order, error } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, status, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, quantidade_separada, payload_origem)")
+    .select("id, status, depositante_id, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, quantidade_separada, payload_origem)")
     .eq("id", orderId)
     .maybeSingle();
 
   if (error || !order) {
-    redirect(`/expedicao/${orderId}?feedback=erro`);
+    redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=erro`);
+  }
+
+  if (isDepositante && user.depositanteId && order.depositante_id !== user.depositanteId) {
+    redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=sem-permissao`);
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const currentHistory = Array.isArray(payload.historicoDivergencias) ? payload.historicoDivergencias : [];
   const now = new Date().toISOString();
+  const actorName = isDepositante ? (user.depositanteNome || user.nome || "Depositante") : (user.nome || "Operador");
 
   const treatmentRecord = {
     tratadoEm: now,
-    tratadoPorNome: user.nome || "Operador",
+    tratadoPorNome: actorName,
     tratadoPorId: user.id,
+    tratadoPorPerfil: user.papel,
     acao: resolutionType,
     observacao: notes || null,
     divergenciaAnterior: payload.divergencia || payload.conferencia || null,
@@ -966,6 +977,16 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
   };
 
   const updatedHistory = [...currentHistory, treatmentRecord];
+
+  const buildRedirectUrl = (feedback: string) => {
+    if (redirectTo) {
+      return `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}feedback=${feedback}`;
+    }
+    if (isDepositante) {
+      return `/portal?view=pedidos&feedback=${feedback}`;
+    }
+    return `/expedicao?feedback=${feedback}`;
+  };
 
   if (resolutionType === "PROSSEGUIR_COM_DIVERGENCIA") {
     const existingConferencia = isRecord(payload.conferencia) ? payload.conferencia : {};
@@ -976,7 +997,7 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
         conferidoEm: existingConferencia.conferidoEm || now,
         liberadoParaRomaneioEm: now,
         divergenciaAutorizada: true,
-        autorizadaPorNome: user.nome || "Operador",
+        autorizadaPorNome: actorName,
         autorizadaEm: now,
       },
       divergencia: null,
@@ -994,13 +1015,14 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
       })
       .eq("id", orderId);
 
+    revalidatePath("/portal");
     revalidatePath("/expedicao");
     revalidatePath("/expedicao/conferidos");
     revalidatePath("/romaneio");
     revalidatePath("/m/romaneio");
     revalidatePath(`/expedicao/${orderId}`);
 
-    redirect("/expedicao?feedback=divergencia-prosseguida");
+    redirect(buildRedirectUrl("divergencia-prosseguida"));
   }
 
   if (resolutionType === "CANCELAR_DEFINITIVO") {
@@ -1020,12 +1042,13 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
       })
       .eq("id", orderId);
 
+    revalidatePath("/portal");
     revalidatePath("/expedicao");
     revalidatePath(`/expedicao/${orderId}`);
 
-    redirect("/expedicao?feedback=divergencia-cancelada");
+    redirect(buildRedirectUrl("divergencia-cancelada"));
   }
 
-  redirect(`/expedicao/${orderId}?feedback=opcao-invalida`);
+  redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=opcao-invalida`);
 }
 
