@@ -32,6 +32,33 @@ export function buildRomaneioRecordPdf(record: RomaneioRecordDetail) {
   );
 }
 
+/**
+ * One combined PDF summarizing several romaneios at once (mobile
+ * "Selecionar" + "Exportar" flow in the Finalizados tab) -- reuses the
+ * exact same per-romaneio page layout as buildRomaneioRecordPdf, just
+ * concatenating every selected romaneio's pages into a single document
+ * instead of generating one file per romaneio.
+ */
+export function buildRomaneioRecordsSummaryPdf(records: RomaneioRecordDetail[]) {
+  const chunkSize = 18;
+  const pages: RomaneioPageContent[] = [];
+
+  for (const record of records) {
+    const recordPages: RomaneioPageContent[] = [];
+    for (let start = 0; start < record.orders.length; start += chunkSize) {
+      const chunk = record.orders.slice(start, start + chunkSize);
+      recordPages.push(buildPersistedRomaneioPage(record, chunk, Math.floor(start / chunkSize) + 1));
+    }
+    pages.push(...(recordPages.length ? recordPages : [buildPersistedRomaneioPage(record, [], 1)]));
+  }
+
+  return createSimplePdfDocument(
+    pages.length
+      ? pages
+      : [{ title: "INFINOOS WMS - RESUMO DE ROMANEIOS", lines: ["Nenhum romaneio selecionado."] }],
+  );
+}
+
 function buildRomaneioPage(
   group: RomaneioCarrierGroup,
   orders: RomaneioCarrierGroup["orders"],
