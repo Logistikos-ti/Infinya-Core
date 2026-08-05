@@ -8,6 +8,7 @@ import { StockTransferQuickModal } from "./stock-transfer-quick-modal";
 import { StockAdjustmentModal } from "./stock-adjustment-modal";
 import { StockInventoryModal } from "./stock-inventory-modal";
 import { StockManualExitModal } from "./stock-manual-exit-modal";
+import { formatDateTimePtBr } from "@/lib/utils";
 
 export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses = [], movements = [], onClose }: { t: any; sku: any; allBalances?: any[]; allAddresses?: any[]; movements?: any[]; onClose: () => void }) {
   const [barWidth, setBarWidth] = useState("0%");
@@ -64,21 +65,7 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
   };
 
   const formatMovementDateTime = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Data n\u00e3o informada";
-
-    const parts = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(date);
-    const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
-
-    return `${part("day")}/${part("month")}/${part("year")} \u00e0s ${part("hour")}:${part("minute")}`;
+    return formatDateTimePtBr(value, "Data não informada");
   };
 
   return (

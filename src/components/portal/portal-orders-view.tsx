@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, Chev
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
+import { APP_TIME_ZONE, parseAppDate } from "@/lib/utils";
 import type { ShippingOrderDetail, ShippingOrderSummary } from "@/lib/shipping";
 import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
 import { PortalXmlOrderDrawer } from "@/components/portal/portal-xml-order-drawer";
@@ -663,8 +664,8 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
 
 function formatCreatedAt(value: string | null, now: number) {
   if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseAppDate(value);
+  if (!date) return value;
 
   const elapsedMs = now - date.getTime();
   if (elapsedMs < 0) {
@@ -683,6 +684,7 @@ function formatCreatedAt(value: string | null, now: number) {
 
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: APP_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -692,5 +694,9 @@ function formatDateTime(date: Date) {
 }
 
 function formatTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: APP_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }

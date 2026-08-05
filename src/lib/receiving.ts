@@ -1,6 +1,7 @@
 import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatDateTimePtBr } from "@/lib/utils";
 
 /**
  * Three-letter tag used in receiving codes (RC-JOH-2607201). Derived from the
@@ -530,7 +531,7 @@ function formatDate(value: string) {
 }
 
 function formatDateTimeOrFallback(value: string | null, fallback: string) {
-  return value ? new Date(value).toLocaleString("pt-BR") : fallback;
+  return formatDateTimePtBr(value, fallback);
 }
 
 function formatQuantity(value: number | string | null | undefined) {

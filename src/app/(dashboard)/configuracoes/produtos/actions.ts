@@ -13,6 +13,7 @@ import {
   sanitizeFileName,
 } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatDateTimePtBr } from "@/lib/utils";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
 export type ProdutoActionState = {
@@ -872,8 +873,7 @@ export async function fetchProdutoDrawerDetails(produtoId: string) {
       halo = "rgba(59,130,246,0.2)";
     }
 
-    const dateObj = new Date(m.created_at);
-    const dateStr = dateObj.toLocaleDateString("pt-BR") + " às " + dateObj.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+    const dateStr = formatDateTimePtBr(m.created_at, "Data não informada");
     const sub = `${dateStr}${m.observacoes ? ` • ${m.observacoes}` : ""}`;
 
     return { title, sub, dot, halo };

@@ -294,6 +294,7 @@ function DashboardView({
   stock,
   totalUnits,
   lowStock,
+  portalDepositanteId,
 }: {
   depositanteName: string;
   orders: Awaited<ReturnType<typeof listShippingOrdersFromDb>>;

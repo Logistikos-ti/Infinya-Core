@@ -7,6 +7,7 @@ import { RomaneioDrawer } from "./romaneio-drawer";
 import type { RomaneioRecordListItem, RomaneioSuggestionGroup } from "@/lib/romaneio-records";
 import type { RomaneioUI, RomaneioStop } from "./romaneio-types";
 import { getCarrierBrand, hexToRgba as hex2 } from "@/lib/carrier-branding";
+import { formatDatePtBr, formatDateTimePtBr } from "@/lib/utils";
 
 type RomaneioDashboardProps = {
   records: RomaneioRecordListItem[];
@@ -66,7 +67,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
     driver: r.driverName || "Não definido",
     plate: r.vehiclePlate || "—",
     vehicle: r.vehicleModel || "—",
-    departure: new Date(r.createdAt).toLocaleDateString("pt-BR"),
+    departure: formatDatePtBr(r.createdAt),
     status: r.status === "ABERTO" ? "Aberto" : r.status === "LIBERADO" ? "Expedido" : "Cancelado",
     carrierColor: brand.color,
     carrierBg: brand.bg,
@@ -83,7 +84,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem): RomaneioUI => {
       { k: "Motorista", v: r.driverName || "—" },
       { k: "Placa", v: r.vehiclePlate || "—" },
       { k: "Veículo", v: r.vehicleModel || "—" },
-      { k: "Criação", v: new Date(r.createdAt).toLocaleString("pt-BR") },
+      { k: "Criação", v: formatDateTimePtBr(r.createdAt) },
     ],
     stops,
   };
