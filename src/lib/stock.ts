@@ -255,7 +255,11 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
 
   const { data } = await query;
   const balances = ((data ?? []) as RawStockRow[]).map(mapStockBalance);
-  const filteredBalances = balances.filter((item) => matchesStockFilters(item, filters));
+  // Linhas zeradas ficam preservadas para auditoria, mas nao representam saldo ativo
+  // e nao podem manter um produto visivel no endereco de origem apos uma transferencia.
+  const filteredBalances = balances
+    .filter((item) => item.rawQuantidade > 0)
+    .filter((item) => matchesStockFilters(item, filters));
 
   return sortBalancesByWithdrawalMethod(filteredBalances);
 }

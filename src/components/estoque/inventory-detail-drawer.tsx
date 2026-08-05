@@ -18,7 +18,9 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
   const [showManualExit, setShowManualExit] = useState(false);
   
   const skuIdToFind = sku.productId || sku.sku;
-  const skuBalances = allBalances.filter((b: any) => (b.productId || b.sku) === skuIdToFind);
+  const skuBalances = allBalances.filter(
+    (b: any) => (b.productId || b.sku) === skuIdToFind && Number(b.rawQuantidade ?? 0) > 0,
+  );
   const totalNum = skuBalances.reduce((acc: number, curr: any) => acc + (curr.rawQuantidade || 0), 0);
 
   const total = sku.saldo || "0";
