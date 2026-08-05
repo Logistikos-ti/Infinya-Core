@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Truck } from "lucide-react";
+import { Eye, Truck } from "lucide-react";
 import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import { getSaoPauloDateStamp } from "@/lib/utils";
@@ -145,7 +145,7 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
                 )}
               </div>
 
-              {record.status === "ABERTO" && (
+              {record.status === "ABERTO" ? (
                 <div className="mt-4 flex">
                   <Link
                     href={`/m/romaneio/${record.id}/fechar`}
@@ -154,6 +154,17 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
                   >
                     <Truck className="h-4 w-4" />
                     Fechar Romaneio
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-4 flex">
+                  <Link
+                    href={`/m/romaneio/${record.id}/visualizar`}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-xs font-extrabold active:scale-[0.98] transition"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.text }}
+                  >
+                    <Eye className="h-4 w-4" />
+                    Visualizar Romaneio
                   </Link>
                 </div>
               )}
