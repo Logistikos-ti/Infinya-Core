@@ -218,21 +218,27 @@ export function PortalChrome({
           </div>
           <div className="hidden flex-1 sm:block" />
           {isMasterPreview ? (
-            <div className="w-full min-w-[250px] sm:w-[280px]">
-              <FancySelectInput
-                label="Modo mestre"
-                name="portal-depositante-mestre"
-                value={selectedDepositanteId}
-                onChange={changeMasterDepositante}
-                options={[
-                  { value: "", label: "Selecionar portal" },
-                  ...masterDepositantes.map((depositante) => ({
-                    value: depositante.id,
-                    label: depositante.nome,
-                  })),
-                ]}
-                menuClassName="max-h-[min(24rem,calc(100vh-9rem))]"
-              />
+            <div className="flex w-full min-w-[300px] items-center justify-end gap-2 sm:w-auto">
+              <span className="whitespace-nowrap text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">
+                Modo mestre
+              </span>
+              <div className="w-[235px]">
+                <FancySelectInput
+                  label="Portal do depositante"
+                  hideLabel
+                  name="portal-depositante-mestre"
+                  value={selectedDepositanteId}
+                  onChange={changeMasterDepositante}
+                  options={[
+                    { value: "", label: "Selecionar portal" },
+                    ...masterDepositantes.map((depositante) => ({
+                      value: depositante.id,
+                      label: depositante.nome,
+                    })),
+                  ]}
+                  menuClassName="max-h-[min(24rem,calc(100vh-9rem))]"
+                />
+              </div>
             </div>
           ) : null}
           <button
