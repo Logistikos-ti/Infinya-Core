@@ -69,6 +69,7 @@ export default async function MobileStockCycleCountPage({
     )
     .eq("id", estoqueId)
     .eq("depositante_id", depositanteId)
+    .gt("quantidade", 0)
     .maybeSingle();
 
   if (!estoqueRow) {
