@@ -7,6 +7,27 @@ export function cn(...inputs: ClassValue[]) {
 
 export const APP_TIME_ZONE = "America/Sao_Paulo";
 
+/** Normalizes database and integration timestamps before they reach the UI. */
+export function parseAppDate(value: string | Date | null | undefined) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return new Date(`${normalized}T00:00:00-03:00`);
+  }
+
+  // Values without an offset are operational Sao Paulo times, not browser time.
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(normalized)) {
+    return new Date(`${normalized.replace(" ", "T")}-03:00`);
+  }
+
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function formatDateTimePtBr(
   value: string | Date | null | undefined,
   fallback = "-",
@@ -15,9 +36,8 @@ export function formatDateTimePtBr(
     return fallback;
   }
 
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
+  const date = parseAppDate(value);
+  if (!date) {
     return fallback;
   }
 
@@ -36,9 +56,8 @@ export function formatDatePtBr(
     return fallback;
   }
 
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
+  const date = parseAppDate(value);
+  if (!date) {
     return fallback;
   }
 
@@ -55,9 +74,8 @@ export function getSaoPauloDateStamp(
     return null;
   }
 
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
+  const date = parseAppDate(value);
+  if (!date) {
     return null;
   }
 

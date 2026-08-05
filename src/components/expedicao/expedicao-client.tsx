@@ -817,6 +817,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </thead>
                     <tbody>
                       {divergences.map((order: any) => {
+                        const orderDepositante = order.owner || order.depositante || order.raw?.depositante || "-";
                         const isDiv = order.status === "DIVERGENCIA" || order.status === "DIVERGENTE" || Boolean(order.divergenceReporter || order.cancellationReporter || order.cancellationReason);
                         const reason = order.cancellationReason
                           || order.raw?.cancellationReason
@@ -864,7 +865,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         return (
                           <tr
                             key={order.id}
-                            onClick={() => setTreatingDivergenceOrder({ ...order, cancellationReason: reason, divergenceReporter: registeredBy, depositante })}
+                            onClick={() => setTreatingDivergenceOrder({ ...order, cancellationReason: reason, divergenceReporter: registeredBy, depositante: orderDepositante })}
                             style={{ borderBottom: `1px solid ${t.border}`, transition: "background 0.15s ease", cursor: "pointer" }}
                             onMouseEnter={(event) => { event.currentTarget.style.background = t.softBg; }}
                             onMouseLeave={(event) => { event.currentTarget.style.background = "transparent"; }}
@@ -872,7 +873,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "14.5px", color: t.text }}>{order.displayNumber || order.code}</span></td>
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}><span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "13.5px", fontWeight: 700, color: issueColor }}><span style={{ width: "8px", height: "8px", borderRadius: "50%", background: issueColor }} />{issueType}</span></td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub, maxWidth: "300px" }}>{reason}</td>
-                            <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{depositante}</td>
+                            <td style={{ padding: "14px 20px", fontSize: "14px", fontWeight: 600, color: t.text }}>{orderDepositante}</td>
                             <td style={{ padding: "14px 20px", fontSize: "13.5px", color: t.textSub }}>{registeredBy}</td>
                             <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}>{tratativaEl}</td>
                             <td style={{ padding: "14px 20px", textAlign: "right" }}><span style={{ color: t.textSub, fontWeight: "700", fontSize: "16px" }}>›</span></td>
