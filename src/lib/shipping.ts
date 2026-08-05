@@ -509,7 +509,8 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
       : null;
   const divergenceReporter =
     (typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim() ? divergence.registradoPorNome.trim() : null) ||
-    (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
+    (typeof divergence.operadorNome === "string" && divergence.operadorNome.trim() ? divergence.operadorNome.trim() : null) ||
+    (conference.motivoDivergencia && typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
     cancellationReporter;
   const cancellationReason =
     (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
@@ -684,7 +685,8 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
       : null;
   const divergenceReporter =
     (typeof divergence.registradoPorNome === "string" && divergence.registradoPorNome.trim() ? divergence.registradoPorNome.trim() : null) ||
-    (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
+    (typeof divergence.operadorNome === "string" && divergence.operadorNome.trim() ? divergence.operadorNome.trim() : null) ||
+    (conference.motivoDivergencia && typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) ||
     cancellationReporter;
   const cancellationReason =
     (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
