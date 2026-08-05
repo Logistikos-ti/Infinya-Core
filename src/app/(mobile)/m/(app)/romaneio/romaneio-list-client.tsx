@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Eye, Truck } from "lucide-react";
 import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { getCarrierBrand } from "@/lib/carrier-branding";
-import { getSaoPauloDateStamp } from "@/lib/utils";
+import { formatDatePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 import type { RomaneioRecordListItem } from "@/lib/romaneio-records";
 
 type Tab = "abertos" | "finalizados";
@@ -90,7 +90,9 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
                         color: statusColor(record.status),
                       }}
                     >
-                      {record.statusLabel}
+                      {record.status === "ABERTO"
+                        ? record.statusLabel
+                        : `${record.statusLabel} ${formatDatePtBr(record.releasedAt ?? record.canceledAt)}`}
                     </span>
                   </div>
 
