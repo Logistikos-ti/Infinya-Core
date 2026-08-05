@@ -82,6 +82,11 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
                     >
                       {record.code}
                     </span>
+                    {record.status !== "ABERTO" && (
+                      <span className="text-[11px] font-medium" style={{ color: mobileColors.dim }}>
+                        {formatDatePtBr(record.releasedAt ?? record.canceledAt)}
+                      </span>
+                    )}
                     <span
                       className="rounded-full px-2.5 py-1 text-[11px] font-medium"
                       style={{
@@ -90,9 +95,7 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
                         color: statusColor(record.status),
                       }}
                     >
-                      {record.status === "ABERTO"
-                        ? record.statusLabel
-                        : `${record.statusLabel} ${formatDatePtBr(record.releasedAt ?? record.canceledAt)}`}
+                      {record.statusLabel}
                     </span>
                   </div>
 
