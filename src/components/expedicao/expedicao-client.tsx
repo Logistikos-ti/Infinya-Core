@@ -163,6 +163,10 @@ function ManualOrderStatusControl({
   border: string;
   background: string;
 }) {
+  const [selectedStatus, setSelectedStatus] = useState(status);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const selectedStatusLabel = manualOrderStatusOptions.find(([value]) => value === selectedStatus)?.[1] ?? "Selecione o status";
+
   return (
     <form
       action={changeShippingOrderStatusAction}
@@ -181,14 +185,39 @@ function ManualOrderStatusControl({
         </div>
       </div>
       <div style={{ display: "flex", gap: "8px" }}>
-        <select
-          aria-label="Alterar status do pedido"
-          name="status"
-          defaultValue={status}
-          style={{ flex: 1, minWidth: 0, height: "38px", padding: "0 10px", borderRadius: "9px", border: `1px solid ${border}`, background, color: text, fontSize: "12.5px", fontWeight: 700, outline: "none" }}
-        >
-          {manualOrderStatusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
+        <input type="hidden" name="status" value={selectedStatus} />
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={statusMenuOpen}
+            onClick={() => setStatusMenuOpen((open) => !open)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%", height: "38px", padding: "0 11px", borderRadius: "10px", border: `1.5px solid ${statusMenuOpen ? "#22D3EE" : border}`, background, color: text, fontSize: "12.5px", fontWeight: 700, cursor: "pointer", outline: "none", boxShadow: statusMenuOpen ? "0 0 0 3px rgba(34,211,238,.13)" : "none", transition: "border-color .16s ease, box-shadow .16s ease" }}
+          >
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedStatusLabel}</span>
+            <ChevronDown size={16} color={statusMenuOpen ? "#0891B2" : "#64748B"} style={{ flexShrink: 0, transform: statusMenuOpen ? "rotate(180deg)" : "none", transition: "transform .16s ease" }} />
+          </button>
+          {statusMenuOpen ? (
+            <div role="listbox" style={{ position: "absolute", zIndex: 30, top: "calc(100% + 8px)", left: 0, right: 0, maxHeight: "230px", overflowY: "auto", padding: "7px", borderRadius: "12px", border: `1px solid ${border}`, background, boxShadow: "0 18px 38px rgba(15,23,42,.2)", animation: "popIn .16s ease" }}>
+              {manualOrderStatusOptions.map(([value, label]) => {
+                const isSelected = value === selectedStatus;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => { setSelectedStatus(value); setStatusMenuOpen(false); }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", minHeight: "38px", padding: "0 10px", border: 0, borderRadius: "9px", background: isSelected ? "#ECFEFF" : "transparent", color: isSelected ? "#0E7490" : text, fontSize: "12.5px", fontWeight: isSelected ? 800 : 600, textAlign: "left", cursor: "pointer" }}
+                  >
+                    <span>{label}</span>
+                    {isSelected ? <Check size={16} color="#0E7490" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
         <button type="submit" style={{ height: "38px", padding: "0 12px", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12px", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>Atualizar</button>
       </div>
     </form>
