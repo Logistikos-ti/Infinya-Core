@@ -47,21 +47,42 @@ type PortalPageProps = {
     new?: string;
     order?: string;
     feedback?: string;
+    depositanteId?: string;
   }>;
 };
 
 export default async function PortalPage({ searchParams }: PortalPageProps) {
-  const user = await requireRoleAccess(["DEPOSITANTE"]);
+  const user = await requireRoleAccess(["DEPOSITANTE", "ADMIN", "TI"]);
   const params = await searchParams;
+  const isMasterPreview = user.papel === "ADMIN" || user.papel === "TI";
+  const requestedDepositanteId = params?.depositanteId?.trim() ?? "";
+  const adminSupabase = createSupabaseAdminClient();
+  const selectedDepositante = isMasterPreview && requestedDepositanteId
+    ? await adminSupabase
+        .from("depositantes")
+        .select("id, nome")
+        .eq("id", requestedDepositanteId)
+        .eq("ativo", true)
+        .maybeSingle()
+    : { data: null };
+  const depositanteId = isMasterPreview
+    ? selectedDepositante.data?.id ?? ""
+    : user.depositanteId ?? "";
+
+  if (!depositanteId) {
+    return <MasterPortalWelcome invalidSelection={Boolean(requestedDepositanteId)} />;
+  }
+
   const requestedView = params?.view ?? "inicio";
-  const integrationsEnabled = isPortalIntegrationEnabled(user.depositanteNome);
+  const depositanteName = isMasterPreview
+    ? selectedDepositante.data?.nome ?? "Portal do depositante"
+    : user.depositanteNome || user.nome;
+  const integrationsEnabled = isPortalIntegrationEnabled(depositanteName);
   const view = normalizeView(requestedView, integrationsEnabled);
   const productsPage = parsePositivePage(params?.page);
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
   const ordersSearch = params?.q?.trim() ?? "";
-  const depositanteId = user.depositanteId ?? "";
-  const adminSupabase = createSupabaseAdminClient();
   const [orders, receiving, stock] = await Promise.all([
     view === "inicio" || view === "pedidos"
       ? listShippingOrdersFromDb({ depositanteId })
@@ -139,7 +160,6 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     ...product,
     estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
-  const depositanteName = user.depositanteNome || user.nome;
   const { data: integrationDepositante } =
     view === "integracoes"
       ? await adminSupabase
@@ -153,8 +173,11 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ? JSON.stringify(integrationDepositante.configuracoes)
       : integrationDepositante?.observacoes ?? null,
   );
-  const selectedOrder = params?.order
+  const selectedOrderCandidate = params?.order
     ? await getShippingOrderDetailFromDb(params.order, user)
+    : null;
+  const selectedOrder = selectedOrderCandidate?.depositanteId === depositanteId
+    ? selectedOrderCandidate
     : null;
   const totalUnits = stock.reduce(
     (sum, item) => sum + Number(item.rawQuantidade ?? 0),
@@ -223,6 +246,29 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         />
       ) : null}
     </div>
+  );
+}
+
+function MasterPortalWelcome({ invalidSelection }: { invalidSelection: boolean }) {
+  return (
+    <section className="mx-auto flex min-h-[58vh] max-w-3xl items-center justify-center px-4">
+      <div className="w-full rounded-3xl border border-violet-200 bg-white p-8 text-center shadow-[0_24px_70px_rgba(79,70,229,0.12)] dark:border-violet-300/15 dark:bg-[#111b2e] sm:p-12">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-violet-600 dark:text-violet-300">
+          Acesso mestre
+        </p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
+          Escolha um depositante para visualizar o portal
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-300">
+          Este modo permite validar a experiência de cada cliente sem alterar o seu perfil de TI ou o acesso de outros usuários.
+        </p>
+        {invalidSelection ? (
+          <p className="mt-5 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
+            O depositante selecionado não está ativo ou não foi encontrado. Escolha outro no seletor superior.
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

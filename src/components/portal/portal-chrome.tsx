@@ -62,7 +62,8 @@ const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
 ];
 
 function getPortalNavigation(user: AppUserContext): ReadonlyArray<SidebarNavigationItem> {
-  if (!isPortalIntegrationEnabled(user.depositanteNome)) return basePortalNavigation;
+  const canPreviewPortals = user.papel === "ADMIN" || user.papel === "TI";
+  if (!canPreviewPortals && !isPortalIntegrationEnabled(user.depositanteNome)) return basePortalNavigation;
 
   return [
     ...basePortalNavigation.slice(0, 5),
@@ -74,9 +75,11 @@ function getPortalNavigation(user: AppUserContext): ReadonlyArray<SidebarNavigat
 export function PortalChrome({
   children,
   user,
+  masterDepositantes,
 }: {
   children: ReactNode;
   user: AppUserContext;
+  masterDepositantes: Array<{ id: string; nome: string }>;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -90,6 +93,8 @@ export function PortalChrome({
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [search, setSearch] = useState(searchValue);
   const portalNavigation = getPortalNavigation(user);
+  const isMasterPreview = user.papel === "ADMIN" || user.papel === "TI";
+  const selectedDepositanteId = searchParams.get("depositanteId") ?? "";
 
   useEffect(() => {
     const collapsed = window.localStorage.getItem(
@@ -145,14 +150,37 @@ export function PortalChrome({
     return () => window.clearTimeout(timer);
   }, [currentView, pathname, router, search, searchParamsString]);
 
-  const activePath =
-    currentView === "inicio" ? "/portal" : `${pathname}?view=${currentView}`;
+  const activePath = withPortalContext(
+    currentView === "inicio" ? "/portal" : `${pathname}?view=${currentView}`,
+  );
   const style = {
     "--sidebar-width": isCollapsed ? "80px" : `${sidebarWidth}px`,
   } as React.CSSProperties;
 
   function navigate(href: string) {
-    router.push(href);
+    router.push(withPortalContext(href));
+  }
+
+  function withPortalContext(href: string) {
+    if (!isMasterPreview || !selectedDepositanteId) return href;
+    const [path, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+    params.set("depositanteId", selectedDepositanteId);
+    return `${path}?${params.toString()}`;
+  }
+
+  function changeMasterDepositante(depositanteId: string) {
+    const params = new URLSearchParams(searchParamsString);
+    if (depositanteId) {
+      params.set("depositanteId", depositanteId);
+    } else {
+      params.delete("depositanteId");
+    }
+    params.delete("order");
+    params.delete("page");
+    params.delete("search");
+    params.delete("q");
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   return (
@@ -168,7 +196,10 @@ export function PortalChrome({
           setIsCollapsed={setIsCollapsed}
           sidebarWidth={sidebarWidth}
           setSidebarWidth={setSidebarWidth}
-          navigationOverride={portalNavigation}
+          navigationOverride={portalNavigation.map((item) => ({
+            ...item,
+            href: withPortalContext(item.href),
+          }))}
         />
       </div>
 
@@ -185,6 +216,24 @@ export function PortalChrome({
             />
           </div>
           <div className="hidden flex-1 sm:block" />
+          {isMasterPreview ? (
+            <label className="flex min-w-[220px] items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-xs font-semibold text-violet-800 dark:border-violet-300/20 dark:bg-violet-400/10 dark:text-violet-100">
+              <span className="whitespace-nowrap">Modo mestre</span>
+              <select
+                aria-label="Selecionar portal do depositante"
+                value={selectedDepositanteId}
+                onChange={(event) => changeMasterDepositante(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
+              >
+                <option value="">Selecionar depositante</option>
+                {masterDepositantes.map((depositante) => (
+                  <option key={depositante.id} value={depositante.id}>
+                    {depositante.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button
             type="button"
             aria-label="Notificações"
