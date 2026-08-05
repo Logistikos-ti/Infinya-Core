@@ -33,6 +33,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 import { PortalIntegrationsView } from "@/components/portal/portal-integrations-view";
+import { formatDatePtBr } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -1185,9 +1186,5 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 function formatDate(value: string | null | undefined) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(date);
+  return formatDatePtBr(value, "—");
 }

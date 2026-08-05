@@ -20,6 +20,7 @@ import {
   Info
 } from "lucide-react";
 import { resolveShippingOrderDivergenceAction } from "@/app/(dashboard)/expedicao/actions";
+import { formatDateTimePtBr } from "@/lib/utils";
 
 type DivergenceOrderData = {
   id: string;
@@ -328,7 +329,7 @@ export function ShippingDivergenceDrawer({
                   </div>
                   <p className="text-xs text-slate-600 dark:text-zinc-300">
                     Tratado por: <strong>{tratamento.tratadoPorNome || "Depositante"}</strong>
-                    {tratamento.tratadoEm && ` em ${new Date(tratamento.tratadoEm).toLocaleString("pt-BR")}`}
+                    {tratamento.tratadoEm && ` em ${formatDateTimePtBr(tratamento.tratadoEm)}`}
                   </p>
                   {tratamento.observacao && (
                     <div className="mt-2 rounded-xl bg-white/60 p-2.5 text-xs text-slate-700 dark:bg-zinc-900/60 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-800">

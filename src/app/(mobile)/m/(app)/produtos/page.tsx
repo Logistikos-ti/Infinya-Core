@@ -6,6 +6,7 @@ import { requireConfigSectionAccess } from "@/lib/auth";
 import { isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
+import { formatDatePtBr } from "@/lib/utils";
 import {
   mobileColors,
   mobileGradient,
@@ -254,7 +255,7 @@ export default async function MobileProdutosPage({ searchParams }: MobileProduto
               </div>
 
               <div className="mt-4 flex items-center justify-between text-xs" style={{ color: mobileColors.dim }}>
-                <span>Criado em {new Date(produto.created_at).toLocaleDateString("pt-BR")}</span>
+                <span>Criado em {formatDatePtBr(produto.created_at)}</span>
                 <span className="inline-flex items-center gap-1 font-semibold" style={{ color: mobileColors.blueLight }}>
                   Abrir &#8250;
                 </span>

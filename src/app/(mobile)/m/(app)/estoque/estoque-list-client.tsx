@@ -10,7 +10,7 @@ export function EstoqueListClient() {
     <MobileListShell
       title="Fluxos do Estoque"
       subtitle="Auditoria e controle"
-      count="3"
+      count="5"
       onBack={() => router.push("/m/inicio")}
       items={[
         {
@@ -39,6 +39,24 @@ export function EstoqueListClient() {
           tagColor: mobileColors.amber,
           sub: "Abra contagens cegas",
           onClick: () => router.push("/m/estoque/inventarios"),
+        },
+        {
+          icon: "logout",
+          iconColor: mobileColors.red,
+          title: "Saída manual",
+          tag: "Baixa",
+          tagColor: mobileColors.red,
+          sub: "Registre perdas, avarias e descartes",
+          onClick: () => router.push("/m/estoque/saida-manual"),
+        },
+        {
+          icon: "login",
+          iconColor: mobileColors.green,
+          title: "Entrada manual",
+          tag: "Ajuste",
+          tagColor: mobileColors.green,
+          sub: "Registre devoluções, correções e achados",
+          onClick: () => router.push("/m/estoque/entrada-manual"),
         },
       ]}
     />

@@ -111,7 +111,7 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
           onClick={() => router.push("/m/recebimento")}
         />
         <TaskCard
-          title="Inventário"
+          title="Estoque"
           sub="Contagem por depositante"
           icon="clip"
           color={mobileColors.amber}

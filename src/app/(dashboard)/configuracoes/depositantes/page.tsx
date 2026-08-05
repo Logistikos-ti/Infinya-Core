@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDatePtBr } from "@/lib/utils";
 import {
   deleteDepositanteAction,
   toggleDepositanteStatusAction,
@@ -200,7 +201,7 @@ export default async function ConfiguracoesDepositantesPage({
                         {item.ativo ? "Ativo" : "Inativo"}
                       </span>
                       <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                        Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                        Criado em {formatDatePtBr(item.created_at)}
                       </p>
                       <div className="flex flex-wrap gap-2 lg:justify-end">
                         <Link

@@ -16,6 +16,7 @@ import {
 } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDatePtBr, formatDateTimePtBr } from "@/lib/utils";
 import {
   createUsuarioAction,
   deleteUsuarioAction,
@@ -451,7 +452,7 @@ export default async function ConfiguracoesUsuariosPage({
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             Último acesso:{" "}
                             {item.ultimo_acesso_em
-                              ? new Date(item.ultimo_acesso_em).toLocaleString("pt-BR")
+                              ? formatDateTimePtBr(item.ultimo_acesso_em)
                               : "Ainda não acessou"}
                           </p>
 
@@ -482,7 +483,7 @@ export default async function ConfiguracoesUsuariosPage({
 
                         <div className="space-y-3 lg:text-right">
                           <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                            Criado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                            Criado em {formatDatePtBr(item.created_at)}
                           </p>
                           <div className="flex flex-wrap gap-2 lg:justify-end">
                             <Link

@@ -13,8 +13,8 @@ import {
   CheckCircle2,
   FileDown,
   IdCard,
+  Keyboard,
   List,
-  Loader2,
   PackageCheck,
   RotateCcw,
   Truck,
@@ -25,8 +25,9 @@ import {
   completeRomaneioWithDoubleCheckAction,
   uploadRomaneioPhotoAction,
 } from "@/app/(dashboard)/romaneio/actions";
-import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
+import { mobileColors, mobileGradient, hexAlpha, headingFont, MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import type { RomaneioRecordDetail, SavedDriver } from "@/lib/romaneio-records";
 
@@ -50,12 +51,27 @@ export function FecharRomaneioClient({
 
   // Double check state
   const [scannedIds, setScannedIds] = useState<Set<string>>(new Set());
+  // Mirrors scannedIds synchronously so handleDoubleCheckScan never reads a
+  // stale snapshot: two barcodes scanned back-to-back (well within a single
+  // React render) previously both closed over the same pre-update Set,
+  // computed their own "+1" copy from it, and the second setScannedIds call
+  // clobbered the first -- losing a scanned order the operator had already
+  // confirmed. Reading/writing this ref instead of the state value keeps
+  // every scan additive regardless of render timing.
+  const scannedIdsRef = useRef<Set<string>>(new Set());
   const [scanFeedback, setScanFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
   const [framePulse, setFramePulse] = useState<"success" | "error" | null>(null);
   const [showOrderListModal, setShowOrderListModal] = useState(false);
+  // Manual entry: the DANFE simplificada's barcode encodes the 44-digit
+  // chave de acesso as a single long, thin Code128 -- exactly the kind of
+  // barcode that's hard to frame with a phone camera (same complaint as
+  // boleto barcodes). The digits are also printed as text right next to
+  // it, so typing them in is a reliable fallback, not just an emergency one.
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState("");
   const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const barcodeBufferRef = useRef<string>("");
@@ -68,15 +84,35 @@ export function FecharRomaneioClient({
   const [vehiclePlate, setVehiclePlate] = useState(romaneio.vehiclePlate || "");
   const [vehicleModel, setVehicleModel] = useState(romaneio.vehicleModel || "");
 
+  // Only show drivers already saved under this romaneio's own
+  // transportadora -- a driver from a different carrier's roster showing
+  // up here would just be a wrong-carrier mix-up, not a helpful shortcut.
+  const filteredDrivers = useMemo(() => {
+    const carrier = romaneio.carrierName?.trim().toLowerCase();
+    if (!carrier) return [];
+    return savedDrivers.filter((driver) => driver.transportadoraNome?.trim().toLowerCase().includes(carrier));
+  }, [savedDrivers, romaneio.carrierName]);
+
   // Photo state
   const [operadorPhoto, setOperadorPhoto] = useState<string | null>(null);
   const [motoristaPhoto, setMotoristaPhoto] = useState<string | null>(null);
-  const [activePhotoTarget, setActivePhotoTarget] = useState<"operador" | "motorista" | null>(null);
-  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [faceCameraTarget, setFaceCameraTarget] = useState<"operador" | "motorista" | null>(null);
+  const [faceCaptureFlash, setFaceCaptureFlash] = useState(false);
+  // Mirrors faceCameraTarget synchronously so the capture callback always
+  // knows which card to fill in, even though it's registered once on mount
+  // (see useFacePhotoCapture below) rather than re-created per target.
+  const faceCameraTargetRef = useRef<"operador" | "motorista" | null>(null);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Keep the ref in sync with every state change, including the manual
+  // tap-to-toggle path in the "ver lista" drawer, so it's always the
+  // source of truth handleDoubleCheckScan reads from.
+  useEffect(() => {
+    scannedIdsRef.current = scannedIds;
+  }, [scannedIds]);
 
   const totalOrders = romaneio.orders.length;
   const scannedCount = scannedIds.size;
@@ -150,7 +186,7 @@ export function FecharRomaneioClient({
     });
 
     if (matched) {
-      if (scannedIds.has(matched.id)) {
+      if (scannedIdsRef.current.has(matched.id)) {
         playBeep(true);
         setFramePulse("success");
         setScanFeedback({
@@ -160,8 +196,13 @@ export function FecharRomaneioClient({
       } else {
         playBeep(true);
         setFramePulse("success");
-        const nextSet = new Set(scannedIds);
+        // Read/write scannedIdsRef synchronously (not the scannedIds state
+        // captured in this callback's closure) so two scans landing before
+        // React re-renders still both count -- see the comment on
+        // scannedIdsRef's declaration.
+        const nextSet = new Set(scannedIdsRef.current);
         nextSet.add(matched.id);
+        scannedIdsRef.current = nextSet;
         setScannedIds(nextSet);
 
         const isLastOne = nextSet.size >= totalOrders;
@@ -193,7 +234,7 @@ export function FecharRomaneioClient({
     pulseTimerRef.current = setTimeout(() => {
       setFramePulse(null);
     }, 600);
-  }, [romaneio.orders, romaneio.carrierName, scannedIds, totalOrders]);
+  }, [romaneio.orders, romaneio.carrierName, totalOrders]);
 
   // Camera barcode scanner with automatic detection
   const {
@@ -274,30 +315,41 @@ export function FecharRomaneioClient({
     }
   }
 
-  // Trigger file input for photo capture
-  function triggerPhotoCapture(target: "operador" | "motorista") {
-    setActivePhotoTarget(target);
-    photoInputRef.current?.click();
+  // Open the in-app face-capture camera for a given photo card.
+  function openFaceCamera(target: "operador" | "motorista") {
+    faceCameraTargetRef.current = target;
+    setFaceCameraTarget(target);
   }
 
-  // Handle photo file selected
-  function handlePhotoFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !activePhotoTarget) return;
+  // Fired by useFacePhotoCapture once a well-framed face has been
+  // auto-captured (or the operator tapped the manual fallback button).
+  const handleFaceCaptured = useCallback((dataUrl: string) => {
+    if (faceCameraTargetRef.current === "operador") {
+      setOperadorPhoto(dataUrl);
+    } else if (faceCameraTargetRef.current === "motorista") {
+      setMotoristaPhoto(dataUrl);
+    }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (activePhotoTarget === "operador") {
-        setOperadorPhoto(dataUrl);
-      } else if (activePhotoTarget === "motorista") {
-        setMotoristaPhoto(dataUrl);
-      }
-      setActivePhotoTarget(null);
-      if (photoInputRef.current) photoInputRef.current.value = "";
-    };
-    reader.readAsDataURL(file);
-  }
+    // Brief success flash over the camera view before it closes, mirroring
+    // the scan-confirmation flashes used elsewhere in this flow.
+    setFaceCaptureFlash(true);
+    window.setTimeout(() => {
+      setFaceCaptureFlash(false);
+      faceCameraTargetRef.current = null;
+      setFaceCameraTarget(null);
+    }, 700);
+  }, []);
+
+  const faceCapture = useFacePhotoCapture({ onCaptured: handleFaceCaptured });
+
+  useEffect(() => {
+    if (faceCameraTarget) {
+      void faceCapture.startCamera();
+    } else {
+      faceCapture.stopCamera(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faceCameraTarget]);
 
   // Final submission
   async function handleFinalSubmit() {
@@ -354,8 +406,8 @@ export function FecharRomaneioClient({
         scannedOrderIds: Array.from(scannedIds),
       });
 
-      if (!result.ok) {
-        setSubmitError(result.message || "Falha ao finalizar o romaneio.");
+      if (!result?.ok) {
+        setSubmitError(result?.message || "Falha ao finalizar o romaneio.");
         return;
       }
 
@@ -390,7 +442,10 @@ export function FecharRomaneioClient({
           overflow: "hidden",
         }}
       >
-        {/* Live Camera Video Feed */}
+        {/* Live Camera Video Feed. object-fit: contain (not cover) so the
+            full frame is always visible, never cropped/zoomed to fill the
+            screen -- important here since a DANFE's barcode is long and
+            thin, and cropping made it hard to fit the whole thing in view. */}
         <video
           ref={videoRef}
           playsInline
@@ -400,7 +455,8 @@ export function FecharRomaneioClient({
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
+            background: "#000",
           }}
         />
 
@@ -489,7 +545,7 @@ export function FecharRomaneioClient({
               fontWeight: 700,
             }}
           >
-            <List className="h-4 w-4 text-amber-400" />
+            <List className="h-4 w-4" style={{ color: mobileColors.amber }} />
             <span>Lista</span>
           </button>
         </div>
@@ -509,9 +565,12 @@ export function FecharRomaneioClient({
         >
           <div
             style={{
-              width: 270,
-              height: 180,
-              borderRadius: 24,
+              // Wider and shorter than a generic scan box -- a DANFE's
+              // barcode (like a boleto's) is long and thin, so a
+              // near-square frame made it hard to fit the whole thing in.
+              width: 320,
+              height: 130,
+              borderRadius: 20,
               border: `3px ${framePulse ? "solid" : "dashed"} ${
                 framePulse === "success"
                   ? mobileColors.green
@@ -554,6 +613,30 @@ export function FecharRomaneioClient({
           >
             Aponte para a DANFE / Etiqueta do pacote
           </span>
+
+          {/* DANFE simplificada's barcode is long and thin -- hard to frame
+              fully, same problem as a boleto. Typing the printed digits is
+              a reliable alternative, not just a last resort. */}
+          <button
+            type="button"
+            onClick={() => setShowManualEntry(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 12,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              color: "#fff",
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            <Keyboard className="h-4 w-4" style={{ color: mobileColors.amber }} />
+            Digitar código da DANFE
+          </button>
         </div>
 
         {/* Bottom HUD - Progress & Feedback */}
@@ -726,6 +809,101 @@ export function FecharRomaneioClient({
           )}
         </div>
 
+        {/* Modal: Digitar código da DANFE manualmente */}
+        {showManualEntry && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 450,
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div
+              onClick={() => setShowManualEntry(false)}
+              style={{ position: "absolute", inset: 0 }}
+            />
+            <div
+              style={{
+                position: "relative",
+                background: "#0A1120",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                border: "1px solid rgba(255,255,255,0.15)",
+                padding: "20px 18px calc(20px + env(safe-area-inset-bottom))",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h3 style={{ color: "#fff", fontWeight: 800, fontSize: 16, ...headingFont }}>
+                  Digitar código da DANFE
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowManualEntry(false)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "none",
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <p style={{ color: mobileColors.muted, fontSize: 12.5, lineHeight: 1.5 }}>
+                Digite só o número da NF (mais rápido) — ou, se preferir, a chave de acesso completa de 44 dígitos impressa abaixo do código de barras, ou o número do pedido.
+              </p>
+
+              <input
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && manualCode.trim()) {
+                    handleDoubleCheckScan(manualCode.trim());
+                    setManualCode("");
+                    setShowManualEntry(false);
+                  }
+                }}
+                placeholder="Ex: 66459"
+                className="h-12 w-full rounded-xl px-3 text-sm tracking-wide outline-none"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!manualCode.trim()) return;
+                  handleDoubleCheckScan(manualCode.trim());
+                  setManualCode("");
+                  setShowManualEntry(false);
+                }}
+                disabled={!manualCode.trim()}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
+              >
+                <Keyboard className="h-4 w-4" />
+                Confirmar leitura
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modal: Lista de Pedidos no Romaneio */}
         {showOrderListModal && (
           <div
@@ -766,7 +944,7 @@ export function FecharRomaneioClient({
                     Volumes do Romaneio ({scannedCount}/{totalOrders})
                   </h3>
                   <span style={{ color: mobileColors.muted, fontSize: 12 }}>
-                    Toque para marcar manualmente se necessário
+                    Toque em um pendente para bipar com a câmera
                   </span>
                 </div>
                 <button
@@ -795,12 +973,13 @@ export function FecharRomaneioClient({
                     <div
                       key={order.id}
                       onClick={() => {
-                        setScannedIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(order.id)) next.delete(order.id);
-                          else next.add(order.id);
-                          return next;
-                        });
+                        // Orders can no longer be ticked off by tapping --
+                        // that let operators confirm a volume was loaded
+                        // without ever scanning it. Tapping a pending order
+                        // now just closes this list, dropping the operator
+                        // back on the live camera view so they scan it for
+                        // real; already-scanned orders are a no-op here.
+                        if (!isScanned) setShowOrderListModal(false);
                       }}
                       style={{
                         padding: 12,
@@ -814,13 +993,13 @@ export function FecharRomaneioClient({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        cursor: "pointer",
+                        cursor: isScanned ? "default" : "pointer",
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>
-                            {order.externalNumber || order.code}
+                            {order.code}
                           </span>
                           <span style={{ color: mobileColors.amber, fontSize: 12, fontWeight: 600 }}>
                             {order.invoiceNumber}
@@ -883,15 +1062,155 @@ export function FecharRomaneioClient({
   // =========================================================================
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      {/* Hidden file input for photo capture */}
-      <input
-        ref={photoInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handlePhotoFileChange}
-        className="hidden"
-      />
+      {/* In-app face-capture camera: fits the face in the oval guide and
+          auto-captures once framed well (falls back to a manual capture
+          button on browsers without automatic face detection). */}
+      {faceCameraTarget ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#000", display: "flex", flexDirection: "column" }}>
+          {/* Back to object-fit: cover for a true full-screen camera --
+              now safe because useFacePhotoCapture requests a stream whose
+              aspect ratio matches this actual viewport, so cover has
+              little to no cropping left to do to fill it. */}
+          <video
+            ref={faceCapture.videoRef}
+            playsInline
+            muted
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: "scaleX(-1)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.7) 100%)",
+            }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "18px",
+              paddingTop: "calc(18px + env(safe-area-inset-top))",
+            }}
+          >
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, ...headingFont }}>
+              {faceCameraTarget === "operador" ? "Foto do Operador" : "Foto do Motorista / Carga"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                faceCameraTargetRef.current = null;
+                setFaceCameraTarget(null);
+              }}
+              style={{
+                width: 38,
+                height: 38,
+                flexShrink: 0,
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.14)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                width: 230,
+                height: 290,
+                borderRadius: "50%",
+                border: `3px solid ${faceCapture.faceAligned ? mobileColors.green : "rgba(255,255,255,0.75)"}`,
+                boxShadow: faceCapture.faceAligned ? `0 0 0 8px ${hexAlpha(mobileColors.green, 0.18)}` : "none",
+                transition: "border-color 200ms ease, box-shadow 200ms ease",
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 14,
+              padding: "0 24px calc(32px + env(safe-area-inset-bottom))",
+              textAlign: "center",
+            }}
+          >
+            <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
+              {faceCapture.cameraStarting ? "Abrindo câmera..." : faceCapture.cameraMessage ?? "Encaixe o rosto na moldura."}
+            </span>
+            {faceCapture.cameraEnabled ? (
+              // Always available, even when the browser claims to support
+              // automatic face detection -- that support check only proves
+              // the API exists, not that it actually finds a face on this
+              // device, so this stays the one guaranteed way to capture.
+              <button
+                type="button"
+                onClick={faceCapture.captureManually}
+                style={{
+                  height: 52,
+                  padding: "0 28px",
+                  borderRadius: 16,
+                  background: mobileColors.amber,
+                  color: "#000",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  border: "none",
+                }}
+              >
+                Capturar foto
+              </button>
+            ) : null}
+          </div>
+
+          {faceCaptureFlash ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                zIndex: 3,
+                background: "rgba(16,185,129,0.22)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <span
+                style={{
+                  width: 84,
+                  height: 84,
+                  borderRadius: "50%",
+                  background: mobileColors.green,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Check className="h-10 w-10 stroke-[3]" style={{ color: "#05130D" }} />
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Header */}
       <div style={{ flexShrink: 0, padding: "18px 18px 14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -947,19 +1266,21 @@ export function FecharRomaneioClient({
         {/* ========================================================================= */}
         {step === "motorista" && (
           <div className="space-y-4">
-            {/* Quick saved driver selector */}
-            {savedDrivers.length > 0 && (
+            {/* Quick saved driver selector -- only drivers already saved
+                under this romaneio's own transportadora. */}
+            {filteredDrivers.length > 0 && (
               <div className="rounded-[24px] p-4" style={cardStyle}>
-                <label className="block text-xs font-semibold text-slate-300">
-                  Selecionar Motorista Frequente ({savedDrivers.length} salvos)
+                <label className="block text-xs font-semibold" style={{ color: mobileColors.muted }}>
+                  Motoristas de {romaneio.carrierName} ({filteredDrivers.length} salvo{filteredDrivers.length === 1 ? "" : "s"})
                 </label>
                 <select
                   value={selectedDriverKey}
                   onChange={(e) => handleSelectSavedDriver(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white focus:border-amber-400 focus:outline-none"
+                  className="mt-2 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                  style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                 >
                   <option value="">-- Selecione ou preencha novo abaixo --</option>
-                  {savedDrivers.map((d, i) => (
+                  {filteredDrivers.map((d, i) => (
                     <option key={i} value={`${d.nome}|${d.documento}`}>
                       {d.nome} {d.documento ? `(Doc: ${d.documento})` : ""} {d.veiculoPlaca ? `[Placa: ${d.veiculoPlaca}]` : ""}
                     </option>
@@ -970,52 +1291,64 @@ export function FecharRomaneioClient({
 
             {/* Manual Form */}
             <div className="rounded-[24px] p-4 space-y-3" style={cardStyle}>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <IdCard className="h-4 w-4 text-amber-400" />
+              <h3 className="flex items-center gap-2 text-sm font-bold" style={{ color: mobileColors.text, ...headingFont }}>
+                <IdCard className="h-4 w-4" style={{ color: mobileColors.amber }} />
                 Dados do Motorista e Veículo
               </h3>
 
               <div>
-                <label className="text-[11px] font-medium text-slate-400 uppercase">Nome Completo do Motorista *</label>
+                <label className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>
+                  Nome Completo do Motorista *
+                </label>
                 <input
                   type="text"
                   value={driverName}
                   onChange={(e) => setDriverName(e.target.value)}
                   placeholder="Ex: Carlos Eduardo da Silva"
-                  className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  className="mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                  style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-medium text-slate-400 uppercase">Documento (CPF / RG / CNH) *</label>
+                <label className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>
+                  Documento (CPF / RG / CNH) *
+                </label>
                 <input
                   type="text"
                   value={driverDoc}
                   onChange={(e) => setDriverDoc(e.target.value)}
                   placeholder="Ex: 123.456.789-00"
-                  className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                  className="mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                  style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-medium text-slate-400 uppercase">Placa do Veículo *</label>
+                  <label className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>
+                    Placa do Veículo *
+                  </label>
                   <input
                     type="text"
                     value={vehiclePlate}
                     onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
                     placeholder="Ex: ABC-1D23"
-                    className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none uppercase"
+                    className="mt-1 h-11 w-full rounded-xl px-3 text-sm uppercase outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-medium text-slate-400 uppercase">Modelo do Veículo</label>
+                  <label className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>
+                    Modelo do Veículo
+                  </label>
                   <input
                     type="text"
                     value={vehicleModel}
                     onChange={(e) => setVehicleModel(e.target.value)}
                     placeholder="Ex: Fiorino / HR"
-                    className="mt-1 h-11 w-full rounded-xl border border-white/15 bg-slate-900 px-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                    className="mt-1 h-11 w-full rounded-xl px-3 text-sm outline-none"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: "rgba(5,7,13,0.5)", color: mobileColors.text }}
                   />
                 </div>
               </div>
@@ -1026,19 +1359,21 @@ export function FecharRomaneioClient({
               <button
                 type="button"
                 onClick={() => setStep("double_check")}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 font-semibold text-slate-300 hover:bg-white/10"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-semibold"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar à Câmera
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Voltar à Câmera</span>
               </button>
               <button
                 type="button"
                 onClick={() => setStep("fotos")}
                 disabled={!driverName.trim() || !driverDoc.trim() || !vehiclePlate.trim()}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-amber-500 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
-                Avançar para Fotos
-                <ArrowRight className="h-4 w-4" />
+                <span>Avançar para Fotos</span>
+                <ArrowRight className="h-4 w-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -1049,31 +1384,44 @@ export function FecharRomaneioClient({
         {/* ========================================================================= */}
         {step === "fotos" && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
+            <div
+              className="rounded-2xl p-3 text-xs"
+              style={{ border: `1px solid ${hexAlpha(mobileColors.amber, 0.25)}`, background: hexAlpha(mobileColors.amber, 0.1), color: mobileColors.amber }}
+            >
               Tire a foto do operador responsável e a foto do motorista / comprovante de carga para auditoria.
             </div>
 
             {/* Foto Operador */}
             <div className="rounded-[24px] p-4 space-y-3" style={cardStyle}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white flex items-center gap-2">
-                  <User className="h-4 w-4 text-amber-400" />
+                <span className="flex items-center gap-2 text-xs font-bold" style={{ color: mobileColors.text }}>
+                  <User className="h-4 w-4" style={{ color: mobileColors.amber }} />
                   Foto do Operador ({currentUserName})
                 </span>
                 {operadorPhoto && (
-                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: hexAlpha(mobileColors.green, 0.18), color: mobileColors.green }}
+                  >
                     Capturada
                   </span>
                 )}
               </div>
 
               {operadorPhoto ? (
-                <div className="relative overflow-hidden rounded-2xl border border-white/15">
-                  <img src={operadorPhoto} alt="Foto Operador" className="aspect-video w-full object-cover" />
+                <div
+                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl"
+                  style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.06) }}
+                >
+                  <CheckCircle2 className="h-8 w-8" style={{ color: mobileColors.green }} />
+                  <span className="text-xs font-semibold" style={{ color: mobileColors.green }}>
+                    Foto capturada e protegida
+                  </span>
                   <button
                     type="button"
-                    onClick={() => triggerPhotoCapture("operador")}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/90"
+                    onClick={() => openFaceCamera("operador")}
+                    className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                    style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Tirar novamente
@@ -1082,10 +1430,11 @@ export function FecharRomaneioClient({
               ) : (
                 <button
                   type="button"
-                  onClick={() => triggerPhotoCapture("operador")}
-                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-white/5 text-slate-300 hover:border-amber-400 hover:bg-white/10"
+                  onClick={() => openFaceCamera("operador")}
+                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed"
+                  style={{ borderColor: hexAlpha("#94A3B8", 0.25), background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
                 >
-                  <Camera className="h-8 w-8 text-amber-400" />
+                  <Camera className="h-8 w-8" style={{ color: mobileColors.amber }} />
                   <span className="text-xs font-semibold">Tirar Foto do Operador</span>
                 </button>
               )}
@@ -1094,24 +1443,34 @@ export function FecharRomaneioClient({
             {/* Foto Motorista */}
             <div className="rounded-[24px] p-4 space-y-3" style={cardStyle}>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-amber-400" />
+                <span className="flex items-center gap-2 text-xs font-bold" style={{ color: mobileColors.text }}>
+                  <Truck className="h-4 w-4" style={{ color: mobileColors.amber }} />
                   Foto do Motorista / Carga
                 </span>
                 {motoristaPhoto && (
-                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: hexAlpha(mobileColors.green, 0.18), color: mobileColors.green }}
+                  >
                     Capturada
                   </span>
                 )}
               </div>
 
               {motoristaPhoto ? (
-                <div className="relative overflow-hidden rounded-2xl border border-white/15">
-                  <img src={motoristaPhoto} alt="Foto Motorista" className="aspect-video w-full object-cover" />
+                <div
+                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl"
+                  style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.06) }}
+                >
+                  <CheckCircle2 className="h-8 w-8" style={{ color: mobileColors.green }} />
+                  <span className="text-xs font-semibold" style={{ color: mobileColors.green }}>
+                    Foto capturada e protegida
+                  </span>
                   <button
                     type="button"
-                    onClick={() => triggerPhotoCapture("motorista")}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-xl bg-black/70 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/90"
+                    onClick={() => openFaceCamera("motorista")}
+                    className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                    style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Tirar novamente
@@ -1120,17 +1479,21 @@ export function FecharRomaneioClient({
               ) : (
                 <button
                   type="button"
-                  onClick={() => triggerPhotoCapture("motorista")}
-                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-white/5 text-slate-300 hover:border-amber-400 hover:bg-white/10"
+                  onClick={() => openFaceCamera("motorista")}
+                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed"
+                  style={{ borderColor: hexAlpha("#94A3B8", 0.25), background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
                 >
-                  <Camera className="h-8 w-8 text-amber-400" />
+                  <Camera className="h-8 w-8" style={{ color: mobileColors.amber }} />
                   <span className="text-xs font-semibold">Tirar Foto do Motorista / Carga</span>
                 </button>
               )}
             </div>
 
             {submitError && (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+              <div
+                className="rounded-xl p-3 text-xs"
+                style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.08), color: mobileColors.redLight }}
+              >
                 {submitError}
               </div>
             )}
@@ -1141,26 +1504,25 @@ export function FecharRomaneioClient({
                 type="button"
                 onClick={() => setStep("motorista")}
                 disabled={isSubmitting}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 font-semibold text-slate-300 hover:bg-white/10"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-semibold disabled:opacity-50"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
               >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Voltar</span>
               </button>
               <button
                 type="button"
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 font-bold text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 disabled:opacity-50"
+                className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
                 {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Finalizando...
-                  </>
+                  <MobileButtonSpinner />
                 ) : (
                   <>
-                    <PackageCheck className="h-4 w-4" />
-                    Finalizar Romaneio
+                    <PackageCheck className="h-4 w-4 shrink-0" />
+                    <span>Finalizar Romaneio</span>
                   </>
                 )}
               </button>
@@ -1172,35 +1534,51 @@ export function FecharRomaneioClient({
         {/* STEP 4: CONCLUÍDO COM SUCESSO */}
         {/* ========================================================================= */}
         {step === "concluido" && (
-          <div className="space-y-5 rounded-[28px] border border-emerald-500/30 bg-emerald-950/20 p-6 text-center animate-in zoom-in-95 duration-300">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+          <div
+            className="space-y-5 rounded-[28px] p-6 text-center animate-in zoom-in-95 duration-300"
+            style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.08) }}
+          >
+            <div
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+              style={{ background: hexAlpha(mobileColors.green, 0.18), color: mobileColors.green }}
+            >
               <CheckCircle2 className="h-12 w-12" />
             </div>
 
             <div>
-              <span className="inline-block rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
+              <span
+                className="inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
+                style={{ background: hexAlpha(mobileColors.green, 0.18), color: mobileColors.green }}
+              >
                 Carga Expedida com Sucesso
               </span>
-              <h2 className="mt-2 text-2xl font-bold text-white">Romaneio Finalizado!</h2>
-              <p className="mt-1 text-sm font-semibold text-amber-300">{romaneio.code}</p>
+              <h2 className="mt-2 text-2xl font-bold" style={{ color: mobileColors.text, ...headingFont }}>
+                Romaneio Finalizado!
+              </h2>
+              <p className="mt-1 text-sm font-semibold" style={{ color: mobileColors.amber }}>
+                {romaneio.code}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/5 bg-slate-900/80 p-4 text-left">
+            <div
+              className="grid grid-cols-2 gap-3 rounded-2xl p-4 text-left"
+              style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.1)}`, background: "rgba(5,7,13,0.5)" }}
+            >
               <div>
-                <p className="text-[11px] font-medium uppercase text-slate-400">Transportadora</p>
-                <p className="mt-0.5 text-sm font-bold text-white">{romaneio.carrierName}</p>
+                <p className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>Transportadora</p>
+                <p className="mt-0.5 text-sm font-bold" style={{ color: mobileColors.text }}>{romaneio.carrierName}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase text-slate-400">Volumes Expedidos</p>
-                <p className="mt-0.5 text-sm font-bold text-emerald-300">{totalOrders} volumes</p>
+                <p className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>Volumes Expedidos</p>
+                <p className="mt-0.5 text-sm font-bold" style={{ color: mobileColors.green }}>{totalOrders} volumes</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase text-slate-400">Motorista</p>
-                <p className="mt-0.5 text-sm font-bold text-white">{driverName}</p>
+                <p className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>Motorista</p>
+                <p className="mt-0.5 text-sm font-bold" style={{ color: mobileColors.text }}>{driverName}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium uppercase text-slate-400">Placa</p>
-                <p className="mt-0.5 text-sm font-bold text-white">{vehiclePlate}</p>
+                <p className="text-[11px] font-medium uppercase" style={{ color: mobileColors.muted }}>Placa</p>
+                <p className="mt-0.5 text-sm font-bold" style={{ color: mobileColors.text }}>{vehiclePlate}</p>
               </div>
             </div>
 
@@ -1208,14 +1586,16 @@ export function FecharRomaneioClient({
               <Link
                 href={`/api/romaneio/${romaneio.id}/pdf`}
                 target="_blank"
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400"
+                className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white"
+                style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
-                <FileDown className="h-4 w-4" />
-                Abrir / Imprimir PDF do Romaneio
+                <FileDown className="h-4 w-4 shrink-0" />
+                <span>Abrir / Imprimir PDF do Romaneio</span>
               </Link>
               <Link
                 href="/m/romaneio"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 text-sm font-semibold text-slate-200 hover:bg-white/10"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
+                style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
               >
                 Voltar para Romaneios
               </Link>

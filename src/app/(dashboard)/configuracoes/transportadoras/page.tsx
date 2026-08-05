@@ -12,6 +12,7 @@ import {
   type TransportadoraListItem,
 } from "@/lib/transportadoras";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatDatePtBr } from "@/lib/utils";
 import {
   deleteTransportadoraAction,
   toggleTransportadoraStatusAction,
@@ -232,7 +233,7 @@ export default async function ConfiguracoesTransportadorasPage({
                       </span>
                       <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
                         Criada em{" "}
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString("pt-BR") : "-"}
+                        {item.createdAt ? formatDatePtBr(item.createdAt) : "-"}
                       </p>
                       <div className="flex flex-wrap gap-2 lg:justify-end">
                         <Link

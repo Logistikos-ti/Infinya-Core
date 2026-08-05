@@ -3,9 +3,10 @@ import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { SaldoInicialDepositanteListClient } from "./saldo-inicial-depositante-list-client";
+import { listStockBalancesFromDb } from "@/lib/stock";
+import { SaidaManualDepositanteListClient } from "./saida-manual-depositante-list-client";
 
-export default async function MobileSaldoInicialDepositantesPage() {
+export default async function MobileSaidaManualDepositantesPage() {
   const user = await getCurrentUserContext();
 
   if (!user || !user.ativo) {
@@ -26,15 +27,12 @@ export default async function MobileSaldoInicialDepositantesPage() {
   const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantesRows ?? []);
   const visibleIds = new Set(visibleDepositantes.map((item) => item.id));
 
-  const { data: produtosRows } = await adminSupabase
-    .from("produtos")
-    .select("id, depositante_id")
-    .eq("ativo", true);
-
+  const balances = await listStockBalancesFromDb();
   const countByDepositante = new Map<string, number>();
-  for (const item of produtosRows ?? []) {
-    if (!visibleIds.has(item.depositante_id)) continue;
-    countByDepositante.set(item.depositante_id, (countByDepositante.get(item.depositante_id) ?? 0) + 1);
+  for (const item of balances) {
+    if (item.status !== "Disponível" || item.rawQuantidade - item.rawReserved <= 0) continue;
+    if (!visibleIds.has(item.depositanteId)) continue;
+    countByDepositante.set(item.depositanteId, (countByDepositante.get(item.depositanteId) ?? 0) + 1);
   }
 
   const depositantes = visibleDepositantes
@@ -43,9 +41,9 @@ export default async function MobileSaldoInicialDepositantesPage() {
       nome: dep.nome,
       codigo: dep.codigo,
       logoUrl: dep.logo_url ?? null,
-      produtosAtivos: countByDepositante.get(dep.id) ?? 0,
+      produtosDisponiveis: countByDepositante.get(dep.id) ?? 0,
     }))
-    .filter((dep) => dep.produtosAtivos > 0);
+    .filter((dep) => dep.produtosDisponiveis > 0);
 
-  return <SaldoInicialDepositanteListClient depositantes={depositantes} />;
+  return <SaidaManualDepositanteListClient depositantes={depositantes} />;
 }

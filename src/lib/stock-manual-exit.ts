@@ -1,4 +1,6 @@
+import { randomUUID } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { saidaManualFotosBucketName, maxSaidaManualFotoFileSizeBytes, allowedSaidaManualFotoMimeTypes, sanitizeFileName } from "@/lib/storage";
 
 type ManualStockExitInput = {
   userId: string;
@@ -6,7 +8,49 @@ type ManualStockExitInput = {
   stockId: string;
   quantity: number;
   reason: string;
+  fotoUrl?: string | null;
 };
+
+export async function uploadManualExitPhoto({
+  depositanteId,
+  fileName,
+  mimeType,
+  bytes,
+}: {
+  depositanteId: string;
+  fileName: string;
+  mimeType: string;
+  bytes: Buffer;
+}) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: buckets } = await supabase.storage.listBuckets();
+  const bucketExists = buckets?.some((bucket) => bucket.id === saidaManualFotosBucketName);
+  if (!bucketExists) {
+    await supabase.storage.createBucket(saidaManualFotosBucketName, {
+      public: true,
+      fileSizeLimit: maxSaidaManualFotoFileSizeBytes,
+      allowedMimeTypes: [...allowedSaidaManualFotoMimeTypes],
+    });
+  }
+
+  const safeName = sanitizeFileName(fileName || "avaria.jpg");
+  const extension = safeName.includes(".") ? safeName.split(".").pop() : "jpg";
+  const storagePath = `${depositanteId}/${new Date().getFullYear()}/${randomUUID()}.${extension}`;
+
+  const uploadResult = await supabase.storage.from(saidaManualFotosBucketName).upload(storagePath, bytes, {
+    contentType: mimeType,
+    upsert: false,
+  });
+
+  if (uploadResult.error) {
+    throw new Error(`Falha ao enviar a foto: ${uploadResult.error.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage.from(saidaManualFotosBucketName).getPublicUrl(storagePath);
+
+  return publicUrlData.publicUrl;
+}
 
 export async function createManualStockExit(input: ManualStockExitInput) {
   if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
@@ -72,6 +116,7 @@ export async function createManualStockExit(input: ManualStockExitInput) {
     referencia_tipo: "SAIDA_MANUAL",
     observacoes: reason,
     criado_por: input.userId,
+    foto_url: input.fotoUrl ?? null,
   });
 
   if (movementError) {
@@ -83,5 +128,10 @@ export async function createManualStockExit(input: ManualStockExitInput) {
     throw new Error(`Falha ao registrar a saída manual: ${movementError.message}`);
   }
 
-  return { availableQuantity, nextQuantity };
+  return {
+    stockId: stock.id,
+    previousQuantity: currentQuantity,
+    quantity: nextQuantity,
+    movedQuantity: input.quantity,
+  };
 }
