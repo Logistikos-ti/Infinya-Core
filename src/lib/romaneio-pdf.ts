@@ -42,6 +42,11 @@ type TableOrderRow = {
   statusLabel: string;
 };
 
+type PhotoChecks = {
+  hasOperatorPhoto: boolean;
+  hasDriverPhoto: boolean;
+};
+
 type PageOptions = {
   docLabel: string;
   code?: string;
@@ -51,7 +56,7 @@ type PageOptions = {
   orders: TableOrderRow[];
   pageNumber: number;
   totalPages: number;
-  notes?: string | null;
+  photos?: PhotoChecks;
   emittedAt: string;
 };
 
@@ -100,7 +105,6 @@ export function buildRomaneioRecordsSummaryPdf(records: RomaneioRecordDetail[]) 
         pageNumber: 1,
         totalPages: 1,
         emittedAt,
-        notes: "Nenhum romaneio selecionado.",
       }),
     ]);
   }
@@ -114,6 +118,7 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
   const chunks = chunkArray(orders, chunkSize);
   const totalPages = Math.max(1, chunks.length);
   const emittedAt = formatDateTime(new Date().toISOString());
+  const photos = parseConferenciaPhotos(record.notes);
 
   return (chunks.length ? chunks : [[]]).map((chunk, index) =>
     buildPageContentStream({
@@ -125,10 +130,30 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
       orders: chunk,
       pageNumber: index + 1,
       totalPages,
-      notes: record.notes,
+      photos,
       emittedAt,
     }),
   );
+}
+
+/**
+ * record.notes stores the double-check JSON payload written by
+ * completeRomaneioWithDoubleCheck ({ foto_operador_url, foto_motorista_url,
+ * conferido_em, conferido_por }) -- same shape parsed by the "Visualizar
+ * Romaneio" mobile page. The PDF never embeds the actual photos (kept out
+ * of the printed document on purpose), just whether each one was taken.
+ */
+function parseConferenciaPhotos(notes: string | null): PhotoChecks {
+  if (!notes) return { hasOperatorPhoto: false, hasDriverPhoto: false };
+  try {
+    const parsed = JSON.parse(notes) as Record<string, unknown>;
+    return {
+      hasOperatorPhoto: typeof parsed.foto_operador_url === "string" && parsed.foto_operador_url.length > 0,
+      hasDriverPhoto: typeof parsed.foto_motorista_url === "string" && parsed.foto_motorista_url.length > 0,
+    };
+  } catch {
+    return { hasOperatorPhoto: false, hasDriverPhoto: false };
+  }
 }
 
 function groupFields(group: RomaneioCarrierGroup) {
@@ -195,9 +220,10 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 
 // ─────────────────────────────────────────────────────────────
 // Page content stream — draws the branded header, an info card with the
-// romaneio's key data, the orders table and a signatures footer using
-// raw PDF drawing operators (this file hand-builds the PDF byte stream,
-// there is no external PDF library dependency in this project).
+// romaneio's key data, the orders table and (when the double-check
+// captured them) the audit photo confirmations, using raw PDF drawing
+// operators (this file hand-builds the PDF byte stream, there is no
+// external PDF library dependency in this project).
 // ─────────────────────────────────────────────────────────────
 function buildPageContentStream(opts: PageOptions): string {
   const ops: string[] = [];
@@ -232,12 +258,10 @@ function buildPageContentStream(opts: PageOptions): string {
 
   y = drawOrdersTable(ops, y, opts.orders);
 
-  if (opts.notes !== undefined) {
-    y -= 16;
-    y = drawNotes(ops, y, opts.notes);
+  if (opts.photos && (opts.photos.hasOperatorPhoto || opts.photos.hasDriverPhoto)) {
+    y -= 20;
+    drawPhotoChecks(ops, y, opts.photos);
   }
-
-  drawFooter(ops);
 
   return ops.join("\n");
 }
@@ -344,26 +368,38 @@ function drawOrdersTable(ops: string[], topY: number, orders: TableOrderRow[]) {
   return y;
 }
 
-function drawNotes(ops: string[], topY: number, notes: string | null) {
-  text(ops, MARGIN, topY, "OBSERVAÇÕES", 9.5, NAVY, true);
-  const y = topY - 14;
-  const boxHeight = 34;
-  strokeRect(ops, MARGIN, y - boxHeight, PAGE_W - MARGIN * 2, boxHeight, CARD_BORDER, 0.75, CARD_BG);
-  const lines = wrapText(notes && notes.trim() ? notes : "Sem observações operacionais.", 96);
-  lines.slice(0, 2).forEach((lineText, index) => {
-    text(ops, MARGIN + 12, y - 14 - index * 12, lineText, 8.4, TEXT_DARK, false);
-  });
-  return y - boxHeight;
+// Renders a "confirmed" badge per captured audit photo instead of the
+// actual image (kept out of the printed document on purpose, same
+// privacy-conscious treatment as the PhotoCheck cards on the mobile
+// "Visualizar Romaneio" summary screen) -- a green check icon plus a
+// short label, side by side.
+function drawPhotoChecks(ops: string[], topY: number, photos: PhotoChecks) {
+  text(ops, MARGIN, topY, "FOTOS DE AUDITORIA", 9.5, NAVY, true);
+  const badgeY = topY - 34;
+  let x = MARGIN;
+  if (photos.hasOperatorPhoto) x = drawPhotoBadge(ops, x, badgeY, "Foto do operador confirmada") + 12;
+  if (photos.hasDriverPhoto) drawPhotoBadge(ops, x, badgeY, "Foto do motorista confirmada");
 }
 
-function drawFooter(ops: string[]) {
-  const y = 66;
-  line(ops, MARGIN, y, PAGE_W - MARGIN, y, CARD_BORDER, 0.75);
-  line(ops, MARGIN, y - 30, MARGIN + 220, y - 30, MUTED, 0.6);
-  text(ops, MARGIN, y - 42, "Responsável pela expedição", 8, MUTED, false);
-  line(ops, PAGE_W - MARGIN - 220, y - 30, PAGE_W - MARGIN, y - 30, MUTED, 0.6);
-  text(ops, PAGE_W - MARGIN - 220, y - 42, "Motorista / Transportadora", 8, MUTED, false);
-  text(ops, MARGIN, 24, "Infinoos WMS · Documento gerado automaticamente pelo sistema", 7.4, MUTED, false);
+function drawPhotoBadge(ops: string[], x: number, y: number, label: string) {
+  const iconSize = 22;
+  strokeRect(ops, x, y, iconSize, iconSize, tint(GREEN, 0.4), 0.8, tint(GREEN, 0.12));
+  drawCheckIcon(ops, x, y, iconSize, GREEN);
+  text(ops, x + iconSize + 8, y + 7, label, 8.6, TEXT_DARK, false);
+  return x + iconSize + 8 + estimateTextWidth(label, 8.6);
+}
+
+function drawCheckIcon(ops: string[], x: number, y: number, size: number, color: RGB) {
+  const p1 = [x + size * 0.22, y + size * 0.48];
+  const p2 = [x + size * 0.42, y + size * 0.26];
+  const p3 = [x + size * 0.8, y + size * 0.68];
+  ops.push(
+    `${color[0]} ${color[1]} ${color[2]} RG`,
+    `${size * 0.14} w`,
+    "1 J",
+    "1 j",
+    `${p1[0]} ${p1[1]} m ${p2[0]} ${p2[1]} l ${p3[0]} ${p3[1]} l S`,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -449,23 +485,6 @@ function tint(color: RGB, alpha: number): RGB {
 // width tables for the standard 14 fonts.
 function estimateTextWidth(value: string, size: number) {
   return value.length * size * 0.52;
-}
-
-function wrapText(value: string, maxLength: number) {
-  const words = value.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > maxLength && current) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = candidate;
-    }
-  }
-  if (current) lines.push(current);
-  return lines.length ? lines : [""];
 }
 
 // WinAnsiEncoding's ellipsis lives at byte 0x85 -- the real "…" character
