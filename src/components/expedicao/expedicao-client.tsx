@@ -49,8 +49,9 @@ import {
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
-import { createPortal } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = { status: "idle" };
 
@@ -150,6 +151,21 @@ const manualOrderStatusOptions = [
   ["CANCELADO", "Cancelado"],
 ] as const;
 
+function ManualStatusUpdateButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-label={pending ? "Atualizando status" : "Atualizar status"}
+      style={{ height: "38px", minWidth: "98px", padding: "0 12px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12px", fontWeight: 800, cursor: pending ? "wait" : "pointer", whiteSpace: "nowrap", opacity: pending ? 0.82 : 1 }}
+    >
+      {pending ? <MobileButtonSpinner size={30} color="#FFFFFF" /> : "Atualizar"}
+    </button>
+  );
+}
+
 function ManualOrderStatusControl({
   orderId,
   status,
@@ -218,7 +234,7 @@ function ManualOrderStatusControl({
             </div>
           ) : null}
         </div>
-        <button type="submit" style={{ height: "38px", padding: "0 12px", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12px", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>Atualizar</button>
+        <ManualStatusUpdateButton />
       </div>
     </form>
   );
