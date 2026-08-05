@@ -1,12 +1,20 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-export function ProductSearchInput({ value }: { value: string }) {
+export function ProductSearchInput({
+  value,
+  depositanteId = "",
+}: {
+  value: string;
+  depositanteId?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const [search, setSearch] = useState(value);
   const [, startTransition] = useTransition();
 
@@ -16,13 +24,26 @@ export function ProductSearchInput({ value }: { value: string }) {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const params = new URLSearchParams({ view: "produtos" });
-      if (search.trim()) params.set("search", search.trim());
-      startTransition(() => router.replace(`${pathname}?${params.toString()}`));
+      const normalizedSearch = search.trim();
+      const params = new URLSearchParams(searchParamsString);
+      params.set("view", "produtos");
+      if (normalizedSearch) params.set("search", normalizedSearch);
+      else params.delete("search");
+      if (depositanteId) params.set("depositanteId", depositanteId);
+
+      if ((searchParams.get("search") ?? "") !== normalizedSearch) {
+        params.delete("page");
+      }
+
+      const nextUrl = `${pathname}?${params.toString()}`;
+      const currentUrl = `${pathname}?${searchParamsString}`;
+      if (nextUrl !== currentUrl) {
+        startTransition(() => router.replace(nextUrl));
+      }
     }, 50);
 
     return () => window.clearTimeout(timeout);
-  }, [pathname, router, search]);
+  }, [depositanteId, pathname, router, search, searchParams, searchParamsString]);
 
   return (
     <label className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-slate-400 transition focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10 sm:w-[310px] dark:border-white/10 dark:bg-[#101b30]">
