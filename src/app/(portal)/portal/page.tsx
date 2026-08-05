@@ -197,6 +197,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           stock={stock}
           totalUnits={totalUnits}
           lowStock={lowStock}
+          portalDepositanteId={isMasterPreview ? depositanteId : ""}
         />
       ) : null}
       {view === "pedidos" ? (
@@ -216,6 +217,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           stock={stock}
           page={productsPage}
           search={productsSearch}
+          portalDepositanteId={isMasterPreview ? depositanteId : ""}
         />
       ) : null}
       {view === "recebimento" ? (
@@ -299,6 +301,7 @@ function DashboardView({
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   totalUnits: number;
   lowStock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
+  portalDepositanteId: string;
 }) {
   return (
     <>
@@ -335,7 +338,7 @@ function DashboardView({
       <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
         <Panel
           title="Pedidos recentes"
-          actionHref="/portal?view=pedidos"
+          actionHref={`/portal?view=pedidos${portalDepositanteId ? `&depositanteId=${encodeURIComponent(portalDepositanteId)}` : ""}`}
           actionLabel="Ver todos"
         >
           {orders.length ? (
@@ -473,10 +476,12 @@ function ProductsView({
   stock,
   page,
   search,
+  portalDepositanteId,
 }: {
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   page: number;
   search: string;
+  portalDepositanteId: string;
 }) {
   const pageSize = 9;
   const normalizedSearch = search.toLocaleLowerCase("pt-BR");
@@ -623,6 +628,7 @@ function ProductsView({
           totalPages={totalPages}
           totalItems={filteredStock.length}
           search={search}
+          portalDepositanteId={portalDepositanteId}
         />
       ) : null}
     </>
@@ -634,11 +640,13 @@ function ProductPagination({
   totalPages,
   totalItems,
   search,
+  portalDepositanteId,
 }: {
   currentPage: number;
   totalPages: number;
   totalItems: number;
   search: string;
+  portalDepositanteId: string;
 }) {
   const pageSize = 9;
   const firstItem = (currentPage - 1) * pageSize + 1;
@@ -663,6 +671,7 @@ function ProductPagination({
           disabled={currentPage === 1}
           ariaLabel="Página anterior"
           search={search}
+          portalDepositanteId={portalDepositanteId}
         >
           <ChevronLeft className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
@@ -681,6 +690,7 @@ function ProductPagination({
               active={page === currentPage}
               ariaLabel={`Página ${page}`}
               search={search}
+              portalDepositanteId={portalDepositanteId}
             >
               {page}
             </PaginationLink>
@@ -691,6 +701,7 @@ function ProductPagination({
           disabled={currentPage === totalPages}
           ariaLabel="Próxima página"
           search={search}
+          portalDepositanteId={portalDepositanteId}
         >
           <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
         </PaginationLink>
@@ -739,6 +750,7 @@ function PaginationLink({
   disabled = false,
   ariaLabel,
   search = "",
+  portalDepositanteId = "",
 }: {
   page: number;
   children: React.ReactNode;
@@ -746,6 +758,7 @@ function PaginationLink({
   disabled?: boolean;
   ariaLabel?: string;
   search?: string;
+  portalDepositanteId?: string;
 }) {
   const className = `inline-flex h-8 min-w-8 items-center justify-center rounded-xl border px-0 text-sm font-normal transition ${
     active
@@ -762,7 +775,7 @@ function PaginationLink({
     );
   return (
     <Link
-      href={`/portal?view=produtos&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
+      href={`/portal?view=produtos&page=${page}${search ? `&search=${encodeURIComponent(search)}` : ""}${portalDepositanteId ? `&depositanteId=${encodeURIComponent(portalDepositanteId)}` : ""}`}
       className={className}
       aria-label={ariaLabel}
     >

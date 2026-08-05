@@ -98,6 +98,38 @@ export function PortalChrome({
   const selectedDepositanteId = searchParams.get("depositanteId") ?? "";
 
   useEffect(() => {
+    if (!isMasterPreview) return;
+
+    const storageKey = "infinoos-master-portal-depositante-id";
+    if (selectedDepositanteId) {
+      window.localStorage.setItem(storageKey, selectedDepositanteId);
+      return;
+    }
+
+    const savedDepositanteId = window.localStorage.getItem(storageKey);
+    if (!savedDepositanteId) return;
+
+    const exists = masterDepositantes.some(
+      (depositante) => depositante.id === savedDepositanteId,
+    );
+    if (!exists) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    const params = new URLSearchParams(searchParamsString);
+    params.set("depositanteId", savedDepositanteId);
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [
+    isMasterPreview,
+    masterDepositantes,
+    pathname,
+    router,
+    searchParamsString,
+    selectedDepositanteId,
+  ]);
+
+  useEffect(() => {
     const collapsed = window.localStorage.getItem(
       "infinoos-portal-sidebar-collapsed",
     );
@@ -174,8 +206,13 @@ export function PortalChrome({
     const params = new URLSearchParams(searchParamsString);
     if (depositanteId) {
       params.set("depositanteId", depositanteId);
+      window.localStorage.setItem(
+        "infinoos-master-portal-depositante-id",
+        depositanteId,
+      );
     } else {
       params.delete("depositanteId");
+      window.localStorage.removeItem("infinoos-master-portal-depositante-id");
     }
     params.delete("order");
     params.delete("page");
