@@ -52,21 +52,21 @@ type ShippingDivergenceDrawerProps = {
   onClose: () => void;
 };
 
-type ActionType = "REABRIR_SEPARACAO" | "REINICIAR_CONFERENCIA" | "CANCELAR_DEFINITIVO";
+type ActionType = "PROSSEGUIR_COM_DIVERGENCIA" | "CANCELAR_DEFINITIVO";
 
 export function ShippingDivergenceDrawer({
   order,
   isOpen,
   onClose,
 }: ShippingDivergenceDrawerProps) {
-  const [selectedAction, setSelectedAction] = useState<ActionType>("REABRIR_SEPARACAO");
+  const [selectedAction, setSelectedAction] = useState<ActionType>("PROSSEGUIR_COM_DIVERGENCIA");
   const [notes, setNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // Reset state when opening a new order
   useEffect(() => {
     if (isOpen) {
-      setSelectedAction("REABRIR_SEPARACAO");
+      setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA");
       setNotes("");
     }
   }, [isOpen, order?.id]);
@@ -95,28 +95,19 @@ export function ShippingDivergenceDrawer({
 
   const getActionConfig = (action: ActionType) => {
     switch (action) {
-      case "REABRIR_SEPARACAO":
+      case "PROSSEGUIR_COM_DIVERGENCIA":
         return {
-          title: "Reabrir para Separação / Picking",
-          description: "Zera a contagem de itens separados e devolve o pedido para a fila de separação (picking). O operador deverá coletar todos os itens novamente nas prateleiras do armazém.",
-          badge: "Reset de Picking",
-          btnColor: "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold",
-          borderActive: "border-amber-500 bg-amber-500/10 ring-1 ring-amber-500",
-          icon: <Boxes className="h-5 w-5 text-amber-500" />,
-        };
-      case "REINICIAR_CONFERENCIA":
-        return {
-          title: "Reiniciar Mesa de Conferência",
-          description: "Mantém os itens marcados como separados e direciona o pedido imediatamente para a tela de conferência para nova validação e bipagem da DANFE/produtos.",
-          badge: "Nova Bipagem",
-          btnColor: "bg-purple-600 hover:bg-purple-700 text-white font-bold",
-          borderActive: "border-purple-500 bg-purple-500/10 ring-1 ring-purple-500",
-          icon: <ScanBarcode className="h-5 w-5 text-purple-500" />,
+          title: "Prosseguir com Divergência",
+          description: "Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.",
+          badge: "Liberar para Envio",
+          btnColor: "bg-emerald-600 hover:bg-emerald-700 text-white font-bold",
+          borderActive: "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500",
+          icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
         };
       case "CANCELAR_DEFINITIVO":
         return {
           title: "Confirmar Cancelamento Definitivo",
-          description: "Mantém o pedido cancelado e marca a divergência como tratada e encerrada. Não haverá novas tentativas operacionais.",
+          description: "Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.",
           badge: "Encerramento",
           btnColor: "bg-rose-600 hover:bg-rose-700 text-white font-bold",
           borderActive: "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500",
@@ -283,65 +274,36 @@ export function ShippingDivergenceDrawer({
                 Escolha a Ação de Resolução:
               </label>
               <div className="grid gap-3">
-                {/* Opção 1: Reabrir Separação */}
+                {/* Opção 1: Prosseguir com Divergência */}
                 <div
-                  onClick={() => setSelectedAction("REABRIR_SEPARACAO")}
+                  onClick={() => setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA")}
                   className={`cursor-pointer rounded-2xl border p-4 transition ${
-                    selectedAction === "REABRIR_SEPARACAO"
-                      ? getActionConfig("REABRIR_SEPARACAO").borderActive
+                    selectedAction === "PROSSEGUIR_COM_DIVERGENCIA"
+                      ? getActionConfig("PROSSEGUIR_COM_DIVERGENCIA").borderActive
                       : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-                      <Boxes className="h-4 w-4" />
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4" />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Reabrir para Separação
+                          Prosseguir com Divergência
                         </h4>
-                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                          Reset de Picking
+                        <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          Liberar para Envio
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Zera a coleta e devolve o pedido para a fila de separação (picking) no armazém. O operador separará novamente os itens.
+                        Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Opção 2: Reiniciar Conferência */}
-                <div
-                  onClick={() => setSelectedAction("REINICIAR_CONFERENCIA")}
-                  className={`cursor-pointer rounded-2xl border p-4 transition ${
-                    selectedAction === "REINICIAR_CONFERENCIA"
-                      ? getActionConfig("REINICIAR_CONFERENCIA").borderActive
-                      : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
-                      <ScanBarcode className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Reiniciar Conferência
-                        </h4>
-                        <span className="rounded-md bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-600 dark:text-purple-400">
-                          Mesa de Conferência
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Mantém a separação e abre a mesa de conferência para o operador realizar a bipagem e conferência da DANFE novamente.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Opção 3: Cancelar Definitivo */}
+                {/* Opção 2: Cancelar Definitivo */}
                 <div
                   onClick={() => setSelectedAction("CANCELAR_DEFINITIVO")}
                   className={`cursor-pointer rounded-2xl border p-4 transition ${
@@ -364,7 +326,7 @@ export function ShippingDivergenceDrawer({
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Mantém o pedido cancelado e conclui o tratamento da divergência. Nenhuma nova etapa operacional será executada.
+                        Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.
                       </p>
                     </div>
                   </div>

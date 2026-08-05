@@ -967,58 +967,21 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
 
   const updatedHistory = [...currentHistory, treatmentRecord];
 
-  if (resolutionType === "REABRIR_SEPARACAO") {
-    await adminSupabase
-      .from("pedidos_expedicao_itens")
-      .update({
-        quantidade_separada: 0,
-      })
-      .eq("pedido_expedicao_id", orderId);
-
-    const updatedPayload = {
-      ...payload,
-      conferencia: null,
-      divergencia: null,
-      separacao: null,
-      tratamentoDivergencia: treatmentRecord,
-      historicoDivergencias: updatedHistory,
-    };
-
-    await adminSupabase
-      .from("pedidos_expedicao")
-      .update({
-        status: "EM_SEPARACAO",
-        payload_origem: updatedPayload,
-      })
-      .eq("id", orderId);
-
-    revalidatePath("/expedicao");
-    revalidatePath("/expedicao/separacao");
-    revalidatePath(`/expedicao/${orderId}`);
-
-    redirect("/expedicao?feedback=divergencia-reaberta-separacao");
-  }
-
-  if (resolutionType === "REINICIAR_CONFERENCIA") {
-    const items = (order.itens ?? []) as Array<{ id: string; quantidade: number | string | null }>;
-    for (const item of items) {
-      await adminSupabase
-        .from("pedidos_expedicao_itens")
-        .update({
-          quantidade_separada: Number(item.quantidade ?? 1),
-        })
-        .eq("id", item.id);
-    }
-
+  if (resolutionType === "PROSSEGUIR_COM_DIVERGENCIA") {
+    const existingConferencia = isRecord(payload.conferencia) ? payload.conferencia : {};
     const updatedPayload = {
       ...payload,
       conferencia: {
-        reiniciadaEm: now,
-        reiniciadaPorNome: user.nome,
-        produtoErradoCount: 0,
+        ...existingConferencia,
+        conferidoEm: existingConferencia.conferidoEm || now,
+        liberadoParaRomaneioEm: now,
+        divergenciaAutorizada: true,
+        autorizadaPorNome: user.nome || "Operador",
+        autorizadaEm: now,
       },
       divergencia: null,
-      separacao: null,
+      divergenciaTratada: true,
+      divergenciaAutorizada: true,
       tratamentoDivergencia: treatmentRecord,
       historicoDivergencias: updatedHistory,
     };
@@ -1026,23 +989,25 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
     await adminSupabase
       .from("pedidos_expedicao")
       .update({
-        status: "EM_CONFERENCIA",
+        status: "PRONTO_ROMANEIO",
         payload_origem: updatedPayload,
       })
       .eq("id", orderId);
 
     revalidatePath("/expedicao");
-    revalidatePath("/expedicao/conferencia");
-    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath("/expedicao/conferidos");
+    revalidatePath("/romaneio");
+    revalidatePath("/m/romaneio");
     revalidatePath(`/expedicao/${orderId}`);
 
-    redirect(`/expedicao/conferencia/${orderId}?feedback=conferencia-reiniciada`);
+    redirect("/expedicao?feedback=divergencia-prosseguida");
   }
 
   if (resolutionType === "CANCELAR_DEFINITIVO") {
     const updatedPayload = {
       ...payload,
       divergenciaTratada: true,
+      canceladoDefinitivo: true,
       tratamentoDivergencia: treatmentRecord,
       historicoDivergencias: updatedHistory,
     };
