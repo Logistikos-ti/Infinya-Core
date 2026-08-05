@@ -40,6 +40,7 @@ import {
   XCircle
 } from "lucide-react";
 import {
+  changeShippingOrderStatusAction,
   createOperationalManualShippingOrderAction,
   bulkDeleteShippingOrdersAction,
   deleteShippingOrderAction,
@@ -117,6 +118,8 @@ function buildInvoicePreviewHtml(xml: string) {
 
 function getOrderUploadFeedback(feedback?: string) {
   switch (feedback) {
+    case "status-atualizado":
+      return { title: "Status atualizado", detail: "O status do pedido foi alterado e o registro da mudança foi salvo no histórico operacional." };
     case "divergencia-reaberta-separacao":
       return { title: "Separação reaberta com sucesso", detail: "O pedido foi devolvido para a fila de separação (picking) e está pronto para nova coleta." };
     case "divergencia-cancelada":
@@ -136,11 +139,68 @@ function getOrderUploadFeedback(feedback?: string) {
   }
 }
 
+const manualOrderStatusOptions = [
+  ["NOVO", "Novo"],
+  ["EM_SEPARACAO", "Em separação"],
+  ["SEPARADO", "Aguardando conferência"],
+  ["EM_CONFERENCIA", "Em conferência"],
+  ["CONFERIDO", "Conferido"],
+  ["PRONTO_ROMANEIO", "Pronto para coleta"],
+  ["EXPEDIDO", "Expedido"],
+  ["CANCELADO", "Cancelado"],
+] as const;
+
+function ManualOrderStatusControl({
+  orderId,
+  status,
+  text,
+  border,
+  background,
+}: {
+  orderId: string;
+  status: string;
+  text: string;
+  border: string;
+  background: string;
+}) {
+  return (
+    <form
+      action={changeShippingOrderStatusAction}
+      onSubmit={(event) => {
+        if (!window.confirm("Alterar manualmente o status deste pedido? A mudança ficará registrada no histórico.")) {
+          event.preventDefault();
+        }
+      }}
+      style={{ marginBottom: "20px", padding: "14px", borderRadius: "12px", border: `1px solid ${border}`, background }}
+    >
+      <input type="hidden" name="id" value={orderId} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "10px" }}>
+        <div>
+          <div style={{ color: text, fontSize: "12.5px", fontWeight: 800 }}>Controle administrativo</div>
+          <div style={{ color: text, opacity: 0.72, fontSize: "11.5px", marginTop: "2px" }}>Altera o fluxo e registra a ação no histórico.</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <select
+          aria-label="Alterar status do pedido"
+          name="status"
+          defaultValue={status}
+          style={{ flex: 1, minWidth: 0, height: "38px", padding: "0 10px", borderRadius: "9px", border: `1px solid ${border}`, background, color: text, fontSize: "12.5px", fontWeight: 700, outline: "none" }}
+        >
+          {manualOrderStatusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        <button type="submit" style={{ height: "38px", padding: "0 12px", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12px", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>Atualizar</button>
+      </div>
+    </form>
+  );
+}
+
 export function ExpedicaoClient({ data }: { data: any }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
   const canDeleteOrder = data.userRole === "ADMIN" || data.userRole === "TI";
+  const canManuallyChangeOrderStatus = data.userRole === "ADMIN" || data.userRole === "TI";
 
   const [activeTab, setActiveTab] = useState("orders");
   const [uploadModalOpen, setUploadModalOpen] = useState<{ open: boolean; type: "NF" | "ETIQUETA" }>({ open: false, type: "NF" });
@@ -1152,6 +1212,15 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
 
               <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+                {canManuallyChangeOrderStatus ? (
+                  <ManualOrderStatusControl
+                    orderId={sel.raw.id}
+                    status={sel.raw.status}
+                    text={t.text}
+                    border={t.border}
+                    background={t.cardBg}
+                  />
+                ) : null}
                 {/* conference ring + volumes */}
                 <div style={{ display: "flex", alignItems: "center", gap: "22px", padding: "20px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: "20px" }}>
                   <div style={{ position: "relative", width: "108px", height: "108px", flexShrink: 0 }}>
@@ -1419,6 +1488,15 @@ const moves = getTimelineSteps(sel.raw.status, sel);
               </div>
 
                             <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+                {canManuallyChangeOrderStatus ? (
+                  <ManualOrderStatusControl
+                    orderId={sel.raw.id}
+                    status={sel.raw.status}
+                    text={t.text}
+                    border={t.border}
+                    background={t.cardBg}
+                  />
+                ) : null}
                 {/* customer info */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "28px" }}>
                   <span style={{ fontSize: "16px", fontWeight: "700", lineHeight: "1.3", color: t.text }}>{sel.customer}</span>

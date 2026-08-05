@@ -31,6 +31,17 @@ export type ManualShippingOrderSubmissionState = {
   detail?: string;
 };
 
+const manualShippingOrderStatuses = new Set([
+  "NOVO",
+  "EM_SEPARACAO",
+  "SEPARADO",
+  "EM_CONFERENCIA",
+  "CONFERIDO",
+  "PRONTO_ROMANEIO",
+  "EXPEDIDO",
+  "CANCELADO",
+]);
+
 class ManualShippingOrderSubmissionError extends Error {
   constructor(
     readonly feedback: string,
@@ -74,18 +85,7 @@ export async function updateShippingOrderAction(formData: FormData) {
   const shippingService = String(formData.get("shippingService") ?? "").trim();
   const trackingCode = String(formData.get("trackingCode") ?? "").trim();
 
-  const allowedStatuses = new Set([
-    "NOVO",
-    "EM_SEPARACAO",
-    "SEPARADO",
-    "EM_CONFERENCIA",
-    "CONFERIDO",
-    "PRONTO_ROMANEIO",
-    "EXPEDIDO",
-    "CANCELADO",
-  ]);
-
-  if (!allowedStatuses.has(status)) {
+  if (!manualShippingOrderStatuses.has(status)) {
     redirect(`/expedicao/${id}/editar?feedback=status-invalido`);
   }
 
@@ -179,6 +179,64 @@ export async function updateShippingOrderAction(formData: FormData) {
   revalidatePath(`/expedicao/${id}`);
   revalidatePath(`/expedicao/${id}/editar`);
   redirect(`/expedicao/${id}?feedback=salvo`);
+}
+
+export async function changeShippingOrderStatusAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const id = String(formData.get("id") ?? "").trim();
+  const nextStatus = String(formData.get("status") ?? "").trim().toUpperCase();
+
+  if (!id || !manualShippingOrderStatuses.has(nextStatus)) {
+    redirect("/expedicao?feedback=status-invalido");
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: order, error: orderError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, payload_origem")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (orderError || !order) {
+    redirect("/expedicao?feedback=erro");
+  }
+
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const previousHistory = Array.isArray(payload.historicoStatusManual)
+    ? payload.historicoStatusManual
+    : [];
+  const change = {
+    statusAnterior: order.status,
+    statusNovo: nextStatus,
+    alteradoEm: new Date().toISOString(),
+    alteradoPorId: user.id,
+    alteradoPorNome: user.nome,
+    alteradoPorPapel: user.papel,
+  };
+
+  const { error: updateError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .update({
+      status: nextStatus,
+      payload_origem: {
+        ...payload,
+        ultimoAjusteStatusManual: change,
+        historicoStatusManual: [...previousHistory, change],
+      },
+    })
+    .eq("id", id);
+
+  if (updateError) {
+    redirect("/expedicao?feedback=erro");
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath("/expedicao/conferidos");
+  revalidatePath("/romaneio");
+  revalidatePath("/portal");
+  redirect("/expedicao?feedback=status-atualizado");
 }
 
 export async function createManualShippingOrderAction(formData: FormData) {
