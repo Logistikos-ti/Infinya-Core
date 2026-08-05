@@ -19,6 +19,7 @@ import {
 } from "@/components/layout/app-sidebar";
 import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import type { AppUserContext } from "@/lib/auth";
 import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 
@@ -217,22 +218,22 @@ export function PortalChrome({
           </div>
           <div className="hidden flex-1 sm:block" />
           {isMasterPreview ? (
-            <label className="flex min-w-[220px] items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-xs font-semibold text-violet-800 dark:border-violet-300/20 dark:bg-violet-400/10 dark:text-violet-100">
-              <span className="whitespace-nowrap">Modo mestre</span>
-              <select
-                aria-label="Selecionar portal do depositante"
+            <div className="w-full min-w-[250px] sm:w-[280px]">
+              <FancySelectInput
+                label="Modo mestre"
+                name="portal-depositante-mestre"
                 value={selectedDepositanteId}
-                onChange={(event) => changeMasterDepositante(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
-              >
-                <option value="">Selecionar depositante</option>
-                {masterDepositantes.map((depositante) => (
-                  <option key={depositante.id} value={depositante.id}>
-                    {depositante.nome}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={changeMasterDepositante}
+                options={[
+                  { value: "", label: "Selecionar portal" },
+                  ...masterDepositantes.map((depositante) => ({
+                    value: depositante.id,
+                    label: depositante.nome,
+                  })),
+                ]}
+                menuClassName="max-h-[min(24rem,calc(100vh-9rem))]"
+              />
+            </div>
           ) : null}
           <button
             type="button"
