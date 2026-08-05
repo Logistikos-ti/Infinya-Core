@@ -17,6 +17,7 @@ type FancySelectInputProps = {
   options: FancySelectOption[];
   disabled?: boolean;
   menuClassName?: string;
+  hideLabel?: boolean;
 };
 
 export function FancySelectInput({
@@ -27,6 +28,7 @@ export function FancySelectInput({
   options,
   disabled = false,
   menuClassName,
+  hideLabel = false,
 }: FancySelectInputProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -56,7 +58,10 @@ export function FancySelectInput({
 
   return (
     <div className="flex flex-col gap-1 relative" ref={containerRef}>
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <span className={cn(
+        "text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400",
+        hideLabel && "sr-only",
+      )}>
         {label}
       </span>
       <input type="hidden" name={name} value={value} />
