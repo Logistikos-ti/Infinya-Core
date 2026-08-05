@@ -346,15 +346,15 @@ function DashboardView({
             <EmptyState text="Nenhum pedido encontrado." />
           )}
         </Panel>
-        <Panel
-          title="Níveis de estoque"
-          icon={<AlertTriangle className="h-4 w-4" />}
-        >
-          <div className="mb-2 px-5 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-semibold text-rose-500">
-              {lowStock.length}
-            </span>{" "}
-            itens em atenção
+        <Panel title="Níveis de estoque">
+          <div className="mb-2 flex items-center gap-1.5 px-5 text-xs text-slate-500 dark:text-slate-400">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+            <span>
+              <span className="font-semibold text-rose-500">
+                {lowStock.length}
+              </span>{" "}
+              itens em atenção
+            </span>
           </div>
           {lowStock.length ? (
             lowStock.map((item) => <StockRow key={item.id} item={item} />)
@@ -1114,9 +1114,17 @@ function StockRow({
 }) {
   return (
     <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3 last:border-0 dark:border-white/10">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white">
-        <Package className="h-4 w-4" />
-      </span>
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={item.productName ?? "Produto"}
+          className="h-9 w-9 shrink-0 rounded-xl object-cover"
+        />
+      ) : (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white">
+          <Package className="h-4 w-4" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-semibold">
           {item.productName ?? "Produto"}
