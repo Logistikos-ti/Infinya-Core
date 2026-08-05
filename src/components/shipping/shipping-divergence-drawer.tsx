@@ -440,17 +440,9 @@ export function ShippingDivergenceDrawer({
           )}
         </div>
 
-        {/* Footer with Action Button */}
-        <div className="border-t border-slate-200 bg-slate-50/50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
-          {readOnly ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 px-6 text-sm font-bold border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
-            >
-              Fechar Visualização
-            </button>
-          ) : (
+        {/* Footer with Action Button (only in interactive mode) */}
+        {!readOnly && (
+          <div className="border-t border-slate-200 bg-slate-50/50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
             <button
               type="submit"
               form="divergence-resolution-form"
@@ -469,8 +461,8 @@ export function ShippingDivergenceDrawer({
                 </>
               )}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
