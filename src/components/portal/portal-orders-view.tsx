@@ -51,8 +51,13 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [openingOrder, setOpeningOrder] = useState(false);
 
   const divergenceOrders = useMemo(
-    () => orders.filter((o) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter)),
-    [orders]
+    () =>
+      orders.filter(
+        (o) =>
+          ["DIVERGENCIA", "DIVERGENTE", "ERRO", "CANCELADO"].includes(o.status) &&
+          (o.status !== "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter)),
+      ),
+    [orders],
   );
 
   const filteredOrders = useMemo(
