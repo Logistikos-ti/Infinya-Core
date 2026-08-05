@@ -5,20 +5,43 @@ import Link from "next/link";
 import { Truck } from "lucide-react";
 import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { getCarrierBrand } from "@/lib/carrier-branding";
+import { getSaoPauloDateStamp } from "@/lib/utils";
 import type { RomaneioRecordListItem } from "@/lib/romaneio-records";
 
 type Tab = "abertos" | "finalizados";
 
 const cardStyle = { border: `1px solid ${hexAlpha("#94A3B8", 0.14)}`, background: hexAlpha("#94A3B8", 0.045) };
 
+/** "YYYYMM" in America/Sao_Paulo, or null if the date is missing/invalid. */
+function monthKey(value: string | null | undefined) {
+  const stamp = getSaoPauloDateStamp(value ?? null);
+  return stamp ? stamp.slice(0, 6) : null;
+}
+
 export function RomaneioListClient({ records }: { records: RomaneioRecordListItem[] }) {
   const [tab, setTab] = useState<Tab>("abertos");
+
+  // Fixed for the lifetime of this page load, not recomputed per render --
+  // a page open right at midnight on the 1st doesn't need to reshuffle
+  // mid-session, the next visit already reflects the new month.
+  const currentMonthKey = useMemo(() => monthKey(new Date().toISOString()), []);
 
   // "Finalizado" here covers anything that no longer needs action --
   // liberado (already sent out) or cancelado -- so closing a romaneio
   // moves it out of "Abertos" automatically without any manual step.
+  // Scoped to the current calendar month: once the month turns over, a
+  // romaneio finalizado in a previous month simply stops showing up here
+  // (still on the desktop reports, just not cluttering this quick list).
   const openRecords = useMemo(() => records.filter((r) => r.status === "ABERTO"), [records]);
-  const finalizedRecords = useMemo(() => records.filter((r) => r.status !== "ABERTO"), [records]);
+  const finalizedRecords = useMemo(
+    () =>
+      records.filter((r) => {
+        if (r.status === "ABERTO") return false;
+        const referenceDate = r.releasedAt ?? r.canceledAt ?? r.updatedAt;
+        return monthKey(referenceDate) === currentMonthKey;
+      }),
+    [records, currentMonthKey],
+  );
   const activeRecords = tab === "abertos" ? openRecords : finalizedRecords;
 
   return (
@@ -27,6 +50,12 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
         <TabButton active={tab === "abertos"} onClick={() => setTab("abertos")} label="Abertos" count={openRecords.length} />
         <TabButton active={tab === "finalizados"} onClick={() => setTab("finalizados")} label="Finalizados" count={finalizedRecords.length} />
       </div>
+
+      {tab === "finalizados" && (
+        <p className="px-1 text-[11.5px]" style={{ color: mobileColors.dim }}>
+          Mostrando apenas os finalizados deste mês.
+        </p>
+      )}
 
       {activeRecords.length ? (
         activeRecords.map((record) => {
@@ -136,7 +165,7 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
           className="rounded-[24px] px-4 py-8 text-center text-sm"
           style={{ border: `1px dashed ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.muted }}
         >
-          {tab === "abertos" ? "Nenhum romaneio em aberto no momento." : "Nenhum romaneio finalizado ainda."}
+          {tab === "abertos" ? "Nenhum romaneio em aberto no momento." : "Nenhum romaneio finalizado neste mês."}
         </div>
       )}
     </section>
