@@ -568,7 +568,7 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
     return () => window.clearInterval(interval);
   }, []);
   const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
-  const statusStyle = getOperationalStatusStyle(order.status);
+  const statusStyle = getOperationalStatusStyle(order.status, order.statusLabel);
   const statusColor = statusStyle.color;
   const info = [
     ["Canal", order.marketplace || order.channel || "Operação própria"],
@@ -641,7 +641,14 @@ function OrderDocumentCard({ icon, label, available, allowUpload = true, viewHre
   return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
 }
 
-function getOperationalStatusStyle(status: string) {
+function getOperationalStatusStyle(status: string, label?: string) {
+  if (label === "Aguardando tratativa" || label === "Divergência" || status === "DIVERGENCIA" || status === "DIVERGENTE") {
+    return { background: "rgba(245,158,11,.15)", color: "#F59E0B" };
+  }
+  if (label === "Prosseguir c/ divergência") {
+    return { background: "rgba(139,92,246,.15)", color: "#8B5CF6" };
+  }
+
   const colors: Record<string, { background: string; color: string }> = {
     NOVO: { background: "rgba(100,116,139,.15)", color: "#64748B" },
     EM_SEPARACAO: { background: "rgba(59,130,246,.15)", color: "#3B82F6" },
@@ -652,13 +659,14 @@ function getOperationalStatusStyle(status: string) {
     EXPEDIDO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
     CANCELADO: { background: "rgba(239,68,68,.15)", color: "#EF4444" },
     DIVERGENTE: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
+    DIVERGENCIA: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
   };
 
   return colors[status] ?? colors.NOVO;
 }
 
 function StatusBadge({ status, label }: { status: string; label: string }) {
-  const color = getOperationalStatusStyle(status);
+  const color = getOperationalStatusStyle(status, label);
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: color.background, color: color.color }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color.color }} />

@@ -1121,6 +1121,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function formatShippingStatusLabel(status: string, payload?: Record<string, unknown> | null) {
   const normalizedPayload = isRecord(payload) ? payload : {};
+  const hasTratamento = isRecord(normalizedPayload.tratamentoDivergencia) || Boolean(normalizedPayload.divergenciaTratada);
+  const tratamento = isRecord(normalizedPayload.tratamentoDivergencia) ? (normalizedPayload.tratamentoDivergencia as any) : null;
+  const hasDivergencePending =
+    Boolean(
+      normalizedPayload.divergencia ||
+      (isRecord(normalizedPayload.separacao) && (normalizedPayload.separacao as any).cancelado) ||
+      (isRecord(normalizedPayload.conferencia) && (normalizedPayload.conferencia as any).motivoDivergencia)
+    ) && !hasTratamento;
+
   switch (status) {
     case "NOVO":
       return "Novo";
@@ -1137,9 +1146,21 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
     case "EXPEDIDO":
       return "Expedido";
     case "CANCELADO":
+      if (hasDivergencePending) {
+        return "Aguardando tratativa";
+      }
+      if (tratamento?.acao === "PROSSEGUIR_COM_DIVERGENCIA") {
+        return "Prosseguir c/ divergência";
+      }
+      if (tratamento?.acao === "CANCELAR_DEFINITIVO") {
+        return "Cancelado";
+      }
       return "Cancelado";
     case "DIVERGENCIA":
     case "DIVERGENTE":
+      if (hasDivergencePending) {
+        return "Aguardando tratativa";
+      }
       return "Divergência";
     default:
       return status;
