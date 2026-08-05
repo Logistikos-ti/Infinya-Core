@@ -64,6 +64,7 @@ export default async function MobileStockInventarioProdutosPage({
     .from("estoque")
     .select("id, quantidade, produto:produtos(nome, sku, codigo_interno, codigo_externo, codigo_externo_pack, imagem_principal_url)")
     .eq("depositante_id", depositanteId)
+    .gt("quantidade", 0)
     .order("created_at", { ascending: true });
 
   const produtos = (estoqueRows ?? []).map((row) => ({
