@@ -1,36 +1,47 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { inflateSync, deflateSync } from "node:zlib";
 import type { RomaneioCarrierGroup, RomaneioOrderSummary } from "@/lib/romaneio";
 import type { RomaneioRecordDetail, RomaneioRecordOrder } from "@/lib/romaneio-records";
 
 // ─────────────────────────────────────────────────────────────
-// Visual identity — mirrors src/components/mobile/mobile-kit-tokens.tsx
-// so the printed romaneio matches the app's dark navy / blue-violet look.
-// Colors are expressed as PDF "rg"/"RG" triplets (0-1 floats).
+// Infinoos WMS romaneio — hand-built PDF (no PDF library in this
+// project; see src/lib/shipping-danfe.ts for the same approach on the
+// DANFE side). The layout follows the approved design reference: dark
+// header band with the wordmark + status pill, a light "emitido em"
+// strip, a 4-up card grid, the orders table with a totals row, the
+// audit-photo confirmations and a closing brand band.
+// Colors mirror src/components/mobile/mobile-kit-tokens.tsx.
 // ─────────────────────────────────────────────────────────────
+type RGB = readonly [number, number, number];
+
 const NAVY: RGB = [0.039, 0.067, 0.125]; // #0A1120
+const NAVY_GLOW: RGB = [0.13, 0.105, 0.29]; // indigo glow on the header's right side
 const BLUE: RGB = [0.231, 0.51, 0.965]; // #3B82F6
 const BLUE_LIGHT: RGB = [0.376, 0.647, 0.98]; // #60A5FA
 const VIOLET: RGB = [0.545, 0.361, 0.965]; // #8B5CF6
+const PINK: RGB = [0.925, 0.282, 0.6]; // #EC4899 — right end of the accent bar
 const GREEN: RGB = [0.063, 0.725, 0.506]; // #10B981
+const GREEN_DEEP: RGB = [0.024, 0.47, 0.34]; // readable green on a light green fill
+const GREEN_BRIGHT: RGB = [0.2, 0.9, 0.62]; // readable green on the dark header
 const AMBER: RGB = [0.961, 0.62, 0.043]; // #F59E0B
 const RED: RGB = [0.937, 0.267, 0.267]; // #EF4444
-const TEXT_DARK: RGB = [0.106, 0.137, 0.192]; // near-navy body text on white
+const TEXT_DARK: RGB = [0.106, 0.137, 0.192];
 const MUTED: RGB = [0.525, 0.584, 0.678]; // #8695AD
-const CARD_BG: RGB = [0.961, 0.969, 0.984]; // very light blue-gray
-const CARD_BORDER: RGB = [0.878, 0.902, 0.933];
-const TABLE_HEAD: RGB = NAVY;
-const TABLE_ROW_ALT: RGB = [0.965, 0.973, 0.988];
 const WHITE: RGB = [1, 1, 1];
-
-type RGB = readonly [number, number, number];
+const CARD_BORDER: RGB = [0.886, 0.91, 0.941];
+const RULE: RGB = [0.902, 0.918, 0.945];
+const BAND_BG: RGB = [0.973, 0.977, 0.988];
+const ROW_ALT: RGB = [0.973, 0.977, 0.988];
 
 const PAGE_W = 595;
 const PAGE_H = 842;
 const MARGIN = 40;
-const HEADER_HEIGHT = 84;
+const CONTENT_W = PAGE_W - MARGIN * 2;
 const CONTENT_RIGHT = PAGE_W - MARGIN;
+const HEADER_H = 118;
+const ACCENT_H = 3;
+const META_H = 30;
+const FOOTER_H = 30;
+
+const ORDERS_PER_PAGE = 12;
 
 type TableOrderRow = {
   index: number;
@@ -42,6 +53,15 @@ type TableOrderRow = {
   statusLabel: string;
 };
 
+type InfoField = {
+  label: string;
+  value: string;
+  /** Label color; defaults to MUTED. */
+  accent?: RGB;
+  /** Renders the card in the green "valor total" treatment. */
+  highlight?: boolean;
+};
+
 type PhotoChecks = {
   hasOperatorPhoto: boolean;
   hasDriverPhoto: boolean;
@@ -49,37 +69,44 @@ type PhotoChecks = {
 
 type PageOptions = {
   docLabel: string;
+  docSubtitle: string;
   code?: string;
   statusLabel?: string;
   statusTone?: RGB;
-  fields: { label: string; value: string }[];
+  /** "Liberado 06/08/2026, 08:04" — shown next to "Emitido em ...". */
+  finalizedLabel?: string;
+  fields: InfoField[];
   depositantesBar?: string;
   orders: TableOrderRow[];
+  orderCountLabel: string;
+  totalUnits?: string;
+  totalValue?: string;
+  photos?: PhotoChecks;
   pageNumber: number;
   totalPages: number;
-  photos?: PhotoChecks;
+  isLastPage: boolean;
   emittedAt: string;
-  // "Liberado 06/08/2026, 08:04" (or "Cancelado ...") -- appended next to
-  // "Emitido em" once the romaneio has actually been finalized. Absent for
-  // the ad-hoc pre-closing group PDF, which has no such status yet.
-  finalizedLabel?: string;
 };
 
 export function buildRomaneioPdf(group: RomaneioCarrierGroup) {
-  const chunkSize = 16;
   const orders = group.orders.map(toGroupOrderRow);
-  const chunks = chunkArray(orders, chunkSize);
+  const chunks = chunkArray(orders, ORDERS_PER_PAGE);
   const totalPages = Math.max(1, chunks.length);
   const emittedAt = formatDateTime(new Date().toISOString());
 
   const pages = (chunks.length ? chunks : [[]]).map((chunk, index) =>
     buildPageContentStream({
       docLabel: "Romaneio de Expedição",
+      docSubtitle: "Documento de carga · expedição e coleta",
       fields: groupFields(group),
       depositantesBar: group.depositantes.join("  —  ") || "-",
       orders: chunk,
+      orderCountLabel: pluralOrders(group.orderCount),
+      totalUnits: group.totalUnits,
+      totalValue: group.totalValue,
       pageNumber: index + 1,
       totalPages,
+      isLastPage: index === totalPages - 1,
       emittedAt,
     }),
   );
@@ -102,15 +129,17 @@ export function buildRomaneioRecordsSummaryPdf(records: RomaneioRecordDetail[]) 
   const pages = records.flatMap((record) => buildPersistedRomaneioPages(record));
 
   if (!pages.length) {
-    const emittedAt = formatDateTime(new Date().toISOString());
     return createBrandedPdfDocument([
       buildPageContentStream({
         docLabel: "Resumo de Romaneios",
+        docSubtitle: "Documento de carga · expedição e coleta",
         fields: [],
         orders: [],
+        orderCountLabel: "0 pedidos",
         pageNumber: 1,
         totalPages: 1,
-        emittedAt,
+        isLastPage: true,
+        emittedAt: formatDateTime(new Date().toISOString()),
       }),
     ]);
   }
@@ -119,9 +148,8 @@ export function buildRomaneioRecordsSummaryPdf(records: RomaneioRecordDetail[]) 
 }
 
 function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
-  const chunkSize = 16;
   const orders = record.orders.map(toRecordOrderRow);
-  const chunks = chunkArray(orders, chunkSize);
+  const chunks = chunkArray(orders, ORDERS_PER_PAGE);
   const totalPages = Math.max(1, chunks.length);
   const emittedAt = formatDateTime(new Date().toISOString());
   const photos = parseConferenciaPhotos(record.notes);
@@ -131,17 +159,22 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
   return (chunks.length ? chunks : [[]]).map((chunk, index) =>
     buildPageContentStream({
       docLabel: "Romaneio Operacional",
+      docSubtitle: "Documento de carga · expedição e coleta",
       code: record.code,
       statusLabel: record.statusLabel,
       statusTone: statusTone(record.status),
+      finalizedLabel,
       fields: recordFields(record),
       depositantesBar: record.depositantes.join("  —  ") || "-",
       orders: chunk,
+      orderCountLabel: pluralOrders(record.orderCount),
+      totalUnits: record.totalUnits,
+      totalValue: record.totalValue,
+      photos,
       pageNumber: index + 1,
       totalPages,
-      photos,
+      isLastPage: index === totalPages - 1,
       emittedAt,
-      finalizedLabel,
     }),
   );
 }
@@ -166,25 +199,25 @@ function parseConferenciaPhotos(notes: string | null): PhotoChecks {
   }
 }
 
-function groupFields(group: RomaneioCarrierGroup) {
+function groupFields(group: RomaneioCarrierGroup): InfoField[] {
   return [
-    { label: "Transportadora", value: group.carrierName || "-" },
-    { label: "Cutoff operacional", value: group.cutoff || "-" },
-    { label: "Pedidos / Unidades", value: `${group.orderCount} pedido(s) · ${group.totalUnits} un.` },
-    { label: "Valor total da carga", value: group.totalValue || "-" },
+    { label: "Transportadora", value: group.carrierName || "-", accent: VIOLET },
+    { label: "Cutoff operacional", value: group.cutoff || "-", accent: BLUE },
+    { label: "Pedidos / Unidades", value: `${group.orderCount} pedidos · ${group.totalUnits} un.` },
+    { label: "Valor total da carga", value: group.totalValue || "-", accent: GREEN, highlight: true },
     { label: "Depositantes", value: depositanteCountLabel(group.depositantes.length) },
     { label: "Nº de destinos", value: destinationCountLabel(group.destinations.length) },
   ];
 }
 
-function recordFields(record: RomaneioRecordDetail) {
+function recordFields(record: RomaneioRecordDetail): InfoField[] {
   return [
-    { label: "Transportadora", value: record.carrierName || "-" },
-    { label: "Motorista", value: record.driverName || "Não informado" },
+    { label: "Transportadora", value: record.carrierName || "-", accent: VIOLET },
+    { label: "Motorista", value: record.driverName || "Não informado", accent: BLUE },
     { label: "Doc. motorista", value: record.driverDocument || "Não informado" },
     { label: "Veículo / Placa", value: `${record.vehicleModel || "-"} · ${record.vehiclePlate || "-"}` },
-    { label: "Pedidos / Unidades", value: `${record.orderCount} pedido(s) · ${record.totalUnits} un.` },
-    { label: "Valor total da carga", value: record.totalValue || "-" },
+    { label: "Pedidos / Unidades", value: `${record.orderCount} pedidos · ${record.totalUnits} un.` },
+    { label: "Valor total da carga", value: record.totalValue || "-", accent: GREEN, highlight: true },
     { label: "Depositantes", value: depositanteCountLabel(record.depositantes.length) },
     { label: "Nº de destinos", value: destinationCountLabel(record.destinations.length) },
   ];
@@ -196,6 +229,10 @@ function depositanteCountLabel(count: number) {
 
 function destinationCountLabel(count: number) {
   return count === 1 ? "1 cidade" : `${count} cidades`;
+}
+
+function pluralOrders(count: number) {
+  return count === 1 ? "1 pedido" : `${count} pedidos`;
 }
 
 function toGroupOrderRow(order: RomaneioOrderSummary, index: number): TableOrderRow {
@@ -237,53 +274,37 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Page content stream — draws the branded header, an info card with the
-// romaneio's key data, the orders table and (when the double-check
-// captured them) the audit photo confirmations, using raw PDF drawing
-// operators (this file hand-builds the PDF byte stream, there is no
-// external PDF library dependency in this project).
+// Page composition
 // ─────────────────────────────────────────────────────────────
 function buildPageContentStream(opts: PageOptions): string {
   const ops: string[] = [];
 
-  drawHeader(ops, opts.docLabel);
+  drawHeader(ops, opts);
+  drawMetaBand(ops, opts);
 
-  let y = PAGE_H - HEADER_HEIGHT - 34;
+  let y = PAGE_H - HEADER_H - ACCENT_H - META_H - 26;
 
-  // Code + status chips, page indicator.
-  if (opts.code) {
-    let chipX = MARGIN;
-    chipX = drawChip(ops, chipX, y, opts.code, NAVY, CARD_BG, CARD_BORDER) + 8;
-    if (opts.statusLabel) {
-      chipX = drawChip(ops, chipX, y, opts.statusLabel, opts.statusTone ?? MUTED, tint(opts.statusTone ?? MUTED, 0.12), tint(opts.statusTone ?? MUTED, 0.35)) + 8;
-    }
-  }
-  text(ops, CONTENT_RIGHT, y + 5, `Página ${opts.pageNumber} de ${opts.totalPages}`, 8.5, MUTED, false, "right");
-  y -= 26;
-  const emittedLine = opts.finalizedLabel ? `Emitido em ${opts.emittedAt} · ${opts.finalizedLabel}` : `Emitido em ${opts.emittedAt}`;
-  text(ops, MARGIN, y, emittedLine, 8.5, MUTED, false);
-  y -= 18;
-
-  // Info card.
   if (opts.fields.length) {
-    y = drawInfoCard(ops, y, opts.fields);
+    drawSectionTitle(ops, y, "DADOS DA CARGA");
+    y -= 16;
+    y = drawInfoCards(ops, y, opts.fields);
     y -= 14;
   }
 
   if (opts.depositantesBar) {
     y = drawDepositantesBar(ops, y, opts.depositantesBar);
-    y -= 14;
+    y -= 22;
   }
 
-  // Orders table section title.
-  text(ops, MARGIN, y, "PEDIDOS DA CARGA", 11, NAVY, true);
-  fillRect(ops, MARGIN, y - 5, 96, 2, gradientMid());
-  y -= 22;
+  drawSectionTitle(ops, y, "PEDIDOS DA CARGA", opts.orderCountLabel);
+  y -= 14;
 
-  y = drawOrdersTable(ops, y, opts.orders);
+  y = drawOrdersTable(ops, y, opts);
 
-  if (opts.photos && (opts.photos.hasOperatorPhoto || opts.photos.hasDriverPhoto)) {
-    y -= 20;
+  if (opts.isLastPage && opts.photos && (opts.photos.hasOperatorPhoto || opts.photos.hasDriverPhoto)) {
+    y -= 26;
+    drawSectionTitle(ops, y, "FOTOS DE AUDITORIA");
+    y -= 14;
     drawPhotoChecks(ops, y, opts.photos);
   }
 
@@ -292,163 +313,260 @@ function buildPageContentStream(opts: PageOptions): string {
   return ops.join("\n");
 }
 
-function drawHeader(ops: string[], docLabel: string) {
-  fillRect(ops, 0, PAGE_H - HEADER_HEIGHT, PAGE_W, HEADER_HEIGHT, NAVY);
-
-  const logo = getLogoImage();
-  if (logo) {
-    const logoWidth = 132;
-    const logoHeight = (logoWidth * logo.height) / logo.width;
-    const logoY = PAGE_H - HEADER_HEIGHT + (HEADER_HEIGHT - logoHeight) / 2;
-    drawImage(ops, MARGIN, logoY, logoWidth, logoHeight);
+function drawHeader(ops: string[], opts: PageOptions) {
+  // Horizontal navy -> indigo wash, brightest toward the right edge.
+  const strips = 56;
+  const stripWidth = PAGE_W / strips;
+  for (let i = 0; i < strips; i += 1) {
+    const t = i / (strips - 1);
+    const glow = Math.max(0, (t - 0.42) / 0.58);
+    fillRect(ops, i * stripWidth, PAGE_H - HEADER_H, stripWidth + 0.7, HEADER_H, lerpColor(NAVY, NAVY_GLOW, glow * glow));
   }
 
-  text(ops, 208, PAGE_H - 32, "INFINOOS WMS", 9, BLUE_LIGHT, true, "left", 1.4);
-  text(ops, 208, PAGE_H - 52, docLabel, 18, WHITE, true);
-  text(ops, 208, PAGE_H - 68, "Sistema de gestão de armazém", 9, tint(WHITE, 0.6), false);
+  text(ops, MARGIN, PAGE_H - 34, "INFINOOS", 8.6, BLUE_LIGHT, true, "left", 3.4);
+  text(ops, MARGIN, PAGE_H - 57, "WMS", 22, BLUE_LIGHT, true);
+  text(ops, MARGIN, PAGE_H - 82, opts.docLabel, 15.5, WHITE, true);
+  text(ops, MARGIN, PAGE_H - 97, opts.docSubtitle, 8.4, lerpColor(NAVY, WHITE, 0.62), false);
 
-  // Poor man's gradient accent bar under the header (blue -> violet).
-  const segments = 24;
-  const segmentWidth = PAGE_W / segments;
-  for (let i = 0; i < segments; i += 1) {
-    const color = lerpColor(BLUE, VIOLET, i / (segments - 1));
-    fillRect(ops, i * segmentWidth, PAGE_H - HEADER_HEIGHT - 4, segmentWidth + 0.5, 4, color);
+  if (opts.statusLabel) {
+    const tone = opts.statusTone ?? MUTED;
+    const label = opts.statusLabel.toUpperCase();
+    const pillH = 20;
+    const pillW = measureText(label, 8.4, true, 1.2) + 34;
+    const pillX = CONTENT_RIGHT - pillW;
+    const pillY = PAGE_H - 45;
+    fillStrokeRoundedRect(ops, pillX, pillY, pillW, pillH, pillH / 2, lerpColor(NAVY, tone, 0.24), lerpColor(NAVY, tone, 0.55), 0.9);
+    fillCircle(ops, pillX + 13, pillY + pillH / 2, 3.2, tone === GREEN ? GREEN_BRIGHT : tone);
+    text(ops, pillX + 22, pillY + 6.5, label, 8.4, tone === GREEN ? GREEN_BRIGHT : tone, true, "left", 1.2);
+  }
+
+  if (opts.code) {
+    text(ops, CONTENT_RIGHT, PAGE_H - 61, "ROMANEIO Nº", 7, lerpColor(NAVY, WHITE, 0.45), true, "right", 2.2);
+    text(ops, CONTENT_RIGHT, PAGE_H - 80, opts.code, 15, WHITE, true, "right");
+  }
+
+  // Accent bar: blue -> violet -> pink, matching the app's gradient.
+  const accentY = PAGE_H - HEADER_H - ACCENT_H;
+  for (let i = 0; i < strips; i += 1) {
+    const t = i / (strips - 1);
+    const color = t < 0.5 ? lerpColor(BLUE, VIOLET, t / 0.5) : lerpColor(VIOLET, PINK, (t - 0.5) / 0.5);
+    fillRect(ops, i * stripWidth, accentY, stripWidth + 0.7, ACCENT_H, color);
   }
 }
 
-function drawInfoCard(ops: string[], topY: number, fields: { label: string; value: string }[]) {
-  const columns = 2;
-  const rows = Math.ceil(fields.length / columns);
-  const rowHeight = 30;
-  const cardPaddingY = 14;
-  const cardHeight = rows * rowHeight + cardPaddingY * 2 - (rowHeight - 22);
-  const cardY = topY - cardHeight;
-  const colWidth = (PAGE_W - MARGIN * 2) / columns;
+function drawMetaBand(ops: string[], opts: PageOptions) {
+  const bandY = PAGE_H - HEADER_H - ACCENT_H - META_H;
+  fillRect(ops, 0, bandY, PAGE_W, META_H, BAND_BG);
+  line(ops, 0, bandY, PAGE_W, bandY, RULE, 0.7);
 
-  strokeRect(ops, MARGIN, cardY, PAGE_W - MARGIN * 2, cardHeight, CARD_BORDER, 0.75, CARD_BG);
+  const baseline = bandY + 11;
+  let x = MARGIN;
+  x = textRun(ops, x, baseline, "Emitido em ", 8.4, MUTED, false);
+  x = textRun(ops, x, baseline, opts.emittedAt, 8.4, TEXT_DARK, true);
+  if (opts.finalizedLabel) {
+    textRun(ops, x, baseline, ` · ${opts.finalizedLabel}`, 8.4, MUTED, false);
+  }
+
+  text(ops, CONTENT_RIGHT, baseline, `Página ${opts.pageNumber} de ${opts.totalPages}`, 8.4, MUTED, false, "right");
+}
+
+function drawSectionTitle(ops: string[], baseline: number, title: string, pillLabel?: string) {
+  text(ops, MARGIN, baseline, title, 10.5, NAVY, true, "left", 1.7);
+  let x = MARGIN + measureText(title, 10.5, true, 1.7) + 14;
+
+  if (pillLabel) {
+    const pillH = 15;
+    const pillW = measureText(pillLabel, 7.6, true) + 18;
+    fillStrokeRoundedRect(ops, x, baseline - 4, pillW, pillH, pillH / 2, tint(BLUE, 0.13), tint(BLUE, 0.32), 0.7);
+    text(ops, x + 9, baseline + 0.5, pillLabel, 7.6, lerpColor(BLUE, NAVY, 0.25), true);
+    x += pillW + 14;
+  }
+
+  line(ops, x, baseline + 3.5, CONTENT_RIGHT, baseline + 3.5, RULE, 0.9);
+}
+
+function drawInfoCards(ops: string[], topY: number, fields: InfoField[]) {
+  const columns = 4;
+  const gap = 10;
+  const cardW = (CONTENT_W - gap * (columns - 1)) / columns;
+  const cardH = 48;
+  const rows = Math.ceil(fields.length / columns);
 
   fields.forEach((field, index) => {
     const col = index % columns;
     const row = Math.floor(index / columns);
-    const x = MARGIN + 18 + col * colWidth;
-    const fieldTopY = cardY + cardHeight - cardPaddingY - row * rowHeight;
-    text(ops, x, fieldTopY - 9, field.label.toUpperCase(), 7, MUTED, true, "left", 0.4);
-    text(ops, x, fieldTopY - 21, truncate(field.value || "-", 58), 9.5, TEXT_DARK, false);
+    const x = MARGIN + col * (cardW + gap);
+    const y = topY - row * (cardH + gap) - cardH;
+
+    const bg = field.highlight ? tint(GREEN, 0.08) : WHITE;
+    const border = field.highlight ? tint(GREEN, 0.4) : CARD_BORDER;
+    fillStrokeRoundedRect(ops, x, y, cardW, cardH, 7, bg, border, 0.85);
+
+    text(ops, x + 11, y + cardH - 17, field.label.toUpperCase(), 6.6, field.accent ?? MUTED, true, "left", 0.55);
+    text(ops, x + 11, y + 12, truncate(field.value || "-", 19), 9.8, field.highlight ? GREEN_DEEP : TEXT_DARK, true);
   });
 
-  return cardY;
+  return topY - rows * cardH - (rows - 1) * gap;
 }
 
-function drawOrdersTable(ops: string[], topY: number, orders: TableOrderRow[]) {
-  const columns = [
-    { label: "#", width: 24 },
-    { label: "PEDIDO", width: 82 },
-    { label: "CLIENTE", width: 150 },
-    { label: "DESTINO", width: 118 },
-    { label: "UNID.", width: 42 },
-    { label: "VALOR", width: 65 },
-    { label: "STATUS", width: 34 },
-  ];
-  const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
-  const rowHeight = 18;
-  const headerHeight = 20;
-
-  let y = topY;
-  fillRect(ops, MARGIN, y - headerHeight, tableWidth, headerHeight, TABLE_HEAD);
-  let colX = MARGIN;
-  columns.forEach((col) => {
-    text(ops, colX + 6, y - headerHeight + 7, col.label, 7.2, WHITE, true);
-    colX += col.width;
-  });
-  y -= headerHeight;
-
-  if (!orders.length) {
-    fillRect(ops, MARGIN, y - rowHeight, tableWidth, rowHeight, TABLE_ROW_ALT);
-    text(ops, MARGIN + 6, y - rowHeight + 6, "Nenhum pedido nesta página.", 8, MUTED, false);
-    y -= rowHeight;
-    strokeRect(ops, MARGIN, y, tableWidth, headerHeight + rowHeight, CARD_BORDER, 0.6);
-    return y;
-  }
-
-  orders.forEach((order, index) => {
-    if (index % 2 === 1) fillRect(ops, MARGIN, y - rowHeight, tableWidth, rowHeight, TABLE_ROW_ALT);
-    colX = MARGIN;
-    const cells = [
-      String(order.index),
-      truncate(order.externalNumber || "-", 14),
-      truncate(order.customer || "-", 26),
-      truncate(order.destination || "-", 20),
-      order.units || "-",
-      truncate(order.total || "-", 11),
-      truncate(order.statusLabel || "-", 6),
-    ];
-    cells.forEach((cellText, cellIndex) => {
-      text(ops, colX + 6, y - rowHeight + 6, cellText, 7.6, TEXT_DARK, false);
-      colX += columns[cellIndex].width;
-    });
-    line(ops, MARGIN, y - rowHeight, MARGIN + tableWidth, y - rowHeight, CARD_BORDER, 0.4);
-    y -= rowHeight;
-  });
-
-  strokeRect(ops, MARGIN, y, tableWidth, topY - y, CARD_BORDER, 0.6);
+function drawDepositantesBar(ops: string[], topY: number, value: string) {
+  const height = 28;
+  const y = topY - height;
+  fillStrokeRoundedRect(ops, MARGIN, y, CONTENT_W, height, 7, WHITE, CARD_BORDER, 0.85);
+  text(ops, MARGIN + 12, y + 10.5, "DEPOSITANTES", 6.6, MUTED, true, "left", 0.55);
+  const valueX = MARGIN + 12 + measureText("DEPOSITANTES", 6.6, true, 0.55) + 14;
+  text(ops, valueX, y + 10, truncate(value, 92), 9, TEXT_DARK, false);
   return y;
 }
 
-// Full-width bar below the info card listing every depositante on this
-// romaneio side by side (em-dash separated) -- reuses the same visual
-// slot the layout previously used for a city-by-city destinations list;
-// the depositante names are what operators actually need at a glance.
-function drawDepositantesBar(ops: string[], topY: number, depositantesBar: string) {
-  text(ops, MARGIN, topY, "DEPOSITANTES", 7, MUTED, true, "left", 0.4);
-  const boxY = topY - 26;
-  const boxHeight = 20;
-  strokeRect(ops, MARGIN, boxY, PAGE_W - MARGIN * 2, boxHeight, CARD_BORDER, 0.75, CARD_BG);
-  text(ops, MARGIN + 12, boxY + 6, truncate(depositantesBar, 108), 9, TEXT_DARK, false);
-  return boxY;
-}
+const TABLE_COLUMNS: { label: string; width: number; align: "left" | "right" }[] = [
+  { label: "#", width: 28, align: "left" },
+  { label: "PEDIDO", width: 62, align: "left" },
+  { label: "CLIENTE", width: 170, align: "left" },
+  { label: "DESTINO", width: 112, align: "left" },
+  { label: "UNID.", width: 40, align: "right" },
+  { label: "VALOR", width: 58, align: "right" },
+  { label: "STATUS", width: 45, align: "right" },
+];
 
-// A short dark band at the very bottom of the page, mirroring the header
-// -- brand mark on the left, "generated electronically" note with the
-// romaneio code on the right. No signature lines here (removed on
-// request); just the closing identity bar from the design reference.
-function drawFooterBand(ops: string[], code?: string) {
-  const bandHeight = 30;
-  fillRect(ops, 0, 0, PAGE_W, bandHeight, NAVY);
-  text(ops, MARGIN, 11, "INFINOOS WMS", 8, tint(WHITE, 0.75), true, "left", 1.2);
-  const note = code
-    ? `Documento gerado eletronicamente · ${code}`
-    : "Documento gerado eletronicamente pelo sistema";
-  text(ops, CONTENT_RIGHT, 11, note, 7.6, tint(WHITE, 0.5), false, "right");
+function drawOrdersTable(ops: string[], topY: number, opts: PageOptions) {
+  const headerH = 24;
+  const rowH = 22;
+  const totalRowH = 24;
+  const radius = 8;
+  const showTotals = opts.isLastPage && Boolean(opts.totalValue);
+
+  // Header band (rounded top corners only, so it meets the rows flush).
+  const headerY = topY - headerH;
+  ops.push(`${NAVY[0]} ${NAVY[1]} ${NAVY[2]} rg`);
+  roundedTopRectPath(ops, MARGIN, headerY, CONTENT_W, headerH, radius);
+  ops.push("f");
+
+  let colX = MARGIN;
+  TABLE_COLUMNS.forEach((col) => {
+    const labelX = col.align === "right" ? colX + col.width - 10 : colX + 10;
+    text(ops, labelX, headerY + 8.5, col.label, 6.8, lerpColor(NAVY, WHITE, 0.72), true, col.align, 0.7);
+    colX += col.width;
+  });
+
+  let y = headerY;
+
+  if (!opts.orders.length) {
+    fillRect(ops, MARGIN, y - rowH, CONTENT_W, rowH, ROW_ALT);
+    text(ops, MARGIN + 10, y - rowH + 7.5, "Nenhum pedido nesta página.", 8, MUTED, false);
+    y -= rowH;
+  }
+
+  opts.orders.forEach((order, index) => {
+    const rowY = y - rowH;
+    if (index % 2 === 1) fillRect(ops, MARGIN, rowY, CONTENT_W, rowH, ROW_ALT);
+
+    let cellX = MARGIN;
+    const baseline = rowY + 7.5;
+
+    // #
+    text(ops, cellX + 10, baseline, String(order.index), 8, lerpColor(MUTED, VIOLET, 0.55), true);
+    cellX += TABLE_COLUMNS[0].width;
+
+    // PEDIDO
+    text(ops, cellX + 10, baseline, truncate(order.externalNumber || "-", 10), 8.4, TEXT_DARK, true);
+    cellX += TABLE_COLUMNS[1].width;
+
+    // CLIENTE
+    text(ops, cellX + 10, baseline, truncate(order.customer || "-", 34), 8.4, TEXT_DARK, false);
+    cellX += TABLE_COLUMNS[2].width;
+
+    // DESTINO
+    text(ops, cellX + 10, baseline, truncate(order.destination || "-", 23), 8.2, MUTED, false);
+    cellX += TABLE_COLUMNS[3].width;
+
+    // UNID.
+    text(ops, cellX + TABLE_COLUMNS[4].width - 10, baseline, order.units || "-", 8.4, TEXT_DARK, true, "right");
+    cellX += TABLE_COLUMNS[4].width;
+
+    // VALOR
+    text(ops, cellX + TABLE_COLUMNS[5].width - 10, baseline, truncate(order.total || "-", 12), 8.4, TEXT_DARK, true, "right");
+    cellX += TABLE_COLUMNS[5].width;
+
+    // STATUS pill, right-aligned inside its column.
+    const statusLabel = truncate(order.statusLabel || "-", 10);
+    const pillH = 14;
+    const pillW = measureText(statusLabel, 7, true) + 14;
+    const pillX = cellX + TABLE_COLUMNS[6].width - 10 - pillW;
+    fillStrokeRoundedRect(ops, pillX, rowY + (rowH - pillH) / 2, pillW, pillH, pillH / 2, tint(GREEN, 0.13), tint(GREEN, 0.32), 0.6);
+    text(ops, pillX + 7, rowY + (rowH - pillH) / 2 + 4.3, statusLabel, 7, GREEN_DEEP, true);
+
+    line(ops, MARGIN, rowY, MARGIN + CONTENT_W, rowY, RULE, 0.5);
+    y = rowY;
+  });
+
+  if (showTotals) {
+    const totalY = y - totalRowH;
+    ops.push(`${ROW_ALT[0]} ${ROW_ALT[1]} ${ROW_ALT[2]} rg`);
+    roundedBottomRectPath(ops, MARGIN, totalY, CONTENT_W, totalRowH, radius);
+    ops.push("f");
+
+    const labelRight = MARGIN + TABLE_COLUMNS.slice(0, 4).reduce((sum, col) => sum + col.width, 0) - 4;
+    text(ops, labelRight, totalY + 8.5, "TOTAL DA CARGA", 8, MUTED, true, "right", 0.4);
+
+    let cellX = MARGIN + TABLE_COLUMNS.slice(0, 4).reduce((sum, col) => sum + col.width, 0);
+    text(ops, cellX + TABLE_COLUMNS[4].width - 10, totalY + 8.5, opts.totalUnits ?? "-", 8.8, TEXT_DARK, true, "right");
+    cellX += TABLE_COLUMNS[4].width;
+    text(ops, cellX + TABLE_COLUMNS[5].width - 10, totalY + 8.5, opts.totalValue ?? "-", 8.8, GREEN_DEEP, true, "right");
+
+    y = totalY;
+  }
+
+  // Outline over the whole table so the rounded corners read as one card.
+  ops.push(`${CARD_BORDER[0]} ${CARD_BORDER[1]} ${CARD_BORDER[2]} RG`, "0.85 w");
+  roundedRectPath(ops, MARGIN, y, CONTENT_W, topY - y, radius);
+  ops.push("S");
+
+  return y;
 }
 
 // Renders a "confirmed" badge per captured audit photo instead of the
 // actual image (kept out of the printed document on purpose, same
 // privacy-conscious treatment as the PhotoCheck cards on the mobile
-// "Visualizar Romaneio" summary screen) -- a green check icon plus a
-// short label, side by side.
+// "Visualizar Romaneio" summary screen).
 function drawPhotoChecks(ops: string[], topY: number, photos: PhotoChecks) {
-  text(ops, MARGIN, topY, "FOTOS DE AUDITORIA", 9.5, NAVY, true);
-  const badgeY = topY - 34;
-  let x = MARGIN;
-  if (photos.hasOperatorPhoto) x = drawPhotoBadge(ops, x, badgeY, "Foto do operador confirmada") + 12;
-  if (photos.hasDriverPhoto) drawPhotoBadge(ops, x, badgeY, "Foto do motorista confirmada");
+  const cardH = 46;
+  const gap = 14;
+  const cardW = (CONTENT_W - gap) / 2;
+  const y = topY - cardH;
+
+  const labels: string[] = [];
+  if (photos.hasOperatorPhoto) labels.push("Foto do operador");
+  if (photos.hasDriverPhoto) labels.push("Foto do motorista");
+
+  labels.forEach((label, index) => {
+    const x = MARGIN + index * (cardW + gap);
+    fillStrokeRoundedRect(ops, x, y, cardW, cardH, 9, tint(GREEN, 0.08), tint(GREEN, 0.32), 0.85);
+    fillCircle(ops, x + 25, y + cardH / 2, 11, tint(GREEN, 0.2));
+    drawCheckIcon(ops, x + 19, y + cardH / 2 - 5, 12, GREEN_DEEP);
+    text(ops, x + 45, y + cardH / 2 + 2.5, label, 9.8, TEXT_DARK, true);
+    text(ops, x + 45, y + cardH / 2 - 10, "Confirmada no ato da coleta", 7.6, GREEN_DEEP, false);
+  });
+
+  return y;
 }
 
-function drawPhotoBadge(ops: string[], x: number, y: number, label: string) {
-  const iconSize = 22;
-  strokeRect(ops, x, y, iconSize, iconSize, tint(GREEN, 0.4), 0.8, tint(GREEN, 0.12));
-  drawCheckIcon(ops, x, y, iconSize, GREEN);
-  text(ops, x + iconSize + 8, y + 7, label, 8.6, TEXT_DARK, false);
-  return x + iconSize + 8 + estimateTextWidth(label, 8.6);
+function drawFooterBand(ops: string[], code?: string) {
+  fillRect(ops, 0, 0, PAGE_W, FOOTER_H, NAVY);
+  text(ops, MARGIN, 12, "INFINOOS WMS", 7.4, lerpColor(NAVY, WHITE, 0.42), true, "left", 2.6);
+  const note = code
+    ? `Documento gerado eletronicamente · ${code}`
+    : "Documento gerado eletronicamente pelo sistema";
+  text(ops, CONTENT_RIGHT, 12, note, 7.4, lerpColor(NAVY, WHITE, 0.38), false, "right");
 }
 
 function drawCheckIcon(ops: string[], x: number, y: number, size: number, color: RGB) {
-  const p1 = [x + size * 0.22, y + size * 0.48];
-  const p2 = [x + size * 0.42, y + size * 0.26];
-  const p3 = [x + size * 0.8, y + size * 0.68];
+  const p1 = [x + size * 0.16, y + size * 0.5];
+  const p2 = [x + size * 0.4, y + size * 0.24];
+  const p3 = [x + size * 0.86, y + size * 0.74];
   ops.push(
     `${color[0]} ${color[1]} ${color[2]} RG`,
-    `${size * 0.14} w`,
+    `${size * 0.16} w`,
     "1 J",
     "1 j",
     `${p1[0]} ${p1[1]} m ${p2[0]} ${p2[1]} l ${p3[0]} ${p3[1]} l S`,
@@ -469,7 +587,7 @@ function text(
   align: "left" | "right" = "left",
   letterSpacing = 0,
 ) {
-  const drawX = align === "right" ? x - estimateTextWidth(value, size) : x;
+  const drawX = align === "right" ? x - measureText(value, size, bold, letterSpacing) : x;
   // Tc (character spacing) is graphics state, not text-object-scoped, so
   // it must always be set explicitly here -- otherwise a letter-spaced
   // label would leak its spacing into every plain text() call after it.
@@ -484,43 +602,94 @@ function text(
   );
 }
 
-function fillRect(ops: string[], x: number, y: number, width: number, height: number, color: RGB) {
-  ops.push(`${color[0]} ${color[1]} ${color[2]} rg`, `${x} ${y} ${width} ${height} re f`);
+/** Draws a run of text and returns the x where the next run should start. */
+function textRun(ops: string[], x: number, y: number, value: string, size: number, color: RGB, bold: boolean) {
+  text(ops, x, y, value, size, color, bold);
+  return x + measureText(value, size, bold);
 }
 
-function strokeRect(
-  ops: string[],
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color: RGB,
-  lineWidth: number,
-  fill?: RGB,
-) {
-  if (fill) fillRect(ops, x, y, width, height, fill);
-  ops.push(`${color[0]} ${color[1]} ${color[2]} RG`, `${lineWidth} w`, `${x} ${y} ${width} ${height} re S`);
+function fillRect(ops: string[], x: number, y: number, width: number, height: number, color: RGB) {
+  ops.push(`${color[0]} ${color[1]} ${color[2]} rg`, `${x} ${y} ${width} ${height} re f`);
 }
 
 function line(ops: string[], x1: number, y1: number, x2: number, y2: number, color: RGB, lineWidth: number) {
   ops.push(`${color[0]} ${color[1]} ${color[2]} RG`, `${lineWidth} w`, `${x1} ${y1} m ${x2} ${y2} l S`);
 }
 
-function drawImage(ops: string[], x: number, y: number, width: number, height: number) {
-  ops.push("q", `${width} 0 0 ${height} ${x} ${y} cm`, "/Im1 Do", "Q");
+// 0.5523 is the standard circle/quarter-arc bezier constant.
+const ARC = 0.5523;
+
+function roundedRectPath(ops: string[], x: number, y: number, w: number, h: number, r: number) {
+  const k = ARC * r;
+  ops.push(
+    `${x + r} ${y} m`,
+    `${x + w - r} ${y} l`,
+    `${x + w - r + k} ${y} ${x + w} ${y + r - k} ${x + w} ${y + r} c`,
+    `${x + w} ${y + h - r} l`,
+    `${x + w} ${y + h - r + k} ${x + w - r + k} ${y + h} ${x + w - r} ${y + h} c`,
+    `${x + r} ${y + h} l`,
+    `${x + r - k} ${y + h} ${x} ${y + h - r + k} ${x} ${y + h - r} c`,
+    `${x} ${y + r} l`,
+    `${x} ${y + r - k} ${x + r - k} ${y} ${x + r} ${y} c`,
+  );
 }
 
-function drawChip(ops: string[], x: number, y: number, label: string, textColor: RGB, bg: RGB, border: RGB) {
-  const paddingX = 8;
-  const height = 18;
-  const width = estimateTextWidth(label, 8.5) + paddingX * 2;
-  strokeRect(ops, x, y - 4, width, height, border, 0.6, bg);
-  text(ops, x + paddingX, y + 1, label, 8.5, textColor, true);
-  return x + width;
+function roundedTopRectPath(ops: string[], x: number, y: number, w: number, h: number, r: number) {
+  const k = ARC * r;
+  ops.push(
+    `${x} ${y} m`,
+    `${x + w} ${y} l`,
+    `${x + w} ${y + h - r} l`,
+    `${x + w} ${y + h - r + k} ${x + w - r + k} ${y + h} ${x + w - r} ${y + h} c`,
+    `${x + r} ${y + h} l`,
+    `${x + r - k} ${y + h} ${x} ${y + h - r + k} ${x} ${y + h - r} c`,
+    `${x} ${y} l`,
+  );
 }
 
-function gradientMid(): RGB {
-  return lerpColor(BLUE, VIOLET, 0.5);
+function roundedBottomRectPath(ops: string[], x: number, y: number, w: number, h: number, r: number) {
+  const k = ARC * r;
+  ops.push(
+    `${x} ${y + h} m`,
+    `${x} ${y + r} l`,
+    `${x} ${y + r - k} ${x + r - k} ${y} ${x + r} ${y} c`,
+    `${x + w - r} ${y} l`,
+    `${x + w - r + k} ${y} ${x + w} ${y + r - k} ${x + w} ${y + r} c`,
+    `${x + w} ${y + h} l`,
+    `${x} ${y + h} l`,
+  );
+}
+
+function fillStrokeRoundedRect(
+  ops: string[],
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  fill: RGB,
+  stroke: RGB,
+  lineWidth: number,
+) {
+  ops.push(`${fill[0]} ${fill[1]} ${fill[2]} rg`);
+  roundedRectPath(ops, x, y, w, h, r);
+  ops.push("f");
+  ops.push(`${stroke[0]} ${stroke[1]} ${stroke[2]} RG`, `${lineWidth} w`);
+  roundedRectPath(ops, x, y, w, h, r);
+  ops.push("S");
+}
+
+function fillCircle(ops: string[], cx: number, cy: number, r: number, color: RGB) {
+  const k = ARC * r;
+  ops.push(
+    `${color[0]} ${color[1]} ${color[2]} rg`,
+    `${cx - r} ${cy} m`,
+    `${cx - r} ${cy + k} ${cx - k} ${cy + r} ${cx} ${cy + r} c`,
+    `${cx + k} ${cy + r} ${cx + r} ${cy + k} ${cx + r} ${cy} c`,
+    `${cx + r} ${cy - k} ${cx + k} ${cy - r} ${cx} ${cy - r} c`,
+    `${cx - k} ${cy - r} ${cx - r} ${cy - k} ${cx - r} ${cy} c`,
+    "f",
+  );
 }
 
 function lerpColor(a: RGB, b: RGB, t: number): RGB {
@@ -533,11 +702,12 @@ function tint(color: RGB, alpha: number): RGB {
   return lerpColor(WHITE, color, alpha);
 }
 
-// Rough average glyph width for Helvetica at a given size — good enough
-// for right-aligning short labels/page numbers without loading the AFM
-// width tables for the standard 14 fonts.
-function estimateTextWidth(value: string, size: number) {
-  return value.length * size * 0.52;
+// Average glyph advance for the Helvetica pair, good enough for
+// right-aligning and for laying runs side by side without loading the
+// AFM width tables for the standard 14 fonts.
+function measureText(value: string, size: number, bold: boolean, letterSpacing = 0) {
+  const perEm = bold ? 0.56 : 0.52;
+  return value.length * size * perEm + Math.max(0, value.length - 1) * letterSpacing;
 }
 
 // WinAnsiEncoding's ellipsis lives at byte 0x85 -- the real "…" character
@@ -571,116 +741,16 @@ function escapePdfString(value: string) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Logo embedding — decodes public/branding/infinoos-lockup-wms.png (a
-// standard, non-interlaced 8-bit RGBA PNG) using only Node's built-in
-// zlib, then re-splits it into an RGB image + a grayscale alpha mask so
-// it can be embedded as a PDF Image XObject with a soft mask. There is
-// no PDF/image library dependency anywhere in this project (see the
-// DCTDecode logo embed in src/lib/shipping-danfe.ts for the JPEG
-// equivalent of this same pattern) — decoding PNG ourselves keeps the
-// full-color gradient logo without adding one.
-// ─────────────────────────────────────────────────────────────
-type DecodedLogo = { width: number; height: number; rgb: Buffer; alpha: Buffer };
-
-let cachedLogo: DecodedLogo | null | undefined;
-
-function getLogoImage(): DecodedLogo | null {
-  if (cachedLogo !== undefined) return cachedLogo;
-  try {
-    const filePath = join(process.cwd(), "public", "branding", "infinoos-lockup-wms.png");
-    cachedLogo = decodeRgbaPng(readFileSync(filePath));
-  } catch {
-    // Logo is decorative — never let a missing/corrupt asset break PDF export.
-    cachedLogo = null;
-  }
-  return cachedLogo;
-}
-
-function decodeRgbaPng(buf: Buffer): DecodedLogo {
-  const width = buf.readUInt32BE(16);
-  const height = buf.readUInt32BE(20);
-  const bitDepth = buf[24];
-  const colorType = buf[25];
-  const interlace = buf[28];
-  if (bitDepth !== 8 || colorType !== 6 || interlace !== 0) {
-    throw new Error("Unsupported PNG format for logo embedding (expected 8-bit non-interlaced RGBA).");
-  }
-
-  const idatChunks: Buffer[] = [];
-  let offset = 8;
-  while (offset < buf.length) {
-    const len = buf.readUInt32BE(offset);
-    const type = buf.toString("ascii", offset + 4, offset + 8);
-    if (type === "IDAT") idatChunks.push(buf.subarray(offset + 8, offset + 8 + len));
-    offset += 12 + len;
-  }
-
-  const raw = inflateSync(Buffer.concat(idatChunks));
-  const bpp = 4;
-  const stride = width * bpp;
-  const pixels = Buffer.alloc(height * stride);
-  let pos = 0;
-
-  for (let y = 0; y < height; y += 1) {
-    const filterType = raw[pos];
-    pos += 1;
-    for (let x = 0; x < stride; x += 1) {
-      const rawByte = raw[pos + x];
-      const a = x >= bpp ? pixels[y * stride + x - bpp] : 0;
-      const b = y > 0 ? pixels[(y - 1) * stride + x] : 0;
-      const c = x >= bpp && y > 0 ? pixels[(y - 1) * stride + x - bpp] : 0;
-      let value: number;
-      switch (filterType) {
-        case 0: value = rawByte; break;
-        case 1: value = (rawByte + a) & 0xff; break;
-        case 2: value = (rawByte + b) & 0xff; break;
-        case 3: value = (rawByte + Math.floor((a + b) / 2)) & 0xff; break;
-        case 4: value = (rawByte + paeth(a, b, c)) & 0xff; break;
-        default: throw new Error(`Unsupported PNG filter type ${filterType}`);
-      }
-      pixels[y * stride + x] = value;
-    }
-    pos += stride;
-  }
-
-  const rgb = Buffer.alloc(width * height * 3);
-  const alpha = Buffer.alloc(width * height);
-  for (let i = 0; i < width * height; i += 1) {
-    rgb[i * 3] = pixels[i * 4];
-    rgb[i * 3 + 1] = pixels[i * 4 + 1];
-    rgb[i * 3 + 2] = pixels[i * 4 + 2];
-    alpha[i] = pixels[i * 4 + 3];
-  }
-
-  return { width, height, rgb, alpha };
-}
-
-function paeth(a: number, b: number, c: number) {
-  const p = a + b - c;
-  const pa = Math.abs(p - a);
-  const pb = Math.abs(p - b);
-  const pc = Math.abs(p - c);
-  if (pa <= pb && pa <= pc) return a;
-  if (pb <= pc) return b;
-  return c;
-}
-
-// ─────────────────────────────────────────────────────────────
 // Minimal raw PDF document assembly (no external PDF library).
 // ─────────────────────────────────────────────────────────────
 function createBrandedPdfDocument(pages: string[]) {
-  const logo = getLogoImage();
-
   // Object layout: 1 catalog, 2 pages tree, then per-page [page, content]
-  // pairs, then trailing shared resources (fonts, image + smask).
+  // pairs, then the two shared font objects.
   const firstPageObjectNumber = 3;
   const pageObjectNumbers = pages.map((_, index) => firstPageObjectNumber + index * 2);
   const contentObjectNumbers = pages.map((_, index) => firstPageObjectNumber + index * 2 + 1);
-  const sharedStart = firstPageObjectNumber + pages.length * 2;
-  const regularFontObject = sharedStart;
-  const boldFontObject = sharedStart + 1;
-  const imageObject = logo ? sharedStart + 2 : null;
-  const smaskObject = logo ? sharedStart + 3 : null;
+  const regularFontObject = firstPageObjectNumber + pages.length * 2;
+  const boldFontObject = regularFontObject + 1;
 
   const objects: string[] = [];
   objects.push("<< /Type /Catalog /Pages 2 0 R >>");
@@ -688,14 +758,12 @@ function createBrandedPdfDocument(pages: string[]) {
     `<< /Type /Pages /Count ${pages.length} /Kids [${pageObjectNumbers.map((n) => `${n} 0 R`).join(" ")}] >>`,
   );
 
-  const xObjectEntry = imageObject ? ` /XObject << /Im1 ${imageObject} 0 R >>` : "";
-
   pages.forEach((contentStream, index) => {
     const pageObjectNumber = pageObjectNumbers[index];
     const contentObjectNumber = contentObjectNumbers[index];
     objects[pageObjectNumber - 1] =
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] ` +
-      `/Resources << /Font << /F1 ${regularFontObject} 0 R /F2 ${boldFontObject} 0 R >>${xObjectEntry} >> ` +
+      `/Resources << /Font << /F1 ${regularFontObject} 0 R /F2 ${boldFontObject} 0 R >> >> ` +
       `/Contents ${contentObjectNumber} 0 R >>`;
     objects[contentObjectNumber - 1] =
       `<< /Length ${Buffer.byteLength(contentStream, "latin1")} >>\nstream\n${contentStream}\nendstream`;
@@ -705,19 +773,6 @@ function createBrandedPdfDocument(pages: string[]) {
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
   objects[boldFontObject - 1] =
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
-
-  if (logo && imageObject && smaskObject) {
-    const rgbDeflated = deflateSync(logo.rgb);
-    const alphaDeflated = deflateSync(logo.alpha);
-    objects[imageObject - 1] =
-      `<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB ` +
-      `/BitsPerComponent 8 /Filter /FlateDecode /SMask ${smaskObject} 0 R /Length ${rgbDeflated.length} >>\n` +
-      `stream\n${rgbDeflated.toString("latin1")}\nendstream`;
-    objects[smaskObject - 1] =
-      `<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceGray ` +
-      `/BitsPerComponent 8 /Filter /FlateDecode /Length ${alphaDeflated.length} >>\n` +
-      `stream\n${alphaDeflated.toString("latin1")}\nendstream`;
-  }
 
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [0];
