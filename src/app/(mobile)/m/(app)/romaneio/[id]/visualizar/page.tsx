@@ -140,10 +140,18 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
             </h2>
             <div className="grid grid-cols-2 gap-3">
               {conferencia.fotoOperadorUrl && (
-                <PhotoCheck icon={<User className="h-3.5 w-3.5" />} label="Operador" url={conferencia.fotoOperadorUrl} />
+                <PhotoCheck
+                  icon={<User className="h-3.5 w-3.5" />}
+                  label="Operador"
+                  url={`/api/romaneio/${romaneio.id}/foto?type=operador`}
+                />
               )}
               {conferencia.fotoMotoristaUrl && (
-                <PhotoCheck icon={<Truck className="h-3.5 w-3.5" />} label="Motorista / Carga" url={conferencia.fotoMotoristaUrl} />
+                <PhotoCheck
+                  icon={<Truck className="h-3.5 w-3.5" />}
+                  label="Motorista / Carga"
+                  url={`/api/romaneio/${romaneio.id}/foto?type=motorista`}
+                />
               )}
             </div>
           </div>
@@ -212,10 +220,13 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
   );
 }
 
-// Tapping the confirmation opens the actual photo (stored permanently in
-// Supabase Storage -- the URL saved at closing time never expires) in a
-// new tab. The checkmark still communicates "captured" at a glance; the
-// small Eye hint is what tells the operator the tile itself is tappable.
+// Tapping the confirmation opens the actual photo in a new tab, via
+// /api/romaneio/[id]/foto -- the raw Supabase Storage URL saved on the
+// romaneio can't be linked to directly because wms-documentos is a
+// private bucket (see supabase/migrations/20260612143000_create_storage_bucket.sql),
+// so that route authenticates the request and proxies the file through.
+// The checkmark still communicates "captured" at a glance; the small
+// Eye hint is what tells the operator the tile itself is tappable.
 function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url: string }) {
   return (
     <a
