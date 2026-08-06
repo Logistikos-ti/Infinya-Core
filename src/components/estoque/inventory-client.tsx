@@ -162,6 +162,7 @@ export function InventoryClient({ data }: { data: any }) {
           </button>
 
           {data.isAdmin ? (
+            <>
             <Link
               href="/estoque/inventarios/pendencias"
               style={{
@@ -201,6 +202,26 @@ export function InventoryClient({ data }: { data: any }) {
                 </span>
               ) : null}
             </Link>
+            <Link
+              href="/estoque/conciliacao-pedidos"
+              style={{
+                height: "44px",
+                padding: "0 18px",
+                borderRadius: "11px",
+                border: "1px solid #8B5CF6",
+                background: "rgba(139,92,246,0.10)",
+                color: "#7C3AED",
+                fontFamily: "'Manrope', sans-serif",
+                fontSize: "14px",
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                textDecoration: "none",
+              }}
+            >
+              Conciliação de pedidos
+            </Link>
+            </>
           ) : null}
         </div>
       </div>
