@@ -214,6 +214,17 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     alteradoPorPapel: user.papel,
   };
 
+  if (nextStatus === "EM_CONFERENCIA" && order.status !== "EM_CONFERENCIA") {
+    const { error: reservationError } = await adminSupabase.rpc("reservar_pedido_para_conferencia" as never, {
+      p_pedido_id: id,
+      p_usuario_id: user.id,
+    } as never);
+
+    if (reservationError) {
+      redirect(`/expedicao?feedback=erro-reserva-conferencia`);
+    }
+  }
+
   const { error: updateError } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
