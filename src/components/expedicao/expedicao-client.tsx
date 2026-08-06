@@ -1160,7 +1160,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </div>
               </div>
             </div>
-        </div>
+          </div>
       )}
 
       {/* ============ DETAIL DRAWER (NEW COMPLEX ONE) ============ */}
@@ -1171,8 +1171,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
         const getTimelineSteps = (status: string, o: any) => {
           let orderIdx = 0;
           if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
-          if (status === 'EM_CONFERENCIA') orderIdx = 2;
-          if (status === 'CONFERIDO' || status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+          else if (status === 'EM_CONFERENCIA') orderIdx = 2;
+          else if (status === 'CONFERIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
+          else if (status === 'EXPEDIDO' || status === 'ENTREGUE') orderIdx = 4;
 
           const stepMeta = [
             { title: 'Pedido recebido', sub: o?.raw?.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
@@ -1185,9 +1186,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
             const done = i < orderIdx, cur = i === orderIdx;
             return {
               title: s.title,
-              sub: cur ? 'Em andamento' : (done ? 'Concluído' : s.sub),
-              dot: done || cur ? (cur ? '#8B5CF6' : '#10B981') : t.barTrack,
-              halo: cur ? 'rgba(139,92,246,0.2)' : (done ? 'rgba(16,185,129,0.18)' : 'transparent'),
+              sub: done ? 'Concluído' : (cur ? 'Em andamento' : s.sub),
+              dot: done ? '#10B981' : (cur ? '#8B5CF6' : t.barTrack),
+              halo: done ? 'rgba(16,185,129,0.18)' : (cur ? 'rgba(139,92,246,0.2)' : 'transparent'),
               line: i < orderIdx ? '#10B981' : t.border,
               titleColor: done || cur ? t.text : t.textSub
             };
@@ -1210,8 +1211,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
           }
         ];
 
-        const isRingConcluded = sel.raw?.status === 'CONFERIDO' || sel.raw?.status === 'PRONTO_ROMANEIO' || sel.raw?.status === 'EXPEDIDO';
-        const confN = Number(sel.confN ?? (sel.conf ? parseInt(sel.conf) : 0)) || 0;
+        const isRingConcluded = sel.raw?.status === 'CONFERIDO' || sel.raw?.status === 'PRONTO_ROMANEIO' || sel.raw?.status === 'EXPEDIDO' || sel.raw?.status === 'ENTREGUE';
+        const confN = isRingConcluded ? 100 : (Number(sel.confN ?? (sel.conf ? parseInt(sel.conf) : 0)) || 0);
         const ring = {
           c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
@@ -1327,7 +1328,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     <div key={i} style={{ display: "flex", gap: "14px" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
                         <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
-                        <span style={{ flex: 1, width: "2px", background: m.line }}></span>
+                        <span style={{ flex: 1, width: "2px", background: i === moves.length - 1 ? "transparent" : m.line }}></span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "22px" }}>
                         <span style={{ fontSize: "14px", fontWeight: "700", color: m.titleColor }}>{m.title}</span>
