@@ -212,6 +212,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           openNewOrder={params?.new === "1"}
           feedback={params?.feedback}
           search={ordersSearch}
+          canCreateManualOrder={isMasterPreview || user.portalProfile === "GESTOR"}
         />
       ) : null}
       {view === "produtos" ? (

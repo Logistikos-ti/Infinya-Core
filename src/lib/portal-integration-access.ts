@@ -23,6 +23,6 @@ export function canManagePortalStock(user: AppUserContext) {
   return (
     user.papel === "ADMIN" ||
     user.papel === "TI" ||
-    (user.papel === "DEPOSITANTE" && user.portalProfile === "GESTOR")
+    user.papel === "DEPOSITANTE"
   );
 }

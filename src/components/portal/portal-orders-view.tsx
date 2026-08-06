@@ -20,7 +20,7 @@ const filters = [
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
-export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false, feedback, search = "" }: {
+export function PortalOrdersView({ orders, products, depositanteId, depositanteName, selectedOrder, openNewOrder = false, feedback, search = "", canCreateManualOrder = true }: {
   orders: ShippingOrderSummary[];
   products: Array<{
     id: string;
@@ -37,6 +37,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   openNewOrder?: boolean;
   feedback?: string;
   search?: string;
+  canCreateManualOrder?: boolean;
 }) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"orders" | "divergences">("orders");
@@ -140,14 +141,16 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           <button type="button" onClick={() => setXmlOrderOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-[11px] border border-violet-200 bg-white px-4 text-sm font-extrabold text-violet-700 transition hover:-translate-y-px hover:border-violet-400 dark:border-violet-400/30 dark:bg-white/5 dark:text-violet-300">
             <FileText className="h-4 w-4" /> Importar XML
           </button>
-          <button
-            type="button"
-            onClick={() => setNewOrderOpen(true)}
-            className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
-          >
-            <Plus className="h-4 w-4" />
-            Novo pedido
-          </button>
+          {canCreateManualOrder ? (
+            <button
+              type="button"
+              onClick={() => setNewOrderOpen(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
+            >
+              <Plus className="h-4 w-4" />
+              Novo pedido
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -364,7 +367,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
         </>
       )}
 
-      {newOrderOpen ? (
+      {newOrderOpen && canCreateManualOrder ? (
         <PortalNewOrderDrawer
           depositanteId={depositanteId}
           depositanteName={depositanteName}
@@ -413,6 +416,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
 }
 
 function feedbackDetails(feedback?: string) {
+  if (feedback === "permissao") return "Seu perfil pode importar pedidos por XML, mas não possui permissão para criar pedidos manualmente.";
   if (feedback === "nf-obrigatoria") return "Anexe o arquivo XML da nota fiscal antes de enviar o pedido.";
   if (feedback === "nf-invalida") return "A XML não é válida ou não contém a estrutura necessária da NF-e, incluindo número da nota.";
   if (feedback === "nf-duplicada") return "Já existe um pedido deste depositante com o mesmo número de NF-e. Confira a nota antes de tentar novamente.";
