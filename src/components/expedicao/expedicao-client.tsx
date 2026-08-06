@@ -1399,7 +1399,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                             <span style={{ fontSize: "11px", color: t.textSub }}>itens</span>
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700", color: t.text }}>{sel.raw?.weight || "0,8 kg"}</span>
+                            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700", color: t.text }}>{sel.raw?.weight || "-"}</span>
                             <span style={{ fontSize: "11px", color: t.textSub }}>peso</span>
                           </div>
                         </div>

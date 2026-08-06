@@ -53,6 +53,8 @@ type RawShippingOrderItemRow = {
   unidade: string | null;
   quantidade: number | string | null;
   quantidade_separada: number | string | null;
+  payload_origem?: Record<string, unknown> | null;
+  produto?: { peso_kg?: number | null } | { peso_kg?: number | null }[] | null;
 };
 
 type RawShippingOrderDetailRow = {
@@ -139,6 +141,8 @@ export type ShippingOrderSummary = {
   nfe: string;
   hasNfe: boolean;
   hasEtiqueta: boolean;
+  weight: string;
+  weightRaw: number;
   createdByName: string | null;
   createdByRole: string | null;
   createdByAt: string | null;
@@ -220,6 +224,8 @@ export type ShippingOrderDetail = {
   trackingCode: string;
   releasedWithoutRomaneio: boolean;
   releasedToRomaneio: boolean;
+  weight: string;
+  weightRaw: number;
   suppliesTotalCost: string;
   suppliesTotalCostRaw: number;
   notes: string;
@@ -269,7 +275,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -436,12 +442,95 @@ export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSumma
   }));
 }
 
+function extractItemWeight(item: RawShippingOrderItemRow): number {
+  const produto = Array.isArray(item.produto) ? item.produto[0] : item.produto;
+  const prodWeight = Number(produto?.peso_kg);
+  if (!Number.isNaN(prodWeight) && prodWeight > 0) {
+    return prodWeight;
+  }
+
+  const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
+  const payloadWeight = Number(
+    payload.peso_kg ??
+    payload.peso ??
+    payload.pesoBruto ??
+    payload.peso_bruto ??
+    payload.pesoLiquido ??
+    payload.peso_liquido
+  );
+  if (!Number.isNaN(payloadWeight) && payloadWeight > 0) {
+    return payloadWeight;
+  }
+
+  return 0;
+}
+
+export function calculateOrderWeight(
+  items: RawShippingOrderItemRow[] | null | undefined,
+  payload: Record<string, unknown>
+): { weight: string; weightRaw: number } {
+  let totalWeight = 0;
+  let hasItemWeight = false;
+
+  const itemList = items ?? [];
+  for (const it of itemList) {
+    const unitWeight = extractItemWeight(it);
+    const qty = Number(it.quantidade ?? 1);
+    if (unitWeight > 0) {
+      totalWeight += unitWeight * qty;
+      hasItemWeight = true;
+    }
+  }
+
+  if (!hasItemWeight) {
+    const xml = isRecord(payload.xml) ? payload.xml : {};
+    const transporte = isRecord(payload.transporte) ? payload.transporte : {};
+    const volumes = Array.isArray(transporte.volumes)
+      ? transporte.volumes
+      : Array.isArray(payload.volumes)
+      ? payload.volumes
+      : [];
+    const firstVolume = volumes[0] && isRecord(volumes[0]) ? volumes[0] : {};
+
+    const rawOrderWeight = Number(
+      xml.pesoBruto ??
+      xml.pesoLiquido ??
+      transporte.pesoBruto ??
+      transporte.peso_bruto ??
+      firstVolume.pesoBruto ??
+      firstVolume.pesoB ??
+      firstVolume.peso_bruto ??
+      payload.pesoBruto ??
+      payload.peso_bruto ??
+      payload.grossWeight
+    );
+
+    if (!Number.isNaN(rawOrderWeight) && rawOrderWeight > 0) {
+      totalWeight = rawOrderWeight;
+    }
+  }
+
+  if (totalWeight <= 0) {
+    return { weight: "-", weightRaw: 0 };
+  }
+
+  const formatted = totalWeight.toLocaleString("pt-BR", {
+    minimumFractionDigits: totalWeight % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 3,
+  });
+
+  return {
+    weight: `${formatted} kg`,
+    weightRaw: totalWeight,
+  };
+}
+
 export async function getShippingOrderDetailFromDb(id: string, user?: AppUserContext) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -565,6 +654,8 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     trackingCode,
     releasedWithoutRomaneio,
     releasedToRomaneio,
+    weight: calculateOrderWeight(order.itens, payload).weight,
+    weightRaw: calculateOrderWeight(order.itens, payload).weightRaw,
     suppliesTotalCost: formatCurrency(suppliesTotalCostRaw),
     suppliesTotalCostRaw,
     notes: order.observacoes?.trim() || "Sem observações.",
@@ -768,6 +859,8 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     nfe,
     hasNfe,
     hasEtiqueta,
+    weight: calculateOrderWeight(item.itens, payload).weight,
+    weightRaw: calculateOrderWeight(item.itens, payload).weightRaw,
     createdByName,
     createdByRole,
     createdByAt: createdByAtRaw ? formatDateTimeInSaoPaulo(createdByAtRaw, "") : null,
