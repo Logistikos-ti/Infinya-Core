@@ -226,6 +226,14 @@ export type ShippingOrderDetail = {
   cancellationReason?: string | null;
   divergenceReporter?: string | null;
   cancellationReporter?: string | null;
+  tratamentoDivergencia?: {
+    acao?: string;
+    tipo?: string;
+    observacao?: string | null;
+    tratadoPorNome?: string;
+    tratadoEm?: string;
+  } | null;
+  divergenciaTratada?: boolean;
   createdByName?: string | null;
   createdByRole?: string | null;
   createdBySource?: string | null;
@@ -563,6 +571,10 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     cancellationReason,
     divergenceReporter,
     cancellationReporter,
+    tratamentoDivergencia: isRecord(payload.tratamentoDivergencia)
+      ? (payload.tratamentoDivergencia as any)
+      : null,
+    divergenciaTratada: Boolean(payload.divergenciaTratada),
     createdByName,
     createdByRole,
     createdBySource: createdByName ? "Pedido manual" : order.origem === "BLING" ? "Integração Bling" : "Sistema",
@@ -1149,19 +1161,13 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
       if (hasDivergencePending) {
         return "Aguardando tratativa";
       }
-      if (tratamento?.acao === "PROSSEGUIR_COM_DIVERGENCIA") {
-        return "Prosseguir c/ divergência";
-      }
-      if (tratamento?.acao === "CANCELAR_DEFINITIVO") {
-        return "Cancelado";
-      }
       return "Cancelado";
     case "DIVERGENCIA":
     case "DIVERGENTE":
       if (hasDivergencePending) {
         return "Aguardando tratativa";
       }
-      return "Divergência";
+      return "Cancelado";
     default:
       return status;
   }

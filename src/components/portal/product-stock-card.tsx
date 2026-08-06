@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { StockBalance } from "@/lib/stock";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
-export function ProductStockCard({ item }: { item: StockBalance }) {
+export function ProductStockCard({ item, canManage = true }: { item: StockBalance; canManage?: boolean }) {
   const quantity = Number(item.rawQuantidade ?? 0);
   const configuredMaximum = Number(item.maxQuantity ?? 0);
   const configuredMinimum = Number(item.minQuantity ?? 0);
@@ -151,14 +151,14 @@ export function ProductStockCard({ item }: { item: StockBalance }) {
               />
             </div>
           </div>
-          <button
+          {canManage ? <button
             type="button"
             onClick={openSettings}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 text-slate-400 transition hover:border-violet-400 hover:text-violet-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
             title="Configurar estoque"
           >
             <Settings2 className="h-4 w-4" />
-          </button>
+          </button> : null}
         </div>
       </div>
       {open ? (

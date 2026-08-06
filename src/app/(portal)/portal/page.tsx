@@ -31,7 +31,7 @@ import { listSupportTicketsFromDb } from "@/lib/support";
 import { PortalOrdersView } from "@/components/portal/portal-orders-view";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
-import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
+import { canManagePortalStock, isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 import { PortalIntegrationsView } from "@/components/portal/portal-integrations-view";
 import { formatDatePtBr } from "@/lib/utils";
 
@@ -79,7 +79,8 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     ? selectedDepositante.data?.nome ?? "Portal do depositante"
     : user.depositanteNome || user.nome;
   const integrationsEnabled = isPortalIntegrationEnabled(depositanteName);
-  const view = normalizeView(requestedView, integrationsEnabled);
+  const canManagePortal = isMasterPreview || user.portalProfile === "GESTOR";
+  const view = normalizeView(requestedView, integrationsEnabled && canManagePortal, canManagePortal);
   const productsPage = parsePositivePage(params?.page);
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
@@ -219,6 +220,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           page={productsPage}
           search={productsSearch}
           portalDepositanteId={isMasterPreview ? depositanteId : ""}
+          canManageStock={isMasterPreview || canManagePortalStock(user)}
         />
       ) : null}
       {view === "recebimento" ? (
@@ -275,13 +277,13 @@ function MasterPortalWelcome({ invalidSelection }: { invalidSelection: boolean }
   );
 }
 
-function normalizeView(value: string, integrationsEnabled: boolean) {
+function normalizeView(value: string, integrationsEnabled: boolean, canManagePortal: boolean) {
   if (value === "orders") return "pedidos";
   if (value === "receiving") return "recebimento";
   if (value === "products") return "produtos";
   if (value === "invoices") return "faturas";
   if (value === "support") return "suporte";
-  return ["pedidos", "recebimento", "produtos", "faturas", "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
+  return ["pedidos", "recebimento", "produtos", ...(canManagePortal ? ["faturas"] : []), "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
     value,
   )
     ? value
@@ -479,11 +481,13 @@ function ProductsView({
   page,
   search,
   portalDepositanteId,
+  canManageStock,
 }: {
   stock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   page: number;
   search: string;
   portalDepositanteId: string;
+  canManageStock: boolean;
 }) {
   const pageSize = 9;
   const normalizedSearch = search.toLocaleLowerCase("pt-BR");
@@ -514,13 +518,13 @@ function ProductsView({
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:flex-nowrap">
-          <a
+          {canManageStock ? <a
             href="/api/portal/produtos/exportar"
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-[#101b30] dark:text-slate-100 dark:hover:border-violet-400 dark:hover:text-white"
           >
             <FileDown className="h-4 w-4" />
             Exportar
-          </a>
+          </a> : null}
           <ProductSearchInput
             value={search}
             depositanteId={portalDepositanteId}
@@ -549,7 +553,7 @@ function ProductsView({
             amber: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
             emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
           }[stockStatus.tone];
-          return <ProductStockCard key={item.id} item={item} />;
+          return <ProductStockCard key={item.id} item={item} canManage={canManageStock} />;
           return (
             <div
               key={item.id}

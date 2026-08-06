@@ -64,12 +64,16 @@ const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
 
 function getPortalNavigation(user: AppUserContext): ReadonlyArray<SidebarNavigationItem> {
   const canPreviewPortals = user.papel === "ADMIN" || user.papel === "TI";
-  if (!canPreviewPortals && !isPortalIntegrationEnabled(user.depositanteNome)) return basePortalNavigation;
+  const isPortalManager = canPreviewPortals || user.portalProfile === "GESTOR";
+  const navigation = isPortalManager
+    ? basePortalNavigation
+    : basePortalNavigation.filter((item) => item.href !== "/portal?view=faturas");
+  if (!isPortalManager || !isPortalIntegrationEnabled(user.depositanteNome)) return navigation;
 
   return [
-    ...basePortalNavigation.slice(0, 5),
+    ...navigation.slice(0, 5),
     { href: "/portal?view=integracoes", label: "Integrações", icon: PlugZap, module: "dashboard" },
-    ...basePortalNavigation.slice(5),
+    ...navigation.slice(5),
   ];
 }
 
