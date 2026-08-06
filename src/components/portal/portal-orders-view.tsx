@@ -830,7 +830,7 @@ function PortalOrderDetailDrawer({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            <div className={`grid gap-2.5 ${hasCce ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
               <OrderDocumentCard
                 icon={<FileText className="h-5 w-5" />}
                 label="Nota fiscal"
@@ -856,20 +856,22 @@ function PortalOrderDetailDrawer({
                 downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`}
                 onUpload={() => openUpload("ETIQUETA")}
               />
-              <OrderDocumentCard
-                icon={<FileSignature className="h-5 w-5" />}
-                label="Carta de correção"
-                available={hasCce}
-                viewHref={
-                  cceAttachment?.viewHref ||
-                  `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=inline`
-                }
-                downloadHref={
-                  cceAttachment?.href ||
-                  `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=attachment`
-                }
-                onUpload={() => openUpload("CARTA_CORRECAO")}
-              />
+              {hasCce ? (
+                <OrderDocumentCard
+                  icon={<FileSignature className="h-5 w-5" />}
+                  label="Carta de correção"
+                  available={true}
+                  viewHref={
+                    cceAttachment?.viewHref ||
+                    `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=inline`
+                  }
+                  downloadHref={
+                    cceAttachment?.href ||
+                    `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=attachment`
+                  }
+                  onUpload={() => openUpload("CARTA_CORRECAO")}
+                />
+              ) : null}
             </div>
 
             {extraAttachments.length > 0 && (
