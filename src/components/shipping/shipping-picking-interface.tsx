@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
-import { cancelPickingOrderAction, savePickingWaveProgressAction, updateItemPickingQuantityAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { cancelPickingOrderAction, registerPickingScanAction, savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
@@ -237,31 +237,47 @@ export function ShippingPickingInterface({
       .includes(normalized);
       
     if (matches) {
+      const stockId = currentItem.routeLines[0]?.stockId;
+      if (!stockId) {
+        playFeedbackTone("error");
+        alert("Não foi possível localizar o saldo deste endereço para reservar o estoque.");
+        return;
+      }
+
       // Increment quantity
       const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
       const nextSeparated = Math.min(currentSeparated + 1, currentItem.requestedQuantity);
-      
-      setItems((prev) =>
-        prev.map((item) =>
-          item.compositeId === currentItem.compositeId
-            ? { ...item, separatedQuantityValue: String(nextSeparated) }
-            : item
-        )
-      );
 
-      // Persist each confirmed scan so leaving the wave does not lose progress.
-      void updateItemPickingQuantityAction(currentItem.orderId, currentItem.id, nextSeparated);
-      
-      if (nextSeparated >= currentItem.requestedQuantity) {
-        // Play beep and advance
-        playFeedbackTone("success");
-        setTimeout(() => {
-          setScanPhase("address");
-          setCurrentIndex(Math.min(currentIndex + 1, totalCount));
-        }, 300);
-      } else {
-        playFeedbackTone("success");
-      }
+      void registerPickingScanAction({
+        orderId: currentItem.orderId,
+        itemId: currentItem.id,
+        stockId,
+        scanId: crypto.randomUUID(),
+      }).then((result) => {
+        if (!result.ok) {
+          playFeedbackTone("error");
+          alert(`Não foi possível reservar o estoque: ${result.message}`);
+          return;
+        }
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.compositeId === currentItem.compositeId
+              ? { ...item, separatedQuantityValue: String(nextSeparated) }
+              : item,
+          ),
+        );
+
+        if (nextSeparated >= currentItem.requestedQuantity) {
+          playFeedbackTone("success");
+          setTimeout(() => {
+            setScanPhase("address");
+            setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+          }, 300);
+        } else {
+          playFeedbackTone("success");
+        }
+      });
     } else {
       playFeedbackTone("error");
       alert("Codigo invalido para este produto!");

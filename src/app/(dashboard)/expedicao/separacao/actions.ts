@@ -702,6 +702,42 @@ export async function updateItemPickingQuantityAction(
   }
 }
 
+export async function registerPickingScanAction(input: {
+  orderId: string;
+  itemId: string;
+  stockId: string;
+  quantity?: number;
+  scanId: string;
+}) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const quantity = Number(input.quantity ?? 1);
+
+  if (!input.orderId || !input.itemId || !input.stockId || !input.scanId || !Number.isFinite(quantity) || quantity <= 0) {
+    return { ok: false as const, message: "Dados de leitura inválidos." };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data, error } = await adminSupabase.rpc("registrar_bipagem_separacao" as never, {
+    p_pedido_id: input.orderId,
+    p_item_id: input.itemId,
+    p_estoque_id: input.stockId,
+    p_quantidade: quantity,
+    p_usuario_id: user.id,
+    p_scan_id: input.scanId,
+  } as never);
+
+  if (error) {
+    return { ok: false as const, message: error.message };
+  }
+
+  revalidatePath("/estoque");
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/m/separacao");
+
+  return { ok: true as const, data };
+}
+
 export async function cancelPickingOrderAction(orderId: string) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
@@ -717,6 +753,17 @@ export async function cancelPickingOrderAction(orderId: string) {
   }
 
   if (readError || !order) {
+    return { ok: false };
+  }
+
+  const { error: reversalError } = await adminSupabase.rpc("estornar_baixas_separacao" as never, {
+    p_pedido_id: orderId,
+    p_usuario_id: user.id,
+    p_motivo: "Cancelamento por falta de estoque",
+  } as never);
+
+  if (reversalError) {
+    console.error("Failed to reverse picking stock movements:", reversalError);
     return { ok: false };
   }
 
@@ -786,6 +833,22 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
     .in('onda_separacao_id', waveIds);
     
   const orderIds = (links || []).map(l => l.pedido_expedicao_id);
+
+  if (orderIds.length > 0) {
+    const reversalResults = await Promise.all(
+      orderIds.map((orderId) =>
+        adminSupabase.rpc("estornar_baixas_separacao" as never, {
+          p_pedido_id: orderId,
+          p_usuario_id: user.id,
+          p_motivo: "Exclusao administrativa da onda de separacao",
+        } as never),
+      ),
+    );
+
+    if (reversalResults.some((result) => result.error)) {
+      throw new Error("Nao foi possivel liberar as reservas da onda.");
+    }
+  }
   
   // 2. Delete links
   await adminSupabase
@@ -805,6 +868,11 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
       .from('pedidos_expedicao')
       .update({ status: 'NOVO' })
       .in('id', orderIds);
+
+    await adminSupabase
+      .from('pedidos_expedicao_itens')
+      .update({ quantidade_separada: 0 })
+      .in('pedido_expedicao_id', orderIds);
   }
   
   revalidatePath('/expedicao/separacao');

@@ -36,6 +36,20 @@ export async function resetPickingOrdersToQueue(
   }
 
   const now = new Date().toISOString();
+  const reversalResults = await Promise.all(
+    (data ?? []).map((order) =>
+      adminSupabase.rpc("estornar_baixas_separacao" as never, {
+        p_pedido_id: order.id,
+        p_usuario_id: user.id,
+        p_motivo: reason === "inatividade" ? "Inatividade na onda de separação" : "Cancelamento da onda de separação",
+      } as never),
+    ),
+  );
+
+  if (reversalResults.some((result) => result.error)) {
+    return { success: false as const };
+  }
+
   const updates = (data ?? []).map((order) => {
     const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
 
@@ -63,6 +77,19 @@ export async function resetPickingOrdersToQueue(
   const failed = results.find((result) => result.error);
 
   if (failed?.error) {
+    return { success: false as const };
+  }
+
+  const itemResetResults = await Promise.all(
+    normalizedIds.map((orderId) =>
+      adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({ quantidade_separada: 0 })
+        .eq("pedido_expedicao_id", orderId),
+    ),
+  );
+
+  if (itemResetResults.some((result) => result.error)) {
     return { success: false as const };
   }
 

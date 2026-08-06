@@ -228,6 +228,19 @@ export async function saveShippingConferenceAction(formData: FormData) {
     nextStatus = canComplete ? "CONFERIDO" : order.status;
   }
 
+  if (isCompletingConference && canComplete) {
+    const { error: stockError } = await adminSupabase.rpc("efetivar_baixa_conferencia" as never, {
+      p_pedido_id: orderId,
+      p_usuario_id: user.id,
+    } as never);
+
+    if (stockError) {
+      console.error("Failed to convert picking reservation into physical stock exit:", stockError);
+      revalidatePath(`/expedicao/conferencia/${orderId}`);
+      redirect(`${redirectBase}/${orderId}?feedback=erro-estoque`);
+    }
+  }
+
   const { error: updateError } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
@@ -287,7 +300,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
 }
 
 export async function markShippingOrderAsDivergentAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
 
   const orderId = String(formData.get("orderId") ?? "").trim();

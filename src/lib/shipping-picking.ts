@@ -1179,13 +1179,16 @@ function compareEnderecoLabel(labelA: string, labelB: string, codeA: string, cod
 }
 
 function getAvailableQuantity(stock: RawPickingStockRow) {
-  // We use physical quantity here instead of available (quantidade - quantidade_reservada) 
-  // because the stock is likely already reserved by THIS picking order. 
-  // If we filter by available > 0, we hide the very bins the operator needs to visit.
   if (stock.bloqueado) {
-    return 0; // Treat blocked stock as 0 available so it's only used as a fallback address
+    return 0;
   }
-  return Math.max(Number(stock.quantidade ?? 0), 0);
+
+  // A wave may only plan against the free balance. Reservations are released on
+  // cancellation/inactivity and become a physical exit after conference.
+  return Math.max(
+    Number(stock.quantidade ?? 0) - Number(stock.quantidade_reservada ?? 0),
+    0,
+  );
 }
 
 function getÁreaPriority(area: string | null | undefined) {

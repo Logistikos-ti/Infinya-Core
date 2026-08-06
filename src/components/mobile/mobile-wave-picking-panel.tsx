@@ -7,6 +7,7 @@ import {
   savePickingWaveProgressAction,
   savePickingWaveDraftAction,
   cancelPickingOrderAction,
+  registerPickingScanAction,
 } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -275,32 +276,46 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       return;
     }
 
+    const stockId = currentItem.routeLines[0]?.stockId;
+    if (!stockId) {
+      flash({ type: "err", title: "Saldo não localizado", code: rawValue, sub: "Não encontramos o saldo deste endereço." });
+      return;
+    }
+
     const nextSeparated = Math.min(
       normalizeQuantity(currentItem.separatedQuantityValue) + 1,
       currentItem.requestedQuantity,
     );
-    const updatedItems = items.map((item) =>
-      item.compositeId === currentItem.compositeId
-        ? { ...item, separatedQuantityValue: String(nextSeparated) }
-        : item,
-    );
-    setItems(updatedItems);
-    persistDraft(updatedItems);
+    void registerPickingScanAction({
+      orderId: currentItem.orderId,
+      itemId: currentItem.id,
+      stockId,
+      scanId: crypto.randomUUID(),
+    }).then((result) => {
+      if (!result.ok) {
+        flash({ type: "err", title: "Falha na reserva", code: rawValue, sub: result.message });
+        return;
+      }
 
-    if (nextSeparated >= currentItem.requestedQuantity) {
-      flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = window.setTimeout(() => {
-        setScanPhase("address");
-        setCurrentIndex((idx) => Math.min(idx + 1, totalCount));
-        closeScanner();
-      }, FLASH_DURATION_MS);
-    } else {
-      // Mid-count unit: keep the camera visible and just pulse the frame, so
-      // the operator can scan the next unit without waiting out a full-screen
-      // flash between every single one.
-      pulseFrame();
-    }
+      const updatedItems = items.map((item) =>
+        item.compositeId === currentItem.compositeId
+          ? { ...item, separatedQuantityValue: String(nextSeparated) }
+          : item,
+      );
+      setItems(updatedItems);
+
+      if (nextSeparated >= currentItem.requestedQuantity) {
+        flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
+        if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = window.setTimeout(() => {
+          setScanPhase("address");
+          setCurrentIndex((idx) => Math.min(idx + 1, totalCount));
+          closeScanner();
+        }, FLASH_DURATION_MS);
+      } else {
+        pulseFrame();
+      }
+    });
   }
 
   useEffect(() => {
