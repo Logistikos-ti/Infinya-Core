@@ -1407,56 +1407,174 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </div>
 
                     {/* Document buttons */}
-                    <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
-                      <ShippingAttachmentPreviewDialog
-                        label="Nota Fiscal"
-                        viewHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=inline`}
-                        downloadHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=attachment`}
-                        customTrigger={(openPreview) => (
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                          >
-                            <FileText size={20} color={t.textSub} />
-                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Visualizar<br/>NF</span>
-                          </button>
-                        )}
-                      />
-                      <ShippingAttachmentPreviewDialog
-                        label="DANFE Simplificada"
-                        viewHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=inline`}
-                        downloadHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=attachment`}
-                        customTrigger={(openPreview) => (
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                          >
-                            <Receipt size={20} color={t.textSub} />
-                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
-                          </button>
-                        )}
-                      />
-                      <ShippingAttachmentPreviewDialog
-                        label="Etiqueta de Envio"
-                        viewHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=inline`}
-                        downloadHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=attachment`}
-                        customTrigger={(openPreview) => (
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
-                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                          >
-                            <Tag size={20} color={t.textSub} />
-                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
-                          </button>
-                        )}
-                      />
-                    </div>
+                    {(() => {
+                      const docs = Array.isArray(sel.raw?.documentos) ? sel.raw.documentos : Array.isArray(sel.raw?.attachments) ? sel.raw.attachments : [];
+                      const hasNfe = Boolean(
+                        sel.raw?.hasNfe || 
+                        (sel.raw?.nfe && sel.raw.nfe !== "Ainda não vinculada" && sel.raw.nfe !== "-") || 
+                        docs.some((d: any) => d.tipo === "NF" || d.tipo === "XML_NF" || d.kind === "XML_NF" || (d.mime_type && d.mime_type.includes("xml")))
+                      );
+                      const hasEtiqueta = Boolean(
+                        sel.raw?.hasEtiqueta || 
+                        docs.some((d: any) => d.tipo === "ETIQUETA" || d.kind === "ETIQUETA")
+                      );
+                      const hasDanfe = Boolean(hasNfe);
+
+                      return (
+                        <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                          <ShippingAttachmentPreviewDialog
+                            label="Nota Fiscal"
+                            viewHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=inline`}
+                            downloadHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=attachment`}
+                            customTrigger={(openPreview) => (
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                                style={{ 
+                                  position: "relative", 
+                                  flex: 1, 
+                                  display: "flex", 
+                                  flexDirection: "column", 
+                                  alignItems: "center", 
+                                  justifyContent: "center", 
+                                  gap: "8px", 
+                                  padding: "14px 8px", 
+                                  borderRadius: "12px", 
+                                  border: `1px solid ${hasNfe ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
+                                  background: t.cardBg, 
+                                  color: t.text, 
+                                  cursor: "pointer", 
+                                  transition: "all 0.2s" 
+                                }}
+                                className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                              >
+                                <div style={{ position: "relative", display: "inline-flex" }}>
+                                  <FileText size={20} color={hasNfe ? "#10B981" : t.textSub} />
+                                  <span style={{ 
+                                    position: "absolute", 
+                                    top: "-6px", 
+                                    right: "-8px", 
+                                    width: "15px", 
+                                    height: "15px", 
+                                    borderRadius: "50%", 
+                                    background: hasNfe ? "#10B981" : "#EF4444", 
+                                    color: "#fff", 
+                                    display: "grid", 
+                                    placeItems: "center", 
+                                    fontSize: "9px", 
+                                    fontWeight: "900",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
+                                  }}>
+                                    {hasNfe ? "✓" : "✕"}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Visualizar<br/>NF</span>
+                              </button>
+                            )}
+                          />
+                          <ShippingAttachmentPreviewDialog
+                            label="DANFE Simplificada"
+                            viewHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=inline`}
+                            downloadHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=attachment`}
+                            customTrigger={(openPreview) => (
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                                style={{ 
+                                  position: "relative", 
+                                  flex: 1, 
+                                  display: "flex", 
+                                  flexDirection: "column", 
+                                  alignItems: "center", 
+                                  justifyContent: "center", 
+                                  gap: "8px", 
+                                  padding: "14px 8px", 
+                                  borderRadius: "12px", 
+                                  border: `1px solid ${hasDanfe ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
+                                  background: t.cardBg, 
+                                  color: t.text, 
+                                  cursor: "pointer", 
+                                  transition: "all 0.2s" 
+                                }}
+                                className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                              >
+                                <div style={{ position: "relative", display: "inline-flex" }}>
+                                  <Receipt size={20} color={hasDanfe ? "#10B981" : t.textSub} />
+                                  <span style={{ 
+                                    position: "absolute", 
+                                    top: "-6px", 
+                                    right: "-8px", 
+                                    width: "15px", 
+                                    height: "15px", 
+                                    borderRadius: "50%", 
+                                    background: hasDanfe ? "#10B981" : "#EF4444", 
+                                    color: "#fff", 
+                                    display: "grid", 
+                                    placeItems: "center", 
+                                    fontSize: "9px", 
+                                    fontWeight: "900",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
+                                  }}>
+                                    {hasDanfe ? "✓" : "✕"}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
+                              </button>
+                            )}
+                          />
+                          <ShippingAttachmentPreviewDialog
+                            label="Etiqueta de Envio"
+                            viewHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=inline`}
+                            downloadHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=attachment`}
+                            customTrigger={(openPreview) => (
+                              <button 
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                                style={{ 
+                                  position: "relative", 
+                                  flex: 1, 
+                                  display: "flex", 
+                                  flexDirection: "column", 
+                                  alignItems: "center", 
+                                  justifyContent: "center", 
+                                  gap: "8px", 
+                                  padding: "14px 8px", 
+                                  borderRadius: "12px", 
+                                  border: `1px solid ${hasEtiqueta ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
+                                  background: t.cardBg, 
+                                  color: t.text, 
+                                  cursor: "pointer", 
+                                  transition: "all 0.2s" 
+                                }}
+                                className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                              >
+                                <div style={{ position: "relative", display: "inline-flex" }}>
+                                  <Tag size={20} color={hasEtiqueta ? "#10B981" : t.textSub} />
+                                  <span style={{ 
+                                    position: "absolute", 
+                                    top: "-6px", 
+                                    right: "-8px", 
+                                    width: "15px", 
+                                    height: "15px", 
+                                    borderRadius: "50%", 
+                                    background: hasEtiqueta ? "#10B981" : "#EF4444", 
+                                    color: "#fff", 
+                                    display: "grid", 
+                                    placeItems: "center", 
+                                    fontSize: "9px", 
+                                    fontWeight: "900",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
+                                  }}>
+                                    {hasEtiqueta ? "✓" : "✕"}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
+                              </button>
+                            )}
+                          />
+                        </div>
+                      );
+                    })()}
 
                     {/* carrier + dock + specs */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
