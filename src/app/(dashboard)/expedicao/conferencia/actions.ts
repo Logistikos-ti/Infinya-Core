@@ -24,13 +24,21 @@ type KitProgressEntry = {
   barcode: string;
 };
 
-type ShippingAttachmentUploadState = {
+export type ShippingAttachmentUploadState = {
   ok: boolean;
   message: string | null;
-  uploadedKind: "NF" | "ETIQUETA" | null;
+  uploadedKind: "NF" | "ETIQUETA" | "CARTA_CORRECAO" | "OUTRO" | string | null;
 };
 
-const allowedShippingAttachmentTypes = new Set(["NF", "ETIQUETA"]);
+const allowedShippingAttachmentTypes = new Set([
+  "NF",
+  "XML_NF",
+  "ETIQUETA",
+  "CARTA_CORRECAO",
+  "CCE",
+  "OUTRO",
+  "DOCUMENTO_ADICIONAL",
+]);
 
 export async function saveShippingConferenceAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
@@ -369,7 +377,7 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
 }
 
 export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
 
   const orderId = String(formData.get("orderId") ?? "").trim();
@@ -414,6 +422,16 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
 
   if (!allItemsConfirmed || !hasInvoiceXml || !hasShippingLabel) {
     redirect(`${fallbackRedirect}?feedback=documentos-pendentes`);
+  }
+
+  const { error: stockError } = await adminSupabase.rpc("efetivar_baixa_conferencia" as never, {
+    p_pedido_id: orderId,
+    p_usuario_id: user.id,
+  } as never);
+
+  if (stockError) {
+    console.error("Failed to convert picking reservation into physical stock exit:", stockError);
+    redirect(`${fallbackRedirect}?feedback=erro-estoque`);
   }
 
   const { data: currentOrder } = await adminSupabase
@@ -624,13 +642,19 @@ export async function uploadShippingAttachmentAction(
     revalidatePath("/m/conferencia");
     revalidatePath(`/m/conferencia/${orderId}`);
 
+    const message =
+      tipo === "ETIQUETA"
+        ? "Etiqueta anexada com sucesso ao pedido."
+        : tipo === "CARTA_CORRECAO" || tipo === "CCE"
+        ? "Carta de correção (CC-e) anexada com sucesso ao pedido."
+        : tipo === "OUTRO" || tipo === "DOCUMENTO_ADICIONAL"
+        ? "Documento adicional anexado com sucesso ao pedido."
+        : "XML da nota fiscal anexado com sucesso ao pedido.";
+
     return {
       ok: true,
-      message:
-        tipo === "ETIQUETA"
-          ? "Etiqueta anexada com sucesso ao pedido."
-          : "XML da nota fiscal anexado com sucesso ao pedido.",
-      uploadedKind: tipo as "NF" | "ETIQUETA",
+      message,
+      uploadedKind: tipo,
     };
   } catch (error) {
     const typedError =
