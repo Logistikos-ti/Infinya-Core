@@ -3,34 +3,7 @@ import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { InventarioProdutoListClient } from "./inventario-produto-list-client";
-
-type RelationName =
-  | {
-      nome?: string;
-      sku?: string;
-      codigo_interno?: string | null;
-      codigo_externo?: string | null;
-      codigo_externo_pack?: string | null;
-      imagem_principal_url?: string | null;
-    }
-  | Array<{
-      nome?: string;
-      sku?: string;
-      codigo_interno?: string | null;
-      codigo_externo?: string | null;
-      codigo_externo_pack?: string | null;
-      imagem_principal_url?: string | null;
-    }>
-  | null;
-
-function extractField(
-  value: RelationName,
-  field: "nome" | "sku" | "codigo_interno" | "codigo_externo" | "codigo_externo_pack" | "imagem_principal_url",
-) {
-  const row = Array.isArray(value) ? value[0] : value;
-  return row?.[field] ?? "";
-}
+import { InventarioScanClient } from "./inventario-scan-client";
 
 export default async function MobileStockInventarioProdutosPage({
   params,
@@ -60,28 +33,9 @@ export default async function MobileStockInventarioProdutosPage({
     notFound();
   }
 
-  const { data: estoqueRows } = await adminSupabase
-    .from("estoque")
-    .select("id, quantidade, produto:produtos(nome, sku, codigo_interno, codigo_externo, codigo_externo_pack, imagem_principal_url)")
-    .eq("depositante_id", depositanteId)
-    .gt("quantidade", 0)
-    .order("created_at", { ascending: true });
-
-  const produtos = (estoqueRows ?? []).map((row) => ({
-    estoqueId: row.id,
-    nome: extractField(row.produto, "nome") || "Produto",
-    sku: extractField(row.produto, "sku") || "Sem SKU",
-    codigoInterno: extractField(row.produto, "codigo_interno") || "",
-    gtin: extractField(row.produto, "codigo_externo") || "",
-    gtinPack: extractField(row.produto, "codigo_externo_pack") || "",
-    imagemUrl: extractField(row.produto, "imagem_principal_url") || null,
-  }));
-
-  return (
-    <InventarioProdutoListClient
-      depositanteId={depositanteId}
-      depositanteNome={depositanteRow.nome}
-      produtos={produtos}
-    />
-  );
+  // The old "pick a saldo from the list" step is gone -- the camera opens
+  // right here and asks for the two scans a count needs (produto, then
+  // endereço) to resolve or open the saldo (see inventario-scan-client.tsx
+  // and /api/estoque/inventario-resolver).
+  return <InventarioScanClient depositanteId={depositanteId} depositanteNome={depositanteRow.nome} />;
 }

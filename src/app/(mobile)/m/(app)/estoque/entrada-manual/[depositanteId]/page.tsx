@@ -3,8 +3,7 @@ import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { listStockBalancesFromDb } from "@/lib/stock";
-import { EntradaManualProdutoListClient } from "./entrada-manual-produto-list-client";
+import { EntradaManualScanClient } from "./entrada-manual-scan-client";
 
 export default async function MobileEntradaManualProdutosPage({
   params,
@@ -34,24 +33,8 @@ export default async function MobileEntradaManualProdutosPage({
     notFound();
   }
 
-  const balances = await listStockBalancesFromDb({ depositanteId });
-  const produtos = balances
-    .filter((item) => item.status === "Disponível")
-    .map((item) => ({
-      estoqueId: item.id,
-      nome: item.productName,
-      sku: item.sku,
-      endereco: item.endereco,
-      area: item.area,
-      atual: item.rawQuantidade,
-      imagemUrl: item.imageUrl ?? null,
-    }));
-
-  return (
-    <EntradaManualProdutoListClient
-      depositanteId={depositanteId}
-      depositanteNome={depositanteRow.nome}
-      produtos={produtos}
-    />
-  );
+  // The old "pick a saldo from the list" step is gone -- the camera opens
+  // right here and the operator's own scan resolves which saldo to open
+  // (see entrada-manual-scan-client.tsx and /api/estoque/resolver-produto).
+  return <EntradaManualScanClient depositanteId={depositanteId} depositanteNome={depositanteRow.nome} />;
 }

@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import {
   mobileColors,
   mobileGradient,
@@ -16,18 +15,12 @@ import {
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 
-const FLASH_DURATION_MS = 1300;
-
 const REASONS: { value: "DEVOLUCAO" | "CORRECAO" | "ACHADO" | "OUTRO"; label: string }[] = [
   { value: "DEVOLUCAO", label: "Devolução" },
   { value: "CORRECAO", label: "Correção de contagem" },
   { value: "ACHADO", label: "Achado" },
   { value: "OUTRO", label: "Outro" },
 ];
-
-function normalizeScan(value: string) {
-  return value.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "").toLocaleLowerCase("pt-BR");
-}
 
 type Props = {
   depositanteId: string;
@@ -42,61 +35,41 @@ type Props = {
   atual: number;
 };
 
-type ScanPhase = "produto" | "endereco" | "quantidade";
-
+/**
+ * The product is already confirmed by the time the operator lands here --
+ * they bipped it on the previous screen (entrada-manual-scan-client.tsx),
+ * which is what resolved this exact estoqueId. This panel used to also
+ * ask for its own produto + endereço confirmation scan before quantity
+ * entry; that's gone now so bipping the product is a single action for
+ * the whole Entrada Manual flow, not one scan per screen.
+ */
 export function MobileManualEntryPanel({
   depositanteId,
   depositanteNome,
   estoqueId,
   produtoNome,
   produtoSku,
-  produtoBarcode,
-  produtoCodigoInterno,
   produtoImagemUrl,
   enderecoCodigo,
   atual,
 }: Props) {
   const router = useRouter();
-  const [scanPhase, setScanPhase] = useState<ScanPhase>("produto");
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [count, setCount] = useState(1);
   const [editingCount, setEditingCount] = useState(false);
   const [countInputValue, setCountInputValue] = useState("1");
   const [reason, setReason] = useState<(typeof REASONS)[number]["value"] | null>(null);
   const [reasonDetail, setReasonDetail] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const overlayTimerRef = useRef<number | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const countInputRef = useRef<HTMLInputElement | null>(null);
-
-  const applyScanRef = useRef<(code: string) => void>(() => {});
-  const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
-
-  const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
-    onDetected: handleDetected,
-    requirePresenceGap: true,
-    confirmReads: 2,
-  });
-
-  // Opens on its own -- the operator has nothing else to do before bipping
-  // the product, so a button tap first would just be an extra step.
-  useEffect(() => {
-    setScannerOpen(true);
-  }, []);
-
-  useEffect(() => {
-    if (scannerOpen) void startCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scannerOpen]);
 
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
       void audioContextRef.current?.close();
     };
   }, []);
@@ -143,49 +116,6 @@ export function MobileManualEntryPanel({
     }
   }
 
-  function flash(next: ScanOverlayState) {
-    setOverlay(next);
-    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
-    if (next) playFeedback(next.type === "err" ? "err" : "ok");
-  }
-
-  function applyScan(rawValue: string) {
-    const normalized = normalizeScan(rawValue);
-    if (!normalized) return;
-
-    if (scanPhase === "produto") {
-      const candidates = [produtoBarcode, produtoCodigoInterno, produtoSku].filter(Boolean) as string[];
-      const matches = candidates.some((value) => normalizeScan(value) === normalized);
-      if (!matches) {
-        flash({ type: "err", title: "Produto incorreto", code: rawValue, sub: "Este código não pertence a este produto." });
-        return;
-      }
-      flash({ type: "ok", title: "Produto OK", code: produtoSku, sub: "Bipe agora o endereço" });
-      setScanPhase("endereco");
-      return;
-    }
-
-    if (scanPhase === "endereco") {
-      const expected = normalizeScan(enderecoCodigo);
-      if (!expected || normalized !== expected) {
-        flash({ type: "err", title: "Endereço incorreto", code: rawValue, sub: "Bipe o endereço indicado na tela." });
-        return;
-      }
-      flash({ type: "ok", title: "Endereço OK", code: enderecoCodigo, sub: "Informe a quantidade e o motivo" });
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = window.setTimeout(() => {
-        setScanPhase("quantidade");
-        stopCamera(null);
-        setScannerOpen(false);
-      }, FLASH_DURATION_MS);
-    }
-  }
-
-  useEffect(() => {
-    applyScanRef.current = applyScan;
-  });
-
   function commitCountInput() {
     const parsed = Number(countInputValue.replace(",", "."));
     const clamped = Number.isFinite(parsed) ? Math.max(1, Math.round(parsed)) : 1;
@@ -225,7 +155,7 @@ export function MobileManualEntryPanel({
       overlayTimerRef.current = window.setTimeout(() => {
         setOverlay(null);
         setConfirmed(true);
-      }, FLASH_DURATION_MS);
+      }, 1300);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao registrar a entrada.");
     } finally {
@@ -234,11 +164,10 @@ export function MobileManualEntryPanel({
   }
 
   const phaseColor = mobileColors.green;
-  const scanTitle = scanPhase === "produto" ? "Bipe o produto" : scanPhase === "endereco" ? "Bipe o endereço" : "Confirme a entrada";
 
   return (
     <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
-      <MobileScanOverlay overlay={scannerOpen ? null : overlay} />
+      <MobileScanOverlay overlay={overlay} />
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
         <MobileBackButton onClick={() => router.push(`/m/estoque/entrada-manual/${depositanteId}`)} />
@@ -263,7 +192,7 @@ export function MobileManualEntryPanel({
 
       <div
         className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px]"
-        style={{ paddingBottom: !confirmed && scanPhase === "quantidade" ? 158 : 18 }}
+        style={{ paddingBottom: confirmed ? 18 : 158 }}
       >
         {confirmed ? (
           <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -291,18 +220,6 @@ export function MobileManualEntryPanel({
             className="flex flex-col gap-3.5 rounded-[20px] p-[18px]"
             style={{ border: `1px solid ${hexAlpha(phaseColor, 0.3)}`, background: hexAlpha("#94A3B8", 0.04) }}
           >
-            <div className="flex items-center gap-2">
-              <span
-                className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] text-[13px] font-extrabold"
-                style={{ background: hexAlpha(phaseColor, 0.18), color: phaseColor, ...headingFont }}
-              >
-                {scanPhase === "produto" ? "1" : scanPhase === "endereco" ? "2" : "3"}
-              </span>
-              <span className="text-[13px] font-extrabold uppercase tracking-wide" style={{ color: phaseColor }}>
-                {scanTitle}
-              </span>
-            </div>
-
             <div className="flex items-center gap-[13px]">
               <div
                 className="flex h-[54px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
@@ -325,126 +242,104 @@ export function MobileManualEntryPanel({
               </div>
             </div>
 
-            {scanPhase !== "quantidade" ? (
+            <div className="flex flex-col gap-3.5">
               <div
-                className="flex items-center gap-3 rounded-[15px] p-4"
+                className="flex flex-col gap-3 rounded-[15px] p-4"
                 style={{ background: "rgba(5,7,13,0.5)", border: `1px dashed ${hexAlpha(phaseColor, 0.4)}` }}
               >
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px]"
-                  style={{ background: hexAlpha(phaseColor, 0.16), color: phaseColor }}
-                >
-                  <MobileIcon name={scanPhase === "produto" ? "code" : "loc"} size={20} />
+                <span className="text-center text-[12.5px] font-bold" style={{ color: mobileColors.muted }}>
+                  Quantidade a adicionar
                 </span>
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[11px] uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    {scanPhase === "produto" ? "Código de barras" : "Endereço atual"}
-                  </span>
-                  <span className="truncate text-[22px] font-bold tracking-wide" style={{ color: mobileColors.text, ...headingFont }}>
-                    {scanPhase === "produto" ? produtoBarcode || produtoSku : enderecoCodigo}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3.5">
-                <div
-                  className="flex flex-col gap-3 rounded-[15px] p-4"
-                  style={{ background: "rgba(5,7,13,0.5)", border: `1px dashed ${hexAlpha(phaseColor, 0.4)}` }}
-                >
-                  <span className="text-center text-[12.5px] font-bold" style={{ color: mobileColors.muted }}>
-                    Quantidade a adicionar
-                  </span>
-                  <div className="flex items-center justify-center gap-[18px]">
-                    <button
-                      type="button"
-                      onClick={() => setCount((current) => Math.max(1, current - 1))}
-                      className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
-                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
-                    >
-                      &minus;
-                    </button>
-                    {editingCount ? (
-                      <input
-                        ref={countInputRef}
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        value={countInputValue}
-                        onChange={(event) => setCountInputValue(event.target.value)}
-                        onBlur={commitCountInput}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            commitCountInput();
-                          }
-                        }}
-                        className="w-[100px] rounded-xl border-0 bg-transparent text-center text-[38px] font-bold outline-none"
-                        style={{ color: mobileColors.text, ...headingFont }}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCountInputValue(String(count));
-                          setEditingCount(true);
-                        }}
-                        className="min-w-[90px] text-center text-[46px] font-bold"
-                        style={{ color: mobileColors.text, ...headingFont }}
-                      >
-                        {count}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setCount((current) => current + 1)}
-                      className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
-                      style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <span className="text-center text-[11.5px]" style={{ color: mobileColors.dim }}>
-                    Saldo atual: {atual} un · toque no número para digitar
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    Motivo da entrada (obrigatório)
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {REASONS.map((item) => {
-                      const active = reason === item.value;
-                      return (
-                        <button
-                          key={item.value}
-                          type="button"
-                          onClick={() => setReason(item.value)}
-                          className="rounded-full px-[14px] py-[8px] text-[13px] font-bold"
-                          style={{
-                            background: active ? hexAlpha(mobileColors.green, 0.18) : "rgba(5,7,13,0.5)",
-                            border: `1px solid ${active ? hexAlpha(mobileColors.green, 0.5) : hexAlpha("#94A3B8", 0.2)}`,
-                            color: active ? mobileColors.green : mobileColors.muted,
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {reason === "OUTRO" ? (
+                <div className="flex items-center justify-center gap-[18px]">
+                  <button
+                    type="button"
+                    onClick={() => setCount((current) => Math.max(1, current - 1))}
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
+                  >
+                    &minus;
+                  </button>
+                  {editingCount ? (
                     <input
-                      type="text"
-                      value={reasonDetail}
-                      onChange={(event) => setReasonDetail(event.target.value)}
-                      placeholder="Descreva o motivo"
-                      className="h-[50px] rounded-[13px] border-0 px-4 text-[15px] outline-none"
-                      style={{ background: "rgba(5,7,13,0.5)", border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.text }}
+                      ref={countInputRef}
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={countInputValue}
+                      onChange={(event) => setCountInputValue(event.target.value)}
+                      onBlur={commitCountInput}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitCountInput();
+                        }
+                      }}
+                      className="w-[100px] rounded-xl border-0 bg-transparent text-center text-[38px] font-bold outline-none"
+                      style={{ color: mobileColors.text, ...headingFont }}
                     />
-                  ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCountInputValue(String(count));
+                        setEditingCount(true);
+                      }}
+                      className="min-w-[90px] text-center text-[46px] font-bold"
+                      style={{ color: mobileColors.text, ...headingFont }}
+                    >
+                      {count}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCount((current) => current + 1)}
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
+                    style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
+                  >
+                    +
+                  </button>
                 </div>
+                <span className="text-center text-[11.5px]" style={{ color: mobileColors.dim }}>
+                  Saldo atual: {atual} un · toque no número para digitar
+                </span>
               </div>
-            )}
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
+                  Motivo da entrada (obrigatório)
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {REASONS.map((item) => {
+                    const active = reason === item.value;
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => setReason(item.value)}
+                        className="rounded-full px-[14px] py-[8px] text-[13px] font-bold"
+                        style={{
+                          background: active ? hexAlpha(mobileColors.green, 0.18) : "rgba(5,7,13,0.5)",
+                          border: `1px solid ${active ? hexAlpha(mobileColors.green, 0.5) : hexAlpha("#94A3B8", 0.2)}`,
+                          color: active ? mobileColors.green : mobileColors.muted,
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {reason === "OUTRO" ? (
+                  <input
+                    type="text"
+                    value={reasonDetail}
+                    onChange={(event) => setReasonDetail(event.target.value)}
+                    placeholder="Descreva o motivo"
+                    className="h-[50px] rounded-[13px] border-0 px-4 text-[15px] outline-none"
+                    style={{ background: "rgba(5,7,13,0.5)", border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, color: mobileColors.text }}
+                  />
+                ) : null}
+              </div>
+            </div>
           </div>
         )}
 
@@ -458,7 +353,7 @@ export function MobileManualEntryPanel({
         ) : null}
       </div>
 
-      {!confirmed && scanPhase === "quantidade" ? (
+      {!confirmed ? (
         <div
           className="left-1/2 flex w-full max-w-md -translate-x-1/2 flex-col gap-2.5 px-[18px] pt-3"
           style={{
@@ -477,86 +372,6 @@ export function MobileManualEntryPanel({
           >
             {isSaving ? <MobileButtonSpinner /> : "Confirmar entrada"}
           </button>
-        </div>
-      ) : null}
-
-      {scannerOpen ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#000", display: "flex", flexDirection: "column" }}>
-          <video ref={videoRef} playsInline muted style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.65) 100%)",
-            }}
-          />
-
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: "18px",
-              paddingTop: "calc(18px + env(safe-area-inset-top))",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-              <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {scanTitle}
-              </span>
-              <span
-                style={{
-                  color: "#fff",
-                  fontWeight: 800,
-                  fontSize: scanPhase === "endereco" ? 22 : 17,
-                  lineHeight: 1.15,
-                  display: "-webkit-box",
-                  WebkitLineClamp: scanPhase === "produto" ? 2 : 1,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  ...headingFont,
-                }}
-              >
-                {scanPhase === "produto" ? produtoNome : enderecoCodigo}
-              </span>
-              {scanPhase === "produto" ? (
-                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, ...headingFont }}>{produtoSku}</span>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push(`/m/estoque/entrada-manual/${depositanteId}`)}
-              style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 12, background: "rgba(255,255,255,0.14)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-              <MobileIcon name="x" size={18} strokeWidth={2.6} />
-            </button>
-          </div>
-
-          <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 250, height: 160, borderRadius: 22, border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}` }} />
-          </div>
-
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 8,
-              padding: "0 24px calc(36px + env(safe-area-inset-bottom))",
-              textAlign: "center",
-            }}
-          >
-            <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
-              {cameraStarting ? "Abrindo câmera..." : cameraMessage ?? "Posicione o código dentro da moldura"}
-            </span>
-          </div>
-
-          <MobileScanOverlay overlay={overlay} />
         </div>
       ) : null}
     </div>

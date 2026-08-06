@@ -62,6 +62,10 @@ export default async function MobileStockCycleCountPage({
     notFound();
   }
 
+  // No .gt("quantidade", 0) filter here anymore: /api/estoque/inventario-resolver
+  // opens a fresh quantidade=0 row when the operator bips a produto+endereço
+  // combination with no prior balance (a "blind count" against 0 expected),
+  // and that row needs to load here just like any other.
   const { data: estoqueRow } = await adminSupabase
     .from("estoque")
     .select(
@@ -69,7 +73,6 @@ export default async function MobileStockCycleCountPage({
     )
     .eq("id", estoqueId)
     .eq("depositante_id", depositanteId)
-    .gt("quantidade", 0)
     .maybeSingle();
 
   if (!estoqueRow) {
