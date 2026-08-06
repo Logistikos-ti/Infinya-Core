@@ -253,6 +253,10 @@ export async function createManualShippingOrderAction(formData: FormData) {
     }
     redirect(`${returnPath}${returnPath.includes("?") ? "&" : "?"}feedback=${feedback}`);
   };
+
+  if (user.papel === "DEPOSITANTE" && user.portalProfile === "COLABORADOR") {
+    fail("permissao", "Seu perfil pode importar pedidos por XML, mas não possui permissão para criar pedidos manualmente.");
+  }
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const numeroPedido = String(formData.get("numeroPedido") ?? "").trim();
   const numeroLoja = String(formData.get("numeroLoja") ?? "").trim();
