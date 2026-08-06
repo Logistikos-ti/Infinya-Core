@@ -56,6 +56,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   );
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
+  const hasCce = cceAttachment?.status === "DISPONIVEL";
 
   useImperativeHandle(ref, () => ({
     openPreparationModal: () => {
@@ -119,7 +120,21 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Documentos da expedição
+        </h4>
+        <button
+          type="button"
+          onClick={() => setAttachmentUploadOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50/70 px-2.5 py-1 text-xs font-bold text-violet-700 transition hover:border-violet-300 hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20"
+        >
+          <Paperclip className="h-3.5 w-3.5" />
+          Anexar documento
+        </button>
+      </div>
+
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${hasCce || extraAttachments.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-3.5`}>
         <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido"
@@ -152,20 +167,22 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
 
         <ShippingDanfePanel orderId={orderId} />
 
-        <AttachmentStatusCard
-          title="Carta de correção"
-          subtitle="CC-e retificadora"
-          icon={<FileSignature className="h-5 w-5" />}
-          iconColor="text-violet-500"
-          attachment={cceAttachment}
-          emptyLabel="CC-e pendente"
-          printLabel="Imprimir CC-e"
-          downloadLabel="Baixar CC-e"
-          unlocked={unlocked}
-          onMissingDocument={() => setAttachmentUploadOpen(true)}
-          badgeBg="bg-violet-500/10"
-          badgeText="text-violet-600 dark:text-violet-400"
-        />
+        {hasCce ? (
+          <AttachmentStatusCard
+            title="Carta de correção"
+            subtitle="CC-e retificadora"
+            icon={<FileSignature className="h-5 w-5" />}
+            iconColor="text-violet-500"
+            attachment={cceAttachment}
+            emptyLabel="CC-e pendente"
+            printLabel="Imprimir CC-e"
+            downloadLabel="Baixar CC-e"
+            unlocked={unlocked}
+            onMissingDocument={() => setAttachmentUploadOpen(true)}
+            badgeBg="bg-violet-500/10"
+            badgeText="text-violet-600 dark:text-violet-400"
+          />
+        ) : null}
 
         {extraAttachments.map((extra) => (
           <AttachmentStatusCard
