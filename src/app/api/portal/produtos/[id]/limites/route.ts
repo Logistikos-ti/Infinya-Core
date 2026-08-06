@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { canManagePortalStock } from "@/lib/portal-integration-access";
 
 export async function PATCH(
   request: NextRequest,
@@ -8,6 +9,13 @@ export async function PATCH(
 ) {
   const auth = await requireApiRoleAccess(["DEPOSITANTE"]);
   if (auth.response) return auth.response;
+
+  if (!canManagePortalStock(auth.user)) {
+    return NextResponse.json(
+      { error: "Seu perfil pode consultar o estoque, mas não alterar seus limites." },
+      { status: 403 },
+    );
+  }
 
   const { id } = await context.params;
   const body = (await request.json().catch(() => null)) as {

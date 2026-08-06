@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
 import { listStockBalancesFromDb } from "@/lib/stock";
+import { canManagePortalStock } from "@/lib/portal-integration-access";
 
 export async function GET() {
   const auth = await requireApiRoleAccess(["DEPOSITANTE"]);
   if (auth.response) return auth.response;
+
+  if (!canManagePortalStock(auth.user)) {
+    return NextResponse.json(
+      { error: "Seu perfil não tem permissão para exportar o estoque." },
+      { status: 403 },
+    );
+  }
 
   const depositanteId = auth.user.depositanteId;
   if (!depositanteId) {

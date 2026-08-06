@@ -48,6 +48,7 @@ type UsuarioListItem = {
   depositante: { nome?: string } | { nome?: string }[] | null;
   modulePermissions: AppModule[] | null;
   configSections: ConfigSection[] | null;
+  portalProfile: "GESTOR" | "COLABORADOR";
 };
 
 export default async function ConfiguracoesUsuariosPage({
@@ -91,6 +92,10 @@ export default async function ConfiguracoesUsuariosPage({
       {
         modulePermissions: normalizeModulePermissions(user.user_metadata?.module_permissions),
         configSections: normalizeConfigSections(user.user_metadata?.config_sections),
+        portalProfile:
+          user.user_metadata?.portal_profile === "COLABORADOR"
+            ? ("COLABORADOR" as const)
+            : ("GESTOR" as const),
       },
     ]),
   );
@@ -100,6 +105,7 @@ export default async function ConfiguracoesUsuariosPage({
     papel: item.papel as AppRole,
     modulePermissions: authPermissionsById.get(item.id)?.modulePermissions ?? null,
     configSections: authPermissionsById.get(item.id)?.configSections ?? null,
+    portalProfile: authPermissionsById.get(item.id)?.portalProfile ?? "GESTOR",
   }));
   const totalUsers = usuarios.length;
   const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
@@ -238,6 +244,17 @@ export default async function ConfiguracoesUsuariosPage({
                 ]) as [string, string][]),
               ]}
               helpText="Para perfis internos como TI e Administração, o vínculo pode ficar em branco. Para perfil Depositante, o vínculo deve existir."
+            />
+
+            <SelectField
+              label="Perfil no portal do depositante"
+              name="portalProfile"
+              defaultValue={currentEditUser?.portalProfile ?? "GESTOR"}
+              options={[
+                ["GESTOR", "Responsável do depositante (acesso completo)"],
+                ["COLABORADOR", "Colaborador do portal (acesso operacional limitado)"],
+              ]}
+              helpText="Aplicável ao papel Depositante. Colaboradores operam pedidos, recebimentos e suporte, mas não acessam Integrações nem alteram limites ou exportam o estoque."
             />
 
             <div className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/30">
@@ -444,6 +461,9 @@ export default async function ConfiguracoesUsuariosPage({
 
                           <div className="flex flex-wrap gap-2">
                             <Badge>{getRoleLabel(item.papel)}</Badge>
+                            {item.papel === "DEPOSITANTE" ? (
+                              <Badge>{item.portalProfile === "GESTOR" ? "Responsável do portal" : "Colaborador do portal"}</Badge>
+                            ) : null}
                             <Badge>{getDepositanteLabel(item.depositante)}</Badge>
                             <Badge>{item.ativo ? "Ativo" : "Inativo"}</Badge>
                             {isCurrentUser ? <Badge>Sessão atual</Badge> : null}

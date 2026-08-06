@@ -14,6 +14,15 @@ export function canManagePortalIntegrations(
 
   return (
     user.papel === "DEPOSITANTE" &&
-    user.depositanteId === depositanteId
+    user.depositanteId === depositanteId &&
+    user.portalProfile === "GESTOR"
+  );
+}
+
+export function canManagePortalStock(user: AppUserContext) {
+  return (
+    user.papel === "ADMIN" ||
+    user.papel === "TI" ||
+    (user.papel === "DEPOSITANTE" && user.portalProfile === "GESTOR")
   );
 }

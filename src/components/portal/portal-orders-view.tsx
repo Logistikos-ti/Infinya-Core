@@ -54,6 +54,8 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
     () =>
       orders.filter(
         (o) =>
+          !o.divergenciaTratada &&
+          !o.tratamentoDivergencia &&
           ["DIVERGENCIA", "DIVERGENTE", "ERRO", "CANCELADO"].includes(o.status) &&
           (o.status !== "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter)),
       ),
@@ -597,6 +599,48 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-6">
+          {order.status === "CANCELADO" || order.cancellationReason || order.tratamentoDivergencia ? (
+            <section className="mb-5 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 dark:border-rose-500/30 dark:bg-rose-500/10">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                  <XCircle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                      Motivo do Cancelamento
+                    </h4>
+                    {order.divergenceReporter || order.cancellationReporter ? (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Registrado por: <strong>{order.divergenceReporter || order.cancellationReporter}</strong>
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {order.cancellationReason || "Divergência reportada durante o processo operacional."}
+                  </p>
+                  
+                  {order.tratamentoDivergencia ? (
+                    <div className="mt-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 p-3 border border-rose-200/60 dark:border-rose-900/40 text-xs space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          Tratativa do Depositante:
+                        </span>
+                        {order.tratamentoDivergencia.tratadoEm ? (
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {formatCreatedAt(order.tratamentoDivergencia.tratadoEm, now)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        {order.tratamentoDivergencia.observacao || "Cancelamento definitivo confirmado pelo depositante."}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
           <section className="mb-5 flex items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.04]">
             <div className="relative grid h-24 w-24 shrink-0 place-items-center">
               <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="9" className="text-slate-200 dark:text-white/10" /><circle cx="50" cy="50" r="41" fill="none" stroke={statusColor} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 41}`} strokeDashoffset={`${2 * Math.PI * 41 * (1 - progress / 100)}`} /></svg>

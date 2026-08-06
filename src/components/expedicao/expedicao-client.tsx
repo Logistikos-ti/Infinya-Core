@@ -332,17 +332,21 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
 
   const vt = {
-    ordersBg: isOrders ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
-    ordersColor: isOrders ? "#FFF" : t.textSub,
-    divBg: isDivergence ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
-    divColor: isDivergence ? "#FFF" : t.textSub,
     divCountBg: isDivergence ? "#FFF" : "rgba(239, 68, 68, 0.15)",
     divCountColor: "#EF4444"
   };
 
   const showAdd = true;
   const addBtnLabel = "+ Novo pedido";
-  const divergenceCount = data.orders.filter((o: any) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO").length;
+  const isDivergencePendingOrder = (o: any) => {
+    const hasTratamento = Boolean(o.divergenciaTratada || o.tratamentoDivergencia || o.raw?.divergenciaTratada || o.raw?.tratamentoDivergencia);
+    if (hasTratamento) return false;
+    return (
+      ["DIVERGENCIA", "DIVERGENTE", "ERRO", "CANCELADO"].includes(o.status) &&
+      (o.status !== "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter))
+    );
+  };
+  const divergenceCount = data.orders.filter(isDivergencePendingOrder).length;
   const availableProducts = (data.productOptions ?? []).filter((produto: any) => produto.depositante_id === newOrderDepositante);
   const selectedItems = newOrderItems.map((item) => ({ ...item, product: availableProducts.find((produto: any) => produto.id === item.id) ?? data.productOptions?.find((produto: any) => produto.id === item.id) })).filter((item) => item.product);
   const totalNewOrderUnits = selectedItems.reduce((total, item) => total + item.quantity, 0);
@@ -652,7 +656,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const conferenceOrders: any[] = [];
   const scanIcon = <PackageSearch size={20} />;
   const alertIcon = <AlertTriangle size={20} />;
-  const divergences = data.orders.filter((o: any) => o.status === "DIVERGENCIA" || o.status === "DIVERGENTE" || o.status === "ERRO" || o.status === "CANCELADO");
+  const divergences = data.orders.filter(isDivergencePendingOrder);
   const ordersCount = searchedOrders.length;
   const columns = canDeleteOrder
     ? ["__select__", "Pedido", "NF-e", "Cliente", "Depositante", "Canal", "Itens", "Conferência", "SLA", "Status", ""]
@@ -1185,9 +1189,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
           });
         };
 
-        
-
-const moves = getTimelineSteps(sel.raw.status, sel);
+        const moves = getTimelineSteps(sel.raw.status, sel);
         const specs = [
           { k: "Canal", v: sel.carrier },
           { k: "Depositante", v: sel.owner },
@@ -1266,284 +1268,41 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     background={t.cardBg}
                   />
                 ) : null}
-                {/* conference ring + volumes */}
-                <div style={{ display: "flex", alignItems: "center", gap: "22px", padding: "20px", borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: "20px" }}>
-                  <div style={{ position: "relative", width: "108px", height: "108px", flexShrink: 0 }}>
-                    <svg width="108" height="108" viewBox="0 0 108 108" style={{ transform: "rotate(-90deg)" }}>
-                      <circle cx="54" cy="54" r="46" fill="none" stroke={t.barTrack} strokeWidth="11"></circle>
-                      <circle cx="54" cy="54" r="46" fill="none" stroke="url(#confGrad)" strokeWidth="11" strokeLinecap="round" strokeDasharray={ring.circ} style={{ animation: "fillRing 1s cubic-bezier(0.3, 1, 0.4, 1) forwards", "--ring-offset": ring.offset } as React.CSSProperties}></circle>
-                      <defs>
-                        <linearGradient id="confGrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0" stopColor={ring.c1}></stop>
-                          <stop offset="1" stopColor={ring.c2}></stop>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "22px", fontWeight: "700" }}>{sel.conf}</span>
-                      <span style={{ fontSize: "10.5px", color: t.textSub }}>conferido</span>
+
+                {/* Motivo do Cancelamento / Divergência */}
+                {(sel.raw.status === "CANCELADO" || sel.raw.cancellationReason || sel.raw.tratamentoDivergencia) && (
+                  <div style={{ padding: "16px", borderRadius: "14px", border: "1px solid rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.08)", marginBottom: "24px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", color: "#EF4444" }}>
+                        Motivo do Cancelamento / Divergência
+                      </span>
+                      {(sel.raw.divergenceReporter || sel.raw.cancellationReporter) && (
+                        <span style={{ fontSize: "11px", color: t.textSub }}>
+                          Por: <strong>{sel.raw.divergenceReporter || sel.raw.cancellationReporter}</strong>
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                      <span style={{ fontSize: "12px", color: t.textSub }}>Cliente</span>
-                      <span style={{ fontSize: "15px", fontWeight: "700", lineHeight: "1.3" }}>{sel.customer}</span>
-                      <span style={{ fontSize: "12.5px", color: t.textSub }}>{sel.city}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: "18px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.itemsLabel.split(' ')[0]}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>itens</span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "17px", fontWeight: "700" }}>{sel.raw.weight || "0,8 kg"}</span><span style={{ fontSize: "11.5px", color: t.textSub }}>peso</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Document buttons */}
-                <div style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
-                  <ShippingAttachmentPreviewDialog
-                    label="Nota Fiscal"
-                    viewHref={`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=inline`}
-                    downloadHref={`/api/expedicao/${sel.raw.id}/nota-fiscal-preview?disposition=attachment`}
-                    customTrigger={(openPreview) => (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasNfe) { openPreview(); } else { setUploadModalOpen({ open: true, type: "NF" }); } }}
-                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                      >
-                        {sel.raw.hasNfe ? (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
-                        ) : (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
-                        )}
-                        <FileText size={20} color={t.textSub} />
-                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center" }}>Visualizar NF</span>
-                      </button>
-                    )}
-                  />
-                  <ShippingAttachmentPreviewDialog
-                    label="DANFE Simplificada"
-                    viewHref={`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=inline`}
-                    downloadHref={`/api/expedicao/${sel.raw.id}/danfe-simplificada?disposition=attachment`}
-                    customTrigger={(openPreview) => (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasNfe) { openPreview(); } else { setUploadModalOpen({ open: true, type: "NF" }); } }}
-                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                      >
-                        {sel.raw.hasNfe ? (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
-                        ) : (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
-                        )}
-                        <Receipt size={20} color={t.textSub} />
-                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
-                      </button>
-                    )}
-                  />
-                  <ShippingAttachmentPreviewDialog
-                    label="Etiqueta de Envio"
-                    viewHref={`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=inline`}
-                    downloadHref={`/api/expedicao/${sel.raw.id}/anexos/etiqueta?disposition=attachment`}
-                    customTrigger={(openPreview) => (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); if (sel.raw.hasEtiqueta) { openPreview(); } else { setUploadModalOpen({ open: true, type: "ETIQUETA" }); } }}
-                        style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                        className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
-                      >
-                        {sel.raw.hasEtiqueta ? (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✓</div>
-                        ) : (
-                          <div style={{ position: "absolute", top: "6px", right: "6px", width: "16px", height: "16px", borderRadius: "50%", background: "#F43F5E", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: "bold" }}>✕</div>
-                        )}
-                        <Tag size={20} color={t.textSub} />
-                        <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
-                      </button>
-                    )}
-                  />
-                </div>
-
-                {/* carrier + dock + specs */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
-                  {specs.map((s: any, i: number) => (
-                    <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
-                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
-                      <span style={{ fontSize: "14.5px", fontWeight: "700" }}>{s.v}</span>
-                      {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
-                    </div>
-                  ))}
-                </div>
-
-                {/* packing list */}
-                <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Itens do pedido</span>
-                    <span style={{ fontSize: "12.5px", color: t.textSub }}>{doneItems} de {nItems} conferidos</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {itemsToUse.map((it: any, i: number) => (
-                      <div key={i} onMouseEnter={() => setHoveredProductIndex(i)} onMouseLeave={() => setHoveredProductIndex(null)} style={{ position: "relative", display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
-                        <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
-                          <span title={it.name} style={{ fontSize: "13.5px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
-                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
-                        </div>
-                        <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
-                        {hoveredProductIndex === i && it.name.length > 42 && <span role="tooltip" style={{ position: "absolute", zIndex: 5, left: "12px", right: "12px", bottom: "calc(100% + 6px)", padding: "9px 11px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.drawerBg, color: t.text, boxShadow: "0 10px 24px rgba(15,23,42,.18)", fontSize: "12.5px", fontWeight: "700", lineHeight: 1.35, whiteSpace: "normal", pointerEvents: "none" }}>{it.name}</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* timeline */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700" }}>Histórico</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    {moves.map((m: any, i: number) => (
-                      <div key={i} style={{ display: "flex", gap: "14px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
-                          <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
-                          <span style={{ flex: 1, width: "2px", background: m.line }}></span>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "16px" }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: "700" }}>{m.title}</span>
-                          <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
-                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>⎙ Romaneio</button>
-                <button style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>✓ Conferir</button>
-                <button style={{ flex: 1.2, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>⇢ Despachar</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-
-      {selectedOrder && activeTab === "pedidos_full" && (() => {
-        const sel = selectedOrder;
-        
-        // Timeline moves logic (matching infinoos-wms-pedidos.html)
-        const getTimelineSteps = (status: string, o: any) => {
-          let orderIdx = 0;
-          if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
-          if (status === 'EM_CONFERENCIA') orderIdx = 2;
-          if (status === 'CONFERIDO' || status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
-
-          const stepMeta = [
-            { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
-            { title: 'Em separação', sub: 'Picking no armazém' },
-            { title: 'Conferência', sub: 'Validação de saída' },
-            { title: 'Expedido', sub: 'Despacho / coleta' }
-          ];
-
-          return stepMeta.map((s, i) => {
-            const done = i < orderIdx, cur = i === orderIdx;
-            return {
-              title: s.title,
-              sub: cur ? 'Em andamento' : (done ? 'Concluído' : s.sub),
-              dot: done || cur ? (cur ? '#8B5CF6' : '#10B981') : t.barTrack,
-              halo: cur ? 'rgba(139,92,246,0.2)' : (done ? 'rgba(16,185,129,0.18)' : 'transparent'),
-              line: i < orderIdx ? '#10B981' : t.border,
-              titleColor: done || cur ? t.text : t.textSub
-            };
-          });
-        };
-
-        let btnText = "Ver detalhes";
-        if (sel.raw.status === "NOVO" || sel.raw.status === "EM_SEPARACAO") btnText = "Iniciar separação";
-        else if (sel.raw.status === "SEPARADO" || sel.raw.status === "EM_CONFERENCIA") btnText = "Iniciar conferência";
-        else if (sel.raw.status === "CONFERIDO" || sel.raw.status === "PRONTO_ROMANEIO") btnText = "Iniciar despacho";
-        else btnText = "Pedido expedido";
-        const moves = getTimelineSteps(sel.raw.status, sel);
-        const specs = [
-          { k: "Canal", v: sel.carrier },
-          { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe },
-          { k: "Corte (SLA)", v: sel.sla },
-          {
-            k: "Criado por",
-            v: sel.raw.createdByName
-              ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
-              : sel.raw.createdBySource || "Sistema",
-            sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
-            fullWidth: true,
-          }
-        ];
-
-        const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
-        const ring = {
-          c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
-          circ: 289,
-          offset: 289 - (289 * sel.confN) / 100
-        };
-
-        // Try to map real items if they exist
-        const realItems = sel.raw.items || [];
-        const nItems = Math.max(1, realItems.length > 0 ? realItems.length : (sel.raw.itemCount || 3));
-        const doneItems = Math.round(nItems * sel.confN / 100);
-        const itemsToUse = [];
-        for (let i = 0; i < nItems; i++) {
-          const r = realItems[i] || {};
-          const isDone = i < doneItems;
-          itemsToUse.push({
-            name: r.name || r.productName || `Produto Genérico ${i+1}`,
-            sku: r.sku || r.productSku || `SKU-100${i}`,
-            qty: (r.quantity || 1) + ' un',
-            qtyColor: isDone ? '#10B981' : t.textSub,
-            mark: isDone ? '✓' : '',
-            checkBorder: isDone ? '#10B981' : t.border,
-            checkBg: isDone ? '#10B981' : 'transparent'
-          });
-        }
-
-        return (
-          <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
-            <div
-              onClick={() => setSelectedOrder(null)}
-              style={{ position: "absolute", inset: 0, background: "rgba(6, 10, 20, 0.55)", backdropFilter: "blur(3px)", animation: "overlayFade 0.25s ease" }}
-            ></div>
-            <div style={{ position: "relative", width: "460px", maxWidth: "92vw", height: "100%", background: t.drawerBg, borderLeft: `1px solid ${t.border}`, boxShadow: "-24px 0 60px rgba(0,0,0,0.35)", display: "flex", flexDirection: "column", animation: "drawerIn 0.32s cubic-bezier(.3,1,.4,1)", overflow: "hidden" }}>
-              <div style={{ position: "relative", padding: "24px 24px 20px 24px", borderBottom: `1px solid ${t.border}`, overflow: "hidden" }}>
-                <div style={{ position: "absolute", width: "260px", height: "260px", right: "-80px", top: "-120px", borderRadius: "50%", background: "radial-gradient(circle, rgba(139, 92, 246, 0.28), transparent 70%)", pointerEvents: "none" }}></div>
-                <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "0.12em", color: t.textSub }}>PEDIDO</span>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "26px", fontWeight: "700", lineHeight: "1" }}>{sel.code}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", alignSelf: "flex-start", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: sel.statusBg, color: sel.statusColor }}>
-                      <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: sel.statusDot }}></span>{sel.statusLabel}
+                    <span style={{ fontSize: "13.5px", fontWeight: "600", color: t.text }}>
+                      {sel.raw.cancellationReason || "Divergência reportada durante o processo operacional."}
                     </span>
+                    {sel.raw.tratamentoDivergencia && (
+                      <div style={{ marginTop: "6px", padding: "10px 12px", borderRadius: "10px", background: t.cardBg, border: `1px solid ${t.border}`, fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                          <strong style={{ color: t.text }}>Tratativa do Depositante:</strong>
+                          {sel.raw.tratamentoDivergencia.tratadoPorNome && (
+                            <span style={{ fontSize: "11px", color: t.textSub }}>{sel.raw.tratamentoDivergencia.tratadoPorNome}</span>
+                          )}
+                        </div>
+                        <span style={{ color: t.textSub }}>
+                          {sel.raw.tratamentoDivergencia.observacao || "Cancelamento definitivo confirmado pelo depositante."}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {canDeleteOrder && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>
-                      <input type="hidden" name="id" value={sel.raw.id} />
-                      <button type="submit" aria-label="Excluir pedido" title="Excluir pedido" style={{ width: "36px", height: "36px", display: "grid", placeItems: "center", flexShrink: 0, borderRadius: "10px", border: "1px solid rgba(239,68,68,.28)", background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
-                    </form>}
-                    <button onClick={() => setSelectedOrder(null)} aria-label="Fechar pedido" style={{ width: "36px", height: "36px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, fontSize: "16px", cursor: "pointer" }}>✕</button>
-                  </div>
-                </div>
-              </div>
+                )}
 
-                            <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-                {canManuallyChangeOrderStatus ? (
-                  <ManualOrderStatusControl
-                    orderId={sel.raw.id}
-                    status={sel.raw.status}
-                    text={t.text}
-                    border={t.border}
-                    background={t.cardBg}
-                  />
-                ) : null}
                 {/* customer info */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "28px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "20px" }}>
                   <span style={{ fontSize: "16px", fontWeight: "700", lineHeight: "1.3", color: t.text }}>{sel.customer}</span>
                   <span style={{ fontSize: "13px", color: t.textSub }}>{sel.owner} &middot; {sel.city}</span>
                 </div>
@@ -1574,8 +1333,8 @@ const moves = getTimelineSteps(sel.raw.status, sel);
                     </div>
                   ))}
                 </div>
+              </div>
 
-                </div>
 
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
                 <button 

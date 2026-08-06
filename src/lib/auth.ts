@@ -26,6 +26,7 @@ export type AppUserContext = {
   ativo: boolean;
   modulePermissions: AppModule[] | null;
   configSections: ConfigSection[] | null;
+  portalProfile: "GESTOR" | "COLABORADOR";
   forcePasswordReset: boolean;
 };
 
@@ -60,6 +61,9 @@ export const getCurrentUserContext = cache(async (): Promise<AppUserContext | nu
     ativo: profile.ativo,
     modulePermissions: parseModulePermissions(user.user_metadata?.module_permissions),
     configSections: parseConfigSections(user.user_metadata?.config_sections),
+    portalProfile: parsePortalProfile(
+      user.user_metadata?.portal_profile ?? user.app_metadata?.portal_profile,
+    ),
     forcePasswordReset: parseForcePasswordReset(
       user.user_metadata?.force_password_reset ?? user.app_metadata?.force_password_reset,
     ),
@@ -78,6 +82,10 @@ export async function requireUserContext() {
   }
 
   return user;
+}
+
+function parsePortalProfile(value: unknown): "GESTOR" | "COLABORADOR" {
+  return value === "COLABORADOR" ? "COLABORADOR" : "GESTOR";
 }
 
 export async function requireModuleAccess(module: AppModule) {

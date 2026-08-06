@@ -29,6 +29,10 @@ export async function createUsuarioAction(formData: FormData) {
   });
   const modulePermissions = parseModulePermissions(formData);
   const configSections = parseConfigSections(formData, modulePermissions);
+  const portalProfile = parsePortalProfile(
+    formData,
+    String(formData.get("papel") ?? "OPERADOR"),
+  );
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
@@ -57,6 +61,7 @@ export async function createUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      portal_profile: portalProfile,
       force_password_reset: true,
     },
     app_metadata: {
@@ -64,6 +69,7 @@ export async function createUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      portal_profile: portalProfile,
       force_password_reset: true,
     },
   });
@@ -106,6 +112,10 @@ export async function updateUsuarioAction(formData: FormData) {
   });
   const modulePermissions = parseModulePermissions(formData);
   const configSections = parseConfigSections(formData, modulePermissions);
+  const portalProfile = parsePortalProfile(
+    formData,
+    String(formData.get("papel") ?? "OPERADOR"),
+  );
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
@@ -165,6 +175,7 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: string;
       module_permissions: AppModule[];
       config_sections: ConfigSection[];
+      portal_profile: "GESTOR" | "COLABORADOR";
       force_password_reset: boolean;
     };
     app_metadata: {
@@ -172,6 +183,7 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: string;
       module_permissions: AppModule[];
       config_sections: ConfigSection[];
+      portal_profile: "GESTOR" | "COLABORADOR";
       force_password_reset: boolean;
     };
     password?: string;
@@ -183,6 +195,7 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      portal_profile: portalProfile,
       force_password_reset: forcePasswordReset,
     },
     app_metadata: {
@@ -190,6 +203,7 @@ export async function updateUsuarioAction(formData: FormData) {
       papel: parsed.data.papel,
       module_permissions: modulePermissions,
       config_sections: configSections,
+      portal_profile: portalProfile,
       force_password_reset: forcePasswordReset,
     },
   };
@@ -284,4 +298,9 @@ function parseConfigSections(formData: FormData, modulePermissions: AppModule[])
     .filter((value): value is ConfigSection => CONFIG_SECTIONS.includes(value as ConfigSection));
 
   return selectedSections.length ? selectedSections : [...CONFIG_SECTIONS];
+}
+
+function parsePortalProfile(formData: FormData, papel: string): "GESTOR" | "COLABORADOR" {
+  if (papel !== "DEPOSITANTE") return "GESTOR";
+  return formData.get("portalProfile") === "COLABORADOR" ? "COLABORADOR" : "GESTOR";
 }
