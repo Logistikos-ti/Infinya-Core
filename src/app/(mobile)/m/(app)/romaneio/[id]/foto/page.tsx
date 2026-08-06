@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Truck, User } from "lucide-react";
+import { Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
+import { DownloadPhotoButton } from "./download-photo-button";
 
 type FotoRomaneioPageProps = {
   params: Promise<{ id: string }>;
@@ -103,15 +104,7 @@ export default async function FotoRomaneioPage({ params, searchParams }: FotoRom
       </div>
 
       <div style={{ flexShrink: 0, padding: "0 18px 24px" }}>
-        <a
-          href={imageSrc}
-          download
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
-          style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.06), color: mobileColors.muted }}
-        >
-          <Download className="h-4 w-4" />
-          Baixar foto
-        </a>
+        <DownloadPhotoButton imageSrc={imageSrc} fileName={`romaneio-${romaneio.code}-${type}.jpg`} />
       </div>
     </div>
   );
