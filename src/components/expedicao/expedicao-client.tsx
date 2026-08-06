@@ -412,6 +412,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: "conferencia", label: "Em conferência", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
     { id: "pronto-coleta", label: "Pronto para coleta", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
     { id: "expedido", label: "Expedido", count: expedidosNoMesAtual, hasCount: true, isAlert: false },
+    { id: "cancelados", label: "Cancelados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "cancelados")).length, hasCount: true, isAlert: false },
     { id: "atrasados", label: "Atrasados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "atrasados")).length, hasCount: true, isAlert: true },
     { id: "todos", label: "Todos", count: ordersForOperationalQueue.length, hasCount: false, isAlert: false },
   ];
@@ -532,7 +533,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   });
 
   const sortValue = (order: any, key: OrderSortKey) => {
-    const carrier = order.marketplace && order.marketplace !== "NÃ£o" && order.marketplace !== "Marketplace"
+    const carrier = order.marketplace && order.marketplace !== "Não" && order.marketplace !== "Marketplace"
       ? order.marketplace
       : (order.channel && order.channel !== "BLING" ? order.channel : (order.carrierName || "N/A"));
     switch (key) {
@@ -543,7 +544,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       case "channel": return String(carrier || "");
       case "items": return Number(order.itemCount ?? order.vol ?? 0);
       case "conference": {
-        if (["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(order.status)) return 100;
+        if (["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO", "ENTREGUE"].includes(order.status)) return 100;
         if (order.status === "EM_CONFERENCIA") return 50;
         if (["EM_SEPARACAO", "SEPARADO"].includes(order.status)) return 25;
         return Number(order.conf ?? 0);
@@ -581,7 +582,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
     "Depositante": "depositante",
     "Canal": "channel",
     "Itens": "items",
-    "ConferÃªncia": "conference",
     "Conferência": "conference",
     "SLA": "sla",
     "Status": "status"
@@ -610,13 +610,14 @@ export function ExpedicaoClient({ data }: { data: any }) {
       : (o.channel && o.channel !== "BLING" ? o.channel : (o.carrierName || "N/A"));
     const cs = getCarrierStyle(carrierRaw);
     
-    const isExpedido = ["EXPEDIDO", "PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
+    const isExpedido = ["EXPEDIDO", "ENTREGUE"].includes(o.status);
+    const isReadyOrConferido = ["PRONTO_ROMANEIO", "CONFERIDO"].includes(o.status);
     const isConf = o.status === "EM_CONFERENCIA";
     const isSep = ["EM_SEPARACAO", "SEPARADO"].includes(o.status);
-    let confRaw = isExpedido ? 100 : (isConf ? 50 : (isSep ? 25 : 0));
-    if (o.conf !== undefined) confRaw = o.conf; // From mock if exists
+    let confRaw = isExpedido ? 100 : (isReadyOrConferido ? 100 : (isConf ? 50 : (isSep ? 25 : 0)));
+    if (!isExpedido && !isReadyOrConferido && o.conf !== undefined) confRaw = o.conf;
     
-    const isFull = confRaw === 100;
+    const isFull = confRaw === 100 || isExpedido;
     const confFill = isFull ? 'linear-gradient(90deg,#10B981,#34D399)' : (confRaw > 0 ? '#3B82F6' : t.barTrack);
 
     return {
@@ -632,9 +633,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
       itemsLabel: `${o.itemCount || o.vol || 0} ${(o.itemCount === 1 || o.vol === 1 ? 'item' : 'itens')}`,
       sla: o.ageLabel || o.sla || "-",
       slaColor: o.ageTone === "LATE" || o.late ? "#EF4444" : (o.ageTone === "WARNING" ? "#F59E0B" : t.text),
-      confN: confRaw,
-      conf: confRaw + "%",
-      confW: confRaw + "%",
+      confN: isExpedido ? 100 : confRaw,
+      conf: (isExpedido ? 100 : confRaw) + "%",
+      confW: (isExpedido ? 100 : confRaw) + "%",
       confFill: confFill,
       statusLabel: o.statusLabel || o.status,
       statusColor: ss.statusColor,
@@ -1227,7 +1228,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
           }
         ];
 
-        const isRingConcluded = sel.raw?.status === 'CONFERIDO' || sel.raw?.status === 'PRONTO_ROMANEIO' || sel.raw?.status === 'EXPEDIDO' || sel.raw?.status === 'ENTREGUE';
+        const isRingConcluded = ['CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO', 'ENTREGUE'].includes(sel.raw?.status) || ['CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO', 'ENTREGUE'].includes(sel.status);
         const confN = isRingConcluded ? 100 : (Number(sel.confN ?? (sel.conf ? parseInt(sel.conf) : 0)) || 0);
         const ring = {
           c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
@@ -1383,7 +1384,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                           </defs>
                         </svg>
                         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "19px", fontWeight: "700", color: t.text }}>{sel.conf}</span>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "19px", fontWeight: "700", color: t.text }}>{isRingConcluded ? "100%" : sel.conf}</span>
                           <span style={{ fontSize: "10px", color: t.textSub, fontWeight: "600" }}>conferido</span>
                         </div>
                       </div>

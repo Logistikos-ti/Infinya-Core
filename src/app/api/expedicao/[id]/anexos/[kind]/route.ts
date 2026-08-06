@@ -104,12 +104,20 @@ export async function GET(request: Request, { params }: RouteProps) {
 function normalizeKind(kind: string) {
   const normalized = kind.trim().toLowerCase();
 
-  if (normalized === "xml-nf") {
+  if (normalized === "xml-nf" || normalized === "nf") {
     return "NF";
   }
 
   if (normalized === "etiqueta") {
     return "ETIQUETA";
+  }
+
+  if (normalized === "carta-correcao" || normalized === "cce" || normalized === "carta_correcao") {
+    return "CARTA_CORRECAO";
+  }
+
+  if (normalized === "outro" || normalized === "documento-adicional" || normalized === "documento_adicional") {
+    return "OUTRO";
   }
 
   return null;

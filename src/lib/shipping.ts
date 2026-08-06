@@ -98,7 +98,7 @@ type RawStoredDocumentRow = {
 export type ShippingAttachment = {
   id: string;
   label: string;
-  kind: "XML_NF" | "ETIQUETA";
+  kind: "XML_NF" | "ETIQUETA" | "CARTA_CORRECAO" | "OUTRO" | string;
   status: "DISPONIVEL" | "PENDENTE";
   href: string | null;
   viewHref: string | null;
@@ -141,6 +141,7 @@ export type ShippingOrderSummary = {
   nfe: string;
   hasNfe: boolean;
   hasEtiqueta: boolean;
+  hasCartaCorrecao?: boolean;
   weight: string;
   weightRaw: number;
   createdByName: string | null;
@@ -704,8 +705,15 @@ function buildDefaultShippingAttachments(
     documents.find((item) => item.tipo === "NF" || item.tipo === "XML_NF") ??
     documents.find((item) => item.mime_type?.includes("xml"));
   const labelDocument = documents.find((item) => item.tipo === "ETIQUETA");
+  const cceDocument = documents.find(
+    (item) => item.tipo === "CARTA_CORRECAO" || item.tipo === "CCE",
+  );
 
-  return [
+  const consumedIds = new Set(
+    [nfDocument?.id, labelDocument?.id, cceDocument?.id].filter(Boolean),
+  );
+
+  const baseAttachments: ShippingAttachment[] = [
     buildAttachment(
       "XML_NF",
       nfDocument,
@@ -718,11 +726,46 @@ function buildDefaultShippingAttachments(
       "ETIQUETA",
       labelDocument,
       orderId,
-      "Etiqueta do marketplace",
+      "Etiqueta de envio",
       "Anexe aqui o PDF ou imagem da etiqueta gerada no marketplace ou operador logístico.",
       null,
     ),
+    buildAttachment(
+      "CARTA_CORRECAO",
+      cceDocument,
+      orderId,
+      "Carta de correção (CC-e)",
+      "Anexe o PDF ou XML da CC-e caso tenha ocorrido retificação fiscal do pedido.",
+      cceDocument ? `/api/documentos/${cceDocument.id}/download?disposition=inline` : null,
+    ),
   ];
+
+  // Adicionar outros documentos armazenados anexados ao pedido
+  const extraAttachments: ShippingAttachment[] = documents
+    .filter((item) => !consumedIds.has(item.id))
+    .map((item) => {
+      const isCce = item.tipo === "CARTA_CORRECAO" || item.tipo === "CCE";
+      const isOutro = item.tipo === "OUTRO" || item.tipo === "DOCUMENTO_ADICIONAL";
+      const label = isCce
+        ? `Carta de correção (${item.nome_arquivo})`
+        : isOutro
+        ? item.nome_arquivo || "Documento adicional"
+        : item.nome_arquivo || item.tipo;
+
+      return {
+        id: item.id,
+        label,
+        kind: item.tipo,
+        status: "DISPONIVEL" as const,
+        href: `/api/documentos/${item.id}/download?disposition=attachment`,
+        viewHref: `/api/documentos/${item.id}/download?disposition=inline`,
+        fileName: item.nome_arquivo,
+        uploadedAt: formatDateTimeInSaoPaulo(item.created_at, "Sem data"),
+        help: "Documento anexado ao pedido de expedição.",
+      };
+    });
+
+  return [...baseAttachments, ...extraAttachments];
 }
 
 function buildAttachment(
@@ -747,17 +790,36 @@ function buildAttachment(
     };
   }
 
-  const attachmentRouteKind = kind === "XML_NF" ? "xml-nf" : "etiqueta";
+  const isNf = kind === "XML_NF";
+  const isLabel = kind === "ETIQUETA";
+  const isCce = kind === "CARTA_CORRECAO" || kind === "CCE";
+  const attachmentRouteKind = isNf
+    ? "xml-nf"
+    : isLabel
+    ? "etiqueta"
+    : isCce
+    ? "carta-correcao"
+    : "outro";
+
+  const label =
+    isNf
+      ? "XML da nota fiscal"
+      : isLabel
+      ? "Etiqueta de envio"
+      : isCce
+      ? "Carta de correção (CC-e)"
+      : document.nome_arquivo || "Documento anexado";
+
+  const href = `/api/documentos/${document.id}/download?disposition=attachment`;
+  const defaultViewHref = `/api/documentos/${document.id}/download?disposition=inline`;
 
   return {
     id: document.id,
-    label: kind === "XML_NF" ? "XML da nota fiscal" : "Etiqueta do marketplace",
+    label,
     kind,
     status: "DISPONIVEL",
-    href: `/api/expedicao/${orderId}/anexos/${attachmentRouteKind}`,
-    viewHref:
-      customViewHref ??
-      `/api/expedicao/${orderId}/anexos/${attachmentRouteKind}?disposition=inline`,
+    href,
+    viewHref: customViewHref ?? defaultViewHref,
     fileName: document.nome_arquivo,
     uploadedAt: formatDateTimeInSaoPaulo(document.created_at, "Sem data"),
     help,
@@ -817,6 +879,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
   const docs = Array.isArray((item as any).documentos) ? (item as any).documentos : [];
   const hasNfe = docs.some((d: any) => d.tipo === "NF" || d.tipo === "XML_NF" || (d.mime_type && d.mime_type.includes("xml")));
   const hasEtiqueta = docs.some((d: any) => d.tipo === "ETIQUETA");
+  const hasCartaCorrecao = docs.some((d: any) => d.tipo === "CARTA_CORRECAO" || d.tipo === "CCE");
   
   const items = (item.itens ?? []).map((it) => ({
     name: it.nome,
@@ -859,6 +922,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     nfe,
     hasNfe,
     hasEtiqueta,
+    hasCartaCorrecao,
     weight: calculateOrderWeight(item.itens, payload).weight,
     weightRaw: calculateOrderWeight(item.itens, payload).weightRaw,
     createdByName,

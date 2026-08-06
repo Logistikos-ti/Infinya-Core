@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileText, LoaderCircle, Package, Plus, Tag, X, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileSignature, FileText, LoaderCircle, Package, Paperclip, Plus, Tag, X, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
@@ -465,7 +465,7 @@ function sortKeyForLabel(label: string): SortKey {
     Itens: "items",
     Criado: "created",
     Status: "status",
-  } as Record<string, SortKey>)[label];
+} as Record<string, SortKey>)[label];
 }
 
 function sortLabel(key: SortKey) {
@@ -510,25 +510,65 @@ function Pagination({
 }) {
   const first = (page - 1) * PAGE_SIZE + 1;
   const last = Math.min(page * PAGE_SIZE, total);
-  const pages = Array.from(new Set([1, page - 1, page, page + 1, totalPages].filter((item) => item >= 1 && item <= totalPages)));
+  const pages = Array.from(
+    new Set([1, page - 1, page, page + 1, totalPages].filter((item) => item >= 1 && item <= totalPages)),
+  );
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-[13px] text-slate-500 dark:border-white/10 dark:bg-[#101b30] dark:text-slate-400">
-      <span>Mostrando {first}–{last} de {total} pedidos</span>
+      <span>
+        Mostrando {first}–{last} de {total} pedidos
+      </span>
       <div className="flex items-center gap-1.5">
-        <button type="button" aria-label="Página anterior" disabled={page === 1} onClick={() => onPageChange(page - 1)} className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 transition hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"><ChevronLeft className="h-4 w-4" /></button>
+        <button
+          type="button"
+          aria-label="Página anterior"
+          disabled={page === 1}
+          onClick={() => onPageChange(page - 1)}
+          className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 transition hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
         {pages.map((item, index) => (
           <span key={item} className="contents">
             {index > 0 && item - pages[index - 1] > 1 ? <span className="px-1">...</span> : null}
-            <button type="button" onClick={() => onPageChange(item)} className={`grid h-8 min-w-8 place-items-center rounded-full border px-2 transition ${page === item ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 font-bold text-white" : "border-slate-200 text-slate-600 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:text-slate-300"}`}>{item}</button>
+            <button
+              type="button"
+              onClick={() => onPageChange(item)}
+              className={`grid h-8 min-w-8 place-items-center rounded-full border px-2 transition ${
+                page === item
+                  ? "border-transparent bg-gradient-to-r from-blue-500 to-violet-500 font-bold text-white"
+                  : "border-slate-200 text-slate-600 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:text-slate-300"
+              }`}
+            >
+              {item}
+            </button>
           </span>
         ))}
-        <button type="button" aria-label="Próxima página" disabled={page === totalPages} onClick={() => onPageChange(page + 1)} className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 transition hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"><ChevronRight className="h-4 w-4" /></button>
+        <button
+          type="button"
+          aria-label="Próxima página"
+          disabled={page === totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 transition hover:border-violet-300 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
 }
 
-function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSummary; now: number; onOpen: () => void; onPrefetch: () => void }) {
+function OrderRow({
+  order,
+  now,
+  onOpen,
+  onPrefetch,
+}: {
+  order: ShippingOrderSummary;
+  now: number;
+  onOpen: () => void;
+  onPrefetch: () => void;
+}) {
   return (
     <tr
       className="cursor-pointer border-b border-slate-100 text-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
@@ -545,37 +585,98 @@ function OrderRow({ order, now, onOpen, onPrefetch }: { order: ShippingOrderSumm
       role="button"
       aria-label={`Abrir pedido ${order.displayNumber || order.id}`}
     >
-      <td className="px-5 py-[14px] font-display text-sm font-bold"><span className="hover:text-violet-600">{order.displayNumber || order.id}</span></td>
-      <td className="px-5 py-[14px] font-display text-sm font-semibold text-slate-700 dark:text-slate-200">{order.nfe || "-"}</td>
+      <td className="px-5 py-[14px] font-display text-sm font-bold">
+        <span className="hover:text-violet-600">{order.displayNumber || order.id}</span>
+      </td>
+      <td className="px-5 py-[14px] font-display text-sm font-semibold text-slate-700 dark:text-slate-200">
+        {order.nfe || "-"}
+      </td>
       <td className="px-5 py-[14px]">
         <div className="flex flex-col gap-0.5">
-          <span className="max-w-[200px] truncate text-sm font-semibold">{order.customer || "Cliente não informado"}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{order.destination || "Destino não informado"}</span>
+          <span className="max-w-[200px] truncate text-sm font-semibold">
+            {order.customer || "Cliente não informado"}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {order.destination || "Destino não informado"}
+          </span>
         </div>
       </td>
       <td className="px-5 py-[14px] text-[13.5px] font-semibold">
         {repairMojibake(order.marketplace || order.channel || "Operação própria")}
       </td>
-      <td className="px-5 py-[14px] font-display text-sm font-semibold">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</td>
-      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">{formatCreatedAt(order.createdAtIso, now)}</td>
-      <td className="px-5 py-[14px]"><StatusBadge status={order.status} label={repairMojibake(order.statusLabel || order.status)} /></td>
-      <td className="px-5 py-[14px] text-right text-slate-400"><ArrowRight className="ml-auto h-4 w-4" /></td>
+      <td className="px-5 py-[14px] font-display text-sm font-semibold">
+        {order.itemCount} item{order.itemCount === 1 ? "" : "s"}
+      </td>
+      <td className="px-5 py-[14px] text-[13px] text-slate-500 dark:text-slate-400">
+        {formatCreatedAt(order.createdAtIso, now)}
+      </td>
+      <td className="px-5 py-[14px]">
+        <StatusBadge status={order.status} label={repairMojibake(order.statusLabel || order.status)} />
+      </td>
+      <td className="px-5 py-[14px] text-right text-slate-400">
+        <ArrowRight className="ml-auto h-4 w-4" />
+      </td>
     </tr>
   );
 }
 
-function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetail; onClose: () => void }) {
+function PortalOrderDetailDrawer({
+  order,
+  onClose,
+}: {
+  order: ShippingOrderDetail;
+  onClose: () => void;
+}) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadDefaultTipo, setUploadDefaultTipo] = useState<string>("CARTA_CORRECAO");
   const [now, setNow] = useState(() => Date.now());
-  const hasNfe = order.attachments.some((attachment) => attachment.kind === "XML_NF" && attachment.status === "DISPONIVEL");
-  const hasEtiqueta = order.attachments.some((attachment) => attachment.kind === "ETIQUETA" && attachment.status === "DISPONIVEL");
+
+  const hasNfe = order.attachments.some(
+    (attachment) => attachment.kind === "XML_NF" && attachment.status === "DISPONIVEL",
+  );
+  const hasEtiqueta = order.attachments.some(
+    (attachment) => attachment.kind === "ETIQUETA" && attachment.status === "DISPONIVEL",
+  );
+  const cceAttachment = order.attachments.find(
+    (attachment) =>
+      (attachment.kind === "CARTA_CORRECAO" || attachment.kind === "CCE") &&
+      attachment.status === "DISPONIVEL",
+  );
+  const hasCce = Boolean(cceAttachment);
+
+  const extraAttachments = order.attachments.filter(
+    (attachment) =>
+      attachment.status === "DISPONIVEL" &&
+      !["XML_NF", "ETIQUETA", "CARTA_CORRECAO", "CCE"].includes(attachment.kind),
+  );
+
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
-  const progress = order.itemCount ? Math.min(100, Math.round((order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) / Math.max(1, order.unitsRaw)) * 100)) : 0;
+
+  const isExpedido = order.status === "EXPEDIDO";
+  const progress = isExpedido
+    ? 100
+    : order.itemCount
+    ? Math.min(
+        100,
+        Math.round(
+          (order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0) /
+            Math.max(1, order.unitsRaw)) *
+            100,
+        ),
+      )
+    : 0;
+
   const statusStyle = getOperationalStatusStyle(order.status, order.statusLabel);
   const statusColor = statusStyle.color;
+
+  const openUpload = (tipo: string = "CARTA_CORRECAO") => {
+    setUploadDefaultTipo(tipo);
+    setUploadOpen(true);
+  };
+
   const info = [
     ["Canal", order.marketplace || order.channel || "Operação própria"],
     ["Depositante", order.depositante],
@@ -586,20 +687,43 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
   ];
 
   return (
-    <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-label="Detalhes do pedido">
-      <button type="button" aria-label="Fechar detalhes" onClick={onClose} className="absolute inset-0 cursor-default border-0 bg-slate-950/55 backdrop-blur-sm" />
+    <div
+      className="fixed inset-0 z-[70] flex justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detalhes do pedido"
+    >
+      <button
+        type="button"
+        aria-label="Fechar detalhes"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default border-0 bg-slate-950/55 backdrop-blur-sm"
+      />
       <aside className="relative flex h-full w-[460px] max-w-[94vw] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0f172a]">
         <header className="relative border-b border-slate-200 px-6 pb-5 pt-6 dark:border-white/10">
           <div className="absolute -right-20 -top-28 h-64 w-64 rounded-full bg-violet-200/60 blur-2xl dark:bg-violet-600/20" />
           <div className="relative flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold tracking-[0.14em] text-slate-500">PEDIDO</p>
-              <h2 className="mt-2 font-display text-[26px] font-bold leading-none text-slate-950 dark:text-white">{order.displayNumber}</h2>
-              <span className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold" style={{ color: statusColor, background: `${statusColor}18` }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} /> {repairMojibake(order.statusLabel)}
+              <h2 className="mt-2 font-display text-[26px] font-bold leading-none text-slate-950 dark:text-white">
+                {order.displayNumber}
+              </h2>
+              <span
+                className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold"
+                style={{ color: statusColor, background: `${statusColor}18` }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} />{" "}
+                {repairMojibake(order.statusLabel)}
               </span>
             </div>
-            <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><X className="h-4 w-4" /></button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar"
+              className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-6">
@@ -623,9 +747,9 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {order.cancellationReason || "Divergência reportada durante o processo operacional."}
                   </p>
-                  
+
                   {order.tratamentoDivergencia ? (
-                    <div className="mt-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 p-3 border border-rose-200/60 dark:border-rose-900/40 text-xs space-y-1">
+                    <div className="mt-2.5 space-y-1 rounded-xl border border-rose-200/60 bg-white/70 p-3 text-xs dark:border-rose-900/40 dark:bg-slate-900/60">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-bold text-slate-800 dark:text-slate-200">
                           Tratativa do Depositante:
@@ -637,7 +761,8 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
                         ) : null}
                       </div>
                       <p className="text-slate-600 dark:text-slate-400">
-                        {order.tratamentoDivergencia.observacao || "Cancelamento definitivo confirmado pelo depositante."}
+                        {order.tratamentoDivergencia.observacao ||
+                          "Cancelamento definitivo confirmado pelo depositante."}
                       </p>
                     </div>
                   ) : null}
@@ -647,50 +772,340 @@ function PortalOrderDetailDrawer({ order, onClose }: { order: ShippingOrderDetai
           ) : null}
           <section className="mb-5 flex items-center gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/[0.04]">
             <div className="relative grid h-24 w-24 shrink-0 place-items-center">
-              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" strokeWidth="9" className="text-slate-200 dark:text-white/10" /><circle cx="50" cy="50" r="41" fill="none" stroke={statusColor} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 41}`} strokeDashoffset={`${2 * Math.PI * 41 * (1 - progress / 100)}`} /></svg>
-              <span className="relative text-xl font-bold text-slate-950 dark:text-white">{progress}%</span>
+              <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="41"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="9"
+                  className="text-slate-200 dark:text-white/10"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="41"
+                  fill="none"
+                  stroke={statusColor}
+                  strokeWidth="9"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 41}`}
+                  strokeDashoffset={`${2 * Math.PI * 41 * (1 - progress / 100)}`}
+                />
+              </svg>
+              <span className="relative text-xl font-bold text-slate-950 dark:text-white">
+                {progress}%
+              </span>
             </div>
             <div className="min-w-0">
               <p className="text-xs text-slate-500">Cliente</p>
-              <p className="mt-1 truncate text-[15px] font-bold text-slate-950 dark:text-white">{order.customer}</p>
+              <p className="mt-1 truncate text-[15px] font-bold text-slate-950 dark:text-white">
+                {order.customer}
+              </p>
               <p className="mt-1 text-xs text-slate-500">{order.destination}</p>
-              <div className="mt-3 flex gap-5"><span className="text-lg font-bold text-slate-950 dark:text-white">{order.itemCount}<small className="ml-1 text-xs font-medium text-slate-500">itens</small></span><span className="text-lg font-bold text-slate-950 dark:text-white">{order.units}<small className="ml-1 text-xs font-medium text-slate-500">un.</small></span></div>
+              <div className="mt-3 flex gap-5">
+                <span className="text-lg font-bold text-slate-950 dark:text-white">
+                  {order.itemCount}
+                  <small className="ml-1 text-xs font-medium text-slate-500">itens</small>
+                </span>
+                <span className="text-lg font-bold text-slate-950 dark:text-white">
+                  {order.units}
+                  <small className="ml-1 text-xs font-medium text-slate-500">un.</small>
+                </span>
+              </div>
             </div>
           </section>
-          <div className="mb-5 grid grid-cols-3 gap-3">
-            <OrderDocumentCard icon={<FileText className="h-5 w-5" />} label="Nota fiscal" available={hasNfe} viewHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
-            <OrderDocumentCard icon={<Package className="h-5 w-5" />} label="DANFE simplificada" available={hasNfe} allowUpload={false} viewHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
-            <OrderDocumentCard icon={<Tag className="h-5 w-5" />} label="Etiqueta de envio" available={hasEtiqueta} viewHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=inline`} downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`} onUpload={() => setUploadOpen(true)} />
+
+          <section className="mb-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-white">Documentos do pedido</h3>
+              <button
+                type="button"
+                onClick={() => openUpload("CARTA_CORRECAO")}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50/70 px-2.5 py-1 text-xs font-bold text-violet-700 transition hover:border-violet-300 hover:bg-violet-100 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Anexar documento
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              <OrderDocumentCard
+                icon={<FileText className="h-5 w-5" />}
+                label="Nota fiscal"
+                available={hasNfe}
+                viewHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=inline`}
+                downloadHref={`/api/expedicao/${order.id}/nota-fiscal-preview?disposition=attachment`}
+                onUpload={() => openUpload("NF")}
+              />
+              <OrderDocumentCard
+                icon={<Package className="h-5 w-5" />}
+                label="DANFE simplificada"
+                available={hasNfe}
+                allowUpload={false}
+                viewHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=inline`}
+                downloadHref={`/api/expedicao/${order.id}/danfe-simplificada?disposition=attachment`}
+                onUpload={() => openUpload("NF")}
+              />
+              <OrderDocumentCard
+                icon={<Tag className="h-5 w-5" />}
+                label="Etiqueta de envio"
+                available={hasEtiqueta}
+                viewHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=inline`}
+                downloadHref={`/api/expedicao/${order.id}/anexos/etiqueta?disposition=attachment`}
+                onUpload={() => openUpload("ETIQUETA")}
+              />
+              <OrderDocumentCard
+                icon={<FileSignature className="h-5 w-5" />}
+                label="Carta de correção"
+                available={hasCce}
+                viewHref={
+                  cceAttachment?.viewHref ||
+                  `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=inline`
+                }
+                downloadHref={
+                  cceAttachment?.href ||
+                  `/api/expedicao/${order.id}/anexos/carta-correcao?disposition=attachment`
+                }
+                onUpload={() => openUpload("CARTA_CORRECAO")}
+              />
+            </div>
+
+            {extraAttachments.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Outros anexos
+                </p>
+                <div className="space-y-1.5">
+                  {extraAttachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 dark:border-white/10 dark:bg-white/[0.02]"
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400">
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p
+                            className="truncate text-xs font-bold text-slate-900 dark:text-white"
+                            title={attachment.fileName || attachment.label}
+                          >
+                            {attachment.fileName || attachment.label}
+                          </p>
+                          <p className="text-[10px] text-slate-500">
+                            {attachment.uploadedAt || "Anexado"}
+                          </p>
+                        </div>
+                      </div>
+                      {attachment.viewHref && attachment.href && (
+                        <ShippingAttachmentPreviewDialog
+                          label={attachment.label}
+                          viewHref={attachment.viewHref}
+                          downloadHref={attachment.href}
+                          customTrigger={(openPreview) => (
+                            <button
+                              type="button"
+                              onClick={openPreview}
+                              className="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50 hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-violet-400"
+                            >
+                              Visualizar
+                            </button>
+                          )}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <div className="mb-5 grid grid-cols-2 gap-3">
+            {info.map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-slate-200 p-3 dark:border-white/10"
+              >
+                <p className="text-[11px] text-slate-500">{label}</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">
+                  {value || "-"}
+                </p>
+              </div>
+            ))}
           </div>
-          <div className="mb-5 grid grid-cols-2 gap-3">{info.map(([label, value]) => <div key={label} className="rounded-xl border border-slate-200 p-3 dark:border-white/10"><p className="text-[11px] text-slate-500">{label}</p><p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">{value || "-"}</p></div>)}</div>
           <section>
-            <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-bold text-slate-950 dark:text-white">Itens do pedido</h3><span className="text-xs text-slate-500">{order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0)} de {order.unitsRaw} conferidos</span></div>
-            <div className="space-y-2">{order.items.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-white/10"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${item.separatedQuantityRaw >= item.quantityRaw ? "bg-emerald-500 text-white" : "border border-slate-300 text-slate-400"}`}>{item.separatedQuantityRaw >= item.quantityRaw ? <CheckCircle2 className="h-4 w-4" /> : <Package className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white" title={item.name}>{item.name}</p><p className="text-xs text-slate-500">{item.sku}</p></div><span className="text-sm font-bold text-slate-700 dark:text-slate-200">{item.quantity} un.</span></div>)}</div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-white">
+                Itens do pedido
+              </h3>
+              <span className="text-xs text-slate-500">
+                {order.items.reduce((sum, item) => sum + item.separatedQuantityRaw, 0)} de{" "}
+                {order.unitsRaw} conferidos
+              </span>
+            </div>
+            <div className="space-y-2">
+              {order.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-white/10"
+                >
+                  <span
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
+                      item.separatedQuantityRaw >= item.quantityRaw
+                        ? "bg-emerald-500 text-white"
+                        : "border border-slate-300 text-slate-400"
+                    }`}
+                  >
+                    {item.separatedQuantityRaw >= item.quantityRaw ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Package className="h-4 w-4" />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-sm font-bold text-slate-900 dark:text-white"
+                      title={item.name}
+                    >
+                      {item.name}
+                    </p>
+                    <p className="text-xs text-slate-500">{item.sku}</p>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                    {item.quantity} un.
+                  </span>
+                </div>
+              ))}
+            </div>
           </section>
         </div>
-        <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]"><button type="button" onClick={onClose} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white">Fechar</button></footer>
-        {uploadOpen ? <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#101b30]"><div className="mb-4 flex items-start justify-between gap-4"><div><h3 className="text-lg font-bold text-slate-950 dark:text-white">Anexar documento</h3><p className="mt-1 text-xs text-slate-500">Selecione o XML da NF ou a etiqueta de envio.</p></div><button type="button" onClick={() => setUploadOpen(false)} aria-label="Fechar upload" className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 dark:border-white/10"><X className="h-4 w-4" /></button></div><ShippingAttachmentUploadPanel depositanteId={order.depositanteId} pedidoExpedicaoId={order.id} /></div></div> : null}
+        <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          >
+            Fechar
+          </button>
+        </footer>
+        {uploadOpen ? (
+          <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm animate-in fade-in">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#101b30] animate-in zoom-in-95">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-950 dark:text-white">
+                    Anexar documento
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Selecione o tipo de documento e o arquivo (PDF, XML, imagem).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUploadOpen(false)}
+                  aria-label="Fechar upload"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-white/10 dark:hover:bg-white/5"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <ShippingAttachmentUploadPanel
+                depositanteId={order.depositanteId}
+                pedidoExpedicaoId={order.id}
+                defaultTipo={uploadDefaultTipo}
+                onSuccess={() => setUploadOpen(false)}
+              />
+            </div>
+          </div>
+        ) : null}
       </aside>
     </div>
   );
 }
 
-function LegacyOrderDocumentCard({ icon, label, available, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
-  const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] text-white ${available ? "bg-emerald-500" : "bg-slate-300"}`}>{available ? "✓" : "–"}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
-  if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left opacity-80 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
-  return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
-}
-
-function OrderDocumentCard({ icon, label, available, allowUpload = true, viewHref, downloadHref, onUpload }: { icon: React.ReactNode; label: string; available: boolean; allowUpload?: boolean; viewHref: string; downloadHref: string; onUpload: () => void }) {
+function OrderDocumentCard({
+  icon,
+  label,
+  available,
+  allowUpload = true,
+  viewHref,
+  downloadHref,
+  onUpload,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  available: boolean;
+  allowUpload?: boolean;
+  viewHref: string;
+  downloadHref: string;
+  onUpload: () => void;
+}) {
   const marker = available ? "\u2713" : "\u00d7";
-  const content = <><span className="relative text-slate-500 dark:text-slate-300">{icon}<span className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] font-black text-white ${available ? "bg-emerald-500" : "bg-rose-500"}`}>{marker}</span></span><span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">{label}</span></>;
-  if (!available && !allowUpload) return <div className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 opacity-75 dark:border-white/10">{content}<span className="text-center text-[10px] font-bold text-slate-500">Gerada após a NF</span></div>;
-  if (!available) return <button type="button" onClick={onUpload} className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10">{content}<span className="text-[10px] font-bold text-violet-600">Anexar</span></button>;
-  return <ShippingAttachmentPreviewDialog label={label} viewHref={viewHref} downloadHref={downloadHref} customTrigger={(openPreview) => <button type="button" onClick={openPreview} className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5">{content}<span className="text-[10px] font-bold text-emerald-600">Visualizar</span></button>} />;
+  const content = (
+    <>
+      <span className="relative text-slate-500 dark:text-slate-300">
+        {icon}
+        <span
+          className={`absolute -right-2 -top-2 grid h-4 w-4 place-items-center rounded-full text-[10px] font-black text-white ${
+            available ? "bg-emerald-500" : "bg-rose-500"
+          }`}
+        >
+          {marker}
+        </span>
+      </span>
+      <span className="text-center text-[11px] font-bold leading-tight text-slate-700 dark:text-slate-200">
+        {label}
+      </span>
+    </>
+  );
+  if (!available && !allowUpload)
+    return (
+      <div className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 opacity-75 dark:border-white/10">
+        {content}
+        <span className="text-center text-[10px] font-bold text-slate-500">
+          Gerada após a NF
+        </span>
+      </div>
+    );
+  if (!available)
+    return (
+      <button
+        type="button"
+        onClick={onUpload}
+        className="flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 p-2 text-left opacity-80 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10"
+      >
+        {content}
+        <span className="text-[10px] font-bold text-violet-600">Anexar</span>
+      </button>
+    );
+  return (
+    <ShippingAttachmentPreviewDialog
+      label={label}
+      viewHref={viewHref}
+      downloadHref={downloadHref}
+      customTrigger={(openPreview) => (
+        <button
+          type="button"
+          onClick={openPreview}
+          className="flex min-h-[92px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/40 p-2 text-left transition hover:-translate-y-px hover:border-violet-300 dark:border-emerald-400/30 dark:bg-emerald-400/5"
+        >
+          {content}
+          <span className="text-[10px] font-bold text-emerald-600">Visualizar</span>
+        </button>
+      )}
+    />
+  );
 }
 
 function getOperationalStatusStyle(status: string, label?: string) {
-  if (label === "Aguardando tratativa" || label === "Divergência" || status === "DIVERGENCIA" || status === "DIVERGENTE") {
+  if (
+    label === "Aguardando tratativa" ||
+    label === "Divergência" ||
+    status === "DIVERGENCIA" ||
+    status === "DIVERGENTE"
+  ) {
     return { background: "rgba(245,158,11,.15)", color: "#F59E0B" };
   }
   if (label === "Prosseguir c/ divergência") {
@@ -716,7 +1131,10 @@ function getOperationalStatusStyle(status: string, label?: string) {
 function StatusBadge({ status, label }: { status: string; label: string }) {
   const color = getOperationalStatusStyle(status, label);
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold" style={{ background: color.background, color: color.color }}>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] font-bold"
+      style={{ background: color.background, color: color.color }}
+    >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color.color }} />
       {label || "Novo"}
     </span>
