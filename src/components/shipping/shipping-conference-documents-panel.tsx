@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { FileCheck2, FileText, Package2, Paperclip, Printer, Route, X } from "lucide-react";
+import { FileCheck2, FileSignature, FileText, Package2, Paperclip, Printer, Route, X } from "lucide-react";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
@@ -46,9 +46,16 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
   const [printMessage, setPrintMessage] = useState("");
   const xmlAttachment = (attachments || []).find((attachment) => attachment?.kind === "XML_NF");
   const labelAttachment = (attachments || []).find((attachment) => attachment?.kind === "ETIQUETA");
+  const cceAttachment = (attachments || []).find(
+    (attachment) => attachment?.kind === "CARTA_CORRECAO" || attachment?.kind === "CCE",
+  );
+  const extraAttachments = (attachments || []).filter(
+    (attachment) =>
+      attachment?.status === "DISPONIVEL" &&
+      !["XML_NF", "ETIQUETA", "CARTA_CORRECAO", "CCE"].includes(attachment?.kind),
+  );
   const hasInvoiceXml = xmlAttachment?.status === "DISPONIVEL";
   const hasShippingLabel = labelAttachment?.status === "DISPONIVEL";
-
 
   useImperativeHandle(ref, () => ({
     openPreparationModal: () => {
@@ -112,7 +119,7 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
       <input type="hidden" name="danfeScanCode" value={danfeScanCode} form={formId} readOnly />
       <input type="hidden" name="semEtiquetaConfirmada" value={confirmMissingLabel ? "true" : "false"} form={formId} readOnly />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <AttachmentStatusCard
           title="Nota fiscal"
           subtitle="XML anexado ao pedido"
@@ -144,6 +151,39 @@ export const ShippingConferenceDocumentsPanel = forwardRef<
         />
 
         <ShippingDanfePanel orderId={orderId} />
+
+        <AttachmentStatusCard
+          title="Carta de correção"
+          subtitle="CC-e retificadora"
+          icon={<FileSignature className="h-5 w-5" />}
+          iconColor="text-violet-500"
+          attachment={cceAttachment}
+          emptyLabel="CC-e pendente"
+          printLabel="Imprimir CC-e"
+          downloadLabel="Baixar CC-e"
+          unlocked={unlocked}
+          onMissingDocument={() => setAttachmentUploadOpen(true)}
+          badgeBg="bg-violet-500/10"
+          badgeText="text-violet-600 dark:text-violet-400"
+        />
+
+        {extraAttachments.map((extra) => (
+          <AttachmentStatusCard
+            key={extra.id}
+            title={extra.label}
+            subtitle="Documento adicional"
+            icon={<FileText className="h-5 w-5" />}
+            iconColor="text-amber-500"
+            attachment={extra}
+            emptyLabel="Pendente"
+            printLabel="Imprimir anexo"
+            downloadLabel="Baixar anexo"
+            unlocked={unlocked}
+            onMissingDocument={() => setAttachmentUploadOpen(true)}
+            badgeBg="bg-amber-500/10"
+            badgeText="text-amber-600 dark:text-amber-400"
+          />
+        ))}
       </div>
 
       {attachmentUploadOpen && typeof document !== "undefined" ? createPortal(

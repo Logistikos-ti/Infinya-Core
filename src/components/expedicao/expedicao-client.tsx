@@ -37,7 +37,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  XCircle
+  XCircle,
+  FileSignature
 } from "lucide-react";
 import {
   changeShippingOrderStatusAction,
@@ -1419,10 +1420,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         sel.raw?.hasEtiqueta || 
                         docs.some((d: any) => d.tipo === "ETIQUETA" || d.kind === "ETIQUETA")
                       );
+                      const hasCartaCorrecao = Boolean(
+                        sel.raw?.hasCartaCorrecao ||
+                        docs.some((d: any) => d.tipo === "CARTA_CORRECAO" || d.tipo === "CCE" || d.kind === "CARTA_CORRECAO" || d.kind === "CCE")
+                      );
+                      const cceDoc = docs.find((d: any) => d.tipo === "CARTA_CORRECAO" || d.tipo === "CCE" || d.kind === "CARTA_CORRECAO" || d.kind === "CCE");
                       const hasDanfe = Boolean(hasNfe);
 
                       return (
-                        <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "24px" }}>
                           <ShippingAttachmentPreviewDialog
                             label="Nota Fiscal"
                             viewHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=inline`}
@@ -1433,13 +1439,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 onClick={(e) => { e.stopPropagation(); openPreview(); }}
                                 style={{ 
                                   position: "relative", 
-                                  flex: 1, 
                                   display: "flex", 
                                   flexDirection: "column", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  gap: "8px", 
-                                  padding: "14px 8px", 
+                                  gap: "6px", 
+                                  padding: "12px 6px", 
                                   borderRadius: "12px", 
                                   border: `1px solid ${hasNfe ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
                                   background: t.cardBg, 
@@ -1450,26 +1455,26 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                               >
                                 <div style={{ position: "relative", display: "inline-flex" }}>
-                                  <FileText size={20} color={hasNfe ? "#10B981" : t.textSub} />
+                                  <FileText size={18} color={hasNfe ? "#10B981" : t.textSub} />
                                   <span style={{ 
                                     position: "absolute", 
                                     top: "-6px", 
                                     right: "-8px", 
-                                    width: "15px", 
-                                    height: "15px", 
+                                    width: "14px", 
+                                    height: "14px", 
                                     borderRadius: "50%", 
                                     background: hasNfe ? "#10B981" : "#EF4444", 
                                     color: "#fff", 
                                     display: "grid", 
                                     placeItems: "center", 
-                                    fontSize: "9px", 
+                                    fontSize: "8.5px", 
                                     fontWeight: "900",
                                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
                                   }}>
                                     {hasNfe ? "✓" : "✕"}
                                   </span>
                                 </div>
-                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Visualizar<br/>NF</span>
+                                <span style={{ fontSize: "11px", fontWeight: "600", textAlign: "center", lineHeight: "1.15" }}>NF-e</span>
                               </button>
                             )}
                           />
@@ -1483,13 +1488,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 onClick={(e) => { e.stopPropagation(); openPreview(); }}
                                 style={{ 
                                   position: "relative", 
-                                  flex: 1, 
                                   display: "flex", 
                                   flexDirection: "column", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  gap: "8px", 
-                                  padding: "14px 8px", 
+                                  gap: "6px", 
+                                  padding: "12px 6px", 
                                   borderRadius: "12px", 
                                   border: `1px solid ${hasDanfe ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
                                   background: t.cardBg, 
@@ -1500,26 +1504,26 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                               >
                                 <div style={{ position: "relative", display: "inline-flex" }}>
-                                  <Receipt size={20} color={hasDanfe ? "#10B981" : t.textSub} />
+                                  <Receipt size={18} color={hasDanfe ? "#10B981" : t.textSub} />
                                   <span style={{ 
                                     position: "absolute", 
                                     top: "-6px", 
                                     right: "-8px", 
-                                    width: "15px", 
-                                    height: "15px", 
+                                    width: "14px", 
+                                    height: "14px", 
                                     borderRadius: "50%", 
                                     background: hasDanfe ? "#10B981" : "#EF4444", 
                                     color: "#fff", 
                                     display: "grid", 
                                     placeItems: "center", 
-                                    fontSize: "9px", 
+                                    fontSize: "8.5px", 
                                     fontWeight: "900",
                                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
                                   }}>
                                     {hasDanfe ? "✓" : "✕"}
                                   </span>
                                 </div>
-                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
+                                <span style={{ fontSize: "11px", fontWeight: "600", textAlign: "center", lineHeight: "1.15" }}>DANFE</span>
                               </button>
                             )}
                           />
@@ -1533,13 +1537,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 onClick={(e) => { e.stopPropagation(); openPreview(); }}
                                 style={{ 
                                   position: "relative", 
-                                  flex: 1, 
                                   display: "flex", 
                                   flexDirection: "column", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  gap: "8px", 
-                                  padding: "14px 8px", 
+                                  gap: "6px", 
+                                  padding: "12px 6px", 
                                   borderRadius: "12px", 
                                   border: `1px solid ${hasEtiqueta ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
                                   background: t.cardBg, 
@@ -1550,26 +1553,82 @@ export function ExpedicaoClient({ data }: { data: any }) {
                                 className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
                               >
                                 <div style={{ position: "relative", display: "inline-flex" }}>
-                                  <Tag size={20} color={hasEtiqueta ? "#10B981" : t.textSub} />
+                                  <Tag size={18} color={hasEtiqueta ? "#10B981" : t.textSub} />
                                   <span style={{ 
                                     position: "absolute", 
                                     top: "-6px", 
                                     right: "-8px", 
-                                    width: "15px", 
-                                    height: "15px", 
+                                    width: "14px", 
+                                    height: "14px", 
                                     borderRadius: "50%", 
                                     background: hasEtiqueta ? "#10B981" : "#EF4444", 
                                     color: "#fff", 
                                     display: "grid", 
                                     placeItems: "center", 
-                                    fontSize: "9px", 
+                                    fontSize: "8.5px", 
                                     fontWeight: "900",
                                     boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
                                   }}>
                                     {hasEtiqueta ? "✓" : "✕"}
                                   </span>
                                 </div>
-                                <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
+                                <span style={{ fontSize: "11px", fontWeight: "600", textAlign: "center", lineHeight: "1.15" }}>Etiqueta</span>
+                              </button>
+                            )}
+                          />
+                          <ShippingAttachmentPreviewDialog
+                            label="Carta de Correção (CC-e)"
+                            viewHref={cceDoc?.id ? `/api/documentos/${cceDoc.id}/download?disposition=inline` : `/api/expedicao/${sel.raw?.id}/anexos/carta-correcao?disposition=inline`}
+                            downloadHref={cceDoc?.id ? `/api/documentos/${cceDoc.id}/download?disposition=attachment` : `/api/expedicao/${sel.raw?.id}/anexos/carta-correcao?disposition=attachment`}
+                            customTrigger={(openPreview) => (
+                              <button 
+                                type="button"
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if (hasCartaCorrecao) {
+                                    openPreview();
+                                  } else {
+                                    setUploadModalOpen({ open: true, type: "CARTA_CORRECAO" });
+                                  }
+                                }}
+                                style={{ 
+                                  position: "relative", 
+                                  display: "flex", 
+                                  flexDirection: "column", 
+                                  alignItems: "center", 
+                                  justifyContent: "center", 
+                                  gap: "6px", 
+                                  padding: "12px 6px", 
+                                  borderRadius: "12px", 
+                                  border: `1px solid ${hasCartaCorrecao ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.25)"}`, 
+                                  background: t.cardBg, 
+                                  color: t.text, 
+                                  cursor: "pointer", 
+                                  transition: "all 0.2s" 
+                                }}
+                                className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                              >
+                                <div style={{ position: "relative", display: "inline-flex" }}>
+                                  <FileSignature size={18} color={hasCartaCorrecao ? "#10B981" : t.textSub} />
+                                  <span style={{ 
+                                    position: "absolute", 
+                                    top: "-6px", 
+                                    right: "-8px", 
+                                    width: "14px", 
+                                    height: "14px", 
+                                    borderRadius: "50%", 
+                                    background: hasCartaCorrecao ? "#10B981" : "#EF4444", 
+                                    color: "#fff", 
+                                    display: "grid", 
+                                    placeItems: "center", 
+                                    fontSize: "8.5px", 
+                                    fontWeight: "900",
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)" 
+                                  }}>
+                                    {hasCartaCorrecao ? "✓" : "✕"}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: "11px", fontWeight: "600", textAlign: "center", lineHeight: "1.15" }}>CC-e</span>
                               </button>
                             )}
                           />
