@@ -332,6 +332,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
   };
 
   const vt = {
+    ordersBg: isOrders ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+    ordersColor: isOrders ? "#FFF" : t.textSub,
+    divBg: isDivergence ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
+    divColor: isDivergence ? "#FFF" : t.textSub,
     divCountBg: isDivergence ? "#FFF" : "rgba(239, 68, 68, 0.15)",
     divCountColor: "#EF4444"
   };
