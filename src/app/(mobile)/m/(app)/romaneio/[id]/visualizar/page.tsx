@@ -143,14 +143,14 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
                 <PhotoCheck
                   icon={<User className="h-3.5 w-3.5" />}
                   label="Operador"
-                  url={`/api/romaneio/${romaneio.id}/foto?type=operador`}
+                  url={`/m/romaneio/${romaneio.id}/foto?type=operador`}
                 />
               )}
               {conferencia.fotoMotoristaUrl && (
                 <PhotoCheck
                   icon={<Truck className="h-3.5 w-3.5" />}
                   label="Motorista / Carga"
-                  url={`/api/romaneio/${romaneio.id}/foto?type=motorista`}
+                  url={`/m/romaneio/${romaneio.id}/foto?type=motorista`}
                 />
               )}
             </div>
@@ -220,19 +220,19 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
   );
 }
 
-// Tapping the confirmation opens the actual photo in a new tab, via
-// /api/romaneio/[id]/foto -- the raw Supabase Storage URL saved on the
-// romaneio can't be linked to directly because wms-documentos is a
-// private bucket (see supabase/migrations/20260612143000_create_storage_bucket.sql),
-// so that route authenticates the request and proxies the file through.
-// The checkmark still communicates "captured" at a glance; the small
-// Eye hint is what tells the operator the tile itself is tappable.
+// Tapping the confirmation navigates to /m/romaneio/[id]/foto, a proper
+// in-app viewer page with its own dark shell and a back button -- opening
+// the raw /api/romaneio/[id]/foto image response directly (the previous
+// approach) handed the whole layout over to the browser's own minimal
+// image viewer, which rendered the photo tiny and pinned to the top with
+// a lot of dead white space, and in a new tab it also repeated the "no
+// way back" problem already fixed for the PDF export. A same-tab in-app
+// route sidesteps both. The checkmark still communicates "captured" at a
+// glance; the small Eye hint is what tells the operator it's tappable.
 function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url: string }) {
   return (
-    <a
+    <Link
       href={url}
-      target="_blank"
-      rel="noopener noreferrer"
       className="relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl"
       style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.06) }}
     >
@@ -245,7 +245,7 @@ function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url:
       <span className="text-[9.5px] font-medium" style={{ color: hexAlpha(mobileColors.green, 0.75) }}>
         Toque para ver a foto
       </span>
-    </a>
+    </Link>
   );
 }
 
