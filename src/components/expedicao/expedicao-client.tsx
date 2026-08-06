@@ -395,6 +395,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (filterId === "conferencia") return order.status === "EM_CONFERENCIA" || order.status === "SEPARADO";
     if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO" || order.status === "CONFERIDO";
     if (filterId === "expedido") return order.status === "EXPEDIDO";
+    if (filterId === "cancelados" || filterId === "cancelado") return order.status === "CANCELADO";
     if (filterId === "atrasados") return order.ageTone === "LATE";
     return false;
   };
@@ -439,7 +440,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: 'separacao', label: 'Em separação', icon: 'ClipboardList', accent: '#3B82F6', statusFilter: 'EM_SEPARACAO' },
     { id: 'conferencia', label: 'Em conferência', icon: 'Scan', accent: '#8B5CF6', statusFilter: 'EM_CONFERENCIA' },
     { id: 'pronto-coleta', label: 'Pronto para coleta', icon: 'PackageCheck', accent: '#10B981', statusFilter: 'PRONTO_ROMANEIO' },
-    { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' }
+    { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' },
+    { id: 'cancelados', label: 'Cancelados', icon: 'XCircle', accent: '#EF4444', statusFilter: 'CANCELADO' }
   ];
   
   const stages = stagesDefs.map(s => {
@@ -450,6 +452,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
       if (s.id === 'pronto-coleta') return o.status === 'PRONTO_ROMANEIO' || o.status === 'CONFERIDO';
       if (s.id === 'expedido') return o.status === 'EXPEDIDO';
+      if (s.id === 'cancelados') return o.status === 'CANCELADO';
       return o.status === s.statusFilter;
     }).length : data.orders.length;
 
@@ -460,6 +463,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (s.id === 'conferencia') iconEl = <Scan size={16} />;
     if (s.id === 'pronto-coleta') iconEl = <PackageCheck size={16} />;
     if (s.id === 'expedido') iconEl = <Truck size={16} />;
+    if (s.id === 'cancelados') iconEl = <XCircle size={16} />;
 
     // bg hex with opacity for iconBg
     const getHex2 = (hex: string, alpha: number) => {
@@ -1052,7 +1056,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
           </div>
 
             {/* pipeline stages */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "12px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "12px", marginBottom: "24px" }}>
               {stages.map((s: any, i: number) => (
                 <button
                   key={i}
@@ -1168,6 +1172,19 @@ export function ExpedicaoClient({ data }: { data: any }) {
         
         // Timeline moves logic (matching infinoos-wms-pedidos.html)
         const getTimelineSteps = (status: string, o: any) => {
+          if (status === 'CANCELADO') {
+            return [
+              {
+                title: 'Pedido cancelado',
+                sub: o?.raw?.cancellationReason ? `Motivo: ${o.raw.cancellationReason}` : (o?.raw?.cancellationReporter ? `Cancelado por ${o.raw.cancellationReporter}` : 'Cancelamento definitivo'),
+                dot: '#EF4444',
+                halo: 'rgba(239, 68, 68, 0.2)',
+                line: 'transparent',
+                titleColor: '#EF4444'
+              }
+            ];
+          }
+
           let orderIdx = 0;
           if (status === 'EM_SEPARACAO' || status === 'SEPARADO') orderIdx = 1;
           else if (status === 'EM_CONFERENCIA') orderIdx = 2;
