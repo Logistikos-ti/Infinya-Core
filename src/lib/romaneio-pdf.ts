@@ -53,11 +53,16 @@ type PageOptions = {
   statusLabel?: string;
   statusTone?: RGB;
   fields: { label: string; value: string }[];
+  depositantesBar?: string;
   orders: TableOrderRow[];
   pageNumber: number;
   totalPages: number;
   photos?: PhotoChecks;
   emittedAt: string;
+  // "Liberado 06/08/2026, 08:04" (or "Cancelado ...") -- appended next to
+  // "Emitido em" once the romaneio has actually been finalized. Absent for
+  // the ad-hoc pre-closing group PDF, which has no such status yet.
+  finalizedLabel?: string;
 };
 
 export function buildRomaneioPdf(group: RomaneioCarrierGroup) {
@@ -71,6 +76,7 @@ export function buildRomaneioPdf(group: RomaneioCarrierGroup) {
     buildPageContentStream({
       docLabel: "Romaneio de Expedição",
       fields: groupFields(group),
+      depositantesBar: group.depositantes.join("  —  ") || "-",
       orders: chunk,
       pageNumber: index + 1,
       totalPages,
@@ -119,6 +125,8 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
   const totalPages = Math.max(1, chunks.length);
   const emittedAt = formatDateTime(new Date().toISOString());
   const photos = parseConferenciaPhotos(record.notes);
+  const finalizedAt = record.releasedAt ?? record.canceledAt;
+  const finalizedLabel = finalizedAt ? `${record.statusLabel} ${formatDateTime(finalizedAt)}` : undefined;
 
   return (chunks.length ? chunks : [[]]).map((chunk, index) =>
     buildPageContentStream({
@@ -127,11 +135,13 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
       statusLabel: record.statusLabel,
       statusTone: statusTone(record.status),
       fields: recordFields(record),
+      depositantesBar: record.depositantes.join("  —  ") || "-",
       orders: chunk,
       pageNumber: index + 1,
       totalPages,
       photos,
       emittedAt,
+      finalizedLabel,
     }),
   );
 }
@@ -162,8 +172,8 @@ function groupFields(group: RomaneioCarrierGroup) {
     { label: "Cutoff operacional", value: group.cutoff || "-" },
     { label: "Pedidos / Unidades", value: `${group.orderCount} pedido(s) · ${group.totalUnits} un.` },
     { label: "Valor total da carga", value: group.totalValue || "-" },
-    { label: "Depositantes", value: group.depositantes.join(", ") || "-" },
-    { label: "Destinos", value: group.destinations.join(", ") || "-" },
+    { label: "Depositantes", value: depositanteCountLabel(group.depositantes.length) },
+    { label: "Nº de destinos", value: destinationCountLabel(group.destinations.length) },
   ];
 }
 
@@ -171,13 +181,21 @@ function recordFields(record: RomaneioRecordDetail) {
   return [
     { label: "Transportadora", value: record.carrierName || "-" },
     { label: "Motorista", value: record.driverName || "Não informado" },
-    { label: "Documento do motorista", value: record.driverDocument || "Não informado" },
+    { label: "Doc. motorista", value: record.driverDocument || "Não informado" },
     { label: "Veículo / Placa", value: `${record.vehicleModel || "-"} · ${record.vehiclePlate || "-"}` },
     { label: "Pedidos / Unidades", value: `${record.orderCount} pedido(s) · ${record.totalUnits} un.` },
     { label: "Valor total da carga", value: record.totalValue || "-" },
-    { label: "Depositantes", value: record.depositantes.join(", ") || "-" },
-    { label: "Destinos", value: record.destinations.join(", ") || "-" },
+    { label: "Depositantes", value: depositanteCountLabel(record.depositantes.length) },
+    { label: "Nº de destinos", value: destinationCountLabel(record.destinations.length) },
   ];
+}
+
+function depositanteCountLabel(count: number) {
+  return count === 1 ? "1 depositante" : `${count} depositantes`;
+}
+
+function destinationCountLabel(count: number) {
+  return count === 1 ? "1 cidade" : `${count} cidades`;
 }
 
 function toGroupOrderRow(order: RomaneioOrderSummary, index: number): TableOrderRow {
@@ -242,12 +260,18 @@ function buildPageContentStream(opts: PageOptions): string {
   }
   text(ops, CONTENT_RIGHT, y + 5, `Página ${opts.pageNumber} de ${opts.totalPages}`, 8.5, MUTED, false, "right");
   y -= 26;
-  text(ops, MARGIN, y, `Emitido em ${opts.emittedAt}`, 8.5, MUTED, false);
+  const emittedLine = opts.finalizedLabel ? `Emitido em ${opts.emittedAt} · ${opts.finalizedLabel}` : `Emitido em ${opts.emittedAt}`;
+  text(ops, MARGIN, y, emittedLine, 8.5, MUTED, false);
   y -= 18;
 
   // Info card.
   if (opts.fields.length) {
     y = drawInfoCard(ops, y, opts.fields);
+    y -= 14;
+  }
+
+  if (opts.depositantesBar) {
+    y = drawDepositantesBar(ops, y, opts.depositantesBar);
     y -= 14;
   }
 
@@ -262,6 +286,8 @@ function buildPageContentStream(opts: PageOptions): string {
     y -= 20;
     drawPhotoChecks(ops, y, opts.photos);
   }
+
+  drawFooterBand(ops, opts.code);
 
   return ops.join("\n");
 }
@@ -366,6 +392,33 @@ function drawOrdersTable(ops: string[], topY: number, orders: TableOrderRow[]) {
 
   strokeRect(ops, MARGIN, y, tableWidth, topY - y, CARD_BORDER, 0.6);
   return y;
+}
+
+// Full-width bar below the info card listing every depositante on this
+// romaneio side by side (em-dash separated) -- reuses the same visual
+// slot the layout previously used for a city-by-city destinations list;
+// the depositante names are what operators actually need at a glance.
+function drawDepositantesBar(ops: string[], topY: number, depositantesBar: string) {
+  text(ops, MARGIN, topY, "DEPOSITANTES", 7, MUTED, true, "left", 0.4);
+  const boxY = topY - 26;
+  const boxHeight = 20;
+  strokeRect(ops, MARGIN, boxY, PAGE_W - MARGIN * 2, boxHeight, CARD_BORDER, 0.75, CARD_BG);
+  text(ops, MARGIN + 12, boxY + 6, truncate(depositantesBar, 108), 9, TEXT_DARK, false);
+  return boxY;
+}
+
+// A short dark band at the very bottom of the page, mirroring the header
+// -- brand mark on the left, "generated electronically" note with the
+// romaneio code on the right. No signature lines here (removed on
+// request); just the closing identity bar from the design reference.
+function drawFooterBand(ops: string[], code?: string) {
+  const bandHeight = 30;
+  fillRect(ops, 0, 0, PAGE_W, bandHeight, NAVY);
+  text(ops, MARGIN, 11, "INFINOOS WMS", 8, tint(WHITE, 0.75), true, "left", 1.2);
+  const note = code
+    ? `Documento gerado eletronicamente · ${code}`
+    : "Documento gerado eletronicamente pelo sistema";
+  text(ops, CONTENT_RIGHT, 11, note, 7.6, tint(WHITE, 0.5), false, "right");
 }
 
 // Renders a "confirmed" badge per captured audit photo instead of the
