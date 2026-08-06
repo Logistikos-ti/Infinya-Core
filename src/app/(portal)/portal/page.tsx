@@ -34,6 +34,8 @@ import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { canManagePortalStock, isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 import { PortalIntegrationsView } from "@/components/portal/portal-integrations-view";
 import { formatDatePtBr } from "@/lib/utils";
+import { listFullShipmentsFromDb } from "@/lib/full-orders";
+import { PortalFullOrdersView } from "@/components/portal/portal-full-orders-view";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -96,6 +98,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ? listStockBalancesFromDb({ depositanteId })
       : Promise.resolve([]),
   ]);
+  const fullShipments = view === "full" ? await listFullShipmentsFromDb(depositanteId) : [];
   const supportTickets =
     view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
   const { data: receivingProductRows } =
@@ -215,6 +218,13 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           canCreateManualOrder={isMasterPreview || user.portalProfile === "GESTOR"}
         />
       ) : null}
+      {view === "full" ? (
+        <PortalFullOrdersView
+          shipments={fullShipments}
+          depositanteId={depositanteId}
+          canCreate={isMasterPreview || user.portalProfile === "GESTOR"}
+        />
+      ) : null}
       {view === "produtos" ? (
         <ProductsView
           stock={stock}
@@ -284,7 +294,7 @@ function normalizeView(value: string, integrationsEnabled: boolean, canManagePor
   if (value === "products") return "produtos";
   if (value === "invoices") return "faturas";
   if (value === "support") return "suporte";
-  return ["pedidos", "recebimento", "produtos", ...(canManagePortal ? ["faturas"] : []), "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
+  return ["pedidos", "full", "recebimento", "produtos", ...(canManagePortal ? ["faturas"] : []), "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
     value,
   )
     ? value

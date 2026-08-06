@@ -8,6 +8,7 @@ import {
   FileText,
   LayoutDashboard,
   Package,
+  PackageCheck,
   Receipt,
   Search,
   Truck,
@@ -34,6 +35,12 @@ const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
     href: "/portal?view=pedidos",
     label: "Meus pedidos",
     icon: Package,
+    module: "dashboard",
+  },
+  {
+    href: "/portal?view=full",
+    label: "Pedidos Full",
+    icon: PackageCheck,
     module: "dashboard",
   },
   {
