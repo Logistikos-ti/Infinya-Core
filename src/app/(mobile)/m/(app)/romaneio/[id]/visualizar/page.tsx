@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, FileDown, IdCard, PackageCheck, Truck, User } from "lucide-react";
+import { CheckCircle2, Eye, FileDown, IdCard, PackageCheck, Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { getCarrierBrand } from "@/lib/carrier-branding";
@@ -140,10 +140,10 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
             </h2>
             <div className="grid grid-cols-2 gap-3">
               {conferencia.fotoOperadorUrl && (
-                <PhotoCheck icon={<User className="h-3.5 w-3.5" />} label="Operador" />
+                <PhotoCheck icon={<User className="h-3.5 w-3.5" />} label="Operador" url={conferencia.fotoOperadorUrl} />
               )}
               {conferencia.fotoMotoristaUrl && (
-                <PhotoCheck icon={<Truck className="h-3.5 w-3.5" />} label="Motorista / Carga" />
+                <PhotoCheck icon={<Truck className="h-3.5 w-3.5" />} label="Motorista / Carga" url={conferencia.fotoMotoristaUrl} />
               )}
             </div>
           </div>
@@ -212,18 +212,29 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
   );
 }
 
-function PhotoCheck({ icon, label }: { icon: ReactNode; label: string }) {
+// Tapping the confirmation opens the actual photo (stored permanently in
+// Supabase Storage -- the URL saved at closing time never expires) in a
+// new tab. The checkmark still communicates "captured" at a glance; the
+// small Eye hint is what tells the operator the tile itself is tappable.
+function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url: string }) {
   return (
-    <div
-      className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl"
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-2xl"
       style={{ border: `1px solid ${hexAlpha(mobileColors.green, 0.3)}`, background: hexAlpha(mobileColors.green, 0.06) }}
     >
+      <Eye className="absolute right-2.5 top-2.5 h-3.5 w-3.5" style={{ color: hexAlpha(mobileColors.green, 0.55) }} />
       <CheckCircle2 className="h-7 w-7" style={{ color: mobileColors.green }} />
       <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: mobileColors.green }}>
         {icon}
         {label}
       </span>
-    </div>
+      <span className="text-[9.5px] font-medium" style={{ color: hexAlpha(mobileColors.green, 0.75) }}>
+        Toque para ver a foto
+      </span>
+    </a>
   );
 }
 
