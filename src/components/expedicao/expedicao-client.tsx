@@ -393,7 +393,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (filterId === "aguardando") return order.status === "NOVO";
     if (filterId === "separacao") return order.status === "EM_SEPARACAO";
     if (filterId === "conferencia") return order.status === "EM_CONFERENCIA" || order.status === "SEPARADO";
-    if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO";
+    if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO" || order.status === "CONFERIDO";
     if (filterId === "expedido") return order.status === "EXPEDIDO";
     if (filterId === "atrasados") return order.ageTone === "LATE";
     return false;
@@ -438,7 +438,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: 'aguardando', label: 'Aguardando', icon: 'Clock', accent: '#F59E0B', statusFilter: 'NOVO' },
     { id: 'separacao', label: 'Em separação', icon: 'ClipboardList', accent: '#3B82F6', statusFilter: 'EM_SEPARACAO' },
     { id: 'conferencia', label: 'Em conferência', icon: 'Scan', accent: '#8B5CF6', statusFilter: 'EM_CONFERENCIA' },
-    { id: 'conferido', label: 'Conferido', icon: 'CheckCircle2', accent: '#10B981', statusFilter: 'CONFERIDO' },
     { id: 'pronto-coleta', label: 'Pronto para coleta', icon: 'PackageCheck', accent: '#10B981', statusFilter: 'PRONTO_ROMANEIO' },
     { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' }
   ];
@@ -449,6 +448,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
+      if (s.id === 'pronto-coleta') return o.status === 'PRONTO_ROMANEIO' || o.status === 'CONFERIDO';
       if (s.id === 'expedido') return o.status === 'EXPEDIDO';
       return o.status === s.statusFilter;
     }).length : data.orders.length;
@@ -458,7 +458,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (s.id === 'aguardando') iconEl = <Clock size={16} />;
     if (s.id === 'separacao') iconEl = <ClipboardList size={16} />;
     if (s.id === 'conferencia') iconEl = <Scan size={16} />;
-    if (s.id === 'conferido') iconEl = <CheckCircle2 size={16} />;
     if (s.id === 'pronto-coleta') iconEl = <PackageCheck size={16} />;
     if (s.id === 'expedido') iconEl = <Truck size={16} />;
 
