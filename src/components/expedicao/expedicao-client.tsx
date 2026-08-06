@@ -1112,6 +1112,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     ) : (
                       orders.map((o: any, i: number) => (
                         <tr key={i} onClick={() => setSelectedOrder(o)} style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}>
+                        {canDeleteOrder ? <td style={{ padding: "14px 12px 14px 20px", width: 42 }}><input type="checkbox" aria-label={`Selecionar ${o.code}`} checked={selectedOrderIds.includes(o.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleOrderSelection(o.id)} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} /></td> : null}
                         <td style={{ padding: "14px 20px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px" }}>{o.code}</span></td>
                         <td style={{ padding: "14px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>{o.raw?.nfe || "-"}</td>
                         <td style={{ padding: "14px 20px" }}>
@@ -1163,7 +1164,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
       )}
 
       {/* ============ DETAIL DRAWER (NEW COMPLEX ONE) ============ */}
-      {selectedOrder && activeTab === "orders" && (() => {
+      {selectedOrder && (() => {
         const sel = selectedOrder;
         
         // Timeline moves logic (matching infinoos-wms-pedidos.html)
@@ -1174,7 +1175,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
           if (status === 'CONFERIDO' || status === 'EXPEDIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
 
           const stepMeta = [
-            { title: 'Pedido recebido', sub: o.raw.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
+            { title: 'Pedido recebido', sub: o?.raw?.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
             { title: 'Em separação', sub: 'Picking no armazém' },
             { title: 'Conferência', sub: 'Validação de saída' },
             { title: 'Expedido', sub: 'Despacho / coleta' }
@@ -1193,33 +1194,34 @@ export function ExpedicaoClient({ data }: { data: any }) {
           });
         };
 
-        const moves = getTimelineSteps(sel.raw.status, sel);
+        const moves = getTimelineSteps(sel.raw?.status || sel.status || "", sel);
         const specs = [
-          { k: "Canal", v: sel.carrier },
-          { k: "Depositante", v: sel.owner },
-          { k: "Nota fiscal", v: sel.raw.nfe },
-          { k: "Corte (SLA)", v: sel.sla },
+          { k: "Canal", v: sel.carrier || "-" },
+          { k: "Depositante", v: sel.owner || "-" },
+          { k: "Nota fiscal", v: sel.raw?.nfe || "-" },
+          { k: "Corte (SLA)", v: sel.sla || "-" },
           {
             k: "Criado por",
-            v: sel.raw.createdByName
+            v: sel.raw?.createdByName
               ? [sel.raw.createdByName, sel.raw.createdByRole].filter(Boolean).join(" · ")
-              : sel.raw.createdBySource || "Sistema",
-            sub: sel.raw.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
+              : sel.raw?.createdBySource || "Sistema",
+            sub: sel.raw?.createdByAt ? `Em ${sel.raw.createdByAt}` : undefined,
             fullWidth: true,
           }
         ];
 
-        const isRingConcluded = sel.raw.status === 'CONFERIDO' || sel.raw.status === 'PRONTO_ROMANEIO' || sel.raw.status === 'EXPEDIDO';
+        const isRingConcluded = sel.raw?.status === 'CONFERIDO' || sel.raw?.status === 'PRONTO_ROMANEIO' || sel.raw?.status === 'EXPEDIDO';
+        const confN = Number(sel.confN ?? (sel.conf ? parseInt(sel.conf) : 0)) || 0;
         const ring = {
           c1: isRingConcluded ? '#10B981' : '#3B82F6', c2: isRingConcluded ? '#059669' : '#8B5CF6',
           circ: 289,
-          offset: 289 - (289 * sel.confN) / 100
+          offset: 289 - (289 * confN) / 100
         };
 
         // Try to map real items if they exist
-        const realItems = sel.raw.items || [];
-        const nItems = Math.max(1, realItems.length > 0 ? realItems.length : (sel.raw.itemCount || 3));
-        const doneItems = Math.round(nItems * sel.confN / 100);
+        const realItems = sel.raw?.items || [];
+        const nItems = Math.max(1, realItems.length > 0 ? realItems.length : (sel.raw?.itemCount || 3));
+        const doneItems = Math.round(nItems * confN / 100);
         const itemsToUse = [];
         for (let i = 0; i < nItems; i++) {
           const r = realItems[i] || {};
@@ -1234,6 +1236,14 @@ export function ExpedicaoClient({ data }: { data: any }) {
             checkBg: isDone ? '#10B981' : 'transparent'
           });
         }
+
+        const btnText = (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO")
+          ? "Iniciar Separação ›"
+          : (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA")
+          ? "Iniciar Conferência ›"
+          : (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO")
+          ? "Ver em Conferidos ›"
+          : "Fechar";
 
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", justifyContent: "flex-end" }}>
@@ -1253,7 +1263,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {canDeleteOrder && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>
+                    {canDeleteOrder && sel.raw?.id && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>
                       <input type="hidden" name="id" value={sel.raw.id} />
                       <button type="submit" aria-label="Excluir pedido" title="Excluir pedido" style={{ width: "36px", height: "36px", display: "grid", placeItems: "center", flexShrink: 0, borderRadius: "10px", border: "1px solid rgba(239,68,68,.28)", background: "rgba(239,68,68,.08)", color: "#EF4444", cursor: "pointer" }}><Trash2 size={16} /></button>
                     </form>}
@@ -1263,7 +1273,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
               </div>
 
               <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-                {canManuallyChangeOrderStatus ? (
+                {canManuallyChangeOrderStatus && sel.raw?.id ? (
                   <ManualOrderStatusControl
                     orderId={sel.raw.id}
                     status={sel.raw.status}
@@ -1274,22 +1284,22 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 ) : null}
 
                 {/* Motivo do Cancelamento / Divergência */}
-                {(sel.raw.status === "CANCELADO" || sel.raw.cancellationReason || sel.raw.tratamentoDivergencia) && (
+                {(sel.raw?.status === "CANCELADO" || sel.raw?.cancellationReason || sel.raw?.tratamentoDivergencia) && (
                   <div style={{ padding: "16px", borderRadius: "14px", border: "1px solid rgba(239, 68, 68, 0.3)", background: "rgba(239, 68, 68, 0.08)", marginBottom: "24px", display: "flex", flexDirection: "column", gap: "6px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
                       <span style={{ fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", color: "#EF4444" }}>
                         Motivo do Cancelamento / Divergência
                       </span>
-                      {(sel.raw.divergenceReporter || sel.raw.cancellationReporter) && (
+                      {(sel.raw?.divergenceReporter || sel.raw?.cancellationReporter) && (
                         <span style={{ fontSize: "11px", color: t.textSub }}>
                           Por: <strong>{sel.raw.divergenceReporter || sel.raw.cancellationReporter}</strong>
                         </span>
                       )}
                     </div>
                     <span style={{ fontSize: "13.5px", fontWeight: "600", color: t.text }}>
-                      {sel.raw.cancellationReason || "Divergência reportada durante o processo operacional."}
+                      {sel.raw?.cancellationReason || "Divergência reportada durante o processo operacional."}
                     </span>
-                    {sel.raw.tratamentoDivergencia && (
+                    {sel.raw?.tratamentoDivergencia && (
                       <div style={{ marginTop: "6px", padding: "10px 12px", borderRadius: "10px", background: t.cardBg, border: `1px solid ${t.border}`, fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
                           <strong style={{ color: t.text }}>Tratativa do Depositante:</strong>
@@ -1343,8 +1353,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
                 <button 
                   onClick={() => {
-                    if (sel.raw.status === "NOVO" || sel.raw.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
-                    else if (sel.raw.status === "SEPARADO" || sel.raw.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
+                    if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
+                    else if (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
+                    else if (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO") router.push("/expedicao/conferidos");
+                    else setSelectedOrder(null);
                   }}
                   style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
               </div>
