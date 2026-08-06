@@ -55,7 +55,7 @@ type ShippingDivergenceDrawerProps = {
   redirectTo?: string;
 };
 
-type ActionType = "PROSSEGUIR_COM_DIVERGENCIA" | "CANCELAR_DEFINITIVO";
+type ActionType = "CANCELAR_DEFINITIVO";
 
 export function ShippingDivergenceDrawer({
   order,
@@ -64,14 +64,12 @@ export function ShippingDivergenceDrawer({
   readOnly = false,
   redirectTo = "",
 }: ShippingDivergenceDrawerProps) {
-  const [selectedAction, setSelectedAction] = useState<ActionType>("PROSSEGUIR_COM_DIVERGENCIA");
   const [notes, setNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // Reset state when opening a new order
   useEffect(() => {
     if (isOpen) {
-      setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA");
       setNotes("");
     }
   }, [isOpen, order?.id]);
@@ -101,31 +99,6 @@ export function ShippingDivergenceDrawer({
       await resolveShippingOrderDivergenceAction(formData);
     });
   };
-
-  const getActionConfig = (action: ActionType) => {
-    switch (action) {
-      case "PROSSEGUIR_COM_DIVERGENCIA":
-        return {
-          title: "Prosseguir com Divergência",
-          description: "Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.",
-          badge: "Liberar para Envio",
-          btnColor: "bg-emerald-600 hover:bg-emerald-700 text-white font-bold",
-          borderActive: "border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500",
-          icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
-        };
-      case "CANCELAR_DEFINITIVO":
-        return {
-          title: "Confirmar Cancelamento Definitivo",
-          description: "Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.",
-          badge: "Encerramento",
-          btnColor: "bg-rose-600 hover:bg-rose-700 text-white font-bold",
-          borderActive: "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500",
-          icon: <XCircle className="h-5 w-5 text-rose-500" />,
-        };
-    }
-  };
-
-  const activeConfig = getActionConfig(selectedAction);
 
   return (
     <div 
@@ -345,79 +318,42 @@ export function ShippingDivergenceDrawer({
                       Aguardando Tratativa do Depositante
                     </h5>
                     <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                      O pedido está bloqueado aguardando o depositante definir no portal se autoriza a expedição mesmo com a divergência ou se confirma o cancelamento.
+                      O pedido está bloqueado aguardando o depositante confirmar o cancelamento definitivo no portal.
                     </p>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            /* SELEÇÃO DE AÇÕES DE RESOLUÇÃO (Depositante / Operador com ação ativa) */
+            /* SELEÇÃO DE AÇÕES DE RESOLUÇÃO (Depositante com ação ativa) */
             <form id="divergence-resolution-form" onSubmit={handleSubmit} className="space-y-4">
               <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="resolutionType" value={selectedAction} />
+              <input type="hidden" name="resolutionType" value="CANCELAR_DEFINITIVO" />
               {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-zinc-300 block mb-2.5">
-                  Escolha a Ação de Resolução:
+                  Ação de Resolução:
                 </label>
-                <div className="grid gap-3">
-                  {/* Opção 1: Prosseguir com Divergência */}
-                  <div
-                    onClick={() => setSelectedAction("PROSSEGUIR_COM_DIVERGENCIA")}
-                    className={`cursor-pointer rounded-2xl border p-4 transition ${
-                      selectedAction === "PROSSEGUIR_COM_DIVERGENCIA"
-                        ? getActionConfig("PROSSEGUIR_COM_DIVERGENCIA").borderActive
-                        : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                            Prosseguir com Divergência
-                          </h4>
-                          <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            Liberar para Envio
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                          Autoriza a expedição do pedido mesmo com a divergência atual (ex: item faltante acordado com o depositante). O pedido é liberado para geração de romaneio e despacho.
-                        </p>
-                      </div>
+                
+                {/* Opção Única: Cancelar Definitivo */}
+                <div className="rounded-2xl border border-rose-500 bg-rose-500/10 ring-1 ring-rose-500 p-4 transition">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                      <XCircle className="h-5 w-5" />
                     </div>
-                  </div>
-
-                  {/* Opção 2: Cancelar Definitivo */}
-                  <div
-                    onClick={() => setSelectedAction("CANCELAR_DEFINITIVO")}
-                    className={`cursor-pointer rounded-2xl border p-4 transition ${
-                      selectedAction === "CANCELAR_DEFINITIVO"
-                        ? getActionConfig("CANCELAR_DEFINITIVO").borderActive
-                        : "border-slate-200 bg-white hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
-                        <XCircle className="h-4 w-4" />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                          Confirmar Cancelamento Definitivo
+                        </h4>
+                        <span className="rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                          Encerramento
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                            Confirmar Cancelamento Definitivo
-                          </h4>
-                          <span className="rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                            Encerramento
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                          Confirma o cancelamento do pedido por divergência insanável. O pedido é encerrado definitivamente e retirado do fluxo operacional.
-                        </p>
-                      </div>
+                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                        Confirma o cancelamento do pedido por divergência constatada no armazém. O pedido será encerrado definitivamente e retirado do fluxo operacional.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -426,15 +362,15 @@ export function ShippingDivergenceDrawer({
               {/* Observações Opcionais */}
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1.5">
-                  Observação do Tratamento (Opcional):
+                  Observação do Cancelamento (Opcional):
                 </label>
                 <textarea
                   name="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ex: Autorizado envio sem o item faltante conforme alinhamento com cliente final..."
+                  placeholder="Ex: Cancelamento autorizado devido à falta de estoque físico..."
                   rows={2}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                 />
               </div>
             </form>
@@ -448,17 +384,17 @@ export function ShippingDivergenceDrawer({
               type="submit"
               form="divergence-resolution-form"
               disabled={isPending}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm shadow-md transition disabled:opacity-50 ${activeConfig.btnColor}`}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm font-bold shadow-md transition disabled:opacity-50 bg-rose-600 hover:bg-rose-700 text-white"
             >
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Processando...
+                  Processando cancelamento...
                 </>
               ) : (
                 <>
-                  Confirmar {activeConfig.title}
-                  <ArrowRight className="h-4 w-4" />
+                  <XCircle className="h-4 w-4" />
+                  Confirmar Cancelamento Definitivo
                 </>
               )}
             </button>
