@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Eye, FileDown, IdCard, PackageCheck, Truck, User } from "lucide-react";
+import { CheckCircle2, Eye, IdCard, PackageCheck, Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import { formatDateTimePtBr } from "@/lib/utils";
 import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
+import { DownloadRomaneioPdfButton } from "@/components/mobile/download-romaneio-pdf-button";
 
 type VisualizarRomaneioPageProps = {
   params: Promise<{ id: string }>;
@@ -197,15 +198,13 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
 
         {/* Ações */}
         <div className="flex flex-col gap-2.5 pt-2">
-          <Link
-            href={`/api/romaneio/${romaneio.id}/pdf`}
-            target="_blank"
-            className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white"
+          <DownloadRomaneioPdfButton
+            pdfUrl={`/api/romaneio/${romaneio.id}/pdf`}
+            fileName={`romaneio-${romaneio.code.toLowerCase()}.pdf`}
+            label="Baixar PDF do Romaneio"
+            className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white disabled:opacity-70"
             style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
-          >
-            <FileDown className="h-4 w-4 shrink-0" />
-            <span>Abrir / Imprimir PDF do Romaneio</span>
-          </Link>
+          />
           <Link
             href="/m/romaneio"
             className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"

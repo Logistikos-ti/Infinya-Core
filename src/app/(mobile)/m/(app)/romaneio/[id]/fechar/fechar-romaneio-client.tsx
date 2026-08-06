@@ -11,7 +11,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  FileDown,
   IdCard,
   Keyboard,
   List,
@@ -26,6 +25,7 @@ import {
   uploadRomaneioPhotoAction,
 } from "@/app/(dashboard)/romaneio/actions";
 import { mobileColors, mobileGradient, hexAlpha, headingFont, MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { DownloadRomaneioPdfButton } from "@/components/mobile/download-romaneio-pdf-button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
 import { getCarrierBrand } from "@/lib/carrier-branding";
@@ -1586,15 +1586,13 @@ export function FecharRomaneioClient({
             </div>
 
             <div className="flex flex-col gap-2.5 pt-3">
-              <Link
-                href={`/api/romaneio/${romaneio.id}/pdf`}
-                target="_blank"
-                className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white"
+              <DownloadRomaneioPdfButton
+                pdfUrl={`/api/romaneio/${romaneio.id}/pdf`}
+                fileName={`romaneio-${romaneio.code.toLowerCase()}.pdf`}
+                label="Baixar PDF do Romaneio"
+                className="flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl px-4 text-center font-extrabold text-white disabled:opacity-70"
                 style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
-              >
-                <FileDown className="h-4 w-4 shrink-0" />
-                <span>Abrir / Imprimir PDF do Romaneio</span>
-              </Link>
+              />
               <Link
                 href="/m/romaneio"
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
