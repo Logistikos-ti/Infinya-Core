@@ -278,22 +278,17 @@ export function useFacePhotoCapture({
         }
       }
 
-      // Match the requested stream's aspect ratio to the actual viewport
-      // instead of a fixed guess: with object-fit: cover filling the full
-      // screen, the closer the stream's aspect is to the screen's, the
-      // less cropping cover has to do to fill it -- which is what reads
-      // as "zoom" when the two are far apart.
-      const viewportAspectRatio =
-        typeof window !== "undefined" && window.innerWidth > 0 && window.innerHeight > 0
-          ? window.innerWidth / window.innerHeight
-          : 3 / 4;
-
+      // No width/height/aspectRatio hints -- forcing a specific resolution
+      // or ratio (tried both a fixed portrait guess and one matched to the
+      // viewport) kept making some devices' front camera return an
+      // aggressively cropped stream to hit it, which then read as an
+      // extreme zoom once displayed. Requesting just facingMode and
+      // letting the device hand back its own default/natural stream is
+      // the only setting that has stayed zoom-free -- object-fit: contain
+      // below is what guarantees no cropping regardless of whatever
+      // aspect ratio that stream turns out to be.
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "user" },
-          aspectRatio: { ideal: viewportAspectRatio },
-          width: { ideal: 1080 },
-        },
+        video: { facingMode: { ideal: "user" } },
         audio: false,
       });
 

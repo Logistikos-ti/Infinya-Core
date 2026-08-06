@@ -1067,10 +1067,13 @@ export function FecharRomaneioClient({
           button on browsers without automatic face detection). */}
       {faceCameraTarget ? (
         <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#000", display: "flex", flexDirection: "column" }}>
-          {/* Back to object-fit: cover for a true full-screen camera --
-              now safe because useFacePhotoCapture requests a stream whose
-              aspect ratio matches this actual viewport, so cover has
-              little to no cropping left to do to fill it. */}
+          {/* object-fit: contain, not cover: cover was still reading as an
+              extreme zoom on some devices even after matching the
+              requested stream's aspect ratio to the viewport -- contain is
+              the only setting that's guaranteed to never crop the frame,
+              whatever aspect ratio the camera actually hands back. May
+              show thin letterbox bars on the sides/top, which is the
+              trade-off for never zooming in. */}
           <video
             ref={faceCapture.videoRef}
             playsInline
@@ -1080,7 +1083,7 @@ export function FecharRomaneioClient({
               inset: 0,
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
               transform: "scaleX(-1)",
             }}
           />
