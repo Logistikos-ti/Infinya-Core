@@ -1332,42 +1332,196 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   </div>
                 )}
 
-                {/* customer info */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "20px" }}>
-                  <span style={{ fontSize: "16px", fontWeight: "700", lineHeight: "1.3", color: t.text }}>{sel.customer}</span>
-                  <span style={{ fontSize: "13px", color: t.textSub }}>{sel.owner} &middot; {sel.city}</span>
-                </div>
+                {isPedidosFull ? (
+                  <>
+                    {/* customer info */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginBottom: "20px" }}>
+                      <span style={{ fontSize: "16px", fontWeight: "700", lineHeight: "1.3", color: t.text }}>{sel.customer}</span>
+                      <span style={{ fontSize: "13px", color: t.textSub }}>{sel.owner} &middot; {sel.city}</span>
+                    </div>
 
-                {/* timeline */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "32px" }}>
-                  {moves.map((m: any, i: number) => (
-                    <div key={i} style={{ display: "flex", gap: "14px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
-                        <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
-                        <span style={{ flex: 1, width: "2px", background: i === moves.length - 1 ? "transparent" : m.line }}></span>
+                    {/* timeline */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "32px" }}>
+                      {moves.map((m: any, i: number) => (
+                        <div key={i} style={{ display: "flex", gap: "14px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
+                            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
+                            <span style={{ flex: 1, width: "2px", background: i === moves.length - 1 ? "transparent" : m.line }}></span>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "22px" }}>
+                            <span style={{ fontSize: "14px", fontWeight: "700", color: m.titleColor }}>{m.title}</span>
+                            <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* carrier + dock + specs */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
+                      {specs.map((s: any, i: number) => (
+                        <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                          <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
+                          <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
+                          {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* customer info & circular progress ring */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "20px", padding: "18px 20px", borderRadius: "14px", border: `1px solid ${t.border}`, background: t.cardBg, marginBottom: "20px" }}>
+                      <div style={{ position: "relative", width: "96px", height: "96px", flexShrink: 0 }}>
+                        <svg width="96" height="96" viewBox="0 0 108 108" style={{ transform: "rotate(-90deg)" }}>
+                          <circle cx="54" cy="54" r="46" fill="none" stroke={t.barTrack} strokeWidth="11"></circle>
+                          <circle cx="54" cy="54" r="46" fill="none" stroke="url(#confGrad)" strokeWidth="11" strokeLinecap="round" strokeDasharray={ring.circ} style={{ animation: "fillRing 1s cubic-bezier(0.3, 1, 0.4, 1) forwards", "--ring-offset": ring.offset } as React.CSSProperties}></circle>
+                          <defs>
+                            <linearGradient id="confGrad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0" stopColor={ring.c1}></stop>
+                              <stop offset="1" stopColor={ring.c2}></stop>
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "19px", fontWeight: "700", color: t.text }}>{sel.conf}</span>
+                          <span style={{ fontSize: "10px", color: t.textSub, fontWeight: "600" }}>conferido</span>
+                        </div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "22px" }}>
-                        <span style={{ fontSize: "14px", fontWeight: "700", color: m.titleColor }}>{m.title}</span>
-                        <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <span style={{ fontSize: "11px", color: t.textSub, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente</span>
+                          <span style={{ fontSize: "15px", fontWeight: "700", lineHeight: "1.3", color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sel.customer}</span>
+                          <span style={{ fontSize: "12px", color: t.textSub }}>{sel.city}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "16px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700", color: t.text }}>{sel.itemsLabel?.split(' ')[0] || (sel.raw?.items?.length || 1)}</span>
+                            <span style={{ fontSize: "11px", color: t.textSub }}>itens</span>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: "700", color: t.text }}>{sel.raw?.weight || "0,8 kg"}</span>
+                            <span style={{ fontSize: "11px", color: t.textSub }}>peso</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* carrier + dock + specs */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
-                  {specs.map((s: any, i: number) => (
-                    <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "16px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
-                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
-                      <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
-                      {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
+                    {/* Document buttons */}
+                    <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                      <ShippingAttachmentPreviewDialog
+                        label="Nota Fiscal"
+                        viewHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=inline`}
+                        downloadHref={`/api/expedicao/${sel.raw?.id}/nota-fiscal-preview?disposition=attachment`}
+                        customTrigger={(openPreview) => (
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                          >
+                            <FileText size={20} color={t.textSub} />
+                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Visualizar<br/>NF</span>
+                          </button>
+                        )}
+                      />
+                      <ShippingAttachmentPreviewDialog
+                        label="DANFE Simplificada"
+                        viewHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=inline`}
+                        downloadHref={`/api/expedicao/${sel.raw?.id}/danfe-simplificada?disposition=attachment`}
+                        customTrigger={(openPreview) => (
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                          >
+                            <Receipt size={20} color={t.textSub} />
+                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>DANFE<br/>Simplificada</span>
+                          </button>
+                        )}
+                      />
+                      <ShippingAttachmentPreviewDialog
+                        label="Etiqueta de Envio"
+                        viewHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=inline`}
+                        downloadHref={`/api/expedicao/${sel.raw?.id}/anexos/etiqueta?disposition=attachment`}
+                        customTrigger={(openPreview) => (
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openPreview(); }}
+                            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px", padding: "14px 8px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                            className="hover:-translate-y-0.5 hover:shadow-lg dark:hover:bg-slate-800/40 hover:bg-slate-50"
+                          >
+                            <Tag size={20} color={t.textSub} />
+                            <span style={{ fontSize: "12px", fontWeight: "600", textAlign: "center", lineHeight: "1.2" }}>Etiqueta<br/>de Envio</span>
+                          </button>
+                        )}
+                      />
                     </div>
-                  ))}
-                </div>
+
+                    {/* carrier + dock + specs */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
+                      {specs.map((s: any, i: number) => (
+                        <div key={i} style={{ gridColumn: s.fullWidth ? "1 / -1" : undefined, padding: "14px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.cardBg, display: "flex", flexDirection: "column", gap: "5px" }}>
+                          <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.k}</span>
+                          <span style={{ fontSize: "14.5px", fontWeight: "700", color: t.text }}>{s.v}</span>
+                          {s.sub ? <span style={{ fontSize: "11.5px", color: t.textSub }}>{s.sub}</span> : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* packing list / produtos */}
+                    <div style={{ marginBottom: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700", color: t.text }}>Itens do pedido</span>
+                        <span style={{ fontSize: "12.5px", color: t.textSub, fontWeight: "600" }}>{doneItems} de {nItems} conferidos</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {itemsToUse.map((it: any, i: number) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "11px 14px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg }}>
+                            <span style={{ width: "22px", height: "22px", flexShrink: 0, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", border: `1.5px solid ${it.checkBorder}`, background: it.checkBg, color: "#fff" }}>{it.mark}</span>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "1px", flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: "13.5px", fontWeight: "700", color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.name}</span>
+                              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "11.5px", color: t.textSub }}>{it.sku}</span>
+                            </div>
+                            <span style={{ fontSize: "13px", fontWeight: "700", color: it.qtyColor }}>{it.qty}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* timeline */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "24px" }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "700", color: t.text }}>Histórico</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        {moves.map((m: any, i: number) => (
+                          <div key={i} style={{ display: "flex", gap: "14px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "12px" }}>
+                              <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: m.dot, boxShadow: `0 0 0 3px ${m.halo}`, marginTop: "4px" }}></span>
+                              <span style={{ flex: 1, width: "2px", background: i === moves.length - 1 ? "transparent" : m.line }}></span>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px", paddingBottom: "16px" }}>
+                              <span style={{ fontSize: "13.5px", fontWeight: "700", color: m.titleColor }}>{m.title}</span>
+                              <span style={{ fontSize: "12.5px", color: t.textSub }}>{m.sub}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
 
               <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "10px", background: t.drawerBg }}>
+                {!isPedidosFull && sel.raw?.romaneioId ? (
+                  <button 
+                    type="button"
+                    onClick={() => window.open(`/api/romaneio/${sel.raw.romaneioId}/pdf`, "_blank")}
+                    style={{ flex: 1, height: "46px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    ⎙ Romaneio
+                  </button>
+                ) : null}
                 <button 
                   onClick={() => {
                     if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
@@ -1375,7 +1529,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     else if (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO") router.push("/expedicao/conferidos");
                     else setSelectedOrder(null);
                   }}
-                  style={{ flex: 1, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
+                  style={{ flex: 1.2, height: "46px", border: "none", borderRadius: "11px", background: "linear-gradient(92deg, #6366f1, #8b5cf6)", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: "800", cursor: "pointer", boxShadow: "0 8px 22px rgba(99, 102, 241, 0.32)" }}>{btnText}</button>
               </div>
             </div>
           </div>
