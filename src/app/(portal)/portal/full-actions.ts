@@ -41,6 +41,8 @@ export async function createFullShipmentAction(
     const user = await requireRoleAccess(["DEPOSITANTE", "ADMIN", "TI"]);
     const depositanteId = String(formData.get("depositanteId") ?? "").trim();
     const marketplace = String(formData.get("marketplace") ?? "").trim();
+    const modalidadeEnvio = String(formData.get("modalidadeEnvio") ?? "").trim().toUpperCase();
+    const transportadoraNome = String(formData.get("transportadoraNome") ?? "").trim();
     const collectionAt = buildCollectionAt(
       String(formData.get("collectionDate") ?? ""),
       String(formData.get("collectionTime") ?? ""),
@@ -49,6 +51,12 @@ export async function createFullShipmentAction(
     assertDocument(invoiceXml, "O XML da NF-e");
     for (const field of requiredDocumentFields) assertDocument(getFile(formData, field), field === "entryAuthorization" ? "A autorizacao de entrada" : "A etiqueta de volume");
     if (!depositanteId || !marketplace) throw new Error("Selecione o depositante e o marketplace.");
+    if (modalidadeEnvio !== "COLETA" && modalidadeEnvio !== "TRANSPORTADORA") {
+      throw new Error("Escolha se o pedido Full será por coleta ou transportadora.");
+    }
+    if (modalidadeEnvio === "TRANSPORTADORA" && !transportadoraNome) {
+      throw new Error("Informe o nome da transportadora.");
+    }
     if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) throw new Error("Voce nao pode criar uma remessa para outro depositante.");
 
     const xmlBuffer = await invoiceXml!.arrayBuffer();
@@ -79,7 +87,9 @@ export async function createFullShipmentAction(
       nota_fiscal_numero: nfe.noteNumber, chave_acesso: nfe.accessKey, emitente_nome: nfe.supplierName,
       emitente_documento: nfe.supplierDocument, destinatario_nome: nfe.recipientName,
       destinatario_documento: nfe.recipientDocument, destinatario_endereco: nfe.recipientAddress,
-      transportadora_nome: nfe.carrierName, quantidade_volumes: nfe.volumeCount || 1,
+      modalidade_envio: modalidadeEnvio,
+      transportadora_nome: modalidadeEnvio === "TRANSPORTADORA" ? transportadoraNome : null,
+      quantidade_volumes: nfe.volumeCount || 1,
       valor_total: nfe.totalValue, coleta_prevista_em: collectionAt,
       observacoes: String(formData.get("observacoes") ?? "").trim() || null,
       criado_por: user.id, payload_origem: { nfe, tipo: "FULL" },
