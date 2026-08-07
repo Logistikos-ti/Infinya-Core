@@ -73,6 +73,42 @@ export async function createFullShipmentAction(
     if (productMatch.unmatched.length) {
       throw new Error(`Nao encontramos no catalogo: ${productMatch.unmatched.slice(0, 3).map((item) => item.descricao).join(", ")}. Cadastre ou corrija os SKUs antes de enviar.`);
     }
+
+    const requestedByProduct = new Map<string, { name: string; quantity: number }>();
+    for (const item of productMatch.matched) {
+      const current = requestedByProduct.get(item.productId);
+      requestedByProduct.set(item.productId, {
+        name: current?.name ?? item.nome,
+        quantity: (current?.quantity ?? 0) + Number(item.quantidade ?? 0),
+      });
+    }
+    const productIds = [...requestedByProduct.keys()];
+    const { data: stockRows, error: stockError } = await admin
+      .from("estoque")
+      .select("produto_id, quantidade, quantidade_reservada, bloqueado")
+      .eq("depositante_id", depositanteId)
+      .in("produto_id", productIds)
+      .eq("bloqueado", false);
+    if (stockError) throw stockError;
+
+    const availableByProduct = new Map<string, number>();
+    for (const row of stockRows ?? []) {
+      const available = Math.max(0, Number(row.quantidade ?? 0) - Number(row.quantidade_reservada ?? 0));
+      availableByProduct.set(row.produto_id, (availableByProduct.get(row.produto_id) ?? 0) + available);
+    }
+    const shortages = [...requestedByProduct.entries()]
+      .map(([productId, requested]) => ({
+        ...requested,
+        available: availableByProduct.get(productId) ?? 0,
+      }))
+      .filter((item) => item.available < item.quantity);
+    if (shortages.length) {
+      const details = shortages
+        .map((item) => `${item.name}: solicitadas ${item.quantity}, disponíveis ${item.available}, faltam ${item.quantity - item.available}`)
+        .join("; ");
+      throw new Error(`Estoque insuficiente para a remessa Full. ${details}`);
+    }
+
     const itemLabels = formData.getAll("itemLabel").filter((value): value is File => value instanceof File && value.size > 0);
     if (itemLabels.length < productMatch.matched.length) throw new Error("Anexe uma etiqueta de produto para cada item da NF-e.");
     itemLabels.forEach((file) => assertDocument(file, "A etiqueta do produto"));
