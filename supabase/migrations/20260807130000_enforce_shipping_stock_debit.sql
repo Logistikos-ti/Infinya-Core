@@ -110,7 +110,7 @@ begin
     end loop;
 
     if v_missing > 0 then
-      raise exception 'Saldo insuficiente para baixar o item %.', v_item.id;
+      raise exception 'Saldo insuficiente para baixar o produto %.', v_item.produto_id;
     end if;
   end loop;
 
