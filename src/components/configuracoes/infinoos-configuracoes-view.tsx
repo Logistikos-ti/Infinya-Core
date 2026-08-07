@@ -712,6 +712,26 @@ export function InfinoosConfiguracoesView({
         fontFamily: "'Manrope', var(--font-manrope), sans-serif",
       }}
     >
+      <style>{`
+        .infinoos-task-input::placeholder {
+          color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+          opacity: 1 !important;
+          -webkit-text-fill-color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+        }
+        .infinoos-task-input::-webkit-input-placeholder {
+          color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+          opacity: 1 !important;
+          -webkit-text-fill-color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+        }
+        .infinoos-task-input::-moz-placeholder {
+          color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+          opacity: 1 !important;
+        }
+        .infinoos-task-input:-ms-input-placeholder {
+          color: ${dark ? "rgba(148, 163, 184, 0.65)" : "#64748B"} !important;
+          opacity: 1 !important;
+        }
+      `}</style>
       {/* Main Content Area */}
       <main className="space-y-6">
         {/* Panel Header */}
@@ -995,9 +1015,10 @@ export function InfinoosConfiguracoesView({
                 >
                   <span style={{ color: "#8B5CF6", fontSize: "18px", fontWeight: 700 }}>+</span>
                   <input
+                    className="infinoos-task-input"
                     value={taskDraft}
                     onChange={(e) => setTaskDraft(e.target.value)}
-                    placeholder="Adicionar tarefa..."
+                    placeholder="Adicionar uma tarefa..."
                     style={{
                       flex: 1,
                       border: "none",
@@ -2156,6 +2177,7 @@ export function InfinoosConfiguracoesView({
               >
                 <span style={{ color: "#8B5CF6", fontSize: "20px", fontWeight: 700 }}>+</span>
                 <input
+                  className="infinoos-task-input"
                   value={taskDraft}
                   onChange={(e) => setTaskDraft(e.target.value)}
                   placeholder="Adicionar uma tarefa..."
