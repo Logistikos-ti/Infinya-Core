@@ -553,9 +553,42 @@ export function InfinoosConfiguracoesView({
     }
   };
 
+  const [completingIds, setCompletingIds] = useState<Record<number, boolean>>({});
+
   const pendingTasks = tasks.filter((x) => !x.done);
   const doneTasks = tasks.filter((x) => x.done);
   const filteredTasks = taskFilter === "pending" ? pendingTasks : taskFilter === "done" ? doneTasks : tasks;
+
+  const handleCompleteTask = (id: number) => {
+    setCompletingIds((prev) => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setTasks((prev) => prev.map((y) => (y.id === id ? { ...y, done: true } : y)));
+      setCompletingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      notify("Tarefa concluída!");
+    }, 380);
+  };
+
+  const handleToggleTaskInModal = (id: number, currentDone: boolean) => {
+    if (taskFilter === "pending" && !currentDone) {
+      setCompletingIds((prev) => ({ ...prev, [id]: true }));
+      setTimeout(() => {
+        setTasks((prev) => prev.map((y) => (y.id === id ? { ...y, done: true } : y)));
+        setCompletingIds((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        notify("Tarefa concluída!");
+      }, 380);
+    } else {
+      setTasks((prev) => prev.map((y) => (y.id === id ? { ...y, done: !y.done } : y)));
+      notify(currentDone ? "Tarefa reaberta" : "Tarefa concluída!");
+    }
+  };
 
   const handleAddTask = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -954,33 +987,47 @@ export function InfinoosConfiguracoesView({
                 </form>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {pendingTasks.slice(0, 4).map((a) => (
-                    <div
-                      key={a.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "11px",
-                        padding: "13px 14px",
-                        borderRadius: "12px",
-                        border: `1px solid ${t.border}`,
-                        background: t.softBg,
-                      }}
-                    >
-                      <TaskCheckCircle
-                        done={a.done}
-                        borderColor={t.textSub}
-                        onClick={() =>
-                          setTasks((prev) =>
-                            prev.map((y) => (y.id === a.id ? { ...y, done: true } : y))
-                          )
-                        }
-                      />
-                      <span style={{ flex: 1, fontSize: "13px", lineHeight: 1.45, color: t.text }}>
-                        {a.text}
-                      </span>
-                    </div>
-                  ))}
+                  {pendingTasks.slice(0, 4).map((a) => {
+                    const isCompleting = !!completingIds[a.id];
+                    return (
+                      <div
+                        key={a.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: "11px",
+                          padding: isCompleting ? "0 14px" : "13px 14px",
+                          maxHeight: isCompleting ? "0px" : "90px",
+                          opacity: isCompleting ? 0 : 1,
+                          transform: isCompleting ? "translateX(18px) scale(0.96)" : "translateX(0) scale(1)",
+                          overflow: "hidden",
+                          borderRadius: "12px",
+                          border: isCompleting ? "1px solid transparent" : `1px solid ${t.border}`,
+                          background: isCompleting ? "rgba(16, 185, 129, 0.08)" : t.softBg,
+                          transition: "all 0.38s cubic-bezier(0.4, 0, 0.2, 1)",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <TaskCheckCircle
+                          done={a.done || isCompleting}
+                          borderColor={t.textSub}
+                          onClick={() => handleCompleteTask(a.id)}
+                        />
+                        <span
+                          style={{
+                            flex: 1,
+                            fontSize: "13px",
+                            lineHeight: 1.45,
+                            color: isCompleting ? t.textSub : t.text,
+                            textDecoration: isCompleting ? "line-through" : "none",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {a.text}
+                        </span>
+                      </div>
+                    );
+                  })}
                   {pendingTasks.length === 0 && (
                     <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: t.textSub }}>
                       Tudo em dia — nenhuma tarefa pendente.
@@ -2098,59 +2145,69 @@ export function InfinoosConfiguracoesView({
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {filteredTasks.map((x) => (
-                  <div
-                    key={x.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "13px",
-                      padding: "15px 17px",
-                      borderRadius: "13px",
-                      border: `1px solid ${t.border}`,
-                      background: t.softBg,
-                    }}
-                  >
-                    <TaskCheckCircle
-                      size={24}
-                      done={x.done}
-                      borderColor={t.textSub}
-                      onClick={() =>
-                        setTasks((prev) =>
-                          prev.map((y) => (y.id === x.id ? { ...y, done: !y.done } : y))
-                        )
-                      }
-                    />
-                    <span
+                {filteredTasks.map((x) => {
+                  const isCompleting = !!completingIds[x.id];
+                  const isDone = x.done || isCompleting;
+                  return (
+                    <div
+                      key={x.id}
                       style={{
-                        flex: 1,
-                        fontSize: "14.5px",
-                        lineHeight: 1.5,
-                        color: x.done ? t.textSub : t.text,
-                        textDecoration: x.done ? "line-through" : "none",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "13px",
+                        padding: isCompleting ? "0 17px" : "15px 17px",
+                        maxHeight: isCompleting ? "0px" : "90px",
+                        opacity: isCompleting ? 0 : 1,
+                        transform: isCompleting ? "translateX(18px) scale(0.96)" : "translateX(0) scale(1)",
+                        overflow: "hidden",
+                        borderRadius: "13px",
+                        border: isCompleting ? "1px solid transparent" : `1px solid ${t.border}`,
+                        background: isCompleting ? "rgba(16, 185, 129, 0.08)" : t.softBg,
+                        transition: "all 0.38s cubic-bezier(0.4, 0, 0.2, 1)",
+                        boxSizing: "border-box",
                       }}
                     >
-                      {x.text}
-                    </span>
-                    <button
-                      onClick={() => setTasks((prev) => prev.filter((y) => y.id !== x.id))}
-                      title="Remover"
-                      style={{
-                        width: "30px",
-                        height: "30px",
-                        flexShrink: 0,
-                        borderRadius: "8px",
-                        border: "none",
-                        background: "transparent",
-                        color: t.textSub,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                      <TaskCheckCircle
+                        size={24}
+                        done={isDone}
+                        borderColor={t.textSub}
+                        onClick={() => handleToggleTaskInModal(x.id, x.done)}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: "14.5px",
+                          lineHeight: 1.5,
+                          color: isDone ? t.textSub : t.text,
+                          textDecoration: isDone ? "line-through" : "none",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        {x.text}
+                      </span>
+                      <button
+                        onClick={() => setTasks((prev) => prev.filter((y) => y.id !== x.id))}
+                        title="Remover"
+                        style={{
+                          width: "30px",
+                          height: "30px",
+                          flexShrink: 0,
+                          borderRadius: "8px",
+                          border: "none",
+                          background: "transparent",
+                          color: t.textSub,
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          transition: "color 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = t.textSub)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
 
                 {filteredTasks.length === 0 && (
                   <div style={{ padding: "40px", textAlign: "center", fontSize: "14px", color: t.textSub }}>
