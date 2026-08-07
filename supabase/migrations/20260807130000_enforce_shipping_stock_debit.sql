@@ -178,13 +178,20 @@ set search_path = public
 as $$
 declare
   v_usuario_id uuid := auth.uid();
+  v_status text;
 begin
-  if old.status is distinct from new.status then
-    if new.status = 'EM_CONFERENCIA' then
-      perform public.reservar_pedido_para_conferencia(new.id, v_usuario_id);
-    elsif new.status in ('CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO') then
-      perform public.garantir_baixa_fisica_pedido(new.id, v_usuario_id);
-    end if;
+  if tg_op = 'INSERT' then
+    v_status := new.status;
+  elsif old.status is distinct from new.status then
+    v_status := new.status;
+  else
+    return new;
+  end if;
+
+  if v_status = 'EM_CONFERENCIA' then
+    perform public.reservar_pedido_para_conferencia(new.id, v_usuario_id);
+  elsif v_status in ('CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO') then
+    perform public.garantir_baixa_fisica_pedido(new.id, v_usuario_id);
   end if;
 
   return new;
@@ -193,7 +200,7 @@ $$;
 
 drop trigger if exists trg_proteger_transicao_estoque_pedido on public.pedidos_expedicao;
 create trigger trg_proteger_transicao_estoque_pedido
-before update of status on public.pedidos_expedicao
+before insert or update of status on public.pedidos_expedicao
 for each row
 execute function public.proteger_transicao_estoque_pedido();
 
