@@ -82,18 +82,14 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
     { data: depositantes },
     { data: produtos },
     { data: usuarios },
-    { data: enderecos },
+    enderecosResult,
     transportadorasResult,
   ] = await Promise.all([
     supabase.from("depositantes").select("id, codigo, nome, cnpj, ativo").order("nome"),
-    supabase.from("produtos").select("depositante_id, metodo_retirada, ativo"),
-    supabase.from("usuarios").select("id, nome, email, perfil, depositante_id, ativo"),
-    supabase
-      .from("enderecos")
-      .select("id, codigo, area, capacidade_maxima, ativo")
-      .order("codigo")
-      .limit(20),
-    supabase.from("transportadoras").select("id, nome, ativo"),
+    supabase.from("produtos").select("id, depositante_id, metodo_retirada, ativo"),
+    supabase.from("usuarios").select("id, nome, email, papel, depositante_id, ativo").order("nome"),
+    supabase.from("enderecos").select("id, codigo, area, capacidade_maxima, ativo").order("codigo"),
+    supabase.from("transportadoras").select("id, nome, ativo").order("nome"),
   ]);
 
   const productCountByDepositante = new Map<string, number>();
@@ -140,14 +136,16 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
     };
   });
 
-  const activeDepositantes = depositanteCards.filter((item) => item.ativo).length;
-  const activeProducts = (produtos ?? []).filter((item) => item.ativo).length;
-  const activeUsers = (usuarios ?? []).filter((item) => item.ativo).length;
-  const activeAddresses = (enderecos ?? []).filter((item) => item.ativo).length;
+  const enderecos = enderecosResult.data ?? [];
   const transportadoras =
     transportadorasResult.error && isTransportadorasSchemaMissing(transportadorasResult.error)
       ? []
       : (transportadorasResult.data ?? []);
+
+  const activeDepositantes = depositanteCards.filter((item) => item.ativo).length;
+  const activeProducts = (produtos ?? []).filter((item) => item.ativo).length;
+  const activeUsers = (usuarios ?? []).filter((item) => item.ativo).length;
+  const activeAddresses = enderecos.filter((item) => item.ativo).length;
   const activeCarriers = transportadoras.filter((item) => item.ativo).length;
 
   if (showRebranding) {
@@ -158,15 +156,15 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
           id: u.id,
           nome: u.nome ?? undefined,
           email: u.email ?? undefined,
-          perfil: u.perfil ?? undefined,
+          perfil: u.papel ?? undefined,
           ativo: u.ativo,
         }))}
         initialCounts={{
-          depositantes: activeDepositantes || 6,
-          produtos: activeProducts || 292,
-          usuarios: activeUsers || 17,
-          enderecos: activeAddresses || 20,
-          transportadoras: activeCarriers || 4,
+          depositantes: activeDepositantes,
+          produtos: activeProducts,
+          usuarios: activeUsers,
+          enderecos: activeAddresses,
+          transportadoras: activeCarriers,
         }}
       />
     );

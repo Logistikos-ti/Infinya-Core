@@ -75,20 +75,17 @@ export function InfinoosConfiguracoesView({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Toggles state
-  const [depOn, setDepOn] = useState<Record<string, boolean>>({
-    d0: true,
-    d1: true,
-    d2: true,
-    d3: false,
-    d4: true,
-    d5: true,
+  const [depOn, setDepOn] = useState<Record<string, boolean>>(() => {
+    if (initialDepositantes && initialDepositantes.length > 0) {
+      return Object.fromEntries(initialDepositantes.map((d) => [d.id, d.ativo]));
+    }
+    return { d0: true, d1: true, d2: true, d3: false, d4: true, d5: true };
   });
-  const [userOn, setUserOn] = useState<Record<string, boolean>>({
-    u0: true,
-    u1: true,
-    u2: true,
-    u3: false,
-    u4: true,
+  const [userOn, setUserOn] = useState<Record<string, boolean>>(() => {
+    if (initialUsuarios && initialUsuarios.length > 0) {
+      return Object.fromEntries(initialUsuarios.map((u) => [u.id, u.ativo ?? true]));
+    }
+    return { u0: true, u1: true, u2: true, u3: false, u4: true };
   });
   const [carrierOn, setCarrierOn] = useState<Record<string, boolean>>({
     c0: true,
@@ -270,11 +267,11 @@ export function InfinoosConfiguracoesView({
     count: string;
   }> = [
     { key: "resumo", label: "Resumo", icon: "dashboard", color: "#8B5CF6", desc: "Visão geral", count: "" },
-    { key: "depositantes", label: "Depositantes", icon: "users", color: "#3B82F6", desc: "Clientes do CD", count: "6" },
-    { key: "usuarios", label: "Usuários", icon: "user", color: "#8B5CF6", desc: "Equipe e permissões", count: "5" },
-    { key: "produtos", label: "Produtos", icon: "box", color: "#EC4899", desc: "Padrões do catálogo", count: "" },
-    { key: "enderecos", label: "Endereços", icon: "pin", color: "#10B981", desc: "Nomenclatura e tipos", count: "" },
-    { key: "transportadoras", label: "Transportadoras", icon: "truck", color: "#F59E0B", desc: "Parceiros de frete", count: "4" },
+    { key: "depositantes", label: "Depositantes", icon: "users", color: "#3B82F6", desc: "Clientes do CD", count: String(initialCounts?.depositantes ?? 0) },
+    { key: "usuarios", label: "Usuários", icon: "user", color: "#8B5CF6", desc: "Equipe e permissões", count: String(initialCounts?.usuarios ?? 0) },
+    { key: "produtos", label: "Produtos", icon: "box", color: "#EC4899", desc: "Padrões do catálogo", count: String(initialCounts?.produtos ?? 0) },
+    { key: "enderecos", label: "Endereços", icon: "pin", color: "#10B981", desc: "Nomenclatura e tipos", count: String(initialCounts?.enderecos ?? 0) },
+    { key: "transportadoras", label: "Transportadoras", icon: "truck", color: "#F59E0B", desc: "Parceiros de frete", count: String(initialCounts?.transportadoras ?? 0) },
     { key: "integracoes", label: "Integrações", icon: "plug", color: "#06B6D4", desc: "Marketplaces e ERP", count: "6" },
   ];
 
@@ -298,21 +295,41 @@ export function InfinoosConfiguracoesView({
   };
 
   const baseData: Record<"depositantes" | "usuarios" | "transportadoras", RowItem[]> = {
-    depositantes: [
-      { id: "d0", name: "Dêvi Bebidas Naturais", meta: "17 SKUs · DEP-101", col1: "12.345.678/0001-90", tag: "Full", ci: 0 },
-      { id: "d1", name: "Evolveg", meta: "81 SKUs · DEP-102", col1: "98.765.432/0001-10", tag: "Full", ci: 3 },
-      { id: "d2", name: "GoodEssence Cosméticos", meta: "18 SKUs · DEP-103", col1: "45.111.222/0001-73", tag: "Fracionado", ci: 2 },
-      { id: "d3", name: "John Skull Store", meta: "101 SKUs · DEP-104", col1: "33.444.555/0001-06", tag: "Fracionado", ci: 4 },
-      { id: "d4", name: "Vegpet Artigos para Pet", meta: "72 SKUs · DEP-105", col1: "11.222.333/0001-44", tag: "Full", ci: 5 },
-      { id: "d5", name: "Volcà", meta: "4 SKUs · DEP-106", col1: "55.666.777/0001-88", tag: "Fracionado", ci: 6 },
-    ],
-    usuarios: [
-      { id: "u0", name: "Rafael Alves", meta: "CD Cajamar", col1: "rafael.alves@infinoos.com", tag: "Supervisor", ci: 1 },
-      { id: "u1", name: "Juliana Prado", meta: "CD Cajamar", col1: "juliana.prado@infinoos.com", tag: "Gestor", ci: 4 },
-      { id: "u2", name: "Carlos Mendes", meta: "Matrícula 4471", col1: "carlos.mendes@infinoos.com", tag: "Operador", ci: 3 },
-      { id: "u3", name: "Marina Duarte", meta: "Matrícula 4488", col1: "marina.duarte@infinoos.com", tag: "Conferente", ci: 0 },
-      { id: "u4", name: "Diego Santos", meta: "Acesso total", col1: "diego.santos@infinoos.com", tag: "Administrador", ci: 2 },
-    ],
+    depositantes:
+      initialDepositantes && initialDepositantes.length > 0
+        ? initialDepositantes.map((d, i) => ({
+            id: d.id,
+            name: d.nome,
+            meta: `${d.skus} SKUs · ${d.usuarios} usuários`,
+            col1: d.cnpj || "—",
+            tag: d.metodo || "FEFO",
+            ci: i % 7,
+          }))
+        : [
+            { id: "d0", name: "Dêvi Bebidas Naturais", meta: "17 SKUs · DEP-101", col1: "12.345.678/0001-90", tag: "Full", ci: 0 },
+            { id: "d1", name: "Evolveg", meta: "81 SKUs · DEP-102", col1: "98.765.432/0001-10", tag: "Full", ci: 3 },
+            { id: "d2", name: "GoodEssence Cosméticos", meta: "18 SKUs · DEP-103", col1: "45.111.222/0001-73", tag: "Fracionado", ci: 2 },
+            { id: "d3", name: "John Skull Store", meta: "101 SKUs · DEP-104", col1: "33.444.555/0001-06", tag: "Fracionado", ci: 4 },
+            { id: "d4", name: "Vegpet Artigos para Pet", meta: "72 SKUs · DEP-105", col1: "11.222.333/0001-44", tag: "Full", ci: 5 },
+            { id: "d5", name: "Volcà", meta: "4 SKUs · DEP-106", col1: "55.666.777/0001-88", tag: "Fracionado", ci: 6 },
+          ],
+    usuarios:
+      initialUsuarios && initialUsuarios.length > 0
+        ? initialUsuarios.map((u, i) => ({
+            id: u.id,
+            name: u.nome || u.email?.split("@")[0] || "Usuário",
+            meta: u.perfil || "Operador",
+            col1: u.email || "—",
+            tag: u.perfil || "Operador",
+            ci: i % 7,
+          }))
+        : [
+            { id: "u0", name: "Rafael Alves", meta: "CD Cajamar", col1: "rafael.alves@infinoos.com", tag: "Supervisor", ci: 1 },
+            { id: "u1", name: "Juliana Prado", meta: "CD Cajamar", col1: "juliana.prado@infinoos.com", tag: "Gestor", ci: 4 },
+            { id: "u2", name: "Carlos Mendes", meta: "Matrícula 4471", col1: "carlos.mendes@infinoos.com", tag: "Operador", ci: 3 },
+            { id: "u3", name: "Marina Duarte", meta: "Matrícula 4488", col1: "marina.duarte@infinoos.com", tag: "Conferente", ci: 0 },
+            { id: "u4", name: "Diego Santos", meta: "Acesso total", col1: "diego.santos@infinoos.com", tag: "Administrador", ci: 2 },
+          ],
     transportadoras: [
       { id: "c0", name: "Mercado Envios", meta: "Marketplace · coleta diária", col1: "Coleta", tag: "2–4 dias", ci: 5 },
       { id: "c1", name: "Shopee Xpress", meta: "Marketplace · coleta diária", col1: "Coleta", tag: "3–5 dias", ci: 6 },
@@ -355,23 +372,32 @@ export function InfinoosConfiguracoesView({
     { id: "i5", name: "Magalu", kind: "Marketplace", ci: 6, sync: "Nunca conectado" },
   ];
 
-  // Overview data
+  // Overview data - Cards KPI com dados reais do sistema
   const kpiList = [
-    { label: "Depositantes ativos", value: String(initialCounts?.depositantes ?? 6), icon: "users", color: "#3B82F6" },
-    { label: "Produtos ativos", value: String(initialCounts?.produtos ?? 292), icon: "box", color: "#EC4899" },
-    { label: "Usuários ativos", value: String(initialCounts?.usuarios ?? 17), icon: "user", color: "#8B5CF6" },
-    { label: "Endereços ativos", value: String(initialCounts?.enderecos ?? 20), icon: "pin", color: "#10B981" },
-    { label: "Transportadoras", value: String(initialCounts?.transportadoras ?? 4), icon: "truck", color: "#F59E0B" },
+    { label: "Depositantes ativos", value: String(initialCounts?.depositantes ?? 0), icon: "users", color: "#3B82F6" },
+    { label: "Produtos ativos", value: String(initialCounts?.produtos ?? 0), icon: "box", color: "#EC4899" },
+    { label: "Usuários ativos", value: String(initialCounts?.usuarios ?? 0), icon: "user", color: "#8B5CF6" },
+    { label: "Endereços ativos", value: String(initialCounts?.enderecos ?? 0), icon: "pin", color: "#10B981" },
+    { label: "Transportadoras ativas", value: String(initialCounts?.transportadoras ?? 0), icon: "truck", color: "#F59E0B" },
   ];
 
-  const depBaseList = [
-    { name: "Dêvi Bebidas Naturais", method: "FEFO", skus: 17, users: 3, ci: 0 },
-    { name: "Evolveg", method: "FEFO", skus: 81, users: 1, ci: 3 },
-    { name: "GoodEssence Cosméticos", method: "FEFO", skus: 18, users: 1, ci: 2 },
-    { name: "John Skull", method: "FIFO", skus: 101, users: 2, ci: 4 },
-    { name: "Vegpet Artigos para Pet", method: "FEFO", skus: 72, users: 2, ci: 5 },
-    { name: "Volcà", method: "FEFO", skus: 4, users: 1, ci: 6 },
-  ];
+  const depBaseList =
+    initialDepositantes && initialDepositantes.length > 0
+      ? initialDepositantes.map((dep, idx) => ({
+          name: dep.nome,
+          method: dep.metodo || "FEFO",
+          skus: dep.skus || 0,
+          users: dep.usuarios || 0,
+          ci: idx % 7,
+        }))
+      : [
+          { name: "Dêvi Bebidas Naturais", method: "FEFO", skus: 17, users: 3, ci: 0 },
+          { name: "Evolveg", method: "FEFO", skus: 81, users: 1, ci: 3 },
+          { name: "GoodEssence Cosméticos", method: "FEFO", skus: 18, users: 1, ci: 2 },
+          { name: "John Skull", method: "FIFO", skus: 101, users: 2, ci: 4 },
+          { name: "Vegpet Artigos para Pet", method: "FEFO", skus: 72, users: 2, ci: 5 },
+          { name: "Volcà", method: "FEFO", skus: 4, users: 1, ci: 6 },
+        ];
 
   const summaryCards = [
     { key: "depositantes" as TabKey, label: "Depositantes", desc: "Carteira ativa, contatos, regras operacionais e segregação por cliente.", icon: "users", color: "#3B82F6" },
@@ -383,10 +409,26 @@ export function InfinoosConfiguracoesView({
   ];
 
   const coverage = [
-    { label: "Depositantes com SKU cadastrado", value: "6", color: "#10B981" },
-    { label: "Depositantes sem SKU cadastrado", value: "0", color: t.textSub },
-    { label: "Usuários vinculados a depositantes", value: "10", color: t.text },
-    { label: "Método predominante no ambiente", value: "FEFO", color: "#8B5CF6" },
+    {
+      label: "Depositantes com SKU cadastrado",
+      value: String((initialDepositantes ?? []).filter((d) => d.skus > 0).length || "0"),
+      color: "#10B981",
+    },
+    {
+      label: "Depositantes sem SKU cadastrado",
+      value: String((initialDepositantes ?? []).filter((d) => d.skus === 0).length || "0"),
+      color: t.textSub,
+    },
+    {
+      label: "Usuários vinculados a depositantes",
+      value: String((initialDepositantes ?? []).reduce((acc, d) => acc + (d.usuarios || 0), 0) || "0"),
+      color: t.text,
+    },
+    {
+      label: "Método predominante no ambiente",
+      value: "FEFO",
+      color: "#8B5CF6",
+    },
   ];
 
   // Address types
