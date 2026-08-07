@@ -1118,8 +1118,8 @@ export function InfinoosConfiguracoesView({
               </div>
             </div>
 
-            {/* 6 Category Summary Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+            {/* 6 Category Summary Cards - Fileiras de 3 */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
               {summaryCards.map((s, i) => (
                 <div
                   key={i}
@@ -1133,7 +1133,17 @@ export function InfinoosConfiguracoesView({
                     flexDirection: "column",
                     gap: "12px",
                     cursor: "pointer",
-                    transition: "all 0.18s ease",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = s.color;
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = `0 8px 24px ${hex(s.color, 0.12)}`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = t.border;
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
