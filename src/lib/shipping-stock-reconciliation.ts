@@ -43,7 +43,7 @@ export async function listShippingStockReconciliation() {
   const [{ data: physicalMovements }, { data: manualMovements }] = await Promise.all([
     admin
       .from("movimentacoes_estoque")
-      .select("referencia_id")
+      .select("referencia_id, produto_id, quantidade")
       .in("referencia_id", orderIds)
       .eq("tipo", "SAIDA")
       .in("referencia_tipo", ["BAIXA_FISICA_CONFERENCIA", "BAIXA_FISICA_CONCILIACAO_RETROATIVA"]),
@@ -55,7 +55,16 @@ export async function listShippingStockReconciliation() {
       .eq("referencia_tipo", "SAIDA_MANUAL"),
   ]);
 
-  const physicallyDeducted = new Set((physicalMovements ?? []).map((item) => item.referencia_id));
+  const physicalCoverage = new Map<string, Map<string, number>>();
+  for (const movement of physicalMovements ?? []) {
+    if (!movement.referencia_id || !movement.produto_id) continue;
+    const orderCoverage = physicalCoverage.get(movement.referencia_id) ?? new Map<string, number>();
+    orderCoverage.set(
+      movement.produto_id,
+      (orderCoverage.get(movement.produto_id) ?? 0) + Number(movement.quantidade ?? 0),
+    );
+    physicalCoverage.set(movement.referencia_id, orderCoverage);
+  }
   const manual = manualMovements ?? [];
 
   const rows = (orders ?? []).map((order) => {
@@ -75,7 +84,20 @@ export async function listShippingStockReconciliation() {
 
     let situacao: ShippingReconciliationRow["situacao"] = "PENDENTE";
     let detalhe = "Sem baixa física vinculada. Elegível para conciliação.";
-    if (physicallyDeducted.has(order.id)) {
+    const coverage = physicalCoverage.get(order.id) ?? new Map<string, number>();
+    const requiredByProduct = new Map<string, number>();
+    for (const item of itens) {
+      const productId = String(item.produto_id ?? "");
+      requiredByProduct.set(
+        productId,
+        (requiredByProduct.get(productId) ?? 0) + Number(item.quantidade ?? 0),
+      );
+    }
+    const hasPhysicalDebit = requiredByProduct.size > 0 && [...requiredByProduct].every(
+      ([productId, required]) => (coverage.get(productId) ?? 0) >= required,
+    );
+
+    if (hasPhysicalDebit) {
       situacao = "JA_BAIXADO";
       detalhe = "Já possui baixa física vinculada ao pedido.";
     } else if (hasManualExit) {
