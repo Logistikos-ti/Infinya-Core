@@ -237,7 +237,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
   }
 
   if (isCompletingConference && canComplete) {
-    const { error: stockError } = await adminSupabase.rpc("efetivar_baixa_conferencia" as never, {
+    const { error: stockError } = await adminSupabase.rpc("garantir_baixa_fisica_pedido" as never, {
       p_pedido_id: orderId,
       p_usuario_id: user.id,
     } as never);
@@ -424,7 +424,7 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
     redirect(`${fallbackRedirect}?feedback=documentos-pendentes`);
   }
 
-  const { error: stockError } = await adminSupabase.rpc("efetivar_baixa_conferencia" as never, {
+  const { error: stockError } = await adminSupabase.rpc("garantir_baixa_fisica_pedido" as never, {
     p_pedido_id: orderId,
     p_usuario_id: user.id,
   } as never);
