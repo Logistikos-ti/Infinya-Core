@@ -96,6 +96,8 @@ export function DanfeRomaneioModal({
         }
       } else {
         setErrorMsg(res.message || "Não foi possível validar a DANFE do pedido.");
+        setScanValue("");
+        setTimeout(() => inputRef.current?.focus(), 50);
       }
     } catch (error) {
       setErrorMsg(
@@ -103,6 +105,8 @@ export function DanfeRomaneioModal({
           ? error.message
           : "Erro inesperado ao processar a DANFE."
       );
+      setScanValue("");
+      setTimeout(() => inputRef.current?.focus(), 50);
     } finally {
       setIsProcessing(false);
     }

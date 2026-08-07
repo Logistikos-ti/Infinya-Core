@@ -252,6 +252,8 @@ export function ShippingConferencePanel({
 
     if (!normalizedScan) {
       setFeedback("Informe ou leia um código para localizar o item.", "error");
+      setScanValue("");
+      focusScanInput();
       return false;
     }
 
@@ -261,6 +263,8 @@ export function ShippingConferencePanel({
       setActiveItemId(null);
       setWrongProductScans((current) => current + 1);
       setFeedback("Código não encontrado neste pedido.", "error");
+      setScanValue("");
+      focusScanInput();
       return false;
     }
 
@@ -271,6 +275,8 @@ export function ShippingConferencePanel({
         setActiveItemId(matchedItem.id);
         setWrongProductScans((current) => current + 1);
         setFeedback(`O kit ${matchedItem.sku} foi localizado, mas o componente lido não está mapeado.`, "error");
+        setScanValue("");
+        focusScanInput();
         return false;
       }
 
@@ -280,6 +286,8 @@ export function ShippingConferencePanel({
           `O componente ${matchedComponent.sku} já foi totalmente conferido (${matchedComponent.requestedQuantity}/${matchedComponent.requestedQuantity}).`,
           "error",
         );
+        setScanValue("");
+        focusScanInput();
         return false;
       }
 
@@ -326,6 +334,8 @@ export function ShippingConferencePanel({
       if (currentConfirmed >= matchedItem.requestedQuantity) {
         setActiveItemId(matchedItem.id);
         setFeedback(`O item ${matchedItem.sku} já foi totalmente conferido.`, "error");
+        setScanValue("");
+        focusScanInput();
         return false;
       }
 

@@ -241,6 +241,7 @@ export function MobileConferencePanel({
       const message = "Leia ou digite um código para localizar o item.";
       setFeedback(message, "error");
       pushScanHistory(message, "error");
+      setScanValue("");
       if (!cameraEnabled) {
         focusScanInput();
       }
@@ -255,6 +256,7 @@ export function MobileConferencePanel({
       const message = "Código não encontrado neste pedido.";
       setFeedback(message, "error");
       pushScanHistory(message, "error");
+      setScanValue("");
       if (!cameraEnabled) {
         focusScanInput();
       }
@@ -272,6 +274,7 @@ export function MobileConferencePanel({
         message = `Kit ${matchedItem.sku} localizado, mas o componente lido não está mapeado.`;
         setFeedback(message, "error");
         pushScanHistory(message, "error");
+        setScanValue("");
         if (!cameraEnabled) {
           focusScanInput();
         }
@@ -283,6 +286,7 @@ export function MobileConferencePanel({
         message = `Componente ${matchedComponent.sku} já conferido por completo.`;
         setFeedback(message, "error");
         pushScanHistory(message, "error");
+        setScanValue("");
         if (!cameraEnabled) {
           focusScanInput();
         }
@@ -330,6 +334,7 @@ export function MobileConferencePanel({
         message = `O item ${matchedItem.sku} já foi totalmente conferido.`;
         setFeedback(message, "error");
         pushScanHistory(message, "error");
+        setScanValue("");
         if (!cameraEnabled) {
           focusScanInput();
         }
