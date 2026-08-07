@@ -469,25 +469,41 @@ export function InfinoosConfiguracoesView({
     { key: "integracoes" as TabKey, label: "Integrações", desc: "Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.", icon: "plug", color: "#06B6D4" },
   ];
 
+  // Calcula método predominante real a partir dos depositantes cadastrados
+  const methodFreq: Record<string, number> = {};
+  (initialDepositantes ?? []).forEach((d) => {
+    if (d.metodo) {
+      methodFreq[d.metodo] = (methodFreq[d.metodo] || 0) + 1;
+    }
+  });
+  let predominantMethod = "FEFO";
+  let maxMethodCount = 0;
+  for (const [m, count] of Object.entries(methodFreq)) {
+    if (count > maxMethodCount) {
+      maxMethodCount = count;
+      predominantMethod = m;
+    }
+  }
+
   const coverage = [
     {
       label: "Depositantes com SKU cadastrado",
-      value: String((initialDepositantes ?? []).filter((d) => d.skus > 0).length || "0"),
+      value: String((initialDepositantes ?? []).filter((d) => d.skus > 0).length),
       color: "#10B981",
     },
     {
       label: "Depositantes sem SKU cadastrado",
-      value: String((initialDepositantes ?? []).filter((d) => d.skus === 0).length || "0"),
+      value: String((initialDepositantes ?? []).filter((d) => d.skus === 0).length),
       color: t.textSub,
     },
     {
       label: "Usuários vinculados a depositantes",
-      value: String((initialDepositantes ?? []).reduce((acc, d) => acc + (d.usuarios || 0), 0) || "0"),
+      value: String((initialDepositantes ?? []).reduce((acc, d) => acc + (d.usuarios || 0), 0)),
       color: t.text,
     },
     {
       label: "Método predominante no ambiente",
-      value: "FEFO",
+      value: predominantMethod,
       color: "#8B5CF6",
     },
   ];
@@ -888,7 +904,7 @@ export function InfinoosConfiguracoesView({
                       color: "#10B981",
                     }}
                   >
-                    6 ativos
+                    {initialDepositantes ? `${initialDepositantes.filter((d) => d.ativo).length} ativos` : `${depBaseList.length} ativos`}
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
