@@ -7,6 +7,8 @@ export type FullShipmentSummary = {
   status: string;
   invoiceNumber: string;
   collectionAt: string;
+  deliveryMode: "COLETA" | "TRANSPORTADORA";
+  carrier: string | null;
   recipient: string;
   itemCount: number;
   labelCount: number;
@@ -16,7 +18,7 @@ export async function listFullShipmentsFromDb(depositanteId: string): Promise<Fu
   const adminSupabase = createSupabaseAdminClient();
   const { data: shipments, error } = await adminSupabase
     .from("remessas_full")
-    .select("id, codigo, marketplace, status, nota_fiscal_numero, coleta_prevista_em, destinatario_nome")
+    .select("id, codigo, marketplace, status, nota_fiscal_numero, coleta_prevista_em, modalidade_envio, transportadora_nome, destinatario_nome")
     .eq("depositante_id", depositanteId)
     .order("coleta_prevista_em", { ascending: true });
 
@@ -44,6 +46,8 @@ export async function listFullShipmentsFromDb(depositanteId: string): Promise<Fu
     status: shipment.status,
     invoiceNumber: shipment.nota_fiscal_numero,
     collectionAt: shipment.coleta_prevista_em,
+    deliveryMode: shipment.modalidade_envio === "TRANSPORTADORA" ? "TRANSPORTADORA" : "COLETA",
+    carrier: shipment.transportadora_nome ?? null,
     recipient: shipment.destinatario_nome ?? "Destinatario nao informado",
     itemCount: itemCount.get(shipment.id) ?? 0,
     labelCount: labelCount.get(shipment.id) ?? 0,
