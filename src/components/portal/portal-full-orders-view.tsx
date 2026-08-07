@@ -68,6 +68,7 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("COLETA");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [items, setItems] = useState<XmlItem[]>([]);
+  const [itemLabelCount, setItemLabelCount] = useState(0);
   const [state, action] = useActionState(createFullShipmentAction, { status: "idle" } as FullShipmentSubmissionState);
 
   useEffect(() => {
@@ -81,6 +82,7 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
   async function readXml(file: File | null) {
     setXmlFile(file);
     setItems([]);
+    setItemLabelCount(0);
     if (!file) return;
     const text = await file.text();
     const doc = new DOMParser().parseFromString(text, "application/xml");
@@ -108,7 +110,7 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
           <Attachment field="entryAuthorization" label="Autorização de entrada *" />
           <Attachment field="volumeLabel" label="Etiqueta de volume *" />
           {deliveryMode === "TRANSPORTADORA" ? <Attachment field="carrierLabel" label="Etiqueta da transportadora *" /> : null}
-          {minimumLabels.length ? <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[.03]"><div><h3 className="font-bold">Etiquetas dos produtos *</h3><p className="mt-1 text-xs text-slate-500">Envie todas as etiquetas em lote: {items.length} item(ns) identificado(s) exigem exatamente {items.length} arquivo(s). A quantidade do item não multiplica a exigência.</p></div><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-violet-300 bg-white p-4 text-sm font-bold dark:border-violet-400/40 dark:bg-white/5"><Upload className="h-5 w-5 shrink-0 text-violet-600" /><span><span className="block">Selecionar etiquetas dos produtos</span><span className="mt-1 block text-xs font-normal text-slate-500">Selecione os {items.length} arquivo(s) de uma vez.</span></span><input name="itemLabels" required multiple type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" className="ml-auto max-w-[170px] text-xs" /></label><div className="space-y-1 text-xs text-slate-500">{items.map((item, index) => <div key={item.key} className="flex items-center justify-between gap-3"><span className="truncate">{index + 1}. {item.name}</span><span className="shrink-0">{item.quantity} un</span></div>)}</div></section> : null}
+          {minimumLabels.length ? <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[.03]"><div><h3 className="font-bold">Etiquetas dos produtos *</h3><p className="mt-1 text-xs text-slate-500">Envie todas as etiquetas em lote: {items.length} item(ns) identificado(s) exigem exatamente {items.length} arquivo(s). A quantidade do item não multiplica a exigência.</p></div><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-violet-300 bg-white p-4 text-sm font-bold dark:border-violet-400/40 dark:bg-white/5"><Upload className="h-5 w-5 shrink-0 text-violet-600" /><span><span className="block">Selecionar etiquetas dos produtos</span><span className="mt-1 block text-xs font-normal text-slate-500">{itemLabelCount ? `${itemLabelCount} arquivo(s) selecionado(s) de ${items.length}` : `Selecione os ${items.length} arquivo(s) de uma vez.`}</span></span><input name="itemLabels" required multiple type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => setItemLabelCount(event.target.files?.length ?? 0)} className="ml-auto max-w-[170px] text-xs" /></label><div className="space-y-1 text-xs text-slate-500">{items.map((item, index) => <div key={item.key} className="flex items-center justify-between gap-3"><span className="truncate">{index + 1}. {item.name}</span><span className="shrink-0">{item.quantity} un</span></div>)}</div></section> : null}
           <label className="block text-xs font-bold text-slate-500">Observações<textarea name="observacoes" className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white" /></label>
         </div>
         <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10"><button onClick={onClose} type="button" className="h-12 rounded-xl border border-slate-200 px-5 text-sm font-bold dark:border-white/10">Cancelar</button><SubmitButton /></footer>
