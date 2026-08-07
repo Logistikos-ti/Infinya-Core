@@ -67,6 +67,10 @@ export async function createFullShipmentAction(
     if (modalidadeEnvio === "TRANSPORTADORA" && !transportadoraNome) {
       throw new Error("Informe o nome da transportadora.");
     }
+    const carrierLabel = modalidadeEnvio === "TRANSPORTADORA" ? getFile(formData, "carrierLabel") : null;
+    if (modalidadeEnvio === "TRANSPORTADORA") {
+      assertDocument(carrierLabel, "A etiqueta da transportadora");
+    }
     if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) throw new Error("Voce nao pode criar uma remessa para outro depositante.");
 
     const xmlBuffer = await invoiceXml!.arrayBuffer();
@@ -119,8 +123,10 @@ export async function createFullShipmentAction(
       throw new Error(`Estoque insuficiente para a remessa Full. ${details}`);
     }
 
-    const itemLabels = formData.getAll("itemLabel").filter((value): value is File => value instanceof File && value.size > 0);
-    if (itemLabels.length < productMatch.matched.length) throw new Error("Anexe uma etiqueta de produto para cada item da NF-e.");
+    const itemLabels = formData.getAll("itemLabels").filter((value): value is File => value instanceof File && value.size > 0);
+    if (itemLabels.length !== productMatch.matched.length) {
+      throw new Error(`Anexe exatamente ${productMatch.matched.length} etiqueta(s) de produto, uma para cada item da NF-e.`);
+    }
     itemLabels.forEach((file) => assertDocument(file, "A etiqueta do produto"));
     if (nfe.accessKey) {
       const { data: duplicate } = await admin.from("remessas_full").select("codigo").eq("depositante_id", depositanteId).eq("chave_acesso", nfe.accessKey).maybeSingle();
@@ -152,7 +158,8 @@ export async function createFullShipmentAction(
       { file: invoiceXml!, type: "XML_NF" },
       { file: getFile(formData, "entryAuthorization")!, type: "AUTORIZACAO_ENTRADA" },
       { file: getFile(formData, "volumeLabel")!, type: "ETIQUETA_VOLUME" },
-      ...itemLabels.slice(0, itemRows.length).map((file, index) => ({ file, type: "ETIQUETA_ITEM", itemId: itemRows[index].id })),
+      ...(carrierLabel ? [{ file: carrierLabel, type: "ETIQUETA_TRANSPORTADORA" }] : []),
+      ...itemLabels.map((file, index) => ({ file, type: "ETIQUETA_ITEM", itemId: itemRows[index].id })),
     ];
     const documents = [];
     const uploadedPaths: string[] = [];
@@ -263,7 +270,7 @@ export async function createFullShipmentAction(
       if (orderItemsError) throw orderItemsError;
 
       const operationalDocuments = documents
-        .filter((document) => document.tipo === "XML_NF" || document.tipo === "ETIQUETA_VOLUME")
+        .filter((document) => document.tipo === "XML_NF" || document.tipo === "ETIQUETA_TRANSPORTADORA" || (!carrierLabel && document.tipo === "ETIQUETA_VOLUME"))
         .map((document) => ({
           depositante_id: depositanteId,
           pedido_expedicao_id: createdOrder.id,
