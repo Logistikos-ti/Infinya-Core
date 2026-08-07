@@ -62,6 +62,67 @@ interface InfinoosConfiguracoesViewProps {
   };
 }
 
+function TaskCheckCircle({
+  done,
+  onClick,
+  borderColor,
+  size = 22,
+}: {
+  done: boolean;
+  onClick: () => void;
+  borderColor: string;
+  size?: number;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={done ? "Reabrir tarefa" : "Concluir tarefa"}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        flexShrink: 0,
+        borderRadius: "50%",
+        border: `2px solid ${done ? "#10B981" : hovered ? "#10B981" : borderColor}`,
+        background: done
+          ? "#10B981"
+          : hovered
+          ? "rgba(16, 185, 129, 0.16)"
+          : "transparent",
+        color: done ? "#ffffff" : hovered ? "#10B981" : "transparent",
+        cursor: "pointer",
+        padding: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
+    >
+      <svg
+        width={size === 24 ? 14 : 12}
+        height={size === 24 ? 14 : 12}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{
+          opacity: done || hovered ? 1 : 0,
+          transform: done || hovered ? "scale(1)" : "scale(0.5)",
+          transition: "opacity 0.15s ease, transform 0.15s ease",
+        }}
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </button>
+  );
+}
+
 export function InfinoosConfiguracoesView({
   initialDepositantes,
   initialUsuarios,
@@ -871,7 +932,7 @@ export function InfinoosConfiguracoesView({
                     padding: "0 14px",
                     borderRadius: "12px",
                     border: `1px solid ${t.border}`,
-                    background: t.inputBg,
+                    background: t.softBg,
                     marginBottom: "14px",
                   }}
                 >
@@ -906,23 +967,14 @@ export function InfinoosConfiguracoesView({
                         background: t.softBg,
                       }}
                     >
-                      <button
+                      <TaskCheckCircle
+                        done={a.done}
+                        borderColor={t.textSub}
                         onClick={() =>
                           setTasks((prev) =>
                             prev.map((y) => (y.id === a.id ? { ...y, done: true } : y))
                           )
                         }
-                        title="Concluir"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          flexShrink: 0,
-                          borderRadius: "50%",
-                          border: `2px solid ${t.textSub}`,
-                          background: "transparent",
-                          cursor: "pointer",
-                          padding: 0,
-                        }}
                       />
                       <span style={{ flex: 1, fontSize: "13px", lineHeight: 1.45, color: t.text }}>
                         {a.text}
@@ -947,12 +999,21 @@ export function InfinoosConfiguracoesView({
                     height: "40px",
                     borderRadius: "11px",
                     border: `1px solid ${t.border}`,
-                    background: t.inputBg,
+                    background: t.softBg,
                     color: t.text,
                     fontFamily: "'Manrope', sans-serif",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = t.navHover;
+                    e.currentTarget.style.borderColor = "rgba(16, 185, 129, 0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = t.softBg;
+                    e.currentTarget.style.borderColor = t.border;
                   }}
                 >
                   Ver mais
@@ -1983,7 +2044,7 @@ export function InfinoosConfiguracoesView({
                   padding: "0 18px",
                   borderRadius: "14px",
                   border: `1px solid ${t.border}`,
-                  background: t.cardBg,
+                  background: t.softBg,
                 }}
               >
                 <span style={{ color: "#8B5CF6", fontSize: "20px", fontWeight: 700 }}>+</span>
@@ -2025,7 +2086,7 @@ export function InfinoosConfiguracoesView({
                         fontWeight: 700,
                         cursor: "pointer",
                         border: on ? "1px solid transparent" : `1px solid ${t.border}`,
-                        background: on ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.inputBg,
+                        background: on ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.softBg,
                         color: on ? "#fff" : t.textSub,
                       }}
                     >
@@ -2047,37 +2108,19 @@ export function InfinoosConfiguracoesView({
                       padding: "15px 17px",
                       borderRadius: "13px",
                       border: `1px solid ${t.border}`,
-                      background: t.cardBg,
+                      background: t.softBg,
                     }}
                   >
-                    <button
+                    <TaskCheckCircle
+                      size={24}
+                      done={x.done}
+                      borderColor={t.textSub}
                       onClick={() =>
                         setTasks((prev) =>
                           prev.map((y) => (y.id === x.id ? { ...y, done: !y.done } : y))
                         )
                       }
-                      title={x.done ? "Reabrir" : "Concluir"}
-                      style={{
-                        width: "24px",
-                        height: "24px",
-                        flexShrink: 0,
-                        borderRadius: "50%",
-                        border: `2px solid ${x.done ? "#10B981" : t.textSub}`,
-                        background: x.done ? "#10B981" : "transparent",
-                        color: "#fff",
-                        cursor: "pointer",
-                        padding: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {x.done && (
-                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                      )}
-                    </button>
+                    />
                     <span
                       style={{
                         flex: 1,
