@@ -1,0 +1,2317 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useTheme } from "next-themes";
+
+type TabKey =
+  | "resumo"
+  | "depositantes"
+  | "usuarios"
+  | "produtos"
+  | "enderecos"
+  | "transportadoras"
+  | "integracoes";
+
+type Task = {
+  id: number;
+  text: string;
+  done: boolean;
+};
+
+type RowItem = {
+  id: string;
+  name: string;
+  meta: string;
+  col1: string;
+  tag: string;
+  ci: number;
+};
+
+type IntegrationItem = {
+  id: string;
+  name: string;
+  kind: string;
+  ci: number;
+  sync: string;
+};
+
+interface InfinoosConfiguracoesViewProps {
+  initialDepositantes?: Array<{
+    id: string;
+    nome: string;
+    ativo?: boolean;
+    skus?: number;
+    usuarios?: number;
+    metodo?: string;
+    cnpj?: string;
+  }>;
+  initialUsuarios?: Array<{
+    id: string;
+    nome?: string;
+    email?: string;
+    perfil?: string;
+    ativo?: boolean;
+  }>;
+  initialCounts?: {
+    depositantes?: number;
+    produtos?: number;
+    usuarios?: number;
+    enderecos?: number;
+    transportadoras?: number;
+  };
+}
+
+export function InfinoosConfiguracoesView({
+  initialDepositantes,
+  initialUsuarios,
+  initialCounts,
+}: InfinoosConfiguracoesViewProps) {
+  const { theme: nextTheme, setTheme: setNextTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+
+  const [tab, setTab] = useState<TabKey>("resumo");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Toggles state
+  const [depOn, setDepOn] = useState<Record<string, boolean>>({
+    d0: true,
+    d1: true,
+    d2: true,
+    d3: false,
+    d4: true,
+    d5: true,
+  });
+  const [userOn, setUserOn] = useState<Record<string, boolean>>({
+    u0: true,
+    u1: true,
+    u2: true,
+    u3: false,
+    u4: true,
+  });
+  const [carrierOn, setCarrierOn] = useState<Record<string, boolean>>({
+    c0: true,
+    c1: true,
+    c2: true,
+    c3: false,
+  });
+  const [integrOn, setIntegrOn] = useState<Record<string, boolean>>({
+    i0: true,
+    i1: true,
+    i2: false,
+    i3: true,
+    i4: false,
+    i5: false,
+  });
+
+  // Product defaults
+  const [cats, setCats] = useState<string[]>([
+    "Eletrônicos",
+    "Beleza & Saúde",
+    "Casa & Cozinha",
+    "Moda & Calçados",
+    "Pet",
+    "Papelaria",
+  ]);
+  const [method, setMethod] = useState<"fefo" | "fifo" | "lifo">("fefo");
+  const [unit, setUnit] = useState<"un" | "cx" | "pk">("un");
+  const [prodCtl, setProdCtl] = useState({
+    validade: true,
+    lote: true,
+    serie: false,
+  });
+
+  // Tasks
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: 1, text: "Revisar 292 produtos já importados no ambiente.", done: false },
+    { id: 2, text: "Padronizar categorias e unidades comerciais por depositante.", done: false },
+    { id: 3, text: "Conectar importação em massa com planilhas operacionais reais.", done: false },
+    { id: 4, text: "Completar cadastros de usuários, endereços e transportadoras.", done: false },
+    { id: 5, text: "Configurar integração Bling V3 (OAuth2) do depositante John Skull.", done: true },
+    { id: 6, text: "Mapear endereços de picking do bloco SBC1.", done: true },
+  ]);
+  const [nextTaskId, setNextTaskId] = useState(7);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [taskDraft, setTaskDraft] = useState("");
+  const [taskFilter, setTaskFilter] = useState<"pending" | "done" | "all">("pending");
+
+  // Dynamic entities
+  const [added, setAdded] = useState<Record<"depositantes" | "usuarios" | "transportadoras", RowItem[]>>({
+    depositantes: [],
+    usuarios: [],
+    transportadoras: [],
+  });
+  const [removed, setRemoved] = useState<Record<string, boolean>>({});
+  const [rowMenu, setRowMenu] = useState<string | null>(null);
+  const [drawer, setDrawer] = useState<"depositantes" | "usuarios" | "transportadoras" | null>(null);
+  const [form, setForm] = useState<{ f1: string; f2: string; opt: string }>({ f1: "", f2: "", opt: "" });
+  const [nextRow, setNextRow] = useState(1);
+  const [addrTypesExtra, setAddrTypesExtra] = useState<Array<{ name: string; color: string; count: number }>>([]);
+
+  // Toast
+  const [toast, setToast] = useState<string | null>(null);
+
+  const notify = (msg: string) => {
+    setToast(msg);
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 2800);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("infinoos-theme");
+    if (saved === "light" || saved === "dark") {
+      setThemeMode(saved);
+    } else if (resolvedTheme === "light" || resolvedTheme === "dark") {
+      setThemeMode(resolvedTheme);
+    }
+  }, [resolvedTheme]);
+
+  const toggleTheme = () => {
+    const next = themeMode === "dark" ? "light" : "dark";
+    setThemeMode(next);
+    localStorage.setItem("infinoos-theme", next);
+    setNextTheme(next);
+  };
+
+  const dark = themeMode === "dark";
+
+  // Color tokens
+  const t = dark
+    ? {
+        appBg: "#0A1120",
+        sideBg: "#0C1424",
+        railBg: "#0B1220",
+        barBg: "#0C1424",
+        cardBg: "#101B30",
+        headBg: "#0E1728",
+        inputBg: "#0E1728",
+        border: "rgba(148,163,184,0.14)",
+        navHover: "rgba(148,163,184,0.08)",
+        rowHover: "rgba(148,163,184,0.04)",
+        softBg: "rgba(148,163,184,0.06)",
+        text: "#F1F5F9",
+        textSub: "#8695AD",
+      }
+    : {
+        appBg: "#F5F7FB",
+        sideBg: "#FFFFFF",
+        railBg: "#FBFCFE",
+        barBg: "#FFFFFF",
+        cardBg: "#FFFFFF",
+        headBg: "#F8FAFC",
+        inputBg: "#F8FAFC",
+        border: "rgba(100,116,139,0.16)",
+        navHover: "rgba(100,116,139,0.07)",
+        rowHover: "rgba(100,116,139,0.04)",
+        softBg: "rgba(100,116,139,0.05)",
+        text: "#0F172A",
+        textSub: "#64748B",
+      };
+
+  const tog = dark
+    ? {
+        track: "#0E1729",
+        border: "rgba(96,165,250,0.30)",
+        inset: "rgba(0,0,0,0.5)",
+        knob: "#0B1220",
+        knobX: "0px",
+        knobIcon: "☾",
+        knobIconColor: "#3B82F6",
+        trackMoon: "transparent",
+        trackSun: "#3B4763",
+      }
+    : {
+        track: "#F4F5F8",
+        border: "rgba(100,116,139,0.18)",
+        inset: "rgba(0,0,0,0.06)",
+        knob: "#FFFFFF",
+        knobX: "36px",
+        knobIcon: "☀",
+        knobIconColor: "#F6A623",
+        trackMoon: "#B4BCC9",
+        trackSun: "transparent",
+      };
+
+  const hex = (h: string, a: number) => {
+    const n = parseInt(h.slice(1), 16);
+    return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
+  };
+  const onColor = "#10B981";
+  const offColor = dark ? "rgba(148,163,184,0.25)" : "rgba(100,116,139,0.3)";
+  const sw = (isOn: boolean) => ({
+    swBg: isOn ? onColor : offColor,
+    swX: isOn ? "20px" : "0px",
+  });
+  const initialsOf = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+
+  const pal = ["#3B82F6", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B", "#06B6D4", "#A855F7"];
+
+  // Sub-tabs definition
+  const tabDef: Array<{
+    key: TabKey;
+    label: string;
+    icon: string;
+    color: string;
+    desc: string;
+    count: string;
+  }> = [
+    { key: "resumo", label: "Resumo", icon: "dashboard", color: "#8B5CF6", desc: "Visão geral", count: "" },
+    { key: "depositantes", label: "Depositantes", icon: "users", color: "#3B82F6", desc: "Clientes do CD", count: "6" },
+    { key: "usuarios", label: "Usuários", icon: "user", color: "#8B5CF6", desc: "Equipe e permissões", count: "5" },
+    { key: "produtos", label: "Produtos", icon: "box", color: "#EC4899", desc: "Padrões do catálogo", count: "" },
+    { key: "enderecos", label: "Endereços", icon: "pin", color: "#10B981", desc: "Nomenclatura e tipos", count: "" },
+    { key: "transportadoras", label: "Transportadoras", icon: "truck", color: "#F59E0B", desc: "Parceiros de frete", count: "4" },
+    { key: "integracoes", label: "Integrações", icon: "plug", color: "#06B6D4", desc: "Marketplaces e ERP", count: "6" },
+  ];
+
+  const panelMap: Record<TabKey, { title: string; heading: string; sub: string; cta: string }> = {
+    resumo: { title: "Resumo", heading: "Visão geral", sub: "Resumo de cadastros e integrações do CD.", cta: "Novo cadastro" },
+    depositantes: { title: "Depositantes", heading: "Depositantes", sub: "Clientes que armazenam produtos no CD.", cta: "Novo depositante" },
+    usuarios: { title: "Usuários", heading: "Usuários & permissões", sub: "Equipe com acesso ao WMS e seus perfis.", cta: "Novo usuário" },
+    produtos: { title: "Produtos", heading: "Padrões de produto", sub: "Regras aplicadas ao cadastro de SKUs.", cta: "Nova categoria" },
+    enderecos: { title: "Endereços", heading: "Configuração de endereços", sub: "Nomenclatura e tipos de posição do armazém.", cta: "Novo tipo" },
+    transportadoras: { title: "Transportadoras", heading: "Transportadoras", sub: "Parceiros de frete e coleta.", cta: "Nova transportadora" },
+    integracoes: { title: "Integrações", heading: "Integrações", sub: "Conexões com marketplaces e ERP.", cta: "Nova integração" },
+  };
+
+  const isRows = tab === "depositantes" || tab === "usuarios" || tab === "transportadoras";
+  const roleColor: Record<string, string> = {
+    Administrador: "#EF4444",
+    Supervisor: "#8B5CF6",
+    Conferente: "#3B82F6",
+    Operador: "#10B981",
+    Gestor: "#F59E0B",
+  };
+
+  const baseData: Record<"depositantes" | "usuarios" | "transportadoras", RowItem[]> = {
+    depositantes: [
+      { id: "d0", name: "Dêvi Bebidas Naturais", meta: "17 SKUs · DEP-101", col1: "12.345.678/0001-90", tag: "Full", ci: 0 },
+      { id: "d1", name: "Evolveg", meta: "81 SKUs · DEP-102", col1: "98.765.432/0001-10", tag: "Full", ci: 3 },
+      { id: "d2", name: "GoodEssence Cosméticos", meta: "18 SKUs · DEP-103", col1: "45.111.222/0001-73", tag: "Fracionado", ci: 2 },
+      { id: "d3", name: "John Skull Store", meta: "101 SKUs · DEP-104", col1: "33.444.555/0001-06", tag: "Fracionado", ci: 4 },
+      { id: "d4", name: "Vegpet Artigos para Pet", meta: "72 SKUs · DEP-105", col1: "11.222.333/0001-44", tag: "Full", ci: 5 },
+      { id: "d5", name: "Volcà", meta: "4 SKUs · DEP-106", col1: "55.666.777/0001-88", tag: "Fracionado", ci: 6 },
+    ],
+    usuarios: [
+      { id: "u0", name: "Rafael Alves", meta: "CD Cajamar", col1: "rafael.alves@infinoos.com", tag: "Supervisor", ci: 1 },
+      { id: "u1", name: "Juliana Prado", meta: "CD Cajamar", col1: "juliana.prado@infinoos.com", tag: "Gestor", ci: 4 },
+      { id: "u2", name: "Carlos Mendes", meta: "Matrícula 4471", col1: "carlos.mendes@infinoos.com", tag: "Operador", ci: 3 },
+      { id: "u3", name: "Marina Duarte", meta: "Matrícula 4488", col1: "marina.duarte@infinoos.com", tag: "Conferente", ci: 0 },
+      { id: "u4", name: "Diego Santos", meta: "Acesso total", col1: "diego.santos@infinoos.com", tag: "Administrador", ci: 2 },
+    ],
+    transportadoras: [
+      { id: "c0", name: "Mercado Envios", meta: "Marketplace · coleta diária", col1: "Coleta", tag: "2–4 dias", ci: 5 },
+      { id: "c1", name: "Shopee Xpress", meta: "Marketplace · coleta diária", col1: "Coleta", tag: "3–5 dias", ci: 6 },
+      { id: "c2", name: "Correios PAC", meta: "Postagem · agência", col1: "Postagem", tag: "5–9 dias", ci: 0 },
+      { id: "c3", name: "Jamef Encomendas", meta: "Transportadora · fracionado", col1: "Fracionado", tag: "4–7 dias", ci: 4 },
+    ],
+  };
+
+  const colsByTab: Record<
+    "depositantes" | "usuarios" | "transportadoras",
+    Array<{ label: string; flex: number; align: "left" | "right" }>
+  > = {
+    depositantes: [
+      { label: "Depositante", flex: 2.4, align: "left" },
+      { label: "CNPJ", flex: 1.4, align: "left" },
+      { label: "Contrato", flex: 1, align: "left" },
+      { label: "Status", flex: 0.7, align: "right" },
+    ],
+    usuarios: [
+      { label: "Usuário", flex: 2.4, align: "left" },
+      { label: "E-mail", flex: 1.8, align: "left" },
+      { label: "Perfil", flex: 1, align: "left" },
+      { label: "Ativo", flex: 0.7, align: "right" },
+    ],
+    transportadoras: [
+      { label: "Transportadora", flex: 2.4, align: "left" },
+      { label: "Tipo", flex: 1.4, align: "left" },
+      { label: "Prazo médio", flex: 1, align: "left" },
+      { label: "Ativo", flex: 0.7, align: "right" },
+    ],
+  };
+
+  // Integration items
+  const igData: IntegrationItem[] = [
+    { id: "i0", name: "Mercado Livre", kind: "Marketplace", ci: 5, sync: "Sincronizado há 4 min" },
+    { id: "i1", name: "Shopee", kind: "Marketplace", ci: 2, sync: "Sincronizado há 8 min" },
+    { id: "i2", name: "Amazon", kind: "Marketplace", ci: 4, sync: "Nunca conectado" },
+    { id: "i3", name: "Bling ERP", kind: "ERP / Fiscal", ci: 0, sync: "Sincronizado há 1 h" },
+    { id: "i4", name: "Tiny ERP", kind: "ERP / Fiscal", ci: 3, sync: "Nunca conectado" },
+    { id: "i5", name: "Magalu", kind: "Marketplace", ci: 6, sync: "Nunca conectado" },
+  ];
+
+  // Overview data
+  const kpiList = [
+    { label: "Depositantes ativos", value: String(initialCounts?.depositantes ?? 6), icon: "users", color: "#3B82F6" },
+    { label: "Produtos ativos", value: String(initialCounts?.produtos ?? 292), icon: "box", color: "#EC4899" },
+    { label: "Usuários ativos", value: String(initialCounts?.usuarios ?? 17), icon: "user", color: "#8B5CF6" },
+    { label: "Endereços ativos", value: String(initialCounts?.enderecos ?? 20), icon: "pin", color: "#10B981" },
+    { label: "Transportadoras", value: String(initialCounts?.transportadoras ?? 4), icon: "truck", color: "#F59E0B" },
+  ];
+
+  const depBaseList = [
+    { name: "Dêvi Bebidas Naturais", method: "FEFO", skus: 17, users: 3, ci: 0 },
+    { name: "Evolveg", method: "FEFO", skus: 81, users: 1, ci: 3 },
+    { name: "GoodEssence Cosméticos", method: "FEFO", skus: 18, users: 1, ci: 2 },
+    { name: "John Skull", method: "FIFO", skus: 101, users: 2, ci: 4 },
+    { name: "Vegpet Artigos para Pet", method: "FEFO", skus: 72, users: 2, ci: 5 },
+    { name: "Volcà", method: "FEFO", skus: 4, users: 1, ci: 6 },
+  ];
+
+  const summaryCards = [
+    { key: "depositantes" as TabKey, label: "Depositantes", desc: "Carteira ativa, contatos, regras operacionais e segregação por cliente.", icon: "users", color: "#3B82F6" },
+    { key: "usuarios" as TabKey, label: "Usuários", desc: "Papéis, acessos, vínculo por depositante e gestão de sessão operacional.", icon: "user", color: "#8B5CF6" },
+    { key: "produtos" as TabKey, label: "Produtos", desc: "SKU, EAN/GTIN, categoria, FEFO/FIFO, unidade, lote e validade.", icon: "box", color: "#EC4899" },
+    { key: "enderecos" as TabKey, label: "Endereços", desc: "Mapa físico de recebimento, pulmão, picking, bloqueado e expedição.", icon: "pin", color: "#10B981" },
+    { key: "transportadoras" as TabKey, label: "Transportadoras", desc: "CNPJ, modalidades, contato principal e base logística para expedição.", icon: "truck", color: "#F59E0B" },
+    { key: "integracoes" as TabKey, label: "Integrações", desc: "Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.", icon: "plug", color: "#06B6D4" },
+  ];
+
+  const coverage = [
+    { label: "Depositantes com SKU cadastrado", value: "6", color: "#10B981" },
+    { label: "Depositantes sem SKU cadastrado", value: "0", color: t.textSub },
+    { label: "Usuários vinculados a depositantes", value: "10", color: t.text },
+    { label: "Método predominante no ambiente", value: "FEFO", color: "#8B5CF6" },
+  ];
+
+  // Address types
+  const addrTypes = [
+    { name: "Picking", color: "#3B82F6", count: 640 },
+    { name: "Pulmão", color: "#8B5CF6", count: 1280 },
+    { name: "Avaria / bloqueio", color: "#EF4444", count: 48 },
+    { name: "Expedição", color: "#10B981", count: 96 },
+    ...addrTypesExtra,
+  ];
+
+  // Drawer options
+  const roleOpts = ["Operador", "Conferente", "Supervisor", "Gestor", "Administrador"];
+  const typeOpts = ["Coleta", "Postagem", "Fracionado"];
+  const drawerCfg = {
+    depositantes: { title: "Novo depositante", f1: "Razão social", f2: "CNPJ", f2ph: "00.000.000/0001-00", opts: null },
+    usuarios: { title: "Novo usuário", f1: "Nome completo", f2: "E-mail", f2ph: "nome@infinoos.com", opts: roleOpts, optLabel: "Perfil" },
+    transportadoras: { title: "Nova transportadora", f1: "Nome", f2: "Prazo médio", f2ph: "Ex.: 3–5 dias", opts: typeOpts, optLabel: "Tipo" },
+  };
+
+  const openDrawer = (k: "depositantes" | "usuarios" | "transportadoras") => {
+    setDrawer(k);
+    setRowMenu(null);
+    setForm({ f1: "", f2: "", opt: drawerCfg[k].opts ? drawerCfg[k].opts[0] : "" });
+  };
+
+  const submitDrawer = () => {
+    if (!drawer || !form.f1.trim()) return;
+    const k = drawer;
+    const id = k[0] + "_new" + nextRow;
+    const ci = 5 + nextRow;
+    let row: RowItem;
+    if (k === "depositantes") {
+      row = { id, name: form.f1, meta: "0 SKUs · novo", col1: form.f2 || "—", tag: "Fracionado", ci };
+    } else if (k === "usuarios") {
+      row = { id, name: form.f1, meta: "Novo acesso", col1: form.f2 || "—", tag: form.opt || "Operador", ci };
+    } else {
+      row = { id, name: form.f1, meta: (form.opt || "Coleta") + " · nova", col1: form.opt || "Coleta", tag: form.f2 || "—", ci };
+    }
+    setAdded((prev) => ({ ...prev, [k]: [...prev[k], row] }));
+    setNextRow((prev) => prev + 1);
+    setDrawer(null);
+    notify(drawerCfg[k].title.replace("Novo", "Adicionado").replace("Nova", "Adicionada"));
+  };
+
+  const handlePanelCta = () => {
+    if (isRows && (tab === "depositantes" || tab === "usuarios" || tab === "transportadoras")) {
+      openDrawer(tab);
+    } else if (tab === "produtos") {
+      const n = cats.length + 1;
+      setCats((prev) => [...prev, "Nova categoria " + n]);
+      notify("Categoria adicionada");
+    } else if (tab === "enderecos") {
+      setAddrTypesExtra((prev) => [
+        ...prev,
+        { name: "Novo tipo " + (prev.length + 1), color: pal[(prev.length + 2) % pal.length], count: 0 },
+      ]);
+      notify("Tipo de endereço adicionado");
+    } else {
+      notify(panelMap[tab].cta);
+    }
+  };
+
+  const pendingTasks = tasks.filter((x) => !x.done);
+  const doneTasks = tasks.filter((x) => x.done);
+  const filteredTasks = taskFilter === "pending" ? pendingTasks : taskFilter === "done" ? doneTasks : tasks;
+
+  const handleAddTask = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const v = taskDraft.trim();
+    if (!v) return;
+    setTasks((prev) => [{ id: nextTaskId, text: v, done: false }, ...prev]);
+    setNextTaskId((prev) => prev + 1);
+    setTaskDraft("");
+    notify("Tarefa adicionada");
+  };
+
+  // SVGs
+  const renderIcon = (type: string, size = 18) => {
+    switch (type) {
+      case "dashboard":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+        );
+      case "users":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="8" r="3" />
+            <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+            <path d="M16 5.5a3 3 0 0 1 0 5.8" />
+            <path d="M18 20a6.5 6.5 0 0 0-3-5.5" />
+          </svg>
+        );
+      case "user":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="3.4" />
+            <path d="M5 20a7 7 0 0 1 14 0" />
+          </svg>
+        );
+      case "box":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2 3 7v10l9 5 9-5V7z" />
+            <path d="M3 7l9 5 9-5" />
+            <path d="M12 12v10" />
+          </svg>
+        );
+      case "pin":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z" />
+            <circle cx="12" cy="10" r="2.4" />
+          </svg>
+        );
+      case "truck":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7h11v9H3z" />
+            <path d="M14 10h3.5l3.5 3.5V16h-7z" />
+            <circle cx="7" cy="18.5" r="1.6" />
+            <circle cx="17.5" cy="18.5" r="1.6" />
+          </svg>
+        );
+      case "plug":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 2v6M15 2v6" />
+            <path d="M7 8h10v3a5 5 0 0 1-10 0z" />
+            <path d="M12 16v6" />
+          </svg>
+        );
+      case "bell":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+          </svg>
+        );
+      case "dots":
+        return (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="5" r="1.4" />
+            <circle cx="12" cy="12" r="1.4" />
+            <circle cx="12" cy="19" r="1.4" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      className="relative -m-6 min-h-[calc(100vh-4rem)] overflow-hidden font-sans"
+      style={{
+        background: t.appBg,
+        color: t.text,
+        fontFamily: "'Manrope', var(--font-manrope), sans-serif",
+        transition: "background 0.35s ease, color 0.35s ease",
+      }}
+    >
+      {/* Top Rebranding Header & Subtabs */}
+      <header
+        style={{
+          height: "68px",
+          display: "flex",
+          alignItems: "center",
+          gap: "18px",
+          padding: "0 28px",
+          borderBottom: `1px solid ${t.border}`,
+          background: t.barBg,
+          transition: "background 0.35s ease",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            height: "42px",
+            flex: "1",
+            maxWidth: "380px",
+            padding: "0 16px",
+            borderRadius: "11px",
+            border: `1px solid ${t.border}`,
+            background: t.inputBg,
+          }}
+        >
+          <span style={{ color: t.textSub, fontSize: "15px" }}>⌕</span>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar em configurações..."
+            style={{
+              flex: 1,
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              color: t.text,
+              fontFamily: "'Manrope', sans-serif",
+              fontSize: "14px",
+            }}
+          />
+        </div>
+
+        {/* Sub-tabs Navigation Bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", overflowX: "auto" }}>
+          {tabDef.map((d) => {
+            const active = d.key === tab;
+            return (
+              <button
+                key={d.key}
+                onClick={() => setTab(d.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "7px 14px",
+                  borderRadius: "10px",
+                  fontSize: "13.5px",
+                  fontWeight: active ? 700 : 600,
+                  cursor: "pointer",
+                  border: active ? `1px solid ${hex("#8B5CF6", 0.3)}` : "1px solid transparent",
+                  background: active ? "rgba(139,92,246,0.14)" : "transparent",
+                  color: active ? (dark ? "#C4B5FD" : "#7C3AED") : t.textSub,
+                  transition: "all 0.18s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ color: d.color, display: "flex", alignItems: "center" }}>
+                  {renderIcon(d.icon, 16)}
+                </span>
+                <span>{d.label}</span>
+                {d.count && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      padding: "1px 6px",
+                      borderRadius: "999px",
+                      background: active ? "rgba(139,92,246,0.2)" : t.softBg,
+                      color: active ? "#A78BFA" : t.textSub,
+                    }}
+                  >
+                    {d.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Notification Bell */}
+        <button
+          title="Notificações"
+          style={{
+            position: "relative",
+            width: "42px",
+            height: "42px",
+            borderRadius: "11px",
+            border: `1px solid ${t.border}`,
+            background: t.inputBg,
+            color: t.textSub,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <span style={{ display: "flex" }}>{renderIcon("bell", 18)}</span>
+          <span
+            style={{
+              position: "absolute",
+              top: "9px",
+              right: "10px",
+              width: "7px",
+              height: "7px",
+              borderRadius: "50%",
+              background: "#EF4444",
+              boxShadow: `0 0 0 2px ${t.barBg}`,
+            }}
+          />
+        </button>
+
+        {/* Theme Toggle Sun / Moon */}
+        <button
+          onClick={toggleTheme}
+          title="Alternar tema"
+          aria-label="Alternar tema"
+          style={{
+            position: "relative",
+            width: "68px",
+            height: "32px",
+            padding: 0,
+            borderRadius: "999px",
+            border: `1px solid ${tog.border}`,
+            background: tog.track,
+            cursor: "pointer",
+            transition: "background 0.3s ease, border-color 0.3s ease",
+            boxShadow: `inset 0 1px 3px ${tog.inset}`,
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "12px",
+              transform: "translateY(-50%)",
+              fontSize: "12px",
+              color: tog.trackMoon,
+              transition: "color 0.3s ease",
+            }}
+          >
+            ☾
+          </span>
+          <span
+            style={{
+              position: "absolute",
+              top: "50%",
+              right: "12px",
+              transform: "translateY(-50%)",
+              fontSize: "12px",
+              color: tog.trackSun,
+              transition: "color 0.3s ease",
+            }}
+          >
+            ☀
+          </span>
+          <span
+            style={{
+              position: "absolute",
+              top: "3px",
+              left: "3px",
+              width: "24px",
+              height: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              background: tog.knob,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
+              transform: `translateX(${tog.knobX})`,
+              transition: "transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease",
+              fontSize: "13px",
+              color: tog.knobIconColor,
+            }}
+          >
+            {tog.knobIcon}
+          </span>
+        </button>
+      </header>
+
+      {/* Main Content Area */}
+      <main style={{ padding: "28px 32px 44px 32px" }}>
+        {/* Panel Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: "20px",
+            flexWrap: "wrap",
+            marginBottom: "22px",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSub }}>
+              <span onClick={() => setTab("resumo")} style={{ cursor: "pointer" }}>
+                Configurações
+              </span>
+              <span>›</span>
+              <span style={{ color: t.text, fontWeight: 600 }}>{panelMap[tab].title}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {tab !== "resumo" && (
+                <button
+                  onClick={() => setTab("resumo")}
+                  title="Voltar para Resumo"
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    flexShrink: 0,
+                    borderRadius: "11px",
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    cursor: "pointer",
+                    fontSize: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ‹
+                </button>
+              )}
+              <h2
+                style={{
+                  margin: 0,
+                  fontFamily: "'Space Grotesk', var(--font-space-grotesk), sans-serif",
+                  fontSize: "25px",
+                  fontWeight: 700,
+                }}
+              >
+                {panelMap[tab].heading}
+              </h2>
+            </div>
+            <p style={{ margin: 0, fontSize: "14px", color: t.textSub }}>{panelMap[tab].sub}</p>
+          </div>
+
+          {tab !== "resumo" && (
+            <button
+              onClick={handlePanelCta}
+              style={{
+                height: "44px",
+                padding: "0 20px",
+                border: "none",
+                borderRadius: "11px",
+                background: "linear-gradient(92deg, #3B82F6, #8B5CF6)",
+                color: "#fff",
+                fontFamily: "'Manrope', sans-serif",
+                fontSize: "14px",
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 8px 22px rgba(99,102,241,0.32)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              + {panelMap[tab].cta}
+            </button>
+          )}
+        </div>
+
+        {/* ============ TAB: RESUMO ============ */}
+        {tab === "resumo" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {/* KPI Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+              {kpiList.map((k, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "18px",
+                    borderRadius: "16px",
+                    border: `1px solid ${t.border}`,
+                    background: t.cardBg,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "11px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                    <span
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        borderRadius: "9px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: hex(k.color, 0.14),
+                        color: k.color,
+                      }}
+                    >
+                      {renderIcon(k.icon, 16)}
+                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: t.textSub }}>{k.label}</span>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: "'Space Grotesk', var(--font-space-grotesk), sans-serif",
+                      fontSize: "28px",
+                      fontWeight: 700,
+                      color: k.value === "0" ? t.textSub : t.text,
+                    }}
+                  >
+                    {k.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Depositantes Base + Tarefas Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "18px" }}>
+              {/* Depositantes base */}
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "18px" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                      Depositantes base
+                    </span>
+                    <span style={{ fontSize: "13px", color: t.textSub }}>
+                      Isolamento multi-tenant e políticas de acesso por cliente.
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      padding: "5px 12px",
+                      borderRadius: "999px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      background: "rgba(16,185,129,0.14)",
+                      color: "#10B981",
+                    }}
+                  >
+                    6 ativos
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  {depBaseList.map((d, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        borderRadius: "13px",
+                        border: `1px solid ${t.border}`,
+                        background: t.softBg,
+                        padding: "15px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: "14px" }}>
+                        <span
+                          style={{
+                            width: "34px",
+                            height: "34px",
+                            flexShrink: 0,
+                            borderRadius: "9px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: "12px",
+                            color: "#fff",
+                            background: `linear-gradient(135deg, ${pal[d.ci % pal.length]}, ${hex(pal[d.ci % pal.length], 0.6)})`,
+                          }}
+                        >
+                          {initialsOf(d.name)}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: "13.5px", fontWeight: 700, lineHeight: 1.3 }}>
+                          {d.name}
+                        </span>
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            padding: "3px 9px",
+                            borderRadius: "7px",
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            background: d.method === "FIFO" ? hex("#F59E0B", 0.16) : hex("#3B82F6", 0.14),
+                            color: d.method === "FIFO" ? "#F59E0B" : "#60A5FA",
+                          }}
+                        >
+                          {d.method}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: "20px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.05em", color: t.textSub }}>
+                            SKUS
+                          </span>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                            {d.skus}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.05em", color: t.textSub }}>
+                            USUÁRIOS
+                          </span>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                            {d.users}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tarefas Widget (Google Tasks Style) */}
+              <div
+                style={{
+                  borderRadius: "16px",
+                  border: `1px solid ${t.border}`,
+                  background: t.cardBg,
+                  padding: "22px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "14px" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                      Tarefas
+                    </span>
+                    <span style={{ fontSize: "13px", color: t.textSub }}>
+                      {pendingTasks.length === 0
+                        ? "Nenhuma pendente"
+                        : pendingTasks.length === 1
+                        ? "1 tarefa pendente"
+                        : `${pendingTasks.length} tarefas pendentes`}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      padding: "5px 12px",
+                      borderRadius: "999px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      background: "rgba(139,92,246,0.14)",
+                      color: "#A78BFA",
+                    }}
+                  >
+                    {pendingTasks.length}
+                  </span>
+                </div>
+
+                <form
+                  onSubmit={handleAddTask}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    height: "44px",
+                    padding: "0 14px",
+                    borderRadius: "12px",
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    marginBottom: "14px",
+                  }}
+                >
+                  <span style={{ color: "#8B5CF6", fontSize: "18px", fontWeight: 700 }}>+</span>
+                  <input
+                    value={taskDraft}
+                    onChange={(e) => setTaskDraft(e.target.value)}
+                    placeholder="Adicionar tarefa..."
+                    style={{
+                      flex: 1,
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      color: t.text,
+                      fontFamily: "'Manrope', sans-serif",
+                      fontSize: "13.5px",
+                    }}
+                  />
+                </form>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {pendingTasks.slice(0, 4).map((a) => (
+                    <div
+                      key={a.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "11px",
+                        padding: "13px 14px",
+                        borderRadius: "12px",
+                        border: `1px solid ${t.border}`,
+                        background: t.softBg,
+                      }}
+                    >
+                      <button
+                        onClick={() =>
+                          setTasks((prev) =>
+                            prev.map((y) => (y.id === a.id ? { ...y, done: true } : y))
+                          )
+                        }
+                        title="Concluir"
+                        style={{
+                          width: "22px",
+                          height: "22px",
+                          flexShrink: 0,
+                          borderRadius: "50%",
+                          border: `2px solid ${t.textSub}`,
+                          background: "transparent",
+                          cursor: "pointer",
+                          padding: 0,
+                        }}
+                      />
+                      <span style={{ flex: 1, fontSize: "13px", lineHeight: 1.45, color: t.text }}>
+                        {a.text}
+                      </span>
+                    </div>
+                  ))}
+                  {pendingTasks.length === 0 && (
+                    <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: t.textSub }}>
+                      Tudo em dia — nenhuma tarefa pendente.
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }} />
+                <button
+                  onClick={() => {
+                    setTasksOpen(true);
+                    setTaskFilter("pending");
+                  }}
+                  style={{
+                    marginTop: "14px",
+                    height: "40px",
+                    borderRadius: "11px",
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Ver mais
+                </button>
+              </div>
+            </div>
+
+            {/* 6 Category Summary Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+              {summaryCards.map((s, i) => (
+                <div
+                  key={i}
+                  onClick={() => setTab(s.key)}
+                  style={{
+                    borderRadius: "16px",
+                    border: `1px solid ${t.border}`,
+                    background: t.cardBg,
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    cursor: "pointer",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        flexShrink: 0,
+                        borderRadius: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: hex(s.color, 0.14),
+                        color: s.color,
+                      }}
+                    >
+                      {renderIcon(s.icon, 20)}
+                    </span>
+                    <span style={{ flex: 1, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                      {s.label}
+                    </span>
+                    <span style={{ color: t.textSub, fontSize: "18px", fontWeight: 700 }}>›</span>
+                  </div>
+                  <span style={{ fontSize: "12.5px", color: t.textSub, lineHeight: 1.5 }}>{s.desc}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Cobertura atual */}
+            <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700, marginBottom: "16px", display: "block" }}>
+                Cobertura atual
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
+                {coverage.map((c, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "16px 18px",
+                      borderRadius: "12px",
+                      border: `1px solid ${t.border}`,
+                      background: t.softBg,
+                    }}
+                  >
+                    <span style={{ flex: 1, fontSize: "13px", color: t.text }}>{c.label}</span>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700, color: c.color }}>
+                      {c.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============ TAB: DEPOSITANTES / USUÁRIOS / TRANSPORTADORAS (Table rows) ============ */}
+        {isRows && (
+          <div
+            style={{
+              borderRadius: "16px",
+              border: `1px solid ${t.border}`,
+              background: t.cardBg,
+              overflowX: "auto",
+            }}
+          >
+            <div style={{ minWidth: "720px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  padding: "12px 22px",
+                  borderBottom: `1px solid ${t.border}`,
+                  background: t.headBg,
+                }}
+              >
+                {colsByTab[tab as "depositantes" | "usuarios" | "transportadoras"].map((c, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      flex: c.flex,
+                      fontSize: "11.5px",
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: t.textSub,
+                      textAlign: c.align,
+                    }}
+                  >
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+
+              {baseData[tab as "depositantes" | "usuarios" | "transportadoras"]
+                .concat(added[tab as "depositantes" | "usuarios" | "transportadoras"])
+                .filter((d) => !removed[d.id])
+                .filter((d) => !searchQuery || d.name.toLowerCase().includes(searchQuery.toLowerCase()) || d.col1.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((r) => {
+                  const onMap = tab === "depositantes" ? depOn : tab === "usuarios" ? userOn : carrierOn;
+                  const isOn = onMap[r.id] !== undefined ? onMap[r.id] : true;
+                  const isMenuOpen = rowMenu === r.id;
+
+                  const tagStyle =
+                    tab === "usuarios"
+                      ? { bg: hex(roleColor[r.tag] || "#8B5CF6", 0.14), color: roleColor[r.tag] || "#8B5CF6" }
+                      : tab === "transportadoras"
+                      ? { bg: hex("#F59E0B", 0.16), color: "#F59E0B" }
+                      : { bg: hex("#3B82F6", 0.14), color: "#60A5FA" };
+
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                        padding: "15px 22px",
+                        borderBottom: `1px solid ${t.border}`,
+                      }}
+                    >
+                      <div style={{ flex: 2.4, display: "flex", alignItems: "center", gap: "13px", minWidth: "220px" }}>
+                        <span
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            flexShrink: 0,
+                            borderRadius: "11px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: "13.5px",
+                            color: "#fff",
+                            background: `linear-gradient(135deg, ${pal[r.ci % pal.length]}, ${hex(pal[r.ci % pal.length], 0.6)})`,
+                          }}
+                        >
+                          {initialsOf(r.name)}
+                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+                          <span style={{ fontSize: "14px", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {r.name}
+                          </span>
+                          <span style={{ fontSize: "12px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {r.meta}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span style={{ flex: tab === "usuarios" ? 1.8 : 1.4, fontSize: "13.5px", fontWeight: 600, color: t.text }}>
+                        {r.col1}
+                      </span>
+
+                      <div style={{ flex: 1, display: "flex" }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "7px",
+                            padding: "4px 11px",
+                            borderRadius: "999px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            background: tagStyle.bg,
+                            color: tagStyle.color,
+                          }}
+                        >
+                          {r.tag}
+                        </span>
+                      </div>
+
+                      <div style={{ flex: 0.7, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "10px", position: "relative" }}>
+                        <button
+                          onClick={() => {
+                            if (tab === "depositantes") setDepOn((prev) => ({ ...prev, [r.id]: !isOn }));
+                            else if (tab === "usuarios") setUserOn((prev) => ({ ...prev, [r.id]: !isOn }));
+                            else setCarrierOn((prev) => ({ ...prev, [r.id]: !isOn }));
+                          }}
+                          title="Ativar/desativar"
+                          style={{
+                            position: "relative",
+                            width: "46px",
+                            height: "26px",
+                            flexShrink: 0,
+                            borderRadius: "999px",
+                            border: "none",
+                            cursor: "pointer",
+                            background: sw(isOn).swBg,
+                            transition: "background 0.25s ease",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: "3px",
+                              left: "3px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "#fff",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                              transform: `translateX(${sw(isOn).swX})`,
+                              transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)",
+                            }}
+                          />
+                        </button>
+
+                        <button
+                          onClick={() => setRowMenu((prev) => (prev === r.id ? null : r.id))}
+                          style={{
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "9px",
+                            border: `1px solid ${t.border}`,
+                            background: t.inputBg,
+                            color: t.textSub,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {renderIcon("dots", 16)}
+                        </button>
+
+                        {isMenuOpen && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "40px",
+                              right: 0,
+                              zIndex: 20,
+                              width: "168px",
+                              borderRadius: "12px",
+                              border: `1px solid ${t.border}`,
+                              background: t.cardBg,
+                              boxShadow: "0 14px 34px rgba(0,0,0,0.32)",
+                              overflow: "hidden",
+                            }}
+                          >
+                            <div
+                              onClick={() => {
+                                setRowMenu(null);
+                                notify(`Editar "${r.name}"`);
+                              }}
+                              style={{
+                                padding: "12px 15px",
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                borderBottom: `1px solid ${t.border}`,
+                              }}
+                            >
+                              Editar
+                            </div>
+                            <div
+                              onClick={() => {
+                                setRowMenu(null);
+                                setRemoved((prev) => ({ ...prev, [r.id]: true }));
+                                notify(`"${r.name}" removido`);
+                              }}
+                              style={{
+                                padding: "12px 15px",
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                color: "#EF4444",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Remover
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {/* ============ TAB: PRODUTOS ============ */}
+        {tab === "produtos" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px", maxWidth: "940px" }}>
+            {/* Categorias */}
+            <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "16px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                  Categorias de produto
+                </span>
+                <span style={{ fontSize: "13px", color: t.textSub }}>
+                  Categorias usadas na classificação do catálogo.
+                </span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "9px" }}>
+                {cats.map((c, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "9px",
+                      height: "36px",
+                      padding: "0 8px 0 14px",
+                      borderRadius: "10px",
+                      border: `1px solid ${t.border}`,
+                      background: t.inputBg,
+                      fontSize: "13px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {c}
+                    <button
+                      onClick={() => setCats((prev) => prev.filter((_, j) => j !== i))}
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        border: "none",
+                        borderRadius: "7px",
+                        background: "transparent",
+                        color: t.textSub,
+                        cursor: "pointer",
+                        fontSize: "13px",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                <span
+                  onClick={() => {
+                    const n = cats.length + 1;
+                    setCats((prev) => [...prev, "Nova categoria " + n]);
+                    notify("Categoria adicionada");
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    height: "36px",
+                    padding: "0 14px",
+                    borderRadius: "10px",
+                    border: `1.5px dashed ${t.border}`,
+                    color: "#8B5CF6",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Nova categoria
+                </span>
+              </div>
+            </div>
+
+            {/* Defaults Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+              <div
+                style={{
+                  borderRadius: "16px",
+                  border: `1px solid ${t.border}`,
+                  background: t.cardBg,
+                  padding: "22px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                    Método de saída padrão
+                  </span>
+                  <span style={{ fontSize: "13px", color: t.textSub }}>
+                    Aplicado a novos produtos por padrão.
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+                  {[
+                    { key: "fefo", name: "FEFO", desc: "Primeiro que vence, primeiro que sai" },
+                    { key: "fifo", name: "FIFO", desc: "Primeiro que entra, primeiro que sai" },
+                    { key: "lifo", name: "LIFO", desc: "Último que entra, primeiro que sai" },
+                  ].map((m) => {
+                    const active = method === m.key;
+                    return (
+                      <div
+                        key={m.key}
+                        onClick={() => setMethod(m.key as any)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "13px 15px",
+                          borderRadius: "12px",
+                          border: `1.5px solid ${active ? "#8B5CF6" : t.border}`,
+                          background: active ? hex("#8B5CF6", 0.08) : t.inputBg,
+                          cursor: "pointer",
+                          transition: "all 0.16s ease",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            flexShrink: 0,
+                            borderRadius: "50%",
+                            border: `2px solid ${active ? "#8B5CF6" : t.textSub}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              background: active ? "#8B5CF6" : "transparent",
+                            }}
+                          />
+                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{m.name}</span>
+                          <span style={{ fontSize: "12px", color: t.textSub }}>{m.desc}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: `1px solid ${t.border}`,
+                    background: t.cardBg,
+                    padding: "22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "14px",
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                      Controles obrigatórios
+                    </span>
+                    <span style={{ fontSize: "13px", color: t.textSub }}>
+                      Exigidos no cadastro de novos SKUs.
+                    </span>
+                  </div>
+                  {[
+                    { key: "validade", name: "Controle de validade", desc: "Data de vencimento obrigatória" },
+                    { key: "lote", name: "Controle de lote", desc: "Rastreio por número de lote" },
+                    { key: "serie", name: "Número de série", desc: "Serial único por unidade" },
+                  ].map((c) => {
+                    const isOn = prodCtl[c.key as keyof typeof prodCtl];
+                    return (
+                      <div key={c.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px 0" }}>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
+                          <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{c.name}</span>
+                          <span style={{ fontSize: "12px", color: t.textSub }}>{c.desc}</span>
+                        </div>
+                        <button
+                          onClick={() => setProdCtl((prev) => ({ ...prev, [c.key]: !isOn }))}
+                          style={{
+                            position: "relative",
+                            width: "46px",
+                            height: "26px",
+                            flexShrink: 0,
+                            borderRadius: "999px",
+                            border: "none",
+                            cursor: "pointer",
+                            background: sw(isOn).swBg,
+                            transition: "background 0.25s ease",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: "3px",
+                              left: "3px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "#fff",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                              transform: `translateX(${sw(isOn).swX})`,
+                              transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)",
+                            }}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div
+                  style={{
+                    borderRadius: "16px",
+                    border: `1px solid ${t.border}`,
+                    background: t.cardBg,
+                    padding: "22px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
+                >
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                    Unidade padrão de estocagem
+                  </span>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {[
+                      { key: "un", name: "Unidade" },
+                      { key: "cx", name: "Caixa" },
+                      { key: "pk", name: "Pack" },
+                    ].map((u) => {
+                      const active = unit === u.key;
+                      return (
+                        <span
+                          key={u.key}
+                          onClick={() => setUnit(u.key as any)}
+                          style={{
+                            height: "38px",
+                            padding: "0 16px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            borderRadius: "10px",
+                            fontSize: "13px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            border: `1.5px solid ${active ? "#8B5CF6" : t.border}`,
+                            background: active ? hex("#8B5CF6", 0.1) : t.inputBg,
+                            color: active ? t.text : t.textSub,
+                            transition: "all 0.16s ease",
+                          }}
+                        >
+                          {u.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============ TAB: ENDEREÇOS ============ */}
+        {tab === "enderecos" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px", maxWidth: "940px" }}>
+            <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "16px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                  Nomenclatura de endereço
+                </span>
+                <span style={{ fontSize: "13px", color: t.textSub }}>
+                  Formato padrão das posições no armazém.
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                {[
+                  { label: "Rua", sample: "A", sep: true },
+                  { label: "Coluna", sample: "12", sep: true },
+                  { label: "Nível", sample: "03", sep: false },
+                ].map((p, i) => (
+                  <React.Fragment key={i}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: t.textSub }}>
+                        {p.label}
+                      </span>
+                      <div
+                        style={{
+                          height: "46px",
+                          minWidth: "84px",
+                          padding: "0 16px",
+                          borderRadius: "11px",
+                          border: `1px solid ${t.border}`,
+                          background: t.inputBg,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontSize: "16px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {p.sample}
+                      </div>
+                    </div>
+                    {p.sep && (
+                      <span
+                        style={{
+                          alignSelf: "flex-end",
+                          height: "46px",
+                          display: "flex",
+                          alignItems: "center",
+                          fontSize: "20px",
+                          fontWeight: 700,
+                          color: t.textSub,
+                        }}
+                      >
+                        -
+                      </span>
+                    )}
+                  </React.Fragment>
+                ))}
+                <div style={{ flex: 1 }} />
+                <div style={{ alignSelf: "flex-end", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: t.textSub }}>
+                    Exemplo
+                  </span>
+                  <div
+                    style={{
+                      height: "46px",
+                      padding: "0 18px",
+                      borderRadius: "11px",
+                      background: "rgba(139,92,246,0.14)",
+                      display: "flex",
+                      alignItems: "center",
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: "16px",
+                      fontWeight: 700,
+                      color: "#A78BFA",
+                    }}
+                  >
+                    A-12-03
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "16px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
+                  Tipos de endereço
+                </span>
+                <span style={{ fontSize: "13px", color: t.textSub }}>
+                  Classificações usadas no mapa do armazém.
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+                {addrTypes.map((a, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "14px 16px",
+                      borderRadius: "12px",
+                      border: `1px solid ${t.border}`,
+                      background: t.inputBg,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "4px",
+                        flexShrink: 0,
+                        background: a.color,
+                      }}
+                    />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
+                      <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{a.name}</span>
+                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{a.count} posições</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============ TAB: INTEGRAÇÕES ============ */}
+        {tab === "integracoes" && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {igData
+              .filter((ig) => !searchQuery || ig.name.toLowerCase().includes(searchQuery.toLowerCase()) || ig.kind.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((ig) => {
+                const isOn = integrOn[ig.id];
+                return (
+                  <div
+                    key={ig.id}
+                    style={{
+                      borderRadius: "16px",
+                      border: `1px solid ${isOn ? hex("#10B981", 0.32) : t.border}`,
+                      background: t.cardBg,
+                      padding: "18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "15px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
+                      <span
+                        style={{
+                          width: "46px",
+                          height: "46px",
+                          flexShrink: 0,
+                          borderRadius: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontWeight: 800,
+                          fontSize: "15px",
+                          color: "#fff",
+                          background: `linear-gradient(135deg, ${pal[ig.ci % pal.length]}, ${hex(pal[ig.ci % pal.length], 0.6)})`,
+                        }}
+                      >
+                        {initialsOf(ig.name)}
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span style={{ fontSize: "15px", fontWeight: 700 }}>{ig.name}</span>
+                        <span style={{ fontSize: "12px", color: t.textSub }}>{ig.kind}</span>
+                      </div>
+                      <button
+                        onClick={() => setIntegrOn((prev) => ({ ...prev, [ig.id]: !isOn }))}
+                        style={{
+                          position: "relative",
+                          width: "46px",
+                          height: "26px",
+                          flexShrink: 0,
+                          borderRadius: "999px",
+                          border: "none",
+                          cursor: "pointer",
+                          background: sw(isOn).swBg,
+                          transition: "background 0.25s ease",
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "3px",
+                            left: "3px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            background: "#fff",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                            transform: `translateX(${sw(isOn).swX})`,
+                            transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)",
+                          }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ height: "1px", background: t.border }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyItems: "space-between", justifyContent: "space-between" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "7px",
+                          fontSize: "12.5px",
+                          fontWeight: 700,
+                          color: isOn ? "#10B981" : t.textSub,
+                        }}
+                      >
+                        <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: isOn ? "#10B981" : t.textSub }} />
+                        {isOn ? "Conectado" : "Desconectado"}
+                      </span>
+                      <span style={{ fontSize: "11.5px", color: t.textSub }}>{isOn ? ig.sync : "Toque para conectar"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </main>
+
+      {/* CREATE DRAWER */}
+      {drawer && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 75, display: "flex", justifyContent: "flex-end" }}>
+          <div
+            onClick={() => setDrawer(null)}
+            style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.55)", backdropFilter: "blur(3px)" }}
+          />
+          <div
+            style={{
+              position: "relative",
+              width: "460px",
+              maxWidth: "94vw",
+              height: "100%",
+              background: t.cardBg,
+              borderLeft: `1px solid ${t.border}`,
+              boxShadow: "-24px 0 60px rgba(0,0,0,0.4)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                padding: "24px",
+                borderBottom: `1px solid ${t.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+              }}
+            >
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "20px", fontWeight: 700 }}>
+                {drawerCfg[drawer].title}
+              </span>
+              <button
+                onClick={() => setDrawer(null)}
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: `1px solid ${t.border}`,
+                  background: t.inputBg,
+                  color: t.textSub,
+                  fontSize: "16px",
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>{drawerCfg[drawer].f1}</span>
+                <input
+                  value={form.f1}
+                  onChange={(e) => setForm((prev) => ({ ...prev, f1: e.target.value }))}
+                  placeholder={drawerCfg[drawer].f1}
+                  style={{
+                    height: "46px",
+                    padding: "0 15px",
+                    borderRadius: "11px",
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: "14px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>{drawerCfg[drawer].f2}</span>
+                <input
+                  value={form.f2}
+                  onChange={(e) => setForm((prev) => ({ ...prev, f2: e.target.value }))}
+                  placeholder={drawerCfg[drawer].f2ph}
+                  style={{
+                    height: "46px",
+                    padding: "0 15px",
+                    borderRadius: "11px",
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: "14px",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              {drawerCfg[drawer].opts && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+                  <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>{drawerCfg[drawer].optLabel}</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {drawerCfg[drawer].opts!.map((o) => {
+                      const on = form.opt === o;
+                      return (
+                        <span
+                          key={o}
+                          onClick={() => setForm((prev) => ({ ...prev, opt: o }))}
+                          style={{
+                            height: "38px",
+                            padding: "0 15px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            borderRadius: "10px",
+                            fontSize: "13px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            border: `1.5px solid ${on ? "#8B5CF6" : t.border}`,
+                            background: on ? hex("#8B5CF6", 0.1) : t.inputBg,
+                            color: on ? t.text : t.textSub,
+                            transition: "all 0.16s ease",
+                          }}
+                        >
+                          {o}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{ flexShrink: 0, padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: "12px" }}>
+              <button
+                onClick={() => setDrawer(null)}
+                style={{
+                  flex: 1,
+                  height: "48px",
+                  borderRadius: "11px",
+                  border: `1px solid ${t.border}`,
+                  background: t.inputBg,
+                  color: t.text,
+                  fontFamily: "'Manrope', sans-serif",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={submitDrawer}
+                disabled={!form.f1.trim()}
+                style={{
+                  flex: 1.4,
+                  height: "48px",
+                  border: "none",
+                  borderRadius: "11px",
+                  background: form.f1.trim() ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.softBg,
+                  color: form.f1.trim() ? "#fff" : t.textSub,
+                  fontFamily: "'Manrope', sans-serif",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  cursor: form.f1.trim() ? "pointer" : "not-allowed",
+                  boxShadow: form.f1.trim() ? "0 8px 22px rgba(99,102,241,0.32)" : "none",
+                }}
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL TASKS MODAL (Google Tasks Style) */}
+      {tasksOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            display: "flex",
+            flexDirection: "column",
+            background: t.appBg,
+          }}
+        >
+          <div
+            style={{
+              flexShrink: 0,
+              height: "68px",
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+              padding: "0 28px",
+              borderBottom: `1px solid ${t.border}`,
+              background: t.barBg,
+            }}
+          >
+            <button
+              onClick={() => setTasksOpen(false)}
+              title="Voltar"
+              style={{
+                width: "40px",
+                height: "40px",
+                flexShrink: 0,
+                borderRadius: "11px",
+                border: `1px solid ${t.border}`,
+                background: t.inputBg,
+                color: t.text,
+                cursor: "pointer",
+                fontSize: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              ‹
+            </button>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>
+                Tarefas
+              </span>
+              <span style={{ fontSize: "12.5px", color: t.textSub }}>
+                {pendingTasks.length} pendentes · {doneTasks.length} concluídas
+              </span>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
+            <div style={{ width: "100%", maxWidth: "720px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <form
+                onSubmit={handleAddTask}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "11px",
+                  height: "52px",
+                  padding: "0 18px",
+                  borderRadius: "14px",
+                  border: `1px solid ${t.border}`,
+                  background: t.cardBg,
+                }}
+              >
+                <span style={{ color: "#8B5CF6", fontSize: "20px", fontWeight: 700 }}>+</span>
+                <input
+                  value={taskDraft}
+                  onChange={(e) => setTaskDraft(e.target.value)}
+                  placeholder="Adicionar uma tarefa..."
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    color: t.text,
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: "15px",
+                  }}
+                />
+              </form>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                {[
+                  { key: "pending" as const, label: "Pendentes", count: pendingTasks.length },
+                  { key: "done" as const, label: "Concluídas", count: doneTasks.length },
+                  { key: "all" as const, label: "Todas", count: tasks.length },
+                ].map((f) => {
+                  const on = f.key === taskFilter;
+                  return (
+                    <span
+                      key={f.key}
+                      onClick={() => setTaskFilter(f.key)}
+                      style={{
+                        height: "36px",
+                        padding: "0 16px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        borderRadius: "10px",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        border: on ? "1px solid transparent" : `1px solid ${t.border}`,
+                        background: on ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : t.inputBg,
+                        color: on ? "#fff" : t.textSub,
+                      }}
+                    >
+                      {f.label}
+                      <span style={{ opacity: 0.7 }}>{f.count}</span>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {filteredTasks.map((x) => (
+                  <div
+                    key={x.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "13px",
+                      padding: "15px 17px",
+                      borderRadius: "13px",
+                      border: `1px solid ${t.border}`,
+                      background: t.cardBg,
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        setTasks((prev) =>
+                          prev.map((y) => (y.id === x.id ? { ...y, done: !y.done } : y))
+                        )
+                      }
+                      title={x.done ? "Reabrir" : "Concluir"}
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        flexShrink: 0,
+                        borderRadius: "50%",
+                        border: `2px solid ${x.done ? "#10B981" : t.textSub}`,
+                        background: x.done ? "#10B981" : "transparent",
+                        color: "#fff",
+                        cursor: "pointer",
+                        padding: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {x.done && (
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      )}
+                    </button>
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: "14.5px",
+                        lineHeight: 1.5,
+                        color: x.done ? t.textSub : t.text,
+                        textDecoration: x.done ? "line-through" : "none",
+                      }}
+                    >
+                      {x.text}
+                    </span>
+                    <button
+                      onClick={() => setTasks((prev) => prev.filter((y) => y.id !== x.id))}
+                      title="Remover"
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        flexShrink: 0,
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "transparent",
+                        color: t.textSub,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+                {filteredTasks.length === 0 && (
+                  <div style={{ padding: "40px", textAlign: "center", fontSize: "14px", color: t.textSub }}>
+                    {taskFilter === "done"
+                      ? "Nenhuma tarefa concluída ainda."
+                      : taskFilter === "pending"
+                      ? "Tudo em dia — nada pendente."
+                      : "Nenhuma tarefa."}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Feedback Toast */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "28px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 90,
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "15px 22px",
+            borderRadius: "14px",
+            background: t.cardBg,
+            border: "1px solid rgba(139,92,246,0.4)",
+            boxShadow: "0 18px 44px rgba(0,0,0,0.4)",
+          }}
+        >
+          <span
+            style={{
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(139,92,246,0.16)",
+              color: "#8B5CF6",
+            }}
+          >
+            ✓
+          </span>
+          <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{toast}</span>
+        </div>
+      )}
+    </div>
+  );
+}
