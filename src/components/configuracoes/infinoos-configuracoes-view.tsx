@@ -185,34 +185,34 @@ export function InfinoosConfiguracoesView({
   // Color tokens
   const t = dark
     ? {
-        appBg: "#0A1120",
+        appBg: "transparent",
         sideBg: "#0C1424",
         railBg: "#0B1220",
-        barBg: "#0C1424",
-        cardBg: "#101B30",
-        headBg: "#0E1728",
-        inputBg: "#0E1728",
-        border: "rgba(148,163,184,0.14)",
-        navHover: "rgba(148,163,184,0.08)",
-        rowHover: "rgba(148,163,184,0.04)",
-        softBg: "rgba(148,163,184,0.06)",
-        text: "#F1F5F9",
-        textSub: "#8695AD",
+        barBg: "rgba(8, 17, 34, 0.8)",
+        cardBg: "rgba(8, 17, 34, 0.78)",
+        headBg: "rgba(13, 24, 48, 0.65)",
+        inputBg: "rgba(13, 24, 48, 0.65)",
+        border: "rgba(255, 255, 255, 0.08)",
+        navHover: "rgba(255, 255, 255, 0.06)",
+        rowHover: "rgba(255, 255, 255, 0.03)",
+        softBg: "rgba(255, 255, 255, 0.05)",
+        text: "#F4F8FF",
+        textSub: "#93A6C7",
       }
     : {
-        appBg: "#F5F7FB",
+        appBg: "transparent",
         sideBg: "#FFFFFF",
         railBg: "#FBFCFE",
-        barBg: "#FFFFFF",
-        cardBg: "#FFFFFF",
-        headBg: "#F8FAFC",
-        inputBg: "#F8FAFC",
-        border: "rgba(100,116,139,0.16)",
-        navHover: "rgba(100,116,139,0.07)",
-        rowHover: "rgba(100,116,139,0.04)",
-        softBg: "rgba(100,116,139,0.05)",
-        text: "#0F172A",
-        textSub: "#64748B",
+        barBg: "rgba(255, 255, 255, 0.85)",
+        cardBg: "rgba(255, 255, 255, 0.88)",
+        headBg: "rgba(238, 244, 255, 0.75)",
+        inputBg: "rgba(255, 255, 255, 0.9)",
+        border: "rgba(216, 226, 242, 0.85)",
+        navHover: "rgba(0, 207, 255, 0.08)",
+        rowHover: "rgba(0, 0, 0, 0.02)",
+        softBg: "rgba(238, 242, 255, 0.7)",
+        text: "#08111F",
+        textSub: "#5A6A85",
       };
 
   const tog = dark
@@ -546,16 +546,14 @@ export function InfinoosConfiguracoesView({
 
   return (
     <div
-      className="relative -m-6 min-h-[calc(100vh-4rem)] overflow-hidden font-sans"
+      className="relative space-y-6 font-sans text-slate-900 dark:text-zinc-100"
       style={{
-        background: t.appBg,
         color: t.text,
         fontFamily: "'Manrope', var(--font-manrope), sans-serif",
-        transition: "background 0.35s ease, color 0.35s ease",
       }}
     >
       {/* Main Content Area */}
-      <main style={{ padding: "28px 32px 44px 32px" }}>
+      <main className="space-y-6">
         {/* Panel Header */}
         <div
           style={{
@@ -1886,7 +1884,7 @@ export function InfinoosConfiguracoesView({
             zIndex: 80,
             display: "flex",
             flexDirection: "column",
-            background: t.appBg,
+            background: dark ? "#040816" : "#EEF4FF",
           }}
         >
           <div
