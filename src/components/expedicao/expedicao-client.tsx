@@ -1122,7 +1122,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       orders.map((o: any, i: number) => (
                         <tr key={i} onClick={() => setSelectedOrder(o)} style={{ borderBottom: `1px solid ${t.border}`, cursor: "pointer", transition: "background 0.15s ease" }}>
                         {canDeleteOrder ? <td style={{ padding: "14px 12px 14px 20px", width: 42 }}><input type="checkbox" aria-label={`Selecionar ${o.code}`} checked={selectedOrderIds.includes(o.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleOrderSelection(o.id)} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} /></td> : null}
-                        <td style={{ padding: "14px 20px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px" }}>{o.code}</span></td>
+                        <td style={{ padding: "14px 20px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: "700", fontSize: "14.5px" }}>{o.code}</span>
+                            {o.raw?.isFull ? <span title="Pedido Full" style={{ display: "inline-flex", alignItems: "center", padding: "3px 7px", borderRadius: "999px", background: "rgba(245,158,11,.14)", color: "#D97706", border: "1px solid rgba(245,158,11,.28)", fontSize: "10px", lineHeight: 1, fontWeight: "800", letterSpacing: "0.06em" }}>FULL</span> : null}
+                          </div>
+                        </td>
                         <td style={{ padding: "14px 20px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: "600", whiteSpace: "nowrap" }}>{o.raw?.nfe || "-"}</td>
                         <td style={{ padding: "14px 20px" }}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -1219,6 +1224,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
         const moves = getTimelineSteps(sel.raw?.status || sel.status || "", sel);
         const specs = [
+          ...(sel.raw?.isFull ? [{
+            k: "Operação Full",
+            v: sel.raw.fullShipmentCode || "Remessa Full",
+            sub: [
+              sel.raw.fullShippingMode === "COLETA" ? "Coleta do marketplace" : sel.raw.fullCarrier || "Transportadora informada",
+              sel.raw.fullCollectionAt ? `Coleta prevista: ${new Date(sel.raw.fullCollectionAt).toLocaleDateString("pt-BR")}` : null,
+            ].filter(Boolean).join(" · "),
+            fullWidth: true,
+          }] : []),
           { k: "Canal", v: sel.carrier || "-" },
           { k: "Depositante", v: sel.owner || "-" },
           { k: "Nota fiscal", v: sel.raw?.nfe || "-" },
@@ -1284,6 +1298,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", alignSelf: "flex-start", padding: "5px 12px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", background: sel.statusBg, color: sel.statusColor }}>
                       <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: sel.statusDot }}></span>{sel.statusLabel}
                     </span>
+                    {sel.raw?.isFull ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", alignSelf: "flex-start", padding: "5px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", letterSpacing: "0.08em", background: "rgba(245,158,11,.14)", color: "#D97706", border: "1px solid rgba(245,158,11,.3)" }}>
+                        FULL
+                      </span>
+                    ) : null}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {canDeleteOrder && sel.raw?.id && <form action={deleteShippingOrderAction} onSubmit={(event) => { if (!window.confirm(`Excluir o pedido ${sel.code}? Esta ação não pode ser desfeita.`)) event.preventDefault(); }}>

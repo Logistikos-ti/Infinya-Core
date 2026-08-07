@@ -33,6 +33,15 @@ function buildCollectionAt(date: string, time: string) {
   return value.toISOString();
 }
 
+function fullSalesChannelCode(value: string) {
+  const normalized = value.toLocaleLowerCase("pt-BR");
+  if (normalized.includes("mercado livre")) return "MERCADO_LIVRE";
+  if (normalized.includes("shopee")) return "SHOPEE";
+  if (normalized.includes("amazon")) return "AMAZON";
+  if (normalized.includes("magalu") || normalized.includes("magazine")) return "MAGAZINE_LUIZA";
+  return "OUTRO";
+}
+
 export async function createFullShipmentAction(
   _previous: FullShipmentSubmissionState,
   formData: FormData,
@@ -43,8 +52,9 @@ export async function createFullShipmentAction(
     const marketplace = String(formData.get("marketplace") ?? "").trim();
     const modalidadeEnvio = String(formData.get("modalidadeEnvio") ?? "").trim().toUpperCase();
     const transportadoraNome = String(formData.get("transportadoraNome") ?? "").trim();
+    const collectionDate = String(formData.get("collectionDate") ?? "").trim();
     const collectionAt = buildCollectionAt(
-      String(formData.get("collectionDate") ?? ""),
+      collectionDate,
       String(formData.get("collectionTime") ?? ""),
     );
     const invoiceXml = getFile(formData, "invoiceXml");
@@ -145,16 +155,148 @@ export async function createFullShipmentAction(
       ...itemLabels.slice(0, itemRows.length).map((file, index) => ({ file, type: "ETIQUETA_ITEM", itemId: itemRows[index].id })),
     ];
     const documents = [];
-    for (const upload of uploads) {
-      const path = `full/${depositanteId}/${shipment.id}/${randomUUID()}-${sanitizeFileName(upload.file.name)}`;
-      const { error: uploadError } = await admin.storage.from(documentsBucketName).upload(path, Buffer.from(await upload.file.arrayBuffer()), { contentType: upload.file.type, upsert: false });
-      if (uploadError) throw uploadError;
-      documents.push({ remessa_full_id: shipment.id, remessa_full_item_id: upload.itemId ?? null, depositante_id: depositanteId, tipo: upload.type, nome_arquivo: upload.file.name, caminho_storage: path, mime_type: upload.file.type, tamanho_bytes: upload.file.size, enviado_por: user.id });
+    const uploadedPaths: string[] = [];
+    let createdOrderId: string | null = null;
+
+    try {
+      for (const upload of uploads) {
+        const path = `full/${depositanteId}/${shipment.id}/${randomUUID()}-${sanitizeFileName(upload.file.name)}`;
+        const { error: uploadError } = await admin.storage.from(documentsBucketName).upload(path, Buffer.from(await upload.file.arrayBuffer()), { contentType: upload.file.type, upsert: false });
+        if (uploadError) throw uploadError;
+        uploadedPaths.push(path);
+        documents.push({ remessa_full_id: shipment.id, remessa_full_item_id: upload.itemId ?? null, depositante_id: depositanteId, tipo: upload.type, nome_arquivo: upload.file.name, caminho_storage: path, mime_type: upload.file.type, tamanho_bytes: upload.file.size, enviado_por: user.id });
+      }
+
+      const { error: documentError } = await admin.from("remessas_full_documentos").insert(documents);
+      if (documentError) throw documentError;
+
+      const recipientParts = nfe.recipientAddress?.split(" | ") ?? [];
+      const cityUf = recipientParts.find((part) => /\s-\s[A-Z]{2}(?:\s|$)/.test(part)) ?? "";
+      const [clienteCidade, clienteUf] = cityUf.split(" - ").map((value) => value.trim());
+      const totalUnits = productMatch.matched.reduce((sum, item) => sum + Number(item.quantidade ?? 0), 0);
+      const now = new Date().toISOString();
+      const channelCode = fullSalesChannelCode(marketplace);
+      const fullPayload = {
+        tipo: "FULL",
+        full: {
+          remessaId: shipment.id,
+          codigo: code,
+          marketplace,
+          modalidadeEnvio,
+          transportadoraNome: modalidadeEnvio === "TRANSPORTADORA" ? transportadoraNome : null,
+          coletaPrevistaEm: collectionAt,
+          notaFiscal: nfe.noteNumber,
+        },
+        comercial: {
+          manual: true,
+          marketplace: true,
+          salesChannelCode: channelCode,
+          storeDisplay: marketplace,
+        },
+        destinatario: {
+          documento: nfe.recipientDocument,
+          endereco: nfe.recipientAddress,
+        },
+        notaFiscal: {
+          numero: nfe.noteNumber,
+          chave: nfe.accessKey,
+          protocolo: nfe.protocolNumber,
+          status: nfe.protocolStatusLabel,
+        },
+        transporte: {
+          contato: { nome: transportadoraNome || nfe.carrierName || null },
+          volumes: [{ quantidade: nfe.volumeCount || 1, servico: transportadoraNome || nfe.carrierName || null }],
+        },
+        xml: {
+          emitente: nfe.supplierName,
+          documentoEmitente: nfe.supplierDocument,
+          emitidoEm: nfe.issuedAt,
+          pesoBruto: nfe.grossWeight,
+          informacoesAdicionais: nfe.additionalInfo,
+        },
+      };
+
+      const { data: createdOrder, error: orderError } = await admin
+        .from("pedidos_expedicao")
+        .insert({
+          depositante_id: depositanteId,
+          codigo: `FULL-${randomUUID()}`,
+          referencia_externa: `FULL-${shipment.id}`,
+          origem: "FULL",
+          canal: marketplace,
+          status: "NOVO",
+          status_origem: "FULL",
+          numero_pedido: nfe.noteNumber,
+          numero_loja: nfe.accessKey,
+          cliente_nome: nfe.recipientName,
+          cliente_documento: nfe.recipientDocument,
+          cliente_cidade: clienteCidade || null,
+          cliente_uf: clienteUf || null,
+          valor_total: nfe.totalValue,
+          quantidade_itens: productMatch.matched.length,
+          quantidade_unidades: totalUnits,
+          data_pedido: now,
+          previsao_envio_em: collectionDate || null,
+          sincronizado_em: now,
+          remessa_full_id: shipment.id,
+          payload_origem: fullPayload,
+          observacoes: `Pedido FULL - coleta prevista para ${collectionDate}.`,
+        })
+        .select("id")
+        .single();
+      if (orderError || !createdOrder) throw orderError ?? new Error("Nao foi possivel criar o pedido operacional da remessa Full.");
+      createdOrderId = createdOrder.id;
+
+      const orderItems = productMatch.matched.map((item) => ({
+        pedido_expedicao_id: createdOrder.id,
+        depositante_id: depositanteId,
+        produto_id: item.productId,
+        codigo_produto: item.origemCodigo || item.origemEan || item.sku || null,
+        sku: item.sku || null,
+        nome: item.nome,
+        unidade: "UNIDADE",
+        quantidade: item.quantidade,
+        quantidade_separada: 0,
+        payload_origem: { full: true, remessaFullId: shipment.id, origemCodigo: item.origemCodigo, origemEan: item.origemEan },
+      }));
+      const { error: orderItemsError } = await admin.from("pedidos_expedicao_itens").insert(orderItems);
+      if (orderItemsError) throw orderItemsError;
+
+      const operationalDocuments = documents
+        .filter((document) => document.tipo === "XML_NF" || document.tipo === "ETIQUETA_VOLUME")
+        .map((document) => ({
+          depositante_id: depositanteId,
+          pedido_expedicao_id: createdOrder.id,
+          tipo: document.tipo === "XML_NF" ? "NF" : "ETIQUETA",
+          nome_arquivo: document.nome_arquivo,
+          caminho_storage: document.caminho_storage,
+          mime_type: document.mime_type,
+          tamanho_bytes: document.tamanho_bytes,
+          enviado_por: user.id,
+        }));
+      const { error: operationalDocumentsError } = await admin
+        .from("documentos_armazenados")
+        .insert(operationalDocuments);
+      if (operationalDocumentsError) throw operationalDocumentsError;
+
+      const { error: linkError } = await admin
+        .from("remessas_full")
+        .update({ pedido_expedicao_id: createdOrder.id, status: "PRONTA_PREPARACAO" })
+        .eq("id", shipment.id);
+      if (linkError) throw linkError;
+    } catch (error) {
+      if (uploadedPaths.length) {
+        await admin.storage.from(documentsBucketName).remove(uploadedPaths);
+      }
+      if (createdOrderId) {
+        await admin.from("pedidos_expedicao").delete().eq("id", createdOrderId);
+      }
+      await admin.from("remessas_full").delete().eq("id", shipment.id);
+      throw error;
     }
-    const { error: documentError } = await admin.from("remessas_full_documentos").insert(documents);
-    if (documentError) throw documentError;
-    await admin.from("remessas_full").update({ status: "PRONTA_PREPARACAO" }).eq("id", shipment.id);
+
     revalidatePath("/portal");
+    revalidatePath("/expedicao");
     return { status: "success", detail: `Remessa ${code} criada e pronta para preparacao.` };
   } catch (error) {
     return { status: "error", detail: error instanceof Error ? error.message : "Nao foi possivel criar a remessa Full." };

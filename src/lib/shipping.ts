@@ -16,6 +16,23 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { documentsBucketName } from "@/lib/storage";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
+type RelationFull = {
+  id?: string;
+  codigo?: string;
+  status?: string;
+  marketplace?: string;
+  modalidade_envio?: string;
+  transportadora_nome?: string | null;
+  coleta_prevista_em?: string | null;
+} | {
+  id?: string;
+  codigo?: string;
+  status?: string;
+  marketplace?: string;
+  modalidade_envio?: string;
+  transportadora_nome?: string | null;
+  coleta_prevista_em?: string | null;
+}[] | null;
 
 type RawShippingOrderRow = {
   id: string;
@@ -41,6 +58,7 @@ type RawShippingOrderRow = {
   payload_origem: Record<string, unknown> | null;
   depositante_id?: string;
   depositante: RelationName;
+  remessa_full?: RelationFull;
   itens?: RawShippingOrderItemRow[] | null;
 };
 
@@ -83,6 +101,7 @@ type RawShippingOrderDetailRow = {
   observacoes: string | null;
   depositante_id: string;
   depositante: RelationName;
+  remessa_full?: RelationFull;
   itens?: RawShippingOrderItemRow[] | null;
 };
 
@@ -165,6 +184,12 @@ export type ShippingOrderSummary = {
     quantity: number;
     separatedQuantity: number;
   }[];
+  isFull: boolean;
+  fullShipmentCode: string | null;
+  fullMarketplace: string | null;
+  fullShippingMode: string | null;
+  fullCollectionAt: string | null;
+  fullCarrier: string | null;
 };
 
 type ShippingOrderFilters = {
@@ -269,6 +294,12 @@ export type ShippingOrderDetail = {
     separatedQuantity: string;
     separatedQuantityRaw: number;
   }>;
+  isFull: boolean;
+  fullShipmentCode: string | null;
+  fullMarketplace: string | null;
+  fullShippingMode: string | null;
+  fullCollectionAt: string | null;
+  fullCarrier: string | null;
 };
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
@@ -276,7 +307,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -531,7 +562,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -555,11 +586,17 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const fullShipment = extractFullRelation(order.remessa_full);
+  const isFull = order.origem === "FULL" || Boolean(fullShipment);
+  const fullMarketplace = repairMojibake(fullShipment?.marketplace?.trim() || "") || null;
+  const fullShippingMode = fullShipment?.modalidade_envio?.trim() || null;
+  const fullCollectionAt = fullShipment?.coleta_prevista_em || null;
+  const fullCarrier = repairMojibake(fullShipment?.transportadora_nome?.trim() || "") || null;
   const customer = order.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
     "Destino não informado";
-  const marketplace = extractMarketplace(payload);
+  const marketplace = fullMarketplace || extractMarketplace(payload);
   const invoice = await resolveStoredInvoiceNumber(
     extractInvoice(payload, (order as any).documentos),
     (order as any).documentos,
@@ -568,7 +605,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const storeDisplay = extractStore(payload, order.numero_loja);
   const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
   const mercadoLivre = extractMercadoLivrePayload(payload);
-  const carrierName = extractCarrierName(payload);
+  const carrierName = fullCarrier || extractCarrierName(payload);
   const shippingService = extractShippingService(payload);
   const trackingCode = extractTrackingCode(payload);
   const expectedDate = extractExpectedDate(payload, order.previsao_envio_em);
@@ -673,6 +710,12 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     attachments,
     supplies,
     items,
+    isFull,
+    fullShipmentCode: fullShipment?.codigo?.trim() || null,
+    fullMarketplace,
+    fullShippingMode,
+    fullCollectionAt,
+    fullCarrier,
   } satisfies ShippingOrderDetail;
 }
 
@@ -858,8 +901,14 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
     (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
   const storeDisplay = extractStore(payload, item.numero_loja);
-  const marketplace = extractMarketplace(payload);
-  const carrierName = extractCarrierName(payload);
+  const fullShipment = extractFullRelation(item.remessa_full);
+  const isFull = item.origem === "FULL" || Boolean(fullShipment);
+  const fullMarketplace = repairMojibake(fullShipment?.marketplace?.trim() || "") || null;
+  const fullShippingMode = fullShipment?.modalidade_envio?.trim() || null;
+  const fullCollectionAt = fullShipment?.coleta_prevista_em || null;
+  const fullCarrier = repairMojibake(fullShipment?.transportadora_nome?.trim() || "") || null;
+  const marketplace = fullMarketplace || extractMarketplace(payload);
+  const carrierName = fullCarrier || extractCarrierName(payload);
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
@@ -937,6 +986,12 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
       : null,
     divergenciaTratada: Boolean(payload.divergenciaTratada),
     items,
+    isFull,
+    fullShipmentCode: fullShipment?.codigo?.trim() || null,
+    fullMarketplace,
+    fullShippingMode,
+    fullCollectionAt,
+    fullCarrier,
   };
 }
 
@@ -965,6 +1020,14 @@ function extractRelationName(value: RelationName) {
   }
 
   return null;
+}
+
+function extractFullRelation(value: RelationFull) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
 }
 
 function normalizeInternalOrderNumber(value: number | string | null | undefined) {
