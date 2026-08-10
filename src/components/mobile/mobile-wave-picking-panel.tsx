@@ -8,8 +8,11 @@ import {
   savePickingWaveDraftAction,
   cancelPickingOrderAction,
   registerPickingScanAction,
+  resetPickingOrdersToQueueAction,
 } from "@/app/(dashboard)/expedicao/separacao/actions";
+import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -146,6 +149,40 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const framePulseTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const resetWaveToQueue = useCallback(
+    async (reason: "cancelado" | "inatividade") => {
+      const orderIds = Array.from(new Set(orders.map((order) => order.id)));
+      if (!orderIds.length) {
+        router.replace(`/m/separacao?feedback=${reason}`);
+        return;
+      }
+
+      setIsSubmitting(true);
+      const result = await resetPickingOrdersToQueueAction(orderIds, reason);
+      if (result.success) {
+        router.replace(`/m/separacao?feedback=${reason}&ids=${encodeURIComponent(orderIds.join(","))}`);
+      } else {
+        setIsSubmitting(false);
+        flash({
+          type: "err",
+          title: "NÃ£o foi possÃ­vel devolver a onda",
+          code: "â€”",
+          sub: "Tente novamente antes de sair da separaÃ§Ã£o.",
+        });
+      }
+    },
+    [flash, orders, router],
+  );
+
+  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
+    warningAfterMs: 10_000,
+    expireAfterMs: 40_000,
+    disabled: isSubmitting || isSavingDraft,
+    onExpire: () => {
+      void resetWaveToQueue("inatividade");
+    },
+  });
 
   const totalCount = prioritizedItems.length;
   const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
@@ -346,6 +383,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
   function applyScan(rawValue: string) {
     if (!currentItem) return;
+    resetTimer();
     const normalized = normalizeScan(rawValue);
     if (!normalized) return;
 
@@ -466,6 +504,14 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   return (
     <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <MobileScanOverlay overlay={overlay} />
+
+      <InactivityWarningDialog
+        isVisible={isWarningVisible}
+        countdownSeconds={countdownSeconds}
+        title="SeparaÃ§Ã£o pausada por inatividade"
+        description="O operador ficou sem interaÃ§Ã£o nesta onda. Se a atividade nÃ£o for retomada, a onda serÃ¡ devolvida automaticamente para a fila."
+        mobileDescription="O operador ficou sem interaÃ§Ã£o nesta onda. Retome a operaÃ§Ã£o para evitar que a onda volte para a fila."
+      />
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
         <MobileBackButton onClick={() => void handleBack()} />
