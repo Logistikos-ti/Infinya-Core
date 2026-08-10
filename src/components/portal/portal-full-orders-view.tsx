@@ -121,5 +121,38 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
 }
 
 function Attachment({ field, label }: { field: string; label: string }) {
-  return <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold dark:border-white/10 dark:bg-white/5"><Upload className="h-5 w-5 text-violet-600" />{label}<input required name={field} type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" className="ml-auto max-w-[210px] text-xs" /></label>;
+  const [file, setFile] = useState<File | null>(null);
+  const inputId = `full-attachment-${field}`;
+  const attached = Boolean(file);
+
+  return (
+    <label
+      htmlFor={inputId}
+      className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-4 text-sm font-bold transition-colors ${
+        attached
+          ? "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500/60 dark:bg-emerald-500/10 dark:text-emerald-200"
+          : "border-rose-400 bg-rose-50/60 text-rose-800 dark:border-rose-500/60 dark:bg-rose-500/10 dark:text-rose-200"
+      }`}
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        {attached ? <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" /> : <Upload className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-300" />}
+        <span className="min-w-0">
+          <span className="block">{label}</span>
+          <span className={`mt-1 block text-xs font-semibold ${attached ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}`}>
+            {attached ? "Arquivo anexado" : "Anexar arquivo"}
+          </span>
+        </span>
+      </span>
+      {file ? <span className="max-w-[180px] truncate text-xs font-medium text-emerald-700 dark:text-emerald-200">{file.name}</span> : null}
+      <input
+        id={inputId}
+        required
+        name={field}
+        type="file"
+        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        className="sr-only"
+      />
+    </label>
+  );
 }
