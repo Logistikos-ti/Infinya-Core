@@ -1,7 +1,5 @@
 import { requireApiModuleAccess } from "@/lib/api-auth";
-import { isAdminUser } from "@/lib/permissions";
 import {
-  approveCycleCountAdjustment,
   registerSecondCycleCount,
   updateCycleCountItem,
 } from "@/lib/stock-cycle-counts";
@@ -29,31 +27,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     | null;
 
   if (payload?.action === "approve-adjustment") {
-    if (!isAdminUser(auth.user)) {
-      return Response.json(
-        { error: "Somente Admin/TI pode aprovar ajuste de divergência." },
-        { status: 403 },
-      );
-    }
-
-    try {
-      const result = await approveCycleCountAdjustment({
-        userId: auth.user.id,
-        cycleCountItemId: id,
-        observacoes: String(payload?.observacoes ?? "").trim(),
-      });
-
-      return Response.json({
-        message: result.alreadyApplied
-          ? "Este ajuste já tinha sido aplicado."
-          : "Ajuste de inventário aplicado com sucesso.",
-      });
-    } catch (error) {
-      return Response.json(
-        { error: error instanceof Error ? error.message : "Falha ao aprovar o ajuste." },
-        { status: 400 },
-      );
-    }
+    return Response.json(
+      { error: "Ajustes de inventário são aplicados automaticamente após a contagem." },
+      { status: 410 },
+    );
   }
 
   if (payload?.action === "second-count") {
@@ -74,7 +51,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         observacoes: String(payload?.observacoes ?? "").trim(),
       });
 
-      return Response.json({ message: "Segunda contagem registrada com sucesso." });
+      return Response.json({ message: "Segunda contagem registrada e aplicada ao estoque." });
     } catch (error) {
       return Response.json(
         { error: error instanceof Error ? error.message : "Falha ao registrar a segunda contagem." },
@@ -100,7 +77,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       observacoes: String(payload?.observacoes ?? "").trim(),
     });
 
-    return Response.json({ message: "Contagem do item registrada com sucesso.", result });
+    return Response.json({
+      message: "Contagem do item registrada e saldo atualizado automaticamente.",
+      result,
+    });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "Falha ao registrar a contagem." },

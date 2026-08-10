@@ -207,7 +207,7 @@ export async function listPendingCycleCountAdjustments(
     .select(
       "id, contagem_id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), depositante_id, produto:produtos(sku, nome), endereco:enderecos(codigo, area), depositante:depositantes(nome), contagem:contagens_estoque(titulo)",
     )
-    .eq("ajuste_status", "PENDENTE_APROVACAO")
+    .in("ajuste_status", ["PENDENTE_APROVACAO", "APLICADO_AUTO"])
     .order("contado_em", { ascending: true });
 
   if (depositanteId) {
@@ -510,6 +510,14 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
     throw new Error(`NÃ£o foi possÃ­vel registrar a contagem do item: ${error.message}`);
   }
 
+  if (divergence !== 0) {
+    await approveCycleCountAdjustment({
+      userId: input.userId,
+      cycleCountItemId: input.cycleCountItemId,
+      observacoes: input.observacoes,
+    });
+  }
+
   return { status, divergence, systemQuantity };
 }
 
@@ -555,6 +563,12 @@ export async function registerSecondCycleCount(input: RegisterSecondCountInput) 
   if (error) {
     throw new Error(`NÃ£o foi possÃ­vel registrar a segunda contagem: ${error.message}`);
   }
+
+  await approveCycleCountAdjustment({
+    userId: input.userId,
+    cycleCountItemId: input.cycleCountItemId,
+    observacoes: input.observacoes,
+  });
 }
 
 export async function approveCycleCountAdjustment(input: {
@@ -586,7 +600,7 @@ export async function approveCycleCountAdjustment(input: {
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
   const stockRelation = Array.isArray(currentItem.estoque) ? currentItem.estoque[0] : currentItem.estoque;
   const currentStockQuantity = Number(stockRelation?.quantidade ?? systemQuantity);
-  const isBlocked = Boolean(stockRelation?.bloqueado);
+  // Ajustes de contagem são aplicados automaticamente, inclusive para saldos bloqueados.
 
   if (!Number.isFinite(countedQuantity)) {
     throw new Error("Este item ainda nÃ£o possui quantidade contada para ajuste.");
@@ -596,11 +610,11 @@ export async function approveCycleCountAdjustment(input: {
     throw new Error("Apenas itens com divergÃªncia podem ser aprovados para ajuste.");
   }
 
-  if (currentItem.ajuste_status === "APLICADO") {
+  if (currentItem.ajuste_status === "APLICADO" || currentItem.ajuste_status === "APLICADO_AUTO") {
     return { alreadyApplied: true };
   }
 
-  if (isBlocked) {
+  if (false) {
     throw new Error("Desbloqueie este saldo antes de aplicar o ajuste do inventÃ¡rio.");
   }
 
@@ -612,14 +626,10 @@ export async function approveCycleCountAdjustment(input: {
     const { error: syncError } = await supabase
       .from("contagens_estoque_itens")
       .update({
-        quantidade_sistema: countedQuantity,
-        divergencia: 0,
-        segunda_divergencia: 0,
-        status: "CONTADO",
-        ajuste_status: "APLICADO",
+        ajuste_status: "APLICADO_AUTO",
         ajuste_observacoes: normalizedNotes,
-        ajuste_aprovado_por: input.userId,
-        ajuste_aprovado_em: now,
+        ajuste_aprovado_por: null,
+        ajuste_aprovado_em: null,
         ajuste_aplicado_em: now,
       })
       .eq("id", currentItem.id);
@@ -677,14 +687,10 @@ export async function approveCycleCountAdjustment(input: {
   const { error: itemUpdateError } = await supabase
     .from("contagens_estoque_itens")
     .update({
-      quantidade_sistema: countedQuantity,
-      divergencia: 0,
-      segunda_divergencia: 0,
-      status: "CONTADO",
-      ajuste_status: "APLICADO",
+      ajuste_status: "APLICADO_AUTO",
       ajuste_observacoes: normalizedNotes,
-      ajuste_aprovado_por: input.userId,
-      ajuste_aprovado_em: now,
+      ajuste_aprovado_por: null,
+      ajuste_aprovado_em: null,
       ajuste_aplicado_em: now,
     })
     .eq("id", currentItem.id);
@@ -784,6 +790,3 @@ function buildTraceabilityProtocol(id: string, createdAt: string) {
 
   return `DEP-${dateStamp}-${id.slice(0, 8).toUpperCase()}`;
 }
-
-
-

@@ -35,13 +35,13 @@ export function CycleCountPendingAdjustments({ items }: { items: PendingCycleCou
   return (
     <section className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Summary label="Aguardando aprovação" value={String(items.length)} detail="linhas com divergência" tone="amber" />
+        <Summary label="Divergências encontradas" value={String(items.length)} detail="linhas com ajuste automático" tone="amber" />
         <Summary label="Impacto da contagem" value={new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(divergentUnits)} detail="unidades divergentes" tone="violet" />
       </div>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <div className="border-b border-slate-200 p-4 dark:border-zinc-800 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div><h2 className="text-base font-semibold text-slate-950 dark:text-white">Fila de aprovação</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Revise a contagem antes de aplicar o ajuste no saldo.</p></div>
+            <div><h2 className="text-base font-semibold text-slate-950 dark:text-white">Consulta de divergências</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Os ajustes já foram aplicados automaticamente após a contagem.</p></div>
             <label className="relative block w-full lg:w-80"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar SKU, produto ou endereço" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-400 focus:bg-white dark:border-zinc-700 dark:bg-zinc-950/40 dark:text-white" /></label>
           </div>
           <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
