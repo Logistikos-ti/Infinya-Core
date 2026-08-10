@@ -220,7 +220,7 @@ export function InfinoosConfiguracoesView({
   const [isPending, startTransition] = useTransition();
   const [depPageOpen, setDepPageOpen] = useState(false);
   const [depEditId, setDepEditId] = useState<string | null>(null);
-  const [depLogo, setDepLogo] = useState(false);
+  const [depLogo, setDepLogo] = useState<string | null>(null);
   const [depForm, setDepForm] = useState({
     codigo: "",
     fantasia: "",
@@ -593,7 +593,7 @@ export function InfinoosConfiguracoesView({
       } catch (e) {}
 
       setDepPageOpen(true);
-      setDepLogo(!!raw?.logoUrl);
+      setDepLogo(raw?.logoUrl || null);
       setDepEditId(d.id);
       setDepForm({
         codigo: raw?.codigo || "",
@@ -617,7 +617,7 @@ export function InfinoosConfiguracoesView({
       setDepMethod(parsedConfig?.metodoRetiradaPadrao || "FEFO");
     } else {
       setDepPageOpen(true);
-      setDepLogo(false);
+      setDepLogo(null);
       setDepEditId(null);
       setDepForm({
         codigo: "",
@@ -2736,17 +2736,24 @@ export function InfinoosConfiguracoesView({
                   <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
                     {depLogo ? (
                       <>
-                        <div style={{ width: "110px", height: "110px", borderRadius: "18px", background: `linear-gradient(135deg, ${pal[0]}, ${hex(pal[0], 0.6)})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: "34px" }}>{initialsOf(depForm.fantasia || "NP")}</div>
-                        <button onClick={() => setDepLogo(false)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer" }}>Remover logotipo</button>
+                        <div style={{ width: "110px", height: "110px", borderRadius: "18px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: t.inputBg, border: `1px solid ${t.border}` }}>
+                          <img src={depLogo} alt="Logotipo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                        <button onClick={() => setDepLogo(null)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer" }}>Remover logotipo</button>
                       </>
                     ) : (
                       <>
-                        <div onClick={() => setDepLogo(true)} style={{ width: "110px", height: "110px", borderRadius: "18px", border: `1.5px dashed ${t.border}`, background: t.inputBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>
+                        <label style={{ width: "110px", height: "110px", borderRadius: "18px", border: `1.5px dashed ${t.border}`, background: t.inputBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>
+                          <input type="file" accept="image/png, image/jpeg" style={{ display: "none" }} onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setDepLogo(URL.createObjectURL(e.target.files[0]));
+                            }
+                          }} />
                           <span style={{ color: "#8B5CF6", display: "flex" }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                           </span>
                           <span style={{ fontSize: "11px", fontWeight: 700, color: t.textSub, textAlign: "center", lineHeight: 1.3 }}>Logotipo</span>
-                        </div>
+                        </label>
                         <span style={{ fontSize: "11px", color: t.textSub, textAlign: "center", maxWidth: "120px", lineHeight: 1.4 }}>PNG ou JPG, quadrado</span>
                       </>
                     )}
