@@ -1427,17 +1427,17 @@ export function InfinoosConfiguracoesView({
               </div>
               
               {/* Data Rows */}
-              {initialDepositantes?.filter((d) => !searchQuery || d.nome_fantasia.toLowerCase().includes(searchQuery.toLowerCase()) || d.cnpj.toLowerCase().includes(searchQuery.toLowerCase())).map((dep, i) => {
+              {initialDepositantes?.filter((d) => !searchQuery || (d.nome || "").toLowerCase().includes(searchQuery.toLowerCase()) || (d.cnpj || "").toLowerCase().includes(searchQuery.toLowerCase())).map((dep, i) => {
                 const isOn = depOn[dep.id] !== undefined ? depOn[dep.id] : true;
                 return (
                   <div key={dep.id} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: i < (initialDepositantes?.length || 0) - 1 ? '1px solid #F1F5F9' : 'none', background: '#fff', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
                     <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `linear-gradient(135deg, ${pal[i % pal.length]}, ${hex(pal[i % pal.length], 0.6)})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '15px', flexShrink: 0 }}>
-                        {initialsOf(dep.nome_fantasia)}
+                        {initialsOf(dep.nome || "??")}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                        <span style={{ fontWeight: 700, color: '#1E293B', fontSize: '14.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.nome_fantasia}</span>
-                        <span style={{ color: '#94A3B8', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.razao_social}</span>
+                        <span style={{ fontWeight: 700, color: '#1E293B', fontSize: '14.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.nome || "Sem Nome"}</span>
+                        <span style={{ color: '#94A3B8', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.cnpj || "CNPJ N/A"}</span>
                       </div>
                     </div>
                     
@@ -1483,7 +1483,7 @@ export function InfinoosConfiguracoesView({
                       </button>
 
                       {/* Delete Button */}
-                      <button onClick={() => setConfirmDel({ id: dep.id, name: dep.nome_fantasia })} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'} onMouseLeave={(e) => e.currentTarget.style.background = '#FEF2F2'}>
+                      <button onClick={() => setConfirmDel({ id: dep.id, name: dep.nome || "Desconhecido" })} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'} onMouseLeave={(e) => e.currentTarget.style.background = '#FEF2F2'}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
                       </button>
                     </div>
