@@ -1484,7 +1484,7 @@ export function InfinoosConfiguracoesView({
                       </button>
 
                       {/* Edit Button */}
-                      <button onClick={() => openDepPage(dep as any)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.color = t.text; e.currentTarget.style.borderColor = t.text; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>
+                      <button onClick={() => openDepPage(dep as any)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#8B5CF6'; e.currentTarget.style.borderColor = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
                       </button>
 
