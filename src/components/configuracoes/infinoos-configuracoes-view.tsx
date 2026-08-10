@@ -894,8 +894,9 @@ export function InfinoosConfiguracoesView({
         }
       `}</style>
       {/* Main Content Area */}
-      <main className="space-y-6">
+      <main className="space-y-6" style={{ background: tab === "depositantes" ? "#F8FAFC" : "transparent", margin: tab === "depositantes" ? "-32px -40px" : "0", padding: tab === "depositantes" ? "32px 40px" : "0", minHeight: "100%" }}>
         {/* Panel Header */}
+        {tab !== "depositantes" && (
         <div
           style={{
             display: "flex",
@@ -975,6 +976,7 @@ export function InfinoosConfiguracoesView({
             </button>
           )}
         </div>
+        )}
 
         {/* ============ TAB: RESUMO ============ */}
         {tab === "resumo" && (
@@ -1384,8 +1386,120 @@ export function InfinoosConfiguracoesView({
           </div>
         )}
 
-        {/* ============ TAB: DEPOSITANTES / USUÁRIOS / TRANSPORTADORAS (Table rows) ============ */}
-        {isRows && (
+        {/* ============ TAB: DEPOSITANTES (Custom Table Design) ============ */}
+        {tab === "depositantes" && (
+          <div style={{ padding: "0" }}>
+            {/* Header Area */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748B', marginBottom: '24px' }}>
+              <span onClick={() => setTab("resumo")} style={{ cursor: "pointer" }}>Configurações</span>
+              <span style={{ fontSize: '14px' }}>›</span>
+              <span style={{ fontWeight: 600, color: '#1E293B' }}>Depositantes</span>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button 
+                  onClick={() => setTab("resumo")}
+                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#1E293B', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Depositantes</h1>
+                  <span style={{ fontSize: '14px', color: '#64748B' }}>Clientes que armazenam produtos no CD.</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => openDepPage()}
+                style={{ background: 'linear-gradient(92deg, #3B82F6, #8B5CF6)', color: '#fff', padding: '12px 20px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 22px rgba(99, 102, 241, 0.32)', transition: 'transform 0.2s' }}
+              >
+                + Novo depositante
+              </button>
+            </div>
+
+            {/* Table Area */}
+            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              {/* Header Row */}
+              <div style={{ display: 'flex', padding: '16px 24px', borderBottom: '1px solid #E2E8F0', fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.05em' }}>
+                <div style={{ flex: 2 }}>NOME FANTASIA / RAZÃO SOCIAL</div>
+                <div style={{ flex: 1 }}>CNPJ</div>
+                <div style={{ width: '220px', textAlign: 'right' }}>STATUS / AÇÕES</div>
+              </div>
+              
+              {/* Data Rows */}
+              {initialDepositantes?.filter((d) => !searchQuery || d.nome_fantasia.toLowerCase().includes(searchQuery.toLowerCase()) || d.cnpj.toLowerCase().includes(searchQuery.toLowerCase())).map((dep, i) => {
+                const isOn = depOn[dep.id] !== undefined ? depOn[dep.id] : true;
+                return (
+                  <div key={dep.id} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: i < (initialDepositantes?.length || 0) - 1 ? '1px solid #F1F5F9' : 'none', background: '#fff', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
+                    <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `linear-gradient(135deg, ${pal[i % pal.length]}, ${hex(pal[i % pal.length], 0.6)})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '15px', flexShrink: 0 }}>
+                        {initialsOf(dep.nome_fantasia)}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                        <span style={{ fontWeight: 700, color: '#1E293B', fontSize: '14.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.nome_fantasia}</span>
+                        <span style={{ color: '#94A3B8', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.razao_social}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ flex: 1, color: '#334155', fontSize: '14px', fontWeight: 600 }}>
+                      {dep.cnpj}
+                    </div>
+                    
+                    <div style={{ width: '220px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
+                      {/* Status Pill */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isOn ? '#ECFDF5' : '#FEF2F2', color: isOn ? '#10B981' : '#EF4444', padding: '6px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 700 }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOn ? '#10B981' : '#EF4444' }} />
+                        {isOn ? 'Ativo' : 'Inativo'}
+                      </div>
+                      
+                      {/* Toggle */}
+                      <button
+                        onClick={() => {
+                          const newStatus = !isOn;
+                          setDepOn((prev) => ({ ...prev, [dep.id]: newStatus }));
+                          startTransition(async () => {
+                            const fd = new FormData();
+                            fd.append("id", dep.id);
+                            fd.append("ativo", newStatus ? "on" : "off");
+                            try {
+                              await toggleDepositanteStatusAction(fd);
+                            } catch (e) {
+                              setDepOn((prev) => ({ ...prev, [dep.id]: !newStatus }));
+                              notify("Erro ao alterar status");
+                            }
+                          });
+                        }}
+                        style={{
+                          position: "relative", width: "42px", height: "24px", borderRadius: "999px", border: "none", cursor: "pointer",
+                          background: isOn ? "#10B981" : "#CBD5E1", transition: "background 0.25s ease",
+                        }}
+                      >
+                        <span style={{ position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transform: isOn ? "translateX(18px)" : "translateX(0)", transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)" }} />
+                      </button>
+
+                      {/* Edit Button */}
+                      <button onClick={() => openDepPage(dep as any)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#fff', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.color = '#3B82F6'; e.currentTarget.style.borderColor = '#BFDBFE'; }} onMouseLeave={(e) => { e.currentTarget.style.color = '#64748B'; e.currentTarget.style.borderColor = '#E2E8F0'; }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+                      </button>
+
+                      {/* Delete Button */}
+                      <button onClick={() => setConfirmDel({ id: dep.id, name: dep.nome_fantasia })} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FECACA', background: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#FEE2E2'} onMouseLeave={(e) => e.currentTarget.style.background = '#FEF2F2'}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {(!initialDepositantes || initialDepositantes.length === 0) && (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748B', fontSize: '14px' }}>Nenhum depositante cadastrado.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============ TAB: USUÁRIOS / TRANSPORTADORAS (Table rows) ============ */}
+        {isRows && tab !== "depositantes" && (
           <div
             style={{
               borderRadius: "16px",
