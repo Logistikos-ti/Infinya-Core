@@ -28,6 +28,8 @@ type WaveItemState = ShippingPickingOrder["items"][number] & {
   orderId: string;
   orderExternalNumber: string;
   separatedQuantityValue: string;
+  routeLineIndex: number;
+  routeLineCollected: number;
   isSkipped?: boolean;
   isCancelled?: boolean;
 };
@@ -41,14 +43,49 @@ type MobileWavePickingPanelProps = {
 
 function flattenWaveItems(orders: ShippingPickingOrder[]): WaveItemState[] {
   return orders.flatMap((order) =>
-    order.items.map((item) => ({
-      ...item,
-      compositeId: `${order.id}:${item.id}`,
-      orderId: order.id,
-      orderExternalNumber: order.externalNumber,
-      separatedQuantityValue: String(item.separatedQuantity),
-    })),
+    order.items.map((item) => {
+      const routeProgress = deriveRouteProgress(item.routeLines, item.separatedQuantity);
+      return {
+        ...item,
+        compositeId: `${order.id}:${item.id}`,
+        orderId: order.id,
+        orderExternalNumber: order.externalNumber,
+        separatedQuantityValue: String(item.separatedQuantity),
+        routeLineIndex: routeProgress.index,
+        routeLineCollected: routeProgress.collected,
+      };
+    }),
   );
+}
+
+function deriveRouteProgress(routeLines: WaveItemState["routeLines"], separatedQuantity: number) {
+  let remaining = Math.max(0, separatedQuantity);
+  for (let index = 0; index < routeLines.length; index += 1) {
+    const lineQuantity = Math.max(0, Number(routeLines[index]?.quantity ?? 0));
+    if (remaining < lineQuantity) {
+      return { index, collected: remaining };
+    }
+    remaining -= lineQuantity;
+  }
+
+  return {
+    index: Math.max(routeLines.length - 1, 0),
+    collected: Math.max(0, Number(routeLines.at(-1)?.quantity ?? 0)),
+  };
+}
+
+function isWaveItemComplete(item: WaveItemState) {
+  return Boolean(item.isSkipped) || normalizeQuantity(item.separatedQuantityValue) >= item.requestedQuantity;
+}
+
+function findNextPendingIndex(items: WaveItemState[], startAt = 0) {
+  const nextIndex = items.findIndex((item, index) => index >= startAt && !isWaveItemComplete(item));
+  return nextIndex >= 0 ? nextIndex : items.length;
+}
+
+function getActiveRouteLine(item: WaveItemState) {
+  if (!item.routeLines.length) return null;
+  return item.routeLines[Math.min(item.routeLineIndex, item.routeLines.length - 1)] ?? null;
 }
 
 function compareWaveItemsForPicking(a: WaveItemState, b: WaveItemState) {
@@ -83,10 +120,14 @@ const FLASH_DURATION_MS = 1300;
 export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: MobileWavePickingPanelProps) {
   const router = useRouter();
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
+  const initialPrioritizedItems = useMemo(
+    () => [...initialItems].sort(compareWaveItemsForPicking),
+    [initialItems],
+  );
   const [items, setItems] = useState<WaveItemState[]>(initialItems);
   const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => findNextPendingIndex(initialPrioritizedItems));
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
@@ -94,23 +135,58 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   // flash while counting intermediate units of the same product.
   const [framePulse, setFramePulse] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
   const completionFormRef = useRef<HTMLFormElement | null>(null);
   const autoSubmittedRef = useRef(false);
+  const draftHydratedRef = useRef(false);
+  const draftSaveQueueRef = useRef<Promise<{ ok: boolean; message?: string }>>(Promise.resolve({ ok: true }));
+  const productScanBusyRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
   const framePulseTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const totalCount = prioritizedItems.length;
-  const doneCount = Math.min(currentIndex, totalCount);
-  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+  const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
+  const totalUnits = prioritizedItems.reduce((sum, item) => sum + item.requestedQuantity, 0);
+  const separatedUnits = prioritizedItems.reduce(
+    (sum, item) => sum + Math.min(normalizeQuantity(item.separatedQuantityValue), item.requestedQuantity),
+    0,
+  );
+  const progressPct = totalUnits > 0 ? Math.round((separatedUnits / totalUnits) * 100) : 0;
   const currentItem = prioritizedItems[currentIndex];
-  const isDone = !currentItem;
+  const isDone = totalCount > 0 && doneCount === totalCount;
+  const activeRouteLine = currentItem ? getActiveRouteLine(currentItem) : null;
   const phaseColor = scanPhase === "address" ? mobileColors.blue : mobileColors.violet;
 
   const applyScanRef = useRef<(code: string) => void>(() => {});
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
+
+  const persistDraft = useCallback(async (itemsToSave: WaveItemState[]) => {
+    const payload = itemsToSave.map((item) => ({
+      orderId: item.orderId,
+      itemId: item.id,
+      separatedQuantity: item.isSkipped ? 0 : normalizeQuantity(item.separatedQuantityValue),
+    }));
+
+    if (!payload.length) return { ok: true as const };
+    const saveNext = async () => {
+      setIsSavingDraft(true);
+      try {
+        return await savePickingWaveDraftAction(payload);
+      } finally {
+        setIsSavingDraft(false);
+      }
+    };
+
+    const queuedSave = draftSaveQueueRef.current.then(saveNext, saveNext);
+    draftSaveQueueRef.current = queuedSave.then(
+      (result) => result,
+      () => ({ ok: false, message: "Não foi possível salvar o progresso." }),
+    );
+    return queuedSave;
+  }, []);
 
   const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
     onDetected: handleDetected,
@@ -129,6 +205,28 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentItem]);
+
+  useEffect(() => {
+    if (isDone) return;
+    const nextPendingIndex = findNextPendingIndex(prioritizedItems, currentIndex);
+    if (nextPendingIndex !== currentIndex) {
+      setCurrentIndex(nextPendingIndex);
+      setScanPhase("address");
+    }
+  }, [currentIndex, isDone, prioritizedItems]);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) {
+      draftHydratedRef.current = true;
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void persistDraft(items);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [items, persistDraft]);
 
   useEffect(() => {
     return () => {
@@ -236,17 +334,13 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     framePulseTimerRef.current = window.setTimeout(() => setFramePulse(false), 420);
   }
 
-  function persistDraft(itemsToSave: WaveItemState[]) {
-    const payload = itemsToSave.map((item) => ({
-      orderId: item.orderId,
-      itemId: item.id,
-      separatedQuantity: item.isSkipped ? 0 : normalizeQuantity(item.separatedQuantityValue),
-    }));
-    void savePickingWaveDraftAction(payload);
-  }
-
-  function handleBack() {
-    persistDraft(items);
+  async function handleBack() {
+    if (isSavingDraft) return;
+    const result = await persistDraft(items);
+    if (!result?.ok) {
+      flash({ type: "err", title: "Progresso nÃ£o salvo", code: "â€”", sub: "Tente novamente antes de sair da onda." });
+      return;
+    }
     router.push("/m/separacao");
   }
 
@@ -256,28 +350,39 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     if (!normalized) return;
 
     if (scanPhase === "address") {
-      const expected = normalizeScan(currentItem.routeLines[0]?.addressCode ?? "");
+      const expected = normalizeScan(activeRouteLine?.addressCode ?? "");
       if (!expected || normalized !== expected) {
         flash({ type: "err", title: "Endereço incorreto", code: rawValue, sub: "Bipe o endereço sugerido na tela." });
         return;
       }
-      flash({ type: "ok", title: "Endereço OK", code: currentItem.routeLines[0]?.addressCode ?? "", sub: currentItem.name });
+      flash({ type: "ok", title: "Endereço OK", code: activeRouteLine?.addressCode ?? "", sub: currentItem.name });
       setScanPhase("product");
       scheduleScannerClose(FLASH_DURATION_MS);
       return;
     }
 
-    const matches = [currentItem.barcode, currentItem.sku, currentItem.code]
+    if (productScanBusyRef.current) return;
+    productScanBusyRef.current = true;
+
+    const matches = [
+      currentItem.barcode,
+      currentItem.packBarcode,
+      currentItem.sku,
+      currentItem.code,
+      ...currentItem.scanTargets,
+    ]
       .filter(Boolean)
       .some((value) => normalizeScan(String(value)) === normalized);
 
     if (!matches) {
+      productScanBusyRef.current = false;
       flash({ type: "err", title: "Código inválido", code: rawValue, sub: "Este item não pertence a esta posição." });
       return;
     }
 
-    const stockId = currentItem.routeLines[0]?.stockId;
+    const stockId = activeRouteLine?.stockId;
     if (!stockId) {
+      productScanBusyRef.current = false;
       flash({ type: "err", title: "Saldo não localizado", code: rawValue, sub: "Não encontramos o saldo deste endereço." });
       return;
     }
@@ -293,23 +398,33 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       scanId: crypto.randomUUID(),
     }).then((result) => {
       if (!result.ok) {
+        productScanBusyRef.current = false;
         flash({ type: "err", title: "Falha na reserva", code: rawValue, sub: result.message });
         return;
       }
 
+      const routeCollected = (currentItem.routeLineCollected ?? 0) + 1;
+      const routeComplete = Boolean(activeRouteLine) && routeCollected >= (activeRouteLine?.quantity ?? 0);
       const updatedItems = items.map((item) =>
         item.compositeId === currentItem.compositeId
-          ? { ...item, separatedQuantityValue: String(nextSeparated) }
+          ? {
+              ...item,
+              separatedQuantityValue: String(nextSeparated),
+              routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
+              routeLineCollected: routeComplete ? 0 : routeCollected,
+            }
           : item,
       );
       setItems(updatedItems);
+      productScanBusyRef.current = false;
 
       if (nextSeparated >= currentItem.requestedQuantity) {
         flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
         if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
         closeTimerRef.current = window.setTimeout(() => {
           setScanPhase("address");
-          setCurrentIndex((idx) => Math.min(idx + 1, totalCount));
+          const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
+          setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
           closeScanner();
         }, FLASH_DURATION_MS);
       } else {
@@ -339,10 +454,13 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       }
     });
     setScanPhase("address");
-    const nextIndex = prioritizedItems.findIndex(
-      (item, index) => index > currentIndex && item.orderId !== orderId,
+    const updatedItems = prioritizedItems.map((item) =>
+      item.orderId === orderId
+        ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
+        : item,
     );
-    setCurrentIndex(nextIndex >= 0 ? nextIndex : totalCount);
+    const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
+    setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
   }
 
   return (
@@ -350,7 +468,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       <MobileScanOverlay overlay={overlay} />
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
-        <MobileBackButton onClick={handleBack} />
+        <MobileBackButton onClick={() => void handleBack()} />
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <span className="text-[16px] font-extrabold" style={headingFont}>
             Separação
@@ -366,7 +484,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
             color: isDone ? mobileColors.green : mobileColors.blueLight,
           }}
         >
-          {isDone ? "Concluída" : `${currentIndex + 1}/${totalCount}`}
+          {isDone ? "Concluída" : `${Math.min(currentIndex + 1, totalCount)}/${totalCount}`}
         </span>
       </div>
 
@@ -448,7 +566,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                   </span>
                   <span className="truncate text-[24px] font-bold tracking-wide" style={{ color: mobileColors.text, ...headingFont }}>
                     {scanPhase === "address"
-                      ? currentItem.routeLines[0]?.addressCode ?? "—"
+                      ? activeRouteLine?.addressCode ?? "—"
                       : currentItem.barcode || currentItem.sku}
                   </span>
                 </div>

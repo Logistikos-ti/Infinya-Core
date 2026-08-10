@@ -480,7 +480,7 @@ export async function savePickingWaveProgressAction(formData: FormData) {
 export async function savePickingWaveDraftAction(
   items: { orderId: string; itemId: string; separatedQuantity: number }[],
 ) {
-  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   if (!items.length) return { ok: true };
 
   const adminSupabase = createSupabaseAdminClient();
@@ -494,7 +494,66 @@ export async function savePickingWaveDraftAction(
     ),
   );
 
-  return { ok: !results.some((result) => result.error) };
+  const firstItemError = results.find((result) => result.error)?.error;
+  if (firstItemError) {
+    console.error("Failed to save mobile picking draft:", firstItemError);
+    return { ok: false as const, message: firstItemError.message };
+  }
+
+  const orderIds = Array.from(new Set(items.map((item) => item.orderId).filter(Boolean)));
+  const { data: orderRows, error: orderReadError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select(
+      "id, status, payload_origem, itens:pedidos_expedicao_itens(id, quantidade, quantidade_separada, payload_origem)",
+    )
+    .in("id", orderIds);
+
+  if (orderReadError) {
+    console.error("Failed to refresh mobile picking order status:", orderReadError);
+    return { ok: false as const, message: orderReadError.message };
+  }
+
+  const now = new Date().toISOString();
+  const orderUpdates = ((orderRows ?? []) as PickingOrderRecord[]).map((order) => {
+    const complete = (order.itens ?? []).every(
+      (item) => normalizeQuantity(String(item.quantidade_separada ?? 0)) >= normalizeQuantity(String(item.quantidade ?? 0)),
+    );
+    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+    const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+
+    return adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: order.status === "CANCELADO" ? "CANCELADO" : complete ? "SEPARADO" : "EM_SEPARACAO",
+        payload_origem: {
+          ...payload,
+          separacao: {
+            ...currentPicking,
+            operadorId: readString(currentPicking.operadorId) || user.id,
+            operadorNome: readString(currentPicking.operadorNome) || user.nome,
+            iniciadaEm: readString(currentPicking.iniciadaEm) || now,
+            atualizadaEm: now,
+            finalizadaEm: complete ? readString(currentPicking.finalizadaEm) || now : null,
+          },
+        },
+      })
+      .eq("id", order.id);
+  });
+
+  if (orderUpdates.length) {
+    const orderUpdateResults = await Promise.all(orderUpdates);
+    const firstOrderError = orderUpdateResults.find((result) => result.error)?.error;
+    if (firstOrderError) {
+      console.error("Failed to persist mobile picking order status:", firstOrderError);
+      return { ok: false as const, message: firstOrderError.message };
+    }
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/m/separacao");
+
+  return { ok: true as const };
 }
 
 async function resolveOperatorName(
