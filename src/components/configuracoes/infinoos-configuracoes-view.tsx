@@ -2676,20 +2676,39 @@ export function InfinoosConfiguracoesView({
       {confirmDel && (
         <div style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
           <div onClick={() => setConfirmDel(null)} style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.6)", backdropFilter: "blur(4px)", animation: "paneIn 0.2s ease" }}></div>
-          <div style={{ position: "relative", width: "420px", maxWidth: "94vw", borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, boxShadow: "0 26px 64px rgba(0,0,0,0.45)", padding: "26px", display: "flex", flexDirection: "column", gap: "16px", animation: "paneIn 0.26s ease" }}>
+          <div style={{ position: "relative", width: "420px", maxWidth: "94vw", borderRadius: "18px", border: `1px solid #E2E8F0`, background: '#FFFFFF', boxShadow: "0 26px 64px rgba(0,0,0,0.15)", padding: "26px", display: "flex", flexDirection: "column", gap: "16px", animation: "paneIn 0.26s ease" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
               <span style={{ width: "48px", height: "48px", flexShrink: 0, borderRadius: "13px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(239,68,68,0.14)", color: "#EF4444" }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>Excluir registro?</span>
-                <span style={{ fontSize: "13px", color: t.textSub, lineHeight: 1.4 }}>Esta ação não pode ser desfeita.</span>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700, color: '#0F172A' }}>Excluir registro?</span>
+                <span style={{ fontSize: "13px", color: '#64748B', lineHeight: 1.4 }}>Esta ação não pode ser desfeita.</span>
               </div>
             </div>
-            <div style={{ padding: "14px 16px", borderRadius: "12px", background: t.softBg, border: `1px solid ${t.border}`, fontSize: "13.5px", fontWeight: 700 }}>{confirmDel.name}</div>
+            
+            <div style={{ padding: "14px 16px", borderRadius: "12px", background: '#F1F5F9', border: `1px solid #E2E8F0`, fontSize: "13.5px", fontWeight: 700, color: '#334155' }}>
+              {confirmDel.name}
+            </div>
+            
             <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setConfirmDel(null)} style={{ flex: 1, height: "48px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={confirmDeleteDep} style={{ flex: 1, height: "48px", border: "none", borderRadius: "11px", background: "#EF4444", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(239,68,68,0.35)" }}>{isPending ? "Excluindo..." : "Excluir"}</button>
+              <button 
+                onClick={() => setConfirmDel(null)} 
+                style={{ flex: 1, height: "48px", borderRadius: "11px", border: `1px solid #E2E8F0`, background: '#FFFFFF', color: '#334155', fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#94A3B8'; e.currentTarget.style.background = '#F8FAFC'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#FFFFFF'; }}
+              >
+                Cancelar
+              </button>
+              
+              <button 
+                onClick={confirmDeleteDep} 
+                style={{ flex: 1, height: "48px", border: "none", borderRadius: "11px", background: "#EF4444", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", transition: "all 0.2s", boxShadow: "0 4px 14px rgba(239,68,68,0.25)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 0 4px rgba(239, 68, 68, 0.25)"; e.currentTarget.style.background = "#DC2626"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 14px rgba(239,68,68,0.25)"; e.currentTarget.style.background = "#EF4444"; }}
+              >
+                {isPending ? "Excluindo..." : "Excluir"}
+              </button>
             </div>
           </div>
         </div>
