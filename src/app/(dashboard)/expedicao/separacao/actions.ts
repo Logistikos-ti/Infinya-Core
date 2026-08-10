@@ -5,16 +5,8 @@ import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { buildPickingKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
 import { resetPickingOrdersToQueue } from "@/lib/shipping-picking-reset";
+import { resolveNextPickingStatus } from "@/lib/shipping-picking-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-// Only these statuses represent an order still in the picking flow -- once an
-// order has advanced past picking (EM_CONFERENCIA, CONFERIDO, PRONTO_ROMANEIO,
-// EXPEDIDO, CANCELADO) the picking auto-save/save actions must NOT touch its
-// status column, or a stale picking tab open on the same wave will silently
-// clobber a released order back to SEPARADO and make it reappear in the
-// conference queue "após uns minutos". Item quantities are still safe to
-// update -- only the status transition is gated.
-const PICKING_EDITABLE_STATUSES = new Set(["NOVO", "EM_SEPARACAO", "SEPARADO"]);
 
 type KitProgressEntry = {
   componentProductId: string;
@@ -220,16 +212,14 @@ export async function savePickingProgressAction(formData: FormData) {
   };
 
   // Preserve any post-picking status (EM_CONFERENCIA / CONFERIDO /
-  // PRONTO_ROMANEIO / EXPEDIDO / CANCELADO) -- see the comment on
-  // PICKING_EDITABLE_STATUSES at the top of this file for why.
-  const canEditPickingStatus = PICKING_EDITABLE_STATUSES.has(order.status);
-  const nextStatus = canEditPickingStatus
-    ? intent === "complete"
-      ? canComplete
-        ? "SEPARADO"
-        : order.status
-      : "EM_SEPARACAO"
-    : order.status;
+  // PRONTO_ROMANEIO / EXPEDIDO / CANCELADO) -- see
+  // src/lib/shipping-picking-status.ts for why.
+  const nextStatus = resolveNextPickingStatus({
+    currentStatus: order.status,
+    intent: intent === "complete" ? "complete" : "draft",
+    itemsComplete: canComplete,
+    keepStatusIfIncomplete: true,
+  });
 
   const orderUpdateResult = await adminSupabase
     .from("pedidos_expedicao")
@@ -425,15 +415,12 @@ export async function savePickingWaveProgressAction(formData: FormData) {
       const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
       const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
       const canComplete = orderCompletionMap.get(orderId) ?? false;
-      // Preserve any post-picking status -- see PICKING_EDITABLE_STATUSES.
-      const canEditPickingStatus = PICKING_EDITABLE_STATUSES.has(order.status);
-      const nextStatus = canEditPickingStatus
-        ? intent === "complete"
-          ? canComplete
-            ? "SEPARADO"
-            : "EM_SEPARACAO"
-          : "EM_SEPARACAO"
-        : order.status;
+      // Preserve any post-picking status -- see src/lib/shipping-picking-status.ts.
+      const nextStatus = resolveNextPickingStatus({
+        currentStatus: order.status,
+        intent: intent === "complete" ? "complete" : "draft",
+        itemsComplete: canComplete,
+      });
 
       return adminSupabase
         .from("pedidos_expedicao")
@@ -548,19 +535,21 @@ export async function savePickingWaveDraftAction(
     const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
     const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
 
-    // Preserve any post-picking status -- see PICKING_EDITABLE_STATUSES.
+    // Preserve any post-picking status -- see src/lib/shipping-picking-status.ts.
     // This is the main culprit of the "após a DANFE ser bipada, o pedido
     // sai da conferência e volta uns minutos depois" bug: the picking
     // interface's debounced draft auto-save fires ~350ms after any items
     // change and sends every order in the wave back to this action, and
     // without this gate a wave that still contained an already-released
     // order would silently clobber it back to SEPARADO / EM_SEPARACAO.
-    const canEditPickingStatus = PICKING_EDITABLE_STATUSES.has(order.status);
-    const nextStatus = canEditPickingStatus
-      ? complete
-        ? "SEPARADO"
-        : "EM_SEPARACAO"
-      : order.status;
+    // No separate "intent" here (this action only ever recomputes from item
+    // completeness), so "complete" is passed unconditionally -- that maps
+    // exactly onto this call site's original complete ? SEPARADO : EM_SEPARACAO.
+    const nextStatus = resolveNextPickingStatus({
+      currentStatus: order.status,
+      intent: "complete",
+      itemsComplete: complete,
+    });
 
     return adminSupabase
       .from("pedidos_expedicao")
