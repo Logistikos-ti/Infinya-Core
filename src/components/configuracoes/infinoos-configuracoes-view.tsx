@@ -610,7 +610,7 @@ export function InfinoosConfiguracoesView({
       });
 
       const tels = parsedConfig?.telefonesContato || [];
-      setDepPhones(tels.length > 0 ? tels : [{ nome: "", telefone: "" }]);
+      setDepPhones(tels.length > 0 ? tels.map((x: any) => x.telefone || x) : [""]);
 
       const emails = parsedConfig?.emailsContato || [];
       setDepEmails(emails.length > 0 ? emails.map((x: any) => x.email) : [""]);
@@ -658,9 +658,12 @@ export function InfinoosConfiguracoesView({
       formData.append("ativo", "on");
 
       depPhones.forEach((p) => {
-        if (p.nome.trim() && p.telefone.trim()) {
-          formData.append("contatoTelefoneNome", p.nome);
-          formData.append("contatoTelefone", p.telefone);
+        if (typeof p === "string" && p.trim()) {
+          formData.append("contatoTelefoneNome", "Principal");
+          formData.append("contatoTelefone", p.trim());
+        } else if (p && typeof p === "object" && (p as any).telefone?.trim()) {
+          formData.append("contatoTelefoneNome", (p as any).nome || "Principal");
+          formData.append("contatoTelefone", (p as any).telefone.trim());
         }
       });
       depEmails.forEach((e) => {
