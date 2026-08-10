@@ -9,6 +9,7 @@ import {
   deleteDepositanteAction,
   toggleDepositanteStatusAction,
 } from "@/app/(dashboard)/configuracoes/depositantes/actions";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type TabKey =
   | "resumo"
@@ -2726,9 +2727,8 @@ export function InfinoosConfiguracoesView({
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>{depEditId ? "Editar depositante" : "Novo depositante"}</span>
             </div>
             <button onClick={() => setDepPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>Cancelar</button>
-            <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || isPending} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", gap: "8px" }}>
-              {isPending ? "Salvando..." : "Salvar depositante"}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 1 0 0-8c-2 0-4 1.33-6 4Z"/></svg>
+            <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || isPending} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isPending ? <MobileButtonSpinner color="#FFFFFF" /> : "Salvar depositante"}
             </button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
