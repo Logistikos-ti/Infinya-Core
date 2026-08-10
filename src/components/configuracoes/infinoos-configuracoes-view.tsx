@@ -2718,8 +2718,8 @@ export function InfinoosConfiguracoesView({
 
       {/* NEW DEPOSITANTE FULL PAGE */}
       {depPageOpen && mounted && typeof document !== "undefined" && createPortal(
-        <div style={{ position: "fixed", inset: 0, zIndex: 78, display: "flex", flexDirection: "column", background: t.appBg, animation: "paneIn 0.28s ease" }}>
-          <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", flexDirection: "column", background: t.cardBg, animation: "paneIn 0.28s ease" }}>
+          <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.cardBg }}>
             <button onClick={() => setDepPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}>‹</button>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: t.textSub }}><span>Configurações</span><span>›</span><span>Depositantes</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>{depEditId ? "Editar" : "Novo"}</span></div>
