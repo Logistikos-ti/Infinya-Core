@@ -653,6 +653,7 @@ export function InfinoosConfiguracoesView({
     setIsSaving(true);
     try {
       const formData = new FormData();
+      formData.append("isSpa", "true");
       if (depEditId) formData.append("id", depEditId);
       formData.append("codigo", depForm.codigo || "DEP-" + Date.now().toString().slice(-4));
       formData.append("nome", depForm.fantasia);
@@ -706,6 +707,7 @@ export function InfinoosConfiguracoesView({
     if (!confirmDel) return;
     startTransition(async () => {
       const formData = new FormData();
+      formData.append("isSpa", "true");
       formData.append("id", confirmDel.id);
       try {
         await deleteDepositanteAction(formData);

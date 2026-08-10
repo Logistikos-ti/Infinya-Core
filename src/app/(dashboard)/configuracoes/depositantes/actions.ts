@@ -265,6 +265,7 @@ export async function saveDepositanteAction(
 
     revalidatePath("/configuracoes/depositantes");
     revalidatePath(`/configuracoes/depositantes/${parsed.data.id}/editar`);
+    if (formData.get("isSpa") === "true") return { success: true, message: null };
     redirect("/configuracoes/depositantes?feedback=salvo");
   }
 
@@ -278,6 +279,7 @@ export async function saveDepositanteAction(
   }
 
   revalidatePath("/configuracoes/depositantes");
+  if (formData.get("isSpa") === "true") return { success: true, message: null };
   redirect("/configuracoes/depositantes?feedback=criado");
 }
 
@@ -345,10 +347,12 @@ export async function deleteDepositanteAction(formData: FormData) {
   const { error } = await adminSupabase.from("depositantes").delete().eq("id", id);
 
   if (error) {
+    if (formData.get("isSpa") === "true") return { success: false };
     redirect("/configuracoes/depositantes?feedback=erro");
   }
 
   revalidatePath("/configuracoes/depositantes");
+  if (formData.get("isSpa") === "true") return { success: true };
   redirect("/configuracoes/depositantes?feedback=excluido");
 }
 
