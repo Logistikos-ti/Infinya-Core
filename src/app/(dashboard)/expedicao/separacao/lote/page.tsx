@@ -33,7 +33,7 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
     notFound();
   }
 
-  const returnTo = `/expedicao/separacao/lote?ids=${encodeURIComponent(selectedIds.join(","))}`;
+  const returnTo = "/expedicao/separacao";
 
   return (
     <div className="relative w-full h-full overflow-hidden flex flex-col">
