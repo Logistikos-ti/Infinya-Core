@@ -1390,34 +1390,37 @@ export function InfinoosConfiguracoesView({
         {tab === "depositantes" && (
           <div style={{ padding: "0" }}>
             {/* Header Area */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: t.textSub, marginBottom: '24px' }}>
-              <span onClick={() => setTab("resumo")} style={{ cursor: "pointer" }}>Configurações</span>
-              <span style={{ fontSize: '14px' }}>›</span>
-              <span style={{ fontWeight: 600, color: t.text }}>Depositantes</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <button 
-                  onClick={() => setTab("resumo")}
-                  title="Voltar para Resumo"
-                  style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                </button>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <h1 style={{ fontSize: '26px', fontWeight: 800, color: t.text, margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Depositantes</h1>
-                  <span style={{ fontSize: '14px', color: t.textSub }}>Clientes que armazenam produtos no CD.</span>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: t.textSub, marginLeft: '2px' }}>
+                <span onClick={() => setTab("resumo")} style={{ cursor: "pointer", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = t.text} onMouseLeave={(e) => e.currentTarget.style.color = t.textSub}>Configurações</span>
+                <span style={{ fontSize: '14px' }}>›</span>
+                <span style={{ fontWeight: 600, color: t.text }}>Depositantes</span>
               </div>
-              <button 
-                onClick={() => openDepPage()}
-                style={{ background: 'linear-gradient(92deg, #3B82F6, #8B5CF6)', color: '#fff', padding: '12px 20px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 22px rgba(99, 102, 241, 0.32)', transition: 'transform 0.2s' }}
-              >
-                + Novo depositante
-              </button>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <button 
+                    onClick={() => setTab("resumo")}
+                    title="Voltar para Resumo"
+                    style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                  </button>
+                  <h1 style={{ fontSize: '26px', fontWeight: 800, color: t.text, margin: 0, fontFamily: "'Space Grotesk', var(--font-space-grotesk), sans-serif", letterSpacing: '-0.5px' }}>Depositantes</h1>
+                </div>
+                <button 
+                  onClick={() => openDepPage()}
+                  style={{ background: 'linear-gradient(92deg, #3B82F6, #8B5CF6)', color: '#fff', padding: '12px 20px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 8px 22px rgba(99, 102, 241, 0.32)', transition: 'transform 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                >
+                  + Novo depositante
+                </button>
+              </div>
+
+              <span style={{ fontSize: '14.5px', color: t.textSub, marginLeft: '2px' }}>Clientes que armazenam produtos no CD.</span>
             </div>
 
             {/* Table Area */}
