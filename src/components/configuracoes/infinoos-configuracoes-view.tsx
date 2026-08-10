@@ -44,6 +44,7 @@ type IntegrationItem = {
 };
 
 interface InfinoosConfiguracoesViewProps {
+  initialTab?: string;
   initialDepositantes?: Array<{
     id: string;
     nome: string;
@@ -134,6 +135,7 @@ function TaskCheckCircle({
 }
 
 export function InfinoosConfiguracoesView({
+  initialTab = "resumo",
   initialDepositantes,
   initialUsuarios,
   initialCounts,
@@ -142,7 +144,7 @@ export function InfinoosConfiguracoesView({
   const [mounted, setMounted] = useState(false);
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
 
-  const [tab, setTab] = useState<TabKey>("resumo");
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Toggles state

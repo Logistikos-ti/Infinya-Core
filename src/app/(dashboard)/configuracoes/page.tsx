@@ -157,6 +157,7 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
   if (showRebranding) {
     return (
       <InfinoosConfiguracoesView
+        initialTab={(params?.tab as any) || "resumo"}
         initialDepositantes={depositanteCards}
         initialUsuarios={(usuarios ?? []).map((u) => ({
           id: u.id,
