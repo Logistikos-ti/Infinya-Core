@@ -8,11 +8,8 @@ import {
   savePickingWaveDraftAction,
   cancelPickingOrderAction,
   registerPickingScanAction,
-  resetPickingOrdersToQueueAction,
 } from "@/app/(dashboard)/expedicao/separacao/actions";
-import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
-import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -150,7 +147,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const resetWaveToQueue = useCallback(
+  /* const resetWaveToQueue = useCallback(
     async (reason: "cancelado" | "inatividade") => {
       const orderIds = Array.from(new Set(orders.map((order) => order.id)));
       if (!orderIds.length) {
@@ -183,6 +180,8 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       void resetWaveToQueue("inatividade");
     },
   });
+
+  */
 
   const totalCount = prioritizedItems.length;
   const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
@@ -383,7 +382,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
   function applyScan(rawValue: string) {
     if (!currentItem) return;
-    resetTimer();
     const normalized = normalizeScan(rawValue);
     if (!normalized) return;
 
@@ -505,13 +503,13 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <MobileScanOverlay overlay={overlay} />
 
-      <InactivityWarningDialog
+      {/* <InactivityWarningDialog
         isVisible={isWarningVisible}
         countdownSeconds={countdownSeconds}
         title="SeparaÃ§Ã£o pausada por inatividade"
         description="O operador ficou sem interaÃ§Ã£o nesta onda. Se a atividade nÃ£o for retomada, a onda serÃ¡ devolvida automaticamente para a fila."
         mobileDescription="O operador ficou sem interaÃ§Ã£o nesta onda. Retome a operaÃ§Ã£o para evitar que a onda volte para a fila."
-      />
+      /> */}
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
         <MobileBackButton onClick={() => void handleBack()} />

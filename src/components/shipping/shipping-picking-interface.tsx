@@ -275,12 +275,14 @@ export function ShippingPickingInterface({
   };
 
   async function leaveWave() {
-    if (isSubmitting || isResetting || isSavingDraft) {
+    if (isSubmitting || isResetting) {
       return;
     }
 
+    setIsSubmitting(true);
     const result = await persistDraft(items);
     if (!result.ok) {
+      setIsSubmitting(false);
       setScanMessage(result.message ?? "Nao foi possivel salvar o progresso da onda.");
       return;
     }
@@ -438,7 +440,7 @@ export function ShippingPickingInterface({
       `}} />
       
       <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
-         <button onClick={() => void leaveWave()} disabled={isSavingDraft || isSubmitting || isResetting} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: isSavingDraft ? "progress" : "pointer", textDecoration: "none", opacity: isSavingDraft ? 0.7 : 1 }}>
+         <button onClick={() => void leaveWave()} disabled={isSubmitting || isResetting} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: isSubmitting || isResetting ? "progress" : "pointer", textDecoration: "none", opacity: isSubmitting || isResetting ? 0.7 : 1 }}>
           ‹ Voltar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: t.textSub }}>
