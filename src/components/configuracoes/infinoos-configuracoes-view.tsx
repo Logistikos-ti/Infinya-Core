@@ -1436,7 +1436,7 @@ export function InfinoosConfiguracoesView({
               {initialDepositantes?.filter((d) => !searchQuery || (d.nome || "").toLowerCase().includes(searchQuery.toLowerCase()) || (d.cnpj || "").toLowerCase().includes(searchQuery.toLowerCase())).map((dep, i) => {
                 const isOn = depOn[dep.id] !== undefined ? depOn[dep.id] : true;
                 return (
-                  <div key={dep.id} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: i < (initialDepositantes?.length || 0) - 1 ? `1px solid ${t.border}` : 'none', background: t.cardBg, transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = t.softBg} onMouseLeave={(e) => e.currentTarget.style.background = t.cardBg}>
+                  <div key={dep.id} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: i < (initialDepositantes?.length || 0) - 1 ? `1px solid ${t.border}` : 'none', background: t.cardBg }}>
                     <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `linear-gradient(135deg, ${pal[i % pal.length]}, ${hex(pal[i % pal.length], 0.6)})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '15px', flexShrink: 0 }}>
                         {initialsOf(dep.nome || "??")}
