@@ -5,7 +5,12 @@ import React, { useState, useEffect, useMemo, useRef, useTransition, useCallback
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { PackageCheck, Focus, Sparkles, MapPinned } from "lucide-react";
-import { cancelPickingOrderAction, registerPickingScanAction, savePickingWaveProgressAction } from "@/app/(dashboard)/expedicao/separacao/actions";
+import {
+  cancelPickingOrderAction,
+  registerPickingScanAction,
+  savePickingWaveDraftAction,
+  savePickingWaveProgressAction,
+} from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
@@ -19,6 +24,8 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   orderCustomer: string;
   orderDepositante: string;
   separatedQuantityValue: string;
+  routeLineIndex: number;
+  routeLineCollected: number;
   isSkipped?: boolean; // New state to track if skipped
   isCancelled?: boolean;
 };
@@ -119,10 +126,14 @@ export function ShippingPickingInterface({
 
   // Items Logic
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
+  const initialPrioritizedItems = useMemo(
+    () => [...initialItems].sort(compareWaveItemsForPicking),
+    [initialItems],
+  );
   const [items, setItems] = useState<WavePickingItemState[]>(initialItems);
   const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => findNextPendingIndex(initialPrioritizedItems));
   const [scanValue, setScanValue] = useState("");
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
@@ -130,12 +141,55 @@ export function ShippingPickingInterface({
   const autoSubmittedRef = useRef(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isResetting, startResetTransition] = useTransition();
   const [cancelledOrderIds, setCancelledOrderIds] = useState<string[]>([]);
+  const draftHydratedRef = useRef(false);
+  const draftSaveQueueRef = useRef<Promise<{ ok: boolean; message?: string }>>(Promise.resolve({ ok: true }));
+  const productScanBusyRef = useRef(false);
+
+  const persistDraft = useCallback(
+    (nextItems: WavePickingItemState[] = items) => {
+      const payload = nextItems.map((item) => ({
+        orderId: item.orderId,
+        itemId: item.id,
+        separatedQuantity: item.isSkipped ? 0 : normalizeQuantity(item.separatedQuantityValue),
+      }));
+
+      const save = draftSaveQueueRef.current.then(async () => {
+        setIsSavingDraft(true);
+        try {
+          return await savePickingWaveDraftAction(payload);
+        } finally {
+          setIsSavingDraft(false);
+        }
+      });
+
+      draftSaveQueueRef.current = save.catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : "Falha ao salvar o progresso da onda.",
+      }));
+      return save;
+    },
+    [items],
+  );
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) {
+      draftHydratedRef.current = true;
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void persistDraft(items);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [items, persistDraft]);
 
   // Filter tasks from prioritizedItems
   const tasks = prioritizedItems.map((p, i) => {
-    const isDone = i < currentIndex;
+    const isDone = isWaveItemComplete(p);
     const isCur = i === currentIndex;
     const qtyNum = normalizeQuantity(p.separatedQuantityValue);
     
@@ -159,16 +213,28 @@ export function ShippingPickingInterface({
   });
 
   const totalCount = prioritizedItems.length;
-  const doneCount = Math.min(currentIndex, totalCount);
+  const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
   const progW = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) + '%' : '0%';
+
+  useEffect(() => {
+    if (currentIndex >= prioritizedItems.length) {
+      return;
+    }
+
+    const nextPendingIndex = findNextPendingIndex(prioritizedItems, currentIndex);
+    if (nextPendingIndex !== currentIndex) {
+      setCurrentIndex(nextPendingIndex);
+      setScanPhase("address");
+    }
+  }, [currentIndex, prioritizedItems]);
 
   const currentItem = prioritizedItems[currentIndex];
   const current = currentItem ? {
     active: true,
     done: false,
     idx: currentIndex + 1,
-    loc: currentItem.routeLines[0]?.addressCode || "SEM ENDERECO",
-    zone: currentItem.routeLines[0]?.routeLabel || "",
+    loc: getActiveRouteLine(currentItem)?.addressCode || "SEM ENDERECO",
+    zone: getActiveRouteLine(currentItem)?.routeLabel || "",
     name: currentItem.name,
     sku: currentItem.sku,
     ean: currentItem.barcode || currentItem.code,
@@ -200,11 +266,27 @@ export function ShippingPickingInterface({
     });
 
     setScanPhase("address");
-    const nextIndex = prioritizedItems.findIndex(
-      (item, index) => index > currentIndex && item.orderId !== orderId && !cancelledOrderIds.includes(item.orderId),
+    const nextItems = prioritizedItems.map((item) =>
+      item.orderId === orderId
+        ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
+        : item,
     );
-    setCurrentIndex(nextIndex >= 0 ? nextIndex : totalCount);
+    setCurrentIndex(findNextPendingIndex(nextItems, currentIndex + 1));
   };
+
+  async function leaveWave() {
+    if (isSubmitting || isResetting || isSavingDraft) {
+      return;
+    }
+
+    const result = await persistDraft(items);
+    if (!result.ok) {
+      setScanMessage(result.message ?? "Nao foi possivel salvar o progresso da onda.");
+      return;
+    }
+
+    router.push(returnTo);
+  }
 
   // Barcode scanning logic
   const handleScanSubmit = () => {
@@ -213,7 +295,8 @@ export function ShippingPickingInterface({
     
     const normalized = scanValue.replace(/\s+/g, "").trim().toUpperCase();
 
-    const expectedAddress = currentItem.routeLines[0]?.addressCode?.replace(/\s+/g, "").trim().toUpperCase() ?? "";
+    const activeRouteLine = getActiveRouteLine(currentItem);
+    const expectedAddress = activeRouteLine?.addressCode?.replace(/\s+/g, "").trim().toUpperCase() ?? "";
 
     if (scanPhase === "address") {
       if (!expectedAddress || normalized !== expectedAddress) {
@@ -231,14 +314,19 @@ export function ShippingPickingInterface({
       return;
     }
     
-    // Check if it matches the current item
-    const matches = [currentItem.barcode, currentItem.sku, currentItem.code]
+    if (productScanBusyRef.current) return;
+    productScanBusyRef.current = true;
+
+    // Check the unit, pack, SKU and internal codes accepted by the item.
+    const matches = [currentItem.barcode, currentItem.packBarcode, currentItem.sku, currentItem.code, ...currentItem.scanTargets]
+      .filter(Boolean)
       .map(s => s?.replace(/\s+/g, "").trim().toUpperCase())
       .includes(normalized);
       
     if (matches) {
-      const stockId = currentItem.routeLines[0]?.stockId;
+      const stockId = activeRouteLine?.stockId;
       if (!stockId) {
+        productScanBusyRef.current = false;
         playFeedbackTone("error");
         alert("Não foi possível localizar o saldo deste endereço para reservar o estoque.");
         return;
@@ -255,30 +343,40 @@ export function ShippingPickingInterface({
         scanId: crypto.randomUUID(),
       }).then((result) => {
         if (!result.ok) {
+          productScanBusyRef.current = false;
           playFeedbackTone("error");
           alert(`Não foi possível reservar o estoque: ${result.message}`);
           return;
         }
 
-        setItems((prev) =>
-          prev.map((item) =>
-            item.compositeId === currentItem.compositeId
-              ? { ...item, separatedQuantityValue: String(nextSeparated) }
-              : item,
-          ),
+        const routeCollected = (currentItem.routeLineCollected ?? 0) + 1;
+        const routeComplete = Boolean(activeRouteLine) && routeCollected >= (activeRouteLine?.quantity ?? 0);
+        const updatedItems = items.map((item) =>
+          item.compositeId === currentItem.compositeId
+            ? {
+                ...item,
+                separatedQuantityValue: String(nextSeparated),
+                routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
+                routeLineCollected: routeComplete ? 0 : routeCollected,
+              }
+            : item,
         );
+        const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
+        setItems(updatedItems);
+        productScanBusyRef.current = false;
 
         if (nextSeparated >= currentItem.requestedQuantity) {
           playFeedbackTone("success");
           setTimeout(() => {
             setScanPhase("address");
-            setCurrentIndex(Math.min(currentIndex + 1, totalCount));
+            setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
           }, 300);
         } else {
           playFeedbackTone("success");
         }
       });
     } else {
+      productScanBusyRef.current = false;
       playFeedbackTone("error");
       alert("Codigo invalido para este produto!");
     }
@@ -340,7 +438,7 @@ export function ShippingPickingInterface({
       `}} />
       
       <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
-        <button onClick={() => router.push("/expedicao/separacao")} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}>
+         <button onClick={() => void leaveWave()} disabled={isSavingDraft || isSubmitting || isResetting} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: isSavingDraft ? "progress" : "pointer", textDecoration: "none", opacity: isSavingDraft ? 0.7 : 1 }}>
           ‹ Voltar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: t.textSub }}>
@@ -526,14 +624,45 @@ function flattenWaveItems(orders: ShippingPickingOrder[]) {
       orderCustomer: order.customer,
       orderDepositante: order.depositante,
       separatedQuantityValue: String(item.separatedQuantity),
+      ...deriveRouteProgress(item.routeLines, item.separatedQuantity),
     })),
   );
+}
+
+function deriveRouteProgress(routeLines: WavePickingItemState["routeLines"], separatedQuantity: number) {
+  let remaining = Math.max(0, separatedQuantity);
+  for (let index = 0; index < routeLines.length; index += 1) {
+    const lineQuantity = Math.max(0, Number(routeLines[index]?.quantity ?? 0));
+    if (remaining < lineQuantity) {
+      return { routeLineIndex: index, routeLineCollected: remaining };
+    }
+    remaining -= lineQuantity;
+  }
+
+  return {
+    routeLineIndex: Math.max(routeLines.length - 1, 0),
+    routeLineCollected: Math.max(0, Number(routeLines.at(-1)?.quantity ?? 0)),
+  };
 }
 
 function normalizeQuantity(value: string) {
   const numeric = Number(value.replace(",", "."));
   if (!Number.isFinite(numeric)) return 0;
   return Math.max(0, numeric);
+}
+
+function isWaveItemComplete(item: WavePickingItemState) {
+  return Boolean(item.isSkipped) || normalizeQuantity(item.separatedQuantityValue) >= item.requestedQuantity;
+}
+
+function findNextPendingIndex(items: WavePickingItemState[], startAt = 0) {
+  const index = items.findIndex((item, itemIndex) => itemIndex >= startAt && !isWaveItemComplete(item));
+  return index >= 0 ? index : items.length;
+}
+
+function getActiveRouteLine(item: WavePickingItemState) {
+  if (!item.routeLines.length) return null;
+  return item.routeLines[Math.min(item.routeLineIndex, item.routeLines.length - 1)] ?? null;
 }
 
 function compareWaveItemsForPicking(a: WavePickingItemState, b: WavePickingItemState) {
