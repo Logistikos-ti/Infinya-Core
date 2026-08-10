@@ -85,7 +85,7 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
     enderecosResult,
     transportadorasResult,
   ] = await Promise.all([
-    supabase.from("depositantes").select("id, codigo, nome, cnpj, ativo").order("nome"),
+    supabase.from("depositantes").select("id, codigo, nome, cnpj, ativo, logo_url, observacoes, configuracoes").order("nome"),
     supabase.from("produtos").select("id, depositante_id, metodo_retirada, ativo"),
     supabase.from("usuarios").select("id, nome, email, papel, depositante_id, ativo").order("nome"),
     supabase.from("enderecos").select("id, codigo, area, capacidade_maxima, ativo").order("codigo"),
@@ -124,15 +124,21 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
 
   const depositanteCards = (depositantes ?? []).map((depositante) => {
     const preferredMethod = getPreferredMethod(methodCountByDepositante.get(depositante.id) ?? []);
+    
+    // We parse on client if needed, or pass the raw data
+    const rawConfig = depositante.configuracoes ? JSON.stringify(depositante.configuracoes) : depositante.observacoes;
 
     return {
       id: depositante.id,
+      codigo: depositante.codigo,
       nome: depositante.nome,
       cnpj: depositante.cnpj ?? undefined,
       ativo: depositante.ativo,
       skus: productCountByDepositante.get(depositante.id) ?? 0,
       usuarios: userCountByDepositante.get(depositante.id) ?? 0,
       metodo: preferredMethod,
+      logoUrl: depositante.logo_url ?? undefined,
+      configuracoesRaw: rawConfig ?? undefined,
     };
   });
 

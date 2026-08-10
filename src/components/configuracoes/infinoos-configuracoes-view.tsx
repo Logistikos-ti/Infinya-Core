@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import {
+  saveDepositanteAction,
+  deleteDepositanteAction,
+  toggleDepositanteStatusAction,
+} from "@/app/(dashboard)/configuracoes/depositantes/actions";
 
 type TabKey =
   | "resumo"
@@ -45,6 +50,9 @@ interface InfinoosConfiguracoesViewProps {
     usuarios?: number;
     metodo?: string;
     cnpj?: string;
+    codigo?: string;
+    logoUrl?: string;
+    configuracoesRaw?: string;
   }>;
   initialUsuarios?: Array<{
     id: string;
@@ -138,7 +146,7 @@ export function InfinoosConfiguracoesView({
   // Toggles state
   const [depOn, setDepOn] = useState<Record<string, boolean>>(() => {
     if (initialDepositantes && initialDepositantes.length > 0) {
-      return Object.fromEntries(initialDepositantes.map((d) => [d.id, d.ativo]));
+      return Object.fromEntries(initialDepositantes.map((d) => [d.id, d.ativo ?? true]));
     }
     return { d0: true, d1: true, d2: true, d3: false, d4: true, d5: true };
   });
@@ -206,6 +214,28 @@ export function InfinoosConfiguracoesView({
   const [form, setForm] = useState<{ f1: string; f2: string; opt: string }>({ f1: "", f2: "", opt: "" });
   const [nextRow, setNextRow] = useState(1);
   const [addrTypesExtra, setAddrTypesExtra] = useState<Array<{ name: string; color: string; count: number }>>([]);
+
+  // Depositantes Modal / Server Actions
+  const [isPending, startTransition] = useTransition();
+  const [depPageOpen, setDepPageOpen] = useState(false);
+  const [depEditId, setDepEditId] = useState<string | null>(null);
+  const [depLogo, setDepLogo] = useState(false);
+  const [depForm, setDepForm] = useState({
+    codigo: "",
+    fantasia: "",
+    razao: "",
+    cnpj: "",
+    cep: "",
+    rua: "",
+    num: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
+  });
+  const [depPhones, setDepPhones] = useState([{ nome: "", telefone: "" }]);
+  const [depEmails, setDepEmails] = useState([""]);
+  const [depMethod, setDepMethod] = useState("FEFO");
+  const [confirmDel, setConfirmDel] = useState<{ id: string; name: string } | null>(null);
 
   // Toast
   const [toast, setToast] = useState<string | null>(null);
@@ -488,12 +518,12 @@ export function InfinoosConfiguracoesView({
   const coverage = [
     {
       label: "Depositantes com SKU cadastrado",
-      value: String((initialDepositantes ?? []).filter((d) => d.skus > 0).length),
+      value: String((initialDepositantes ?? []).filter((d) => (d.skus ?? 0) > 0).length),
       color: "#10B981",
     },
     {
       label: "Depositantes sem SKU cadastrado",
-      value: String((initialDepositantes ?? []).filter((d) => d.skus === 0).length),
+      value: String((initialDepositantes ?? []).filter((d) => (d.skus ?? 0) === 0).length),
       color: t.textSub,
     },
     {
@@ -551,8 +581,123 @@ export function InfinoosConfiguracoesView({
     notify(drawerCfg[k].title.replace("Novo", "Adicionado").replace("Nova", "Adicionada"));
   };
 
+  const openDepPage = (d?: RowItem) => {
+    if (d) {
+      const raw = initialDepositantes?.find((x) => x.id === d.id);
+      let parsedConfig: any = {};
+      try {
+        if (raw?.configuracoesRaw) {
+          parsedConfig = JSON.parse(raw.configuracoesRaw);
+        }
+      } catch (e) {}
+
+      setDepPageOpen(true);
+      setDepLogo(!!raw?.logoUrl);
+      setDepEditId(d.id);
+      setDepForm({
+        codigo: raw?.codigo || "",
+        fantasia: raw?.nome || "",
+        razao: parsedConfig?.razaoSocial || "",
+        cnpj: raw?.cnpj || "",
+        cep: parsedConfig?.enderecoFiscal?.cep || "",
+        rua: parsedConfig?.enderecoFiscal?.logradouro || "",
+        num: parsedConfig?.enderecoFiscal?.numero || "",
+        bairro: parsedConfig?.enderecoFiscal?.bairro || "",
+        cidade: parsedConfig?.enderecoFiscal?.cidade || "",
+        uf: parsedConfig?.enderecoFiscal?.uf || "",
+      });
+
+      const tels = parsedConfig?.telefonesContato || [];
+      setDepPhones(tels.length > 0 ? tels : [{ nome: "", telefone: "" }]);
+
+      const emails = parsedConfig?.emailsContato || [];
+      setDepEmails(emails.length > 0 ? emails.map((x: any) => x.email) : [""]);
+
+      setDepMethod(parsedConfig?.metodoRetiradaPadrao || "FEFO");
+    } else {
+      setDepPageOpen(true);
+      setDepLogo(false);
+      setDepEditId(null);
+      setDepForm({
+        codigo: "",
+        fantasia: "",
+        razao: "",
+        cnpj: "",
+        cep: "",
+        rua: "",
+        num: "",
+        bairro: "",
+        cidade: "",
+        uf: "",
+      });
+      setDepPhones([{ nome: "", telefone: "" }]);
+      setDepEmails([""]);
+      setDepMethod("FEFO");
+    }
+  };
+
+  const submitDepPage = () => {
+    if (!depForm.fantasia.trim() || !depForm.cnpj.trim()) return;
+
+    startTransition(async () => {
+      const formData = new FormData();
+      if (depEditId) formData.append("id", depEditId);
+      formData.append("codigo", depForm.codigo || "DEP-" + Date.now().toString().slice(-4));
+      formData.append("nome", depForm.fantasia);
+      formData.append("razaoSocial", depForm.razao);
+      formData.append("cnpj", depForm.cnpj);
+      formData.append("enderecoFiscalCep", depForm.cep);
+      formData.append("enderecoFiscalLogradouro", depForm.rua);
+      formData.append("enderecoFiscalNumero", depForm.num);
+      formData.append("enderecoFiscalBairro", depForm.bairro);
+      formData.append("enderecoFiscalCidade", depForm.cidade);
+      formData.append("enderecoFiscalUf", depForm.uf);
+      formData.append("metodoRetiradaPadrao", depMethod);
+      formData.append("ativo", "on");
+
+      depPhones.forEach((p) => {
+        if (p.nome.trim() && p.telefone.trim()) {
+          formData.append("contatoTelefoneNome", p.nome);
+          formData.append("contatoTelefone", p.telefone);
+        }
+      });
+      depEmails.forEach((e) => {
+        if (e.trim()) formData.append("contatoEmail", e);
+      });
+
+      try {
+        const result = await saveDepositanteAction({ success: false, message: null }, formData);
+        if (!result.success) {
+          notify(result.message || "Erro ao salvar depositante");
+        } else {
+          setDepPageOpen(false);
+          notify("Depositante salvo com sucesso");
+        }
+      } catch (e) {
+        notify("Erro ao comunicar com o servidor");
+      }
+    });
+  };
+
+  const confirmDeleteDep = () => {
+    if (!confirmDel) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append("id", confirmDel.id);
+      try {
+        await deleteDepositanteAction(formData);
+        setConfirmDel(null);
+        notify("Depositante excluído com sucesso");
+      } catch (e) {
+        notify("Erro ao excluir depositante");
+      }
+    });
+  };
+
   const handlePanelCta = () => {
-    if (isRows && (tab === "depositantes" || tab === "usuarios" || tab === "transportadoras")) {
+    if (tab === "depositantes") {
+      openDepPage();
+    } else if (isRows && (tab === "usuarios" || tab === "transportadoras")) {
       openDrawer(tab);
     } else if (tab === "produtos") {
       const n = cats.length + 1;
@@ -1358,7 +1503,21 @@ export function InfinoosConfiguracoesView({
                       <div style={{ flex: 0.7, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "10px", position: "relative" }}>
                         <button
                           onClick={() => {
-                            if (tab === "depositantes") setDepOn((prev) => ({ ...prev, [r.id]: !isOn }));
+                            if (tab === "depositantes") {
+                              const newStatus = !isOn;
+                              setDepOn((prev) => ({ ...prev, [r.id]: newStatus }));
+                              startTransition(async () => {
+                                const fd = new FormData();
+                                fd.append("id", r.id);
+                                fd.append("ativo", newStatus ? "on" : "off");
+                                try {
+                                  await toggleDepositanteStatusAction(fd);
+                                } catch (e) {
+                                  setDepOn((prev) => ({ ...prev, [r.id]: !newStatus }));
+                                  notify("Erro ao alterar status");
+                                }
+                              });
+                            }
                             else if (tab === "usuarios") setUserOn((prev) => ({ ...prev, [r.id]: !isOn }));
                             else setCarrierOn((prev) => ({ ...prev, [r.id]: !isOn }));
                           }}
@@ -1427,7 +1586,11 @@ export function InfinoosConfiguracoesView({
                             <div
                               onClick={() => {
                                 setRowMenu(null);
-                                notify(`Editar "${r.name}"`);
+                                if (tab === "depositantes") {
+                                  openDepPage(r);
+                                } else {
+                                  notify(`Editar "${r.name}"`);
+                                }
                               }}
                               style={{
                                 padding: "12px 15px",
@@ -1442,8 +1605,12 @@ export function InfinoosConfiguracoesView({
                             <div
                               onClick={() => {
                                 setRowMenu(null);
-                                setRemoved((prev) => ({ ...prev, [r.id]: true }));
-                                notify(`"${r.name}" removido`);
+                                if (tab === "depositantes") {
+                                  setConfirmDel({ id: r.id, name: r.name });
+                                } else {
+                                  setRemoved((prev) => ({ ...prev, [r.id]: true }));
+                                  notify(`"${r.name}" removido`);
+                                }
                               }}
                               style={{
                                 padding: "12px 15px",
@@ -2382,6 +2549,172 @@ export function InfinoosConfiguracoesView({
             ✓
           </span>
           <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{toast}</span>
+        </div>
+      )}
+
+      {/* DELETE CONFIRM MODAL */}
+      {confirmDel && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+          <div onClick={() => setConfirmDel(null)} style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.6)", backdropFilter: "blur(4px)", animation: "paneIn 0.2s ease" }}></div>
+          <div style={{ position: "relative", width: "420px", maxWidth: "94vw", borderRadius: "18px", border: `1px solid ${t.border}`, background: t.cardBg, boxShadow: "0 26px 64px rgba(0,0,0,0.45)", padding: "26px", display: "flex", flexDirection: "column", gap: "16px", animation: "paneIn 0.26s ease" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <span style={{ width: "48px", height: "48px", flexShrink: 0, borderRadius: "13px", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(239,68,68,0.14)", color: "#EF4444" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>Excluir registro?</span>
+                <span style={{ fontSize: "13px", color: t.textSub, lineHeight: 1.4 }}>Esta ação não pode ser desfeita.</span>
+              </div>
+            </div>
+            <div style={{ padding: "14px 16px", borderRadius: "12px", background: t.softBg, border: `1px solid ${t.border}`, fontSize: "13.5px", fontWeight: 700 }}>{confirmDel.name}</div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button onClick={() => setConfirmDel(null)} style={{ flex: 1, height: "48px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
+              <button onClick={confirmDeleteDep} style={{ flex: 1, height: "48px", border: "none", borderRadius: "11px", background: "#EF4444", color: "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", boxShadow: "0 8px 22px rgba(239,68,68,0.35)" }}>{isPending ? "Excluindo..." : "Excluir"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW DEPOSITANTE FULL PAGE */}
+      {depPageOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 78, display: "flex", flexDirection: "column", background: t.appBg, animation: "paneIn 0.28s ease" }}>
+          <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg }}>
+            <button onClick={() => setDepPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: t.textSub }}><span>Configurações</span><span>›</span><span>Depositantes</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>{depEditId ? "Editar" : "Novo"}</span></div>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>{depEditId ? "Editar depositante" : "Novo depositante"}</span>
+            </div>
+            <button onClick={() => setDepPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
+            <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || isPending} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)" }}>{isPending ? "Salvando..." : "Salvar depositante"}</button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
+            <div style={{ width: "100%", maxWidth: "860px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Identificação</span>
+                <div style={{ display: "flex", gap: "22px", marginTop: "18px" }}>
+                  <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+                    {depLogo ? (
+                      <>
+                        <div style={{ width: "110px", height: "110px", borderRadius: "18px", background: `linear-gradient(135deg, ${pal[0]}, ${hex(pal[0], 0.6)})`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: "34px" }}>{initialsOf(depForm.fantasia || "NP")}</div>
+                        <button onClick={() => setDepLogo(false)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer" }}>Remover logotipo</button>
+                      </>
+                    ) : (
+                      <>
+                        <div onClick={() => setDepLogo(true)} style={{ width: "110px", height: "110px", borderRadius: "18px", border: `1.5px dashed ${t.border}`, background: t.inputBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", cursor: "pointer" }}>
+                          <span style={{ color: "#8B5CF6", display: "flex" }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: t.textSub, textAlign: "center", lineHeight: 1.3 }}>Logotipo</span>
+                        </div>
+                        <span style={{ fontSize: "11px", color: t.textSub, textAlign: "center", maxWidth: "120px", lineHeight: 1.4 }}>PNG ou JPG, quadrado</span>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 2fr", gap: "14px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Código</span>
+                      <input value={depForm.codigo} onChange={(e) => setDepForm((p) => ({ ...p, codigo: e.target.value }))} placeholder="DEP-000" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Nome fantasia</span>
+                      <input value={depForm.fantasia} onChange={(e) => setDepForm((p) => ({ ...p, fantasia: e.target.value }))} placeholder="Nome fantasia" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Razão social</span>
+                      <input value={depForm.razao} onChange={(e) => setDepForm((p) => ({ ...p, razao: e.target.value }))} placeholder="Razão social completa" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>CNPJ</span>
+                      <input value={depForm.cnpj} onChange={(e) => setDepForm((p) => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0001-00" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Endereço fiscal</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr", gap: "14px", marginTop: "18px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>CEP</span>
+                    <input value={depForm.cep} onChange={(e) => setDepForm((p) => ({ ...p, cep: e.target.value }))} placeholder="00000-000" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Logradouro</span>
+                    <input value={depForm.rua} onChange={(e) => setDepForm((p) => ({ ...p, rua: e.target.value }))} placeholder="Rua, avenida..." style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Número</span>
+                    <input value={depForm.num} onChange={(e) => setDepForm((p) => ({ ...p, num: e.target.value }))} placeholder="000" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Bairro</span>
+                    <input value={depForm.bairro} onChange={(e) => setDepForm((p) => ({ ...p, bairro: e.target.value }))} placeholder="Bairro" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Cidade</span>
+                    <input value={depForm.cidade} onChange={(e) => setDepForm((p) => ({ ...p, cidade: e.target.value }))} placeholder="Cidade" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    <span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>UF</span>
+                    <input value={depForm.uf} onChange={(e) => setDepForm((p) => ({ ...p, uf: e.target.value }))} placeholder="SP" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+                <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Telefones</span>
+                    <span onClick={() => setDepPhones([...depPhones, { nome: "", telefone: "" }])} style={{ fontSize: "12.5px", fontWeight: 700, color: "#8B5CF6", cursor: "pointer" }}>+ Adicionar</span>
+                  </div>
+                  {depPhones.map((p, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                      <input value={p.nome} onChange={(e) => setDepPhones((prev) => prev.map((item, idx) => (idx === i ? { ...item, nome: e.target.value } : item)))} placeholder="Nome (Ex: Principal)" style={{ flex: 0.8, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                      <input value={p.telefone} onChange={(e) => setDepPhones((prev) => prev.map((item, idx) => (idx === i ? { ...item, telefone: e.target.value } : item)))} placeholder="(00) 00000-0000" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                      <button onClick={() => setDepPhones((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px" }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>E-mails</span>
+                    <span onClick={() => setDepEmails([...depEmails, ""])} style={{ fontSize: "12.5px", fontWeight: 700, color: "#8B5CF6", cursor: "pointer" }}>+ Adicionar</span>
+                  </div>
+                  {depEmails.map((e, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                      <input value={e} onChange={(evt) => setDepEmails((prev) => prev.map((item, idx) => (idx === i ? evt.target.value : item)))} placeholder="contato@empresa.com" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
+                      <button onClick={() => setDepEmails((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px" }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Método de retirada</span>
+                  <span style={{ fontSize: "13px", color: t.textSub }}>Como a mercadoria deste depositante deixa o CD.</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+                  {[
+                    { id: "FEFO", name: "FEFO (Validade)", desc: "Primeiro que vence é o primeiro que sai. Essencial para controle de perecíveis." },
+                    { id: "FIFO", name: "FIFO (Entrada)", desc: "Primeiro que entra é o primeiro que sai. Foco na ordem cronológica de chegada." },
+                    { id: "LIFO", name: "LIFO (Recente)", desc: "Último que entra é o primeiro que sai. Raro, usado para otimização de espaço rápido." }
+                  ].map((m) => {
+                    const active = depMethod === m.id;
+                    const bColor = active ? "#8B5CF6" : t.border;
+                    const bgColor = active ? (dark ? "rgba(139,92,246,0.08)" : "rgba(139,92,246,0.04)") : "transparent";
+                    const tColor = active ? (dark ? "#A78BFA" : "#6D28D9") : t.text;
+                    return (
+                      <div key={m.id} onClick={() => setDepMethod(m.id)} style={{ display: "flex", flexDirection: "column", gap: "5px", padding: "16px", borderRadius: "13px", border: `1.5px solid ${bColor}`, background: bgColor, cursor: "pointer", transition: "all 0.16s ease" }}>
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: tColor }}>{m.name}</span>
+                        <span style={{ fontSize: "12px", color: t.textSub, lineHeight: 1.4 }}>{m.desc}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
