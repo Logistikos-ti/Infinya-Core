@@ -1451,10 +1451,10 @@ export function InfinoosConfiguracoesView({
                       {dep.cnpj}
                     </div>
                     
-                    <div style={{ width: '220px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px' }}>
+                    <div style={{ width: '250px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '14px', flexShrink: 0 }}>
                       {/* Status Pill */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isOn ? hex('#10B981', 0.14) : hex('#EF4444', 0.14), color: isOn ? '#10B981' : '#EF4444', padding: '6px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 700 }}>
-                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOn ? '#10B981' : '#EF4444' }} />
+                      <div style={{ width: '85px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: isOn ? hex('#10B981', 0.14) : hex('#EF4444', 0.14), color: isOn ? '#10B981' : '#EF4444', padding: '6px 0', borderRadius: '999px', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isOn ? '#10B981' : '#EF4444', flexShrink: 0 }} />
                         {isOn ? 'Ativo' : 'Inativo'}
                       </div>
                       
