@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import {
@@ -2673,7 +2674,7 @@ export function InfinoosConfiguracoesView({
       )}
 
       {/* DELETE CONFIRM MODAL */}
-      {confirmDel && (
+      {confirmDel && mounted && typeof document !== "undefined" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
           <div onClick={() => setConfirmDel(null)} style={{ position: "absolute", inset: 0, background: "rgba(6,10,20,0.6)", backdropFilter: "blur(4px)", animation: "paneIn 0.2s ease" }}></div>
           <div style={{ position: "relative", width: "420px", maxWidth: "94vw", borderRadius: "18px", border: `1px solid #E2E8F0`, background: '#FFFFFF', boxShadow: "0 26px 64px rgba(0,0,0,0.15)", padding: "26px", display: "flex", flexDirection: "column", gap: "16px", animation: "paneIn 0.26s ease" }}>
@@ -2711,11 +2712,12 @@ export function InfinoosConfiguracoesView({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* NEW DEPOSITANTE FULL PAGE */}
-      {depPageOpen && (
+      {depPageOpen && mounted && typeof document !== "undefined" && createPortal(
         <div style={{ position: "fixed", inset: 0, zIndex: 78, display: "flex", flexDirection: "column", background: t.appBg, animation: "paneIn 0.28s ease" }}>
           <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg }}>
             <button onClick={() => setDepPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}>‹</button>
@@ -2853,7 +2855,8 @@ export function InfinoosConfiguracoesView({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
