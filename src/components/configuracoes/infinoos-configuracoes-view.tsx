@@ -1465,9 +1465,15 @@ export function InfinoosConfiguracoesView({
                 return (
                   <div key={dep.id} style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: i < (initialDepositantes?.length || 0) - 1 ? `1px solid ${t.border}` : 'none', background: t.cardBg }}>
                     <div style={{ flex: 2, display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `linear-gradient(135deg, ${pal[i % pal.length]}, ${hex(pal[i % pal.length], 0.6)})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '15px', flexShrink: 0 }}>
-                        {initialsOf(dep.nome || "??")}
-                      </div>
+                      {dep.logoUrl ? (
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: t.inputBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                          <img src={dep.logoUrl} alt={dep.nome} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                      ) : (
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: `linear-gradient(135deg, ${pal[i % pal.length]}, ${hex(pal[i % pal.length], 0.6)})`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '15px', flexShrink: 0 }}>
+                          {initialsOf(dep.nome || "??")}
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
                         <span style={{ fontWeight: 700, color: t.text, fontSize: '14.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.nome || "Sem Nome"}</span>
                         <span style={{ color: t.textSub, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dep.cnpj || "CNPJ N/A"}</span>
