@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Check, CircleAlert, FileCode2, PackageCheck, Upload, X } from "lucide-react";
 import { createFullShipmentAction, type FullShipmentSubmissionState } from "@/app/(portal)/portal/full-actions";
@@ -68,7 +68,9 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("COLETA");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [items, setItems] = useState<XmlItem[]>([]);
+  const [itemLabelFiles, setItemLabelFiles] = useState<File[]>([]);
   const [itemLabelCount, setItemLabelCount] = useState(0);
+  const itemLabelsInputRef = useRef<HTMLInputElement>(null);
   const [state, action] = useActionState(createFullShipmentAction, { status: "idle" } as FullShipmentSubmissionState);
 
   useEffect(() => {
@@ -85,7 +87,9 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
   async function readXml(file: File | null) {
     setXmlFile(file);
     setItems([]);
+    setItemLabelFiles([]);
     setItemLabelCount(0);
+    if (itemLabelsInputRef.current) itemLabelsInputRef.current.value = "";
     if (!file) return;
     const text = await file.text();
     const doc = new DOMParser().parseFromString(text, "application/xml");
@@ -95,6 +99,25 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
       return { key: `${value("cProd")}-${index}`, code: value("cProd") || `Item ${index + 1}`, name: value("xProd") || `Produto ${index + 1}`, quantity: value("qCom") || "1" };
     }).filter((item) => item.name);
     setItems(rows);
+  }
+
+  function addItemLabelFiles(selected: FileList | null) {
+    const incoming = Array.from(selected ?? []);
+    const existingKeys = new Set(itemLabelFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+    const nextFiles = [...itemLabelFiles, ...incoming.filter((file) => !existingKeys.has(`${file.name}:${file.size}:${file.lastModified}`))];
+    setItemLabelFiles(nextFiles);
+    setItemLabelCount(nextFiles.length);
+    if (itemLabelsInputRef.current) {
+      const transfer = new DataTransfer();
+      nextFiles.forEach((file) => transfer.items.add(file));
+      itemLabelsInputRef.current.files = transfer.files;
+    }
+  }
+
+  function clearItemLabelFiles() {
+    setItemLabelFiles([]);
+    setItemLabelCount(0);
+    if (itemLabelsInputRef.current) itemLabelsInputRef.current.value = "";
   }
 
   return <div className="fixed inset-0 z-[90] flex justify-end">
@@ -113,7 +136,7 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
           <Attachment field="entryAuthorization" label="Autorização de entrada *" />
           <Attachment field="volumeLabel" label="Etiqueta de volume *" />
           {deliveryMode === "TRANSPORTADORA" ? <Attachment field="carrierLabel" label="Etiqueta da transportadora *" /> : null}
-          {minimumLabels.length ? <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[.03]"><div><h3 className="font-bold">Etiquetas dos produtos *</h3><p className="mt-1 text-xs text-slate-500">Envie todas as etiquetas em lote: {items.length} item(ns) identificado(s) exigem exatamente {items.length} arquivo(s). A quantidade do item não multiplica a exigência.</p></div><label htmlFor="full-item-labels" className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${itemLabelsComplete ? "border-emerald-400 bg-emerald-50 text-emerald-800 hover:border-emerald-500 dark:border-emerald-500/60 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:border-emerald-400" : itemLabelsPartial ? "border-amber-400 bg-amber-50 text-amber-800 hover:border-amber-500 dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:border-amber-400" : itemLabelsInvalid ? "border-rose-400 bg-rose-50/60 text-rose-800 hover:border-rose-500 dark:border-rose-500/60 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:border-rose-400" : "border-rose-400 bg-rose-50/60 text-rose-800 hover:border-rose-500 dark:border-rose-500/60 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:border-rose-400"}`}><span className="flex min-w-0 items-center gap-3">{itemLabelsComplete ? <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" /> : itemLabelsPartial ? <CircleAlert className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" /> : <Upload className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-300" />}<span className="min-w-0"><span className="block">{itemLabelsComplete ? "Arquivo anexado" : itemLabelsPartial ? "Anexo incompleto" : "Anexar arquivo"}</span><span className={`mt-1 block text-xs font-semibold ${itemLabelsComplete ? "text-emerald-600 dark:text-emerald-300" : itemLabelsPartial ? "text-amber-700 dark:text-amber-300" : "text-rose-600 dark:text-rose-300"}`}>{itemLabelsComplete ? `${itemLabelCount}/${items.length} arquivos anexados` : itemLabelsPartial ? `${itemLabelCount}/${items.length} arquivos anexados · Faltam ${items.length - itemLabelCount}` : itemLabelsInvalid ? `${itemLabelCount}/${items.length} arquivos selecionados · Remova ${itemLabelCount - items.length}` : `Anexe os ${items.length} arquivos`}</span></span></span><input id="full-item-labels" name="itemLabels" required multiple type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => setItemLabelCount(event.target.files?.length ?? 0)} className="sr-only" /></label><div className="space-y-1 text-xs text-slate-500">{items.map((item, index) => <div key={item.key} className="flex items-center justify-between gap-3"><span className="truncate">{index + 1}. {item.name}</span><span className="shrink-0">{item.quantity} un</span></div>)}</div></section> : null}
+          {minimumLabels.length ? <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[.03]"><div><h3 className="font-bold">Etiquetas dos produtos *</h3><p className="mt-1 text-xs text-slate-500">Envie todas as etiquetas em lote: {items.length} item(ns) identificado(s) exigem exatamente {items.length} arquivo(s). A quantidade do item não multiplica a exigência.</p></div><label htmlFor="full-item-labels" className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-4 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${itemLabelsComplete ? "border-emerald-400 bg-emerald-50 text-emerald-800 hover:border-emerald-500 dark:border-emerald-500/60 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:border-emerald-400" : itemLabelsPartial ? "border-amber-400 bg-amber-50 text-amber-800 hover:border-amber-500 dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:border-amber-400" : "border-rose-400 bg-rose-50/60 text-rose-800 hover:border-rose-500 dark:border-rose-500/60 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:border-rose-400"}`}><span className="flex min-w-0 items-center gap-3">{itemLabelsComplete ? <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" /> : itemLabelsPartial ? <CircleAlert className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" /> : <Upload className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-300" />}<span className="min-w-0"><span className="block">{itemLabelsComplete ? "Arquivo anexado" : itemLabelsPartial ? "Anexo incompleto" : "Anexar arquivo"}</span><span className={`mt-1 block text-xs font-semibold ${itemLabelsComplete ? "text-emerald-600 dark:text-emerald-300" : itemLabelsPartial ? "text-amber-700 dark:text-amber-300" : "text-rose-600 dark:text-rose-300"}`}>{itemLabelsComplete ? `${itemLabelCount}/${items.length} arquivos anexados` : itemLabelsPartial ? `${itemLabelCount}/${items.length} arquivos anexados · Faltam ${items.length - itemLabelCount}` : itemLabelsInvalid ? `${itemLabelCount}/${items.length} arquivos selecionados` : `Anexe os ${items.length} arquivos`}</span></span></span><input ref={itemLabelsInputRef} id="full-item-labels" name="itemLabels" required multiple type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event) => addItemLabelFiles(event.target.files)} className="sr-only" /></label>{itemLabelCount > 0 ? <button type="button" onClick={clearItemLabelFiles} className="text-xs font-bold text-rose-600 transition hover:text-rose-700 hover:underline dark:text-rose-300 dark:hover:text-rose-200">Excluir todos os arquivos</button> : null}<div className="space-y-1 text-xs text-slate-500">{items.map((item, index) => <div key={item.key} className="flex items-center justify-between gap-3"><span className="truncate">{index + 1}. {item.name}</span><span className="shrink-0">{item.quantity} un</span></div>)}</div></section> : null}
           <label className="block text-xs font-bold text-slate-500">Observações<textarea name="observacoes" className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-white" /></label>
         </div>
         <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10"><button onClick={onClose} type="button" className="h-12 rounded-xl border border-slate-200 px-5 text-sm font-bold dark:border-white/10">Cancelar</button><SubmitButton /></footer>
