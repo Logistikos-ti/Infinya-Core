@@ -219,8 +219,8 @@ export function InfinoosConfiguracoesView({
   const [nextRow, setNextRow] = useState(1);
   const [addrTypesExtra, setAddrTypesExtra] = useState<Array<{ name: string; color: string; count: number }>>([]);
 
-  // Depositantes Modal / Server Actions
   const [isSaving, setIsSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [depPageOpen, setDepPageOpen] = useState(false);
   const [depEditId, setDepEditId] = useState<string | null>(null);
   const [depLogo, setDepLogo] = useState<string | null>(null);
@@ -712,9 +712,13 @@ export function InfinoosConfiguracoesView({
       formData.append("isSpa", "true");
       formData.append("id", confirmDel.id);
       try {
-        await deleteDepositanteAction(formData);
-        setConfirmDel(null);
-        notify("Depositante excluído com sucesso");
+        const result = await deleteDepositanteAction(formData);
+        if (result?.success === false) {
+          notify(result.message || "Erro ao excluir depositante");
+        } else {
+          setConfirmDel(null);
+          notify("Depositante excluído com sucesso");
+        }
       } catch (e) {
         notify("Erro ao excluir depositante");
       }
