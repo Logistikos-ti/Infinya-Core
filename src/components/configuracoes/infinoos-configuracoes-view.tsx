@@ -218,10 +218,13 @@ export function InfinoosConfiguracoesView({
   const [addrTypesExtra, setAddrTypesExtra] = useState<Array<{ name: string; color: string; count: number }>>([]);
 
   // Depositantes Modal / Server Actions
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
   const [depPageOpen, setDepPageOpen] = useState(false);
   const [depEditId, setDepEditId] = useState<string | null>(null);
   const [depLogo, setDepLogo] = useState<string | null>(null);
+  const [depLogoFile, setDepLogoFile] = useState<File | null>(null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
+  const [currentLogoStoragePath, setCurrentLogoStoragePath] = useState<string | null>(null);
   const [depForm, setDepForm] = useState({
     codigo: "",
     fantasia: "",
@@ -595,6 +598,9 @@ export function InfinoosConfiguracoesView({
 
       setDepPageOpen(true);
       setDepLogo(raw?.logoUrl || null);
+      setCurrentLogoUrl(raw?.logoUrl || null);
+      setCurrentLogoStoragePath(parsedConfig?.logoStoragePath || null);
+      setDepLogoFile(null);
       setDepEditId(d.id);
       setDepForm({
         codigo: raw?.codigo || "",
@@ -619,6 +625,9 @@ export function InfinoosConfiguracoesView({
     } else {
       setDepPageOpen(true);
       setDepLogo(null);
+      setDepLogoFile(null);
+      setCurrentLogoUrl(null);
+      setCurrentLogoStoragePath(null);
       setDepEditId(null);
       setDepForm({
         codigo: "",
@@ -638,10 +647,11 @@ export function InfinoosConfiguracoesView({
     }
   };
 
-  const submitDepPage = () => {
-    if (!depForm.fantasia.trim() || !depForm.cnpj.trim()) return;
+  const submitDepPage = async () => {
+    if (!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim()) return;
 
-    startTransition(async () => {
+    setIsSaving(true);
+    try {
       const formData = new FormData();
       if (depEditId) formData.append("id", depEditId);
       formData.append("codigo", depForm.codigo || "DEP-" + Date.now().toString().slice(-4));
@@ -670,18 +680,26 @@ export function InfinoosConfiguracoesView({
         if (e.trim()) formData.append("contatoEmail", e);
       });
 
-      try {
-        const result = await saveDepositanteAction({ success: false, message: null }, formData);
-        if (!result.success) {
-          notify(result.message || "Erro ao salvar depositante");
-        } else {
-          setDepPageOpen(false);
-          notify("Depositante salvo com sucesso");
-        }
-      } catch (e) {
-        notify("Erro ao comunicar com o servidor");
+      if (currentLogoUrl) formData.append("currentLogoUrl", currentLogoUrl);
+      if (currentLogoStoragePath) formData.append("currentLogoStoragePath", currentLogoStoragePath);
+      if (depLogoFile) {
+        formData.append("logoFile", depLogoFile);
+      } else if (!depLogo && currentLogoUrl) {
+        formData.append("removeLogo", "on");
       }
-    });
+
+      const result = await saveDepositanteAction({ success: false, message: null }, formData);
+      if (!result.success) {
+        notify(result.message || "Erro ao salvar depositante");
+      } else {
+        setDepPageOpen(false);
+        notify("Depositante salvo com sucesso");
+      }
+    } catch (e) {
+      notify("Erro ao comunicar com o servidor");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const confirmDeleteDep = () => {
@@ -2730,8 +2748,8 @@ export function InfinoosConfiguracoesView({
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>{depEditId ? "Editar depositante" : "Novo depositante"}</span>
             </div>
             <button onClick={() => setDepPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>Cancelar</button>
-            <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || isPending} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {isPending ? <MobileButtonSpinner color="#FFFFFF" /> : "Salvar depositante"}
+            <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim() || isSaving} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim() || !depForm.razao.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isSaving ? <MobileButtonSpinner color="#FFFFFF" /> : "Salvar depositante"}
             </button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
@@ -2745,7 +2763,7 @@ export function InfinoosConfiguracoesView({
                         <div style={{ width: "110px", height: "110px", borderRadius: "18px", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: t.inputBg, border: `1px solid ${t.border}` }}>
                           <img src={depLogo} alt="Logotipo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         </div>
-                        <button onClick={() => setDepLogo(null)} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer" }}>Remover logotipo</button>
+                        <button onClick={() => { setDepLogo(null); setDepLogoFile(null); }} style={{ height: "34px", padding: "0 14px", borderRadius: "9px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "12.5px", fontWeight: 700, cursor: "pointer" }}>Remover logotipo</button>
                       </>
                     ) : (
                       <>
@@ -2753,6 +2771,7 @@ export function InfinoosConfiguracoesView({
                           <input type="file" accept="image/png, image/jpeg" style={{ display: "none" }} onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
                               setDepLogo(URL.createObjectURL(e.target.files[0]));
+                              setDepLogoFile(e.target.files[0]);
                             }
                           }} />
                           <span style={{ color: "#8B5CF6", display: "flex" }}>
