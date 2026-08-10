@@ -232,7 +232,7 @@ export function InfinoosConfiguracoesView({
     cidade: "",
     uf: "",
   });
-  const [depPhones, setDepPhones] = useState([{ nome: "", telefone: "" }]);
+  const [depPhones, setDepPhones] = useState<string[]>([""]);
   const [depEmails, setDepEmails] = useState([""]);
   const [depMethod, setDepMethod] = useState("FEFO");
   const [confirmDel, setConfirmDel] = useState<{ id: string; name: string } | null>(null);
@@ -630,7 +630,7 @@ export function InfinoosConfiguracoesView({
         cidade: "",
         uf: "",
       });
-      setDepPhones([{ nome: "", telefone: "" }]);
+      setDepPhones([""]);
       setDepEmails([""]);
       setDepMethod("FEFO");
     }
@@ -2718,12 +2718,12 @@ export function InfinoosConfiguracoesView({
       {depPageOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 78, display: "flex", flexDirection: "column", background: t.appBg, animation: "paneIn 0.28s ease" }}>
           <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg }}>
-            <button onClick={() => setDepPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <button onClick={() => setDepPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}>‹</button>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: t.textSub }}><span>Configurações</span><span>›</span><span>Depositantes</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>{depEditId ? "Editar" : "Novo"}</span></div>
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>{depEditId ? "Editar depositante" : "Novo depositante"}</span>
             </div>
-            <button onClick={() => setDepPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
+            <button onClick={() => setDepPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>Cancelar</button>
             <button onClick={submitDepPage} disabled={!depForm.fantasia.trim() || !depForm.cnpj.trim() || isPending} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "not-allowed" : "pointer", boxShadow: (!depForm.fantasia.trim() || !depForm.cnpj.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)" }}>{isPending ? "Salvando..." : "Salvar depositante"}</button>
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
@@ -2739,7 +2739,7 @@ export function InfinoosConfiguracoesView({
                       </>
                     ) : (
                       <>
-                        <div onClick={() => setDepLogo(true)} style={{ width: "110px", height: "110px", borderRadius: "18px", border: `1.5px dashed ${t.border}`, background: t.inputBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", cursor: "pointer" }}>
+                        <div onClick={() => setDepLogo(true)} style={{ width: "110px", height: "110px", borderRadius: "18px", border: `1.5px dashed ${t.border}`, background: t.inputBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "7px", cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>
                           <span style={{ color: "#8B5CF6", display: "flex" }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                           </span>
@@ -2804,13 +2804,12 @@ export function InfinoosConfiguracoesView({
                 <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "24px", display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Telefones</span>
-                    <span onClick={() => setDepPhones([...depPhones, { nome: "", telefone: "" }])} style={{ fontSize: "12.5px", fontWeight: 700, color: "#8B5CF6", cursor: "pointer" }}>+ Adicionar</span>
+                    <span onClick={() => setDepPhones([...depPhones, ""])} style={{ fontSize: "12.5px", fontWeight: 700, color: "#8B5CF6", cursor: "pointer" }}>+ Adicionar</span>
                   </div>
                   {depPhones.map((p, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                      <input value={p.nome} onChange={(e) => setDepPhones((prev) => prev.map((item, idx) => (idx === i ? { ...item, nome: e.target.value } : item)))} placeholder="Nome (Ex: Principal)" style={{ flex: 0.8, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
-                      <input value={p.telefone} onChange={(e) => setDepPhones((prev) => prev.map((item, idx) => (idx === i ? { ...item, telefone: e.target.value } : item)))} placeholder="(00) 00000-0000" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
-                      <button onClick={() => setDepPhones((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px" }}>✕</button>
+                      <input value={p} onChange={(e) => setDepPhones((prev) => prev.map((item, idx) => (idx === i ? e.target.value : item)))} placeholder="(00) 00000-0000" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border} />
+                      <button onClick={() => setDepPhones((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.borderColor = '#EF4444'; }} onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -2821,8 +2820,8 @@ export function InfinoosConfiguracoesView({
                   </div>
                   {depEmails.map((e, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                      <input value={e} onChange={(evt) => setDepEmails((prev) => prev.map((item, idx) => (idx === i ? evt.target.value : item)))} placeholder="contato@empresa.com" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} />
-                      <button onClick={() => setDepEmails((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px" }}>✕</button>
+                      <input value={e} onChange={(evt) => setDepEmails((prev) => prev.map((item, idx) => (idx === i ? evt.target.value : item)))} placeholder="contato@empresa.com" style={{ flex: 1, height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} onMouseEnter={(evt) => evt.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(evt) => evt.currentTarget.style.borderColor = t.border} />
+                      <button onClick={() => setDepEmails((prev) => prev.filter((_, idx) => idx !== i))} style={{ width: "40px", height: "46px", flexShrink: 0, borderRadius: "10px", border: `1px solid ${t.border}`, background: "transparent", color: t.textSub, cursor: "pointer", fontSize: "14px", transition: "all 0.2s" }} onMouseEnter={(evt) => { evt.currentTarget.style.color = '#EF4444'; evt.currentTarget.style.borderColor = '#EF4444'; }} onMouseLeave={(evt) => { evt.currentTarget.style.color = t.textSub; evt.currentTarget.style.borderColor = t.border; }}>✕</button>
                     </div>
                   ))}
                 </div>
