@@ -1400,9 +1400,12 @@ export function InfinoosConfiguracoesView({
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <button 
                   onClick={() => setTab("resumo")}
-                  style={{ width: '40px', height: '40px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.text, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                  title="Voltar para Resumo"
+                  style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '20px', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.softBg; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = t.inputBg; }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                  ‹
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <h1 style={{ fontSize: '26px', fontWeight: 800, color: t.text, margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Depositantes</h1>
