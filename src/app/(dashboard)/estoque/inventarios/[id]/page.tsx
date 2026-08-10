@@ -9,7 +9,6 @@ import {
   ScanSearch,
   TriangleAlert,
 } from "lucide-react";
-import { CycleCountAdjustmentApproveButton } from "@/components/estoque/cycle-count-adjustment-approve-button";
 import { CycleCountCompleteButton } from "@/components/estoque/cycle-count-complete-button";
 import { CycleCountItemForm } from "@/components/estoque/cycle-count-item-form";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
@@ -121,8 +120,8 @@ export default async function EstoqueInventarioDetalhePage({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Itens da contagem</h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Registre a quantidade contada em cada saldo. Quando houver divergência, a segunda
-          conferência fica disponível para confirmar o valor final antes do ajuste.
+          Registre a quantidade contada em cada saldo. Quando houver divergência, o saldo é
+          atualizado automaticamente e a ocorrência fica disponível para consulta administrativa.
         </p>
 
         <div className="mt-5 space-y-4">
@@ -142,7 +141,9 @@ export default async function EstoqueInventarioDetalhePage({
                   {item.status}
                 </span>
                 <span className="rounded-full bg-fuchsia-50 px-2.5 py-1 text-xs font-medium text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300">
-                  {item.adjustmentStatus}
+                  {item.adjustmentStatus === "APLICADO_AUTO"
+                    ? "Aplicado automaticamente"
+                    : item.adjustmentStatus}
                 </span>
                 {item.secondCountedQuantity !== "-" ? (
                   <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
@@ -225,8 +226,8 @@ export default async function EstoqueInventarioDetalhePage({
                     <p>{item.observations}</p>
                     <div className="mt-2 grid gap-2 text-xs text-slate-500 dark:text-slate-400 md:grid-cols-2">
                       <p>Status do ajuste: {item.adjustmentStatus}</p>
-                      <p>Aprovado por: {item.adjustmentApprovedBy}</p>
-                      <p>Aprovado em: {item.adjustmentApprovedAt}</p>
+                      <p>Autorização manual: não necessária</p>
+                      <p>Aplicação automática: {item.adjustmentAppliedAt}</p>
                       <p>Aplicado em: {item.adjustmentAppliedAt}</p>
                     </div>
                     {item.adjustmentNotes !== "Sem observações de ajuste." ? (
@@ -234,14 +235,10 @@ export default async function EstoqueInventarioDetalhePage({
                     ) : null}
                   </div>
 
-                  {item.status === "DIVERGENTE" && isAdminUser(user) ? (
-                    <CycleCountAdjustmentApproveButton
-                      itemId={item.id}
-                      adjustmentStatus={item.adjustmentStatus}
-                      divergence={
-                        item.secondCountedQuantity !== "-" ? item.secondDivergence : item.divergence
-                      }
-                    />
+                  {item.status === "DIVERGENTE" ? (
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+                      Ajuste aplicado automaticamente após a contagem. Esta tela é somente para consulta.
+                    </div>
                   ) : null}
                 </div>
               )}
