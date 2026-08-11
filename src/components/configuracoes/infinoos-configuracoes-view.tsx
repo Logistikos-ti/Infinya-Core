@@ -950,25 +950,14 @@ export function InfinoosConfiguracoesView({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               {tab !== "resumo" && (
-                <button
+                <button 
                   onClick={() => setTab("resumo")}
                   title="Voltar para Resumo"
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    flexShrink: 0,
-                    borderRadius: "11px",
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    cursor: "pointer",
-                    fontSize: "20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}
                 >
-                  ‹
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                 </button>
               )}
               <h2
