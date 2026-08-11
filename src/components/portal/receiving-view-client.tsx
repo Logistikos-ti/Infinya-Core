@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, FileText, Plus, Trash2, Upload, X } from "lucide-react";
+import { Check, Clock, FileText, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import {
@@ -72,6 +72,132 @@ const inputClassName =
 
 function emptyItemLine(): ItemLine {
   return { key: crypto.randomUUID(), produtoId: "", quantidade: "" };
+}
+
+const timeOptions = [
+  "06:00",
+  "06:30",
+  "07:00",
+  "07:30",
+  "08:00",
+  "08:30",
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00",
+  "18:30",
+];
+
+function TimePickerInput({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  return (
+    <div className="space-y-1" ref={containerRef}>
+      <span className="block text-xs font-medium tracking-wide text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+      <input type="hidden" name={name} value={value} />
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-left text-sm text-slate-700 shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition hover:border-cyan-300 hover:shadow-[0_12px_35px_rgba(34,211,238,0.10)] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:shadow-[0_12px_35px_rgba(34,211,238,0.12)] dark:focus:ring-cyan-900/40"
+      >
+        <span className="inline-flex items-center gap-3">
+          <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+          <span className={value ? "" : "text-slate-400 dark:text-slate-500"}>
+            {value || "Selecionar horário"}
+          </span>
+        </span>
+      </button>
+
+      {open ? (
+        <div className="relative">
+          <div className="absolute z-30 mt-2 max-h-72 w-[260px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.18)] dark:border-slate-800 dark:bg-slate-950">
+            <div className="grid grid-cols-3 gap-2">
+              {timeOptions.map((option) => {
+                const selected = option === value;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      onChange(option);
+                      setOpen(false);
+                    }}
+                    className={`h-10 rounded-xl text-sm font-semibold transition ${
+                      selected
+                        ? "bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 text-white shadow-[0_10px_25px_rgba(59,130,246,0.35)]"
+                        : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              className="mt-3 h-10 w-full rounded-xl border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              Limpar horário
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function ReceivingViewClient({ receiving, depositanteId, products }: ReceivingViewClientProps) {
@@ -658,15 +784,12 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         onChange={(value) => updateField("eta", value)}
                         compact
                       />
-                      <label className="space-y-1.5 text-xs text-slate-500">
-                        Horário previsto
-                        <input
-                          type="time"
-                          className={inputClassName}
-                          value={form.hour}
-                          onChange={(event) => updateField("hour", event.target.value)}
-                        />
-                      </label>
+                      <TimePickerInput
+                        label="Horário previsto"
+                        name="horarioPrevistoXml"
+                        value={form.hour}
+                        onChange={(value) => updateField("hour", value)}
+                      />
                     </div>
                   </section>
 
@@ -774,17 +897,12 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         onChange={(value) => updateField("eta", value)}
                         compact
                       />
-                      <label className="space-y-1.5 text-xs text-slate-500">
-                        Horário previsto
-                        <input
-                          type="time"
-                          className={inputClassName}
-                          value={form.hour}
-                          onChange={(event) =>
-                            updateField("hour", event.target.value)
-                          }
-                        />
-                      </label>
+                      <TimePickerInput
+                        label="Horário previsto"
+                        name="horarioPrevisto"
+                        value={form.hour}
+                        onChange={(value) => updateField("hour", value)}
+                      />
                     </div>
                   </section>
 
