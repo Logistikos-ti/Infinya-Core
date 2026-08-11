@@ -35,6 +35,10 @@ export type GeneralInventoryItem = {
   atribuidoNome: string | null;
   contadoPor: string | null;
   contadoEm: string | null;
+  /** Address codes this product currently sits at (as captured when the
+   * inventory was opened) -- used by the camera scan flow to validate the
+   * "bipe o endereço" step against any of the product's real locations. */
+  enderecos: string[];
 };
 
 export type GeneralInventoryDetail = {
@@ -219,7 +223,7 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
 
   const { data: rows, error: itemError } = await supabase
     .from("inventarios_gerais_itens")
-    .select("id, produto_id, nome_produto, sku, codigo_externo, codigo_interno, codigo_externo_pack, imagem_url, quantidade_sistema, quantidade_contada, divergencia, status, atribuido_a, contado_por, contado_em")
+    .select("id, produto_id, nome_produto, sku, codigo_externo, codigo_interno, codigo_externo_pack, imagem_url, quantidade_sistema, quantidade_contada, divergencia, status, atribuido_a, contado_por, contado_em, estoque_snapshot")
     .eq("inventario_id", id)
     .order("nome_produto");
 
@@ -231,24 +235,51 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
     : { data: [] };
   const names = new Map((users ?? []).map((user) => [user.id, user.nome]));
 
-  const items = (rows ?? []).map((row) => ({
-    id: row.id,
-    produtoId: row.produto_id,
-    nome: row.nome_produto,
-    sku: row.sku ?? "Sem SKU",
-    codigoExterno: row.codigo_externo,
-    codigoInterno: row.codigo_interno,
-    codigoExternoPack: row.codigo_externo_pack,
-    imagemUrl: row.imagem_url,
-    quantidadeSistema: Number(row.quantidade_sistema ?? 0),
-    quantidadeContada: row.quantidade_contada === null ? null : Number(row.quantidade_contada ?? 0),
-    divergencia: Number(row.divergencia ?? 0),
-    status: row.status as GeneralInventoryItem["status"],
-    atribuidoA: row.atribuido_a,
-    atribuidoNome: row.atribuido_a ? names.get(row.atribuido_a) ?? "Outro operador" : null,
-    contadoPor: row.contado_por ? names.get(row.contado_por) ?? "Operador" : null,
-    contadoEm: row.contado_em ? formatDateTimePtBr(row.contado_em) : null,
-  }));
+  const enderecoIds = Array.from(
+    new Set(
+      (rows ?? []).flatMap((row) => {
+        const snapshot = Array.isArray(row.estoque_snapshot) ? row.estoque_snapshot : [];
+        return snapshot
+          .map((entry: { endereco_id?: string | null }) => entry?.endereco_id)
+          .filter((value): value is string => Boolean(value));
+      }),
+    ),
+  );
+  const { data: enderecos } = enderecoIds.length
+    ? await supabase.from("enderecos").select("id, codigo").in("id", enderecoIds)
+    : { data: [] };
+  const enderecoCodesById = new Map((enderecos ?? []).map((endereco) => [endereco.id, endereco.codigo]));
+
+  const items = (rows ?? []).map((row) => {
+    const snapshot = Array.isArray(row.estoque_snapshot) ? row.estoque_snapshot : [];
+    const enderecoCodes = Array.from(
+      new Set(
+        snapshot
+          .map((entry: { endereco_id?: string | null }) => (entry?.endereco_id ? enderecoCodesById.get(entry.endereco_id) : null))
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+
+    return {
+      id: row.id,
+      produtoId: row.produto_id,
+      nome: row.nome_produto,
+      sku: row.sku ?? "Sem SKU",
+      codigoExterno: row.codigo_externo,
+      codigoInterno: row.codigo_interno,
+      codigoExternoPack: row.codigo_externo_pack,
+      imagemUrl: row.imagem_url,
+      quantidadeSistema: Number(row.quantidade_sistema ?? 0),
+      quantidadeContada: row.quantidade_contada === null ? null : Number(row.quantidade_contada ?? 0),
+      divergencia: Number(row.divergencia ?? 0),
+      status: row.status as GeneralInventoryItem["status"],
+      atribuidoA: row.atribuido_a,
+      atribuidoNome: row.atribuido_a ? names.get(row.atribuido_a) ?? "Outro operador" : null,
+      contadoPor: row.contado_por ? names.get(row.contado_por) ?? "Operador" : null,
+      contadoEm: row.contado_em ? formatDateTimePtBr(row.contado_em) : null,
+      enderecos: enderecoCodes,
+    };
+  });
 
   const depositanteRelation = header.depositante as unknown as { nome?: string } | Array<{ nome?: string }> | null;
 
