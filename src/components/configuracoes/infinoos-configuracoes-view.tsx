@@ -749,7 +749,7 @@ export function InfinoosConfiguracoesView({
       openDepPage();
     } else if (tab === "usuarios") {
       setUserEditId(null);
-      setUserForm({ nome: "", idUsuario: "", email: "", senha: "", papel: "Operador", depositante: "Todos os depositantes", permissoes: { recebimento: true, estoque: true, expedicao: true } });
+      setUserForm({ nome: "", idUsuario: "", email: "", senha: "", papel: "Operador", depositante: "Todos os depositantes", permissoes: defaultPerms });
       setUserPageOpen(true);
     } else if (isRows && tab === "transportadoras") {
       openDrawer(tab);
@@ -1660,7 +1660,7 @@ export function InfinoosConfiguracoesView({
                             senha: "", // Intentionally blank for editing
                             papel: item.perfil === "ADMIN" ? "Administrador" : item.perfil === "TI" ? "TI" : item.perfil === "DEPOSITANTE" ? "Depositante" : "Operador",
                             depositante: "Todos os depositantes", // We can default or try to parse
-                            permissoes: { recebimento: true, estoque: true, expedicao: true } // Defaults
+                            permissoes: defaultPerms // Defaults
                           });
                           setUserPageOpen(true);
                         }}
@@ -3085,7 +3085,7 @@ export function InfinoosConfiguracoesView({
               <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
                 <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Papel / permissão</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                  {["Operador", "Conferente", "Supervisor", "Gestor", "Administrador"].map(role => {
+                  {["Operador", "Conferente", "Supervisor", "Gestor", "Administrador", "TI"].map(role => {
                     const isSel = userForm.papel === role;
                     return <div key={role} onClick={() => setUserForm(p => ({ ...p, papel: role }))} style={{ height: "38px", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${isSel ? "#10B981" : t.border}`, background: isSel ? (dark ? "rgba(16, 185, 129, 0.15)" : "#D1FAE5") : "transparent", color: isSel ? (dark ? "#34D399" : "#047857") : t.textSub, fontSize: "13px", fontWeight: isSel ? 700 : 500, cursor: "pointer", transition: "all 0.2s" }}>{role}</div>;
                   })}
@@ -3094,7 +3094,7 @@ export function InfinoosConfiguracoesView({
               <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Depositante vinculado</span><span style={{ fontSize: "13px", color: t.textSub }}>Selecione o depositante ou o acesso a todos.</span></div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                  {["Todos os depositantes", "Loja Alpha", "BemStar", "CasaMais", "John Skull"].map(dep => {
+                  {["Todos os depositantes", ...(initialDepositantes?.map(d => d.nome) || [])].map(dep => {
                     const isSel = userForm.depositante === dep;
                     return <div key={dep} onClick={() => setUserForm(p => ({ ...p, depositante: dep }))} style={{ height: "38px", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${isSel ? "#8B5CF6" : t.border}`, background: isSel ? (dark ? "rgba(139, 92, 246, 0.15)" : "#EDE9FE") : "transparent", color: isSel ? (dark ? "#A78BFA" : "#6D28D9") : t.textSub, fontSize: "13px", fontWeight: isSel ? 700 : 500, cursor: "pointer", transition: "all 0.2s" }}>{dep}</div>;
                   })}
