@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -48,6 +48,7 @@ export function DanfeRomaneioModal({
     carrierName: string;
     totalOrders: number;
   } | null>(null);
+  const [autoReturnSeconds, setAutoReturnSeconds] = useState(5);
 
   const romaneioTargetUrl = redirectRomaneioUrl || (isDesktop ? "/romaneio" : "/m/romaneio");
   const conferenceQueueUrl =
@@ -60,11 +61,44 @@ export function DanfeRomaneioModal({
       setScanValue("");
       setErrorMsg(null);
       setResult(null);
+      setAutoReturnSeconds(5);
       setTimeout(() => {
         inputRef.current?.focus();
       }, 200);
     }
   }, [isOpen]);
+
+  const returnToConferenceQueue = useCallback(() => {
+    onClose();
+    router.replace(conferenceQueueUrl);
+    router.refresh();
+  }, [conferenceQueueUrl, onClose, router]);
+
+  useEffect(() => {
+    if (!isOpen || !result) return;
+
+    setAutoReturnSeconds(5);
+    const countdown = window.setInterval(() => {
+      setAutoReturnSeconds((current) => Math.max(current - 1, 0));
+    }, 1000);
+    const timeout = window.setTimeout(() => {
+      returnToConferenceQueue();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(countdown);
+      window.clearTimeout(timeout);
+    };
+  }, [isOpen, result, returnToConferenceQueue]);
+
+  function handleClose() {
+    if (isProcessing) return;
+    if (result) {
+      returnToConferenceQueue();
+      return;
+    }
+    onClose();
+  }
 
   if (!isOpen) return null;
 
@@ -117,9 +151,7 @@ export function DanfeRomaneioModal({
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
-        onClick={() => {
-          if (!isProcessing) onClose();
-        }}
+        onClick={handleClose}
       />
 
       {/* Modal Card */}
@@ -139,7 +171,7 @@ export function DanfeRomaneioModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isProcessing}
             className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-white/10 hover:text-white"
           >
@@ -166,6 +198,9 @@ export function DanfeRomaneioModal({
                 <p className="mt-1 text-sm font-semibold text-amber-300">
                   {result.romaneioCodigo}
                 </p>
+                <p className="mt-2 text-xs font-semibold text-slate-400">
+                  Voltando para a fila de conferência em {autoReturnSeconds} segundo{autoReturnSeconds === 1 ? "" : "s"}.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 rounded-xl border border-white/5 bg-slate-900/80 p-3 text-left">
@@ -191,8 +226,7 @@ export function DanfeRomaneioModal({
                 <button
                   type="button"
                   onClick={() => {
-                    onClose();
-                    router.push(conferenceQueueUrl);
+                    returnToConferenceQueue();
                   }}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10"
                 >
