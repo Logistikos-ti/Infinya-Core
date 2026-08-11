@@ -18,6 +18,7 @@ import { resolveScannedPickingQuantity } from "@/lib/shipping-picking-scan";
 import {
   buildPickGroupUnits,
   distributeScannedQuantityAcrossGroup,
+  resolveMemberRemainingAtStop,
   type PickGroupSourceItem,
 } from "@/lib/shipping-picking-groups";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
@@ -395,12 +396,18 @@ export function ShippingPickingInterface({
 
     // How much each member of this step can still absorb from THIS stock
     // bin (not the item's grand total -- an item may still have other,
-    // separate stops queued up after this one).
+    // separate stops queued up after this one). See
+    // resolveMemberRemainingAtStop for why this isn't derived from
+    // routeLineCollected.
     const candidates = currentUnit.members
       .map((member) => {
         const memberActiveLine = getActiveRouteLine(member);
         const remainingAtStop = memberActiveLine
-          ? Math.max(memberActiveLine.quantity - (member.routeLineCollected ?? 0), 0)
+          ? resolveMemberRemainingAtStop({
+              stopQuantity: memberActiveLine.quantity,
+              requestedQuantity: member.requestedQuantity,
+              separatedQuantity: normalizeQuantity(member.separatedQuantityValue),
+            })
           : 0;
         return {
           compositeId: member.compositeId,

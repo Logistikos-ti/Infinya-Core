@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   buildPickGroupUnits,
   distributeScannedQuantityAcrossGroup,
+  resolveMemberRemainingAtStop,
   type PickGroupSourceItem,
 } from "../../src/lib/shipping-picking-groups.ts";
 
@@ -182,4 +183,56 @@ test("distribution: zero quantity to apply allocates nothing", () => {
   );
 
   assert.deepEqual(allocations, []);
+});
+
+// Regression test for the "produto completo" bug reported on wave W-537:
+// an order at 3/4 separated, reloaded after the server recomputed its route
+// line down to exactly the outstanding amount (quantity 1), must still be
+// scannable for that last unit -- not treated as already complete.
+test("resolveMemberRemainingAtStop: does NOT derive from routeLineCollected -- a freshly-resized single-stop route line still reports the item's true outstanding need", () => {
+  // This is the exact shape produced by a page reload after 3 of 4 units
+  // were already separated: the server recomputes routeLines sized to the
+  // remaining need (quantity: 1), which is a smaller number than what was
+  // already separated (3) -- deriveRouteProgress's fallback then reports
+  // routeLineCollected as if the (recomputed, smaller) stop were already
+  // fully collected. remainingAtStop must still resolve to 1, not 0.
+  const remaining = resolveMemberRemainingAtStop({
+    stopQuantity: 1,
+    requestedQuantity: 4,
+    separatedQuantity: 3,
+  });
+
+  assert.equal(remaining, 1);
+});
+
+test("resolveMemberRemainingAtStop: a genuinely complete item resolves to 0", () => {
+  const remaining = resolveMemberRemainingAtStop({
+    stopQuantity: 1,
+    requestedQuantity: 4,
+    separatedQuantity: 4,
+  });
+
+  assert.equal(remaining, 0);
+});
+
+test("resolveMemberRemainingAtStop: caps to the stop's own capacity for a genuine multi-stop item (this bin doesn't have the item's full remaining need)", () => {
+  // Item still needs 10 units overall, but this specific bin/stop only
+  // carries 6 -- the other 4 are queued at a different address/stop.
+  const remaining = resolveMemberRemainingAtStop({
+    stopQuantity: 6,
+    requestedQuantity: 10,
+    separatedQuantity: 0,
+  });
+
+  assert.equal(remaining, 6);
+});
+
+test("resolveMemberRemainingAtStop: never returns a negative number even with inconsistent inputs", () => {
+  const remaining = resolveMemberRemainingAtStop({
+    stopQuantity: 5,
+    requestedQuantity: 2,
+    separatedQuantity: 10,
+  });
+
+  assert.equal(remaining, 0);
 });
