@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import {
+  decodeXmlBuffer,
+  matchNfeProductsToCatalog,
+  parseNfeXml,
+} from "@/lib/nfe-import";
 
 type ReceivingDetailItem = {
   id: string;
@@ -33,6 +38,8 @@ type ProductOption = {
   nome: string;
   sku: string;
   unidade: string;
+  codigoInterno?: string | null;
+  codigoExterno?: string | null;
 };
 
 type ReceivingViewClientProps = {
@@ -45,6 +52,19 @@ type ItemLine = {
   key: string;
   produtoId: string;
   quantidade: string;
+  origem?: string;
+};
+
+type XmlPreview = {
+  noteNumber: string;
+  supplierName: string;
+  matchedCount: number;
+  unmatched: Array<{
+    descricao: string;
+    codigo: string | null;
+    ean: string | null;
+    quantidade: number;
+  }>;
 };
 
 const inputClassName =
@@ -63,6 +83,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
+  const [xmlPreview, setXmlPreview] = useState<XmlPreview | null>(null);
+  const [xmlReading, setXmlReading] = useState(false);
   const [type, setType] = useState("NF-e XML");
   const [items, setItems] = useState<ItemLine[]>([emptyItemLine()]);
   const [form, setForm] = useState({
@@ -90,9 +112,63 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function selectXml(file?: File) {
+  async function selectXml(file?: File) {
     if (!file) return;
     setXmlFile(file);
+    setXmlPreview(null);
+    setError("");
+    setXmlReading(true);
+
+    try {
+      const xmlText = decodeXmlBuffer(await file.arrayBuffer());
+      const parsedXml = parseNfeXml(xmlText);
+      const matching = matchNfeProductsToCatalog(
+        parsedXml.items,
+        products.map((product) => ({
+          id: product.id,
+          nome: product.nome,
+          sku: product.sku,
+          codigo_interno: product.codigoInterno ?? product.sku,
+          codigo_externo: product.codigoExterno ?? null,
+        })),
+      );
+
+      setForm((current) => ({
+        ...current,
+        supplier: parsedXml.supplierName,
+        nf: parsedXml.noteNumber,
+      }));
+      setItems(
+        matching.matched.length
+          ? matching.matched.map((item) => ({
+              key: crypto.randomUUID(),
+              produtoId: item.productId,
+              quantidade: String(item.quantidade),
+              origem: item.origemEan ?? item.origemCodigo ?? item.sku,
+            }))
+          : [emptyItemLine()],
+      );
+      setXmlPreview({
+        noteNumber: parsedXml.noteNumber,
+        supplierName: parsedXml.supplierName,
+        matchedCount: matching.matched.length,
+        unmatched: matching.unmatched.map((item) => ({
+          descricao: item.descricao,
+          codigo: item.codigo,
+          ean: item.ean,
+          quantidade: item.quantidade,
+        })),
+      });
+    } catch (xmlError) {
+      setError(
+        xmlError instanceof Error
+          ? xmlError.message
+          : "Nao foi possivel ler o XML da NF-e.",
+      );
+      setItems([emptyItemLine()]);
+    } finally {
+      setXmlReading(false);
+    }
   }
 
   function updateItemLine(key: string, field: "produtoId" | "quantidade", value: string) {
@@ -114,6 +190,14 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setError("Selecione um XML da NF-e antes de importar.");
       return;
     }
+    if (!form.eta) {
+      setError("Informe a data prevista para agendar a entrada no CD.");
+      return;
+    }
+    if (xmlPreview?.unmatched.length) {
+      setError("Existem itens do XML sem vinculo com produtos cadastrados. Ajuste o cadastro antes de enviar.");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -121,6 +205,9 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       const formData = new FormData();
       formData.append("depositanteId", depositanteId);
       formData.append("arquivo", xmlFile);
+      formData.append("previstoPara", form.eta);
+      formData.append("horarioPrevisto", form.hour);
+      formData.append("observacoes", form.notes);
 
       const response = await fetch("/api/recebimento/importar-xml", {
         method: "POST",
@@ -152,6 +239,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     closeDrawer();
     setForm({ supplier: "", nf: "", eta: "", hour: "", notes: "" });
     setXmlFile(null);
+    setXmlPreview(null);
     setItems([emptyItemLine()]);
     router.refresh();
   }
@@ -522,7 +610,9 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         {xmlFile?.name ?? "Importar XML da NF-e"}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {xmlFile
+                        {xmlReading
+                          ? "Lendo XML e cruzando os itens..."
+                          : xmlFile
                           ? "Fornecedor e itens serão preenchidos automaticamente"
                           : "Arraste o arquivo ou clique para selecionar"}
                       </span>
@@ -533,11 +623,120 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     type="file"
                     accept=".xml,application/xml,text/xml"
                     className="hidden"
-                    onChange={(event) => selectXml(event.target.files?.[0])}
+                    onChange={(event) => void selectXml(event.target.files?.[0])}
                   />
                   <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
                     O sistema lê o XML e vincula os itens aos produtos cadastrados por EAN, código interno ou nome.
                   </p>
+                  <section className="space-y-3.5">
+                    <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
+                      Dados da nota
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Fornecedor
+                        <input
+                          className={inputClassName}
+                          value={form.supplier}
+                          onChange={(event) => updateField("supplier", event.target.value)}
+                          placeholder="Preenchido pelo XML"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Nº da NF-e
+                        <input
+                          className={inputClassName}
+                          value={form.nf}
+                          onChange={(event) => updateField("nf", event.target.value)}
+                          placeholder="Preenchido pelo XML"
+                        />
+                      </label>
+                      <DatePickerInput
+                        label="Data prevista"
+                        name="dataPrevistaXml"
+                        value={form.eta}
+                        onChange={(value) => updateField("eta", value)}
+                        compact
+                      />
+                      <label className="space-y-1.5 text-xs text-slate-500">
+                        Horário previsto
+                        <input
+                          type="time"
+                          className={inputClassName}
+                          value={form.hour}
+                          onChange={(event) => updateField("hour", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </section>
+
+                  {xmlPreview ? (
+                    <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                            XML lido com sucesso
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            NF-e {xmlPreview.noteNumber} · {xmlPreview.supplierName}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            xmlPreview.unmatched.length
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                          }`}
+                        >
+                          {xmlPreview.unmatched.length
+                            ? `${xmlPreview.unmatched.length} sem vínculo`
+                            : `${xmlPreview.matchedCount} item(ns) vinculado(s)`}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {items
+                          .filter((line) => line.produtoId)
+                          .map((line) => {
+                            const product = products.find((item) => item.id === line.produtoId);
+                            return (
+                              <div
+                                key={line.key}
+                                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs dark:border-white/10 dark:bg-[#0c1526]"
+                              >
+                                <span className="min-w-0 truncate font-bold text-slate-900 dark:text-white">
+                                  {product?.nome ?? "Produto vinculado"}
+                                </span>
+                                <span className="shrink-0 text-slate-500 dark:text-slate-400">
+                                  {line.quantidade} un.
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                      {xmlPreview.unmatched.length ? (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                          <p className="font-bold">Itens sem vínculo no cadastro:</p>
+                          <ul className="mt-1 space-y-1">
+                            {xmlPreview.unmatched.slice(0, 4).map((item) => (
+                              <li key={`${item.codigo}-${item.ean}-${item.descricao}`}>
+                                {item.descricao} ({item.ean ?? item.codigo ?? "sem código"})
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </section>
+                  ) : null}
+
+                  <label className="block space-y-1.5 text-xs text-slate-500">
+                    Observações
+                    <textarea
+                      className={`${inputClassName} min-h-20 resize-y py-3`}
+                      value={form.notes}
+                      onChange={(event) => updateField("notes", event.target.value)}
+                      placeholder="Ex.: entrega paletizada, agendar doca fria..."
+                    />
+                  </label>
                 </>
               ) : (
                 <>

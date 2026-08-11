@@ -105,7 +105,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     view === "recebimento"
       ? await adminSupabase
           .from("produtos")
-          .select("id, nome, sku, unidade_estocagem")
+          .select("id, nome, sku, unidade_estocagem, codigo_interno, codigo_externo")
           .eq("depositante_id", depositanteId)
           .eq("ativo", true)
           .order("nome")
@@ -246,6 +246,8 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
             nome: product.nome,
             sku: product.sku,
             unidade: product.unidade_estocagem,
+            codigoInterno: product.codigo_interno,
+            codigoExterno: product.codigo_externo,
           }))}
         />
       ) : null}

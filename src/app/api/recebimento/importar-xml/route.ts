@@ -40,6 +40,9 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+  const previstoPara = String(formData.get("previstoPara") ?? "").trim();
+  const horarioPrevisto = String(formData.get("horarioPrevisto") ?? "").trim();
+  const observacoesPortal = String(formData.get("observacoes") ?? "").trim();
   const file = formData.get("arquivo");
 
   if (!depositanteId) {
@@ -52,6 +55,13 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json(
       { error: "Selecione um arquivo XML de NF-e." },
+      { status: 400 },
+    );
+  }
+
+  if (previstoPara && !/^\d{4}-\d{2}-\d{2}$/.test(previstoPara)) {
+    return NextResponse.json(
+      { error: "Informe uma data prevista válida." },
       { status: 400 },
     );
   }
@@ -161,7 +171,14 @@ export async function POST(request: Request) {
   }
 
   const code = await generateReceivingCode(adminSupabase, depositante.nome);
-  const previsao = extractForecastDate(parsedXml.issuedAt);
+  const previsao = previstoPara || extractForecastDate(parsedXml.issuedAt);
+  const observacoes = [
+    `Pedido criado por importação de XML da NF-e ${parsedXml.noteNumber}.`,
+    horarioPrevisto ? `Horário previsto: ${horarioPrevisto}` : "",
+    observacoesPortal ? `Observações: ${observacoesPortal}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_recebimento")
     .insert({
@@ -173,7 +190,7 @@ export async function POST(request: Request) {
       nota_fiscal_numero: parsedXml.noteNumber,
       fornecedor_nome: parsedXml.supplierName,
       fornecedor_documento: parsedXml.supplierDocument,
-      observacoes: `Pedido criado por importação de XML da NF-e ${parsedXml.noteNumber}.`,
+      observacoes,
       criado_por: auth.user.id,
     })
     .select("id, codigo")
