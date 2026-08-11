@@ -12,6 +12,7 @@ import { InactivityWarningDialog } from "@/components/operations/inactivity-warn
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { pickConferenceScanMatchIndex } from "@/lib/shipping-conference-scan";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
 import type { ShippingAttachment } from "@/lib/shipping";
 
@@ -257,7 +258,19 @@ export function ShippingConferencePanel({
       return false;
     }
 
-    const matchedItem = items.find((item) => matchesItemScan(item, normalizedScan));
+    // Quando a nota fiscal lança o mesmo produto em duas linhas separadas
+    // (ex.: 1x + 1x em vez de 2x), o pedido acaba com dois itens de
+    // conferência com o mesmo código de barras. Priorizamos a linha que
+    // ainda está pendente para que o segundo bipe não caia sempre na
+    // primeira linha (que pode já estar completa) e dispare "já foi
+    // totalmente conferido" incorretamente.
+    const matchIndex = pickConferenceScanMatchIndex(
+      items.map((item) => ({
+        matches: matchesItemScan(item, normalizedScan),
+        fullyConferred: isItemFullyConferred(item),
+      })),
+    );
+    const matchedItem = matchIndex === -1 ? undefined : items[matchIndex];
 
     if (!matchedItem) {
       setActiveItemId(null);
@@ -745,6 +758,16 @@ function matchesItemScan(item: ConferenceItemState, normalizedScan: string) {
   return item.scanTargets
     .filter(Boolean)
     .some((value) => normalizeScanValue(value) === normalizedScan);
+}
+
+function isItemFullyConferred(item: ConferenceItemState) {
+  if (item.isKit && item.kitComponents.length > 0) {
+    return item.kitComponents.every(
+      (component) => component.confirmedQuantity >= component.requestedQuantity,
+    );
+  }
+
+  return normalizeQuantity(item.confirmedQuantityValue) >= item.requestedQuantity;
 }
 
 function getScanIncrement(item: ConferenceItemState, normalizedScan: string) {
