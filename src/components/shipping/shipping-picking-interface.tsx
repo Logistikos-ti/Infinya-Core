@@ -637,6 +637,43 @@ export function ShippingPickingInterface({
                 </div>
               )}
 
+              {/* Breakdown per pedido -- a grouped step sums the quantity of
+                  several orders (ex.: 1 + 6 + 4 + 4 = 15), which can look
+                  wrong at a glance if you don't know it covers more than one
+                  pedido. This makes the composition explicit. */}
+              {scanPhase === "product" && currentUnit.orderCount > 1 ? (
+                <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.softBg, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <span style={{ fontSize: "11.5px", fontWeight: "700", letterSpacing: "0.05em", color: t.textSub, textTransform: "uppercase" }}>
+                    {current.requested}x somam {currentUnit.orderCount} pedidos
+                  </span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                    {currentUnit.members.map((member) => {
+                      const memberSeparated = normalizeQuantity(member.separatedQuantityValue);
+                      const memberDone = memberSeparated >= member.requestedQuantity;
+                      return (
+                        <span
+                          key={member.compositeId}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "5px 10px",
+                            borderRadius: "999px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            background: memberDone ? hex.green : t.cardBg,
+                            color: memberDone ? "#10B981" : t.text,
+                            border: `1px solid ${memberDone ? "transparent" : t.border}`,
+                          }}
+                        >
+                          Pedido {member.orderCode} · {memberSeparated}/{member.requestedQuantity}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               {/* scan field */}
               <div style={{ borderRadius: "18px", border: `1.5px dashed ${scanPhase === "address" ? "#3B82F6" : t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
                 <div style={{ position: "relative", width: "48px", height: "48px", flexShrink: 0, borderRadius: "12px", background: hex.violet, color: "#8B5CF6", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
