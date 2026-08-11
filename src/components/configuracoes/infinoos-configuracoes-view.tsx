@@ -1627,23 +1627,27 @@ export function InfinoosConfiguracoesView({
                         <span style={{ position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transform: isOn ? "translateX(18px)" : "translateX(0)", transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)" }} />
                       </button>
 
-                      <button
+                      <button 
                         onClick={() => {
                           setForm({ f1: item.nome || '', f2: item.email || '', opt: roleLabel });
                           setDrawer("usuarios");
                         }}
                         title="Editar"
-                        className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-slate-200 bg-slate-50/50 text-slate-600 transition hover:border-indigo-500 hover:text-indigo-500 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300 dark:hover:border-indigo-400 dark:hover:text-indigo-400"
+                        style={{ width: '36px', height: '36px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} 
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#8B5CF6'; e.currentTarget.style.borderColor = '#8B5CF6'; }} 
+                        onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; e.currentTarget.style.borderColor = t.border; }}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
                       </button>
 
-                      <button
-                        onClick={() => setConfirmDel({ id: item.id, name: item.nome || item.email || "Desconhecido" })}
+                      <button 
+                        onClick={() => setConfirmDel({ id: item.id, name: item.nome || item.email || "Desconhecido" })} 
                         title="Excluir"
-                        className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-rose-200/50 bg-rose-50 text-rose-500 transition hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/30 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
+                        style={{ width: '36px', height: '36px', borderRadius: '10px', border: `1px solid ${hex('#EF4444', 0.3)}`, background: hex('#EF4444', 0.1), color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} 
+                        onMouseEnter={(e) => e.currentTarget.style.background = hex('#EF4444', 0.2)} 
+                        onMouseLeave={(e) => e.currentTarget.style.background = hex('#EF4444', 0.1)}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
                       </button>
                     </div>
                   </div>
