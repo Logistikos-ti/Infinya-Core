@@ -87,7 +87,7 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
   ] = await Promise.all([
     supabase.from("depositantes").select("id, codigo, nome, cnpj, ativo, logo_url, observacoes, configuracoes").order("nome"),
     supabase.from("produtos").select("id, depositante_id, metodo_retirada, ativo"),
-    supabase.from("usuarios").select("id, nome, email, papel, depositante_id, ativo").order("nome"),
+    supabase.from("usuarios").select("id, nome, email, papel, depositante_id, ativo, ultimo_acesso_em, depositante:depositantes(nome)").order("nome"),
     supabase.from("enderecos").select("id, codigo, area, capacidade_maxima, ativo").order("codigo"),
     supabase.from("transportadoras").select("id, nome, ativo").order("nome"),
   ]);
@@ -159,13 +159,21 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
       <InfinoosConfiguracoesView
         initialTab={(params?.tab as any) || "resumo"}
         initialDepositantes={depositanteCards}
-        initialUsuarios={(usuarios ?? []).map((u) => ({
-          id: u.id,
-          nome: u.nome ?? undefined,
-          email: u.email ?? undefined,
-          perfil: u.papel ?? undefined,
-          ativo: u.ativo,
-        }))}
+        initialUsuarios={(usuarios ?? []).map((u) => {
+          let depositanteNome = "Sem depositante";
+          if (u.depositante) {
+            depositanteNome = Array.isArray(u.depositante) ? (u.depositante[0]?.nome ?? depositanteNome) : (u.depositante.nome ?? depositanteNome);
+          }
+          return {
+            id: u.id,
+            nome: u.nome ?? undefined,
+            email: u.email ?? undefined,
+            perfil: u.papel ?? undefined,
+            ativo: u.ativo,
+            depositante: depositanteNome,
+            ultimo_acesso_em: u.ultimo_acesso_em,
+          };
+        })}
         initialCounts={{
           depositantes: activeDepositantes,
           produtos: activeProducts,
