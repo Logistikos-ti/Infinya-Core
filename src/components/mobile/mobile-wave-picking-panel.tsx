@@ -11,6 +11,11 @@ import {
 } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { resolveScannedPickingQuantity } from "@/lib/shipping-picking-scan";
+import {
+  buildPickGroupUnits,
+  distributeScannedQuantityAcrossGroup,
+  type PickGroupSourceItem,
+} from "@/lib/shipping-picking-groups";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -33,6 +38,22 @@ type WaveItemState = ShippingPickingOrder["items"][number] & {
   routeLineCollected: number;
   isSkipped?: boolean;
   isCancelled?: boolean;
+};
+
+// A "picking unit" is what the operator actually works through, one at a
+// time: either a single order-item (the historical behaviour) or, when two
+// or more orders in the same wave need the same product from the exact same
+// stock bin, a single combined step covering all of them at once -- bipe o
+// endereço uma vez, bipe o produto até completar o total, em vez de repetir
+// os dois bipes uma vez por pedido. See src/lib/shipping-picking-groups.ts.
+type PickingUnitView = {
+  key: string;
+  members: WaveItemState[]; // sorted oldest order first (FIFO)
+  primary: WaveItemState; // oldest member -- used for name/sku/image/address/cancel target
+  requestedTotal: number;
+  separatedTotal: number;
+  orderCount: number;
+  isDone: boolean;
 };
 
 type MobileWavePickingPanelProps = {
@@ -79,32 +100,9 @@ function isWaveItemComplete(item: WaveItemState) {
   return Boolean(item.isSkipped) || normalizeQuantity(item.separatedQuantityValue) >= item.requestedQuantity;
 }
 
-function findNextPendingIndex(items: WaveItemState[], startAt = 0) {
-  const nextIndex = items.findIndex((item, index) => index >= startAt && !isWaveItemComplete(item));
-  return nextIndex >= 0 ? nextIndex : items.length;
-}
-
 function getActiveRouteLine(item: WaveItemState) {
   if (!item.routeLines.length) return null;
   return item.routeLines[Math.min(item.routeLineIndex, item.routeLines.length - 1)] ?? null;
-}
-
-function compareWaveItemsForPicking(a: WaveItemState, b: WaveItemState) {
-  const routeA = a.routeLines[0];
-  const routeB = b.routeLines[0];
-  if (routeA && routeB) {
-    const areaCompare = routeA.area.localeCompare(routeB.area, "pt-BR");
-    if (areaCompare !== 0) return areaCompare;
-    const labelCompare = routeA.routeLabel.localeCompare(routeB.routeLabel, "pt-BR", {
-      numeric: true,
-      sensitivity: "base",
-    });
-    if (labelCompare !== 0) return labelCompare;
-  }
-  return a.orderExternalNumber.localeCompare(b.orderExternalNumber, "pt-BR", {
-    numeric: true,
-    sensitivity: "base",
-  });
 }
 
 function normalizeScan(value: string) {
@@ -116,19 +114,113 @@ function normalizeQuantity(value: string) {
   return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
 
+function toPickGroupSourceItem(item: WaveItemState, orderSequenceKey: string): PickGroupSourceItem {
+  return {
+    compositeId: item.compositeId,
+    orderId: item.orderId,
+    orderSequenceKey,
+    productId: item.productId,
+    isKit: item.isKit,
+    isDone: isWaveItemComplete(item),
+    routeLines: item.routeLines.map((line) => ({ stockId: line.stockId, quantity: line.quantity })),
+    routeLineIndex: item.routeLineIndex,
+  };
+}
+
+// Builds the ordered list of "picking units" the operator works through:
+// a mix of individual order-items and, where possible, combined steps that
+// cover the same product across several orders in the wave at once. See
+// src/lib/shipping-picking-groups.ts for the underlying grouping/FIFO logic.
+function buildPickingUnitViews(
+  items: WaveItemState[],
+  orderSequenceKeyByOrderId: Map<string, string>,
+): PickingUnitView[] {
+  const itemsByCompositeId = new Map(items.map((item) => [item.compositeId, item]));
+  const sourceItems = items.map((item) =>
+    toPickGroupSourceItem(item, orderSequenceKeyByOrderId.get(item.orderId) ?? ""),
+  );
+  const units = buildPickGroupUnits(sourceItems);
+
+  const views = units.map((unit): PickingUnitView => {
+    if (unit.kind === "single") {
+      const full = itemsByCompositeId.get(unit.item.compositeId)!;
+      return {
+        key: unit.item.compositeId,
+        members: [full],
+        primary: full,
+        requestedTotal: full.requestedQuantity,
+        separatedTotal: normalizeQuantity(full.separatedQuantityValue),
+        orderCount: 1,
+        isDone: isWaveItemComplete(full),
+      };
+    }
+
+    const fullMembers = [...unit.members]
+      .sort((a, b) => a.orderSequenceKey.localeCompare(b.orderSequenceKey))
+      .map((member) => itemsByCompositeId.get(member.compositeId)!);
+    const distinctOrders = new Set(fullMembers.map((member) => member.orderId));
+
+    return {
+      key: `${unit.productId} ${unit.stockId}`,
+      members: fullMembers,
+      primary: fullMembers[0],
+      requestedTotal: fullMembers.reduce((sum, member) => sum + member.requestedQuantity, 0),
+      separatedTotal: fullMembers.reduce((sum, member) => sum + normalizeQuantity(member.separatedQuantityValue), 0),
+      orderCount: distinctOrders.size,
+      isDone: fullMembers.every(isWaveItemComplete),
+    };
+  });
+
+  return views.sort((a, b) => {
+    const routeA = a.primary.routeLines[0];
+    const routeB = b.primary.routeLines[0];
+    if (routeA && routeB) {
+      const areaCompare = routeA.area.localeCompare(routeB.area, "pt-BR");
+      if (areaCompare !== 0) return areaCompare;
+      const labelCompare = routeA.routeLabel.localeCompare(routeB.routeLabel, "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      });
+      if (labelCompare !== 0) return labelCompare;
+    }
+    return a.primary.orderExternalNumber.localeCompare(b.primary.orderExternalNumber, "pt-BR", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  });
+}
+
+function findNextPendingUnitIndex(views: PickingUnitView[], startAt = 0) {
+  const index = views.findIndex((view, i) => i >= startAt && !view.isDone);
+  return index >= 0 ? index : views.length;
+}
+
 const FLASH_DURATION_MS = 1300;
 
 export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: MobileWavePickingPanelProps) {
   const router = useRouter();
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
-  const initialPrioritizedItems = useMemo(
-    () => [...initialItems].sort(compareWaveItemsForPicking),
-    [initialItems],
-  );
-  const [items, setItems] = useState<WaveItemState[]>(initialItems);
-  const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
+  // Older orders get filled first when a product is grouped across several
+  // orders in the wave (see PickingUnitView) -- createdAtIso sorts
+  // correctly as a plain string; orders without one fall back to the very
+  // end of the queue instead of jumping ahead unpredictably.
+  const orderSequenceKeyByOrderId = useMemo(() => {
+    const map = new Map<string, string>();
+    orders.forEach((order) => {
+      map.set(order.id, order.createdAtIso ?? `9999-12-31T23:59:59.999Z#${order.externalNumber}`);
+    });
+    return map;
+  }, [orders]);
 
-  const [currentIndex, setCurrentIndex] = useState(() => findNextPendingIndex(initialPrioritizedItems));
+  const [items, setItems] = useState<WaveItemState[]>(initialItems);
+  const unitViews = useMemo(
+    () => buildPickingUnitViews(items, orderSequenceKeyByOrderId),
+    [items, orderSequenceKeyByOrderId],
+  );
+
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    findNextPendingUnitIndex(buildPickingUnitViews(initialItems, orderSequenceKeyByOrderId)),
+  );
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
@@ -148,51 +240,16 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   const closeTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  /* const resetWaveToQueue = useCallback(
-    async (reason: "cancelado" | "inatividade") => {
-      const orderIds = Array.from(new Set(orders.map((order) => order.id)));
-      if (!orderIds.length) {
-        router.replace(`/m/separacao?feedback=${reason}`);
-        return;
-      }
-
-      setIsSubmitting(true);
-      const result = await resetPickingOrdersToQueueAction(orderIds, reason);
-      if (result.success) {
-        router.replace(`/m/separacao?feedback=${reason}&ids=${encodeURIComponent(orderIds.join(","))}`);
-      } else {
-        setIsSubmitting(false);
-        flash({
-          type: "err",
-          title: "NÃ£o foi possÃ­vel devolver a onda",
-          code: "â€”",
-          sub: "Tente novamente antes de sair da separaÃ§Ã£o.",
-        });
-      }
-    },
-    [flash, orders, router],
-  );
-
-  const { isWarningVisible, countdownSeconds, resetTimer } = useInactivityTimeout({
-    warningAfterMs: 10_000,
-    expireAfterMs: 40_000,
-    disabled: isSubmitting || isSavingDraft,
-    onExpire: () => {
-      void resetWaveToQueue("inatividade");
-    },
-  });
-
-  */
-
-  const totalCount = prioritizedItems.length;
-  const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
-  const totalUnits = prioritizedItems.reduce((sum, item) => sum + item.requestedQuantity, 0);
-  const separatedUnits = prioritizedItems.reduce(
-    (sum, item) => sum + Math.min(normalizeQuantity(item.separatedQuantityValue), item.requestedQuantity),
+  const totalCount = unitViews.length;
+  const doneCount = unitViews.filter((view) => view.isDone).length;
+  const totalUnits = unitViews.reduce((sum, view) => sum + view.requestedTotal, 0);
+  const separatedUnits = unitViews.reduce(
+    (sum, view) => sum + Math.min(view.separatedTotal, view.requestedTotal),
     0,
   );
   const progressPct = totalUnits > 0 ? Math.round((separatedUnits / totalUnits) * 100) : 0;
-  const currentItem = prioritizedItems[currentIndex];
+  const currentUnit = unitViews[currentIndex];
+  const currentItem = currentUnit?.primary;
   const isDone = totalCount > 0 && doneCount === totalCount;
   const activeRouteLine = currentItem ? getActiveRouteLine(currentItem) : null;
   const phaseColor = scanPhase === "address" ? mobileColors.blue : mobileColors.violet;
@@ -245,12 +302,12 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
 
   useEffect(() => {
     if (isDone) return;
-    const nextPendingIndex = findNextPendingIndex(prioritizedItems, currentIndex);
+    const nextPendingIndex = findNextPendingUnitIndex(unitViews, currentIndex);
     if (nextPendingIndex !== currentIndex) {
       setCurrentIndex(nextPendingIndex);
       setScanPhase("address");
     }
-  }, [currentIndex, isDone, prioritizedItems]);
+  }, [currentIndex, isDone, unitViews]);
 
   useEffect(() => {
     if (!draftHydratedRef.current) {
@@ -381,8 +438,8 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     router.push("/m/separacao");
   }
 
-  function applyScan(rawValue: string) {
-    if (!currentItem) return;
+  async function applyScan(rawValue: string) {
+    if (!currentUnit || !currentItem) return;
     const normalized = normalizeScan(rawValue);
     if (!normalized) return;
 
@@ -401,15 +458,16 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
     if (productScanBusyRef.current) return;
     productScanBusyRef.current = true;
 
-    const matches = [
-      currentItem.barcode,
-      currentItem.packBarcode,
-      currentItem.sku,
-      currentItem.code,
-      ...currentItem.scanTargets,
-    ]
-      .filter(Boolean)
-      .some((value) => normalizeScan(String(value)) === normalized);
+    // Check the unit, pack, SKU and internal codes accepted by any member of
+    // this step (they're all the same product, but scan targets are read
+    // from each order-item's own row so we union them just in case).
+    const acceptedTargets = new Set(
+      currentUnit.members
+        .flatMap((member) => [member.barcode, member.packBarcode, member.sku, member.code, ...member.scanTargets])
+        .filter(Boolean)
+        .map((value) => normalizeScan(String(value))),
+    );
+    const matches = acceptedTargets.has(normalized);
 
     if (!matches) {
       productScanBusyRef.current = false;
@@ -433,100 +491,140 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       isPackMatch,
       packQuantity: currentItem.packQuantity,
     });
-    const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
-    const nextSeparated = Math.min(currentSeparated + scannedQuantity, currentItem.requestedQuantity);
-    const appliedQuantity = nextSeparated - currentSeparated;
 
-    if (appliedQuantity <= 0) {
+    // How much each member of this step can still absorb from THIS stock
+    // bin (not the item's grand total -- an item may still have other,
+    // separate stops queued up after this one).
+    const candidates = currentUnit.members
+      .map((member) => {
+        const memberActiveLine = getActiveRouteLine(member);
+        const remainingAtStop = memberActiveLine
+          ? Math.max(memberActiveLine.quantity - (member.routeLineCollected ?? 0), 0)
+          : 0;
+        return {
+          compositeId: member.compositeId,
+          orderSequenceKey: orderSequenceKeyByOrderId.get(member.orderId) ?? "",
+          remainingAtStop,
+        };
+      })
+      .filter((candidate) => candidate.remainingAtStop > 0);
+
+    const stepCapacity = candidates.reduce((sum, candidate) => sum + candidate.remainingAtStop, 0);
+    const appliedQuantityTotal = Math.min(scannedQuantity, stepCapacity);
+
+    if (appliedQuantityTotal <= 0) {
       productScanBusyRef.current = false;
       flash({ type: "err", title: "Item completo", code: rawValue, sub: "Este item já foi totalmente separado." });
       return;
     }
 
-    void registerPickingScanAction({
-      orderId: currentItem.orderId,
-      itemId: currentItem.id,
-      stockId,
-      quantity: appliedQuantity,
-      scanId: crypto.randomUUID(),
-    }).then((result) => {
-      if (!result.ok) {
-        productScanBusyRef.current = false;
-        flash({ type: "err", title: "Falha na reserva", code: rawValue, sub: result.message });
-        return;
-      }
+    const allocations = distributeScannedQuantityAcrossGroup(candidates, appliedQuantityTotal);
+    const membersByCompositeId = new Map(currentUnit.members.map((member) => [member.compositeId, member]));
 
-      const routeCollected = (currentItem.routeLineCollected ?? 0) + appliedQuantity;
-      const routeComplete = Boolean(activeRouteLine) && routeCollected >= (activeRouteLine?.quantity ?? 0);
-      const updatedItems = items.map((item) =>
-        item.compositeId === currentItem.compositeId
-          ? {
-              ...item,
-              separatedQuantityValue: String(nextSeparated),
-              routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
-              routeLineCollected: routeComplete ? 0 : routeCollected,
-            }
-          : item,
-      );
+    const results = await Promise.all(
+      allocations.map(async (allocation) => {
+        const member = membersByCompositeId.get(allocation.compositeId)!;
+        const result = await registerPickingScanAction({
+          orderId: member.orderId,
+          itemId: member.id,
+          stockId,
+          quantity: allocation.quantity,
+          scanId: crypto.randomUUID(),
+        });
+        return { allocation, member, result };
+      }),
+    );
+
+    const failures = results.filter((entry) => !entry.result.ok);
+    const succeeded = results.filter((entry) => entry.result.ok);
+
+    let updatedItems = items;
+    if (succeeded.length > 0) {
+      updatedItems = items.map((item) => {
+        const hit = succeeded.find((entry) => entry.member.compositeId === item.compositeId);
+        if (!hit) return item;
+
+        const nextSeparated = normalizeQuantity(item.separatedQuantityValue) + hit.allocation.quantity;
+        const routeCollected = (item.routeLineCollected ?? 0) + hit.allocation.quantity;
+        const memberActiveLine = getActiveRouteLine(item);
+        const routeComplete = Boolean(memberActiveLine) && routeCollected >= (memberActiveLine?.quantity ?? 0);
+
+        return {
+          ...item,
+          separatedQuantityValue: String(nextSeparated),
+          routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
+          routeLineCollected: routeComplete ? 0 : routeCollected,
+        };
+      });
       setItems(updatedItems);
-      productScanBusyRef.current = false;
+    }
 
-      if (nextSeparated >= currentItem.requestedQuantity) {
-        flash({ type: "ok", title: "Produto OK", code: currentItem.sku, sub: `${nextSeparated}/${currentItem.requestedQuantity} · avançando` });
-        if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-        closeTimerRef.current = window.setTimeout(() => {
-          setScanPhase("address");
-          const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
-          setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
-          closeScanner();
-        }, FLASH_DURATION_MS);
-      } else {
-        pulseFrame();
-      }
-    });
+    productScanBusyRef.current = false;
+
+    if (failures.length > 0) {
+      flash({
+        type: "err",
+        title: "Falha na reserva",
+        code: rawValue,
+        sub: failures[0].result.message ?? `Não foi possível reservar para ${failures.length} pedido(s).`,
+      });
+      return;
+    }
+
+    const nextUnitSeparated = currentUnit.members.reduce((sum, member) => {
+      const updated = updatedItems.find((item) => item.compositeId === member.compositeId) ?? member;
+      return sum + normalizeQuantity(updated.separatedQuantityValue);
+    }, 0);
+
+    if (nextUnitSeparated >= currentUnit.requestedTotal) {
+      flash({
+        type: "ok",
+        title: "Produto OK",
+        code: currentItem.sku,
+        sub: `${nextUnitSeparated}/${currentUnit.requestedTotal} · avançando`,
+      });
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = window.setTimeout(() => {
+        setScanPhase("address");
+        const updatedUnitViews = buildPickingUnitViews(updatedItems, orderSequenceKeyByOrderId);
+        setCurrentIndex(findNextPendingUnitIndex(updatedUnitViews, currentIndex + 1));
+        closeScanner();
+      }, FLASH_DURATION_MS);
+    } else {
+      pulseFrame();
+    }
   }
 
   useEffect(() => {
-    applyScanRef.current = applyScan;
+    applyScanRef.current = (code: string) => void applyScan(code);
   });
 
   function cancelCurrentOrder() {
-    if (!currentItem) return;
-    const orderId = currentItem.orderId;
+    if (!currentUnit) return;
+    // With a grouped step (same product, several orders, same bin), "sem
+    // estoque" only pulls the oldest order in the group out of the wave --
+    // the remaining orders keep being worked on at this same stop.
+    const orderId = currentUnit.primary.orderId;
     setCancelledOrderIds((current) => (current.includes(orderId) ? current : [...current, orderId]));
-    setItems((current) =>
-      current.map((item) =>
-        item.orderId === orderId
-          ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
-          : item,
-      ),
+    const updatedItems = items.map((item) =>
+      item.orderId === orderId
+        ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
+        : item,
     );
+    setItems(updatedItems);
     void cancelPickingOrderAction(orderId).then((result) => {
       if (!result?.ok) {
         flash({ type: "err", title: "Falha ao cancelar", code: "—", sub: "Não foi possível cancelar por falta de estoque." });
       }
     });
     setScanPhase("address");
-    const updatedItems = prioritizedItems.map((item) =>
-      item.orderId === orderId
-        ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
-        : item,
-    );
-    const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
-    setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
+    const updatedUnitViews = buildPickingUnitViews(updatedItems, orderSequenceKeyByOrderId);
+    setCurrentIndex(findNextPendingUnitIndex(updatedUnitViews, currentIndex + 1));
   }
 
   return (
     <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
       <MobileScanOverlay overlay={overlay} />
-
-      {/* <InactivityWarningDialog
-        isVisible={isWarningVisible}
-        countdownSeconds={countdownSeconds}
-        title="SeparaÃ§Ã£o pausada por inatividade"
-        description="O operador ficou sem interaÃ§Ã£o nesta onda. Se a atividade nÃ£o for retomada, a onda serÃ¡ devolvida automaticamente para a fila."
-        mobileDescription="O operador ficou sem interaÃ§Ã£o nesta onda. Retome a operaÃ§Ã£o para evitar que a onda volte para a fila."
-      /> */}
 
       <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
         <MobileBackButton onClick={() => void handleBack()} />
@@ -570,7 +668,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px]"
         style={{ paddingBottom: currentItem ? 158 : 18 }}
       >
-        {currentItem ? (
+        {currentItem && currentUnit ? (
           <>
             {/* Primary instruction card — matches the mockup's Flow "active" card exactly */}
             <div
@@ -590,6 +688,14 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                 <span className="text-[13px] font-extrabold uppercase tracking-wide" style={{ color: phaseColor }}>
                   {scanPhase === "address" ? "Bipe o endereço" : "Bipe o produto"}
                 </span>
+                {currentUnit.orderCount > 1 ? (
+                  <span
+                    className="ml-auto rounded-full px-[9px] py-[3px] text-[10.5px] font-extrabold"
+                    style={{ background: hexAlpha(mobileColors.violet, 0.16), color: mobileColors.violetLight }}
+                  >
+                    {currentUnit.orderCount} pedidos
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-[13px]">
@@ -634,7 +740,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                 {scanPhase === "product" ? (
                   <div className="shrink-0 border-l pl-3 text-center" style={{ borderColor: hexAlpha("#94A3B8", 0.16) }}>
                     <div className="text-[26px] font-extrabold" style={headingFont}>
-                      {normalizeQuantity(currentItem.separatedQuantityValue)}/{currentItem.requestedQuantity}
+                      {currentUnit.separatedTotal}/{currentUnit.requestedTotal}
                     </div>
                     <div className="text-[10.5px]" style={{ color: mobileColors.muted }}>un</div>
                   </div>
@@ -695,7 +801,9 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
             className="h-12 rounded-xl text-sm font-bold"
             style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.4)}`, color: mobileColors.redLight, background: "#0A1120" }}
           >
-            Sem estoque, cancelar pedido
+            {currentUnit && currentUnit.orderCount > 1
+              ? `Sem estoque, cancelar pedido ${currentUnit.primary.orderExternalNumber}`
+              : "Sem estoque, cancelar pedido"}
           </button>
         </div>
       ) : null}
@@ -799,15 +907,15 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
               textAlign: "center",
             }}
           >
-            {scanPhase === "product" && currentItem.requestedQuantity > 1 ? (
+            {scanPhase === "product" && currentUnit && currentUnit.requestedTotal > 1 ? (
               <>
                 <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, ...headingFont }}>
-                  {normalizeQuantity(currentItem.separatedQuantityValue)} de {currentItem.requestedQuantity} unidades
+                  {currentUnit.separatedTotal} de {currentUnit.requestedTotal} unidades
                 </span>
-                {currentItem.requestedQuantity <= 12 ? (
+                {currentUnit.requestedTotal <= 12 ? (
                   <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 7, maxWidth: 260 }}>
-                    {Array.from({ length: currentItem.requestedQuantity }).map((_, dotIndex) => {
-                      const collected = dotIndex < normalizeQuantity(currentItem.separatedQuantityValue);
+                    {Array.from({ length: currentUnit.requestedTotal }).map((_, dotIndex) => {
+                      const collected = dotIndex < currentUnit.separatedTotal;
                       return (
                         <span
                           key={dotIndex}
@@ -830,7 +938,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                         height: "100%",
                         borderRadius: 999,
                         background: mobileColors.green,
-                        width: `${Math.round((normalizeQuantity(currentItem.separatedQuantityValue) / currentItem.requestedQuantity) * 100)}%`,
+                        width: `${Math.round((currentUnit.separatedTotal / currentUnit.requestedTotal) * 100)}%`,
                         transition: "width 0.3s ease",
                       }}
                     />

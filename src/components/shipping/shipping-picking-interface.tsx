@@ -15,6 +15,11 @@ import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { resolveScannedPickingQuantity } from "@/lib/shipping-picking-scan";
+import {
+  buildPickGroupUnits,
+  distributeScannedQuantityAcrossGroup,
+  type PickGroupSourceItem,
+} from "@/lib/shipping-picking-groups";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 
 type WavePickingItemState = ShippingPickingOrder["items"][number] & {
@@ -29,6 +34,22 @@ type WavePickingItemState = ShippingPickingOrder["items"][number] & {
   routeLineCollected: number;
   isSkipped?: boolean; // New state to track if skipped
   isCancelled?: boolean;
+};
+
+// A "picking unit" is what the operator actually works through, one at a
+// time: either a single order-item (the historical behaviour) or, when two
+// or more orders in the same wave need the same product from the exact same
+// stock bin, a single combined step covering all of them at once -- bipe o
+// endereço uma vez, bipe o produto até completar o total, em vez de repetir
+// os dois bipes uma vez por pedido. See src/lib/shipping-picking-groups.ts.
+type PickingUnitView = {
+  key: string;
+  members: WavePickingItemState[]; // sorted oldest order first (FIFO)
+  primary: WavePickingItemState; // oldest member -- used for name/sku/image/address/cancel target
+  requestedTotal: number;
+  separatedTotal: number;
+  orderCount: number;
+  isDone: boolean;
 };
 
 type ShippingPickingInterfaceProps = {
@@ -86,7 +107,7 @@ export function ShippingPickingInterface({
   completeRedirectTo,
 }: ShippingPickingInterfaceProps) {
   const router = useRouter();
-  
+
   // Keep the wave view on the same theme preference as the global app shell.
   const { resolvedTheme, setTheme } = useTheme();
   const theme = resolvedTheme === "light" ? "light" : "dark";
@@ -95,7 +116,7 @@ export function ShippingPickingInterface({
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
   };
-  
+
   const dark = theme === 'dark';
   const t = dark ? {
     appBg: '#0A1120', sideBg: '#0C1424', sideBg2: '#0B1322', barBg: '#0C1424', cardBg: '#101B30',
@@ -108,7 +129,7 @@ export function ShippingPickingInterface({
     navHover: 'rgba(100,116,139,0.07)', barTrack: 'rgba(100,116,139,0.14)',
     text: '#0F172A', textSub: '#64748B', scanBorder: 'rgba(139,92,246,0.4)'
   };
-  
+
   const tog = dark ? {
     track: '#0E1729', border: 'rgba(96,165,250,0.30)', inset: 'rgba(0,0,0,0.5)',
     knob: '#0B1220', knobX: '0px', knobIcon: '☾', knobIconColor: '#3B82F6', trackMoon: 'transparent', trackSun: '#3B4763'
@@ -117,9 +138,9 @@ export function ShippingPickingInterface({
     knob: '#FFFFFF', knobX: '36px', knobIcon: '☀', knobIconColor: '#F6A623', trackMoon: '#B4BCC9', trackSun: 'transparent'
   };
 
-  const hex2 = (h: string, a: number) => { 
-    const n = parseInt(h.slice(1), 16); 
-    return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; 
+  const hex2 = (h: string, a: number) => {
+    const n = parseInt(h.slice(1), 16);
+    return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')';
   };
   const hex = { blue: hex2('#3B82F6', 0.14), violet: hex2('#8B5CF6', 0.16), green: hex2('#10B981', 0.16) };
   const cat = ['#3B82F6', '#10B981', '#EC4899', '#A855F7', '#F59E0B', '#06B6D4'];
@@ -127,20 +148,33 @@ export function ShippingPickingInterface({
 
   // Items Logic
   const initialItems = useMemo(() => flattenWaveItems(orders), [orders]);
-  const initialPrioritizedItems = useMemo(
-    () => [...initialItems].sort(compareWaveItemsForPicking),
-    [initialItems],
-  );
-  const [items, setItems] = useState<WavePickingItemState[]>(initialItems);
-  const prioritizedItems = useMemo(() => [...items].sort(compareWaveItemsForPicking), [items]);
+  // Older orders get filled first when a product is grouped across several
+  // orders in the wave (see PickingUnitView) -- createdAtIso sorts
+  // correctly as a plain string; orders without one fall back to the very
+  // end of the queue instead of jumping ahead unpredictably.
+  const orderSequenceKeyByOrderId = useMemo(() => {
+    const map = new Map<string, string>();
+    orders.forEach((order) => {
+      map.set(order.id, order.createdAtIso ?? `9999-12-31T23:59:59.999Z#${order.externalNumber}`);
+    });
+    return map;
+  }, [orders]);
 
-  const [currentIndex, setCurrentIndex] = useState(() => findNextPendingIndex(initialPrioritizedItems));
+  const [items, setItems] = useState<WavePickingItemState[]>(initialItems);
+  const unitViews = useMemo(
+    () => buildPickingUnitViews(items, orderSequenceKeyByOrderId),
+    [items, orderSequenceKeyByOrderId],
+  );
+
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    findNextPendingUnitIndex(buildPickingUnitViews(initialItems, orderSequenceKeyByOrderId)),
+  );
   const [scanValue, setScanValue] = useState("");
   const [scanPhase, setScanPhase] = useState<"address" | "product">("address");
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const completionFormRef = useRef<HTMLFormElement | null>(null);
   const autoSubmittedRef = useRef(false);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isResetting, startResetTransition] = useTransition();
@@ -188,71 +222,77 @@ export function ShippingPickingInterface({
     return () => window.clearTimeout(timer);
   }, [items, persistDraft]);
 
-  // Filter tasks from prioritizedItems
-  const tasks = prioritizedItems.map((p, i) => {
-    const isDone = isWaveItemComplete(p);
+  // Filter tasks from unitViews
+  const tasks = unitViews.map((view, i) => {
+    const isDone = view.isDone;
     const isCur = i === currentIndex;
-    const qtyNum = normalizeQuantity(p.separatedQuantityValue);
-    
+    const primaryRoute = getActiveRouteLine(view.primary);
+    const groupedLabel = view.orderCount > 1 ? ` · ${view.orderCount} pedidos` : "";
+
     return {
-      id: p.compositeId,
-      loc: p.routeLines[0]?.addressCode || "SEM ENDERECO",
-      name: p.name,
-      qty: p.requestedQuantity + 'x',
+      id: view.key,
+      loc: primaryRoute?.addressCode || "SEM ENDERECO",
+      name: view.primary.name + groupedLabel,
+      qty: view.requestedTotal + 'x',
       mark: isDone ? '✓' : (i + 1),
-      border: p.isCancelled ? '#FCA5A5' : (isCur ? '#8B5CF6' : t.border),
-      bg: p.isCancelled ? 'rgba(239,68,68,0.07)' : (isCur ? hex2('#8B5CF6', 0.10) : (isDone ? t.softBg : t.cardBg)),
-      numBg: p.isCancelled ? 'rgba(239,68,68,0.14)' : (isDone ? hex2('#10B981', 0.18) : (isCur ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg)),
-      numColor: p.isCancelled ? '#DC2626' : (isDone ? '#10B981' : (isCur ? '#fff' : t.textSub)),
-      titleColor: p.isCancelled ? '#B91C1C' : (isDone ? t.textSub : t.text),
+      border: view.primary.isCancelled ? '#FCA5A5' : (isCur ? '#8B5CF6' : t.border),
+      bg: view.primary.isCancelled ? 'rgba(239,68,68,0.07)' : (isCur ? hex2('#8B5CF6', 0.10) : (isDone ? t.softBg : t.cardBg)),
+      numBg: view.primary.isCancelled ? 'rgba(239,68,68,0.14)' : (isDone ? hex2('#10B981', 0.18) : (isCur ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg)),
+      numColor: view.primary.isCancelled ? '#DC2626' : (isDone ? '#10B981' : (isCur ? '#fff' : t.textSub)),
+      titleColor: view.primary.isCancelled ? '#B91C1C' : (isDone ? t.textSub : t.text),
       qtyColor: isCur ? '#8B5CF6' : t.textSub,
       detailsVisible: !(isCur && scanPhase === "address"),
       pick: () => { if (i <= currentIndex) setCurrentIndex(i); },
-      isSkipped: p.isSkipped,
-      isCancelled: p.isCancelled,
+      isSkipped: view.primary.isSkipped,
+      isCancelled: view.primary.isCancelled,
     };
   });
 
-  const totalCount = prioritizedItems.length;
-  const doneCount = prioritizedItems.filter(isWaveItemComplete).length;
+  const totalCount = unitViews.length;
+  const doneCount = unitViews.filter((view) => view.isDone).length;
   const progW = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) + '%' : '0%';
 
   useEffect(() => {
-    if (currentIndex >= prioritizedItems.length) {
+    if (currentIndex >= unitViews.length) {
       return;
     }
 
-    const nextPendingIndex = findNextPendingIndex(prioritizedItems, currentIndex);
+    const nextPendingIndex = findNextPendingUnitIndex(unitViews, currentIndex);
     if (nextPendingIndex !== currentIndex) {
       setCurrentIndex(nextPendingIndex);
       setScanPhase("address");
     }
-  }, [currentIndex, prioritizedItems]);
+  }, [currentIndex, unitViews]);
 
-  const currentItem = prioritizedItems[currentIndex];
-  const current = currentItem ? {
+  const currentUnit = unitViews[currentIndex];
+  const current = currentUnit ? {
     active: true,
     done: false,
     idx: currentIndex + 1,
-    loc: getActiveRouteLine(currentItem)?.addressCode || "SEM ENDERECO",
-    zone: getActiveRouteLine(currentItem)?.routeLabel || "",
-    name: currentItem.name,
-    sku: currentItem.sku,
-    ean: currentItem.barcode || currentItem.code,
-    qty: currentItem.requestedQuantity + 'x',
-    order: currentItem.orderCode,
-    imageUrl: currentItem.imageUrl,
+    loc: getActiveRouteLine(currentUnit.primary)?.addressCode || "SEM ENDERECO",
+    zone: getActiveRouteLine(currentUnit.primary)?.routeLabel || "",
+    name: currentUnit.primary.name,
+    sku: currentUnit.primary.sku,
+    ean: currentUnit.primary.barcode || currentUnit.primary.code,
+    qty: currentUnit.requestedTotal + 'x',
+    order: currentUnit.orderCount > 1 ? `${currentUnit.orderCount} pedidos` : currentUnit.primary.orderCode,
+    imageUrl: currentUnit.primary.imageUrl,
     thumbBg: thumb(cat[currentIndex % cat.length]),
-    separated: normalizeQuantity(currentItem.separatedQuantityValue),
-    requested: currentItem.requestedQuantity
+    separated: currentUnit.separatedTotal,
+    requested: currentUnit.requestedTotal,
+    orderCount: currentUnit.orderCount,
   } : {
     active: false,
     done: true,
+    orderCount: 0,
   };
 
   const cancelOrder = () => {
-    if (!currentItem) return;
-    const orderId = currentItem.orderId;
+    if (!currentUnit) return;
+    // With a grouped step (same product, several orders, same bin), "sem
+    // estoque" only pulls the oldest order in the group out of the wave --
+    // the remaining orders keep being worked on at this same stop.
+    const orderId = currentUnit.primary.orderId;
     setCancelledOrderIds((current) => current.includes(orderId) ? current : [...current, orderId]);
     setItems((current) =>
       current.map((item) =>
@@ -267,12 +307,6 @@ export function ShippingPickingInterface({
     });
 
     setScanPhase("address");
-    const nextItems = prioritizedItems.map((item) =>
-      item.orderId === orderId
-        ? { ...item, isSkipped: true, isCancelled: true, separatedQuantityValue: "0" }
-        : item,
-    );
-    setCurrentIndex(findNextPendingIndex(nextItems, currentIndex + 1));
   };
 
   async function leaveWave() {
@@ -292,13 +326,13 @@ export function ShippingPickingInterface({
   }
 
   // Barcode scanning logic
-  const handleScanSubmit = () => {
+  const handleScanSubmit = async () => {
     if (!scanValue.trim()) return;
-    if (!currentItem) return;
-    
+    if (!currentUnit) return;
+
     const normalized = scanValue.replace(/\s+/g, "").trim().toUpperCase();
 
-    const activeRouteLine = getActiveRouteLine(currentItem);
+    const activeRouteLine = getActiveRouteLine(currentUnit.primary);
     const expectedAddress = activeRouteLine?.addressCode?.replace(/\s+/g, "").trim().toUpperCase() ?? "";
 
     if (scanPhase === "address") {
@@ -316,95 +350,129 @@ export function ShippingPickingInterface({
       scanInputRef.current?.focus();
       return;
     }
-    
+
     if (productScanBusyRef.current) return;
     productScanBusyRef.current = true;
 
-    // Check the unit, pack, SKU and internal codes accepted by the item.
-    const matches = [currentItem.barcode, currentItem.packBarcode, currentItem.sku, currentItem.code, ...currentItem.scanTargets]
-      .filter(Boolean)
-      .map(s => s?.replace(/\s+/g, "").trim().toUpperCase())
-      .includes(normalized);
+    // Check the unit, pack, SKU and internal codes accepted by any member of
+    // this step (they're all the same product, but scan targets are read
+    // from each order-item's own row so we union them just in case).
+    const acceptedTargets = new Set(
+      currentUnit.members
+        .flatMap((member) => [member.barcode, member.packBarcode, member.sku, member.code, ...member.scanTargets])
+        .filter(Boolean)
+        .map((value) => value!.replace(/\s+/g, "").trim().toUpperCase()),
+    );
+    const matches = acceptedTargets.has(normalized);
     // A pack/caixa barcode (e.g. Dêvi's SKUs with a separate código for the
     // sealed pack) adds packQuantity units per scan instead of 1 -- see
     // resolveScannedPickingQuantity in src/lib/shipping-picking-scan.ts.
     const isPackMatch =
-      Boolean(currentItem.packBarcode) &&
-      currentItem.packBarcode.replace(/\s+/g, "").trim().toUpperCase() === normalized;
+      Boolean(currentUnit.primary.packBarcode) &&
+      currentUnit.primary.packBarcode.replace(/\s+/g, "").trim().toUpperCase() === normalized;
 
-    if (matches) {
-      const stockId = activeRouteLine?.stockId;
-      if (!stockId) {
-        productScanBusyRef.current = false;
-        playFeedbackTone("error");
-        alert("Não foi possível localizar o saldo deste endereço para reservar o estoque.");
-        return;
-      }
-
-      // Increment quantity
-      const scannedQuantity = resolveScannedPickingQuantity({
-        isPackMatch,
-        packQuantity: currentItem.packQuantity,
-      });
-      const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
-      const nextSeparated = Math.min(currentSeparated + scannedQuantity, currentItem.requestedQuantity);
-      const appliedQuantity = nextSeparated - currentSeparated;
-
-      if (appliedQuantity <= 0) {
-        productScanBusyRef.current = false;
-        playFeedbackTone("error");
-        alert("Este item já está completo.");
-        setScanValue("");
-        scanInputRef.current?.focus();
-        return;
-      }
-
-      void registerPickingScanAction({
-        orderId: currentItem.orderId,
-        itemId: currentItem.id,
-        stockId,
-        quantity: appliedQuantity,
-        scanId: crypto.randomUUID(),
-      }).then((result) => {
-        if (!result.ok) {
-          productScanBusyRef.current = false;
-          playFeedbackTone("error");
-          alert(`Não foi possível reservar o estoque: ${result.message}`);
-          return;
-        }
-
-        const routeCollected = (currentItem.routeLineCollected ?? 0) + appliedQuantity;
-        const routeComplete = Boolean(activeRouteLine) && routeCollected >= (activeRouteLine?.quantity ?? 0);
-        const updatedItems = items.map((item) =>
-          item.compositeId === currentItem.compositeId
-            ? {
-                ...item,
-                separatedQuantityValue: String(nextSeparated),
-                routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
-                routeLineCollected: routeComplete ? 0 : routeCollected,
-              }
-            : item,
-        );
-        const updatedPrioritizedItems = [...updatedItems].sort(compareWaveItemsForPicking);
-        setItems(updatedItems);
-        productScanBusyRef.current = false;
-
-        if (nextSeparated >= currentItem.requestedQuantity) {
-          playFeedbackTone("success");
-          setTimeout(() => {
-            setScanPhase("address");
-            setCurrentIndex(findNextPendingIndex(updatedPrioritizedItems, currentIndex + 1));
-          }, 300);
-        } else {
-          playFeedbackTone("success");
-        }
-      });
-    } else {
+    if (!matches) {
       productScanBusyRef.current = false;
       playFeedbackTone("error");
       alert("Codigo invalido para este produto!");
+      setScanValue("");
+      scanInputRef.current?.focus();
+      return;
     }
-    
+
+    const stockId = activeRouteLine?.stockId;
+    if (!stockId) {
+      productScanBusyRef.current = false;
+      playFeedbackTone("error");
+      alert("Não foi possível localizar o saldo deste endereço para reservar o estoque.");
+      return;
+    }
+
+    const scannedQuantity = resolveScannedPickingQuantity({
+      isPackMatch,
+      packQuantity: currentUnit.primary.packQuantity,
+    });
+
+    // How much each member of this step can still absorb from THIS stock
+    // bin (not the item's grand total -- an item may still have other,
+    // separate stops queued up after this one).
+    const candidates = currentUnit.members
+      .map((member) => {
+        const memberActiveLine = getActiveRouteLine(member);
+        const remainingAtStop = memberActiveLine
+          ? Math.max(memberActiveLine.quantity - (member.routeLineCollected ?? 0), 0)
+          : 0;
+        return {
+          compositeId: member.compositeId,
+          orderSequenceKey: orderSequenceKeyByOrderId.get(member.orderId) ?? "",
+          remainingAtStop,
+        };
+      })
+      .filter((candidate) => candidate.remainingAtStop > 0);
+
+    const stepCapacity = candidates.reduce((sum, candidate) => sum + candidate.remainingAtStop, 0);
+    const appliedQuantityTotal = Math.min(scannedQuantity, stepCapacity);
+
+    if (appliedQuantityTotal <= 0) {
+      productScanBusyRef.current = false;
+      playFeedbackTone("error");
+      alert("Este item já está completo.");
+      setScanValue("");
+      scanInputRef.current?.focus();
+      return;
+    }
+
+    const allocations = distributeScannedQuantityAcrossGroup(candidates, appliedQuantityTotal);
+    const membersByCompositeId = new Map(currentUnit.members.map((member) => [member.compositeId, member]));
+
+    const results = await Promise.all(
+      allocations.map(async (allocation) => {
+        const member = membersByCompositeId.get(allocation.compositeId)!;
+        const result = await registerPickingScanAction({
+          orderId: member.orderId,
+          itemId: member.id,
+          stockId,
+          quantity: allocation.quantity,
+          scanId: crypto.randomUUID(),
+        });
+        return { allocation, member, result };
+      }),
+    );
+
+    const failures = results.filter((entry) => !entry.result.ok);
+    const succeeded = results.filter((entry) => entry.result.ok);
+
+    if (succeeded.length > 0) {
+      setItems((current) => {
+        const updated = current.map((item) => {
+          const hit = succeeded.find((entry) => entry.member.compositeId === item.compositeId);
+          if (!hit) return item;
+
+          const nextSeparated = normalizeQuantity(item.separatedQuantityValue) + hit.allocation.quantity;
+          const routeCollected = (item.routeLineCollected ?? 0) + hit.allocation.quantity;
+          const memberActiveLine = getActiveRouteLine(item);
+          const routeComplete = Boolean(memberActiveLine) && routeCollected >= (memberActiveLine?.quantity ?? 0);
+
+          return {
+            ...item,
+            separatedQuantityValue: String(nextSeparated),
+            routeLineIndex: routeComplete ? item.routeLineIndex + 1 : item.routeLineIndex,
+            routeLineCollected: routeComplete ? 0 : routeCollected,
+          };
+        });
+        return updated;
+      });
+    }
+
+    productScanBusyRef.current = false;
+
+    if (failures.length > 0) {
+      playFeedbackTone("error");
+      alert(`Não foi possível reservar o estoque para ${failures.length === 1 ? "1 pedido" : `${failures.length} pedidos`}: ${failures[0].result.message ?? "erro desconhecido"}`);
+    } else {
+      playFeedbackTone("success");
+    }
+
     setScanValue("");
     scanInputRef.current?.focus();
   };
@@ -460,7 +528,7 @@ export function ShippingPickingInterface({
         @keyframes scanBeam { 0% { transform: translateY(0); } 50% { transform: translateY(52px); } 100% { transform: translateY(0); } }
         @keyframes stockoutPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.08); } 50% { box-shadow: 0 0 0 4px rgba(220,38,38,0.16); } }
       `}} />
-      
+
       <header style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "16px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: t.barBg, transition: "background 0.35s ease" }}>
          <button onClick={() => void leaveWave()} disabled={isSubmitting || isResetting} style={{ display: "flex", alignItems: "center", gap: "8px", height: "40px", padding: "0 14px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: "700", cursor: isSubmitting || isResetting ? "progress" : "pointer", textDecoration: "none", opacity: isSubmitting || isResetting ? 0.7 : 1 }}>
           ‹ Voltar
@@ -551,6 +619,11 @@ export function ShippingPickingInterface({
                 <div style={{ display: "flex", flexDirection: "column", gap: "5px", flex: 1, minWidth: 0 }}>
                   <span style={{ fontSize: "17px", fontWeight: "700", lineHeight: "1.25" }}>{current.name}</span>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
+                  {current.orderCount > 1 ? (
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "12.5px", color: "#8B5CF6", fontWeight: 700 }}>
+                      Cobrindo {current.orderCount} pedidos neste lote
+                    </span>
+                  ) : null}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", paddingLeft: "18px", borderLeft: `1px solid ${t.border}` }}>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "34px", fontWeight: "700", color: "#8B5CF6" }}>{current.separated} / {current.requested}</span>
@@ -575,20 +648,20 @@ export function ShippingPickingInterface({
                   <span style={{ fontSize: "12.5px", color: t.textSub }}>Leitura do código de barras ou digite o EAN</span>
                 </div>
               </div>
-              <input 
+              <input
                 ref={scanInputRef}
                 value={scanValue}
                 onChange={e => setScanValue(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); handleScanSubmit(); }
+                  if (e.key === "Enter") { e.preventDefault(); void handleScanSubmit(); }
                 }}
-                placeholder={scanPhase === "address" ? "Aguardando bipagem do endereco..." : "Aguardando bipagem do produto..."} 
-                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${scanPhase === "address" ? "#3B82F6" : t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }} 
+                placeholder={scanPhase === "address" ? "Aguardando bipagem do endereco..." : "Aguardando bipagem do produto..."}
+                style={{ height: "54px", padding: "0 18px", borderRadius: "12px", border: `1.5px solid ${scanPhase === "address" ? "#3B82F6" : t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", outline: "none", boxSizing: "border-box" }}
               />
 
               <div style={{ display: "flex", gap: "12px" }}>
                 <button type="button" onClick={cancelOrder} style={{ flex: 1, height: "52px", borderRadius: "12px", border: "1px solid #DC2626", background: t.inputBg, color: "#DC2626", fontFamily: "'Manrope', sans-serif", fontSize: "15px", fontWeight: "800", cursor: "pointer", animation: "stockoutPulse 1.6s ease-in-out infinite" }}>
-                  Sem estoque, cancelar pedido
+                  {current.orderCount > 1 ? `Sem estoque, cancelar pedido ${currentUnit.primary.orderCode}` : "Sem estoque, cancelar pedido"}
                 </button>
               </div>
             </div>
@@ -602,7 +675,7 @@ export function ShippingPickingInterface({
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "26px", fontWeight: "700" }}>Separação concluída!</span>
                 <span style={{ fontSize: "14.5px", color: t.textSub, lineHeight: "1.5" }}>
-                  Todos os {totalCount} itens da onda foram processados. 
+                  Todos os itens da onda foram processados.
                   {items.some(i => i.isSkipped) && <span style={{display: 'block', marginTop: 8, color: '#F59E0B'}}>Aviso: Há itens pulados por divergência ou ruptura.</span>}
                 </span>
               </div>
@@ -614,7 +687,7 @@ export function ShippingPickingInterface({
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <input type="hidden" name="completeRedirectTo" value={completeRedirectTo} />
                 {cancelledOrderIds.map((orderId) => <input key={orderId} type="hidden" name="cancelledOrderId" value={orderId} />)}
-                
+
                 {items.map(item => (
                   <React.Fragment key={item.compositeId}>
                     <input type="hidden" name="itemOrderId" value={item.orderId} />
@@ -623,7 +696,7 @@ export function ShippingPickingInterface({
                     <input type="hidden" name="separatedQuantity" value={item.isSkipped ? "0" : item.separatedQuantityValue} />
                   </React.Fragment>
                 ))}
-                
+
                 <button type="submit" disabled={isSubmitting} style={{ display: "none" }}>
                   {isSubmitting ? <MobileButtonSpinner size={20} /> : "Ir para conferência →"}
                 </button>
@@ -679,24 +752,82 @@ function isWaveItemComplete(item: WavePickingItemState) {
   return Boolean(item.isSkipped) || normalizeQuantity(item.separatedQuantityValue) >= item.requestedQuantity;
 }
 
-function findNextPendingIndex(items: WavePickingItemState[], startAt = 0) {
-  const index = items.findIndex((item, itemIndex) => itemIndex >= startAt && !isWaveItemComplete(item));
-  return index >= 0 ? index : items.length;
-}
-
 function getActiveRouteLine(item: WavePickingItemState) {
   if (!item.routeLines.length) return null;
   return item.routeLines[Math.min(item.routeLineIndex, item.routeLines.length - 1)] ?? null;
 }
 
-function compareWaveItemsForPicking(a: WavePickingItemState, b: WavePickingItemState) {
-  const firstRouteA = a.routeLines[0];
-  const firstRouteB = b.routeLines[0];
-  if (firstRouteA && firstRouteB) {
-    const areaCompare = firstRouteA.area.localeCompare(firstRouteB.area, "pt-BR");
-    if (areaCompare !== 0) return areaCompare;
-    const labelCompare = firstRouteA.routeLabel.localeCompare(firstRouteB.routeLabel, "pt-BR", { numeric: true, sensitivity: "base" });
-    if (labelCompare !== 0) return labelCompare;
-  }
-  return a.orderExternalNumber.localeCompare(b.orderExternalNumber, "pt-BR", { numeric: true, sensitivity: "base" });
+function toPickGroupSourceItem(item: WavePickingItemState, orderSequenceKey: string): PickGroupSourceItem {
+  return {
+    compositeId: item.compositeId,
+    orderId: item.orderId,
+    orderSequenceKey,
+    productId: item.productId,
+    isKit: item.isKit,
+    isDone: isWaveItemComplete(item),
+    routeLines: item.routeLines.map((line) => ({ stockId: line.stockId, quantity: line.quantity })),
+    routeLineIndex: item.routeLineIndex,
+  };
+}
+
+// Builds the ordered list of "picking units" the operator works through:
+// a mix of individual order-items and, where possible, combined steps that
+// cover the same product across several orders in the wave at once. See
+// src/lib/shipping-picking-groups.ts for the underlying grouping/FIFO logic.
+function buildPickingUnitViews(
+  items: WavePickingItemState[],
+  orderSequenceKeyByOrderId: Map<string, string>,
+): PickingUnitView[] {
+  const itemsByCompositeId = new Map(items.map((item) => [item.compositeId, item]));
+  const sourceItems = items.map((item) =>
+    toPickGroupSourceItem(item, orderSequenceKeyByOrderId.get(item.orderId) ?? ""),
+  );
+  const units = buildPickGroupUnits(sourceItems);
+
+  const views = units.map((unit): PickingUnitView => {
+    if (unit.kind === "single") {
+      const full = itemsByCompositeId.get(unit.item.compositeId)!;
+      return {
+        key: unit.item.compositeId,
+        members: [full],
+        primary: full,
+        requestedTotal: full.requestedQuantity,
+        separatedTotal: normalizeQuantity(full.separatedQuantityValue),
+        orderCount: 1,
+        isDone: isWaveItemComplete(full),
+      };
+    }
+
+    const fullMembers = [...unit.members]
+      .sort((a, b) => a.orderSequenceKey.localeCompare(b.orderSequenceKey))
+      .map((member) => itemsByCompositeId.get(member.compositeId)!);
+    const distinctOrders = new Set(fullMembers.map((member) => member.orderId));
+
+    return {
+      key: `${unit.productId} ${unit.stockId}`,
+      members: fullMembers,
+      primary: fullMembers[0],
+      requestedTotal: fullMembers.reduce((sum, member) => sum + member.requestedQuantity, 0),
+      separatedTotal: fullMembers.reduce((sum, member) => sum + normalizeQuantity(member.separatedQuantityValue), 0),
+      orderCount: distinctOrders.size,
+      isDone: fullMembers.every(isWaveItemComplete),
+    };
+  });
+
+  return views.sort((a, b) => {
+    const firstRouteA = a.primary.routeLines[0];
+    const firstRouteB = b.primary.routeLines[0];
+    if (firstRouteA && firstRouteB) {
+      const areaCompare = firstRouteA.area.localeCompare(firstRouteB.area, "pt-BR");
+      if (areaCompare !== 0) return areaCompare;
+      const labelCompare = firstRouteA.routeLabel.localeCompare(firstRouteB.routeLabel, "pt-BR", { numeric: true, sensitivity: "base" });
+      if (labelCompare !== 0) return labelCompare;
+    }
+    return a.primary.orderExternalNumber.localeCompare(b.primary.orderExternalNumber, "pt-BR", { numeric: true, sensitivity: "base" });
+  });
+}
+
+function findNextPendingUnitIndex(views: PickingUnitView[], startAt = 0) {
+  const index = views.findIndex((view, i) => i >= startAt && !view.isDone);
+  return index >= 0 ? index : views.length;
 }
