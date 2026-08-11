@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="d183c17c-67cd-4772-a50c-e1c377c5f94c"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta charset="utf-8">
+<title>Infinoos WMS — Configurações</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c2271a9a-bd6b-4014-970f-cfafbdbaa235") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a3d11da6-195e-4b38-8a5f-896f70cbc8a4") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0f7b6e59-1e60-430f-9118-378a40194db0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("2422bc3b-d322-47a1-9e38-9d3981fa7b04") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a3fcc304-898c-436c-9296-7807268f0128") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5cae8f51-1629-476d-b3ba-e09488ebe6d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c2271a9a-bd6b-4014-970f-cfafbdbaa235") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("a3d11da6-195e-4b38-8a5f-896f70cbc8a4") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("0f7b6e59-1e60-430f-9118-378a40194db0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("2422bc3b-d322-47a1-9e38-9d3981fa7b04") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("a3fcc304-898c-436c-9296-7807268f0128") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("5cae8f51-1629-476d-b3ba-e09488ebe6d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("c2271a9a-bd6b-4014-970f-cfafbdbaa235") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a3d11da6-195e-4b38-8a5f-896f70cbc8a4") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0f7b6e59-1e60-430f-9118-378a40194db0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("2422bc3b-d322-47a1-9e38-9d3981fa7b04") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a3fcc304-898c-436c-9296-7807268f0128") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("5cae8f51-1629-476d-b3ba-e09488ebe6d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("c2271a9a-bd6b-4014-970f-cfafbdbaa235") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a3d11da6-195e-4b38-8a5f-896f70cbc8a4") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0f7b6e59-1e60-430f-9118-378a40194db0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("2422bc3b-d322-47a1-9e38-9d3981fa7b04") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a3fcc304-898c-436c-9296-7807268f0128") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("5cae8f51-1629-476d-b3ba-e09488ebe6d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("c2271a9a-bd6b-4014-970f-cfafbdbaa235") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("a3d11da6-195e-4b38-8a5f-896f70cbc8a4") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("0f7b6e59-1e60-430f-9118-378a40194db0") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("2422bc3b-d322-47a1-9e38-9d3981fa7b04") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("a3fcc304-898c-436c-9296-7807268f0128") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("5cae8f51-1629-476d-b3ba-e09488ebe6d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("6b17c3fb-7fd4-4a50-aa5e-4581b073b308") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("54951809-f761-4e4a-afae-7f7df0cdbcc0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c82fa878-7305-41d5-a4a7-e6e4687f7313") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("6b17c3fb-7fd4-4a50-aa5e-4581b073b308") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("54951809-f761-4e4a-afae-7f7df0cdbcc0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("c82fa878-7305-41d5-a4a7-e6e4687f7313") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("6b17c3fb-7fd4-4a50-aa5e-4581b073b308") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("54951809-f761-4e4a-afae-7f7df0cdbcc0") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("c82fa878-7305-41d5-a4a7-e6e4687f7313") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { font-family: 'Manrope', sans-serif; }
+  a { color: #8B5CF6; text-decoration: none; }
+  a:hover { color: #A78BFA; }
+  input::placeholder { color: #94A3B8; opacity: 0.7; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes paneIn { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes rowIn { from { transform: translateY(6px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>
+</helmet>
+
+<div data-screen-label="Configurações" style="display: flex; width: 100vw; height: 100vh; overflow: hidden; background: {{ t.appBg }}; color: {{ t.text }}; transition: background 0.35s ease, color 0.35s ease">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="width: 248px; flex-shrink: 0; display: flex; flex-direction: column; background: {{ t.sideBg }}; border-right: 1px solid {{ t.border }}; transition: background 0.35s ease">
+    <div style="padding: 24px 22px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid {{ t.border }}">
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.4em; color: {{ t.textSub }}">INFINOOS</span>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; background: linear-gradient(90deg, #60A5FA, #A78BFA); -webkit-background-clip: text; background-clip: text; color: transparent">WMS</span>
+    </div>
+    <nav style="flex: 1; overflow-y: auto; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="9">
+        <a href="{{ item.href }}" style="text-decoration: none; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; cursor: pointer; font-size: 14.5px; font-weight: {{ item.weight }}; color: {{ item.color }}; background: {{ item.bg }}; transition: all 0.18s ease" style-hover="background: {{ t.navHover }}">
+          <span style="width: 19px; height: 19px; display: flex; align-items: center; justify-content: center; opacity: {{ item.iconOpacity }}">{{ item.iconEl }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      </sc-for>
+    </nav>
+    <div style="padding: 14px 16px; border-top: 1px solid {{ t.border }}; display: flex; align-items: center; gap: 11px">
+      <div style="width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #8B5CF6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px">RA</div>
+      <div style="display: flex; flex-direction: column; min-width: 0">
+        <span style="font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rafael Alves</span>
+        <span style="font-size: 12px; color: {{ t.textSub }}">Supervisor · CD Cajamar</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden">
+    <header style="flex-shrink: 0; height: 68px; display: flex; align-items: center; gap: 18px; padding: 0 28px; border-bottom: 1px solid {{ t.border }}; background: {{ t.barBg }}; transition: background 0.35s ease">
+      <div style="display: flex; align-items: center; gap: 10px; height: 42px; flex: 1; max-width: 420px; padding: 0 16px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}">
+        <span style="color: {{ t.textSub }}; font-size: 15px">⌕</span>
+        <input placeholder="Buscar em configurações..." style="flex: 1; border: none; outline: none; background: transparent; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px">
+      </div>
+      <div style="flex: 1"></div>
+      <button title="Notificações" style="position: relative; width: 42px; height: 42px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; cursor: pointer; display: flex; align-items: center; justify-content: center" style-hover="color: #8B5CF6"><span style="display: flex">{{ bellIcon }}</span><span style="position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px {{ t.barBg }}"></span></button>
+      <button sc-camel-on-click="{{ toggleTheme }}" title="Alternar tema" aria-label="Alternar tema" style="position: relative; width: 68px; height: 32px; padding: 0; border-radius: 999px; border: 1px solid {{ tog.border }}; background: {{ tog.track }}; cursor: pointer; transition: background 0.3s ease, border-color 0.3s ease; box-shadow: inset 0 1px 3px {{ tog.inset }}">
+        <span style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackMoon }}; transition: color 0.3s ease">☾</span>
+        <span style="position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font-size: 12px; color: {{ tog.trackSun }}; transition: color 0.3s ease">☀</span>
+        <span style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: {{ tog.knob }}; box-shadow: 0 1px 4px rgba(0,0,0,0.35); transform: translateX({{ tog.knobX }}); transition: transform 0.32s cubic-bezier(.4,1.3,.5,1), background 0.3s ease; font-size: 13px; color: {{ tog.knobIconColor }}">{{ tog.knobIcon }}</span>
+      </button>
+    </header>
+
+    <div style="flex: 1; min-height: 0; display: flex; overflow: hidden">
+      <!-- ==== CONTENT PANEL ==== -->
+      <main style="flex: 1; min-width: 0; overflow-y: auto; padding: 28px 32px 44px 32px">
+        <!-- panel header -->
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 22px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: {{ t.textSub }}"><span sc-camel-on-click="{{ goResumo }}" style="cursor: pointer" style-hover="color: #8B5CF6">Configurações</span><span>›</span><span style="color: {{ t.text }}; font-weight: 600">{{ panel.title }}</span></div>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <sc-if value="{{ notOverview }}" hint-placeholder-val="{{ false }}">
+                <button sc-camel-on-click="{{ goResumo }}" title="Voltar para Configurações" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center" style-hover="border-color: #8B5CF6; color: #8B5CF6">‹</button>
+              </sc-if>
+              <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700">{{ panel.heading }}</h2>
+            </div>
+            <p style="margin: 0; font-size: 14px; color: {{ t.textSub }}">{{ panel.sub }}</p>
+          </div>
+          <sc-if value="{{ notOverview }}" hint-placeholder-val="{{ false }}">
+          <button sc-camel-on-click="{{ panelCta }}" style="height: 44px; padding: 0 20px; border: none; border-radius: 11px; background: linear-gradient(92deg, #3B82F6, #8B5CF6); color: #fff; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(99,102,241,0.32); display: flex; align-items: center; gap: 8px" style-hover="transform: translateY(-1px)">+ {{ panel.cta }}</button>
+          </sc-if>
+        </div>
+
+        <!-- ============ RESUMO (overview) ============ -->
+        <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ false }}">
+        <div key="overview" style="display: flex; flex-direction: column; gap: 20px; animation: paneIn 0.28s ease">
+
+          <!-- KPI row -->
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="5">
+              <div style="padding: 18px; border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; display: flex; flex-direction: column; gap: 11px">
+                <div style="display: flex; align-items: center; gap: 9px">
+                  <span style="width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: {{ k.iconBg }}; color: {{ k.iconColor }}">{{ k.iconEl }}</span>
+                  <span style="font-size: 12px; font-weight: 600; color: {{ t.textSub }}">{{ k.label }}</span>
+                </div>
+                <span style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: {{ k.valueColor }}">{{ k.value }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- depositantes base + próximas ações -->
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px">
+            <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px">
+              <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Depositantes base</span>
+                  <span style="font-size: 13px; color: {{ t.textSub }}">Isolamento multi-tenant e políticas de acesso por cliente.</span>
+                </div>
+                <span style="flex-shrink: 0; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(16,185,129,0.14); color: #10B981">6 ativos</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                <sc-for list="{{ depBase }}" as="d" hint-placeholder-count="6">
+                  <div style="border-radius: 13px; border: 1px solid {{ t.border }}; background: {{ t.softBg }}; padding: 15px">
+                    <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px">
+                      <span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #fff; background: {{ d.avatarBg }}">{{ d.initials }}</span>
+                      <span style="flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; line-height: 1.3">{{ d.name }}</span>
+                      <span style="flex-shrink: 0; padding: 3px 9px; border-radius: 7px; font-size: 10px; font-weight: 800; background: {{ d.methodBg }}; color: {{ d.methodColor }}">{{ d.method }}</span>
+                    </div>
+                    <div style="display: flex; gap: 20px">
+                      <div style="display: flex; flex-direction: column; gap: 1px">
+                        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: {{ t.textSub }}">SKUS</span>
+                        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{ d.skus }}</span>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 1px">
+                        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: {{ t.textSub }}">USUÁRIOS</span>
+                        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{ d.users }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px; display: flex; flex-direction: column">
+              <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Tarefas</span>
+                  <span style="font-size: 13px; color: {{ t.textSub }}">{{ taskPendingLabel }}</span>
+                </div>
+                <span style="flex-shrink: 0; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(139,92,246,0.14); color: #A78BFA">{{ taskPendingCount }}</span>
+              </div>
+              <form sc-camel-on-submit="{{ addTask }}" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; margin-bottom: 14px">
+                <span style="color: #8B5CF6; font-size: 18px; font-weight: 700">+</span>
+                <input value="{{ taskDraft }}" sc-camel-on-input="{{ setTaskDraft }}" placeholder="Adicionar tarefa..." style="flex: 1; border: none; outline: none; background: transparent; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 13.5px">
+              </form>
+              <div style="display: flex; flex-direction: column; gap: 10px">
+                <sc-for list="{{ pendingTasks }}" as="a" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: flex-start; gap: 11px; padding: 13px 14px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.softBg }}; animation: rowIn 0.25s ease">
+                    <button sc-camel-on-click="{{ a.check }}" title="Concluir" style="width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid {{ t.textSub }}; background: transparent; cursor: pointer; padding: 0" style-hover="border-color: #10B981"></button>
+                    <span style="flex: 1; font-size: 13px; line-height: 1.45; color: {{ t.text }}">{{ a.text }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ noPending }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 20px; text-align: center; font-size: 13px; color: {{ t.textSub }}">Tudo em dia — nenhuma tarefa pendente.</div>
+                </sc-if>
+              </div>
+              <div style="flex: 1"></div>
+              <button sc-camel-on-click="{{ openTasks }}" style="margin-top: 14px; height: 40px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6; color: #8B5CF6">Ver mais</button>
+            </div>
+          </div>
+
+          <!-- 6 category cards -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px">
+            <sc-for list="{{ summary }}" as="s" hint-placeholder-count="6">
+              <div sc-camel-on-click="{{ s.go }}" style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 20px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: all 0.18s ease" style-hover="border-color: #8B5CF6; transform: translateY(-2px)">
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: {{ s.iconBg }}; color: {{ s.iconColor }}">{{ s.iconEl }}</span>
+                  <span style="flex: 1; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{ s.label }}</span>
+                  <span style="color: {{ t.textSub }}; font-size: 18px; font-weight: 700">›</span>
+                </div>
+                <span style="font-size: 12.5px; color: {{ t.textSub }}; line-height: 1.5">{{ s.desc }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- cobertura atual (largura total) -->
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px; display: flex; flex-direction: column">
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 16px">Cobertura atual</span>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px">
+              <sc-for list="{{ coverage }}" as="c" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.softBg }}">
+                  <span style="flex: 1; font-size: 13px; color: {{ t.text }}">{{ c.label }}</span>
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: {{ c.color }}">{{ c.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ DEPOSITANTES / USUÁRIOS / TRANSPORTADORAS (table-like rows) ============ -->
+        <sc-if value="{{ isRows }}" hint-placeholder-val="{{ true }}">
+        <div key="{{ activeTab }}" style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; overflow-x: auto; animation: paneIn 0.28s ease">
+          <div style="min-width: 720px">
+          <div style="display: flex; align-items: center; gap: 16px; padding: 12px 22px; border-bottom: 1px solid {{ t.border }}; background: {{ t.headBg }}">
+            <sc-for list="{{ rowCols }}" as="c" hint-placeholder-count="4">
+              <span style="flex: {{ c.flex }}; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: {{ t.textSub }}; text-align: {{ c.align }}">{{ c.label }}</span>
+            </sc-for>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 16px; padding: 15px 22px; border-bottom: 1px solid {{ t.border }}; animation: rowIn 0.25s ease" style-hover="background: {{ t.rowHover }}">
+              <div style="flex: {{ col0flex }}; display: flex; align-items: center; gap: 13px; min-width: 220px">
+                <span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13.5px; color: #fff; background: {{ r.avatarBg }}">{{ r.initials }}</span>
+                <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                  <span style="font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</span>
+                  <span style="font-size: 12px; color: {{ t.textSub }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.meta }}</span>
+                </div>
+              </div>
+              <span style="flex: {{ col1flex }}; font-size: 13.5px; font-weight: 600; color: {{ t.text }}">{{ r.col1 }}</span>
+              <sc-if value="{{ r.showTag }}" hint-placeholder-val="{{ true }}">
+              <div style="flex: {{ col2flex }}; display: flex">
+                <span style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; background: {{ r.tagBg }}; color: {{ r.tagColor }}">{{ r.tag }}</span>
+              </div>
+              </sc-if>
+              <div style="flex: {{ r.actionsFlex }}; display: flex; justify-content: flex-end; align-items: center; gap: 10px">
+                <sc-if value="{{ r.showStatus }}" hint-placeholder-val="{{ true }}">
+                <span style="display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; background: {{ r.statusBg }}; color: {{ r.statusColor }}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ r.statusColor }}"></span>{{ r.statusLabel }}</span>
+                <button sc-camel-on-click="{{ r.toggle }}" title="Ativar/desativar" style="position: relative; width: 46px; height: 26px; flex-shrink: 0; border-radius: 999px; border: none; cursor: pointer; background: {{ r.swBg }}; transition: background 0.25s ease">
+                  <span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translateX({{ r.swX }}); transition: transform 0.25s cubic-bezier(.4,1.3,.5,1)"></span>
+                </button>
+                </sc-if>
+                <button sc-camel-on-click="{{ r.edit }}" title="Editar" style="width: 36px; height: 36px; border-radius: 9px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; cursor: pointer; display: flex; align-items: center; justify-content: center" style-hover="border-color: #8B5CF6; color: #8B5CF6">{{ editIcon }}</button>
+                <button sc-camel-on-click="{{ r.remove }}" title="Excluir" style="width: 36px; height: 36px; border-radius: 9px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #EF4444; cursor: pointer; display: flex; align-items: center; justify-content: center" style-hover="background: rgba(239,68,68,0.16)">{{ trashIcon }}</button>
+              </div>
+            </div>
+          </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ INTEGRAÇÕES ============ -->
+        <sc-if value="{{ isIntegr }}" hint-placeholder-val="{{ false }}">
+        <div key="integr" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; animation: paneIn 0.28s ease">
+          <sc-for list="{{ integrations }}" as="ig" hint-placeholder-count="6">
+            <div style="border-radius: 16px; border: 1px solid {{ ig.cardBorder }}; background: {{ t.cardBg }}; padding: 18px; display: flex; flex-direction: column; gap: 15px">
+              <div style="display: flex; align-items: center; gap: 13px">
+                <span style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; color: #fff; background: {{ ig.logoBg }}">{{ ig.initials }}</span>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 15px; font-weight: 700">{{ ig.name }}</span>
+                  <span style="font-size: 12px; color: {{ t.textSub }}">{{ ig.kind }}</span>
+                </div>
+                <button sc-camel-on-click="{{ ig.toggle }}" style="position: relative; width: 46px; height: 26px; flex-shrink: 0; border-radius: 999px; border: none; cursor: pointer; background: {{ ig.swBg }}; transition: background 0.25s ease">
+                  <span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translateX({{ ig.swX }}); transition: transform 0.25s cubic-bezier(.4,1.3,.5,1)"></span>
+                </button>
+              </div>
+              <div style="height: 1px; background: {{ t.border }}"></div>
+              <div style="display: flex; align-items: center; justify-content: space-between">
+                <span style="display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 700; color: {{ ig.statusColor }}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{ ig.statusColor }}"></span>{{ ig.status }}</span>
+                <span style="font-size: 11.5px; color: {{ t.textSub }}">{{ ig.sync }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- ============ PRODUTOS (defaults) ============ -->
+        <sc-if value="{{ isProducts }}" hint-placeholder-val="{{ false }}">
+        <div key="prod" style="display: flex; flex-direction: column; gap: 18px; max-width: 940px; animation: paneIn 0.28s ease">
+          <!-- categorias -->
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px">
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Categorias de produto</span>
+              <span style="font-size: 13px; color: {{ t.textSub }}">Categorias usadas na classificação do catálogo.</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 9px">
+              <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6">
+                <span style="display: inline-flex; align-items: center; gap: 9px; height: 36px; padding: 0 8px 0 14px; border-radius: 10px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; font-size: 13px; font-weight: 600">{{ c.name }}<button sc-camel-on-click="{{ c.remove }}" style="width: 22px; height: 22px; border: none; border-radius: 7px; background: transparent; color: {{ t.textSub }}; cursor: pointer; font-size: 13px" style-hover="color: #EF4444">✕</button></span>
+              </sc-for>
+              <span sc-camel-on-click="{{ addCategory }}" style="display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 10px; border: 1.5px dashed {{ t.border }}; color: #8B5CF6; font-size: 13px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">+ Nova categoria</span>
+            </div>
+          </div>
+          <!-- defaults grid -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px">
+            <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Método de saída padrão</span>
+                <span style="font-size: 13px; color: {{ t.textSub }}">Aplicado a novos produtos por padrão.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 9px">
+                <sc-for list="{{ methods }}" as="m" hint-placeholder-count="3">
+                  <div sc-camel-on-click="{{ m.pick }}" style="display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-radius: 12px; border: 1.5px solid {{ m.border }}; background: {{ m.bg }}; cursor: pointer; transition: all 0.16s ease">
+                    <span style="width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; border: 2px solid {{ m.dotBorder }}; display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{ m.dotFill }}"></span></span>
+                    <div style="display: flex; flex-direction: column; gap: 1px">
+                      <span style="font-size: 13.5px; font-weight: 700">{{ m.name }}</span>
+                      <span style="font-size: 12px; color: {{ t.textSub }}">{{ m.desc }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 18px">
+              <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Controles obrigatórios</span>
+                  <span style="font-size: 13px; color: {{ t.textSub }}">Exigidos no cadastro de novos SKUs.</span>
+                </div>
+                <sc-for list="{{ prodToggles }}" as="p" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 1px">
+                      <span style="font-size: 13.5px; font-weight: 700">{{ p.name }}</span>
+                      <span style="font-size: 12px; color: {{ t.textSub }}">{{ p.desc }}</span>
+                    </div>
+                    <button sc-camel-on-click="{{ p.toggle }}" style="position: relative; width: 46px; height: 26px; flex-shrink: 0; border-radius: 999px; border: none; cursor: pointer; background: {{ p.swBg }}; transition: background 0.25s ease">
+                      <span style="position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transform: translateX({{ p.swX }}); transition: transform 0.25s cubic-bezier(.4,1.3,.5,1)"></span>
+                    </button>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+                <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Unidade padrão de estocagem</span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                  <sc-for list="{{ units }}" as="u" hint-placeholder-count="3">
+                    <span sc-camel-on-click="{{ u.pick }}" style="height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid {{ u.border }}; background: {{ u.bg }}; color: {{ u.color }}; transition: all 0.16s ease">{{ u.name }}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ============ ENDEREÇOS (settings) ============ -->
+        <sc-if value="{{ isAddr }}" hint-placeholder-val="{{ false }}">
+        <div key="addr" style="display: flex; flex-direction: column; gap: 18px; max-width: 940px; animation: paneIn 0.28s ease">
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px">
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Nomenclatura de endereço</span>
+              <span style="font-size: 13px; color: {{ t.textSub }}">Formato padrão das posições no armazém.</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+              <sc-for list="{{ addrParts }}" as="p" hint-placeholder-count="4">
+                <div style="display: flex; flex-direction: column; gap: 6px">
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: {{ t.textSub }}">{{ p.label }}</span>
+                  <div style="height: 46px; min-width: 84px; padding: 0 16px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">{{ p.sample }}</div>
+                </div>
+                <sc-if value="{{ p.sep }}" hint-placeholder-val="{{ false }}"><span style="align-self: flex-end; height: 46px; display: flex; align-items: center; font-size: 20px; font-weight: 700; color: {{ t.textSub }}">-</span></sc-if>
+              </sc-for>
+              <div style="flex: 1"></div>
+              <div style="align-self: flex-end; display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: {{ t.textSub }}">Exemplo</span>
+                <div style="height: 46px; padding: 0 18px; border-radius: 11px; background: rgba(139,92,246,0.14); display: flex; align-items: center; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: #A78BFA">A-12-03</div>
+              </div>
+            </div>
+          </div>
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 22px">
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Tipos de endereço</span>
+              <span style="font-size: 13px; color: {{ t.textSub }}">Classificações usadas no mapa do armazém.</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px">
+              <sc-for list="{{ addrTypes }}" as="a" hint-placeholder-count="4">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}">
+                  <span style="width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; background: {{ a.color }}"></span>
+                  <div style="flex: 1; display: flex; flex-direction: column; gap: 1px">
+                    <span style="font-size: 13.5px; font-weight: 700">{{ a.name }}</span>
+                    <span style="font-size: 11.5px; color: {{ t.textSub }}">{{ a.count }} posições</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+
+  <!-- CREATE DRAWER (depositantes / usuários / transportadoras) -->
+  <sc-if value="{{ hasDrawer }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 75; display: flex; justify-content: flex-end">
+    <div sc-camel-on-click="{{ closeDrawer }}" style="position: absolute; inset: 0; background: rgba(6,10,20,0.55); backdrop-filter: blur(3px); animation: paneIn 0.2s ease"></div>
+    <div style="position: relative; width: 460px; max-width: 94vw; height: 100%; background: {{ t.cardBg }}; border-left: 1px solid {{ t.border }}; box-shadow: -24px 0 60px rgba(0,0,0,0.4); display: flex; flex-direction: column; animation: paneIn 0.3s ease">
+      <div style="padding: 24px; border-bottom: 1px solid {{ t.border }}; display: flex; align-items: center; justify-content: space-between; gap: 12px">
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">{{ drawerTitle }}</span>
+        <button sc-camel-on-click="{{ closeDrawer }}" style="width: 36px; height: 36px; border-radius: 10px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.textSub }}; font-size: 16px; cursor: pointer" style-hover="color: #8B5CF6">✕</button>
+      </div>
+      <div style="flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">{{ drawerF1 }}</span>
+          <input value="{{ formF1 }}" sc-camel-on-input="{{ setF1 }}" placeholder="{{ drawerF1 }}" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">{{ drawerF2 }}</span>
+          <input value="{{ formF2 }}" sc-camel-on-input="{{ setF2 }}" placeholder="{{ drawerF2ph }}" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+        </div>
+        <sc-if value="{{ drawerHasF3 }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">{{ drawerF3 }}</span>
+          <input value="{{ formF3 }}" sc-camel-on-input="{{ setF3 }}" placeholder="{{ drawerF3ph }}" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+        </div>
+        </sc-if>
+        <sc-if value="{{ drawerHasOpt }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 9px">
+          <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">{{ drawerOptLabel }}</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{ drawerOpts }}" as="o" hint-placeholder-count="3">
+              <span sc-camel-on-click="{{ o.pick }}" style="height: 38px; padding: 0 15px; display: inline-flex; align-items: center; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid {{ o.border }}; background: {{ o.bg }}; color: {{ o.color }}; transition: all 0.16s ease">{{ o.name }}</span>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      <div style="flex-shrink: 0; padding: 16px 24px; border-top: 1px solid {{ t.border }}; display: flex; gap: 12px">
+        <button sc-camel-on-click="{{ closeDrawer }}" style="flex: 1; height: 48px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">Cancelar</button>
+        <button sc-camel-on-click="{{ submitDrawer }}" disabled="{{ notCanSubmit }}" style="flex: 1.4; height: 48px; border: none; border-radius: 11px; background: {{ submitBg }}; color: {{ submitColor }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: {{ submitCursor }}; box-shadow: {{ submitShadow }}">Salvar</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- NEW DEPOSITANTE FULL PAGE -->
+  <sc-if value="{{ depPageOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 78; display: flex; flex-direction: column; background: {{ t.appBg }}; animation: paneIn 0.28s ease">
+    <div style="flex-shrink: 0; height: 68px; display: flex; align-items: center; gap: 14px; padding: 0 28px; border-bottom: 1px solid {{ t.border }}; background: {{ t.barBg }}">
+      <button sc-camel-on-click="{{ closeDepPage }}" title="Voltar" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center" style-hover="border-color: #8B5CF6; color: #8B5CF6">‹</button>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 1px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: {{ t.textSub }}"><span>Configurações</span><span>›</span><span>Depositantes</span><span>›</span><span style="color: {{ t.text }}; font-weight: 600">Novo</span></div>
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Novo depositante</span>
+      </div>
+      <button sc-camel-on-click="{{ closeDepPage }}" style="height: 44px; padding: 0 18px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">Cancelar</button>
+      <button sc-camel-on-click="{{ submitDepPage }}" disabled="{{ depNotValid }}" style="height: 44px; padding: 0 22px; border: none; border-radius: 11px; background: {{ depSubmitBg }}; color: {{ depSubmitColor }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: {{ depSubmitCursor }}; box-shadow: {{ depSubmitShadow }}">Salvar depositante</button>
+    </div>
+    <div style="flex: 1; overflow-y: auto; padding: 28px 32px 44px 32px; display: flex; justify-content: center">
+      <div style="width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 18px">
+
+        <!-- identificação -->
+        <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 24px">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Identificação</span>
+          <div style="display: flex; gap: 22px; margin-top: 18px">
+            <!-- logo -->
+            <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; align-items: center">
+              <sc-if value="{{ depHasLogo }}" hint-placeholder-val="{{ false }}">
+                <div style="width: 110px; height: 110px; border-radius: 18px; background: {{ depLogoBg }}; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 34px">{{ depLogoInitials }}</div>
+                <button sc-camel-on-click="{{ removeLogo }}" style="height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #EF4444; font-family: 'Manrope', sans-serif; font-size: 12.5px; font-weight: 700; cursor: pointer">Remover logotipo</button>
+              </sc-if>
+              <sc-if value="{{ depNoLogo }}" hint-placeholder-val="{{ true }}">
+                <div sc-camel-on-click="{{ uploadLogo }}" style="width: 110px; height: 110px; border-radius: 18px; border: 1.5px dashed {{ t.border }}; background: {{ t.inputBg }}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; cursor: pointer" style-hover="border-color: #8B5CF6">
+                  <span style="color: #8B5CF6; display: flex">{{ upIcon }}</span>
+                  <span style="font-size: 11px; font-weight: 700; color: {{ t.textSub }}; text-align: center; line-height: 1.3">Logotipo</span>
+                </div>
+                <span style="font-size: 11px; color: {{ t.textSub }}; text-align: center; max-width: 120px; line-height: 1.4">PNG ou JPG, quadrado</span>
+              </sc-if>
+            </div>
+            <!-- fields -->
+            <div style="flex: 1; display: grid; grid-template-columns: 1fr 2fr; gap: 14px">
+              <div style="display: flex; flex-direction: column; gap: 7px">
+                <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Código</span>
+                <input value="{{ df.codigo }}" sc-camel-on-input="{{ dset.codigo }}" placeholder="DEP-000" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 7px">
+                <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Nome fantasia</span>
+                <input value="{{ df.fantasia }}" sc-camel-on-input="{{ dset.fantasia }}" placeholder="Nome fantasia" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+              </div>
+              <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 7px">
+                <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Razão social</span>
+                <input value="{{ df.razao }}" sc-camel-on-input="{{ dset.razao }}" placeholder="Razão social completa" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 7px">
+                <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">CNPJ</span>
+                <input value="{{ df.cnpj }}" sc-camel-on-input="{{ dset.cnpj }}" placeholder="00.000.000/0001-00" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- endereço fiscal -->
+        <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 24px">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Endereço fiscal</span>
+          <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 14px; margin-top: 18px">
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">CEP</span>
+              <input value="{{ df.cep }}" sc-camel-on-input="{{ dset.cep }}" placeholder="00000-000" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Logradouro</span>
+              <input value="{{ df.rua }}" sc-camel-on-input="{{ dset.rua }}" placeholder="Rua, avenida..." style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Número</span>
+              <input value="{{ df.num }}" sc-camel-on-input="{{ dset.num }}" placeholder="000" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Bairro</span>
+              <input value="{{ df.bairro }}" sc-camel-on-input="{{ dset.bairro }}" placeholder="Bairro" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">Cidade</span>
+              <input value="{{ df.cidade }}" sc-camel-on-input="{{ dset.cidade }}" placeholder="Cidade" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px">
+              <span style="font-size: 12.5px; font-weight: 700; color: {{ t.textSub }}">UF</span>
+              <input value="{{ df.uf }}" sc-camel-on-input="{{ dset.uf }}" placeholder="SP" style="height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+            </div>
+          </div>
+        </div>
+
+        <!-- contatos -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px">
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; align-items: center; justify-content: space-between">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Telefones</span>
+              <span sc-camel-on-click="{{ addPhone }}" style="font-size: 12.5px; font-weight: 700; color: #8B5CF6; cursor: pointer">+ Adicionar</span>
+            </div>
+            <sc-for list="{{ depPhones }}" as="p" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 9px">
+                <input value="{{ p.value }}" sc-camel-on-input="{{ p.set }}" placeholder="(00) 00000-0000" style="flex: 1; height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Space Grotesk', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+                <button sc-camel-on-click="{{ p.remove }}" style="width: 40px; height: 46px; flex-shrink: 0; border-radius: 10px; border: 1px solid {{ t.border }}; background: transparent; color: {{ t.textSub }}; cursor: pointer; font-size: 14px" style-hover="color: #EF4444; border-color: #EF4444">✕</button>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; align-items: center; justify-content: space-between">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">E-mails</span>
+              <span sc-camel-on-click="{{ addEmail }}" style="font-size: 12.5px; font-weight: 700; color: #8B5CF6; cursor: pointer">+ Adicionar</span>
+            </div>
+            <sc-for list="{{ depEmails }}" as="e" hint-placeholder-count="2">
+              <div style="display: flex; align-items: center; gap: 9px">
+                <input value="{{ e.value }}" sc-camel-on-input="{{ e.set }}" placeholder="contato@empresa.com" style="flex: 1; height: 46px; padding: 0 15px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; outline: none; box-sizing: border-box" style-focus="border-color: #8B5CF6">
+                <button sc-camel-on-click="{{ e.remove }}" style="width: 40px; height: 46px; flex-shrink: 0; border-radius: 10px; border: 1px solid {{ t.border }}; background: transparent; color: {{ t.textSub }}; cursor: pointer; font-size: 14px" style-hover="color: #EF4444; border-color: #EF4444">✕</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- método de retirada -->
+        <div style="border-radius: 16px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <span style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700">Método de retirada</span>
+            <span style="font-size: 13px; color: {{ t.textSub }}">Como a mercadoria deste depositante deixa o CD.</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px">
+            <sc-for list="{{ depMethods }}" as="m" hint-placeholder-count="3">
+              <div sc-camel-on-click="{{ m.pick }}" style="display: flex; flex-direction: column; gap: 5px; padding: 16px; border-radius: 13px; border: 1.5px solid {{ m.border }}; background: {{ m.bg }}; cursor: pointer; transition: all 0.16s ease">
+                <span style="font-size: 14px; font-weight: 700; color: {{ m.titleColor }}">{{ m.name }}</span>
+                <span style="font-size: 12px; color: {{ t.textSub }}; line-height: 1.4">{{ m.desc }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- DELETE CONFIRM MODAL -->
+  <sc-if value="{{ hasConfirm }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 24px">
+    <div sc-camel-on-click="{{ cancelDelete }}" style="position: absolute; inset: 0; background: rgba(6,10,20,0.6); backdrop-filter: blur(4px); animation: paneIn 0.2s ease"></div>
+    <div style="position: relative; width: 420px; max-width: 94vw; border-radius: 18px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; box-shadow: 0 26px 64px rgba(0,0,0,0.45); padding: 26px; display: flex; flex-direction: column; gap: 16px; animation: paneIn 0.26s ease">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 13px; display: flex; align-items: center; justify-content: center; background: rgba(239,68,68,0.14); color: #EF4444">{{ trashIconLg }}</span>
+        <div style="display: flex; flex-direction: column; gap: 3px">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Excluir registro?</span>
+          <span style="font-size: 13px; color: {{ t.textSub }}; line-height: 1.4">Esta ação não pode ser desfeita.</span>
+        </div>
+      </div>
+      <div style="padding: 14px 16px; border-radius: 12px; background: {{ t.softBg }}; border: 1px solid {{ t.border }}; font-size: 13.5px; font-weight: 700">{{ confirmName }}</div>
+      <div style="display: flex; gap: 12px">
+        <button sc-camel-on-click="{{ cancelDelete }}" style="flex: 1; height: 48px; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer" style-hover="border-color: #8B5CF6">Cancelar</button>
+        <button sc-camel-on-click="{{ confirmDelete }}" style="flex: 1; height: 48px; border: none; border-radius: 11px; background: #EF4444; color: #fff; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(239,68,68,0.35)">Excluir</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TASKS FULL-SCREEN (Google Tasks style) -->
+  <sc-if value="{{ tasksOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; background: {{ t.appBg }}; animation: paneIn 0.28s ease">
+    <div style="flex-shrink: 0; height: 68px; display: flex; align-items: center; gap: 14px; padding: 0 28px; border-bottom: 1px solid {{ t.border }}; background: {{ t.barBg }}">
+      <button sc-camel-on-click="{{ closeTasks }}" title="Voltar" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; border: 1px solid {{ t.border }}; background: {{ t.inputBg }}; color: {{ t.text }}; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center" style-hover="border-color: #8B5CF6; color: #8B5CF6">‹</button>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 1px">
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Tarefas</span>
+        <span style="font-size: 12.5px; color: {{ t.textSub }}">{{ taskPendingCount }} pendentes · {{ taskDoneCount }} concluídas</span>
+      </div>
+    </div>
+    <div style="flex: 1; overflow-y: auto; padding: 28px 32px 44px 32px; display: flex; justify-content: center">
+      <div style="width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 18px">
+        <form sc-camel-on-submit="{{ addTask }}" style="display: flex; align-items: center; gap: 11px; height: 52px; padding: 0 18px; border-radius: 14px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}">
+          <span style="color: #8B5CF6; font-size: 20px; font-weight: 700">+</span>
+          <input value="{{ taskDraft }}" sc-camel-on-input="{{ setTaskDraft }}" placeholder="Adicionar uma tarefa..." style="flex: 1; border: none; outline: none; background: transparent; color: {{ t.text }}; font-family: 'Manrope', sans-serif; font-size: 15px">
+        </form>
+        <div style="display: flex; gap: 8px">
+          <sc-for list="{{ taskFilters }}" as="f" hint-placeholder-count="3">
+            <span sc-camel-on-click="{{ f.pick }}" style="height: 36px; padding: 0 16px; display: inline-flex; align-items: center; gap: 7px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1px solid {{ f.border }}; background: {{ f.bg }}; color: {{ f.color }}">{{ f.label }}<span style="opacity: 0.7">{{ f.count }}</span></span>
+          </sc-for>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{ fullTasks }}" as="a" hint-placeholder-count="5">
+            <div style="display: flex; align-items: flex-start; gap: 13px; padding: 15px 17px; border-radius: 13px; border: 1px solid {{ t.border }}; background: {{ t.cardBg }}; animation: rowIn 0.22s ease">
+              <button sc-camel-on-click="{{ a.toggle }}" title="{{ a.toggleTitle }}" style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; border: 2px solid {{ a.checkBorder }}; background: {{ a.checkBg }}; color: #fff; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center">{{ a.checkIcon }}</button>
+              <span style="flex: 1; font-size: 14.5px; line-height: 1.5; color: {{ a.textColor }}; text-decoration: {{ a.strike }}">{{ a.text }}</span>
+              <button sc-camel-on-click="{{ a.remove }}" title="Remover" style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; border: none; background: transparent; color: {{ t.textSub }}; cursor: pointer; font-size: 14px" style-hover="color: #EF4444">✕</button>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noFullTasks }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 40px; text-align: center; font-size: 14px; color: {{ t.textSub }}">{{ emptyFull }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 12px; padding: 15px 22px; border-radius: 14px; background: {{ t.cardBg }}; border: 1px solid rgba(139,92,246,0.4); box-shadow: 0 18px 44px rgba(0,0,0,0.4); animation: paneIn 0.3s ease">
+      <span style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(139,92,246,0.16); color: #8B5CF6">✓</span>
+      <span style="font-size: 13.5px; font-weight: 700">{{ toast }}</span>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;defaultTheme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;dark&quot;, &quot;light&quot;], &quot;default&quot;: &quot;dark&quot;, &quot;tsType&quot;: &quot;'dark' | 'light'&quot;, &quot;section&quot;: &quot;Tema&quot;}}">
+class Component extends DCLogic {
+  state = {
+    theme: null, tab: 'resumo',
+    depOn: { d0: true, d1: true, d2: true, d3: false },
+    userOn: { u0: true, u1: true, u2: true, u3: false, u4: true },
+    carrierOn: { c0: true, c1: true, c2: true, c3: false },
+    integrOn: { i0: true, i1: true, i2: false, i3: true, i4: false, i5: false },
+    cats: ['Eletrônicos', 'Beleza & Saúde', 'Casa & Cozinha', 'Moda & Calçados', 'Pet', 'Papelaria'],
+    method: 'fefo', unit: 'un',
+    prodCtl: { validade: true, lote: true, serie: false },
+    toast: null, tasksOpen: false, taskDraft: '', taskFilter: 'pending',
+    added: { depositantes: [], usuarios: [], transportadoras: [] }, removed: {},
+    rowMenu: null, drawer: null, form: {}, nextRow: 1,
+    addrTypesExtra: [], confirmDel: null, edited: {}, depEditId: null,
+    depPageOpen: false, depLogo: false,
+    depForm: { codigo: '', fantasia: '', razao: '', cnpj: '', cep: '', rua: '', num: '', bairro: '', cidade: '', uf: '' },
+    depPhones: [''], depEmails: [''], depMethod: 'coleta',
+    tasks: [
+      { id: 1, text: 'Revisar 292 produtos já importados no ambiente.', done: false },
+      { id: 2, text: 'Padronizar categorias e unidades comerciais por depositante.', done: false },
+      { id: 3, text: 'Conectar importação em massa com planilhas operacionais reais.', done: false },
+      { id: 4, text: 'Completar cadastros de usuários, endereços e transportadoras.', done: false },
+      { id: 5, text: 'Configurar integração Bling V3 (OAuth2) do depositante John Skull.', done: true },
+      { id: 6, text: 'Mapear endereços de picking do bloco SBC1.', done: true }
+    ], nextTaskId: 7
+  };
+
+  notify(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._tt);
+    this._tt = setTimeout(() => this.setState({ toast: null }), 2800);
+  }
+
+  openDepPage(d) {
+    if (d) {
+      const code = (d.meta && d.meta.split('·')[1] ? d.meta.split('·')[1].trim() : '');
+      this.setState({
+        depPageOpen: true, depLogo: true, depEditId: d.id,
+        depForm: { codigo: code || d.id, fantasia: d.name || '', razao: d.razao || '', cnpj: d.col1 || '', cep: '', rua: '', num: '', bairro: '', cidade: '', uf: '' },
+        depPhones: [''], depEmails: [''], depMethod: 'fefo'
+      });
+    } else {
+      this.setState({
+        depPageOpen: true, depLogo: false, depEditId: null,
+        depForm: { codigo: '', fantasia: '', razao: '', cnpj: '', cep: '', rua: '', num: '', bairro: '', cidade: '', uf: '' },
+        depPhones: [''], depEmails: [''], depMethod: 'fefo'
+      });
+    }
+  }
+
+  componentDidMount() {
+    const saved = localStorage.getItem('infinoos-theme');
+    if (saved === 'light' || saved === 'dark') this.setState({ theme: saved });
+  }
+
+  renderVals() {
+    const theme = this.state.theme ?? this.props.defaultTheme ?? 'dark';
+    const dark = theme === 'dark';
+    const tab = this.state.tab;
+
+    const t = dark ? {
+      appBg: '#0A1120', sideBg: '#0C1424', railBg: '#0B1220', barBg: '#0C1424', cardBg: '#101B30',
+      headBg: '#0E1728', inputBg: '#0E1728', border: 'rgba(148,163,184,0.14)', navHover: 'rgba(148,163,184,0.08)',
+      rowHover: 'rgba(148,163,184,0.04)', softBg: 'rgba(148,163,184,0.06)',
+      text: '#F1F5F9', textSub: '#8695AD'
+    } : {
+      appBg: '#F5F7FB', sideBg: '#FFFFFF', railBg: '#FBFCFE', barBg: '#FFFFFF', cardBg: '#FFFFFF',
+      headBg: '#F8FAFC', inputBg: '#F8FAFC', border: 'rgba(100,116,139,0.16)', navHover: 'rgba(100,116,139,0.07)',
+      rowHover: 'rgba(100,116,139,0.04)', softBg: 'rgba(100,116,139,0.05)',
+      text: '#0F172A', textSub: '#64748B'
+    };
+    const tog = dark ? {
+      track: '#0E1729', border: 'rgba(96,165,250,0.30)', inset: 'rgba(0,0,0,0.5)',
+      knob: '#0B1220', knobX: '0px', knobIcon: '☾', knobIconColor: '#3B82F6', trackMoon: 'transparent', trackSun: '#3B4763'
+    } : {
+      track: '#F4F5F8', border: 'rgba(100,116,139,0.18)', inset: 'rgba(0,0,0,0.06)',
+      knob: '#FFFFFF', knobX: '36px', knobIcon: '☀', knobIconColor: '#F6A623', trackMoon: '#B4BCC9', trackSun: 'transparent'
+    };
+
+    const hex = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n>>16&255) + ',' + (n>>8&255) + ',' + (n&255) + ',' + a + ')'; };
+    const grad = 'linear-gradient(92deg,#3B82F6,#8B5CF6)';
+    const on = '#10B981', off = dark ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.3)';
+
+    const P = (d, i) => React.createElement('path', { d, key: 'p' + i });
+    const C = (cx, cy, r, i) => React.createElement('circle', { cx, cy, r, key: 'c' + i });
+    const R = (x, y, w, h, rx, i) => React.createElement('rect', { x, y, width: w, height: h, rx, key: 'r' + i });
+    const mk = (ch, size) => React.createElement('svg', { width: size || 19, height: size || 19, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }, ch);
+    const icons = {
+      dashboard: [R(3,3,7,7,1.5,1), R(14,3,7,7,1.5,2), R(14,14,7,7,1.5,3), R(3,14,7,7,1.5,4)],
+      inbound: [P('M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5',1), P('M12 3v10',2), P('M8 9l4 4 4-4',3)],
+      stock: [P('M12 2 2 7l10 5 10-5-10-5z',1), P('M2 12l10 5 10-5',2), P('M2 17l10 5 10-5',3)],
+      pin: [P('M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z',1), C(12,10,2.4,2)],
+      picking: [R(5,4,14,17,2,1), P('M9 3h6v3H9z',2), P('M8.5 13l2.2 2.2L15.5 11',3)],
+      outbound: [P('M3 7h11v9H3z',1), P('M14 10h3.5l3.5 3.5V16h-7z',2), C(7,18.5,1.6,3), C(17.5,18.5,1.6,4)],
+      inventory: [P('M20.5 12a8.5 8.5 0 1 1-2.6-6.1',1), P('M20.5 4v5h-5',2)],
+      reports: [P('M3 21h18',1), P('M6 21V11',2), P('M12 21V4',3), P('M18 21v-7',4)],
+      settings: [C(12,12,3.2,1), P('M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1l-.4-2.6h-3.8l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h3.8l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z',2)],
+      bell: [P('M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9',1), P('M13.7 21a2 2 0 0 1-3.4 0',2)],
+      dots: [C(12,5,1.4,1), C(12,12,1.4,2), C(12,19,1.4,3)],
+      user: [C(12,8,3.4,1), P('M5 20a7 7 0 0 1 14 0',2)],
+      users: [C(9,8,3,1), P('M2.5 20a6.5 6.5 0 0 1 13 0',2), P('M16 5.5a3 3 0 0 1 0 5.8',3), P('M18 20a6.5 6.5 0 0 0-3-5.5',4)],
+      box: [P('M12 2 3 7v10l9 5 9-5V7z',1), P('M3 7l9 5 9-5',2), P('M12 12v10',3)],
+      truck: [P('M3 7h11v9H3z',1), P('M14 10h3.5l3.5 3.5V16h-7z',2), C(7,18.5,1.6,3), C(17.5,18.5,1.6,4)],
+      plug: [P('M9 2v6M15 2v6',1), P('M7 8h10v3a5 5 0 0 1-10 0z',2), P('M12 16v6',3)],
+      up: [P('M12 20V8',1), P('M8 12l4-4 4 4',2), P('M4 4h16',3)]
+    };
+
+    // ---- main nav ----
+    const navDef = [
+      { key: 'dashboard', label: 'Dashboard' }, { key: 'inbound', label: 'Recebimento' },
+      { key: 'stock', label: 'Estoque' }, { key: 'pin', label: 'Endereços' },
+      { key: 'picking', label: 'Separação' }, { key: 'outbound', label: 'Expedição' },
+      { key: 'inventory', label: 'Inventário' }, { key: 'reports', label: 'Relatórios' },
+      { key: 'settings', label: 'Configurações', active: true }
+    ];
+    const FILES = { stock: 'Estoque%20Infinoos%20WMS.dc.html', pin: 'Enderecos%20Infinoos%20WMS.dc.html', outbound: 'Expedicao%20Infinoos%20WMS.dc.html', picking: 'Ondas%20Infinoos%20WMS.dc.html' };
+    const accent = 'rgba(139,92,246,0.14)';
+    const navItems = navDef.map(n => ({
+      iconEl: mk(icons[n.key]), label: n.label, href: FILES[n.key] || '#',
+      weight: n.active ? 700 : 600, color: n.active ? (dark ? '#C4B5FD' : '#7C3AED') : t.textSub,
+      bg: n.active ? accent : 'transparent', iconOpacity: n.active ? 1 : 0.75
+    }));
+
+    // ---- settings sub-tabs ----
+    const tabDef = [
+      { key: 'resumo', label: 'Resumo', icon: 'dashboard', color: '#8B5CF6', desc: 'Visão geral', count: '' },
+      { key: 'depositantes', label: 'Depositantes', icon: 'users', color: '#3B82F6', desc: 'Clientes do CD', count: '4' },
+      { key: 'usuarios', label: 'Usuários', icon: 'user', color: '#8B5CF6', desc: 'Equipe e permissões', count: '5' },
+      { key: 'produtos', label: 'Produtos', icon: 'box', color: '#EC4899', desc: 'Padrões do catálogo', count: '' },
+      { key: 'enderecos', label: 'Endereços', icon: 'pin', color: '#10B981', desc: 'Nomenclatura e tipos', count: '' },
+      { key: 'transportadoras', label: 'Transportadoras', icon: 'truck', color: '#F59E0B', desc: 'Parceiros de frete', count: '4' },
+      { key: 'integracoes', label: 'Integrações', icon: 'plug', color: '#06B6D4', desc: 'Marketplaces e ERP', count: '6' }
+    ];
+    const tabs = tabDef.map(d => {
+      const active = d.key === tab;
+      return {
+        iconEl: mk(icons[d.icon], 18), label: d.label, desc: d.desc, count: d.count,
+        go: () => this.setState({ tab: d.key }),
+        bg: active ? accent : 'transparent', border: active ? hex('#8B5CF6', 0.3) : 'transparent',
+        iconBg: active ? hex(d.color, 0.2) : hex(d.color, 0.12), iconColor: d.color,
+        weight: active ? 700 : 600, titleColor: active ? t.text : t.text,
+        countColor: active ? '#A78BFA' : t.textSub
+      };
+    });
+
+    const panelMap = {
+      resumo: { title: 'Resumo', heading: 'Visão geral', sub: 'Resumo de cadastros e integrações do CD.', cta: 'Novo cadastro' },
+      depositantes: { title: 'Depositantes', heading: 'Depositantes', sub: 'Clientes que armazenam produtos no CD.', cta: 'Novo depositante' },
+      usuarios: { title: 'Usuários', heading: 'Usuários & permissões', sub: 'Equipe com acesso ao WMS e seus perfis.', cta: 'Novo usuário' },
+      produtos: { title: 'Produtos', heading: 'Padrões de produto', sub: 'Regras aplicadas ao cadastro de SKUs.', cta: 'Nova categoria' },
+      enderecos: { title: 'Endereços', heading: 'Configuração de endereços', sub: 'Nomenclatura e tipos de posição do armazém.', cta: 'Novo tipo' },
+      transportadoras: { title: 'Transportadoras', heading: 'Transportadoras', sub: 'Parceiros de frete e coleta.', cta: 'Nova transportadora' },
+      integracoes: { title: 'Integrações', heading: 'Integrações', sub: 'Conexões com marketplaces e ERP.', cta: 'Nova integração' }
+    };
+
+    const sw = (isOn) => ({ swBg: isOn ? on : off, swX: isOn ? '20px' : '0px' });
+    const initialsOf = (name) => name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const pal = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#06B6D4', '#A855F7'];
+
+    // ---- ROWS (depositantes / usuarios / transportadoras) ----
+    let rows = [], rowCols = [], col0flex = 2.4, col1flex = 1.4, col2flex = 1;
+    const isRows = tab === 'depositantes' || tab === 'usuarios' || tab === 'transportadoras';
+
+    const roleColor = { 'Administrador': '#EF4444', 'Supervisor': '#8B5CF6', 'Conferente': '#3B82F6', 'Operador': '#10B981', 'Gestor': '#F59E0B' };
+    const baseData = {
+      depositantes: [
+        { id: 'd0', name: 'Loja Alpha', razao: 'Alpha Comércio de Eletrônicos LTDA', meta: '128 SKUs · DEP-104', col1: '12.345.678/0001-90', tag: 'Full', ci: 0 },
+        { id: 'd1', name: 'BemStar', razao: 'BemStar Cosméticos e Beleza S/A', meta: '64 SKUs · DEP-118', col1: '98.765.432/0001-10', tag: 'Full', ci: 2 },
+        { id: 'd2', name: 'CasaMais', razao: 'CasaMais Utilidades do Lar LTDA', meta: '92 SKUs · DEP-133', col1: '45.111.222/0001-73', tag: 'Fracionado', ci: 3 },
+        { id: 'd3', name: 'John Skull', razao: 'JS Streetwear Comércio de Vestuário LTDA', meta: '31 SKUs · DEP-140', col1: '33.444.555/0001-06', tag: 'Fracionado', ci: 4 }
+      ],
+      usuarios: [
+        { id: 'u0', name: 'Rafael Alves', meta: 'CD Cajamar', col1: 'rafael.alves@infinoos.com', tag: 'Supervisor', ci: 1 },
+        { id: 'u1', name: 'Juliana Prado', meta: 'CD Cajamar', col1: 'juliana.prado@infinoos.com', tag: 'Gestor', ci: 4 },
+        { id: 'u2', name: 'Carlos Mendes', meta: 'Matrícula 4471', col1: 'carlos.mendes@infinoos.com', tag: 'Operador', ci: 3 },
+        { id: 'u3', name: 'Marina Duarte', meta: 'Matrícula 4488', col1: 'marina.duarte@infinoos.com', tag: 'Conferente', ci: 0 },
+        { id: 'u4', name: 'Diego Santos', meta: 'Acesso total', col1: 'diego.santos@infinoos.com', tag: 'Administrador', ci: 2 }
+      ],
+      transportadoras: [
+        { id: 'c0', name: 'Mercado Envios', meta: 'Marketplace · coleta diária', col1: 'Coleta', tag: '2–4 dias', ci: 5 },
+        { id: 'c1', name: 'Shopee Xpress', meta: 'Marketplace · coleta diária', col1: 'Coleta', tag: '3–5 dias', ci: 6 },
+        { id: 'c2', name: 'Correios PAC', meta: 'Postagem · agência', col1: 'Postagem', tag: '5–9 dias', ci: 0 },
+        { id: 'c3', name: 'Jamef Encomendas', meta: 'Transportadora · fracionado', col1: 'Fracionado', tag: '4–7 dias', ci: 4 }
+      ]
+    };
+    const colsByTab = {
+      depositantes: [{ label: 'Nome fantasia / Razão social', flex: 2.4, align: 'left' }, { label: 'CNPJ', flex: 1.4, align: 'left' }, { label: 'Status / Ações', flex: 2, align: 'right' }],
+      usuarios: [{ label: 'Usuário', flex: 2.4, align: 'left' }, { label: 'E-mail', flex: 1.8, align: 'left' }, { label: 'Perfil', flex: 1, align: 'left' }, { label: 'Ativo', flex: 0.7, align: 'right' }],
+      transportadoras: [{ label: 'Transportadora', flex: 2.4, align: 'left' }, { label: 'Tipo', flex: 1.4, align: 'left' }, { label: 'Prazo médio', flex: 1, align: 'left' }, { label: 'Ativo', flex: 0.7, align: 'right' }]
+    };
+    if (isRows) {
+      col1flex = tab === 'usuarios' ? 1.8 : 1.4;
+      rowCols = colsByTab[tab];
+      const onMap = { depositantes: 'depOn', usuarios: 'userOn', transportadoras: 'carrierOn' }[tab];
+      const merged = baseData[tab].concat(this.state.added[tab]).filter(d => !this.state.removed[d.id]).map(d => this.state.edited[d.id] ? { ...d, ...this.state.edited[d.id] } : d);
+      const tagStyle = (d) => tab === 'usuarios'
+        ? { tagBg: hex(roleColor[d.tag] || '#8B5CF6', 0.14), tagColor: roleColor[d.tag] || '#8B5CF6' }
+        : (tab === 'transportadoras' ? { tagBg: hex('#F59E0B', 0.16), tagColor: '#F59E0B' } : { tagBg: hex('#3B82F6', 0.14), tagColor: '#60A5FA' });
+      rows = merged.map(d => {
+        const isOn = this.state[onMap][d.id] !== undefined ? this.state[onMap][d.id] : true;
+        const isDep = tab === 'depositantes';
+        return { id: d.id, initials: initialsOf(d.name), avatarBg: 'linear-gradient(135deg,' + pal[d.ci % pal.length] + ',' + hex(pal[d.ci % pal.length], 0.6) + ')',
+          name: d.name, meta: isDep ? (d.razao || d.meta) : d.meta, col1: d.col1, tag: d.tag, ...tagStyle(d),
+          showTag: !isDep, showStatus: true, actionsFlex: isDep ? 2 : 1.9,
+          statusLabel: isOn ? 'Ativo' : 'Inativo',
+          statusBg: isOn ? hex('#10B981', 0.14) : hex('#EF4444', 0.14), statusColor: isOn ? '#10B981' : '#EF4444',
+          ...sw(isOn), toggle: () => this.setState(s => ({ [onMap]: { ...s[onMap], [d.id]: !(s[onMap][d.id] !== undefined ? s[onMap][d.id] : true) } })),
+          menuOpen: this.state.rowMenu === d.id,
+          menu: () => this.setState(s => ({ rowMenu: s.rowMenu === d.id ? null : d.id })),
+          edit: () => { if (tab === 'depositantes') this.openDepPage(d); else { this.setState({ rowMenu: null }); this.notify('Editar "' + d.name + '"'); } },
+          remove: () => this.setState({ rowMenu: null, confirmDel: { id: d.id, name: d.name } }) };
+      });
+    }
+
+    // ---- INTEGRATIONS ----
+    const igData = [
+      { id: 'i0', name: 'Mercado Livre', kind: 'Marketplace', ci: 5, sync: 'Sincronizado há 4 min' },
+      { id: 'i1', name: 'Shopee', kind: 'Marketplace', ci: 2, sync: 'Sincronizado há 8 min' },
+      { id: 'i2', name: 'Amazon', kind: 'Marketplace', ci: 4, sync: 'Nunca conectado' },
+      { id: 'i3', name: 'Bling ERP', kind: 'ERP / Fiscal', ci: 0, sync: 'Sincronizado há 1 h' },
+      { id: 'i4', name: 'Tiny ERP', kind: 'ERP / Fiscal', ci: 3, sync: 'Nunca conectado' },
+      { id: 'i5', name: 'Magalu', kind: 'Marketplace', ci: 6, sync: 'Nunca conectado' }
+    ];
+    const integrations = igData.map(d => {
+      const isOn = this.state.integrOn[d.id];
+      return { name: d.name, kind: d.kind, initials: initialsOf(d.name),
+        logoBg: 'linear-gradient(135deg,' + pal[d.ci] + ',' + hex(pal[d.ci], 0.6) + ')',
+        cardBorder: isOn ? hex('#10B981', 0.32) : t.border,
+        status: isOn ? 'Conectado' : 'Desconectado', statusColor: isOn ? '#10B981' : t.textSub,
+        sync: isOn ? d.sync : 'Toque para conectar',
+        ...sw(isOn), toggle: () => this.setState(s => ({ integrOn: { ...s.integrOn, [d.id]: !s.integrOn[d.id] } })) };
+    });
+
+    // ---- PRODUCTS defaults ----
+    const categories = this.state.cats.map((name, i) => ({ name, remove: () => this.setState(s => ({ cats: s.cats.filter((_, j) => j !== i) })) }));
+    const addCategory = () => { const n = this.state.cats.length + 1; this.setState(s => ({ cats: [...s.cats, 'Nova categoria ' + n] })); this.notify('Categoria adicionada'); };
+    const methodDef = [
+      { key: 'fefo', name: 'FEFO', desc: 'Primeiro que vence, primeiro que sai' },
+      { key: 'fifo', name: 'FIFO', desc: 'Primeiro que entra, primeiro que sai' },
+      { key: 'lifo', name: 'LIFO', desc: 'Último que entra, primeiro que sai' }
+    ];
+    const methods = methodDef.map(m => {
+      const active = this.state.method === m.key;
+      return { name: m.name, desc: m.desc, pick: () => this.setState({ method: m.key }),
+        border: active ? '#8B5CF6' : t.border, bg: active ? hex('#8B5CF6', 0.08) : t.inputBg,
+        dotBorder: active ? '#8B5CF6' : t.textSub, dotFill: active ? '#8B5CF6' : 'transparent' };
+    });
+    const ctlDef = [
+      { key: 'validade', name: 'Controle de validade', desc: 'Data de vencimento obrigatória' },
+      { key: 'lote', name: 'Controle de lote', desc: 'Rastreio por número de lote' },
+      { key: 'serie', name: 'Número de série', desc: 'Serial único por unidade' }
+    ];
+    const prodToggles = ctlDef.map(c => {
+      const isOn = this.state.prodCtl[c.key];
+      return { name: c.name, desc: c.desc, ...sw(isOn), toggle: () => this.setState(s => ({ prodCtl: { ...s.prodCtl, [c.key]: !s.prodCtl[c.key] } })) };
+    });
+    const unitDef = [{ key: 'un', name: 'Unidade' }, { key: 'cx', name: 'Caixa' }, { key: 'pk', name: 'Pack' }];
+    const units = unitDef.map(u => {
+      const active = this.state.unit === u.key;
+      return { name: u.name, pick: () => this.setState({ unit: u.key }),
+        border: active ? '#8B5CF6' : t.border, bg: active ? hex('#8B5CF6', 0.10) : t.inputBg, color: active ? t.text : t.textSub };
+    });
+
+    // ---- ADDRESS settings ----
+    const addrParts = [
+      { label: 'Rua', sample: 'A', sep: true }, { label: 'Coluna', sample: '12', sep: true }, { label: 'Nível', sample: '03', sep: false }
+    ];
+    const addrTypes = [
+      { name: 'Picking', color: '#3B82F6', count: 640 }, { name: 'Pulmão', color: '#8B5CF6', count: 1280 },
+      { name: 'Avaria / bloqueio', color: '#EF4444', count: 48 }, { name: 'Expedição', color: '#10B981', count: 96 },
+      ...this.state.addrTypesExtra
+    ];
+
+    // ---- RESUMO (overview) ----
+    const goTab = (k) => () => this.setState({ tab: k });
+    const kpiDef = [
+      { label: 'Depositantes ativos', value: '6', icon: 'users', color: '#3B82F6' },
+      { label: 'Produtos ativos', value: '292', icon: 'box', color: '#EC4899' },
+      { label: 'Usuários ativos', value: '17', icon: 'user', color: '#8B5CF6' },
+      { label: 'Endereços ativos', value: '20', icon: 'pin', color: '#10B981' },
+      { label: 'Transportadoras', value: '0', icon: 'truck', color: '#F59E0B' }
+    ];
+    const kpis = kpiDef.map(k => ({ label: k.label, value: k.value, iconEl: mk(icons[k.icon], 17), iconBg: hex(k.color, 0.14), iconColor: k.color, valueColor: k.value === '0' ? t.textSub : t.text }));
+
+    const depData = [
+      { name: 'Dêvi Bebidas Naturais', method: 'FEFO', skus: 17, users: 3, ci: 0 },
+      { name: 'Evolveg', method: 'FEFO', skus: 81, users: 1, ci: 3 },
+      { name: 'GoodEssence Cosméticos', method: 'FEFO', skus: 18, users: 1, ci: 2 },
+      { name: 'John Skull', method: 'FIFO', skus: 101, users: 2, ci: 4 },
+      { name: 'Vegpet Artigos para Pet', method: 'FEFO', skus: 72, users: 2, ci: 5 },
+      { name: 'Volcà', method: 'FEFO', skus: 4, users: 1, ci: 6 }
+    ];
+    const depBase = depData.map(d => ({ name: d.name, method: d.method, skus: d.skus, users: d.users,
+      initials: initialsOf(d.name), avatarBg: 'linear-gradient(135deg,' + pal[d.ci] + ',' + hex(pal[d.ci], 0.6) + ')',
+      methodBg: d.method === 'FIFO' ? hex('#F59E0B', 0.16) : hex('#3B82F6', 0.14), methodColor: d.method === 'FIFO' ? '#F59E0B' : '#60A5FA' }));
+
+    const actions = [
+      { n: '1', text: 'Revisar 292 produtos já importados no ambiente.' },
+      { n: '2', text: 'Padronizar categorias e unidades comerciais por depositante.' },
+      { n: '3', text: 'Conectar importação em massa com planilhas operacionais reais.' },
+      { n: '4', text: 'Completar cadastros de usuários, endereços e transportadoras por cliente.' }
+    ];
+
+    const summary = [
+      { key: 'depositantes', label: 'Depositantes', desc: 'Carteira ativa, contatos, regras operacionais e segregação por cliente.', icon: 'users', color: '#3B82F6' },
+      { key: 'usuarios', label: 'Usuários', desc: 'Papéis, acessos, vínculo por depositante e gestão de sessão operacional.', icon: 'user', color: '#8B5CF6' },
+      { key: 'produtos', label: 'Produtos', desc: 'SKU, EAN/GTIN, categoria, FEFO/FIFO, unidade, lote e validade.', icon: 'box', color: '#EC4899' },
+      { key: 'enderecos', label: 'Endereços', desc: 'Mapa físico de recebimento, pulmão, picking, bloqueado e expedição.', icon: 'pin', color: '#10B981' },
+      { key: 'transportadoras', label: 'Transportadoras', desc: 'CNPJ, modalidades, contato principal e base logística para expedição.', icon: 'truck', color: '#F59E0B' },
+      { key: 'integracoes', label: 'Integrações', desc: 'Bling V3, OAuth2, webhooks operacionais e conexões externas por depositante.', icon: 'plug', color: '#06B6D4' }
+    ].map(s => ({ label: s.label, desc: s.desc, iconEl: mk(icons[s.icon], 20), iconBg: hex(s.color, 0.14), iconColor: s.color, go: goTab(s.key) }));
+
+    const addrRows = ['SBC1.R1.P1.A1.PA1','SBC1.R1.P1.A1.PA2','SBC1.R1.P1.A2.PA1','SBC1.R1.P1.A2.PA2','SBC1.R1.P2.A1.PA1','SBC1.R1.P2.A1.PA2','SBC1.R1.P2.A2.PA1']
+      .map(code => ({ code, area: 'Picking', cap: '—' }));
+
+    const coverage = [
+      { label: 'Depositantes com SKU cadastrado', value: '6', color: '#10B981' },
+      { label: 'Depositantes sem SKU cadastrado', value: '0', color: t.textSub },
+      { label: 'Usuários vinculados a depositantes', value: '10', color: t.text },
+      { label: 'Método predominante no ambiente', value: 'FEFO', color: '#8B5CF6' }
+    ];
+
+    return {
+      t, tog, navItems, tabs, activeTab: tab, panel: panelMap[tab],
+      isOverview: tab === 'resumo', notOverview: tab !== 'resumo', kpis, depBase, actions, summary, coverage,
+      goResumo: goTab('resumo'), addCategory,
+      hasToast: !!this.state.toast, toast: this.state.toast || '',
+      ...(() => {
+        const cd = this.state.confirmDel;
+        const dfKeys = ['codigo','fantasia','razao','cnpj','cep','rua','num','bairro','cidade','uf'];
+        const df = this.state.depForm;
+        const dset = {};
+        dfKeys.forEach(k => { dset[k] = (e) => this.setState(s => ({ depForm: { ...s.depForm, [k]: e.target.value } })); });
+        const valid = df.fantasia.trim() && df.cnpj.trim();
+        const logoInit = (df.fantasia || 'D').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+        const mDef = [
+          { key: 'fefo', name: 'FEFO', desc: 'Primeiro que vence, primeiro que sai' },
+          { key: 'fifo', name: 'FIFO', desc: 'Primeiro que entra, primeiro que sai' },
+          { key: 'lifo', name: 'LIFO', desc: 'Último que entra, primeiro que sai' }
+        ];
+        return {
+          depPageOpen: this.state.depPageOpen,
+          closeDepPage: () => this.setState({ depPageOpen: false }),
+          df, dset,
+          depHasLogo: this.state.depLogo, depNoLogo: !this.state.depLogo,
+          depLogoInitials: logoInit, depLogoBg: 'linear-gradient(135deg,#3B82F6,#8B5CF6)',
+          uploadLogo: () => this.setState({ depLogo: true }),
+          removeLogo: () => this.setState({ depLogo: false }),
+          depPhones: this.state.depPhones.map((v, i) => ({ value: v,
+            set: (e) => this.setState(s => { const a = s.depPhones.slice(); a[i] = e.target.value; return { depPhones: a }; }),
+            remove: () => this.setState(s => ({ depPhones: s.depPhones.length > 1 ? s.depPhones.filter((_, j) => j !== i) : [''] })) })),
+          addPhone: () => this.setState(s => ({ depPhones: [...s.depPhones, ''] })),
+          depEmails: this.state.depEmails.map((v, i) => ({ value: v,
+            set: (e) => this.setState(s => { const a = s.depEmails.slice(); a[i] = e.target.value; return { depEmails: a }; }),
+            remove: () => this.setState(s => ({ depEmails: s.depEmails.length > 1 ? s.depEmails.filter((_, j) => j !== i) : [''] })) })),
+          addEmail: () => this.setState(s => ({ depEmails: [...s.depEmails, ''] })),
+          depMethods: mDef.map(m => { const active = this.state.depMethod === m.key; return { name: m.name, desc: m.desc, pick: () => this.setState({ depMethod: m.key }), border: active ? '#8B5CF6' : t.border, bg: active ? hex('#8B5CF6', 0.10) : t.inputBg, titleColor: active ? t.text : t.text }; }),
+          depNotValid: !valid,
+          depSubmitBg: valid ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg, depSubmitColor: valid ? '#fff' : t.textSub,
+          depSubmitCursor: valid ? 'pointer' : 'not-allowed', depSubmitShadow: valid ? '0 8px 22px rgba(99,102,241,0.32)' : 'none',
+          submitDepPage: () => {
+            if (!valid) return;
+            const editId = this.state.depEditId;
+            if (editId) {
+              this.setState(s => ({
+                edited: { ...s.edited, [editId]: { name: df.fantasia, razao: df.razao || '—', meta: df.razao || '—', col1: df.cnpj || '—' } },
+                depPageOpen: false, depEditId: null
+              }), () => this.notify('Depositante "' + df.fantasia + '" atualizado'));
+            } else {
+              const id = 'd_new' + this.state.nextRow;
+              const row = { id, name: df.fantasia, razao: df.razao || '—', meta: df.razao || '—', col1: df.cnpj || '—', tag: 'Fracionado', ci: 5 + this.state.nextRow };
+              this.setState(s => ({ added: { ...s.added, depositantes: [...s.added.depositantes, row] }, nextRow: s.nextRow + 1, depPageOpen: false }), () => this.notify('Depositante "' + df.fantasia + '" criado'));
+            }
+          },
+          hasConfirm: !!cd, confirmName: cd ? cd.name : '',
+          cancelDelete: () => this.setState({ confirmDel: null }),
+          confirmDelete: () => { const c = this.state.confirmDel; this.setState(s => ({ confirmDel: null, removed: { ...s.removed, [c.id]: true } }), () => this.notify('"' + c.name + '" excluído')); }
+        };
+      })(),
+      ...(() => {
+        const roleOpts = ['Operador', 'Conferente', 'Supervisor', 'Gestor', 'Administrador'];
+        const typeOpts = ['Coleta', 'Postagem', 'Fracionado'];
+        const drawerCfg = {
+          depositantes: { title: 'Novo depositante', f1: 'Nome fantasia', f2: 'Razão social', f2ph: 'Razão social completa', opts: null, f3: 'CNPJ', f3ph: '00.000.000/0001-00' },
+          usuarios: { title: 'Novo usuário', f1: 'Nome completo', f2: 'E-mail', f2ph: 'nome@infinoos.com', opts: roleOpts, optLabel: 'Perfil' },
+          transportadoras: { title: 'Nova transportadora', f1: 'Nome', f2: 'Prazo médio', f2ph: 'Ex.: 3–5 dias', opts: typeOpts, optLabel: 'Tipo' }
+        };
+        const dtab = this.state.drawer;
+        const f = this.state.form;
+        const openDrawer = (k) => this.setState({ drawer: k, rowMenu: null, form: { f1: '', f2: '', f3: '', opt: (drawerCfg[k].opts ? drawerCfg[k].opts[0] : '') } });
+        const submitDrawer = () => {
+          const k = this.state.drawer; const ff = this.state.form;
+          if (!ff.f1 || !ff.f1.trim()) return;
+          const id = k[0] + '_new' + this.state.nextRow;
+          const ci = 5 + this.state.nextRow;
+          let row;
+          if (k === 'depositantes') row = { id, name: ff.f1, razao: ff.f2 || '—', meta: ff.f2 || '—', col1: ff.f3 || '—', tag: 'Fracionado', ci };
+          else if (k === 'usuarios') row = { id, name: ff.f1, meta: 'Novo acesso', col1: ff.f2 || '—', tag: ff.opt || 'Operador', ci };
+          else row = { id, name: ff.f1, meta: (ff.opt || 'Coleta') + ' · nova', col1: ff.opt || 'Coleta', tag: ff.f2 || '—', ci };
+          this.setState(s => ({ added: { ...s.added, [k]: [...s.added[k], row] }, nextRow: s.nextRow + 1, drawer: null, form: {} }), () => this.notify(drawerCfg[k].title.replace('Novo', 'Adicionado').replace('Nova', 'Adicionada')));
+        };
+        const cfg = dtab ? drawerCfg[dtab] : null;
+        return {
+          panelCta: () => { if (tab === 'depositantes') this.openDepPage(); else if (isRows) openDrawer(tab); else if (tab === 'produtos') addCategory(); else if (tab === 'enderecos') this.setState(s => ({ addrTypesExtra: [...s.addrTypesExtra, { name: 'Novo tipo ' + (s.addrTypesExtra.length + 1), color: pal[(s.addrTypesExtra.length + 2) % pal.length], count: 0 }] }), () => this.notify('Tipo de endereço adicionado')); else this.notify(panelMap[tab].cta); },
+          hasDrawer: !!dtab, drawerTitle: cfg ? cfg.title : '', drawerF1: cfg ? cfg.f1 : '', drawerF2: cfg ? cfg.f2 : '', drawerF2ph: cfg ? cfg.f2ph : '',
+          drawerHasOpt: cfg ? !!cfg.opts : false, drawerOptLabel: cfg && cfg.optLabel ? cfg.optLabel : '',
+          drawerHasF3: cfg ? !!cfg.f3 : false, drawerF3: cfg && cfg.f3 ? cfg.f3 : '', drawerF3ph: cfg && cfg.f3ph ? cfg.f3ph : '',
+          formF3: f.f3 || '', setF3: (e) => this.setState(s => ({ form: { ...s.form, f3: e.target.value } })),
+          drawerOpts: (cfg && cfg.opts ? cfg.opts : []).map(o => { const on = f.opt === o; return { name: o, pick: () => this.setState(s => ({ form: { ...s.form, opt: o } })), border: on ? '#8B5CF6' : t.border, bg: on ? hex('#8B5CF6', 0.10) : t.inputBg, color: on ? t.text : t.textSub }; }),
+          formF1: f.f1 || '', formF2: f.f2 || '',
+          setF1: (e) => this.setState(s => ({ form: { ...s.form, f1: e.target.value } })),
+          setF2: (e) => this.setState(s => ({ form: { ...s.form, f2: e.target.value } })),
+          closeDrawer: () => this.setState({ drawer: null }),
+          submitDrawer, notCanSubmit: !(f.f1 && f.f1.trim()),
+          submitBg: (f.f1 && f.f1.trim()) ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.softBg,
+          submitColor: (f.f1 && f.f1.trim()) ? '#fff' : t.textSub,
+          submitCursor: (f.f1 && f.f1.trim()) ? 'pointer' : 'not-allowed',
+          submitShadow: (f.f1 && f.f1.trim()) ? '0 8px 22px rgba(99,102,241,0.32)' : 'none'
+        };
+      })(),
+      dotsIcon2: mk(icons.dots, 16), upIcon: mk(icons.up, 20),
+      trashIconLg: React.createElement('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14', key: 'a' })),
+      editIcon: React.createElement('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M12 20h9', key: 'a' }), React.createElement('path', { d: 'M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z', key: 'b' })),
+      trashIcon: React.createElement('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14', key: 'a' })),
+      ...(() => {
+        const check = React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M20 6 9 17l-5-5' }));
+        const all = this.state.tasks;
+        const pending = all.filter(x => !x.done);
+        const done = all.filter(x => x.done);
+        const filter = this.state.taskFilter;
+        const filtered = filter === 'pending' ? pending : (filter === 'done' ? done : all);
+        const fdef = [
+          { key: 'pending', label: 'Pendentes', count: pending.length },
+          { key: 'done', label: 'Concluídas', count: done.length },
+          { key: 'all', label: 'Todas', count: all.length }
+        ];
+        return {
+          taskDraft: this.state.taskDraft,
+          setTaskDraft: (e) => this.setState({ taskDraft: e.target.value }),
+          addTask: (e) => { if (e && e.preventDefault) e.preventDefault(); const v = this.state.taskDraft.trim(); if (!v) return; this.setState(s => ({ tasks: [{ id: s.nextTaskId, text: v, done: false }, ...s.tasks], nextTaskId: s.nextTaskId + 1, taskDraft: '' })); },
+          pendingTasks: pending.slice(0, 4).map(x => ({ text: x.text, check: () => this.setState(s => ({ tasks: s.tasks.map(y => y.id === x.id ? { ...y, done: true } : y) })) })),
+          noPending: pending.length === 0,
+          taskPendingCount: pending.length, taskDoneCount: done.length,
+          taskPendingLabel: pending.length === 0 ? 'Nenhuma pendente' : (pending.length === 1 ? '1 tarefa pendente' : pending.length + ' tarefas pendentes'),
+          tasksOpen: this.state.tasksOpen,
+          openTasks: () => this.setState({ tasksOpen: true, taskFilter: 'pending' }),
+          closeTasks: () => this.setState({ tasksOpen: false }),
+          taskFilters: fdef.map(f => { const on = f.key === filter; return { label: f.label, count: f.count, pick: () => this.setState({ taskFilter: f.key }), border: on ? 'transparent' : t.border, bg: on ? 'linear-gradient(92deg,#3B82F6,#8B5CF6)' : t.inputBg, color: on ? '#fff' : t.textSub }; }),
+          fullTasks: filtered.map(x => ({
+            text: x.text, textColor: x.done ? t.textSub : t.text, strike: x.done ? 'line-through' : 'none',
+            checkBorder: x.done ? '#10B981' : t.textSub, checkBg: x.done ? '#10B981' : 'transparent', checkIcon: x.done ? check : '',
+            toggleTitle: x.done ? 'Reabrir' : 'Concluir',
+            toggle: () => this.setState(s => ({ tasks: s.tasks.map(y => y.id === x.id ? { ...y, done: !y.done } : y) })),
+            remove: () => this.setState(s => ({ tasks: s.tasks.filter(y => y.id !== x.id) }))
+          })),
+          noFullTasks: filtered.length === 0,
+          emptyFull: filter === 'done' ? 'Nenhuma tarefa concluída ainda.' : (filter === 'pending' ? 'Tudo em dia — nada pendente.' : 'Nenhuma tarefa.')
+        };
+      })(),
+      bellIcon: mk(icons.bell), dotsIcon: mk(icons.dots, 16),
+      isRows, rows, rowCols, col0flex, col1flex, col2flex,
+      isIntegr: tab === 'integracoes', integrations,
+      isProducts: tab === 'produtos', categories, methods, prodToggles, units,
+      isAddr: tab === 'enderecos', addrParts, addrTypes,
+      toggleTheme: () => { const next = dark ? 'light' : 'dark'; localStorage.setItem('infinoos-theme', next); this.setState({ theme: next }); }
+    };
+  }
+}
+</script>
+
+
+</body></html>

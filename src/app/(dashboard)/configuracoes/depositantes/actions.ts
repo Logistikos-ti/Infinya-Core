@@ -328,6 +328,9 @@ export async function deleteDepositanteAction(formData: FormData) {
   const totalDependencies = dependencyChecks.reduce((total, query) => total + (query.count ?? 0), 0);
 
   if (totalDependencies > 0) {
+    if (formData.get("isSpa") === "true") {
+      return { success: false, message: "Não foi possível excluir este depositante porque já existem vínculos operacionais. Nesse caso, use desativar." };
+    }
     redirect("/configuracoes/depositantes?feedback=vinculos");
   }
 

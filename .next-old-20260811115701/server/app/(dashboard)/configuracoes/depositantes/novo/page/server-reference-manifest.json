@@ -1,0 +1,41 @@
+{
+  "node": {
+    "60bd4611bfa5fa8acbb5b40308f1bec71657ff8f44": {
+      "workers": {
+        "app/(dashboard)/configuracoes/depositantes/novo/page": {
+          "moduleId": 53695,
+          "async": false,
+          "exportedName": "updateFirstAccessPasswordAction",
+          "filename": "src/components/layout/first-access-password-actions.ts"
+        }
+      },
+      "exportedName": "updateFirstAccessPasswordAction",
+      "filename": "src/components/layout/first-access-password-actions.ts"
+    },
+    "0065448f48866f084ba1f274f4da699044952f311e": {
+      "workers": {
+        "app/(dashboard)/configuracoes/depositantes/novo/page": {
+          "moduleId": 53695,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/app/(auth)/login/actions.ts"
+        }
+      },
+      "exportedName": "logoutAction",
+      "filename": "src/app/(auth)/login/actions.ts"
+    },
+    "60e91429f7746d7376de335659413a44e31d1b2b71": {
+      "workers": {
+        "app/(dashboard)/configuracoes/depositantes/novo/page": {
+          "moduleId": 53695,
+          "async": false,
+          "exportedName": "saveDepositanteAction",
+          "filename": "src/app/(dashboard)/configuracoes/depositantes/actions.ts"
+        }
+      },
+      "exportedName": "saveDepositanteAction",
+      "filename": "src/app/(dashboard)/configuracoes/depositantes/actions.ts"
+    }
+  },
+  "edge": {}
+}
