@@ -1,4 +1,4 @@
-create table if not exists public.inventários_gerais (
+create table if not exists public.inventarios_gerais (
   id uuid primary key default gen_random_uuid(),
   depositante_id uuid not null references public.depositantes(id) on delete cascade,
   data_operacional date not null default (timezone('America/Sao_Paulo', now()))::date,
@@ -11,16 +11,16 @@ create table if not exists public.inventários_gerais (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
-create unique index if not exists inventários_gerais_um_aberto_por_dia
-  on public.inventários_gerais (depositante_id, data_operacional)
+create unique index if not exists inventarios_gerais_um_aberto_por_dia
+  on public.inventarios_gerais (depositante_id, data_operacional)
   where status = 'EM_CONTAGEM';
 
-create index if not exists inventários_gerais_depositante_data_idx
-  on public.inventários_gerais (depositante_id, data_operacional desc);
+create index if not exists inventarios_gerais_depositante_data_idx
+  on public.inventarios_gerais (depositante_id, data_operacional desc);
 
-create table if not exists public.inventários_gerais_itens (
+create table if not exists public.inventarios_gerais_itens (
   id uuid primary key default gen_random_uuid(),
-  inventário_id uuid not null references public.inventários_gerais(id) on delete cascade,
+  inventario_id uuid not null references public.inventarios_gerais(id) on delete cascade,
   depositante_id uuid not null references public.depositantes(id) on delete cascade,
   produto_id uuid not null references public.produtos(id) on delete cascade,
   nome_produto text not null,
@@ -41,22 +41,22 @@ create table if not exists public.inventários_gerais_itens (
   observacoes text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
-  unique (inventário_id, produto_id)
+  unique (inventario_id, produto_id)
 );
 
-create index if not exists inventários_gerais_itens_inventário_idx
-  on public.inventários_gerais_itens (inventário_id, status);
+create index if not exists inventarios_gerais_itens_inventario_idx
+  on public.inventarios_gerais_itens (inventario_id, status);
 
-create table if not exists public.inventários_gerais_participantes (
+create table if not exists public.inventarios_gerais_participantes (
   id uuid primary key default gen_random_uuid(),
-  inventário_id uuid not null references public.inventários_gerais(id) on delete cascade,
+  inventario_id uuid not null references public.inventarios_gerais(id) on delete cascade,
   usuario_id uuid not null references public.usuarios(id) on delete cascade,
   iniciado_em timestamptz not null default timezone('utc', now()),
   finalizado_em timestamptz,
-  unique (inventário_id, usuario_id)
+  unique (inventario_id, usuario_id)
 );
 
-create or replace function public.inventários_gerais_set_updated_at()
+create or replace function public.inventarios_gerais_set_updated_at()
 returns trigger
 language plpgsql
 as $$
@@ -66,45 +66,45 @@ begin
 end;
 $$;
 
-drop trigger if exists inventários_gerais_set_updated_at on public.inventários_gerais;
-create trigger inventários_gerais_set_updated_at
-before update on public.inventários_gerais
-for each row execute function public.inventários_gerais_set_updated_at();
+drop trigger if exists inventarios_gerais_set_updated_at on public.inventarios_gerais;
+create trigger inventarios_gerais_set_updated_at
+before update on public.inventarios_gerais
+for each row execute function public.inventarios_gerais_set_updated_at();
 
-drop trigger if exists inventários_gerais_itens_set_updated_at on public.inventários_gerais_itens;
-create trigger inventários_gerais_itens_set_updated_at
-before update on public.inventários_gerais_itens
-for each row execute function public.inventários_gerais_set_updated_at();
+drop trigger if exists inventarios_gerais_itens_set_updated_at on public.inventarios_gerais_itens;
+create trigger inventarios_gerais_itens_set_updated_at
+before update on public.inventarios_gerais_itens
+for each row execute function public.inventarios_gerais_set_updated_at();
 
-alter table public.inventários_gerais enable row level security;
-alter table public.inventários_gerais_itens enable row level security;
-alter table public.inventários_gerais_participantes enable row level security;
+alter table public.inventarios_gerais enable row level security;
+alter table public.inventarios_gerais_itens enable row level security;
+alter table public.inventarios_gerais_participantes enable row level security;
 
-drop policy if exists inventários_gerais_access on public.inventários_gerais;
-create policy inventários_gerais_access
-on public.inventários_gerais
+drop policy if exists inventarios_gerais_access on public.inventarios_gerais;
+create policy inventarios_gerais_access
+on public.inventarios_gerais
 for all to authenticated
 using (public.can_access_depositante(depositante_id))
 with check (public.can_access_depositante(depositante_id));
 
-drop policy if exists inventários_gerais_itens_access on public.inventários_gerais_itens;
-create policy inventários_gerais_itens_access
-on public.inventários_gerais_itens
+drop policy if exists inventarios_gerais_itens_access on public.inventarios_gerais_itens;
+create policy inventarios_gerais_itens_access
+on public.inventarios_gerais_itens
 for all to authenticated
 using (public.can_access_depositante(depositante_id))
 with check (public.can_access_depositante(depositante_id));
 
-drop policy if exists inventários_gerais_participantes_access on public.inventários_gerais_participantes;
-create policy inventários_gerais_participantes_access
-on public.inventários_gerais_participantes
+drop policy if exists inventarios_gerais_participantes_access on public.inventarios_gerais_participantes;
+create policy inventarios_gerais_participantes_access
+on public.inventarios_gerais_participantes
 for all to authenticated
 using (exists (
-  select 1 from public.inventários_gerais i
-  where i.id = inventário_id and public.can_access_depositante(i.depositante_id)
+  select 1 from public.inventarios_gerais i
+  where i.id = inventario_id and public.can_access_depositante(i.depositante_id)
 ))
 with check (exists (
-  select 1 from public.inventários_gerais i
-  where i.id = inventário_id and public.can_access_depositante(i.depositante_id)
+  select 1 from public.inventarios_gerais i
+  where i.id = inventario_id and public.can_access_depositante(i.depositante_id)
 ));
 
 create or replace function public.finalize_general_inventory(
@@ -117,7 +117,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_inventory public.inventários_gerais%rowtype;
+  v_inventory public.inventarios_gerais%rowtype;
   v_item record;
   v_snapshot record;
   v_stock record;
@@ -132,7 +132,7 @@ declare
   v_movement_type public.tipo_movimentacao_estoque;
 begin
   select * into v_inventory
-  from public.inventários_gerais
+  from public.inventarios_gerais
   where id = p_inventory_id
   for update;
 
@@ -149,15 +149,15 @@ begin
   end if;
 
   if exists (
-    select 1 from public.inventários_gerais_itens
-    where inventário_id = p_inventory_id and status = 'PENDENTE'
+    select 1 from public.inventarios_gerais_itens
+    where inventario_id = p_inventory_id and status = 'PENDENTE'
   ) then
     raise exception 'Ainda existem produtos sem contagem.';
   end if;
 
   for v_item in
-    select * from public.inventários_gerais_itens
-    where inventário_id = p_inventory_id
+    select * from public.inventarios_gerais_itens
+    where inventario_id = p_inventory_id
     for update
   loop
     if v_item.status = 'DIVERGENTE' then
@@ -219,19 +219,19 @@ begin
       v_zeroed := v_zeroed + 1;
     end if;
 
-    update public.inventários_gerais_itens
+    update public.inventarios_gerais_itens
     set observacoes = coalesce(observacoes, '') || case when observacoes is null then '' else ' ' end || 'Fechado pelo inventário geral.',
         updated_at = timezone('utc', now())
     where id = v_item.id;
   end loop;
 
-  update public.inventários_gerais
+  update public.inventarios_gerais
   set status = 'CONCLUIDO', concluido_em = timezone('utc', now()), observacoes = coalesce(observacoes, '')
   where id = p_inventory_id;
 
-  update public.inventários_gerais_participantes
+  update public.inventarios_gerais_participantes
   set finalizado_em = timezone('utc', now())
-  where inventário_id = p_inventory_id and usuario_id = p_user_id;
+  where inventario_id = p_inventory_id and usuario_id = p_user_id;
 
   return jsonb_build_object(
     'divergentes', v_divergent,

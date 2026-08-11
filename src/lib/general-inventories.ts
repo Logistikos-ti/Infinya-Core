@@ -65,7 +65,12 @@ function operationalToday() {
 }
 
 function missingTable(error: { code?: string; message?: string } | null) {
-  return Boolean(error && (error.code === "42P01" || error.message?.includes("inventários_gerais")));
+  return Boolean(
+    error &&
+      (error.code === "42P01" ||
+        error.message?.includes("inventarios_gerais") ||
+        error.message?.includes("inventários_gerais")),
+  );
 }
 
 export async function openGeneralInventory(input: {
@@ -76,7 +81,7 @@ export async function openGeneralInventory(input: {
   const today = operationalToday();
 
   const { data: existing, error: existingError } = await supabase
-    .from("inventários_gerais")
+    .from("inventarios_gerais")
     .select("id")
     .eq("depositante_id", input.depositanteId)
     .eq("data_operacional", today)
@@ -93,7 +98,7 @@ export async function openGeneralInventory(input: {
     // An active session from a previous day cannot be resumed. It is closed as
     // cancelled before today's session is created, preserving the audit trail.
     await supabase
-      .from("inventários_gerais")
+      .from("inventarios_gerais")
       .update({
         status: "CANCELADO",
         observacoes: "Sessão encerrada automaticamente por não ter sido concluída no dia operacional.",
@@ -136,7 +141,7 @@ export async function openGeneralInventory(input: {
     }
 
     const { data: header, error: headerError } = await supabase
-      .from("inventários_gerais")
+      .from("inventarios_gerais")
       .insert({
         depositante_id: input.depositanteId,
         data_operacional: today,
@@ -149,7 +154,7 @@ export async function openGeneralInventory(input: {
 
     if (headerError?.code === "23505") {
       const { data: concurrent } = await supabase
-        .from("inventários_gerais")
+        .from("inventarios_gerais")
         .select("id")
         .eq("depositante_id", input.depositanteId)
         .eq("data_operacional", today)
@@ -165,7 +170,7 @@ export async function openGeneralInventory(input: {
       const itemRows = (products as ProductRow[]).map((product) => {
       const balances = byProduct.get(product.id) ?? [];
       return {
-        inventário_id: inventoryId,
+        inventario_id: inventoryId,
         depositante_id: input.depositanteId,
         produto_id: product.id,
         nome_produto: product.nome,
@@ -183,9 +188,9 @@ export async function openGeneralInventory(input: {
       };
       });
 
-    const { error: itemError } = await supabase.from("inventários_gerais_itens").insert(itemRows);
+    const { error: itemError } = await supabase.from("inventarios_gerais_itens").insert(itemRows);
     if (itemError) {
-      await supabase.from("inventários_gerais").delete().eq("id", inventoryId);
+      await supabase.from("inventarios_gerais").delete().eq("id", inventoryId);
       throw new Error(`Não foi possível preparar a lista do inventário: ${itemError.message}`);
     }
     }
@@ -193,9 +198,9 @@ export async function openGeneralInventory(input: {
 
   if (!inventoryId) throw new Error("Inventário geral não encontrado.");
 
-  await supabase.from("inventários_gerais_participantes").upsert(
-    { inventário_id: inventoryId, usuario_id: input.userId },
-    { onConflict: "inventário_id,usuario_id" },
+  await supabase.from("inventarios_gerais_participantes").upsert(
+    { inventario_id: inventoryId, usuario_id: input.userId },
+    { onConflict: "inventario_id,usuario_id" },
   );
 
   return getGeneralInventory(inventoryId);
@@ -204,7 +209,7 @@ export async function openGeneralInventory(input: {
 export async function getGeneralInventory(id: string): Promise<GeneralInventoryDetail | null> {
   const supabase = createSupabaseAdminClient();
   const { data: header, error: headerError } = await supabase
-    .from("inventários_gerais")
+    .from("inventarios_gerais")
     .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, depositante:depositantes(nome)")
     .eq("id", id)
     .maybeSingle();
@@ -213,9 +218,9 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
   if (!header) return null;
 
   const { data: rows, error: itemError } = await supabase
-    .from("inventários_gerais_itens")
+    .from("inventarios_gerais_itens")
     .select("id, produto_id, nome_produto, sku, codigo_externo, codigo_interno, codigo_externo_pack, imagem_url, quantidade_sistema, quantidade_contada, divergencia, status, atribuido_a, contado_por, contado_em")
-    .eq("inventário_id", id)
+    .eq("inventario_id", id)
     .order("nome_produto");
 
   if (itemError) throw new Error(`Não foi possível carregar os itens do inventário: ${itemError.message}`);
@@ -285,7 +290,7 @@ export async function claimGeneralInventoryItem(input: {
 
   if (!target.atribuidoA) {
     const { data, error } = await supabase
-      .from("inventários_gerais_itens")
+      .from("inventarios_gerais_itens")
       .update({ atribuido_a: input.userId, atribuido_em: new Date().toISOString() })
       .eq("id", target.id)
       .is("atribuido_a", null)
@@ -294,9 +299,9 @@ export async function claimGeneralInventoryItem(input: {
     if (error || !data) throw new Error("Outro operador assumiu este produto. Escolha o próximo disponível.");
   }
 
-  await supabase.from("inventários_gerais_participantes").upsert(
-    { inventário_id: input.inventoryId, usuario_id: input.userId },
-    { onConflict: "inventário_id,usuario_id" },
+  await supabase.from("inventarios_gerais_participantes").upsert(
+    { inventario_id: input.inventoryId, usuario_id: input.userId },
+    { onConflict: "inventario_id,usuario_id" },
   );
   return {
     detail: await getGeneralInventory(input.inventoryId),
@@ -321,7 +326,7 @@ export async function recordGeneralInventoryItem(input: {
 
   const divergence = input.quantidade - item.quantidadeSistema;
   const { error } = await supabase
-    .from("inventários_gerais_itens")
+    .from("inventarios_gerais_itens")
     .update({
       quantidade_contada: input.quantidade,
       divergencia: divergence,
@@ -332,7 +337,7 @@ export async function recordGeneralInventoryItem(input: {
       atribuido_em: new Date().toISOString(),
     })
     .eq("id", input.itemId)
-    .eq("inventário_id", input.inventoryId);
+    .eq("inventario_id", input.inventoryId);
   if (error) throw new Error(`Não foi possível salvar a contagem: ${error.message}`);
   return getGeneralInventory(input.inventoryId);
 }
