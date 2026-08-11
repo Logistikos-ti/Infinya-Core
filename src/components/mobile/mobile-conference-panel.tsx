@@ -408,7 +408,9 @@ export function MobileConferencePanel({
               ? "Ainda existem itens pendentes. O pedido voltou para a fila."
               : feedback === "inatividade"
                 ? "Pedido devolvido para a fila por inatividade do operador."
-                : "Não foi possível concluir a operação solicitada."}
+                : feedback === "erro-estoque"
+                  ? "Não foi possível concluir: não há saldo físico disponível para baixar um dos itens deste pedido. Verifique o estoque do produto (pode estar reservado por outro pedido ou zerado) antes de tentar novamente."
+                  : "Não foi possível concluir a operação solicitada."}
         </section>
       ) : null}
 

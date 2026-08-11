@@ -488,7 +488,9 @@ export function ShippingConferencePanel({
                   ? "Finalize os documentos obrigatórios (XML da NF e etiqueta de envio) para liberar o pedido ao romaneio."
                 : feedback === "inatividade"
                   ? "Sessão expirada por inatividade. O pedido foi devolvido para a fila e a operação cancelada."
-                  : "Não foi possível concluir a operação solicitada."}
+                  : feedback === "erro-estoque"
+                    ? "Não foi possível concluir: não há saldo físico disponível para baixar um dos itens deste pedido. Verifique o estoque do produto (pode estar reservado por outro pedido ou zerado) antes de tentar novamente."
+                    : "Não foi possível concluir a operação solicitada."}
           </div>
         ) : null}
 
