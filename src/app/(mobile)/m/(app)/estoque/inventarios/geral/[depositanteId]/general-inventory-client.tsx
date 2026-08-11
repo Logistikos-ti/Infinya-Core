@@ -93,7 +93,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch("/api/estoque/inventários-gerais", {
+    fetch("/api/estoque/inventarios-gerais", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ depositanteId }),
@@ -112,7 +112,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   useEffect(() => {
     if (!detail?.id || summary) return;
     const timer = window.setInterval(() => {
-      fetch(`/api/estoque/inventários-gerais?id=${detail.id}`)
+      fetch(`/api/estoque/inventarios-gerais?id=${detail.id}`)
         .then(readResponse)
         .then((body) => body.result && setDetail(body.result))
         .catch(() => undefined);
@@ -139,7 +139,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     }
     setSaving(true);
     try {
-      const body = await load(`/api/estoque/inventários-gerais/${detail?.id}`, { method: "POST", body: JSON.stringify({ action: "assumir", itemId: item.id }) });
+      const body = await load(`/api/estoque/inventarios-gerais/${detail?.id}`, { method: "POST", body: JSON.stringify({ action: "assumir", itemId: item.id }) });
       const next = body.result?.itens.find((entry) => entry.id === item.id);
       setActiveItemId(item.id);
       setQuantity(next?.quantidadeContada === null || next?.quantidadeContada === undefined ? "" : String(next.quantidadeContada));
@@ -174,7 +174,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     setSaving(true);
     setError(null);
     try {
-      await load(`/api/estoque/inventários-gerais/${detail.id}/itens/${activeItem.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: value }) });
+      await load(`/api/estoque/inventarios-gerais/${detail.id}/itens/${activeItem.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: value }) });
       setActiveItemId(null);
       setQuantity("");
       setTimeout(() => barcodeRef.current?.focus(), 40);
@@ -190,7 +190,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     setSaving(true);
     setError(null);
     try {
-      const body = await load(`/api/estoque/inventários-gerais/${detail.id}`, { method: "POST", body: JSON.stringify({ action: "assumir" }) });
+      const body = await load(`/api/estoque/inventarios-gerais/${detail.id}`, { method: "POST", body: JSON.stringify({ action: "assumir" }) });
       const next = body.result?.itens.find((item) => item.id === (body as { claimedItemId?: string }).claimedItemId);
       if (next) await chooseItem(next);
     } catch (reason) {
@@ -205,7 +205,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     setSaving(true);
     setError(null);
     try {
-      const body = await readResponse(await fetch(`/api/estoque/inventários-gerais/${detail.id}/confirmar`, { method: "POST" }));
+      const body = await readResponse(await fetch(`/api/estoque/inventarios-gerais/${detail.id}/confirmar`, { method: "POST" }));
       setSummary(body.summary ?? null);
       setDetail((current) => current ? { ...current, status: "CONCLUIDO" } : current);
       setReview(false);
@@ -223,7 +223,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   if (summary && detail) {
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <div style={{ padding: "18px", display: "flex", alignItems: "center", gap: 12 }}><MobileBackButton onClick={() => router.push("/m/estoque/inventários")} /><div><div style={{ fontSize: 16, fontWeight: 800, ...headingFont }}>Inventário concluido</div><div style={{ fontSize: 12, color: mobileColors.muted }}>{detail.depositante}</div></div></div>
+        <div style={{ padding: "18px", display: "flex", alignItems: "center", gap: 12 }}><MobileBackButton onClick={() => router.push("/m/estoque/inventarios/geral")} /><div><div style={{ fontSize: 16, fontWeight: 800, ...headingFont }}>Inventário concluído</div><div style={{ fontSize: 12, color: mobileColors.muted }}>{detail.depositante}</div></div></div>
         <div className="app-scroll" style={{ flex: 1, overflowY: "auto", padding: "0 18px 18px" }}>
           <div style={{ ...cardStyle, padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ width: 68, height: 68, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", background: hexAlpha(mobileColors.green, 0.16), color: mobileColors.green }}><MobileIcon name="check" size={34} /></div>
@@ -232,7 +232,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[['Ajustes aplicados', summary.ajustesAplicados], ['Divergências', summary.divergentes], ['Aumentos', summary.aumentos], ['Reduções', summary.reducoes]].map(([label, value]) => <div key={String(label)} style={{ ...cardStyle, padding: 13 }}><div style={{ fontSize: 11, color: mobileColors.muted }}>{label}</div><div style={{ marginTop: 4, fontSize: 20, fontWeight: 800, ...headingFont }}>{value}</div></div>)}
             </div>
-            <a href={`/api/estoque/inventários-gerais/${detail.id}/relatório`} style={{ height: 52, borderRadius: 15, background: mobileGradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, textDecoration: "none" }}>Baixar relatório</a>
+            <a href={`/api/estoque/inventarios-gerais/${detail.id}/relatorio`} style={{ height: 52, borderRadius: 15, background: mobileGradient, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, textDecoration: "none" }}>Baixar relatório</a>
           </div>
         </div>
       </div>
@@ -244,7 +244,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ flexShrink: 0, padding: "16px 18px 12px", display: "flex", alignItems: "center", gap: 12 }}>
-        <MobileBackButton onClick={() => router.push("/m/estoque/inventários/geral")} />
+        <MobileBackButton onClick={() => router.push("/m/estoque/inventarios/geral")} />
         <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 16, fontWeight: 800, ...headingFont }}>Inventário geral</div><div style={{ fontSize: 12, color: mobileColors.muted }}>{depositanteNome} - somente hoje</div></div>
         <span style={{ padding: "5px 10px", borderRadius: 999, background: hexAlpha(mobileColors.green, 0.14), color: mobileColors.green, fontSize: 10.5, fontWeight: 800 }}>EM CONTAGEM</span>
       </div>

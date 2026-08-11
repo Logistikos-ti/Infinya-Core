@@ -10,7 +10,7 @@ export function EstoqueListClient() {
     <MobileListShell
       title="Fluxos do Estoque"
       subtitle="Auditoria e controle"
-      count="5"
+      count="6"
       onBack={() => router.push("/m/inicio")}
       items={[
         {
@@ -39,6 +39,15 @@ export function EstoqueListClient() {
           tagColor: mobileColors.amber,
           sub: "Abra contagens cegas",
           onClick: () => router.push("/m/estoque/inventarios"),
+        },
+        {
+          icon: "scan",
+          iconColor: mobileColors.violetLight,
+          title: "Inventário geral",
+          tag: "Geral",
+          tagColor: mobileColors.violetLight,
+          sub: "Conte todos os produtos do depositante",
+          onClick: () => router.push("/m/estoque/inventarios/geral"),
         },
         {
           icon: "logout",
