@@ -10,6 +10,7 @@ import {
   registerPickingScanAction,
 } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
+import { resolveScannedPickingQuantity } from "@/lib/shipping-picking-scan";
 import type { ShippingPickingOrder } from "@/lib/shipping-picking";
 import {
   mobileColors,
@@ -423,14 +424,30 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
       return;
     }
 
-    const nextSeparated = Math.min(
-      normalizeQuantity(currentItem.separatedQuantityValue) + 1,
-      currentItem.requestedQuantity,
-    );
+    // A pack/caixa barcode (e.g. Dêvi's SKUs with a separate código for the
+    // sealed pack) adds packQuantity units per scan instead of 1 -- see
+    // resolveScannedPickingQuantity in src/lib/shipping-picking-scan.ts.
+    const isPackMatch =
+      Boolean(currentItem.packBarcode) && normalizeScan(currentItem.packBarcode) === normalized;
+    const scannedQuantity = resolveScannedPickingQuantity({
+      isPackMatch,
+      packQuantity: currentItem.packQuantity,
+    });
+    const currentSeparated = normalizeQuantity(currentItem.separatedQuantityValue);
+    const nextSeparated = Math.min(currentSeparated + scannedQuantity, currentItem.requestedQuantity);
+    const appliedQuantity = nextSeparated - currentSeparated;
+
+    if (appliedQuantity <= 0) {
+      productScanBusyRef.current = false;
+      flash({ type: "err", title: "Item completo", code: rawValue, sub: "Este item já foi totalmente separado." });
+      return;
+    }
+
     void registerPickingScanAction({
       orderId: currentItem.orderId,
       itemId: currentItem.id,
       stockId,
+      quantity: appliedQuantity,
       scanId: crypto.randomUUID(),
     }).then((result) => {
       if (!result.ok) {
@@ -439,7 +456,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
         return;
       }
 
-      const routeCollected = (currentItem.routeLineCollected ?? 0) + 1;
+      const routeCollected = (currentItem.routeLineCollected ?? 0) + appliedQuantity;
       const routeComplete = Boolean(activeRouteLine) && routeCollected >= (activeRouteLine?.quantity ?? 0);
       const updatedItems = items.map((item) =>
         item.compositeId === currentItem.compositeId
