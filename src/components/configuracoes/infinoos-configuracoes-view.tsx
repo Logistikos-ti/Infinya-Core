@@ -1560,8 +1560,8 @@ export function InfinoosConfiguracoesView({
                   : item.perfil === "DEPOSITANTE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                   : "bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-300";
 
-                const statusBg = isOn ? "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-rose-100/50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
-                const statusDot = isOn ? "bg-emerald-500" : "bg-rose-500";
+                const statusBg = isOn ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-red-100 text-red-500 dark:bg-red-500/20 dark:text-red-400";
+                const statusDot = isOn ? "bg-emerald-500" : "bg-red-500";
 
                 const roleLabel = item.perfil === "ADMIN" ? "Administrador" : item.perfil === "TI" ? "TI" : item.perfil === "DEPOSITANTE" ? "Depositante" : "Operador";
 
