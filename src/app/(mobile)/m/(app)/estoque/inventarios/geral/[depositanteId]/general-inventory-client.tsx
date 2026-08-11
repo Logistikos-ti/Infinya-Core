@@ -218,7 +218,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   };
 
   if (loading) {
-    return <MobileFullScreenLoader label="Abrindo inventário geral..." />;
+    return <MobileFullScreenLoader />;
   }
 
   if (summary && detail) {
