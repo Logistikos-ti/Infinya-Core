@@ -1552,22 +1552,23 @@ export function InfinoosConfiguracoesView({
                 const initials = (item.nome || item.email || "US").substring(0, 2).toUpperCase();
                 
                 const isOn = userOn[item.id] !== undefined ? userOn[item.id] : (item.ativo ?? true);
-                const avatarBg = isOn ? "bg-gradient-to-br from-indigo-500 to-purple-600" : "bg-slate-300 dark:bg-slate-700";
+                const avatarColor = pal[i % pal.length];
+                const avatarStyle = { background: `linear-gradient(135deg, ${avatarColor}, ${avatarColor}99)` }; // Using hex opacity for 0.6 (99)
 
                 const roleColor = item.perfil === "ADMIN" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" 
                   : item.perfil === "TI" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
                   : item.perfil === "DEPOSITANTE" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
                   : "bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-300";
 
-                const statusBg = isOn ? "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-slate-400";
-                const statusDot = isOn ? "bg-emerald-500" : "bg-slate-400";
+                const statusBg = isOn ? "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-rose-100/50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
+                const statusDot = isOn ? "bg-emerald-500" : "bg-rose-500";
 
                 const roleLabel = item.perfil === "ADMIN" ? "Administrador" : item.perfil === "TI" ? "TI" : item.perfil === "DEPOSITANTE" ? "Depositante" : "Operador";
 
                 return (
                   <div key={item.id} className="flex items-center gap-4 border-b border-slate-100 px-5 py-4 transition hover:bg-slate-50/50 dark:border-white/5 dark:hover:bg-white/[0.02] last:border-0">
                     <div className="flex flex-[2.2] items-center gap-3 min-w-0">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] font-['Space_Grotesk'] text-[13.5px] font-extrabold text-white ${avatarBg}`}>
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] font-['Space_Grotesk'] text-[13.5px] font-extrabold text-white`} style={avatarStyle}>
                         {initials}
                       </span>
                       <div className="flex flex-col gap-0.5 min-w-0">
