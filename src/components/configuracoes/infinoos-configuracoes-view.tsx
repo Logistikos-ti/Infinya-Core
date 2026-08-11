@@ -247,6 +247,14 @@ export function InfinoosConfiguracoesView({
   const [depMethod, setDepMethod] = useState("FEFO");
   const [confirmDel, setConfirmDel] = useState<{ id: string; name: string } | null>(null);
 
+  const defaultPerms = {
+    Dashboard: { "Acesso Geral": true },
+    Recebimento: { "Agendamentos": true, "Conferência de Entrada": true, "Divergências": false },
+    Estoque: { "Consultas": true, "Movimentação Manual": false, "Inventário/Auditoria": false },
+    Expedição: { "Pedidos": true, "Picking": true, "Packing": true, "Romaneios": true },
+    Configurações: { "Usuários": false, "Depositantes": false, "Transportadoras": false, "Integrações": false },
+  };
+
   const [userPageOpen, setUserPageOpen] = useState(false);
   const [userEditId, setUserEditId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState({
@@ -256,11 +264,7 @@ export function InfinoosConfiguracoesView({
     senha: "",
     papel: "Operador",
     depositante: "Todos os depositantes",
-    permissoes: {
-      recebimento: true,
-      estoque: true,
-      expedicao: true,
-    }
+    permissoes: defaultPerms
   });
 
   // Toast
