@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useTransition } from "react";
+import React, { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Filter, Search, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Search } from "lucide-react";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 
 type ShippingConferenceSplitLayoutProps = {
@@ -12,14 +12,19 @@ type ShippingConferenceSplitLayoutProps = {
   children: React.ReactNode;
 };
 
-export function ShippingConferenceSplitLayout({ initialOrders, children }: ShippingConferenceSplitLayoutProps) {
+const activeConferenceStatuses = new Set(["SEPARADO", "EM_CONFERENCIA"]);
+
+export function ShippingConferenceSplitLayout({
+  initialOrders,
+  children,
+}: ShippingConferenceSplitLayoutProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const [marketplaceFilter, setMarketplaceFilter] = useState<string>("Todos");
+  const [depositanteFilter, setDepositanteFilter] = useState("todos");
   const [searchQuery, setSearchQuery] = useState("");
 
   const t = isDark
@@ -52,37 +57,50 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
     Magalu: "#0086FF",
   };
 
-  const marketplaces = useMemo(() => {
-    const mkts = new Set<string>();
-    initialOrders.forEach((o) => {
-      if (o.marketplace) mkts.add(o.marketplace);
-      else if (o.destination) mkts.add(o.destination); // Fallback if marketplace is not explicitly in db result yet
+  const depositanteOptions = useMemo(() => {
+    const depositantes = new Map<string, string>();
+
+    initialOrders.forEach((order) => {
+      if (!activeConferenceStatuses.has(order.status)) return;
+      if (!order.depositanteId) return;
+
+      depositantes.set(order.depositanteId, order.depositante || "Sem depositante");
     });
-    return ["Todos", ...Array.from(mkts).filter(Boolean)];
+
+    return [
+      { value: "todos", label: "Todos" },
+      ...Array.from(depositantes.entries())
+        .sort(([, a], [, b]) => a.localeCompare(b, "pt-BR"))
+        .map(([value, label]) => ({ value, label })),
+    ];
   }, [initialOrders]);
 
   const filteredOrders = useMemo(() => {
-    return initialOrders.filter((o) => {
-      // Status filter: we usually only want to show SEPARADO and EM_CONFERENCIA in the queue
-      if (o.status !== "SEPARADO" && o.status !== "EM_CONFERENCIA") return false;
+    const normalizedSearch = searchQuery.trim().toLowerCase();
 
-      const mkt = o.marketplace || o.destination || "";
-      if (marketplaceFilter !== "Todos" && mkt !== marketplaceFilter) return false;
+    return initialOrders.filter((order) => {
+      if (!activeConferenceStatuses.has(order.status)) return false;
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const code = (o.displayNumber || "").toLowerCase();
-        const customer = (o.customer || "").toLowerCase();
-        if (!code.includes(query) && !customer.includes(query)) return false;
+      if (depositanteFilter !== "todos" && order.depositanteId !== depositanteFilter) {
+        return false;
+      }
+
+      if (normalizedSearch) {
+        const code = String(order.displayNumber || "").toLowerCase();
+        const customer = String(order.customer || "").toLowerCase();
+        const depositante = String(order.depositante || "").toLowerCase();
+
+        if (!code.includes(normalizedSearch) && !customer.includes(normalizedSearch) && !depositante.includes(normalizedSearch)) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [initialOrders, marketplaceFilter, searchQuery]);
+  }, [initialOrders, depositanteFilter, searchQuery]);
 
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden", height: "100%" }}>
-      {/* LEFT: conference queue */}
       <div
         style={{
           width: "320px",
@@ -102,6 +120,49 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
               {filteredOrders.length} {filteredOrders.length === 1 ? "pedido aguardando validação de saída." : "pedidos aguardando validação de saída."}
             </span>
           </div>
+
+          <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ position: "relative" }}>
+              <Search
+                className="h-4 w-4"
+                style={{
+                  position: "absolute",
+                  left: 14,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: t.textSub,
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Buscar pedido, cliente..."
+                style={{
+                  width: "100%",
+                  height: 44,
+                  borderRadius: 14,
+                  border: `1px solid ${t.border}`,
+                  background: t.inputBg,
+                  color: t.text,
+                  padding: "0 14px 0 40px",
+                  fontSize: 13,
+                  outline: "none",
+                  boxShadow: isDark ? "none" : "0 10px 28px rgba(15,23,42,0.04)",
+                }}
+              />
+            </div>
+
+            <FancySelectInput
+              label="Depositante"
+              name="conferenceDepositanteFilter"
+              value={depositanteFilter}
+              onChange={setDepositanteFilter}
+              options={depositanteOptions}
+              menuClassName="max-h-72"
+            />
+          </div>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -110,20 +171,20 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
               Nenhum pedido na fila com estes filtros.
             </div>
           ) : (
-            filteredOrders.map((o) => {
-              const isActive = pathname === `/expedicao/conferencia/${o.id}`;
-              const marketplaceName = o.marketplace || o.destination || "Site Próprio";
-              const c = carriers[marketplaceName] || "#64748B";
+            filteredOrders.map((order) => {
+              const isActive = pathname === `/expedicao/conferencia/${order.id}`;
+              const marketplaceName = order.marketplace || order.destination || "Site Próprio";
+              const color = carriers[marketplaceName] || "#64748B";
 
               return (
                 <Link
-                  key={o.id}
-                  href={`/expedicao/conferencia/${o.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
+                  key={order.id}
+                  href={`/expedicao/conferencia/${order.id}`}
+                  onClick={(event) => {
+                    event.preventDefault();
                     if (isActive) return;
                     startTransition(() => {
-                      router.push(`/expedicao/conferencia/${o.id}`, { scroll: false });
+                      router.push(`/expedicao/conferencia/${order.id}`, { scroll: false });
                     });
                   }}
                   style={{
@@ -139,9 +200,9 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                     transition: "all 0.16s ease",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14.5px", fontWeight: 700, color: t.text }}>
-                      {o.displayNumber}
+                      {order.displayNumber}
                     </span>
                     <span
                       style={{
@@ -152,15 +213,15 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
                         borderRadius: "999px",
                         fontSize: "11px",
                         fontWeight: 700,
-                        background: hex2(c, 0.15),
-                        color: c,
+                        background: hex2(color, 0.15),
+                        color,
                       }}
                     >
                       {marketplaceName}
                     </span>
                   </div>
                   <span style={{ fontSize: "12.5px", color: t.textSub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {o.customer} · {o.totalUnits} {o.totalUnits === 1 ? "item" : "itens"}
+                    {order.customer} · {order.totalUnits} {order.totalUnits === 1 ? "item" : "itens"}
                   </span>
                 </Link>
               );
@@ -169,18 +230,40 @@ export function ShippingConferenceSplitLayout({ initialOrders, children }: Shipp
         </div>
       </div>
 
-      {/* CENTER: active conference */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
         {children}
-        
-        {isPending && (
-          <div style={{ position: "absolute", inset: 0, background: isDark ? "rgba(10,17,32,0.6)" : "rgba(255,255,255,0.6)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", background: t.cardBg, padding: "20px 32px", borderRadius: "16px", border: `1px solid ${t.border}`, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}>
+
+        {isPending ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: isDark ? "rgba(10,17,32,0.6)" : "rgba(255,255,255,0.6)",
+              backdropFilter: "blur(2px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "12px",
+                background: t.cardBg,
+                padding: "20px 32px",
+                borderRadius: "16px",
+                border: `1px solid ${t.border}`,
+                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              }}
+            >
               <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
               <span style={{ color: t.text, fontWeight: 600, fontSize: "14px" }}>Carregando pedido...</span>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
