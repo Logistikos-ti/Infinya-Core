@@ -247,6 +247,22 @@ export function InfinoosConfiguracoesView({
   const [depMethod, setDepMethod] = useState("FEFO");
   const [confirmDel, setConfirmDel] = useState<{ id: string; name: string } | null>(null);
 
+  const [userPageOpen, setUserPageOpen] = useState(false);
+  const [userEditId, setUserEditId] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState({
+    nome: "",
+    idUsuario: "",
+    email: "",
+    senha: "",
+    papel: "Operador",
+    depositante: "Todos os depositantes",
+    permissoes: {
+      recebimento: true,
+      estoque: true,
+      expedicao: true,
+    }
+  });
+
   // Toast
   const [toast, setToast] = useState<string | null>(null);
 
@@ -731,7 +747,11 @@ export function InfinoosConfiguracoesView({
   const handlePanelCta = () => {
     if (tab === "depositantes") {
       openDepPage();
-    } else if (isRows && (tab === "usuarios" || tab === "transportadoras")) {
+    } else if (tab === "usuarios") {
+      setUserEditId(null);
+      setUserForm({ nome: "", idUsuario: "", email: "", senha: "", papel: "Operador", depositante: "Todos os depositantes", permissoes: { recebimento: true, estoque: true, expedicao: true } });
+      setUserPageOpen(true);
+    } else if (isRows && tab === "transportadoras") {
       openDrawer(tab);
     } else if (tab === "produtos") {
       const n = cats.length + 1;
@@ -993,7 +1013,10 @@ export function InfinoosConfiguracoesView({
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
+                transition: "transform 0.2s"
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)" }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)" }}
             >
               + {panelMap[tab].cta}
             </button>
@@ -1629,8 +1652,17 @@ export function InfinoosConfiguracoesView({
 
                       <button 
                         onClick={() => {
-                          setForm({ f1: item.nome || '', f2: item.email || '', opt: roleLabel });
-                          setDrawer("usuarios");
+                          setUserEditId(item.id);
+                          setUserForm({
+                            nome: item.nome || item.email || "",
+                            idUsuario: item.id || "USR-XXXX",
+                            email: item.email || "",
+                            senha: "", // Intentionally blank for editing
+                            papel: item.perfil === "ADMIN" ? "Administrador" : item.perfil === "TI" ? "TI" : item.perfil === "DEPOSITANTE" ? "Depositante" : "Operador",
+                            depositante: "Todos os depositantes", // We can default or try to parse
+                            permissoes: { recebimento: true, estoque: true, expedicao: true } // Defaults
+                          });
+                          setUserPageOpen(true);
                         }}
                         title="Editar"
                         style={{ width: '36px', height: '36px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }} 
@@ -3016,6 +3048,64 @@ export function InfinoosConfiguracoesView({
                         <span style={{ fontSize: "12px", color: t.textSub, lineHeight: 1.4 }}>{m.desc}</span>
                       </div>
                     );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* NEW USUARIO FULL PAGE */}
+      {userPageOpen && mounted && typeof document !== "undefined" && createPortal(
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", flexDirection: "column", background: dark ? "#0F172A" : "#F8FAFC", animation: "paneIn 0.28s ease" }}>
+          <div style={{ flexShrink: 0, height: "68px", display: "flex", alignItems: "center", gap: "14px", padding: "0 28px", borderBottom: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF" }}>
+            <button onClick={() => setUserPageOpen(false)} title="Voltar" style={{ width: "40px", height: "40px", flexShrink: 0, borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: "pointer", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}>‹</button>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: t.textSub }}><span>Configurações</span><span>›</span><span>Usuários</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>{userEditId ? "Editar usuário" : "Novo usuário"}</span></div>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700 }}>{userEditId ? "Editar usuário" : "Novo usuário"}</span>
+            </div>
+            <button onClick={() => setUserPageOpen(false)} style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = '#8B5CF6'} onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}>Cancelar</button>
+            <button onClick={() => { setIsSaving(true); setTimeout(() => { setIsSaving(false); setUserPageOpen(false); setDrawer(null); /* mock */ }, 800); }} disabled={!userForm.nome.trim() || !userForm.email.trim() || isSaving} style={{ height: "44px", padding: "0 22px", border: "none", borderRadius: "11px", background: (!userForm.nome.trim() || !userForm.email.trim()) ? "rgba(139,92,246,0.3)" : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: (!userForm.nome.trim() || !userForm.email.trim()) ? "rgba(255,255,255,0.5)" : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: (!userForm.nome.trim() || !userForm.email.trim()) ? "not-allowed" : "pointer", boxShadow: (!userForm.nome.trim() || !userForm.email.trim()) ? "none" : "0 8px 22px rgba(139,92,246,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isSaving ? <MobileButtonSpinner color="#FFFFFF" /> : "Salvar usuário"}
+            </button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 44px 32px", display: "flex", justifyContent: "center" }}>
+            <div style={{ width: "100%", maxWidth: "860px", display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Dados do usuário</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}><span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Nome completo</span><input value={userForm.nome} onChange={(e) => setUserForm((p) => ({ ...p, nome: e.target.value }))} placeholder="Nome do usuário" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} /></div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}><span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>ID de usuário</span><input value={userForm.idUsuario || (userEditId ? "USR-XXXX" : "Gerado ao salvar")} disabled style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: dark ? "rgba(255,255,255,0.03)" : "#F1F5F9", color: t.textSub, fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box", cursor: "not-allowed" }} /></div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}><span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>E-mail</span><input value={userForm.email} onChange={(e) => setUserForm((p) => ({ ...p, email: e.target.value }))} placeholder="nome@infinoos.com" type="email" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} /></div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}><span style={{ fontSize: "12.5px", fontWeight: 700, color: t.textSub }}>Senha inicial</span><input value={userForm.senha} onChange={(e) => setUserForm((p) => ({ ...p, senha: e.target.value }))} placeholder={userEditId ? "Deixe em branco para manter" : "Senha"} type="password" style={{ height: "46px", padding: "0 15px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", outline: "none", boxSizing: "border-box" }} /></div>
+                </div>
+              </div>
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Papel / permissão</span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  {["Operador", "Conferente", "Supervisor", "Gestor", "Administrador"].map(role => {
+                    const isSel = userForm.papel === role;
+                    return <div key={role} onClick={() => setUserForm(p => ({ ...p, papel: role }))} style={{ height: "38px", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${isSel ? "#10B981" : t.border}`, background: isSel ? (dark ? "rgba(16, 185, 129, 0.15)" : "#D1FAE5") : "transparent", color: isSel ? (dark ? "#34D399" : "#047857") : t.textSub, fontSize: "13px", fontWeight: isSel ? 700 : 500, cursor: "pointer", transition: "all 0.2s" }}>{role}</div>;
+                  })}
+                </div>
+              </div>
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Depositante vinculado</span><span style={{ fontSize: "13px", color: t.textSub }}>Selecione o depositante ou o acesso a todos.</span></div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  {["Todos os depositantes", "Loja Alpha", "BemStar", "CasaMais", "John Skull"].map(dep => {
+                    const isSel = userForm.depositante === dep;
+                    return <div key={dep} onClick={() => setUserForm(p => ({ ...p, depositante: dep }))} style={{ height: "38px", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${isSel ? "#8B5CF6" : t.border}`, background: isSel ? (dark ? "rgba(139, 92, 246, 0.15)" : "#EDE9FE") : "transparent", color: isSel ? (dark ? "#A78BFA" : "#6D28D9") : t.textSub, fontSize: "13px", fontWeight: isSel ? 700 : 500, cursor: "pointer", transition: "all 0.2s" }}>{dep}</div>;
+                  })}
+                </div>
+              </div>
+              <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Permissões do sistema</span><span style={{ fontSize: "13px", color: t.textSub }}>Módulos que este usuário pode acessar.</span></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  {[{ id: "recebimento", title: "Recebimento", desc: "Conferir entradas e NFs" }, { id: "estoque", title: "Estoque", desc: "Consultar e ajustar saldos" }, { id: "expedicao", title: "Expedição", desc: "Separar, conferir e expedir" }].map(mod => {
+                    const active = userForm.permissoes[mod.id as keyof typeof userForm.permissoes];
+                    return <div key={mod.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><div style={{ display: "flex", flexDirection: "column", gap: "2px" }}><span style={{ fontSize: "14px", fontWeight: 700, color: t.text }}>{mod.title}</span><span style={{ fontSize: "13px", color: t.textSub }}>{mod.desc}</span></div><button onClick={() => setUserForm(p => ({ ...p, permissoes: { ...p.permissoes, [mod.id]: !active } }))} style={{ position: "relative", width: "42px", height: "24px", borderRadius: "12px", background: active ? "#10B981" : t.border, border: "none", cursor: "pointer", transition: "background 0.25s ease", outline: "none" }}><span style={{ position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transform: active ? "translateX(18px)" : "translateX(0)", transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)" }} /></button></div>;
                   })}
                 </div>
               </div>
