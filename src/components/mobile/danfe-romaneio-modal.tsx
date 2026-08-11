@@ -217,7 +217,10 @@ export function DanfeRomaneioModal({
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => router.push(romaneioTargetUrl)}
+                  onClick={() => {
+                    onClose();
+                    router.push(romaneioTargetUrl);
+                  }}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-amber-500 font-semibold text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-400"
                 >
                   <Truck className="h-4 w-4" />
