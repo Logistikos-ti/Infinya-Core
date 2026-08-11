@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   MobileBackButton,
   MobileButtonSpinner,
+  MobileFullScreenLoader,
   MobileIcon,
   MobilePrimaryButton,
   hexAlpha,
@@ -217,7 +218,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   };
 
   if (loading) {
-    return <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}><MobileButtonSpinner /></div>;
+    return <MobileFullScreenLoader label="Abrindo inventário geral..." />;
   }
 
   if (summary && detail) {
@@ -239,7 +240,45 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     );
   }
 
-  if (!detail) return null;
+  if (!detail) {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div style={{ padding: "18px", display: "flex", alignItems: "center", gap: 12 }}>
+          <MobileBackButton onClick={() => router.push("/m/estoque/inventarios/geral")} />
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, ...headingFont }}>Inventário geral</div>
+            <div style={{ fontSize: 12, color: mobileColors.muted }}>{depositanteNome}</div>
+          </div>
+        </div>
+        <div style={{ flex: 1, padding: "0 18px 18px", display: "flex", alignItems: "center" }}>
+          <div style={{ ...cardStyle, width: "100%", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ width: 58, height: 58, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", background: hexAlpha(mobileColors.red, 0.14), color: mobileColors.redLight }}>
+              <MobileIcon name="x" size={28} />
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, ...headingFont }}>Não foi possível abrir a contagem</div>
+            <div style={{ fontSize: 13, lineHeight: 1.5, color: mobileColors.muted }}>
+              {error ?? "O inventário geral não retornou dados para este depositante."}
+            </div>
+            <MobilePrimaryButton onClick={() => window.location.reload()}>Tentar novamente</MobilePrimaryButton>
+            <button
+              type="button"
+              onClick={() => router.push("/m/estoque/inventarios/geral")}
+              style={{
+                height: 48,
+                borderRadius: 15,
+                border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`,
+                background: "transparent",
+                color: mobileColors.text,
+                fontWeight: 800,
+              }}
+            >
+              Voltar para depositantes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
