@@ -9,6 +9,7 @@ import {
   deleteDepositanteAction,
   toggleDepositanteStatusAction,
 } from "@/app/(dashboard)/configuracoes/depositantes/actions";
+import { toggleUsuarioStatusAction } from "@/app/(dashboard)/configuracoes/usuarios/actions";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type TabKey =
@@ -1602,17 +1603,27 @@ export function InfinoosConfiguracoesView({
                       </span>
 
                       <button
-                        onClick={() => setUserOn(prev => ({ ...prev, [item.id]: !isOn }))}
-                        title={isOn ? "Desativar" : "Ativar"}
-                        className={`relative flex h-[26px] w-[46px] shrink-0 cursor-pointer rounded-full border-none transition-colors ${
-                          isOn ? "bg-indigo-500" : "bg-slate-200 dark:bg-zinc-700"
-                        }`}
+                        onClick={() => {
+                          const newStatus = !isOn;
+                          setUserOn((prev) => ({ ...prev, [item.id]: newStatus }));
+                          startTransition(async () => {
+                            const fd = new FormData();
+                            fd.append("id", item.id);
+                            fd.append("ativo", newStatus ? "on" : "off");
+                            try {
+                              await toggleUsuarioStatusAction(fd);
+                            } catch (e) {
+                              setUserOn((prev) => ({ ...prev, [item.id]: !newStatus }));
+                              notify("Erro ao alterar status");
+                            }
+                          });
+                        }}
+                        style={{
+                          position: "relative", width: "42px", height: "24px", borderRadius: "999px", border: "none", cursor: "pointer",
+                          background: isOn ? "#10B981" : "#CBD5E1", transition: "background 0.25s ease",
+                        }}
                       >
-                        <span
-                          className={`absolute left-[3px] top-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-300 ease-[cubic-bezier(.4,1.3,.5,1)] ${
-                            isOn ? "translate-x-[20px]" : "translate-x-0"
-                          }`}
-                        ></span>
+                        <span style={{ position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transform: isOn ? "translateX(18px)" : "translateX(0)", transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)" }} />
                       </button>
 
                       <button
