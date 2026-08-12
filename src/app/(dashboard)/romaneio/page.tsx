@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { RomaneioDashboard } from "@/components/romaneio/romaneio-dashboard";
 import { requireModuleAccess } from "@/lib/auth";
 import {
@@ -11,6 +10,7 @@ type RomaneioPageProps = {
     status?: string;
     depositante?: string;
     transportadora?: string;
+    q?: string;
     dataInicial?: string;
     dataFinal?: string;
     feedback?: string;
@@ -22,6 +22,7 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
   const params = searchParams ? await searchParams : undefined;
   const statusFilter = params?.status?.trim() ?? "";
   const carrierFilter = params?.transportadora?.trim() ?? "";
+  const searchTerm = params?.q?.trim() ?? "";
   const dateFrom = params?.dataInicial?.trim() ?? "";
   const dateTo = params?.dataFinal?.trim() ?? "";
   const depositanteFilter =
@@ -49,6 +50,10 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
     }
   }
 
+  const filteredRecords = searchTerm
+    ? records.filter((record) => matchesRomaneioSearch(record, searchTerm))
+    : records;
+
   return (
     <>
       {schemaMissing ? (
@@ -56,7 +61,48 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
           A estrutura persistente do romaneio ainda não existe neste banco. Rode a nova migration do Supabase.
         </div>
       ) : null}
-      <RomaneioDashboard records={records} />
+      <RomaneioDashboard records={filteredRecords} />
     </>
   );
+}
+
+function matchesRomaneioSearch(
+  record: Awaited<ReturnType<typeof listRomaneioRecordsFromDb>>[number],
+  term: string,
+) {
+  const normalizedTerm = normalizeSearchText(term);
+  if (!normalizedTerm) return true;
+
+  const orderFields = record.orders.flatMap((order) => [
+    order.code,
+    order.externalNumber,
+    order.customer,
+    order.destination,
+    order.invoiceNumber,
+    order.depositante,
+    order.statusLabel,
+  ]);
+
+  return [
+    record.code,
+    record.statusLabel,
+    record.carrierName,
+    record.transportadoraCnpj,
+    record.driverName,
+    record.driverDocument,
+    record.vehicleModel,
+    record.vehiclePlate,
+    record.notes,
+    ...record.depositantes,
+    ...record.destinations,
+    ...orderFields,
+  ].some((value) => normalizeSearchText(value).includes(normalizedTerm));
+}
+
+function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
 }
