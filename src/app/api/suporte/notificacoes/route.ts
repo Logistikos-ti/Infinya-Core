@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireApiRoleAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -7,16 +7,23 @@ const SUPPORT_ROLES = ["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"] as const;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await requireApiRoleAccess(SUPPORT_ROLES);
   if (auth.response) return auth.response;
 
   const supabase = createSupabaseAdminClient();
+  const requestedDepositanteId =
+    request.nextUrl.searchParams.get("depositanteId")?.trim() ?? "";
   let ticketsQuery = supabase
     .from("suporte_chamados")
     .select("id, numero, assunto, categoria, status, depositante_id, created_at");
   if (auth.user.papel === "DEPOSITANTE" && auth.user.depositanteId) {
     ticketsQuery = ticketsQuery.eq("depositante_id", auth.user.depositanteId);
+  } else if (
+    requestedDepositanteId &&
+    (auth.user.papel === "ADMIN" || auth.user.papel === "TI")
+  ) {
+    ticketsQuery = ticketsQuery.eq("depositante_id", requestedDepositanteId);
   }
 
   const { data: tickets, error: ticketsError } = await ticketsQuery;
@@ -26,7 +33,7 @@ export async function GET() {
   const ticketIds = (tickets ?? []).map((ticket) => ticket.id);
   if (!ticketIds.length)
     return NextResponse.json(
-      { unreadCount: 0, unreadByTicket: {} },
+      { unreadCount: 0, unreadByTicket: {}, notifications: [] },
       { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } },
     );
 

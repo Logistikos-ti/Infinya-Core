@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, CircleHelp, Send, X } from "lucide-react";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { SupportTicket } from "@/lib/support";
@@ -40,6 +41,8 @@ export function SupportClient({
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const searchParams = useSearchParams();
+  const requestedTicketId = searchParams.get("chamado");
   const { counts: unreadCounts, markRead } = useSupportUnreadCounts();
   const selected = tickets.find((ticket) => ticket.id === selectedId) ?? null;
 
@@ -70,6 +73,17 @@ export function SupportClient({
       active = false;
     };
   }, [initialTickets.length]);
+
+  useEffect(() => {
+    if (!requestedTicketId || !tickets.length) return;
+    const ticket = tickets.find(
+      (item) =>
+        item.databaseId === requestedTicketId || item.id === requestedTicketId,
+    );
+    if (!ticket || selectedId === ticket.id) return;
+    setSelectedId(ticket.id);
+    markRead(ticket.databaseId);
+  }, [markRead, requestedTicketId, selectedId, tickets]);
 
   async function submitTicket() {
     if (!subject.trim() || !message.trim()) {

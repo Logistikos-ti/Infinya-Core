@@ -7,6 +7,7 @@ import {
   CircleHelp,
   FileText,
   LayoutDashboard,
+  MessageCircle,
   Package,
   PackageCheck,
   Receipt,
@@ -23,6 +24,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import type { AppUserContext } from "@/lib/auth";
 import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
+
+type PortalNotification = {
+  ticketId: string;
+  ticketNumber: string;
+  title: string;
+  category: string;
+  status: string;
+  preview: string;
+  author: string;
+  createdAt?: string;
+  unreadCount: number;
+};
 
 const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   {
@@ -104,9 +117,16 @@ export function PortalChrome({
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [search, setSearch] = useState(searchValue);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notifications, setNotifications] = useState<PortalNotification[]>([]);
   const portalNavigation = getPortalNavigation(user);
   const isMasterPreview = user.papel === "ADMIN" || user.papel === "TI";
   const selectedDepositanteId = searchParams.get("depositanteId") ?? "";
+  const unreadNotifications = notifications.reduce(
+    (sum, notification) => sum + Number(notification.unreadCount || 0),
+    0,
+  );
 
   useEffect(() => {
     if (!isMasterPreview) return;
@@ -168,6 +188,46 @@ export function PortalChrome({
   useEffect(() => {
     setSearch(searchValue);
   }, [searchValue]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadNotifications = async () => {
+      setNotificationsLoading(true);
+      try {
+        const params = new URLSearchParams({ refresh: String(Date.now()) });
+        if (isMasterPreview && selectedDepositanteId) {
+          params.set("depositanteId", selectedDepositanteId);
+        }
+        const response = await fetch(
+          `/api/suporte/notificacoes?${params.toString()}`,
+          {
+            cache: "no-store",
+            headers: { "Cache-Control": "no-cache" },
+          },
+        );
+        const payload = await response.json();
+        if (active && response.ok) {
+          setNotifications(payload.notifications ?? []);
+        }
+      } catch {
+        // O sino é complementar e não deve bloquear o portal.
+      } finally {
+        if (active) setNotificationsLoading(false);
+      }
+    };
+
+    void loadNotifications();
+    const interval = window.setInterval(loadNotifications, 15000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [isMasterPreview, selectedDepositanteId]);
+
+  useEffect(() => {
+    setNotificationsOpen(false);
+  }, [currentView, selectedDepositanteId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -232,6 +292,19 @@ export function PortalChrome({
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  async function openNotification(notification: PortalNotification) {
+    setNotificationsOpen(false);
+    setNotifications((current) =>
+      current.filter((item) => item.ticketId !== notification.ticketId),
+    );
+    void fetch(`/api/suporte/chamados/${notification.ticketId}/leitura`, {
+      method: "POST",
+    });
+    router.push(
+      withPortalContext(`/portal?view=suporte&chamado=${notification.ticketId}`),
+    );
+  }
+
   return (
     <div
       style={style}
@@ -291,11 +364,26 @@ export function PortalChrome({
           ) : null}
           <button
             type="button"
+            onClick={() => setNotificationsOpen((current) => !current)}
             aria-label="Notificações"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+            className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-600 hover:shadow-md hover:shadow-cyan-500/10 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-cyan-300/50 dark:hover:text-cyan-200"
           >
             <Bell className="h-4 w-4" />
+            {unreadNotifications > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-extrabold leading-none text-white shadow-md shadow-rose-500/30">
+                {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              </span>
+            ) : null}
           </button>
+          {notificationsOpen ? (
+            <PortalNotificationPanel
+              notifications={notifications}
+              isLoading={notificationsLoading}
+              unreadCount={unreadNotifications}
+              onOpenNotification={openNotification}
+              onOpenSupport={() => navigate("/portal?view=suporte")}
+            />
+          ) : null}
           <ThemeToggle />
         </header>
 
@@ -331,4 +419,108 @@ export function PortalChrome({
       />
     </div>
   );
+}
+function PortalNotificationPanel({
+  notifications,
+  isLoading,
+  unreadCount,
+  onOpenNotification,
+  onOpenSupport,
+}: {
+  notifications: PortalNotification[];
+  isLoading: boolean;
+  unreadCount: number;
+  onOpenNotification: (notification: PortalNotification) => void;
+  onOpenSupport: () => void;
+}) {
+  return (
+    <div className="fixed right-4 top-[76px] z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] dark:border-white/10 dark:bg-[#0e1728] dark:shadow-black/40 sm:right-7">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-white/10">
+        <div>
+          <p className="font-display text-sm font-bold text-slate-950 dark:text-white">
+            Notificações
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Mensagens novas dos chamados
+          </p>
+        </div>
+        <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-200">
+          {unreadCount} nova(s)
+        </span>
+      </div>
+      <div className="max-h-[420px] overflow-y-auto p-2">
+        {isLoading && notifications.length === 0 ? (
+          <div className="flex min-h-[150px] items-center justify-center">
+            <span className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-300 border-t-violet-500" />
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="px-5 py-8 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500">
+              <Bell className="h-5 w-5" />
+            </div>
+            <p className="mt-3 text-sm font-bold text-slate-900 dark:text-white">
+              Tudo em dia
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              Novas respostas da equipe Infinoos aparecerão aqui.
+            </p>
+          </div>
+        ) : (
+          notifications.map((notification) => (
+            <button
+              key={notification.ticketId}
+              type="button"
+              onClick={() => onOpenNotification(notification)}
+              className="group flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-cyan-50 dark:hover:bg-white/5"
+            >
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:bg-violet-400/10 dark:text-violet-200">
+                <MessageCircle className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-extrabold text-white">
+                  {notification.unreadCount > 9
+                    ? "9+"
+                    : notification.unreadCount}
+                </span>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-xs font-extrabold text-cyan-700 dark:text-cyan-200">
+                    {notification.ticketNumber}
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    {formatNotificationAge(notification.createdAt)}
+                  </span>
+                </span>
+                <span className="mt-1 block truncate text-sm font-bold text-slate-950 dark:text-white">
+                  {notification.title}
+                </span>
+                <span className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {notification.author}: {notification.preview}
+                </span>
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+      {notifications.length > 0 ? (
+        <button
+          type="button"
+          onClick={onOpenSupport}
+          className="flex w-full items-center justify-center border-t border-slate-100 px-4 py-3 text-xs font-extrabold text-violet-600 transition hover:bg-violet-50 dark:border-white/10 dark:text-violet-200 dark:hover:bg-white/5"
+        >
+          Ver todos os chamados
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function formatNotificationAge(value?: string) {
+  if (!value) return "agora";
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60_000));
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `há ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${hours} h`;
+  return `há ${Math.floor(hours / 24)} d`;
 }
