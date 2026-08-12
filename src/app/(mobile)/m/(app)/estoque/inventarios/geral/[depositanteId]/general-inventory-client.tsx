@@ -211,21 +211,6 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     }
   };
 
-  const assumeNext = async () => {
-    if (!detail) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const body = await load(`/api/estoque/inventarios-gerais/${detail.id}`, { method: "POST", body: JSON.stringify({ action: "assumir" }) });
-      const next = body.result?.itens.find((item) => item.id === (body as { claimedItemId?: string }).claimedItemId);
-      if (next) await selectItemFromList(next);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não ha produto disponível para assumir.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const confirm = async () => {
     if (!detail || detail.pendentes > 0) return;
     setSaving(true);
@@ -475,7 +460,6 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Pesquisar produto..." style={{ height: 44, borderRadius: 14, border: `1px solid ${hexAlpha("#94A3B8", .16)}`, background: hexAlpha("#94A3B8", .06), color: mobileColors.text, padding: "0 14px", fontSize: 13 }} />
         {error ? <div style={{ borderRadius: 14, padding: 12, background: hexAlpha(mobileColors.red, .12), border: `1px solid ${hexAlpha(mobileColors.red, .3)}`, color: mobileColors.redLight, fontSize: 12.5 }}>{error}</div> : null}
         {activeItem ? <div style={{ ...cardStyle, padding: 16, border: `1px solid ${mobileColors.cyan}` }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 58, height: 58, borderRadius: 15, overflow: "hidden", background: hexAlpha(mobileColors.blue, .14), display: "flex", alignItems: "center", justifyContent: "center" }}>{activeItem.imagemUrl ? <img src={activeItem.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={25} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 800, ...headingFont }}>{activeItem.nome}</div><div style={{ color: mobileColors.muted, fontSize: 11.5 }}>{activeItem.sku} - sistema: {activeItem.quantidadeSistema}</div></div></div><div style={{ display: "flex", gap: 8, marginTop: 14 }}><input ref={quantityRef} inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Quantidade contada" style={{ flex: 1, height: 48, borderRadius: 14, border: `1px solid ${mobileColors.cyan}`, background: hexAlpha("#94A3B8", .07), color: mobileColors.text, padding: "0 14px", fontSize: 16, fontWeight: 800 }} /><button type="button" disabled={saving} onClick={() => void saveCount()} style={{ minWidth: 112, border: "none", borderRadius: 14, background: mobileGradient, color: "#fff", fontWeight: 800 }}>{saving ? <MobileButtonSpinner /> : "Salvar"}</button></div></div> : null}
-        <button type="button" disabled={saving || detail.pendentes === 0} onClick={() => void assumeNext()} style={{ height: 46, borderRadius: 14, border: `1px solid ${hexAlpha(mobileColors.violetLight, .35)}`, background: hexAlpha(mobileColors.violetLight, .09), color: mobileColors.violetLight, fontWeight: 800 }}>Assumir próximo produto</button>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filteredItems.map((item) => <button type="button" key={item.id} onClick={() => void selectItemFromList(item)} style={{ ...cardStyle, width: "100%", padding: 13, display: "flex", alignItems: "center", gap: 10, textAlign: "left", color: mobileColors.text, borderColor: item.id === activeItemId ? mobileColors.cyan : hexAlpha("#94A3B8", .16) }}><div style={{ width: 42, height: 42, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: hexAlpha(mobileColors.blue, .13), display: "flex", alignItems: "center", justifyContent: "center" }}>{item.imagemUrl ? <img src={item.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={19} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nome}</div><div style={{ color: mobileColors.muted, fontSize: 11 }}>{item.sku} - sistema {item.quantidadeSistema}</div>{item.atribuidoNome ? <div style={{ color: item.status === "PENDENTE" ? mobileColors.amber : mobileColors.green, fontSize: 10.5, marginTop: 2 }}>{item.status === "PENDENTE" ? `Com ${item.atribuidoNome}` : `Contado por ${item.contadoPor ?? item.atribuidoNome}`}</div> : null}</div><div style={{ flexShrink: 0, color: item.status === "PENDENTE" ? mobileColors.amber : item.status === "DIVERGENTE" ? mobileColors.redLight : mobileColors.green, fontSize: 11, fontWeight: 800 }}>{item.status === "PENDENTE" ? "Pendente" : item.divergencia === 0 ? "OK" : `${item.divergencia > 0 ? "+" : ""}${item.divergencia}`}</div></button>)}
         </div>
