@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   saveDepositanteAction,
@@ -211,12 +212,13 @@ export function InfinoosConfiguracoesView({
   initialUsuarios,
   initialCounts,
 }: InfinoosConfiguracoesViewProps) {
+  const searchParams = useSearchParams();
   const { theme: nextTheme, setTheme: setNextTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
 
   const [tab, setTab] = useState<TabKey>(initialTab);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 
   // Toggles state
   const [depOn, setDepOn] = useState<Record<string, boolean>>(() => {
@@ -358,6 +360,10 @@ export function InfinoosConfiguracoesView({
       setThemeMode(resolvedTheme);
     }
   }, [resolvedTheme]);
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
 
   const toggleTheme = () => {
     const next = themeMode === "dark" ? "light" : "dark";
@@ -2020,23 +2026,25 @@ export function InfinoosConfiguracoesView({
             <div style={{ marginBottom: "20px" }}>
               <button 
                 onClick={() => setTab("resumo")}
+                title="Voltar"
                 style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  flexShrink: 0, 
+                  borderRadius: '11px', 
+                  border: `1px solid ${t.border}`, 
+                  background: t.inputBg, 
+                  color: t.text, 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '8px', 
-                  background: 'none', 
-                  border: 'none', 
-                  color: t.textSub, 
+                  justifyContent: 'center', 
                   cursor: 'pointer', 
-                  fontSize: '14px', 
-                  fontWeight: 600,
-                  padding: 0
+                  transition: 'all 0.2s' 
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = t.text; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = t.textSub; }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#8B5CF6'; e.currentTarget.style.color = '#8B5CF6'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text; }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                Voltar para Configurações
               </button>
             </div>
             
@@ -2045,6 +2053,7 @@ export function InfinoosConfiguracoesView({
               totalProducts={292} 
               globalBaixos={0} 
               globalRupturas={36} 
+              searchTerm={searchQuery}
             />
           </div>
         )}
