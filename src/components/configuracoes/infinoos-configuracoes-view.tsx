@@ -3117,7 +3117,7 @@ export function InfinoosConfiguracoesView({
                   })}
                 </div>
               </div>
-              {userForm.papel !== "Responsável do depositante" && (
+              {userForm.depositante === "Todos os depositantes" && (
                 <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: dark ? "#1E293B" : "#FFFFFF", padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}><span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>Permissões do sistema</span><span style={{ fontSize: "13px", color: t.textSub }}>Módulos que este usuário pode acessar.</span></div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
