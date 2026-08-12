@@ -88,6 +88,35 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
+/**
+ * Requests a camera stream with the given video constraints, racing it
+ * against a timeout. If the underlying getUserMedia call ends up resolving
+ * anyway after the timeout already gave up, the stray stream is stopped
+ * immediately instead of leaving the camera light on for nothing.
+ */
+async function requestCameraStream(
+  videoConstraints: MediaTrackConstraints | boolean,
+  timeoutMs: number,
+): Promise<MediaStream> {
+  let settled = false;
+  const streamPromise = navigator.mediaDevices.getUserMedia({
+    video: videoConstraints,
+    audio: false,
+  });
+
+  streamPromise.then((lateStream) => {
+    if (settled) {
+      lateStream.getTracks().forEach((track) => track.stop());
+    }
+  }, () => undefined);
+
+  try {
+    return await withTimeout(streamPromise, timeoutMs);
+  } finally {
+    settled = true;
+  }
+}
+
 async function waitForVideoElement(
   getVideo: () => HTMLVideoElement | null,
   timeoutMs = 1200,
@@ -368,29 +397,21 @@ export function useCameraBarcodeScanner({
       // 1280x720 is broadly compatible; asking for 1920x1080 as "ideal" made
       // some older cameras/devices stall during constraint negotiation
       // instead of just falling back to a lower resolution.
-      let getUserMediaSettled = false;
-      const streamPromise = navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
-      // If the timeout below wins the race but the browser grants the
-      // stream moments later anyway, release it immediately instead of
-      // leaving the camera light on with a stream nothing references.
-      streamPromise.then((lateStream) => {
-        if (getUserMediaSettled) {
-          lateStream.getTracks().forEach((track) => track.stop());
-        }
-      }, () => undefined);
-
+      //
+      // Some iOS Safari versions -- particularly standalone (home-screen
+      // installed) web apps -- never resolve getUserMedia at all when it's
+      // called with a constraints object (even a modest "ideal" one), but
+      // do resolve it for the bare `{ video: true }` form. If the
+      // constrained request doesn't settle quickly, fall back to the
+      // simplest possible request instead of only ever failing the same way.
       let stream: MediaStream;
       try {
-        stream = await withTimeout(streamPromise, 10000);
-      } finally {
-        getUserMediaSettled = true;
+        stream = await requestCameraStream(
+          { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          6000,
+        );
+      } catch {
+        stream = await requestCameraStream(true, 8000);
       }
 
       streamRef.current = stream;
