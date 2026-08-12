@@ -54,7 +54,39 @@ const CAMERA_ERROR_MESSAGES: Record<string, string> = {
   NotReadableError: "A câmera está ocupada por outro aplicativo ou navegador.",
   OverconstrainedError: "Não foi possível usar esta câmera com as configurações solicitadas.",
   AbortError: "A inicialização da câmera foi interrompida. Tente novamente.",
+  // Some older iOS Safari versions grant the permission prompt but then never
+  // resolve getUserMedia/video.play() -- without a timeout that hangs
+  // forever on "Preparando câmera...". Surfacing it as a real, actionable
+  // error (instead of a silent freeze) is the whole point of this entry.
+  TimeoutError: "A câmera demorou demais para iniciar neste aparelho. Feche esta tela, aguarde alguns segundos e tente novamente.",
 };
+
+/**
+ * Races a promise against a timeout so a stalled getUserMedia/video.play()
+ * call (seen on some older iOS Safari versions -- the permission prompt
+ * appears, but the stream never actually starts) fails with a clear,
+ * actionable error instead of hanging on "Preparando câmera..." forever.
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      const error = new Error("TimeoutError");
+      error.name = "TimeoutError";
+      reject(error);
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (reason) => {
+        window.clearTimeout(timer);
+        reject(reason);
+      },
+    );
+  });
+}
 
 async function waitForVideoElement(
   getVideo: () => HTMLVideoElement | null,
@@ -286,6 +318,10 @@ export function useCameraBarcodeScanner({
 
       videoElement.setAttribute("playsinline", "true");
       videoElement.setAttribute("webkit-playsinline", "true");
+      // Setting the attribute alone is not always picked up in time by
+      // older iOS Safari builds before the stream is attached -- the JS
+      // property is the more reliable of the two.
+      videoElement.playsInline = true;
       videoElement.muted = true;
 
       if (nativeDetectorSupported) {
@@ -299,18 +335,37 @@ export function useCameraBarcodeScanner({
         }
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 1280x720 is broadly compatible; asking for 1920x1080 as "ideal" made
+      // some older cameras/devices stall during constraint negotiation
+      // instead of just falling back to a lower resolution.
+      let getUserMediaSettled = false;
+      const streamPromise = navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
         audio: false,
       });
+      // If the timeout below wins the race but the browser grants the
+      // stream moments later anyway, release it immediately instead of
+      // leaving the camera light on with a stream nothing references.
+      streamPromise.then((lateStream) => {
+        if (getUserMediaSettled) {
+          lateStream.getTracks().forEach((track) => track.stop());
+        }
+      }, () => undefined);
+
+      let stream: MediaStream;
+      try {
+        stream = await withTimeout(streamPromise, 10000);
+      } finally {
+        getUserMediaSettled = true;
+      }
 
       streamRef.current = stream;
       videoElement.srcObject = stream;
-      await videoElement.play();
+      await withTimeout(videoElement.play(), 6000);
 
       if (detectorRef.current) {
         runNativeDetectorLoop();
