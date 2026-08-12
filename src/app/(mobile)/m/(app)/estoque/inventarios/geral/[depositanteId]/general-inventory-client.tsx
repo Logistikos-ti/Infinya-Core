@@ -183,12 +183,24 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     }
   };
 
-  /** Used by the list tap and "assumir próximo" -- unlike the camera flow,
-   * there's no address step here, so the quantity field can be focused
-   * immediately. */
-  const selectItemFromList = async (item: Item) => {
-    const chosen = await chooseItem(item);
-    if (chosen) window.setTimeout(() => quantityRef.current?.focus(), 40);
+  /** For products that genuinely aren't on the shelf -- nothing to bipe,
+   * so there's no way through the scan flow. Skips straight to recording
+   * quantidade 0, without needing to "assumir" the item first (the PATCH
+   * action already claims it as part of recording the count). */
+  const markAsZero = async (item: Item) => {
+    if (!detail) return;
+    if (!window.confirm(`Confirmar que "${item.nome}" não foi encontrado no estoque físico e marcar como 0 unidades?`)) {
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      await load(`/api/estoque/inventarios-gerais/${detail.id}/itens/${item.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: 0 }) });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível marcar como zerado.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveCount = async () => {
@@ -470,7 +482,28 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
         {error ? <div style={{ borderRadius: 14, padding: 12, background: hexAlpha(mobileColors.red, .12), border: `1px solid ${hexAlpha(mobileColors.red, .3)}`, color: mobileColors.redLight, fontSize: 12.5 }}>{error}</div> : null}
         {activeItem ? <div style={{ ...cardStyle, padding: 16, border: `1px solid ${mobileColors.cyan}` }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 58, height: 58, borderRadius: 15, overflow: "hidden", background: hexAlpha(mobileColors.blue, .14), display: "flex", alignItems: "center", justifyContent: "center" }}>{activeItem.imagemUrl ? <img src={activeItem.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={25} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 800, ...headingFont }}>{activeItem.nome}</div><div style={{ color: mobileColors.muted, fontSize: 11.5 }}>{activeItem.sku} - sistema: {activeItem.quantidadeSistema}</div></div></div><div style={{ display: "flex", gap: 8, marginTop: 14 }}><input ref={quantityRef} inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Quantidade contada" style={{ flex: 1, height: 48, borderRadius: 14, border: `1px solid ${mobileColors.cyan}`, background: hexAlpha("#94A3B8", .07), color: mobileColors.text, padding: "0 14px", fontSize: 16, fontWeight: 800 }} /><button type="button" disabled={saving} onClick={() => void saveCount()} style={{ minWidth: 112, border: "none", borderRadius: 14, background: mobileGradient, color: "#fff", fontWeight: 800 }}>{saving ? <MobileButtonSpinner /> : "Salvar"}</button></div></div> : null}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {filteredItems.map((item) => <button type="button" key={item.id} onClick={() => void selectItemFromList(item)} style={{ ...cardStyle, width: "100%", padding: 13, display: "flex", alignItems: "center", gap: 10, textAlign: "left", color: mobileColors.text, borderColor: item.id === activeItemId ? mobileColors.cyan : hexAlpha("#94A3B8", .16) }}><div style={{ width: 42, height: 42, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: hexAlpha(mobileColors.blue, .13), display: "flex", alignItems: "center", justifyContent: "center" }}>{item.imagemUrl ? <img src={item.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={19} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nome}</div><div style={{ color: mobileColors.muted, fontSize: 11 }}>{item.sku} - sistema {item.quantidadeSistema}</div>{item.atribuidoNome ? <div style={{ color: item.status === "PENDENTE" ? mobileColors.amber : mobileColors.green, fontSize: 10.5, marginTop: 2 }}>{item.status === "PENDENTE" ? `Com ${item.atribuidoNome}` : `Contado por ${item.contadoPor ?? item.atribuidoNome}`}</div> : null}</div><div style={{ flexShrink: 0, color: item.status === "PENDENTE" ? mobileColors.amber : item.status === "DIVERGENTE" ? mobileColors.redLight : mobileColors.green, fontSize: 11, fontWeight: 800 }}>{item.status === "PENDENTE" ? "Pendente" : item.divergencia === 0 ? "OK" : `${item.divergencia > 0 ? "+" : ""}${item.divergencia}`}</div></button>)}
+          {filteredItems.map((item) => (
+            <div key={item.id} style={{ ...cardStyle, width: "100%", padding: 13, display: "flex", alignItems: "center", gap: 10, color: mobileColors.text, borderColor: item.id === activeItemId ? mobileColors.cyan : hexAlpha("#94A3B8", .16) }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, overflow: "hidden", flexShrink: 0, background: hexAlpha(mobileColors.blue, .13), display: "flex", alignItems: "center", justifyContent: "center" }}>{item.imagemUrl ? <img src={item.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={19} />}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.nome}</div>
+                <div style={{ color: mobileColors.muted, fontSize: 11 }}>{item.sku} - sistema {item.quantidadeSistema}</div>
+                {item.atribuidoNome ? <div style={{ color: item.status === "PENDENTE" ? mobileColors.amber : mobileColors.green, fontSize: 10.5, marginTop: 2 }}>{item.status === "PENDENTE" ? `Com ${item.atribuidoNome}` : `Contado por ${item.contadoPor ?? item.atribuidoNome}`}</div> : null}
+              </div>
+              {item.status === "PENDENTE" ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void markAsZero(item)}
+                  style={{ flexShrink: 0, padding: "6px 10px", borderRadius: 999, border: `1px solid ${hexAlpha(mobileColors.redLight, .35)}`, background: hexAlpha(mobileColors.red, .1), color: mobileColors.redLight, fontSize: 10.5, fontWeight: 800 }}
+                >
+                  Marcar zerado
+                </button>
+              ) : (
+                <div style={{ flexShrink: 0, color: item.status === "DIVERGENTE" ? mobileColors.redLight : mobileColors.green, fontSize: 11, fontWeight: 800 }}>{item.divergencia === 0 ? "OK" : `${item.divergencia > 0 ? "+" : ""}${item.divergencia}`}</div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
       <div style={{ flexShrink: 0, padding: "10px 18px 18px", borderTop: `1px solid ${hexAlpha("#94A3B8", .12)}` }}>
