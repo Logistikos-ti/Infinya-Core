@@ -63,7 +63,7 @@ function parseExpedicaoSmartSearch(value: string) {
 }
 
 function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSearchConfig {
-  if (isCatalogOnly || path.startsWith("/configuracoes/produtos")) {
+  if (path === "/configuracoes/produtos" || (isCatalogOnly && path === "/configuracoes/produtos")) {
     return {
       // A página de produtos filtra pelo próprio parâmetro "q" — mirar
       // "/configuracoes" (com um "tab" que a página raiz nunca leu) jogava o
@@ -88,7 +88,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
     };
   }
 
-  if (path.startsWith("/expedicao")) {
+  if (path === "/expedicao") {
     return {
       targetPath: "/expedicao",
       param: "pedido",
