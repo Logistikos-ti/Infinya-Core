@@ -54,18 +54,23 @@ type ConfiguracoesPageProps = {
 
 export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesPageProps) {
   const currentUser = await requireModuleAccess("configuracoes");
+  const params = searchParams ? await searchParams : undefined;
+
   if (isProductCatalogOnlyUser(currentUser)) {
-    redirect("/configuracoes/produtos");
+    if (params?.tab !== "produtos") {
+      redirect("/configuracoes?tab=produtos");
+    }
   }
 
   const allowedSections = getEffectiveConfigSections(currentUser);
   const isFullConfigUser = isAdminUser(currentUser) || allowedSections.length === configModules.length;
 
   if (!isFullConfigUser && allowedSections.length === 1) {
-    redirect(`/configuracoes/${allowedSections[0]}`);
+    if (params?.tab !== allowedSections[0]) {
+      redirect(`/configuracoes?tab=${allowedSections[0]}`);
+    }
   }
 
-  const params = searchParams ? await searchParams : undefined;
   const isVercelPreview =
     process.env.VERCEL_ENV === "preview" ||
     process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
