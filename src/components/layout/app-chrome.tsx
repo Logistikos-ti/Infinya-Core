@@ -22,6 +22,11 @@ type GlobalSearchConfig = {
   param: string;
   placeholder: string;
   clearParams?: string[];
+  // Quando false, esta página não tem um destino de busca próprio: a busca
+  // global fica desativada em vez de cair no fallback (que antes levava
+  // silenciosamente para /expedicao, mesmo em telas sem nenhuma relação
+  // com expedição, como Dashboard, Relatórios, YMS e Suporte).
+  available: boolean;
 };
 
 const EXPEDICAO_SMART_SEARCH_PARAMS = [
@@ -64,6 +69,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar produtos...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -73,6 +79,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar endereço, rua ou área...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -82,6 +89,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "pedido",
       placeholder: "Buscar pedido, cliente, NF ou canal...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -91,6 +99,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "produto",
       placeholder: "Buscar produto, SKU ou EAN...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -100,6 +109,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar transportadora ou romaneio...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -109,6 +119,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar NF, chave, emitente ou destinatário...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -118,14 +129,18 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar recebimento ou NF...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
+  // Páginas sem um destino de busca próprio (Dashboard, Relatórios, YMS,
+  // Suporte, raiz de Configurações etc.): a busca fica desativada em vez de
+  // cair silenciosamente em /expedicao.
   return {
-    targetPath: "/expedicao",
-    param: "pedido",
-    placeholder: "Buscar pedidos, produtos...",
-    clearParams: ["page"],
+    targetPath: path,
+    param: "q",
+    placeholder: "Busca não disponível nesta página",
+    available: false,
   };
 }
 
@@ -179,6 +194,10 @@ export function AppChrome({ children, user }: AppChromeProps) {
 
   const applyGlobalSearch = useCallback(
     (value: string) => {
+      if (!globalSearchConfig.available) {
+        return;
+      }
+
       const normalizedValue = value.trim();
       const navigatingWithinSameRoute = currentPath === globalSearchConfig.targetPath;
       const params = new URLSearchParams(navigatingWithinSameRoute ? searchParamsString : "");
@@ -227,7 +246,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
   );
 
   useEffect(() => {
-    if (isPickingWave || currentPath.startsWith("/expedicao/conferencia")) {
+    if (isPickingWave || currentPath.startsWith("/expedicao/conferencia") || !globalSearchConfig.available) {
       return;
     }
 
@@ -236,7 +255,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
     }, 260);
 
     return () => window.clearTimeout(timer);
-  }, [applyGlobalSearch, currentPath, globalSearch, isPickingWave]);
+  }, [applyGlobalSearch, currentPath, globalSearch, globalSearchConfig.available, isPickingWave]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -313,11 +332,11 @@ useEffect(() => {
                   </span>
                 </div>
               </div>
-            ) : (
+            ) : globalSearchConfig.available ? (
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={globalSearch}
                   onChange={(event) => setGlobalSearch(event.target.value)}
                   onKeyDown={(event) => {
@@ -330,6 +349,10 @@ useEffect(() => {
                   className="w-full rounded-full border border-white/10 bg-[#071120]/70 py-2 pl-10 pr-4 text-sm text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 lg:border-slate-200/80 lg:bg-white/70 lg:text-slate-900 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white"
                 />
               </div>
+            ) : (
+              // Sem destino de busca própria nesta página: não renderiza o campo
+              // (evita um input "fantasma" que parece funcional mas não faz nada).
+              <div />
             )}
           </div>
           
