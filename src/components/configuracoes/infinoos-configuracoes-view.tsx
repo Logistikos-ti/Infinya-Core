@@ -11,6 +11,74 @@ import {
 } from "@/app/(dashboard)/configuracoes/depositantes/actions";
 import { toggleUsuarioStatusAction } from "@/app/(dashboard)/configuracoes/usuarios/actions";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { ProdutosDashboard } from "@/components/configuracoes/produtos-dashboard";
+
+const mockProdutos = [
+  {
+    id: "p1",
+    codigo_interno: "SKU-ELE-001",
+    codigo_externo: "7891234567890",
+    sku: "ECHO-DOT-4",
+    nome: "Amazon Echo Dot 4ª Geração Smart Speaker com Alexa",
+    categoria: "Eletrônicos",
+    metodo_retirada: "FIFO",
+    unidade_estocagem: "Unidade",
+    exige_lote: false,
+    exige_validade: false,
+    ativo: true,
+    created_at: "2026-05-10T10:00:00Z",
+    depositante_id: "d1",
+    depositante_nome: "TechCorp",
+    estoque: 145,
+    estoque_minimo: 50,
+    estoque_maximo: 500,
+    preco: 349.90,
+    curva_abc: "A",
+    imagem_principal_url: "https://testing.infinoos.com.br/placeholder-echo.jpg"
+  },
+  {
+    id: "p2",
+    codigo_interno: "SKU-PET-002",
+    codigo_externo: "7890987654321",
+    sku: "RACAO-PREMIER-15KG",
+    nome: "Ração Premier Formula Cães Adultos Raças Grandes Frango 15kg",
+    categoria: "Pet",
+    metodo_retirada: "FEFO",
+    unidade_estocagem: "Unidade",
+    exige_lote: true,
+    exige_validade: true,
+    ativo: true,
+    created_at: "2026-06-15T14:30:00Z",
+    depositante_id: "d2",
+    depositante_nome: "Vegpet Artigos para Pet",
+    estoque: 12,
+    estoque_minimo: 20,
+    estoque_maximo: 100,
+    preco: 229.90,
+    curva_abc: "A"
+  },
+  {
+    id: "p3",
+    codigo_interno: "SKU-BEU-003",
+    codigo_externo: "7894561237890",
+    sku: "PERFUME-212-VIP",
+    nome: "Perfume 212 VIP Rosé Carolina Herrera Eau de Parfum 80ml",
+    categoria: "Beleza & Saúde",
+    metodo_retirada: "FIFO",
+    unidade_estocagem: "Unidade",
+    exige_lote: true,
+    exige_validade: false,
+    ativo: true,
+    created_at: "2026-07-20T09:15:00Z",
+    depositante_id: "d3",
+    depositante_nome: "GoodEssence Cosméticos",
+    estoque: 0,
+    estoque_minimo: 10,
+    estoque_maximo: 50,
+    preco: 599.00,
+    curva_abc: "B"
+  }
+];
 
 type TabKey =
   | "resumo"
@@ -954,7 +1022,7 @@ export function InfinoosConfiguracoesView({
       {/* Main Content Area */}
       <main className="space-y-6">
         {/* Panel Header */}
-        {tab !== "depositantes" && (
+        {!["depositantes", "produtos"].includes(tab) && (
         <div
           style={{
             display: "flex",
@@ -1947,265 +2015,13 @@ export function InfinoosConfiguracoesView({
 
         {/* ============ TAB: PRODUTOS ============ */}
         {tab === "produtos" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "18px", maxWidth: "940px" }}>
-            {/* Categorias */}
-            <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.cardBg, padding: "22px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "16px" }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-                  Categorias de produto
-                </span>
-                <span style={{ fontSize: "13px", color: t.textSub }}>
-                  Categorias usadas na classificação do catálogo.
-                </span>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "9px" }}>
-                {cats.map((c, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "9px",
-                      height: "36px",
-                      padding: "0 8px 0 14px",
-                      borderRadius: "10px",
-                      border: `1px solid ${t.border}`,
-                      background: t.inputBg,
-                      fontSize: "13px",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {c}
-                    <button
-                      onClick={() => setCats((prev) => prev.filter((_, j) => j !== i))}
-                      style={{
-                        width: "22px",
-                        height: "22px",
-                        border: "none",
-                        borderRadius: "7px",
-                        background: "transparent",
-                        color: t.textSub,
-                        cursor: "pointer",
-                        fontSize: "13px",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-                <span
-                  onClick={() => {
-                    const n = cats.length + 1;
-                    setCats((prev) => [...prev, "Nova categoria " + n]);
-                    notify("Categoria adicionada");
-                  }}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: "36px",
-                    padding: "0 14px",
-                    borderRadius: "10px",
-                    border: `1.5px dashed ${t.border}`,
-                    color: "#8B5CF6",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  + Nova categoria
-                </span>
-              </div>
-            </div>
-
-            {/* Defaults Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
-              <div
-                style={{
-                  borderRadius: "16px",
-                  border: `1px solid ${t.border}`,
-                  background: t.cardBg,
-                  padding: "22px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                }}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-                    Método de saída padrão
-                  </span>
-                  <span style={{ fontSize: "13px", color: t.textSub }}>
-                    Aplicado a novos produtos por padrão.
-                  </span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-                  {[
-                    { key: "fefo", name: "FEFO", desc: "Primeiro que vence, primeiro que sai" },
-                    { key: "fifo", name: "FIFO", desc: "Primeiro que entra, primeiro que sai" },
-                    { key: "lifo", name: "LIFO", desc: "Último que entra, primeiro que sai" },
-                  ].map((m) => {
-                    const active = method === m.key;
-                    return (
-                      <div
-                        key={m.key}
-                        onClick={() => setMethod(m.key as any)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          padding: "13px 15px",
-                          borderRadius: "12px",
-                          border: `1.5px solid ${active ? "#8B5CF6" : t.border}`,
-                          background: active ? hex("#8B5CF6", 0.08) : t.inputBg,
-                          cursor: "pointer",
-                          transition: "all 0.16s ease",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: "20px",
-                            height: "20px",
-                            flexShrink: 0,
-                            borderRadius: "50%",
-                            border: `2px solid ${active ? "#8B5CF6" : t.textSub}`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: "10px",
-                              height: "10px",
-                              borderRadius: "50%",
-                              background: active ? "#8B5CF6" : "transparent",
-                            }}
-                          />
-                        </span>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{m.name}</span>
-                          <span style={{ fontSize: "12px", color: t.textSub }}>{m.desc}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                <div
-                  style={{
-                    borderRadius: "16px",
-                    border: `1px solid ${t.border}`,
-                    background: t.cardBg,
-                    padding: "22px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "14px",
-                  }}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-                      Controles obrigatórios
-                    </span>
-                    <span style={{ fontSize: "13px", color: t.textSub }}>
-                      Exigidos no cadastro de novos SKUs.
-                    </span>
-                  </div>
-                  {[
-                    { key: "validade", name: "Controle de validade", desc: "Data de vencimento obrigatória" },
-                    { key: "lote", name: "Controle de lote", desc: "Rastreio por número de lote" },
-                    { key: "serie", name: "Número de série", desc: "Serial único por unidade" },
-                  ].map((c) => {
-                    const isOn = prodCtl[c.key as keyof typeof prodCtl];
-                    return (
-                      <div key={c.key} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px 0" }}>
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "1px" }}>
-                          <span style={{ fontSize: "13.5px", fontWeight: 700 }}>{c.name}</span>
-                          <span style={{ fontSize: "12px", color: t.textSub }}>{c.desc}</span>
-                        </div>
-                        <button
-                          onClick={() => setProdCtl((prev) => ({ ...prev, [c.key]: !isOn }))}
-                          style={{
-                            position: "relative",
-                            width: "46px",
-                            height: "26px",
-                            flexShrink: 0,
-                            borderRadius: "999px",
-                            border: "none",
-                            cursor: "pointer",
-                            background: sw(isOn).swBg,
-                            transition: "background 0.25s ease",
-                          }}
-                        >
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: "3px",
-                              left: "3px",
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              background: "#fff",
-                              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                              transform: `translateX(${sw(isOn).swX})`,
-                              transition: "transform 0.25s cubic-bezier(.4,1.3,.5,1)",
-                            }}
-                          />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div
-                  style={{
-                    borderRadius: "16px",
-                    border: `1px solid ${t.border}`,
-                    background: t.cardBg,
-                    padding: "22px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                  }}
-                >
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "16px", fontWeight: 700 }}>
-                    Unidade padrão de estocagem
-                  </span>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {[
-                      { key: "un", name: "Unidade" },
-                      { key: "cx", name: "Caixa" },
-                      { key: "pk", name: "Pack" },
-                    ].map((u) => {
-                      const active = unit === u.key;
-                      return (
-                        <span
-                          key={u.key}
-                          onClick={() => setUnit(u.key as any)}
-                          style={{
-                            height: "38px",
-                            padding: "0 16px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            borderRadius: "10px",
-                            fontSize: "13px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            border: `1.5px solid ${active ? "#8B5CF6" : t.border}`,
-                            background: active ? hex("#8B5CF6", 0.1) : t.inputBg,
-                            color: active ? t.text : t.textSub,
-                            transition: "all 0.16s ease",
-                          }}
-                        >
-                          {u.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div style={{ width: '100%', animation: 'fadeIn 0.3s ease' }}>
+            <ProdutosDashboard 
+              produtos={mockProdutos} 
+              totalProducts={292} 
+              globalBaixos={0} 
+              globalRupturas={36} 
+            />
           </div>
         )}
 
