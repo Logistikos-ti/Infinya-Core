@@ -57,18 +57,14 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
   const params = searchParams ? await searchParams : undefined;
 
   if (isProductCatalogOnlyUser(currentUser)) {
-    if (params?.tab !== "produtos") {
-      redirect("/configuracoes?tab=produtos");
-    }
+    redirect("/configuracoes/produtos");
   }
 
   const allowedSections = getEffectiveConfigSections(currentUser);
   const isFullConfigUser = isAdminUser(currentUser) || allowedSections.length === configModules.length;
 
   if (!isFullConfigUser && allowedSections.length === 1) {
-    if (params?.tab !== allowedSections[0]) {
-      redirect(`/configuracoes?tab=${allowedSections[0]}`);
-    }
+    redirect(`/configuracoes/${allowedSections[0]}`);
   }
 
   const supabase = await createSupabaseServerClient();
