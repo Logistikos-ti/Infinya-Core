@@ -24,6 +24,39 @@ type GlobalSearchConfig = {
   clearParams?: string[];
 };
 
+const EXPEDICAO_SMART_SEARCH_PARAMS = [
+  "pedido",
+  "cliente",
+  "nf",
+  "marketplace",
+  "depositanteNome",
+  "transportadora",
+] as const;
+
+function parseExpedicaoSmartSearch(value: string) {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return {};
+
+  const rules: Array<{ param: (typeof EXPEDICAO_SMART_SEARCH_PARAMS)[number]; pattern: RegExp }> = [
+    { param: "nf", pattern: /^(?:nf|nfe|nota|nota fiscal)\s*[:#-]?\s*(.+)$/i },
+    { param: "cliente", pattern: /^(?:cliente|destinat[aá]rio|comprador)\s*[:#-]?\s*(.+)$/i },
+    { param: "pedido", pattern: /^(?:pedido|ped|wms)\s*[:#-]?\s*(.+)$/i },
+    { param: "marketplace", pattern: /^(?:canal|marketplace|mkt|loja)\s*[:#-]?\s*(.+)$/i },
+    { param: "depositanteNome", pattern: /^(?:depositante|dep)\s*[:#-]?\s*(.+)$/i },
+    { param: "transportadora", pattern: /^(?:transportadora|frete|envio|carrier)\s*[:#-]?\s*(.+)$/i },
+  ];
+
+  for (const rule of rules) {
+    const match = normalizedValue.match(rule.pattern);
+    const parsedValue = match?.[1]?.trim();
+    if (parsedValue) {
+      return { [rule.param]: parsedValue };
+    }
+  }
+
+  return { pedido: normalizedValue };
+}
+
 function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSearchConfig {
   if (isCatalogOnly || path.startsWith("/configuracoes/produtos")) {
     return {
@@ -109,10 +142,29 @@ export function AppChrome({ children, user }: AppChromeProps) {
     () => getGlobalSearchConfig(currentPath, isCatalogOnly),
     [currentPath, isCatalogOnly],
   );
-  const globalSearchValueFromUrl =
-    searchParams.get(globalSearchConfig.param) ??
-    (globalSearchConfig.targetPath === "/configuracoes" ? searchParams.get("q") : "") ??
-    "";
+  const globalSearchValueFromUrl = useMemo(() => {
+    if (globalSearchConfig.targetPath === "/expedicao") {
+      const invoice = searchParams.get("nf");
+      const customer = searchParams.get("cliente");
+      const marketplace = searchParams.get("marketplace");
+      const depositanteName = searchParams.get("depositanteNome");
+      const carrier = searchParams.get("transportadora");
+      const order = searchParams.get("pedido");
+
+      if (invoice) return `nf ${invoice}`;
+      if (customer) return `cliente ${customer}`;
+      if (marketplace) return `canal ${marketplace}`;
+      if (depositanteName) return `depositante ${depositanteName}`;
+      if (carrier) return `transportadora ${carrier}`;
+      if (order) return order;
+    }
+
+    return (
+      searchParams.get(globalSearchConfig.param) ??
+      (globalSearchConfig.targetPath === "/configuracoes" ? searchParams.get("q") : "") ??
+      ""
+    );
+  }, [globalSearchConfig, searchParams]);
   const [globalSearch, setGlobalSearch] = useState(globalSearchValueFromUrl);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -143,10 +195,24 @@ export function AppChrome({ children, user }: AppChromeProps) {
         params.delete(clearParam);
       }
 
+      const searchableParams =
+        globalSearchConfig.targetPath === "/expedicao"
+          ? EXPEDICAO_SMART_SEARCH_PARAMS
+          : [globalSearchConfig.param];
+
+      for (const searchParam of searchableParams) {
+        params.delete(searchParam);
+      }
+
       if (normalizedValue) {
-        params.set(globalSearchConfig.param, normalizedValue);
-      } else {
-        params.delete(globalSearchConfig.param);
+        if (globalSearchConfig.targetPath === "/expedicao") {
+          const parsedParams = parseExpedicaoSmartSearch(normalizedValue);
+          for (const [param, paramValue] of Object.entries(parsedParams)) {
+            params.set(param, paramValue);
+          }
+        } else {
+          params.set(globalSearchConfig.param, normalizedValue);
+        }
       }
 
       const query = params.toString();

@@ -21,7 +21,9 @@ type ExpedicaoPageProps = {
     transportadora?: string;
     cliente?: string;
     pedido?: string;
+    nf?: string;
     marketplace?: string;
+    depositanteNome?: string;
     page?: string;
     perPage?: string;
     feedback?: string;
@@ -50,7 +52,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   const carrierFilter = params?.transportadora?.trim() ?? "";
   const customerFilter = params?.cliente?.trim() ?? "";
   const orderSearchFilter = params?.pedido?.trim() ?? "";
+  const invoiceFilter = params?.nf?.trim() ?? "";
   const marketplaceFilter = params?.marketplace?.trim() ?? "";
+  const depositanteNameFilter = params?.depositanteNome?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   const feedback = params?.feedback?.trim() ?? "";
@@ -79,7 +83,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       carrier: carrierFilter || undefined,
       customer: customerFilter || undefined,
       orderSearch: orderSearchFilter || undefined,
+      invoice: invoiceFilter || undefined,
       marketplace: marketplaceFilter || undefined,
+      depositanteName: depositanteNameFilter || undefined,
     }),
   ]);
 
@@ -99,7 +105,9 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     transportadora: carrierFilter,
     cliente: customerFilter,
     pedido: orderSearchFilter,
+    nf: invoiceFilter,
     marketplace: marketplaceFilter,
+    depositanteNome: depositanteNameFilter,
     perPage: String(perPage),
   };
 

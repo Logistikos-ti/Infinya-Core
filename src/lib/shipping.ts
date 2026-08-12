@@ -200,7 +200,9 @@ type ShippingOrderFilters = {
   carrier?: string;
   customer?: string;
   orderSearch?: string;
+  invoice?: string;
   marketplace?: string;
+  depositanteName?: string;
 };
 
 export type ShippingQueueSummary = {
@@ -359,9 +361,37 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
       }
     }
 
+    if (filters?.invoice) {
+      const invoiceNeedle = filters.invoice.trim().toLocaleLowerCase("pt-BR");
+      if (!order.nfe.toLocaleLowerCase("pt-BR").includes(invoiceNeedle)) {
+        return false;
+      }
+    }
+
+    if (filters?.depositanteName) {
+      const depositanteNeedle = filters.depositanteName.trim().toLocaleLowerCase("pt-BR");
+      if (!order.depositante.toLocaleLowerCase("pt-BR").includes(depositanteNeedle)) {
+        return false;
+      }
+    }
+
     if (filters?.orderSearch) {
       const orderNeedle = filters.orderSearch.trim().toLocaleLowerCase("pt-BR");
-      const haystack = [order.displayNumber, order.externalNumber, order.code, order.storeNumber, order.storeDisplay]
+      const itemSearchParts = order.items.flatMap((item) => [item.name, item.sku, item.code, item.externalReference]);
+      const haystack = [
+        order.displayNumber,
+        order.externalNumber,
+        order.code,
+        order.storeNumber,
+        order.storeDisplay,
+        order.nfe,
+        order.customer,
+        order.depositante,
+        order.marketplace,
+        order.channel,
+        order.carrierName,
+        ...itemSearchParts,
+      ]
         .join(" ")
         .toLocaleLowerCase("pt-BR");
 
