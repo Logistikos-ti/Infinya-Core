@@ -110,6 +110,36 @@ function normalizeCode(code: string) {
   return code.trim();
 }
 
+/**
+ * Some older iOS Safari builds never fire a usable `play()` resolution if
+ * it's called immediately after `srcObject` is assigned -- the black
+ * screen + eventual timeout this caused is a well-known WebKit quirk.
+ * Waiting for the video element to actually report it has metadata (or
+ * data) first reliably avoids it. This never rejects: if neither event
+ * fires within the timeout, it resolves anyway so play() still gets a
+ * chance to run and fail with its own clear error instead of hanging here.
+ */
+function waitForLoadedMetadata(video: HTMLVideoElement, timeoutMs: number): Promise<void> {
+  if (video.readyState >= 1) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      video.removeEventListener("loadedmetadata", finish);
+      video.removeEventListener("loadeddata", finish);
+      resolve();
+    };
+
+    video.addEventListener("loadedmetadata", finish, { once: true });
+    video.addEventListener("loadeddata", finish, { once: true });
+    window.setTimeout(finish, timeoutMs);
+  });
+}
+
 export function useCameraBarcodeScanner({
   onDetected,
   successCooldownMs = 1500,
@@ -365,6 +395,9 @@ export function useCameraBarcodeScanner({
 
       streamRef.current = stream;
       videoElement.srcObject = stream;
+      // Give the element a chance to actually report it has a frame ready
+      // before calling play() -- see waitForLoadedMetadata.
+      await waitForLoadedMetadata(videoElement, 4000);
       await withTimeout(videoElement.play(), 6000);
 
       if (detectorRef.current) {
