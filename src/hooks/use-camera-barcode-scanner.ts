@@ -140,6 +140,66 @@ function normalizeCode(code: string) {
 }
 
 /**
+ * Decodes a barcode from a still image (as opposed to a live video feed --
+ * used by the capture-fallback path below). Tries the native BarcodeDetector
+ * first when available, then falls back to zxing. Returns null rather than
+ * throwing when nothing decodes, so the caller can show a friendly retry
+ * message instead of a hard error.
+ */
+async function decodeStaticImage(
+  source: HTMLImageElement,
+  detector: BarcodeDetectorLike | null,
+): Promise<string | null> {
+  if (detector) {
+    try {
+      const results = await detector.detect(source);
+      const code = results.find((item) => item.rawValue?.trim())?.rawValue?.trim();
+      if (code) {
+        return code;
+      }
+    } catch {
+      // Fall through to zxing below.
+    }
+  }
+
+  try {
+    const [{ BrowserMultiFormatReader }, { BarcodeFormat, DecodeHintType }] = await Promise.all([
+      import("@zxing/browser"),
+      import("@zxing/library"),
+    ]);
+
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+    ]);
+
+    const reader = new BrowserMultiFormatReader(hints);
+    const result = await reader.decodeFromImageElement(source);
+    return result.getText()?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function loadImageFromFile(file: File): Promise<{ image: HTMLImageElement; revoke: () => void }> {
+  const url = URL.createObjectURL(file);
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ image, revoke: () => URL.revokeObjectURL(url) });
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("ImageLoadError"));
+    };
+    image.src = url;
+  });
+}
+
+/**
  * Some older iOS Safari builds never fire a usable `play()` resolution if
  * it's called immediately after `srcObject` is assigned -- the black
  * screen + eventual timeout this caused is a well-known WebKit quirk.
@@ -192,6 +252,18 @@ export function useCameraBarcodeScanner({
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [cameraMessage, setCameraMessage] = useState<string | null>(null);
+  // Some devices (confirmed: iPhone X on iOS 16.7.x running this app as a
+  // home-screen "standalone" web app) never get a live camera stream
+  // working at all -- getUserMedia grants permission but the stream never
+  // actually starts, with no JS-level fix available (a WebKit limitation,
+  // not a bug in this app). When live camera setup fails, this flips on so
+  // the UI can offer a one-photo-at-a-time fallback instead: the OS Camera
+  // app opens directly (bypassing the browser's broken video pipeline
+  // entirely), the operator takes a photo of the barcode, and it's decoded
+  // from that still image.
+  const [captureFallbackActive, setCaptureFallbackActive] = useState(false);
+  const [captureBusy, setCaptureBusy] = useState(false);
+  const fallbackInputRef = useRef<HTMLInputElement | null>(null);
 
   const cameraSupported = useMemo(
     () =>
@@ -477,6 +549,7 @@ export function useCameraBarcodeScanner({
 
       setCameraEnabled(true);
       setCameraStarting(false);
+      setCaptureFallbackActive(false);
       setCameraMessage("Câmera ativa. Aponte para o código de barras.");
     } catch (error) {
       cleanupStream();
@@ -489,12 +562,89 @@ export function useCameraBarcodeScanner({
         error instanceof Error && error.name ? error.name : "UnknownCameraError";
       setCameraStarting(false);
       setCameraEnabled(false);
+      // Live video is not working on this device -- offer the one-photo
+      // fallback instead of leaving the operator stuck with no way to scan.
+      setCaptureFallbackActive(true);
       setCameraMessage(
         CAMERA_ERROR_MESSAGES[errorName] ??
           "Não foi possível iniciar a câmera neste dispositivo.",
       );
     }
   }, [cameraSupported, cleanupStream, markMiss, nativeDetectorSupported, registerRawDetection, runNativeDetectorLoop]);
+
+  /**
+   * Opens the device's native camera app to take a single photo (via a
+   * hidden `<input type="file" capture>`) and decodes a barcode from it.
+   * Must be called directly from a user gesture (e.g. a button's onClick)
+   * for iOS to allow it to open without extra friction.
+   */
+  const captureFromPhoto = useCallback(() => {
+    if (typeof document === "undefined" || captureBusy) {
+      return;
+    }
+
+    let input = fallbackInputRef.current;
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.setAttribute("capture", "environment");
+      input.style.position = "fixed";
+      input.style.top = "-9999px";
+      input.style.left = "-9999px";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      fallbackInputRef.current = input;
+    }
+
+    input.value = "";
+    input.onchange = () => {
+      const file = input?.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      setCaptureBusy(true);
+      setCameraMessage("Lendo código da foto...");
+
+      void (async () => {
+        let revoke: (() => void) | null = null;
+        try {
+          const { image, revoke: revokeUrl } = await loadImageFromFile(file);
+          revoke = revokeUrl;
+          const code = await decodeStaticImage(image, detectorRef.current);
+
+          if (!mountedRef.current) {
+            return;
+          }
+
+          if (code) {
+            // Deliberately bypasses registerRawDetection: its confirmReads
+            // streak and requirePresenceGap dedup exist to filter noisy
+            // continuous video frames. A single captured photo is already
+            // one deliberate, unambiguous reading -- running it through
+            // those live-video filters (e.g. confirmReads: 2) would mean it
+            // could never actually fire onDetected.
+            onDetected(normalizeCode(code));
+            setCameraMessage("Código lido! Toque em \"Tirar foto\" novamente para o próximo, se precisar.");
+          } else {
+            setCameraMessage("Não conseguimos ler um código nessa foto. Aproxime mais e tente de novo.");
+          }
+        } catch {
+          if (mountedRef.current) {
+            setCameraMessage("Não foi possível processar a foto. Tente novamente.");
+          }
+        } finally {
+          revoke?.();
+          if (mountedRef.current) {
+            setCaptureBusy(false);
+          }
+        }
+      })();
+    };
+
+    input.click();
+  }, [captureBusy, onDetected]);
 
   const toggleCamera = useCallback(() => {
     if (cameraEnabled || cameraStarting) {
@@ -511,6 +661,13 @@ export function useCameraBarcodeScanner({
     return () => {
       mountedRef.current = false;
       cleanupStream();
+
+      const input = fallbackInputRef.current;
+      if (input) {
+        input.onchange = null;
+        input.remove();
+        fallbackInputRef.current = null;
+      }
     };
   }, [cleanupStream]);
 
@@ -523,5 +680,12 @@ export function useCameraBarcodeScanner({
     startCamera,
     stopCamera,
     toggleCamera,
+    /** True once live camera setup has failed on this device -- see the
+     * comment where this is set for why. Consuming screens should show a
+     * "Tirar foto" button wired to captureFromPhoto when this is true. */
+    captureFallbackActive,
+    /** True while a captured photo is being decoded. */
+    captureBusy,
+    captureFromPhoto,
   };
 }

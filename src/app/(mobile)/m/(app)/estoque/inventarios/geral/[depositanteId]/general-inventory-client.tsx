@@ -354,7 +354,16 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   });
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
 
-  const { videoRef, cameraStarting, cameraMessage, startCamera, stopCamera } = useCameraBarcodeScanner({
+  const {
+    videoRef,
+    cameraStarting,
+    cameraMessage,
+    startCamera,
+    stopCamera,
+    captureFallbackActive,
+    captureBusy,
+    captureFromPhoto,
+  } = useCameraBarcodeScanner({
     onDetected: handleDetected,
     requirePresenceGap: true,
     confirmReads: 2,
@@ -494,10 +503,34 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
             <div style={{ width: 250, height: 160, borderRadius: 22, border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}` }} />
           </div>
 
-          <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "0 24px calc(36px + env(safe-area-inset-bottom))", textAlign: "center" }}>
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "0 24px calc(36px + env(safe-area-inset-bottom))", textAlign: "center" }}>
             <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
               {cameraStarting ? "Abrindo câmera..." : (cameraMessage ?? "Posicione o código dentro da moldura")}
             </span>
+            {captureFallbackActive ? (
+              <button
+                type="button"
+                disabled={captureBusy}
+                onClick={captureFromPhoto}
+                style={{
+                  height: 52,
+                  padding: "0 24px",
+                  borderRadius: 15,
+                  border: "none",
+                  background: mobileGradient,
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 15,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  opacity: captureBusy ? 0.7 : 1,
+                }}
+              >
+                <MobileIcon name="scan" size={18} strokeWidth={2} />
+                {captureBusy ? "Lendo foto..." : "Tirar foto do código"}
+              </button>
+            ) : null}
           </div>
 
           <MobileScanOverlay overlay={overlay} />
