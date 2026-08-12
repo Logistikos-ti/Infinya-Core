@@ -117,6 +117,15 @@ export async function getMobileOperationsSnapshot(
   };
 }
 
+// Mirrors how the desktop recebimento screen groups statuses (see
+// StatusBadge in src/app/(dashboard)/recebimento/page.tsx): RECEBIDO,
+// RECEBIDO_PARCIAL and CANCELADO are shown there as settled/closed work.
+// Without this filter, getReceivingSnapshot counted every pedido_recebimento
+// ever created -- including years-old finished/cancelled ones -- so the
+// "tarefas hoje" badge kept growing forever instead of reflecting actual
+// pending work.
+const PENDING_RECEIVING_STATUSES = ["RASCUNHO", "AGUARDANDO", "EM_RECEBIMENTO", "DIVERGENCIA"];
+
 async function getReceivingSnapshot(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   depositanteId?: string,
@@ -124,6 +133,7 @@ async function getReceivingSnapshot(
   let baseQuery = supabase
     .from("pedidos_recebimento")
     .select("id, codigo, depositante:depositantes(nome)", { count: "exact" })
+    .in("status", PENDING_RECEIVING_STATUSES)
     .order("created_at", { ascending: false });
 
   if (depositanteId) {
