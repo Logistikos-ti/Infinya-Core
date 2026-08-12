@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { buildPickingKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
 import { resetPickingOrdersToQueue } from "@/lib/shipping-picking-reset";
-import { resolveNextPickingStatus } from "@/lib/shipping-picking-status";
+import { canResetPickingOrderToQueue, resolveNextPickingStatus } from "@/lib/shipping-picking-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type KitProgressEntry = {
@@ -923,9 +923,32 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
     
   const orderIds = (links || []).map(l => l.pedido_expedicao_id);
 
+  // Only orders still sitting in the picking stage may be dragged back to
+  // the queue. Deleting a wave used to reset EVERY linked order to NOVO and
+  // wipe its quantidade_separada -- so deleting an already-CONCLUIDA wave
+  // (a natural "clean up the list" action) resurrected orders that had
+  // already moved on to conferência/romaneio/expedição, making
+  // already-separated pedidos show up in "criar onda" to be picked again.
+  // See canResetPickingOrderToQueue in src/lib/shipping-picking-status.ts.
+  let resettableOrderIds: string[] = [];
   if (orderIds.length > 0) {
+    const { data: orderRows, error: orderReadError } = await adminSupabase
+      .from('pedidos_expedicao')
+      .select('id, status')
+      .in('id', orderIds);
+
+    if (orderReadError) {
+      throw new Error("Nao foi possivel verificar o status dos pedidos da onda.");
+    }
+
+    resettableOrderIds = (orderRows ?? [])
+      .filter((order) => canResetPickingOrderToQueue(String(order.status ?? "")))
+      .map((order) => order.id);
+  }
+
+  if (resettableOrderIds.length > 0) {
     const reversalResults = await Promise.all(
-      orderIds.map((orderId) =>
+      resettableOrderIds.map((orderId) =>
         adminSupabase.rpc("estornar_baixas_separacao" as never, {
           p_pedido_id: orderId,
           p_usuario_id: user.id,
@@ -938,31 +961,31 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
       throw new Error("Nao foi possivel liberar as reservas da onda.");
     }
   }
-  
+
   // 2. Delete links
   await adminSupabase
     .from('ondas_separacao_pedidos')
     .delete()
     .in('onda_separacao_id', waveIds);
-    
+
   // 3. Delete waves
   await adminSupabase
     .from('ondas_separacao')
     .delete()
     .in('id', waveIds);
-    
-  // 4. Reset orders to NOVO
-  if (orderIds.length > 0) {
+
+  // 4. Reset only the still-in-picking orders back to NOVO
+  if (resettableOrderIds.length > 0) {
     await adminSupabase
       .from('pedidos_expedicao')
       .update({ status: 'NOVO' })
-      .in('id', orderIds);
+      .in('id', resettableOrderIds);
 
     await adminSupabase
       .from('pedidos_expedicao_itens')
       .update({ quantidade_separada: 0 })
-      .in('pedido_expedicao_id', orderIds);
+      .in('pedido_expedicao_id', resettableOrderIds);
   }
-  
+
   revalidatePath('/expedicao/separacao');
 }

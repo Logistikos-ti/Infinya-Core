@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import type { AppUserContext } from "@/lib/auth";
+import { canResetPickingOrderToQueue } from "@/lib/shipping-picking-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type ResetReason = "cancelado" | "inatividade";
@@ -22,18 +23,31 @@ export async function resetPickingOrdersToQueue(
 
   let ordersQuery = adminSupabase
     .from("pedidos_expedicao")
-    .select("id, depositante_id, payload_origem")
+    .select("id, status, depositante_id, payload_origem")
     .in("id", normalizedIds);
 
   if (user.papel === "DEPOSITANTE" && user.depositanteId) {
     ordersQuery = ordersQuery.eq("depositante_id", user.depositanteId);
   }
 
-  const { data, error } = await ordersQuery;
+  const { data: allOrders, error } = await ordersQuery;
 
-  if (error || !(data ?? []).length) {
+  if (error || !(allOrders ?? []).length) {
     return { success: false as const };
   }
+
+  // Never drag an order that already advanced past picking back to the
+  // queue -- this wipes quantidade_separada too. See
+  // canResetPickingOrderToQueue in src/lib/shipping-picking-status.ts.
+  const data = (allOrders ?? []).filter((order) =>
+    canResetPickingOrderToQueue(String(order.status ?? "")),
+  );
+
+  if (!data.length) {
+    return { success: false as const };
+  }
+
+  const resettableIds = data.map((order) => order.id);
 
   const now = new Date().toISOString();
   const reversalResults = await Promise.all(
@@ -81,7 +95,7 @@ export async function resetPickingOrdersToQueue(
   }
 
   const itemResetResults = await Promise.all(
-    normalizedIds.map((orderId) =>
+    resettableIds.map((orderId) =>
       adminSupabase
         .from("pedidos_expedicao_itens")
         .update({ quantidade_separada: 0 })

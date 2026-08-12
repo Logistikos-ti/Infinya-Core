@@ -62,3 +62,22 @@ export function resolveNextPickingStatus({
 
   return "EM_SEPARACAO";
 }
+
+/**
+ * Whether an order may be thrown back to the picking queue (status NOVO,
+ * quantidade_separada zeroed) by a wave-level reset -- i.e. deleting a wave
+ * or returning it to the queue after a cancellation/inactivity.
+ *
+ * Same guard set as PICKING_EDITABLE_STATUSES, but this is a separate,
+ * explicitly-named entry point because the failure mode is different and
+ * much more destructive: those resets do not just recompute a status, they
+ * also wipe every item's quantidade_separada. Without this check, deleting
+ * an already-CONCLUIDA wave (a natural "clean up the list" action) dragged
+ * every order in it back to NOVO -- including orders that had long since
+ * moved on to EM_CONFERENCIA / CONFERIDO / PRONTO_ROMANEIO / EXPEDIDO --
+ * making already-separated (and even already-shipped) pedidos reappear in
+ * the "criar onda" list to be picked all over again.
+ */
+export function canResetPickingOrderToQueue(currentStatus: string): boolean {
+  return PICKING_EDITABLE_STATUSES.has(currentStatus);
+}

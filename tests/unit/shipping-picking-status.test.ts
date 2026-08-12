@@ -7,7 +7,11 @@
 // dependency needed. Node 22.6+ required; this repo runs Node 24.)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveNextPickingStatus, PICKING_EDITABLE_STATUSES } from "../../src/lib/shipping-picking-status.ts";
+import {
+  resolveNextPickingStatus,
+  canResetPickingOrderToQueue,
+  PICKING_EDITABLE_STATUSES,
+} from "../../src/lib/shipping-picking-status.ts";
 
 // Every status a pedido can reach once it has moved past picking. None of
 // these should ever be touched by a picking save/autosave action, no
@@ -87,4 +91,40 @@ test("keepStatusIfIncomplete leaves the order exactly as found instead of downgr
     keepStatusIfIncomplete: true,
   });
   assert.equal(next, "SEPARADO");
+});
+
+// --- Wave-level reset guard (deleting a wave / returning it to the queue) ---
+// Regression test for "finalizamos a onda, ela fica concluída, mas ao criar
+// uma nova onda os pedidos já separados aparecem de novo pra separar".
+
+test("a wave reset never drags an order that already advanced past picking back to the queue (the actual bug)", () => {
+  for (const currentStatus of POST_PICKING_STATUSES) {
+    assert.equal(
+      canResetPickingOrderToQueue(currentStatus),
+      false,
+      `${currentStatus} must never be reset back to NOVO by a wave delete/return`,
+    );
+  }
+});
+
+test("specifically: deleting a concluded wave must not resurrect an EXPEDIDO or PRONTO_ROMANEIO order", () => {
+  assert.equal(canResetPickingOrderToQueue("EXPEDIDO"), false);
+  assert.equal(canResetPickingOrderToQueue("PRONTO_ROMANEIO"), false);
+  assert.equal(canResetPickingOrderToQueue("CONFERIDO"), false);
+  assert.equal(canResetPickingOrderToQueue("EM_CONFERENCIA"), false);
+});
+
+test("orders still in the picking stage remain resettable, so cancelling/deleting a genuinely in-progress wave still works", () => {
+  for (const currentStatus of PICKING_EDITABLE_STATUSES) {
+    assert.equal(
+      canResetPickingOrderToQueue(currentStatus),
+      true,
+      `${currentStatus} should still be returnable to the picking queue`,
+    );
+  }
+});
+
+test("an unknown/empty status is never resettable (fails closed)", () => {
+  assert.equal(canResetPickingOrderToQueue(""), false);
+  assert.equal(canResetPickingOrderToQueue("STATUS_INEXISTENTE"), false);
 });
