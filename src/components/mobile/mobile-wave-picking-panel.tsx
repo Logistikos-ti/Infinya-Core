@@ -304,8 +304,25 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
   useEffect(() => {
     if (isDone) return;
     const nextPendingIndex = findNextPendingUnitIndex(unitViews, currentIndex);
-    if (nextPendingIndex !== currentIndex) {
-      setCurrentIndex(nextPendingIndex);
+    if (nextPendingIndex === currentIndex) return;
+
+    // See the matching comment in shipping-picking-interface.tsx: when a
+    // grouped step's individual member orders complete mid-flow the unit
+    // list re-shuffles, and auto-advancing currentIndex used to always
+    // reset scanPhase back to "address" -- even when the next pending
+    // unit was at the exact same bin the operator was already at. Only
+    // reset when the physical stop actually changed.
+    const previousUnit = unitViews[currentIndex];
+    const nextUnit = unitViews[nextPendingIndex];
+    const previousStopKey = previousUnit
+      ? `${previousUnit.primary.productId ?? ""}::${getActiveRouteLine(previousUnit.primary)?.stockId ?? ""}`
+      : "";
+    const nextStopKey = nextUnit
+      ? `${nextUnit.primary.productId ?? ""}::${getActiveRouteLine(nextUnit.primary)?.stockId ?? ""}`
+      : "";
+
+    setCurrentIndex(nextPendingIndex);
+    if (previousStopKey !== nextStopKey) {
       setScanPhase("address");
     }
   }, [currentIndex, isDone, unitViews]);
@@ -700,7 +717,7 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                     className="ml-auto rounded-full px-[9px] py-[3px] text-[10.5px] font-extrabold"
                     style={{ background: hexAlpha(mobileColors.violet, 0.16), color: mobileColors.violetLight }}
                   >
-                    {currentUnit.orderCount} pedidos
+                    {currentUnit.orderCount} pedidos · {currentUnit.requestedTotal} un
                   </span>
                 ) : null}
               </div>
@@ -754,35 +771,6 @@ export function MobileWavePickingPanel({ orders, waveCode, currentUserId }: Mobi
                 ) : null}
               </div>
 
-              {/* Breakdown per pedido -- a grouped step sums the quantity of
-                  several orders (ex.: 1 + 6 + 4 + 4 = 15), which can look
-                  wrong at a glance if you don't know it covers more than one
-                  pedido. This makes the composition explicit. */}
-              {scanPhase === "product" && currentUnit.orderCount > 1 ? (
-                <div className="flex flex-col gap-2 rounded-[15px] p-3" style={{ background: "rgba(5,7,13,0.5)" }}>
-                  <span className="text-[10.5px] font-extrabold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    {currentUnit.requestedTotal}un somam {currentUnit.orderCount} pedidos
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {currentUnit.members.map((member) => {
-                      const memberSeparated = normalizeQuantity(member.separatedQuantityValue);
-                      const memberDone = memberSeparated >= member.requestedQuantity;
-                      return (
-                        <span
-                          key={member.compositeId}
-                          className="rounded-full px-[9px] py-[4px] text-[11px] font-extrabold"
-                          style={{
-                            background: memberDone ? hexAlpha(mobileColors.green, 0.18) : hexAlpha("#94A3B8", 0.12),
-                            color: memberDone ? mobileColors.green : mobileColors.text,
-                          }}
-                        >
-                          {member.orderExternalNumber} · {memberSeparated}/{member.requestedQuantity}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </>
         ) : (

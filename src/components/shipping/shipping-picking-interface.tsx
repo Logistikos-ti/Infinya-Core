@@ -259,8 +259,32 @@ export function ShippingPickingInterface({
     }
 
     const nextPendingIndex = findNextPendingUnitIndex(unitViews, currentIndex);
-    if (nextPendingIndex !== currentIndex) {
-      setCurrentIndex(nextPendingIndex);
+    if (nextPendingIndex === currentIndex) return;
+
+    // When a grouped step (multiple orders, same product, same bin) has one
+    // of its member orders complete mid-flow, the group breaks apart and
+    // the unit list re-shuffles: the done order becomes its own single,
+    // and the still-pending sibling ends up as a separate single one slot
+    // over. That auto-advances currentIndex past the "done" one to the
+    // sibling. Without this check, that advance always reset scanPhase
+    // back to "address" -- forcing the operator to re-scan the exact same
+    // address they were already standing at, mid-bipagem. Bug reported on
+    // a Volcà picking wave with two orders (2un + 4un) of the same
+    // product: after biping the first 2 units, the 3rd bipe hit "endereço
+    // incorreto" because the phase had silently jumped back to address.
+    const previousUnit = unitViews[currentIndex];
+    const nextUnit = unitViews[nextPendingIndex];
+    const previousStopKey = previousUnit
+      ? `${previousUnit.primary.productId ?? ""}::${getActiveRouteLine(previousUnit.primary)?.stockId ?? ""}`
+      : "";
+    const nextStopKey = nextUnit
+      ? `${nextUnit.primary.productId ?? ""}::${getActiveRouteLine(nextUnit.primary)?.stockId ?? ""}`
+      : "";
+
+    setCurrentIndex(nextPendingIndex);
+    if (previousStopKey !== nextStopKey) {
+      // Genuinely different physical stop (different bin or different
+      // product) -- the operator does have to walk over and re-scan.
       setScanPhase("address");
     }
   }, [currentIndex, unitViews]);
@@ -628,7 +652,7 @@ export function ShippingPickingInterface({
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", color: t.textSub }}>{current.sku} · EAN {current.ean}</span>
                   {current.orderCount > 1 ? (
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "12.5px", color: "#8B5CF6", fontWeight: 700 }}>
-                      Cobrindo {current.orderCount} pedidos neste lote
+                      {current.orderCount} pedidos · totalizando {current.requested} unidades
                     </span>
                   ) : null}
                 </div>
@@ -643,43 +667,6 @@ export function ShippingPickingInterface({
                   <span style={{ fontSize: "14px", fontWeight: "700" }}>O produto será exibido após a validação do endereço</span>
                 </div>
               )}
-
-              {/* Breakdown per pedido -- a grouped step sums the quantity of
-                  several orders (ex.: 1 + 6 + 4 + 4 = 15), which can look
-                  wrong at a glance if you don't know it covers more than one
-                  pedido. This makes the composition explicit. */}
-              {scanPhase === "product" && currentUnit.orderCount > 1 ? (
-                <div style={{ borderRadius: "16px", border: `1px solid ${t.border}`, background: t.softBg, padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <span style={{ fontSize: "11.5px", fontWeight: "700", letterSpacing: "0.05em", color: t.textSub, textTransform: "uppercase" }}>
-                    {current.requested}x somam {currentUnit.orderCount} pedidos
-                  </span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-                    {currentUnit.members.map((member) => {
-                      const memberSeparated = normalizeQuantity(member.separatedQuantityValue);
-                      const memberDone = memberSeparated >= member.requestedQuantity;
-                      return (
-                        <span
-                          key={member.compositeId}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: "5px 10px",
-                            borderRadius: "999px",
-                            fontSize: "12px",
-                            fontWeight: "700",
-                            background: memberDone ? hex.green : t.cardBg,
-                            color: memberDone ? "#10B981" : t.text,
-                            border: `1px solid ${memberDone ? "transparent" : t.border}`,
-                          }}
-                        >
-                          Pedido {member.orderCode} · {memberSeparated}/{member.requestedQuantity}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
 
               {/* scan field */}
               <div style={{ borderRadius: "18px", border: `1.5px dashed ${scanPhase === "address" ? "#3B82F6" : t.scanBorder}`, background: t.softBg, padding: "20px", display: "flex", alignItems: "center", gap: "16px" }}>
