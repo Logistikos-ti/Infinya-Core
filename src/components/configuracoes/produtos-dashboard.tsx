@@ -285,7 +285,7 @@ export function ProdutosDashboard({
       {/* Header and Toggles */}
       <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub, paddingLeft: backButtonSlot ? "52px" : "0" }}>
+          <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub }}>
             <span>{backButtonSlot ? "Configurações" : "Estoque"}</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
           </div>
           <div className="flex items-center gap-3">
@@ -294,7 +294,7 @@ export function ProdutosDashboard({
               Catálogo de produtos
             </h1>
           </div>
-          <p className="m-0 text-[14.5px]" style={{ color: t.textSub, paddingLeft: backButtonSlot ? "52px" : "0" }}>
+          <p className="m-0 text-[14.5px]" style={{ color: t.textSub }}>
             SKUs cadastrados, níveis de estoque, curva ABC e status de disponibilidade.
           </p>
         </div>
