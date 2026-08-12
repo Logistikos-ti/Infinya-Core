@@ -261,7 +261,6 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
 
       setForm((current) => ({
         ...current,
-        supplier: parsedXml.supplierName,
         nf: parsedXml.noteNumber,
       }));
       setItems(
@@ -320,6 +319,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setError("Informe a data prevista para agendar a entrada no CD.");
       return;
     }
+    if (!form.supplier.trim()) {
+      setError("Informe a transportadora que trará este recebimento.");
+      return;
+    }
     if (xmlPreview?.unmatched.length) {
       setError("Existem itens do XML sem vinculo com produtos cadastrados. Ajuste o cadastro antes de enviar.");
       return;
@@ -333,6 +336,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       formData.append("arquivo", xmlFile);
       formData.append("previstoPara", form.eta);
       formData.append("horarioPrevisto", form.hour);
+      formData.append("transportadora", form.supplier.trim());
       formData.append("observacoes", form.notes);
 
       const response = await fetch("/api/recebimento/importar-xml", {
@@ -758,16 +762,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
                       Dados da nota
                     </h4>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
-                      <label className="space-y-1.5 text-xs text-slate-500">
-                        Fornecedor
-                        <input
-                          className={inputClassName}
-                          value={form.supplier}
-                          onChange={(event) => updateField("supplier", event.target.value)}
-                          placeholder="Preenchido pelo XML"
-                        />
-                      </label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1.5 text-xs text-slate-500">
                         Nº da NF-e
                         <input
@@ -775,6 +770,15 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           value={form.nf}
                           onChange={(event) => updateField("nf", event.target.value)}
                           placeholder="Preenchido pelo XML"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-500 sm:col-span-2">
+                        Transportadora
+                        <input
+                          className={inputClassName}
+                          value={form.supplier}
+                          onChange={(event) => updateField("supplier", event.target.value)}
+                          placeholder="Ex.: Rodoline, Correios, transportadora própria..."
                         />
                       </label>
                       <DatePickerInput
@@ -867,18 +871,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
                       Dados da nota
                     </h4>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
-                      <label className="space-y-1.5 text-xs text-slate-500">
-                        Transportadora
-                        <input
-                          className={inputClassName}
-                          value={form.supplier}
-                          onChange={(event) =>
-                            updateField("supplier", event.target.value)
-                          }
-                          placeholder="Ex.: Transportes Rodoline"
-                        />
-                      </label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1.5 text-xs text-slate-500">
                         Nº da NF-e
                         <input
@@ -888,6 +881,17 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                             updateField("nf", event.target.value)
                           }
                           placeholder="000000"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-500 sm:col-span-2">
+                        Transportadora
+                        <input
+                          className={inputClassName}
+                          value={form.supplier}
+                          onChange={(event) =>
+                            updateField("supplier", event.target.value)
+                          }
+                          placeholder="Ex.: Transportes Rodoline"
                         />
                       </label>
                       <DatePickerInput
