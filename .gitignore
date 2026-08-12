@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-stale-*/
 /out/
 
 # production
@@ -33,6 +34,7 @@ dev.log
 dev.err.log
 .next-dev.log
 lt.log
+patch_*.js
 
 # env files (can opt-in for committing if needed)
 .env*
