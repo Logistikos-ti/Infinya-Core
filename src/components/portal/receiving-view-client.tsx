@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, FileText, Plus, Trash2, Upload, X } from "lucide-react";
+import { Check, Clock, FileText, Link2, PackagePlus, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
@@ -60,6 +60,7 @@ type XmlPreview = {
   supplierName: string;
   matchedCount: number;
   unmatched: Array<{
+    key: string;
     descricao: string;
     codigo: string | null;
     ean: string | null;
@@ -67,11 +68,35 @@ type XmlPreview = {
   }>;
 };
 
+type ProductDraft = {
+  nome: string;
+  sku: string;
+  codigoInterno: string;
+  codigoExterno: string;
+};
+
 const inputClassName =
   "h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-white/10";
 
 function emptyItemLine(): ItemLine {
   return { key: crypto.randomUUID(), produtoId: "", quantidade: "" };
+}
+
+function createXmlItemKey(item: { codigo: string | null; ean: string | null; descricao: string }) {
+  return [item.codigo ?? "", item.ean ?? "", item.descricao]
+    .map((value) => value.trim().toLocaleLowerCase("pt-BR"))
+    .join("|");
+}
+
+function createProductDraft(item: XmlPreview["unmatched"][number]): ProductDraft {
+  const preferredCode = item.codigo?.trim() || item.ean?.trim() || "";
+
+  return {
+    nome: item.descricao,
+    sku: preferredCode,
+    codigoInterno: preferredCode,
+    codigoExterno: item.ean?.trim() || "",
+  };
 }
 
 const timeOptions = [
@@ -201,6 +226,7 @@ function TimePickerInput({
 }
 
 export function ReceivingViewClient({ receiving, depositanteId, products }: ReceivingViewClientProps) {
+  const [productOptions, setProductOptions] = useState(products);
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selected, setSelected] = useState<ReceivingItem | null>(null);
@@ -210,6 +236,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
   const [xmlPreview, setXmlPreview] = useState<XmlPreview | null>(null);
+  const [xmlResolutions, setXmlResolutions] = useState<Record<string, string>>({});
+  const [productDrafts, setProductDrafts] = useState<Record<string, ProductDraft>>({});
+  const [creatingProductKey, setCreatingProductKey] = useState<string | null>(null);
+  const [productCreateError, setProductCreateError] = useState<Record<string, string>>({});
   const [xmlReading, setXmlReading] = useState(false);
   const [type, setType] = useState("NF-e XML");
   const [items, setItems] = useState<ItemLine[]>([emptyItemLine()]);
@@ -222,6 +252,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    setProductOptions(products);
+  }, [products]);
 
   function openDrawer() {
     setError("");
@@ -250,7 +284,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       const parsedXml = parseNfeXml(xmlText);
       const matching = matchNfeProductsToCatalog(
         parsedXml.items,
-        products.map((product) => ({
+        productOptions.map((product) => ({
           id: product.id,
           nome: product.nome,
           sku: product.sku,
@@ -278,12 +312,29 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         supplierName: parsedXml.supplierName,
         matchedCount: matching.matched.length,
         unmatched: matching.unmatched.map((item) => ({
+          key: createXmlItemKey(item),
           descricao: item.descricao,
           codigo: item.codigo,
           ean: item.ean,
           quantidade: item.quantidade,
         })),
       });
+      setXmlResolutions({});
+      setProductDrafts(
+        Object.fromEntries(
+          matching.unmatched.map((item) => {
+            const previewItem = {
+              key: createXmlItemKey(item),
+              descricao: item.descricao,
+              codigo: item.codigo,
+              ean: item.ean,
+              quantidade: item.quantidade,
+            };
+
+            return [previewItem.key, createProductDraft(previewItem)];
+          }),
+        ),
+      );
     } catch (xmlError) {
       setError(
         xmlError instanceof Error
@@ -310,6 +361,104 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     setItems((current) => (current.length > 1 ? current.filter((line) => line.key !== key) : current));
   }
 
+  function resolveXmlItem(item: XmlPreview["unmatched"][number], produtoId: string) {
+    setXmlResolutions((current) => {
+      const next = { ...current };
+
+      if (produtoId) {
+        next[item.key] = produtoId;
+      } else {
+        delete next[item.key];
+      }
+
+      return next;
+    });
+
+    setItems((current) => {
+      const withoutCurrentXmlItem = current.filter((line) => line.origem !== item.key);
+
+      if (!produtoId) {
+        return withoutCurrentXmlItem.length ? withoutCurrentXmlItem : [emptyItemLine()];
+      }
+
+      return [
+        ...withoutCurrentXmlItem.filter((line) => line.produtoId),
+        {
+          key: crypto.randomUUID(),
+          produtoId,
+          quantidade: String(item.quantidade),
+          origem: item.key,
+        },
+      ];
+    });
+  }
+
+  function updateProductDraft(key: string, field: keyof ProductDraft, value: string) {
+    setProductDrafts((current) => ({
+      ...current,
+      [key]: {
+        ...(current[key] ?? { nome: "", sku: "", codigoInterno: "", codigoExterno: "" }),
+        [field]: value,
+      },
+    }));
+  }
+
+  async function createProductFromXmlItem(item: XmlPreview["unmatched"][number]) {
+    const draft = productDrafts[item.key] ?? createProductDraft(item);
+
+    if (!draft.nome.trim()) {
+      setProductCreateError((current) => ({
+        ...current,
+        [item.key]: "Informe o nome do produto para criar o cadastro.",
+      }));
+      return;
+    }
+
+    setCreatingProductKey(item.key);
+    setProductCreateError((current) => ({ ...current, [item.key]: "" }));
+
+    try {
+      const response = await fetch("/api/portal/produtos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          depositanteId,
+          nome: draft.nome,
+          sku: draft.sku,
+          codigoInterno: draft.codigoInterno,
+          codigoExterno: draft.codigoExterno,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        product?: ProductOption;
+      };
+
+      if (!response.ok || !payload.product) {
+        throw new Error(payload.error ?? "Nao foi possivel criar o produto.");
+      }
+
+      setProductOptions((current) => {
+        if (current.some((product) => product.id === payload.product!.id)) {
+          return current;
+        }
+
+        return [...current, payload.product!].sort((left, right) =>
+          left.nome.localeCompare(right.nome, "pt-BR"),
+        );
+      });
+      resolveXmlItem(item, payload.product.id);
+    } catch (createError) {
+      setProductCreateError((current) => ({
+        ...current,
+        [item.key]:
+          createError instanceof Error ? createError.message : "Nao foi possivel criar o produto.",
+      }));
+    } finally {
+      setCreatingProductKey(null);
+    }
+  }
+
   async function submitXmlImport() {
     if (!xmlFile) {
       setError("Selecione um XML da NF-e antes de importar.");
@@ -323,8 +472,11 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setError("Informe a transportadora que trará este recebimento.");
       return;
     }
-    if (xmlPreview?.unmatched.length) {
-      setError("Existem itens do XML sem vinculo com produtos cadastrados. Ajuste o cadastro antes de enviar.");
+    const unresolvedItems = xmlPreview?.unmatched.filter((item) => !xmlResolutions[item.key]) ?? [];
+    if (unresolvedItems.length) {
+      setError(
+        `Resolva ${unresolvedItems.length} item(ns) sem vinculo antes de enviar a solicitacao.`,
+      );
       return;
     }
 
@@ -338,6 +490,12 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       formData.append("horarioPrevisto", form.hour);
       formData.append("transportadora", form.supplier.trim());
       formData.append("observacoes", form.notes);
+      formData.append(
+        "resolucoesXml",
+        JSON.stringify(
+          Object.entries(xmlResolutions).map(([key, produtoId]) => ({ key, produtoId })),
+        ),
+      );
 
       const response = await fetch("/api/recebimento/importar-xml", {
         method: "POST",
@@ -474,7 +632,6 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       RECEBIMENTO: "Em recebimento",
       CONFERIDO: "Conferido",
       DIVERGENCIA: "Divergência",
-      DIVERGÊNCIA: "Divergência",
       CANCELADO: "Cancelado",
     };
     return labels[status] ?? status;
@@ -652,7 +809,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right text-lg font-bold text-slate-400 dark:text-slate-500">
-                    ›
+                    ⬺
                   </td>
                 </tr>
               ))}
@@ -832,7 +989,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         {items
                           .filter((line) => line.produtoId)
                           .map((line) => {
-                            const product = products.find((item) => item.id === line.produtoId);
+                            const product = productOptions.find((item) => item.id === line.produtoId);
                             return (
                               <div
                                 key={line.key}
@@ -849,15 +1006,127 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           })}
                       </div>
                       {xmlPreview.unmatched.length ? (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-                          <p className="font-bold">Itens sem vínculo no cadastro:</p>
-                          <ul className="mt-1 space-y-1">
-                            {xmlPreview.unmatched.slice(0, 4).map((item) => (
-                              <li key={`${item.codigo}-${item.ean}-${item.descricao}`}>
-                                {item.descricao} ({item.ean ?? item.codigo ?? "sem código"})
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                          <div className="flex items-start gap-2">
+                            <PackagePlus className="mt-0.5 h-4 w-4 shrink-0" />
+                            <div>
+                              <p className="font-bold">Resolver itens sem vinculo</p>
+                              <p className="mt-0.5 text-amber-800/80 dark:text-amber-100/75">
+                                Vincule cada item a um produto existente ou crie um cadastro novo antes de enviar.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            {xmlPreview.unmatched.map((item) => {
+                              const resolvedProductId = xmlResolutions[item.key] ?? "";
+                              const draft = productDrafts[item.key] ?? createProductDraft(item);
+                              const createError = productCreateError[item.key];
+                              const creating = creatingProductKey === item.key;
+
+                              return (
+                                <article
+                                  key={item.key}
+                                  className={`rounded-2xl border bg-white p-3 shadow-sm transition dark:bg-[#0c1526] ${
+                                    resolvedProductId
+                                      ? "border-emerald-200 dark:border-emerald-500/30"
+                                      : "border-amber-200 dark:border-amber-500/30"
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-slate-900 dark:text-white">
+                                        {item.descricao}
+                                      </p>
+                                      <p className="mt-1 text-slate-500 dark:text-slate-400">
+                                        {item.ean ?? item.codigo ?? "Sem código"} · {item.quantidade} un.
+                                      </p>
+                                    </div>
+                                    {resolvedProductId ? (
+                                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
+                                        Resolvido
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="mt-3 grid grid-cols-1 gap-2">
+                                    <label className="space-y-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                      Vincular a produto existente
+                                      <span className="relative block">
+                                        <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-500" />
+                                        <select
+                                          className={`${inputClassName} pl-9`}
+                                          value={resolvedProductId}
+                                          onChange={(event) => resolveXmlItem(item, event.target.value)}
+                                        >
+                                          <option value="">Selecione um produto cadastrado</option>
+                                          {productOptions.map((product) => (
+                                            <option key={product.id} value={product.id}>
+                                              {product.nome} · {product.sku}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </span>
+                                    </label>
+
+                                    {!resolvedProductId ? (
+                                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                                        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                          Criar produto pelo XML
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                          <input
+                                            className={`${inputClassName} sm:col-span-2`}
+                                            value={draft.nome}
+                                            onChange={(event) =>
+                                              updateProductDraft(item.key, "nome", event.target.value)
+                                            }
+                                            placeholder="Nome do produto"
+                                          />
+                                          <input
+                                            className={inputClassName}
+                                            value={draft.sku}
+                                            onChange={(event) =>
+                                              updateProductDraft(item.key, "sku", event.target.value)
+                                            }
+                                            placeholder="SKU"
+                                          />
+                                          <input
+                                            className={inputClassName}
+                                            value={draft.codigoInterno}
+                                            onChange={(event) =>
+                                              updateProductDraft(item.key, "codigoInterno", event.target.value)
+                                            }
+                                            placeholder="Codigo interno"
+                                          />
+                                          <input
+                                            className={`${inputClassName} sm:col-span-2`}
+                                            value={draft.codigoExterno}
+                                            onChange={(event) =>
+                                              updateProductDraft(item.key, "codigoExterno", event.target.value)
+                                            }
+                                            placeholder="EAN/GTIN"
+                                          />
+                                        </div>
+                                        {createError ? (
+                                          <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                                            {createError}
+                                          </p>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          onClick={() => void createProductFromXmlItem(item)}
+                                          disabled={creating}
+                                          className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 px-4 text-xs font-bold text-white shadow-[0_12px_30px_rgba(59,130,246,0.25)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
+                                        >
+                                          {creating ? "Criando..." : "Criar e vincular produto"}
+                                        </button>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : null}
                     </section>
@@ -943,7 +1212,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                             }
                           >
                             <option value="">Selecione o produto</option>
-                            {products.map((product) => (
+                            {productOptions.map((product) => (
                               <option key={product.id} value={product.id}>
                                 {product.nome} · {product.sku}
                               </option>
@@ -971,12 +1240,12 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         </div>
                       ))}
                     </div>
-                    {products.length === 0 ? (
+                    {productOptions.length === 0 ? (
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         Nenhum produto cadastrado ainda para o seu depositante.
                       </p>
                     ) : null}
-                  </section>
+                    </section>
 
                   <label className="block space-y-1.5 text-xs text-slate-500">
                     Observações
@@ -1012,7 +1281,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 disabled={saving}
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
               >
-                <span className="text-lg leading-none">⇢</span>
+                <span className="text-lg leading-none">→</span>
                 {saving ? <MobileButtonSpinner /> : "Enviar solicitação"}
               </button>
             </div>

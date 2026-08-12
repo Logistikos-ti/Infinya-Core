@@ -44,6 +44,7 @@ export async function POST(request: Request) {
   const horarioPrevisto = String(formData.get("horarioPrevisto") ?? "").trim();
   const transportadora = String(formData.get("transportadora") ?? "").trim();
   const observacoesPortal = String(formData.get("observacoes") ?? "").trim();
+  const xmlResolutions = parseXmlResolutions(String(formData.get("resolucoesXml") ?? "[]"));
   const file = formData.get("arquivo");
 
   if (!depositanteId) {
@@ -133,13 +134,35 @@ export async function POST(request: Request) {
   }
 
   const matching = matchNfeProductsToCatalog(parsedXml.items, products ?? []);
+  const productMap = new Map((products ?? []).map((product) => [product.id, product]));
+  const resolvedMatched = [...matching.matched];
+  const unresolvedItems: (typeof matching.unmatched)[number][] = [];
 
-  if (matching.unmatched.length) {
+  for (const item of matching.unmatched) {
+    const productId = xmlResolutions.get(createXmlItemKey(item));
+    const product = productId ? productMap.get(productId) : null;
+
+    if (!product) {
+      unresolvedItems.push(item);
+      continue;
+    }
+
+    resolvedMatched.push({
+      productId: product.id,
+      sku: product.sku,
+      nome: product.nome,
+      quantidade: item.quantidade,
+      origemCodigo: item.codigo,
+      origemEan: item.ean,
+    });
+  }
+
+  if (unresolvedItems.length) {
     return NextResponse.json(
       {
         error:
           "Não foi possível vincular todos os itens do XML aos produtos cadastrados deste depositante.",
-        unmatchedItems: matching.unmatched.map((item) => ({
+        unmatchedItems: unresolvedItems.map((item) => ({
           descricao: item.descricao,
           codigo: item.codigo,
           ean: item.ean,
@@ -149,13 +172,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-
   const groupedItems = new Map<
     string,
     { productId: string; quantidade: number; sku: string; nome: string }
   >();
 
-  for (const item of matching.matched) {
+  for (const item of resolvedMatched) {
     const existing = groupedItems.get(item.productId);
 
     if (existing) {
@@ -284,4 +306,37 @@ function extractForecastDate(issuedAt: string | null) {
   }
 
   return new Date().toISOString().slice(0, 10);
+}
+
+function createXmlItemKey(item: { codigo: string | null; ean: string | null; descricao: string }) {
+  return [item.codigo ?? "", item.ean ?? "", item.descricao]
+    .map((value) => value.trim().toLocaleLowerCase("pt-BR"))
+    .join("|");
+}
+
+function parseXmlResolutions(rawValue: string) {
+  const resolutions = new Map<string, string>();
+
+  try {
+    const parsed = JSON.parse(rawValue) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return resolutions;
+    }
+
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") continue;
+
+      const key = "key" in item ? String(item.key ?? "").trim() : "";
+      const produtoId = "produtoId" in item ? String(item.produtoId ?? "").trim() : "";
+
+      if (key && produtoId) {
+        resolutions.set(key, produtoId);
+      }
+    }
+  } catch {
+    return resolutions;
+  }
+
+  return resolutions;
 }
