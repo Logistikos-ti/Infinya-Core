@@ -65,7 +65,10 @@ function parseExpedicaoSmartSearch(value: string) {
 function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSearchConfig {
   if (isCatalogOnly || path.startsWith("/configuracoes/produtos")) {
     return {
-      targetPath: "/configuracoes",
+      // A página de produtos filtra pelo próprio parâmetro "q" — mirar
+      // "/configuracoes" (com um "tab" que a página raiz nunca leu) jogava o
+      // usuário de volta no painel geral em vez da lista de produtos.
+      targetPath: "/configuracoes/produtos",
       param: "q",
       placeholder: "Buscar produtos...",
       clearParams: ["page"],
@@ -74,12 +77,14 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
   }
 
   if (path.startsWith("/configuracoes/enderecos")) {
+    // A página de endereços não tem busca por texto livre (só filtro por
+    // área), então não há um destino de busca válido aqui — evita repetir o
+    // mesmo problema de mirar em "/configuracoes" e cair no painel geral.
     return {
-      targetPath: "/configuracoes",
+      targetPath: path,
       param: "q",
-      placeholder: "Buscar endereço, rua ou área...",
-      clearParams: ["page"],
-      available: true,
+      placeholder: "Busca não disponível nesta página",
+      available: false,
     };
   }
 
@@ -174,11 +179,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
       if (order) return order;
     }
 
-    return (
-      searchParams.get(globalSearchConfig.param) ??
-      (globalSearchConfig.targetPath === "/configuracoes" ? searchParams.get("q") : "") ??
-      ""
-    );
+    return searchParams.get(globalSearchConfig.param) ?? "";
   }, [globalSearchConfig, searchParams]);
   const [globalSearch, setGlobalSearch] = useState(globalSearchValueFromUrl);
 
@@ -201,14 +202,6 @@ export function AppChrome({ children, user }: AppChromeProps) {
       const normalizedValue = value.trim();
       const navigatingWithinSameRoute = currentPath === globalSearchConfig.targetPath;
       const params = new URLSearchParams(navigatingWithinSameRoute ? searchParamsString : "");
-
-      if (globalSearchConfig.targetPath === "/configuracoes") {
-        const tab =
-          currentPath.startsWith("/configuracoes/enderecos") || params.get("tab") === "enderecos"
-            ? "enderecos"
-            : "produtos";
-        params.set("tab", tab);
-      }
 
       for (const clearParam of globalSearchConfig.clearParams ?? []) {
         params.delete(clearParam);
