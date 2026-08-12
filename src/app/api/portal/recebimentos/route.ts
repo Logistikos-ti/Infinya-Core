@@ -9,6 +9,7 @@ type PortalReceivingItemPayload = {
 };
 
 type PortalReceivingPayload = {
+  depositanteId?: unknown;
   supplier?: unknown;
   nf?: unknown;
   eta?: unknown;
@@ -20,13 +21,13 @@ type PortalReceivingPayload = {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireApiRoleAccess(["DEPOSITANTE"]);
+    const auth = await requireApiRoleAccess(["DEPOSITANTE", "ADMIN", "TI"]);
 
     if (auth.response) {
       return auth.response;
     }
 
-    if (!auth.user.depositanteId) {
+    if (auth.user.papel === "DEPOSITANTE" && !auth.user.depositanteId) {
       return NextResponse.json(
         { error: "Seu usuário não está vinculado a um depositante." },
         { status: 422 },
@@ -49,12 +50,22 @@ export async function POST(request: Request) {
     const hour = String(payload.hour ?? "").trim();
     const notes = String(payload.notes ?? "").trim();
     const type = String(payload.type ?? "Manual").trim();
+    const requestedDepositanteId = String(payload.depositanteId ?? "").trim();
+    const effectiveDepositanteId =
+      auth.user.papel === "DEPOSITANTE" ? auth.user.depositanteId : requestedDepositanteId;
     const items = (Array.isArray(payload.items) ? payload.items : [])
       .map((item) => ({
         produtoId: String(item.produtoId ?? "").trim(),
         quantidade: Number(item.quantidade),
       }))
       .filter((item) => item.produtoId && Number.isFinite(item.quantidade) && item.quantidade > 0);
+
+    if (!effectiveDepositanteId) {
+      return NextResponse.json(
+        { error: "Selecione o depositante para criar o recebimento." },
+        { status: 422 },
+      );
+    }
 
     if (supplier.length < 2) {
       return NextResponse.json(
@@ -85,7 +96,7 @@ export async function POST(request: Request) {
     const { data: depositante, error: depositanteError } = await adminSupabase
       .from("depositantes")
       .select("id, codigo, nome")
-      .eq("id", auth.user.depositanteId)
+      .eq("id", effectiveDepositanteId)
       .maybeSingle();
 
     if (depositanteError) {

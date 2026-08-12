@@ -343,10 +343,18 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         method: "POST",
         body: formData,
       });
-      const payload = (await response.json()) as {
+      const responseText = await response.text();
+      let payload: {
         error?: string;
         unmatchedItems?: Array<{ descricao: string }>;
-      };
+      } = {};
+      try {
+        payload = responseText
+          ? (JSON.parse(responseText) as typeof payload)
+          : {};
+      } catch {
+        payload = { error: responseText.replace(/<[^>]*>/g, "").trim() };
+      }
 
       if (!response.ok) {
         const unmatchedMessage = payload.unmatchedItems?.length
@@ -390,7 +398,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       const response = await fetch("/api/portal/recebimentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, type, items: validItems }),
+        body: JSON.stringify({ ...form, type, items: validItems, depositanteId }),
       });
       const responseText = await response.text();
       let payload: { error?: string } = {};

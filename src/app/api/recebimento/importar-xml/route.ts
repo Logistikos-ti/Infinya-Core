@@ -42,6 +42,7 @@ export async function POST(request: Request) {
   const depositanteId = String(formData.get("depositanteId") ?? "").trim();
   const previstoPara = String(formData.get("previstoPara") ?? "").trim();
   const horarioPrevisto = String(formData.get("horarioPrevisto") ?? "").trim();
+  const transportadora = String(formData.get("transportadora") ?? "").trim();
   const observacoesPortal = String(formData.get("observacoes") ?? "").trim();
   const file = formData.get("arquivo");
 
