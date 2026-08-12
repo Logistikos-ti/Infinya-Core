@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireModuleAccess } from "@/lib/auth";
@@ -44,17 +44,31 @@ const configModules = [
   },
 ] as const;
 
-export default async function ConfiguracoesPage() {
+type ConfiguracoesPageProps = {
+  searchParams?: Promise<{
+    preview?: string;
+    legacy?: string;
+    tab?: string;
+  }>;
+};
+
+export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesPageProps) {
   const currentUser = await requireModuleAccess("configuracoes");
+  const params = searchParams ? await searchParams : undefined;
+
   if (isProductCatalogOnlyUser(currentUser)) {
-    redirect("/configuracoes/produtos");
+    if (params?.tab !== "produtos") {
+      redirect("/configuracoes?tab=produtos");
+    }
   }
 
   const allowedSections = getEffectiveConfigSections(currentUser);
   const isFullConfigUser = isAdminUser(currentUser) || allowedSections.length === configModules.length;
 
   if (!isFullConfigUser && allowedSections.length === 1) {
-    redirect(`/configuracoes/${allowedSections[0]}`);
+    if (params?.tab !== allowedSections[0]) {
+      redirect(`/configuracoes?tab=${allowedSections[0]}`);
+    }
   }
 
   const supabase = await createSupabaseServerClient();
