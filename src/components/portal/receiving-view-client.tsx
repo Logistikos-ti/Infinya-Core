@@ -711,7 +711,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                       key={item}
                       type="button"
                       onClick={() => setType(item)}
-                      className={`h-10 rounded-xl border-[1.5px] px-4 text-[13px] font-bold transition ${type === item ? "border-violet-500 bg-violet-500/10 text-slate-900 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400"}`}
+                      className={`h-10 rounded-xl border-[1.5px] px-4 text-[13px] font-bold transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400 hover:bg-cyan-50 hover:text-slate-900 hover:shadow-lg hover:shadow-cyan-500/10 dark:hover:border-cyan-300/70 dark:hover:bg-cyan-500/10 dark:hover:text-white ${type === item ? "border-violet-500 bg-violet-500/10 text-slate-900 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400"}`}
                     >
                       {item}
                     </button>
