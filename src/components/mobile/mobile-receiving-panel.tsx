@@ -411,7 +411,7 @@ export function MobileReceivingPanel({
             Recebimento
           </span>
           <span className="truncate text-[12px]" style={{ color: mobileColors.muted }}>
-            {orderCode} · {depositante}
+            {depositante ? `${orderCode} · ${depositante}` : orderCode}
           </span>
         </div>
         <span

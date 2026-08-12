@@ -65,7 +65,7 @@ export default async function RecebimentoDetalhePage({
 
       <ModulePageHeader
         title={order.code}
-        description={`Pedido inbound de ${order.depositante} com fornecedor ${order.supplier}.`}
+        description={`Pedido inbound${order.depositante ? ` de ${order.depositante}` : ""} com fornecedor ${order.supplier}.`}
         badge={order.status}
       />
 

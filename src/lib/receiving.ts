@@ -289,7 +289,7 @@ export async function listOperationalIssuesFromDb(
     id: item.id,
     title: item.titulo,
     type: item.tipo,
-    depositante: extractRelationName(item.depositante) ?? "Sem depositante",
+    depositante: extractRelationName(item.depositante) ?? "",
     action: item.descricao,
     orderId: item.pedido_recebimento_id,
     itemId: item.item_recebimento_id,
@@ -351,8 +351,7 @@ export async function getReceivingOrderDetailFromDb(id: string) {
   return {
     id: normalized.id,
     code: normalized.codigo,
-    depositante:
-      extractRelationName(normalized.depositante) ?? "Sem depositante",
+    depositante: extractRelationName(normalized.depositante) ?? "",
     supplier: normalized.fornecedor_nome ?? "Fornecedor não informado",
     status: normalized.status,
     eta: normalized.previsto_para
@@ -453,7 +452,7 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
     code: item.codigo,
     depositanteId: (item as RawOrderRow & { depositante_id?: string })
       .depositante_id,
-    depositante: extractRelationName(item.depositante) ?? "Sem depositante",
+    depositante: extractRelationName(item.depositante) ?? "",
     supplier: item.fornecedor_nome ?? "Fornecedor não informado",
     createdAt: formatDateTimeOrFallback(item.created_at, "Sem data"),
     eta: item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão",

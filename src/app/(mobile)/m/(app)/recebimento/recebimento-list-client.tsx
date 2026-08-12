@@ -53,7 +53,7 @@ export function RecebimentoListClient({ orders, totalOrders }: RecebimentoListCl
           title: order.code,
           tag: meta.label,
           tagColor: meta.color,
-          sub: `${order.depositante} • ${order.volumeCount} volumes${order.noteNumber && order.noteNumber !== "-" ? ` • NF ${order.noteNumber}` : ""}`,
+          sub: `${order.depositante ? `${order.depositante} • ` : ""}${order.volumeCount} volumes${order.noteNumber && order.noteNumber !== "-" ? ` • NF ${order.noteNumber}` : ""}`,
           onClick: () => router.push(`/m/recebimento/${order.id}`),
         };
       })}

@@ -68,7 +68,7 @@ export default async function DashboardPage() {
       id: issue.id,
       title: issue.title,
       label: issue.type,
-      help: `${issue.depositante} • ${issue.action}`,
+      help: issue.depositante ? `${issue.depositante} • ${issue.action}` : issue.action,
       tone: "rose" as const,
       href: issue.orderId ? `/recebimento/${issue.orderId}` : "/recebimento",
     })),
@@ -239,7 +239,7 @@ export default async function DashboardPage() {
                         {order.code}
                       </p>
                       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {order.depositante} • {order.supplier}
+                        {order.depositante ? `${order.depositante} • ${order.supplier}` : order.supplier}
                       </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
