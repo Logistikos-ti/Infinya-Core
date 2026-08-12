@@ -30,6 +30,7 @@ type RecebimentoPageProps = {
     depositante?: string;
     dataInicial?: string;
     dataFinal?: string;
+    q?: string;
     page?: string;
     perPage?: string;
   }>;
@@ -45,6 +46,7 @@ export default async function RecebimentoPage({
   const depositanteFilter = params?.depositante?.trim() ?? "";
   const dateFrom = params?.dataInicial?.trim() ?? "";
   const dateTo = params?.dataFinal?.trim() ?? "";
+  const searchTerm = params?.q?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   const supabase = await createSupabaseServerClient();
@@ -85,11 +87,14 @@ export default async function RecebimentoPage({
     operationalIssues,
     receivingTasks,
   );
-  const totalOrders = receivingOrders.length;
+  const filteredReceivingOrders = searchTerm
+    ? receivingOrders.filter((order) => matchesReceivingSearch(order, searchTerm))
+    : receivingOrders;
+  const totalOrders = filteredReceivingOrders.length;
   const totalPages = Math.max(1, Math.ceil(totalOrders / perPage));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * perPage;
-  const paginatedOrders = receivingOrders.slice(
+  const paginatedOrders = filteredReceivingOrders.slice(
     startIndex,
     startIndex + perPage,
   );
@@ -100,6 +105,7 @@ export default async function RecebimentoPage({
     depositante: effectiveDepositanteFilter,
     dataInicial: dateFrom,
     dataFinal: dateTo,
+    q: searchTerm,
     perPage: String(perPage),
   };
 
@@ -558,6 +564,30 @@ function normalizePerPage(value: string | undefined) {
   }
 
   return 10;
+}
+
+function matchesReceivingSearch(order: Awaited<ReturnType<typeof listReceivingOrdersFromDb>>[number], term: string) {
+  const normalizedTerm = normalizeSearchText(term);
+  if (!normalizedTerm) return true;
+
+  return [
+    order.code,
+    order.depositante,
+    order.supplier,
+    order.status,
+    order.eta,
+    order.createdAt,
+    String(order.volumeCount ?? ""),
+    String(order.skuCount ?? ""),
+  ].some((value) => normalizeSearchText(value).includes(normalizedTerm));
+}
+
+function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
 }
 
 function buildQueryString(query: Record<string, string>) {

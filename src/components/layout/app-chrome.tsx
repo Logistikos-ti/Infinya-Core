@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PackageSearch, Search, Settings2, Users, Warehouse } from "lucide-react";
 import type { AppUserContext } from "@/lib/auth";
 import { AppMobileNav } from "@/components/layout/app-mobile-nav";
@@ -17,18 +17,161 @@ type AppChromeProps = {
   user: AppUserContext;
 };
 
+type GlobalSearchConfig = {
+  targetPath: string;
+  param: string;
+  placeholder: string;
+  clearParams?: string[];
+};
+
+function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSearchConfig {
+  if (isCatalogOnly || path.startsWith("/configuracoes/produtos")) {
+    return {
+      targetPath: "/configuracoes",
+      param: "q",
+      placeholder: "Buscar produtos...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/configuracoes/enderecos")) {
+    return {
+      targetPath: "/configuracoes",
+      param: "q",
+      placeholder: "Buscar endereço, rua ou área...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/expedicao")) {
+    return {
+      targetPath: "/expedicao",
+      param: "pedido",
+      placeholder: "Buscar pedido, cliente, NF ou canal...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/estoque")) {
+    return {
+      targetPath: "/estoque",
+      param: "produto",
+      placeholder: "Buscar produto, SKU ou EAN...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/romaneio")) {
+    return {
+      targetPath: "/romaneio",
+      param: "q",
+      placeholder: "Buscar transportadora ou romaneio...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/nfe")) {
+    return {
+      targetPath: "/nfe",
+      param: "q",
+      placeholder: "Buscar NF, chave, emitente ou destinatário...",
+      clearParams: ["page"],
+    };
+  }
+
+  if (path.startsWith("/recebimento")) {
+    return {
+      targetPath: "/recebimento",
+      param: "q",
+      placeholder: "Buscar recebimento ou NF...",
+      clearParams: ["page"],
+    };
+  }
+
+  return {
+    targetPath: "/expedicao",
+    param: "pedido",
+    placeholder: "Buscar pedidos, produtos...",
+    clearParams: ["page"],
+  };
+}
+
 export function AppChrome({ children, user }: AppChromeProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const currentPath = pathname || "/dashboard";
   const isPickingWave = currentPath === "/expedicao/separacao/lote";
   const showAdminMobileShortcuts = isAdminUser(user);
   const isCatalogOnly = isProductCatalogOnlyUser(user);
+  const searchParamsString = searchParams.toString();
+  const globalSearchConfig = useMemo(
+    () => getGlobalSearchConfig(currentPath, isCatalogOnly),
+    [currentPath, isCatalogOnly],
+  );
+  const globalSearchValueFromUrl =
+    searchParams.get(globalSearchConfig.param) ??
+    (globalSearchConfig.targetPath === "/configuracoes" ? searchParams.get("q") : "") ??
+    "";
+  const [globalSearch, setGlobalSearch] = useState(globalSearchValueFromUrl);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(288);
   const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
 
   const [waveCode, setWaveCode] = useState("W-000");
+
+  useEffect(() => {
+    setGlobalSearch(globalSearchValueFromUrl);
+  }, [globalSearchValueFromUrl]);
+
+  const applyGlobalSearch = useCallback(
+    (value: string) => {
+      const normalizedValue = value.trim();
+      const navigatingWithinSameRoute = currentPath === globalSearchConfig.targetPath;
+      const params = new URLSearchParams(navigatingWithinSameRoute ? searchParamsString : "");
+
+      if (globalSearchConfig.targetPath === "/configuracoes") {
+        const tab =
+          currentPath.startsWith("/configuracoes/enderecos") || params.get("tab") === "enderecos"
+            ? "enderecos"
+            : "produtos";
+        params.set("tab", tab);
+      }
+
+      for (const clearParam of globalSearchConfig.clearParams ?? []) {
+        params.delete(clearParam);
+      }
+
+      if (normalizedValue) {
+        params.set(globalSearchConfig.param, normalizedValue);
+      } else {
+        params.delete(globalSearchConfig.param);
+      }
+
+      const query = params.toString();
+      const nextUrl = `${globalSearchConfig.targetPath}${query ? `?${query}` : ""}`;
+      const currentUrl = `${currentPath}${searchParamsString ? `?${searchParamsString}` : ""}`;
+
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl, { scroll: false });
+      }
+    },
+    [currentPath, globalSearchConfig, router, searchParamsString],
+  );
+
+  useEffect(() => {
+    if (isPickingWave || currentPath.startsWith("/expedicao/conferencia")) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      applyGlobalSearch(globalSearch);
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, [applyGlobalSearch, currentPath, globalSearch, isPickingWave]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -109,7 +252,15 @@ useEffect(() => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder={isCatalogOnly ? "Buscar produtos..." : "Buscar pedidos, produtos..."} 
+                  value={globalSearch}
+                  onChange={(event) => setGlobalSearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      applyGlobalSearch(globalSearch);
+                    }
+                  }}
+                  placeholder={globalSearchConfig.placeholder}
                   className="w-full rounded-full border border-white/10 bg-[#071120]/70 py-2 pl-10 pr-4 text-sm text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 lg:border-slate-200/80 lg:bg-white/70 lg:text-slate-900 dark:border-white/10 dark:bg-[#071120]/70 dark:text-white"
                 />
               </div>
