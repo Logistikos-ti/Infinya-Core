@@ -47,6 +47,8 @@ type ProdutosDashboardProps = {
   paginationSlot?: React.ReactNode;
   filtersSlot?: React.ReactNode;
   importSlot?: React.ReactNode;
+  searchTerm?: string;
+  backButtonSlot?: React.ReactNode;
 };
 
 export function ProdutosDashboard({
@@ -58,6 +60,8 @@ export function ProdutosDashboard({
   paginationSlot,
   filtersSlot,
   importSlot,
+  searchTerm = "",
+  backButtonSlot,
 }: ProdutosDashboardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
@@ -162,9 +166,24 @@ export function ProdutosDashboard({
   const [activeCat, setActiveCat] = useState("Todas");
 
   const filteredProdutos = useMemo(() => {
-    if (activeCat === "Todas") return enrichedProdutos;
-    return enrichedProdutos.filter(p => p.category === activeCat);
-  }, [activeCat, enrichedProdutos]);
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    return enrichedProdutos.filter((p) => {
+      const matchesCategory = activeCat === "Todas" || p.category === activeCat;
+      if (!matchesCategory) return false;
+      if (!normalizedSearch) return true;
+
+      return [
+        p.nome,
+        p.sku,
+        p.codigo_interno,
+        p.codigo_externo,
+        p.depositante_nome,
+        p.category,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch));
+    });
+  }, [activeCat, enrichedProdutos, searchTerm]);
 
   const hex2 = (h: string, a: number) => {
     if (!h.startsWith("#")) h = "#64748b";
@@ -266,13 +285,16 @@ export function ProdutosDashboard({
       {/* Header and Toggles */}
       <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub }}>
-            <span>Estoque</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
+          <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub, paddingLeft: backButtonSlot ? "52px" : "0" }}>
+            <span>{backButtonSlot ? "Configurações" : "Estoque"}</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
           </div>
-          <h1 className={`${spaceGrotesk.className} text-[28px] font-bold m-0 leading-tight`}>
-            Catálogo de produtos
-          </h1>
-          <p className="m-0 text-[14.5px]" style={{ color: t.textSub }}>
+          <div className="flex items-center gap-3">
+            {backButtonSlot}
+            <h1 className={`${spaceGrotesk.className} text-[28px] font-bold m-0 leading-tight`}>
+              Catálogo de produtos
+            </h1>
+          </div>
+          <p className="m-0 text-[14.5px]" style={{ color: t.textSub, paddingLeft: backButtonSlot ? "52px" : "0" }}>
             SKUs cadastrados, níveis de estoque, curva ABC e status de disponibilidade.
           </p>
         </div>
