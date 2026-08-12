@@ -175,6 +175,7 @@ export async function POST(request: Request) {
   const previsao = previstoPara || extractForecastDate(parsedXml.issuedAt);
   const observacoes = [
     `Pedido criado por importação de XML da NF-e ${parsedXml.noteNumber}.`,
+    transportadora ? `Transportadora: ${transportadora}` : "",
     horarioPrevisto ? `Horário previsto: ${horarioPrevisto}` : "",
     observacoesPortal ? `Observações: ${observacoesPortal}` : "",
   ]
