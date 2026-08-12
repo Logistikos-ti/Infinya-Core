@@ -692,7 +692,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 <button
                   type="button"
                   onClick={closeDrawer}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 hover:shadow-lg hover:shadow-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-violet-400/50 dark:hover:bg-violet-500/10 dark:hover:text-white"
                   aria-label="Fechar"
                 >
                   <X className="h-4 w-4" />
@@ -724,7 +724,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`flex w-full items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed p-5 text-left transition hover:border-violet-500 ${xmlFile ? "border-emerald-500 bg-emerald-500/10" : "border-slate-300 bg-slate-50 dark:border-white/20 dark:bg-white/5"}`}
+                    className={`flex w-full items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed p-5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400 hover:bg-cyan-50 hover:shadow-xl hover:shadow-cyan-500/15 dark:hover:border-cyan-300/70 dark:hover:bg-cyan-500/10 ${xmlFile ? "border-emerald-500 bg-emerald-500/10" : "border-slate-300 bg-slate-50 dark:border-white/20 dark:bg-white/5"}`}
                   >
                     <span
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${xmlFile ? "bg-emerald-500/15 text-emerald-500" : "bg-blue-500/15 text-blue-500"}`}
@@ -994,7 +994,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-bold text-slate-800 transition hover:border-violet-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-5 text-sm font-bold text-slate-800 transition duration-200 hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700 hover:shadow-lg hover:shadow-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:border-violet-400/50 dark:hover:bg-violet-500/10"
               >
                 Cancelar
               </button>
@@ -1002,7 +1002,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 type="button"
                 onClick={submitRequest}
                 disabled={saving}
-                className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
               >
                 <span className="text-lg leading-none">⇢</span>
                 {saving ? <MobileButtonSpinner /> : "Enviar solicitação"}
@@ -1047,7 +1047,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:text-violet-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 hover:shadow-lg hover:shadow-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-violet-400/50 dark:hover:bg-violet-500/10 dark:hover:text-white"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
