@@ -52,6 +52,7 @@ export const produtoFormSchema = z
       .optional()
       .or(z.literal("")),
     tipoProduto: z.enum(["SIMPLES", "KIT"]).default("SIMPLES"),
+    enderecoPadraoId: z.string().uuid().optional().or(z.literal("")),
     metodoRetirada: z.enum(["FEFO", "FIFO", "LIFO"]),
     unidadeEstocagem: z.enum(["UNIDADE", "CAIXA", "PACK", "PALLET"]),
     quantidadePorEmbalagem: z.coerce.number().int().positive().optional(),

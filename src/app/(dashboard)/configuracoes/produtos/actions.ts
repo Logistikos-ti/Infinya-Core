@@ -81,6 +81,7 @@ export async function saveProdutoAction(
     categoria: String(formData.get("categoria") ?? "").trim(),
     tamanho: String(formData.get("tamanho") ?? "").trim(),
     tipoProduto: String(formData.get("tipoProduto") ?? "SIMPLES"),
+    enderecoPadraoId: String(formData.get("enderecoPadraoId") ?? "").trim(),
     metodoRetirada: String(formData.get("metodoRetirada") ?? "FEFO"),
     unidadeEstocagem: String(formData.get("unidadeEstocagem") ?? "UNIDADE"),
     quantidadePorEmbalagem: quantidadePorEmbalagemRaw ? Number(quantidadePorEmbalagemRaw) : undefined,
@@ -239,6 +240,7 @@ export async function saveProdutoAction(
       categoria: parsed.data.categoria || null,
       tamanho: parsed.data.tamanho || null,
       metodo_retirada: parsed.data.metodoRetirada,
+      endereco_padrao_id: parsed.data.enderecoPadraoId || null,
       unidade_estocagem: parsed.data.unidadeEstocagem,
       quantidade_por_embalagem:
         parsed.data.unidadeEstocagem === "CAIXA" || parsed.data.unidadeEstocagem === "PACK" || normalizedPackEan
@@ -474,6 +476,10 @@ async function updateProductWithFallback(
     return updateProductWithFallback(adminSupabase, id, withoutPackagingQuantity(payload));
   }
 
+  if (result.error && isMissingEnderecoPadraoColumnError(result.error.message)) {
+    return updateProductWithFallback(adminSupabase, id, withoutEnderecoPadrao(payload));
+  }
+
   return result;
 }
 
@@ -485,6 +491,10 @@ async function insertProductWithFallback(
 
   if (result.error && isMissingPackagingColumnError(result.error.message)) {
     return insertProductWithFallback(adminSupabase, withoutPackagingQuantity(payload));
+  }
+
+  if (result.error && isMissingEnderecoPadraoColumnError(result.error.message)) {
+    return insertProductWithFallback(adminSupabase, withoutEnderecoPadrao(payload));
   }
 
   return result;
@@ -598,6 +608,16 @@ function isMissingPackagingColumnError(message: string) {
 function withoutPackagingQuantity<T extends Record<string, unknown>>(payload: T) {
   const rest = { ...payload };
   delete rest.quantidade_por_embalagem;
+  return rest;
+}
+
+function isMissingEnderecoPadraoColumnError(message: string) {
+  return message.includes("endereco_padrao_id");
+}
+
+function withoutEnderecoPadrao<T extends Record<string, unknown>>(payload: T) {
+  const rest = { ...payload };
+  delete rest.endereco_padrao_id;
   return rest;
 }
 

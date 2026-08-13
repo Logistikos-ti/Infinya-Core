@@ -21,6 +21,26 @@ type EditarProdutoPageProps = {
 
 export const dynamic = "force-dynamic";
 
+async function fetchProductForEdit(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  id: string,
+) {
+  const fullSelect =
+    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
+  const result = await adminSupabase.from("produtos").select(fullSelect).eq("id", id).maybeSingle();
+
+  // "endereco_padrao_id" may not exist yet in an environment that hasn't run
+  // the matching migration: fall back to the previous select instead of
+  // breaking the whole edit page over one missing column.
+  if (result.error && result.error.message.includes("endereco_padrao_id")) {
+    const fallbackSelect =
+      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
+    return adminSupabase.from("produtos").select(fallbackSelect).eq("id", id).maybeSingle();
+  }
+
+  return result;
+}
+
 export default async function EditarProdutoPage({ params, searchParams }: EditarProdutoPageProps) {
   noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
@@ -33,22 +53,18 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     { data: product },
     { data: productImageMeta },
     { data: depositantes },
+    { data: enderecos },
     { data: componentOptions },
     { data: commercialRules },
   ] = await Promise.all([
-    adminSupabase
-      .from("produtos")
-      .select(
-        "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
-      )
-      .eq("id", id)
-      .maybeSingle(),
+    fetchProductForEdit(adminSupabase, id),
     adminSupabase
       .from("produtos")
       .select("imagem_principal_url, imagem_principal_storage_path")
       .eq("id", id)
       .maybeSingle(),
     adminSupabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
+    adminSupabase.from("enderecos").select("id, codigo, area").eq("ativo", true).order("codigo"),
     adminSupabase
       .from("produtos")
       .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
@@ -81,6 +97,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     String(product.exige_lote),
     String(product.exige_validade),
     String(product.ativo),
+    (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? "",
   ].join("|");
 
   return (
@@ -89,6 +106,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
         <ProdutoForm
           key={formKey}
           depositantes={visibleDepositantes}
+          enderecos={enderecos ?? []}
           productKitEnabled={false}
           compactMode={compactMode}
           defaultValues={{
@@ -111,6 +129,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
             pontoReposicao: product.ponto_reposicao ?? null,
             custoReposicao: product.custo_reposicao ?? null,
             tipoProduto: "SIMPLES",
+            enderecoPadraoId: (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? null,
             metodoRetirada: product.metodo_retirada,
             unidadeEstocagem: product.unidade_estocagem,
             quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,

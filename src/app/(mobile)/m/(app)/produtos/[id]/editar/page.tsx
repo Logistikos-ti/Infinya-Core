@@ -23,6 +23,26 @@ type MobileEditarProdutoPageProps = {
 
 export const dynamic = "force-dynamic";
 
+async function fetchProductForEdit(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  id: string,
+) {
+  const fullSelect =
+    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
+  const result = await supabase.from("produtos").select(fullSelect).eq("id", id).maybeSingle();
+
+  // "endereco_padrao_id" may not exist yet in an environment that hasn't run
+  // the matching migration: fall back to the previous select instead of
+  // breaking the whole edit page over one missing column.
+  if (result.error && result.error.message.includes("endereco_padrao_id")) {
+    const fallbackSelect =
+      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
+    return supabase.from("produtos").select(fallbackSelect).eq("id", id).maybeSingle();
+  }
+
+  return result;
+}
+
 export default async function MobileEditarProdutoPage({ params, searchParams }: MobileEditarProdutoPageProps) {
   noStore();
   const user = await requireConfigSectionAccess("produtos");
@@ -35,22 +55,18 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
     { data: product },
     { data: productImageMeta },
     { data: depositantes },
+    { data: enderecos },
     { data: componentOptions },
     { data: commercialRules },
   ] = await Promise.all([
-    supabase
-      .from("produtos")
-      .select(
-        "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo",
-      )
-      .eq("id", id)
-      .maybeSingle(),
+    fetchProductForEdit(supabase, id),
     supabase
       .from("produtos")
       .select("imagem_principal_url, imagem_principal_storage_path")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("depositantes").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("enderecos").select("id, codigo, area").eq("ativo", true).order("codigo"),
     supabase
       .from("produtos")
       .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
@@ -83,6 +99,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
     String(product.exige_lote),
     String(product.exige_validade),
     String(product.ativo),
+    (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? "",
   ].join("|");
 
   return (
@@ -106,6 +123,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
       <ProdutoForm
         key={formKey}
         depositantes={visibleDepositantes}
+        enderecos={enderecos ?? []}
         productKitEnabled={false}
         commercialKitEnabled
         compactMode={compactMode}
@@ -120,6 +138,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
           eanGtinPack: product.codigo_externo_pack ?? "",
           categoria: product.categoria ?? "",
           tipoProduto: "SIMPLES",
+          enderecoPadraoId: (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? null,
           metodoRetirada: product.metodo_retirada,
           unidadeEstocagem: product.unidade_estocagem,
           quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,

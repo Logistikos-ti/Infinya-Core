@@ -16,6 +16,11 @@ export default async function MobileNovoProdutoPage() {
     .select("id, nome")
     .eq("ativo", true)
     .order("nome");
+  const { data: enderecos } = await supabase
+    .from("enderecos")
+    .select("id, codigo, area")
+    .eq("ativo", true)
+    .order("codigo");
   const { data: productOptions } = await supabase
     .from("produtos")
     .select("id, depositante_id, nome, sku, codigo_interno, codigo_externo")
@@ -46,6 +51,7 @@ export default async function MobileNovoProdutoPage() {
 
       <ProdutoForm
         depositantes={visibleDepositantes}
+        enderecos={enderecos ?? []}
         productKitEnabled={false}
         commercialKitEnabled
         productOptions={(productOptions ?? []).map((item) => ({

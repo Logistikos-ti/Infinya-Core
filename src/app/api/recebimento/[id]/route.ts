@@ -18,6 +18,7 @@ type ProductRelation =
       exige_lote?: boolean;
       exige_validade?: boolean;
       metodo_retirada?: "FEFO" | "FIFO" | "LIFO";
+      endereco_padrao_id?: string | null;
     }
   | Array<{
       sku?: string;
@@ -25,6 +26,7 @@ type ProductRelation =
       exige_lote?: boolean;
       exige_validade?: boolean;
       metodo_retirada?: "FEFO" | "FIFO" | "LIFO";
+      endereco_padrao_id?: string | null;
     }>
   | null;
 
@@ -55,6 +57,7 @@ type NormalizedConferenceItem = {
   productSku: string;
   productName: string;
   withdrawalMethod: "FEFO" | "FIFO" | "LIFO";
+  enderecoPadraoId: string | null;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
@@ -99,13 +102,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const adminSupabase = createSupabaseAdminClient();
-  const { data: orderData, error: orderError } = await adminSupabase
+  let { data: orderData, error: orderError } = await adminSupabase
     .from("pedidos_recebimento")
     .select(
-      "id, codigo, status, depositante_id, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada))",
+      "id, codigo, status, depositante_id, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada, endereco_padrao_id))",
     )
     .eq("id", id)
     .maybeSingle();
+
+  // The "endereco_padrao_id" column may not exist yet in an environment that
+  // hasn't run the matching migration: fall back to the previous select so
+  // receiving keeps working (every item just uses the staging address) until
+  // that migration is applied.
+  if (orderError && isMissingEnderecoPadraoColumnError(orderError.message)) {
+    ({ data: orderData, error: orderError } = await adminSupabase
+      .from("pedidos_recebimento")
+      .select(
+        "id, codigo, status, depositante_id, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada))",
+      )
+      .eq("id", id)
+      .maybeSingle());
+  }
 
   if (orderError || !orderData) {
     return NextResponse.json(
@@ -180,6 +197,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         productSku: extractProductField(current.produto, "sku") ?? "SKU",
         productName: extractProductField(current.produto, "nome") ?? "Produto",
         withdrawalMethod,
+        enderecoPadraoId: extractProductField(current.produto, "endereco_padrao_id"),
       };
     });
   } catch (error) {
@@ -278,15 +296,55 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: divergenceSyncError }, { status: 500 });
   }
 
+  // Tracks whether any item fell back to the shared staging address (no
+  // registered address on its product, or a deactivated one), so the final
+  // response message can describe where stock actually landed.
+  let usedFallbackAddress = false;
+
   if (parsed.data.finalizar) {
+    // Items whose product has a registered address go straight there instead
+    // of the shared receiving/staging address. Guard against an address that
+    // was deactivated after being set on the product: only trust it if it's
+    // still active, otherwise fall back like an unset address would.
+    const registeredEnderecoIds = [
+      ...new Set(
+        normalizedItems
+          .map((item) => item.enderecoPadraoId)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ];
+    const activeRegisteredEnderecoIds = new Set<string>();
+
+    if (registeredEnderecoIds.length > 0) {
+      const { data: activeEnderecos } = await adminSupabase
+        .from("enderecos")
+        .select("id")
+        .in("id", registeredEnderecoIds)
+        .eq("ativo", true);
+
+      for (const row of activeEnderecos ?? []) {
+        activeRegisteredEnderecoIds.add(row.id);
+      }
+    }
+
     for (const item of normalizedItems) {
       if (item.received <= 0) continue;
+
+      const hasValidRegisteredEndereco =
+        item.enderecoPadraoId !== null && activeRegisteredEnderecoIds.has(item.enderecoPadraoId);
+      const destinationEnderecoId = hasValidRegisteredEndereco
+        ? (item.enderecoPadraoId as string)
+        : parsed.data.enderecoId;
+
+      if (!hasValidRegisteredEndereco) {
+        usedFallbackAddress = true;
+      }
 
       const existingStock = await findExistingStock(
         adminSupabase,
         order.depositante_id,
         item.produtoId,
-        parsed.data.enderecoId,
+        destinationEnderecoId,
         item.lote,
         item.validadeEm,
       );
@@ -313,7 +371,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           .insert({
             depositante_id: order.depositante_id,
             produto_id: item.produtoId,
-            endereco_id: parsed.data.enderecoId,
+            endereco_id: destinationEnderecoId,
             lote: item.lote,
             validade_em: item.validadeEm,
             quantidade: item.received,
@@ -335,12 +393,14 @@ export async function PATCH(request: Request, context: RouteContext) {
         depositante_id: order.depositante_id,
         estoque_id: estoqueId,
         produto_id: item.produtoId,
-        endereco_destino_id: parsed.data.enderecoId,
+        endereco_destino_id: destinationEnderecoId,
         tipo: "ENTRADA",
         quantidade: item.received,
         referencia_tipo: "PEDIDO_RECEBIMENTO",
         referencia_id: order.id,
-        observacoes: `Entrada automática no estoque pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}.`,
+        observacoes: hasValidRegisteredEndereco
+          ? `Entrada automática no endereço cadastrado do produto pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}.`
+          : `Entrada automática no estoque pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}.`,
         criado_por: auth.user.id,
       });
 
@@ -361,22 +421,32 @@ export async function PATCH(request: Request, context: RouteContext) {
       .eq("pedido_recebimento_id", order.id)
       .in("status", ["PENDENTE", "EM_ANDAMENTO"]);
 
-    const enderecamentoTaskError = await ensureEnderecamentoTask({
-      adminSupabase,
-      order,
-      addressCode: address.codigo,
-    });
+    // Only open the pending "endereçamento" task when at least one item
+    // still landed in the shared staging address (no registered address of
+    // its own, or a deactivated one). If every item went straight to its
+    // product's own address, there's nothing left to manually put away.
+    if (usedFallbackAddress) {
+      const enderecamentoTaskError = await ensureEnderecamentoTask({
+        adminSupabase,
+        order,
+        addressCode: address.codigo,
+      });
 
-    if (enderecamentoTaskError) {
-      return NextResponse.json({ error: enderecamentoTaskError }, { status: 500 });
+      if (enderecamentoTaskError) {
+        return NextResponse.json({ error: enderecamentoTaskError }, { status: 500 });
+      }
     }
   }
+
+  const finalizedLocationMessage = usedFallbackAddress
+    ? `lançado no estoque nos endereços cadastrados dos produtos (itens sem endereço próprio foram para ${address.codigo})`
+    : "lançado no estoque nos endereços cadastrados dos produtos";
 
   return NextResponse.json({
     message: parsed.data.finalizar
       ? hasDivergence
-        ? `Recebimento concluído com divergência e lançado no estoque em ${address.codigo}.`
-        : `Recebimento concluído e lançado no estoque em ${address.codigo}.`
+        ? `Recebimento concluído com divergência e ${finalizedLocationMessage}.`
+        : `Recebimento concluído e ${finalizedLocationMessage}.`
       : hasDivergence
         ? "Conferência salva com divergência já registrada para tratativa."
         : "Conferência salva com sucesso.",
@@ -417,12 +487,16 @@ function extractProductBoolean(
   return Boolean(value?.[field]);
 }
 
-function extractProductField(value: ProductRelation, field: "sku" | "nome") {
+function extractProductField(value: ProductRelation, field: "sku" | "nome" | "endereco_padrao_id") {
   if (Array.isArray(value)) {
     return typeof value[0]?.[field] === "string" ? value[0][field] : null;
   }
 
   return value && typeof value[field] === "string" ? value[field] : null;
+}
+
+function isMissingEnderecoPadraoColumnError(message: string) {
+  return message.includes("endereco_padrao_id");
 }
 
 function extractWithdrawalMethod(value: ProductRelation): "FEFO" | "FIFO" | "LIFO" {

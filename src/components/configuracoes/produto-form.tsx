@@ -18,9 +18,11 @@ import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
 type DepositanteOption = { id: string; nome: string };
+type EnderecoOption = { id: string; codigo: string; area: string };
 
 type ProdutoFormProps = {
   depositantes: DepositanteOption[];
+  enderecos?: EnderecoOption[];
   productOptions: ProductKitComponentOption[];
   productKitEnabled?: boolean;
   commercialKitEnabled?: boolean;
@@ -37,6 +39,7 @@ type ProdutoFormProps = {
     categoria?: string;
     fornecedor?: string;
     tipoProduto?: "SIMPLES" | "KIT";
+    enderecoPadraoId?: string | null;
     metodoRetirada?: "FEFO" | "FIFO" | "LIFO";
     unidadeEstocagem?: "UNIDADE" | "CAIXA" | "PACK" | "PALLET";
     quantidadePorEmbalagem?: number | null;
@@ -59,8 +62,26 @@ type ProdutoFormProps = {
   };
 };
 
+function enderecoAreaLabel(area: string) {
+  switch (area) {
+    case "RECEBIMENTO":
+      return "Recebimento";
+    case "PULMAO":
+      return "Armazenagem";
+    case "PICKING":
+      return "Picking";
+    case "BLOQUEADO":
+      return "Bloqueado";
+    case "EXPEDICAO":
+      return "Expedição";
+    default:
+      return area;
+  }
+}
+
 export function ProdutoForm({
   depositantes,
+  enderecos = [],
   productOptions,
   productKitEnabled = false,
   commercialKitEnabled = false,
@@ -92,6 +113,7 @@ export function ProdutoForm({
   const [categoria, setCategoria] = useState(defaultValues?.categoria ?? "Seco / Ambiente");
   const [tamanho, setTamanho] = useState((defaultValues as any)?.tamanho ?? "");
   const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(defaultValues?.metodoRetirada ?? "FEFO");
+  const [enderecoPadraoId, setEnderecoPadraoId] = useState(defaultValues?.enderecoPadraoId ?? "");
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<"UNIDADE" | "CAIXA" | "PACK" | "PALLET">(defaultValues?.unidadeEstocagem ?? "UNIDADE");
   const [quantidadePorEmbalagem, setQuantidadePorEmbalagem] = useState(defaultValues?.quantidadePorEmbalagem?.toString() ?? "");
   
@@ -601,6 +623,18 @@ export function ProdutoForm({
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[13px] font-bold text-slate-500">Endereço padrão</span>
+                <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                  <select name="enderecoPadraoId" value={enderecoPadraoId} onChange={e => setEnderecoPadraoId(e.target.value)}
+                    className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
+                    <option value="">Nenhum (usa o endereço de triagem no recebimento)</option>
+                    {enderecos.map(e => <option key={e.id} value={e.id}>{e.codigo} · {enderecoAreaLabel(e.area)}</option>)}
+                  </select>
+                </div>
+                <span className="text-[12px] text-slate-400">Ao concluir um recebimento, as unidades deste produto vão direto para este endereço em vez do endereço de triagem padrão.</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
