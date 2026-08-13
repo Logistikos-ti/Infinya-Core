@@ -251,6 +251,12 @@ export function PortalChrome({
         params.delete(nextKey);
       }
 
+      // Se a pesquisa mudou em relação ao que está na URL, limpa a paginação
+      const currentSearchValue = new URLSearchParams(searchParamsString).get(nextKey) ?? "";
+      if (currentSearchValue !== normalizedSearch) {
+        params.delete("page");
+      }
+
       const nextUrl = `${pathname}?${params.toString()}`;
       const currentUrl = `${pathname}?${searchParamsString}`;
       if (nextUrl !== currentUrl) {
