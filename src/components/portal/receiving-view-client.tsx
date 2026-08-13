@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, FileText, Link2, PackagePlus, Plus, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, Check, Clock, FileText, Link2, PackagePlus, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
@@ -1258,6 +1258,23 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   </label>
                 </>
               )}
+
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 text-sm text-amber-900 shadow-sm dark:border-amber-400/40 dark:bg-amber-500/10 dark:text-amber-100">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/20 text-amber-600 dark:bg-amber-400/15 dark:text-amber-200">
+                    <AlertTriangle className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-bold">Atenção sobre lote e validade</p>
+                    <p className="mt-1 leading-relaxed text-amber-800/90 dark:text-amber-100/80">
+                      O recebimento pode ser enviado sem lote e validade. Porém, quando os produtos exigirem
+                      esse controle e as informações não vierem no XML ou na solicitação, a equipe operacional
+                      poderá tratar o preenchimento manualmente, gerando possível custo adicional na próxima
+                      fatura.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               {error ? (
                 <p className="rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
