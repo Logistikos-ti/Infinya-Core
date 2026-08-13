@@ -297,12 +297,41 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: divergenceSyncError }, { status: 500 });
   }
 
+  let quarantinedItemCount = 0;
+
+  if (parsed.data.finalizar && hasDivergence) {
+    const quarantineResult = await createReceivingQuarantineRows({
+      adminSupabase,
+      authUserId: auth.user.id,
+      order,
+      normalizedItems,
+      enderecoId: parsed.data.enderecoId,
+      addressCode: address.codigo,
+    });
+
+    if (quarantineResult.error) {
+      return NextResponse.json({ error: quarantineResult.error }, { status: 500 });
+    }
+
+    quarantinedItemCount = quarantineResult.createdCount;
+
+    await adminSupabase
+      .from("recebimento_tarefas")
+      .update({
+        status: "CONCLUIDA",
+        concluido_em: new Date().toISOString(),
+      })
+      .eq("pedido_recebimento_id", order.id)
+      .neq("tipo", "TRATATIVA_DIVERGENCIA")
+      .in("status", ["PENDENTE", "EM_ANDAMENTO"]);
+  }
+
   // Tracks whether any item fell back to the shared staging address (no
   // registered address on its product, or a deactivated one), so the final
   // response message can describe where stock actually landed.
   let usedFallbackAddress = false;
 
-  if (parsed.data.finalizar) {
+  if (parsed.data.finalizar && !hasDivergence) {
     // Items whose product has a registered address go straight there instead
     // of the shared receiving/staging address. Guard against an address that
     // was deactivated after being set on the product: only trust it if it's
@@ -457,14 +486,18 @@ export async function PATCH(request: Request, context: RouteContext) {
     ? `lançado no estoque nos endereços cadastrados dos produtos (itens sem endereço próprio foram para ${address.codigo})`
     : "lançado no estoque nos endereços cadastrados dos produtos";
 
+  const responseMessage = parsed.data.finalizar
+    ? hasDivergence
+      ? quarantinedItemCount > 0
+        ? "Recebimento finalizado com divergencia. O material recebido foi bloqueado em quarentena ate a correcao da nota fiscal pelo depositante."
+        : "Recebimento finalizado com divergencia. A falta foi registrada para correcao da nota fiscal pelo depositante."
+      : `Recebimento concluido e ${finalizedLocationMessage}.`
+    : hasDivergence
+      ? "Conferencia salva com divergencia ja registrada para tratativa."
+      : "Conferencia salva com sucesso.";
+
   return NextResponse.json({
-    message: parsed.data.finalizar
-      ? hasDivergence
-        ? `Recebimento concluído com divergência e ${finalizedLocationMessage}.`
-        : `Recebimento concluído e ${finalizedLocationMessage}.`
-      : hasDivergence
-        ? "Conferência salva com divergência já registrada para tratativa."
-        : "Conferência salva com sucesso.",
+    message: responseMessage,
     status: orderStatus,
   });
 }
@@ -544,6 +577,74 @@ async function findExistingStock(
 
   const { data } = await query.maybeSingle();
   return data;
+}
+
+async function createReceivingQuarantineRows({
+  adminSupabase,
+  authUserId,
+  order,
+  normalizedItems,
+  enderecoId,
+  addressCode,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  authUserId: string;
+  order: RawConferenceOrder;
+  normalizedItems: NormalizedConferenceItem[];
+  enderecoId: string;
+  addressCode: string;
+}): Promise<{ createdCount: number; error: string | null }> {
+  const rows = normalizedItems
+    .filter((item) => item.received > 0)
+    .map((item) => ({
+      depositante_id: order.depositante_id,
+      produto_id: item.produtoId,
+      estoque_id: null,
+      endereco_id: enderecoId,
+      quantidade: item.received,
+      motivo: buildReceivingQuarantineReason(order.codigo, item, addressCode),
+      status: "EM_QUARENTENA",
+      criado_por: authUserId,
+    }));
+
+  if (rows.length === 0) {
+    return { createdCount: 0, error: null };
+  }
+
+  const { data: existingRows, error: existingError } = await adminSupabase
+    .from("estoque_quarentena")
+    .select("id")
+    .eq("depositante_id", order.depositante_id)
+    .eq("status", "EM_QUARENTENA")
+    .ilike("motivo", `%${order.codigo}%`);
+
+  if (existingError) {
+    return { createdCount: 0, error: `Falha ao verificar quarentena do recebimento: ${existingError.message}` };
+  }
+
+  if ((existingRows ?? []).length >= rows.length) {
+    return { createdCount: existingRows?.length ?? 0, error: null };
+  }
+
+  const { error } = await adminSupabase.from("estoque_quarentena").insert(rows);
+
+  if (error) {
+    return { createdCount: 0, error: `Falha ao enviar recebimento para quarentena: ${error.message}` };
+  }
+
+  return { createdCount: rows.length, error: null };
+}
+
+function buildReceivingQuarantineReason(orderCode: string, item: NormalizedConferenceItem, addressCode: string) {
+  const issue = getIssueType(item.expected, item.received);
+  const issueLabel = issue === "SOBRA" ? "sobra" : issue === "FALTA" ? "falta" : "divergência";
+
+  return [
+    `Recebimento ${orderCode} com ${issueLabel}.`,
+    `Produto ${item.productSku} - ${item.productName}.`,
+    `Previsto: ${item.expected}; recebido: ${item.received}.`,
+    `Material físico bloqueado em quarentena no endereço ${addressCode} até correção da nota fiscal pelo depositante.`,
+  ].join(" ");
 }
 
 async function syncDivergenceWorkflow({
