@@ -154,6 +154,9 @@ export async function POST(request: Request) {
       quantidade: item.quantidade,
       origemCodigo: item.codigo,
       origemEan: item.ean,
+      lote: item.lote,
+      validadeEm: item.validadeEm,
+      lotes: item.lotes,
     });
   }
 
@@ -174,23 +177,28 @@ export async function POST(request: Request) {
   }
   const groupedItems = new Map<
     string,
-    { productId: string; quantidade: number; sku: string; nome: string }
+    {
+      productId: string;
+      quantidade: number;
+      sku: string;
+      nome: string;
+      lote: string | null;
+      validadeEm: string | null;
+    }
   >();
 
   for (const item of resolvedMatched) {
-    const existing = groupedItems.get(item.productId);
+    for (const line of expandMatchedReceivingItem(item)) {
+      const key = [line.productId, line.lote ?? "", line.validadeEm ?? ""].join("|");
+      const existing = groupedItems.get(key);
 
-    if (existing) {
-      existing.quantidade += item.quantidade;
-      continue;
+      if (existing) {
+        existing.quantidade += line.quantidade;
+        continue;
+      }
+
+      groupedItems.set(key, line);
     }
-
-    groupedItems.set(item.productId, {
-      productId: item.productId,
-      quantidade: item.quantidade,
-      sku: item.sku,
-      nome: item.nome,
-    });
   }
 
   const code = await generateReceivingCode(adminSupabase, depositante.nome);
@@ -238,6 +246,8 @@ export async function POST(request: Request) {
       status: "PENDENTE",
       quantidade_prevista: item.quantidade,
       quantidade_recebida: 0,
+      lote: item.lote,
+      validade_em: item.validadeEm,
     })),
   );
 
@@ -300,6 +310,58 @@ export async function POST(request: Request) {
   );
 }
 
+function expandMatchedReceivingItem(item: {
+  productId: string;
+  quantidade: number;
+  sku: string;
+  nome: string;
+  lote?: string | null;
+  validadeEm?: string | null;
+  lotes?: Array<{ lote: string | null; validadeEm: string | null; quantidade: number | null }>;
+}) {
+  const lotes = item.lotes?.filter((lot) => lot.lote || lot.validadeEm) ?? [];
+
+  if (!lotes.length) {
+    return [
+      {
+        productId: item.productId,
+        quantidade: item.quantidade,
+        sku: item.sku,
+        nome: item.nome,
+        lote: item.lote ?? null,
+        validadeEm: item.validadeEm ?? null,
+      },
+    ];
+  }
+
+  if (lotes.length === 1) {
+    return [
+      {
+        productId: item.productId,
+        quantidade: lotes[0].quantidade && lotes[0].quantidade > 0 ? lotes[0].quantidade : item.quantidade,
+        sku: item.sku,
+        nome: item.nome,
+        lote: lotes[0].lote,
+        validadeEm: lotes[0].validadeEm,
+      },
+    ];
+  }
+
+  const totalLotsQuantity = lotes.reduce((sum, lot) => sum + (lot.quantidade ?? 0), 0);
+  const lotsWithoutQuantity = lotes.filter((lot) => !lot.quantidade || lot.quantidade <= 0).length;
+  const remainingQuantity = Math.max(item.quantidade - totalLotsQuantity, 0);
+  const fallbackQuantity = lotsWithoutQuantity > 0 ? remainingQuantity / lotsWithoutQuantity : item.quantidade / lotes.length;
+
+  return lotes.map((lot) => ({
+    productId: item.productId,
+    quantidade: lot.quantidade && lot.quantidade > 0 ? lot.quantidade : fallbackQuantity,
+    sku: item.sku,
+    nome: item.nome,
+    lote: lot.lote,
+    validadeEm: lot.validadeEm,
+  }));
+}
+
 function extractForecastDate(issuedAt: string | null) {
   if (issuedAt && /^\d{4}-\d{2}-\d{2}/.test(issuedAt)) {
     return issuedAt.slice(0, 10);
@@ -308,8 +370,14 @@ function extractForecastDate(issuedAt: string | null) {
   return new Date().toISOString().slice(0, 10);
 }
 
-function createXmlItemKey(item: { codigo: string | null; ean: string | null; descricao: string }) {
-  return [item.codigo ?? "", item.ean ?? "", item.descricao]
+function createXmlItemKey(item: {
+  codigo: string | null;
+  ean: string | null;
+  descricao: string;
+  lote?: string | null;
+  validadeEm?: string | null;
+}) {
+  return [item.codigo ?? "", item.ean ?? "", item.descricao, item.lote ?? "", item.validadeEm ?? ""]
     .map((value) => value.trim().toLocaleLowerCase("pt-BR"))
     .join("|");
 }

@@ -5,6 +5,9 @@ export type ImportedNfeItem = {
   ean: string | null;
   descricao: string;
   quantidade: number;
+  lote: string | null;
+  validadeEm: string | null;
+  lotes: ImportedNfeLot[];
   ncm: string | null;
   cfop: string | null;
   cstCsosn: string | null;
@@ -12,6 +15,12 @@ export type ImportedNfeItem = {
   ipiValue: number;
   pisValue: number;
   cofinsValue: number;
+};
+
+export type ImportedNfeLot = {
+  lote: string | null;
+  validadeEm: string | null;
+  quantidade: number | null;
 };
 
 export type ParsedNfe = {
@@ -258,6 +267,9 @@ export function matchNfeProductsToCatalog(
       quantidade: item.quantidade,
       origemCodigo: item.codigo,
       origemEan: item.ean,
+      lote: item.lote,
+      validadeEm: item.validadeEm,
+      lotes: item.lotes,
     });
   }
 
@@ -277,11 +289,17 @@ function mapNfeItem(item: Record<string, unknown> | null | undefined) {
     return null;
   }
 
+  const lotes = extractProductLots(prod);
+  const firstLot = lotes[0] ?? null;
+
   return {
     codigo: cleanString(prod.cProd),
     ean: cleanString(prod.cEANTrib) ?? cleanString(prod.cEAN),
     descricao: cleanString(prod.xProd) ?? "Produto sem descricao",
     quantidade: toPositiveNumber(prod.qCom ?? prod.qTrib ?? 0),
+    lote: firstLot?.lote ?? null,
+    validadeEm: firstLot?.validadeEm ?? null,
+    lotes,
     ncm: cleanString(prod.NCM),
     cfop: cleanString(prod.CFOP),
     cstCsosn: cleanString(icmsNode?.CST) ?? cleanString(icmsNode?.CSOSN),
@@ -290,6 +308,34 @@ function mapNfeItem(item: Record<string, unknown> | null | undefined) {
     pisValue: toPositiveNumber(pisNode?.vPIS ?? 0),
     cofinsValue: toPositiveNumber(cofinsNode?.vCOFINS ?? 0),
   };
+}
+
+function extractProductLots(prod: Record<string, unknown>): ImportedNfeLot[] {
+  const candidates = [...ensureArray(prod.rastro), ...ensureArray(prod.med)];
+  const lots: ImportedNfeLot[] = [];
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+
+    const node = candidate as Record<string, unknown>;
+    const lote = cleanString(node.nLote);
+    const validadeEm = normalizeDateOnly(cleanString(node.dVal));
+    const quantidade = toPositiveNumber(node.qLote);
+
+    if (!lote && !validadeEm) {
+      continue;
+    }
+
+    lots.push({
+      lote,
+      validadeEm,
+      quantidade: quantidade > 0 ? quantidade : null,
+    });
+  }
+
+  return lots;
 }
 
 function ensureArray<T>(value: T | T[] | null | undefined): T[] {
@@ -375,6 +421,18 @@ function normalizeDateTime(value: string | null) {
 
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
     return value;
+  }
+
+  return null;
+}
+
+function normalizeDateOnly(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10);
   }
 
   return null;

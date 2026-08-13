@@ -65,6 +65,8 @@ type XmlPreview = {
     codigo: string | null;
     ean: string | null;
     quantidade: number;
+    lote?: string | null;
+    validadeEm?: string | null;
   }>;
 };
 
@@ -82,8 +84,14 @@ function emptyItemLine(): ItemLine {
   return { key: crypto.randomUUID(), produtoId: "", quantidade: "" };
 }
 
-function createXmlItemKey(item: { codigo: string | null; ean: string | null; descricao: string }) {
-  return [item.codigo ?? "", item.ean ?? "", item.descricao]
+function createXmlItemKey(item: {
+  codigo: string | null;
+  ean: string | null;
+  descricao: string;
+  lote?: string | null;
+  validadeEm?: string | null;
+}) {
+  return [item.codigo ?? "", item.ean ?? "", item.descricao, item.lote ?? "", item.validadeEm ?? ""]
     .map((value) => value.trim().toLocaleLowerCase("pt-BR"))
     .join("|");
 }
@@ -317,6 +325,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
           codigo: item.codigo,
           ean: item.ean,
           quantidade: item.quantidade,
+          lote: item.lote,
+          validadeEm: item.validadeEm,
         })),
       });
       setXmlResolutions({});
@@ -329,6 +339,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               codigo: item.codigo,
               ean: item.ean,
               quantidade: item.quantidade,
+              lote: item.lote,
+              validadeEm: item.validadeEm,
             };
 
             return [previewItem.key, createProductDraft(previewItem)];
