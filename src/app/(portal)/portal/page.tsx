@@ -534,7 +534,7 @@ function ProductsView({
   );
   return (
     <>
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
+      <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
             Meus produtos no CD
@@ -544,20 +544,22 @@ function ProductsView({
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto sm:flex-nowrap">
-          {canManageStock ? <a
-            href="/api/portal/produtos/exportar"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-[#101b30] dark:text-slate-100 dark:hover:border-violet-400 dark:hover:text-white"
-          >
-            <FileDown className="h-4 w-4" />
-            Exportar
-          </a> : null}
+          {canManageStock ? (
+            <a
+              href="/api/portal/produtos/exportar"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[14px] border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-[#101b30] dark:text-slate-100 dark:hover:border-violet-400 dark:hover:text-white"
+            >
+              <FileDown className="h-4 w-4" />
+              Exportar
+            </a>
+          ) : null}
           <ProductSearchInput
             value={search}
             depositanteId={portalDepositanteId}
           />
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
         {visibleProducts.map((item) => {
           const quantity = Number(item.rawQuantidade ?? 0);
           const minimum = Number(item.minQuantity ?? 0);
@@ -1111,7 +1113,7 @@ function InvoicesView() {
     <>
       <ViewHeader
         title="Faturas"
-        description="Acompanhe suas faturas e os custos operacionais do perÃ­odo."
+        description="Acompanhe suas faturas e os custos operacionais do período."
       />
       <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
         <div className="max-w-md text-center">
@@ -1125,8 +1127,8 @@ function InvoicesView() {
             Faturas em breve
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Estamos preparando esta Ã¡rea para apresentar suas faturas e os
-            detalhes de armazenagem, manuseio e expediÃ§Ã£o com seguranÃ§a.
+            Estamos preparando esta área para apresentar suas faturas e os
+            detalhes de armazenagem, manuseio e expedição com segurança.
           </p>
         </div>
       </div>
