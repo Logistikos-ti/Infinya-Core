@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const INVENTORY_CUTOFF = "2026-08-05T12:53:15.662061+00:00";
+const PAGE_SIZE = 1000;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -10,6 +11,24 @@ function asRecord(value: unknown): JsonRecord {
 
 function readText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+async function fetchAllRows<T>(
+  getPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message?: string } | null }>,
+) {
+  const rows: T[] = [];
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await getPage(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message ?? "NÃ£o foi possÃ­vel carregar os dados da conciliaÃ§Ã£o.");
+
+    const page = data ?? [];
+    rows.push(...page);
+
+    if (page.length < PAGE_SIZE) break;
+  }
+
+  return rows;
 }
 
 export type ShippingReconciliationRow = {
@@ -40,19 +59,30 @@ export async function listShippingStockReconciliation() {
   const orderIds = (orders ?? []).map((order) => order.id);
   if (!orderIds.length) return { cutoff: INVENTORY_CUTOFF, rows: [] as ShippingReconciliationRow[] };
 
-  const [{ data: physicalMovements }, { data: manualMovements }] = await Promise.all([
-    admin
-      .from("movimentacoes_estoque")
-      .select("referencia_id, produto_id, quantidade")
-      .in("referencia_id", orderIds)
-      .eq("tipo", "SAIDA")
-      .in("referencia_tipo", ["BAIXA_FISICA_CONFERENCIA", "BAIXA_FISICA_CONCILIACAO_RETROATIVA"]),
-    admin
-      .from("movimentacoes_estoque")
-      .select("produto_id, observacoes")
-      .gte("created_at", INVENTORY_CUTOFF)
-      .eq("tipo", "SAIDA")
-      .eq("referencia_tipo", "SAIDA_MANUAL"),
+  const [physicalMovements, manualMovements] = await Promise.all([
+    fetchAllRows<{ referencia_id: string | null; produto_id: string | null; quantidade: number | string | null }>(
+      (from, to) =>
+        admin
+          .from("movimentacoes_estoque")
+          .select("referencia_id, produto_id, quantidade")
+          .in("referencia_id", orderIds)
+          .eq("tipo", "SAIDA")
+          .in("referencia_tipo", ["BAIXA_FISICA_CONFERENCIA", "BAIXA_FISICA_CONCILIACAO_RETROATIVA"])
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+    ),
+    fetchAllRows<{ produto_id: string | null; observacoes: string | null }>((from, to) =>
+      admin
+        .from("movimentacoes_estoque")
+        .select("produto_id, observacoes")
+        .gte("created_at", INVENTORY_CUTOFF)
+        .eq("tipo", "SAIDA")
+        .eq("referencia_tipo", "SAIDA_MANUAL")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
 
   const physicalCoverage = new Map<string, Map<string, number>>();
