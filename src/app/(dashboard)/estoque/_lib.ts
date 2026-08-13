@@ -7,6 +7,7 @@ import {
   listStockStatsFromDb,
   listStockTraceabilityProtocolsFromDb,
 } from "@/lib/stock";
+import { listStockQuarantineFromDb } from "@/lib/stock-quarantine";
 import { listCycleCountsFromDb, listPendingCycleCountAdjustments } from "@/lib/stock-cycle-counts";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
@@ -78,10 +79,11 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
     listStockBalancesFromDb(filters),
     listStockMovementsFromDb(filters, 250),
   ]);
-  const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards] = await Promise.all([
+  const [stockExpiryAlerts, traceabilityProtocols, stockStatsCards, stockQuarantine] = await Promise.all([
     listStockExpiryAlertsFromDb(filters, 90, stockBalances),
     listStockTraceabilityProtocolsFromDb(filters, stockBalances),
     listStockStatsFromDb(user, filters, stockBalances),
+    listStockQuarantineFromDb({ depositanteId: filters.depositanteId, status: "EM_QUARENTENA" }),
   ]);
   const cycleCountsResult = await listCycleCountsFromDb(filters.depositanteId);
   const pendingAdjustments = isAdminUser(user)
@@ -115,6 +117,7 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
     stockBalances,
     stockMovements,
     stockExpiryAlerts,
+    stockQuarantine,
     traceabilityProtocols,
     stockStatsCards,
     cycleCountsResult,

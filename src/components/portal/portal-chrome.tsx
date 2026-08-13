@@ -12,6 +12,7 @@ import {
   PackageCheck,
   Receipt,
   Search,
+  ShieldAlert,
   Truck,
   PlugZap,
 } from "lucide-react";
@@ -66,6 +67,12 @@ const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
     href: "/portal?view=produtos",
     label: "Meus produtos",
     icon: FileText,
+    module: "dashboard",
+  },
+  {
+    href: "/portal?view=quarentena",
+    label: "Quarentena",
+    icon: ShieldAlert,
     module: "dashboard",
   },
   {

@@ -17,12 +17,14 @@ import {
   Plus,
   Search,
   Settings2,
+  ShieldAlert,
   Truck,
 } from "lucide-react";
 import { requireRoleAccess } from "@/lib/auth";
 import { listReceivingOrdersFromDb } from "@/lib/receiving";
 import { getShippingOrderDetailFromDb, listShippingOrdersFromDb } from "@/lib/shipping";
 import { listStockBalancesFromDb } from "@/lib/stock";
+import { listStockQuarantineFromDb } from "@/lib/stock-quarantine";
 import { SupportClient } from "@/components/portal/support-client";
 import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { ProductSearchInput } from "@/components/portal/product-search-input";
@@ -87,7 +89,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
   const ordersSearch = params?.q?.trim() ?? "";
-  const [orders, receiving, stock] = await Promise.all([
+  const [orders, receiving, stock, quarantine] = await Promise.all([
     view === "inicio" || view === "pedidos"
       ? listShippingOrdersFromDb({ depositanteId })
       : Promise.resolve([]),
@@ -96,6 +98,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       : Promise.resolve([]),
     view === "inicio" || view === "produtos"
       ? listStockBalancesFromDb({ depositanteId })
+      : Promise.resolve([]),
+    view === "inicio" || view === "quarentena"
+      ? listStockQuarantineFromDb({ depositanteId })
       : Promise.resolve([]),
   ]);
   const fullShipments = view === "full" ? await listFullShipmentsFromDb(depositanteId) : [];
@@ -239,6 +244,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           canManageStock={isMasterPreview || canManagePortalStock(user)}
         />
       ) : null}
+      {view === "quarentena" ? (
+        <QuarantineView quarantine={quarantine} />
+      ) : null}
       {view === "recebimento" ? (
         <ReceivingViewClient
           receiving={receiving.map((order) => ({
@@ -301,7 +309,7 @@ function normalizeView(value: string, integrationsEnabled: boolean, canManagePor
   if (value === "products") return "produtos";
   if (value === "invoices") return "faturas";
   if (value === "support") return "suporte";
-  return ["pedidos", "full", "recebimento", "produtos", ...(canManagePortal ? ["faturas"] : []), "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
+  return ["pedidos", "full", "recebimento", "produtos", "quarentena", ...(canManagePortal ? ["faturas"] : []), "suporte", ...(integrationsEnabled ? ["integracoes"] : [])].includes(
     value,
   )
     ? value
@@ -895,6 +903,206 @@ function ReceivingView({
         ) : null}
       </div>
     </>
+  );
+}
+
+function QuarantineView({
+  quarantine,
+}: {
+  quarantine: Awaited<ReturnType<typeof listStockQuarantineFromDb>>;
+}) {
+  const activeItems = quarantine.filter((item) => item.status === "EM_QUARENTENA");
+  const releasedItems = quarantine.filter((item) => item.status === "LIBERADO");
+  const discardedItems = quarantine.filter((item) => item.status === "DESCARTADO");
+  const activeUnits = activeItems.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+
+  return (
+    <>
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
+            Quarentena
+          </h2>
+          <p className="mt-1.5 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
+            Produtos retidos por avaria, divergência ou análise operacional antes de voltarem ao estoque disponível.
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <QuarantineStatCard
+          label="Em quarentena"
+          value={activeItems.length}
+          help={`${activeUnits.toLocaleString("pt-BR")} un retidas`}
+          tone="amber"
+        />
+        <QuarantineStatCard
+          label="Liberados"
+          value={releasedItems.length}
+          help="Retornaram ao estoque"
+          tone="emerald"
+        />
+        <QuarantineStatCard
+          label="Descartados"
+          value={discardedItems.length}
+          help="Baixa definitiva"
+          tone="rose"
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
+            <ShieldAlert className="h-5 w-5" />
+          </span>
+          <div>
+            <h3 className="font-display text-base font-bold text-slate-950 dark:text-white">
+              Itens retidos
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Acompanhe o que está indisponível para separação e expedição.
+            </p>
+          </div>
+          <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">
+            {quarantine.length} registro(s)
+          </span>
+        </div>
+        {quarantine.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] border-collapse text-left">
+              <thead className="text-[12px] uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
+                <tr>
+                  {[
+                    "Produto",
+                    "Endereço",
+                    "Quantidade",
+                    "Motivo",
+                    "Status",
+                    "Registro",
+                    "Operador",
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-3 font-bold dark:border-white/10 dark:bg-white/5"
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {quarantine.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-slate-100 last:border-b-0 dark:border-white/10"
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 dark:bg-white/10">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.productName}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <Package className="h-5 w-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-950 dark:text-white">
+                            {item.productName}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {item.sku}
+                            {item.internalCode ? ` · ${item.internalCode}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {item.endereco}
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {item.area}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-sm font-bold text-slate-950 dark:text-white">
+                      {item.quantityLabel} un
+                    </td>
+                    <td className="max-w-[260px] px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {item.reason}
+                    </td>
+                    <td className="px-5 py-4">
+                      <QuarantineStatusPill status={item.status} label={item.statusLabel} />
+                    </td>
+                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {item.createdAtLabel}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      {item.createdBy}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState text="Nenhum item em quarentena no momento." />
+        )}
+      </div>
+    </>
+  );
+}
+
+function QuarantineStatCard({
+  label,
+  value,
+  help,
+  tone,
+}: {
+  label: string;
+  value: number;
+  help: string;
+  tone: "amber" | "emerald" | "rose";
+}) {
+  const toneClasses = {
+    amber: "from-amber-500/12 to-orange-500/5 text-amber-600 dark:text-amber-300",
+    emerald: "from-emerald-500/12 to-teal-500/5 text-emerald-600 dark:text-emerald-300",
+    rose: "from-rose-500/12 to-red-500/5 text-rose-600 dark:text-rose-300",
+  }[tone];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+            {label}
+          </p>
+          <p className="mt-2 font-display text-3xl font-bold text-slate-950 dark:text-white">
+            {value}
+          </p>
+        </div>
+        <span className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${toneClasses}`}>
+          <ShieldAlert className="h-5 w-5" />
+        </span>
+      </div>
+      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">{help}</p>
+    </div>
+  );
+}
+
+function QuarantineStatusPill({ status, label }: { status: string; label: string }) {
+  const classes =
+    status === "EM_QUARENTENA"
+      ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+      : status === "LIBERADO"
+        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+        : "bg-rose-500/10 text-rose-700 dark:text-rose-300";
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${classes}`}>
+      {label}
+    </span>
   );
 }
 

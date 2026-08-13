@@ -73,7 +73,8 @@ export type MobileIconName =
   | "x"
   | "vibrate"
   | "code"
-  | "truck";
+  | "truck"
+  | "shield";
 
 export function MobileIcon({
   name,
@@ -202,6 +203,16 @@ export function MobileIcon({
           <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1" />
           <circle cx="7.5" cy="17.5" r="2.5" />
           <circle cx="17.5" cy="17.5" r="2.5" />
+        </>,
+        size,
+        strokeWidth,
+      );
+    case "shield":
+      return svg(
+        <>
+          <path d="M12 3 5 6v5c0 4.5 2.8 8.5 7 10 4.2-1.5 7-5.5 7-10V6z" />
+          <path d="M12 8v5" />
+          <path d="M12 16h.01" />
         </>,
         size,
         strokeWidth,
