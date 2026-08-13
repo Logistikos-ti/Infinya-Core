@@ -22,6 +22,7 @@ type GlobalSearchConfig = {
   param: string;
   placeholder: string;
   clearParams?: string[];
+  available?: boolean;
 };
 
 const EXPEDICAO_SMART_SEARCH_PARAMS = [
@@ -64,6 +65,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar produtos...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -73,6 +75,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar endereço, rua ou área...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -82,6 +85,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "pedido",
       placeholder: "Buscar pedido, cliente, NF ou canal...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -91,6 +95,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "produto",
       placeholder: "Buscar produto, SKU ou EAN...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -100,6 +105,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar transportadora ou romaneio...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -109,6 +115,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar NF, chave, emitente ou destinatário...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
@@ -118,14 +125,15 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
       param: "q",
       placeholder: "Buscar recebimento ou NF...",
       clearParams: ["page"],
+      available: true,
     };
   }
 
   return {
-    targetPath: "/expedicao",
-    param: "pedido",
-    placeholder: "Buscar pedidos, produtos...",
-    clearParams: ["page"],
+    targetPath: path,
+    param: "q",
+    placeholder: "Busca não disponível nesta página",
+    available: false,
   };
 }
 
@@ -142,6 +150,7 @@ export function AppChrome({ children, user }: AppChromeProps) {
     () => getGlobalSearchConfig(currentPath, isCatalogOnly),
     [currentPath, isCatalogOnly],
   );
+  
   const globalSearchValueFromUrl = useMemo(() => {
     if (globalSearchConfig.targetPath === "/expedicao") {
       const invoice = searchParams.get("nf");
@@ -159,12 +168,9 @@ export function AppChrome({ children, user }: AppChromeProps) {
       if (order) return order;
     }
 
-    return (
-      searchParams.get(globalSearchConfig.param) ??
-      (globalSearchConfig.targetPath === "/configuracoes" ? searchParams.get("q") : "") ??
-      ""
-    );
+    return searchParams.get(globalSearchConfig.param) ?? "";
   }, [globalSearchConfig, searchParams]);
+  
   const [globalSearch, setGlobalSearch] = useState(globalSearchValueFromUrl);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -195,23 +201,24 @@ export function AppChrome({ children, user }: AppChromeProps) {
         params.delete(clearParam);
       }
 
-      const searchableParams =
-        globalSearchConfig.targetPath === "/expedicao"
-          ? EXPEDICAO_SMART_SEARCH_PARAMS
-          : [globalSearchConfig.param];
-
-      for (const searchParam of searchableParams) {
-        params.delete(searchParam);
-      }
-
       if (normalizedValue) {
         if (globalSearchConfig.targetPath === "/expedicao") {
-          const parsedParams = parseExpedicaoSmartSearch(normalizedValue);
-          for (const [param, paramValue] of Object.entries(parsedParams)) {
-            params.set(param, paramValue);
+          for (const param of EXPEDICAO_SMART_SEARCH_PARAMS) {
+            params.delete(param);
+          }
+          const parsed = parseExpedicaoSmartSearch(normalizedValue);
+          for (const [key, val] of Object.entries(parsed)) {
+            params.set(key, val as string);
           }
         } else {
           params.set(globalSearchConfig.param, normalizedValue);
+        }
+      } else {
+        params.delete(globalSearchConfig.param);
+        if (globalSearchConfig.targetPath === "/expedicao") {
+          for (const param of EXPEDICAO_SMART_SEARCH_PARAMS) {
+            params.delete(param);
+          }
         }
       }
 
@@ -227,7 +234,12 @@ export function AppChrome({ children, user }: AppChromeProps) {
   );
 
   useEffect(() => {
-    if (isPickingWave || currentPath.startsWith("/expedicao/conferencia")) {
+    if (
+      isPickingWave || 
+      currentPath.startsWith("/expedicao/conferencia") ||
+      !globalSearchConfig.available ||
+      globalSearch === globalSearchValueFromUrl
+    ) {
       return;
     }
 
@@ -236,7 +248,14 @@ export function AppChrome({ children, user }: AppChromeProps) {
     }, 260);
 
     return () => window.clearTimeout(timer);
-  }, [applyGlobalSearch, currentPath, globalSearch, isPickingWave]);
+  }, [
+    applyGlobalSearch,
+    currentPath,
+    globalSearch,
+    globalSearchConfig.available,
+    globalSearchValueFromUrl,
+    isPickingWave,
+  ]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
