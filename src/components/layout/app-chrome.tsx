@@ -10,7 +10,7 @@ import { FirstAccessPasswordDialog } from "@/components/layout/first-access-pass
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SoundToggle } from "@/components/sound-toggle";
-import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
+import { isAdminUser } from "@/lib/permissions";
 
 type AppChromeProps = {
   children: ReactNode;
@@ -62,8 +62,8 @@ function parseExpedicaoSmartSearch(value: string) {
   return { pedido: normalizedValue };
 }
 
-function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSearchConfig {
-  if (path === "/configuracoes/produtos" || (isCatalogOnly && path === "/configuracoes/produtos")) {
+function getGlobalSearchConfig(path: string): GlobalSearchConfig {
+  if (path === "/configuracoes/produtos") {
     return {
       // A página de produtos filtra pelo próprio parâmetro "q" — mirar
       // "/configuracoes" (com um "tab" que a página raiz nunca leu) jogava o
@@ -98,7 +98,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
     };
   }
 
-  if (path.startsWith("/estoque")) {
+  if (path === "/estoque") {
     return {
       targetPath: "/estoque",
       param: "produto",
@@ -108,7 +108,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
     };
   }
 
-  if (path.startsWith("/romaneio")) {
+  if (path === "/romaneio") {
     return {
       targetPath: "/romaneio",
       param: "q",
@@ -118,7 +118,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
     };
   }
 
-  if (path.startsWith("/nfe")) {
+  if (path === "/nfe") {
     return {
       targetPath: "/nfe",
       param: "q",
@@ -128,7 +128,7 @@ function getGlobalSearchConfig(path: string, isCatalogOnly: boolean): GlobalSear
     };
   }
 
-  if (path.startsWith("/recebimento")) {
+  if (path === "/recebimento") {
     return {
       targetPath: "/recebimento",
       param: "q",
@@ -156,11 +156,10 @@ export function AppChrome({ children, user }: AppChromeProps) {
   const currentPath = pathname || "/dashboard";
   const isPickingWave = currentPath === "/expedicao/separacao/lote";
   const showAdminMobileShortcuts = isAdminUser(user);
-  const isCatalogOnly = isProductCatalogOnlyUser(user);
   const searchParamsString = searchParams.toString();
   const globalSearchConfig = useMemo(
-    () => getGlobalSearchConfig(currentPath, isCatalogOnly),
-    [currentPath, isCatalogOnly],
+    () => getGlobalSearchConfig(currentPath),
+    [currentPath],
   );
   const globalSearchValueFromUrl = useMemo(() => {
     if (globalSearchConfig.targetPath === "/expedicao") {
