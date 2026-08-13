@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { MobileStockTransferPanel } from "./mobile-stock-transfer-panel";
 
@@ -65,13 +66,19 @@ export default async function MobileStockTransferFlowPage({
   const { data: estoqueRow } = await adminSupabase
     .from("estoque")
     .select(
-      "id, quantidade, quantidade_reservada, bloqueado, endereco_id, produto:produtos(nome, sku, codigo_externo, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area)",
+      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, endereco_id, produto:produtos(nome, sku, codigo_externo, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area)",
     )
     .eq("id", estoqueId)
     .eq("depositante_id", depositanteId)
     .maybeSingle();
 
-  if (!estoqueRow || estoqueRow.bloqueado) {
+  // Stock blocked while waiting to be addressed is still a valid transfer
+  // source here — moving it out is exactly how that hold gets resolved. Any
+  // other block reason (manual/quality hold) stays off-limits.
+  const isTransferablePendingAddressing =
+    estoqueRow?.bloqueado && estoqueRow.bloqueio_motivo === PENDING_ADDRESSING_BLOCK_REASON;
+
+  if (!estoqueRow || (estoqueRow.bloqueado && !isTransferablePendingAddressing)) {
     notFound();
   }
 

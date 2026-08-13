@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 
 type TransferStockInput = {
   userId: string;
@@ -15,7 +16,7 @@ export async function transferStockBalance(input: TransferStockInput) {
   const { data: sourceStock, error: sourceError } = await supabase
     .from("estoque")
     .select(
-      "id, depositante_id, produto_id, endereco_id, quantidade, quantidade_reservada, bloqueado, lote, validade_em, fabricacao_em",
+      "id, depositante_id, produto_id, endereco_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, lote, validade_em, fabricacao_em",
     )
     .eq("id", input.stockId)
     .maybeSingle();
@@ -32,7 +33,14 @@ export async function transferStockBalance(input: TransferStockInput) {
     throw new Error("O saldo selecionado não pertence ao depositante informado.");
   }
 
-  if (sourceStock.bloqueado) {
+  // A manual quality/operational hold stays hard-blocked until someone
+  // releases it explicitly. The "aguardando endereçamento" hold is different:
+  // it exists precisely so an operator can move the stock out via this same
+  // transfer flow, and gets cleared automatically once it lands correctly.
+  const isReleasingPendingAddressing =
+    sourceStock.bloqueado && sourceStock.bloqueio_motivo === PENDING_ADDRESSING_BLOCK_REASON;
+
+  if (sourceStock.bloqueado && !isReleasingPendingAddressing) {
     throw new Error("Não é possível transferir um saldo bloqueado.");
   }
 
@@ -164,13 +172,15 @@ export async function transferStockBalance(input: TransferStockInput) {
     tipo: "TRANSFERENCIA",
     referencia_tipo: "TRANSFERENCIA_INTERNA",
     referencia_id: transferReferenceId,
-    observacoes: `Transferência interna de ${sourceAddress?.codigo ?? "origem"} para ${destinationAddress.codigo}.`,
+    observacoes: isReleasingPendingAddressing
+      ? `Transferência interna de ${sourceAddress?.codigo ?? "origem"} (aguardando endereçamento) para ${destinationAddress.codigo}.`
+      : `Transferência interna de ${sourceAddress?.codigo ?? "origem"} para ${destinationAddress.codigo}.`,
     criado_por: input.userId,
     endereco_origem_id: sourceStock.endereco_id,
     endereco_destino_id: destinationAddress.id,
   };
 
-  const { error: movementError } = await supabase.from("movimentacoes_estoque").insert([
+  const movementsToInsert = [
     {
       ...baseMovement,
       estoque_id: sourceStock.id,
@@ -179,7 +189,30 @@ export async function transferStockBalance(input: TransferStockInput) {
       ...baseMovement,
       estoque_id: destinationStockId,
     },
-  ]);
+  ];
+
+  // The move itself is what releases the "aguardando endereçamento" hold —
+  // the destination row was created/merged as unblocked above, so this is
+  // just recording that release in the audit trail.
+  if (isReleasingPendingAddressing) {
+    movementsToInsert.push({
+      depositante_id: sourceStock.depositante_id,
+      produto_id: sourceStock.produto_id,
+      quantidade: input.quantity,
+      tipo: "DESBLOQUEIO",
+      referencia_tipo: "DESBLOQUEIO_OPERACIONAL",
+      referencia_id: transferReferenceId,
+      observacoes: `Liberado da espera de endereçamento ao ser transferido de ${sourceAddress?.codigo ?? "origem"} para ${destinationAddress.codigo}.`,
+      criado_por: input.userId,
+      endereco_origem_id: sourceStock.endereco_id,
+      endereco_destino_id: destinationAddress.id,
+      estoque_id: destinationStockId,
+    });
+  }
+
+  const { error: movementError } = await supabase
+    .from("movimentacoes_estoque")
+    .insert(movementsToInsert);
 
   if (movementError) {
     throw new Error(`Falha ao registrar a transferência: ${movementError.message}`);

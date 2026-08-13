@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiModuleAccess } from "@/lib/api-auth";
 import { getReceivingOrderDetailFromDb } from "@/lib/receiving";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { receivingConferenceSchema } from "@/lib/validations/receiving";
@@ -351,11 +352,24 @@ export async function PATCH(request: Request, context: RouteContext) {
 
       let estoqueId = existingStock?.id ?? null;
 
+      // Stock that lands on the shared triagem address (no registered
+      // address on the product) is blocked from picking until someone
+      // physically moves it to the right place — never touched when the
+      // item already went to its own registered address.
+      const blockFields = hasValidRegisteredEndereco
+        ? {}
+        : {
+            bloqueado: true,
+            bloqueio_motivo: PENDING_ADDRESSING_BLOCK_REASON,
+            bloqueado_em: new Date().toISOString(),
+          };
+
       if (existingStock) {
         const { error } = await adminSupabase
           .from("estoque")
           .update({
             quantidade: Number(existingStock.quantidade ?? 0) + item.received,
+            ...blockFields,
           })
           .eq("id", existingStock.id);
 
@@ -375,6 +389,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             lote: item.lote,
             validade_em: item.validadeEm,
             quantidade: item.received,
+            ...blockFields,
           })
           .select("id")
           .single();
@@ -400,7 +415,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         referencia_id: order.id,
         observacoes: hasValidRegisteredEndereco
           ? `Entrada automática no endereço cadastrado do produto pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}.`
-          : `Entrada automática no estoque pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}.`,
+          : `Entrada automática no estoque pelo método ${item.withdrawalMethod} via recebimento ${order.codigo}. Bloqueado até ser endereçado.`,
         criado_por: auth.user.id,
       });
 

@@ -9,6 +9,7 @@ import {
 } from "@/lib/stock";
 import { listStockQuarantineFromDb } from "@/lib/stock-quarantine";
 import { listCycleCountsFromDb, listPendingCycleCountAdjustments } from "@/lib/stock-cycle-counts";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 
@@ -90,17 +91,25 @@ export async function getDesktopStockPageData(params?: StockSearchParams) {
     ? await listPendingCycleCountAdjustments(filters.depositanteId)
     : { available: true, data: [] };
   const stockTransferSources = stockBalances
-    .filter(
-      (item) =>
-        item.status === "Disponível" &&
-        Number(item.saldo.replace(/\./g, "").replace(",", ".")) > 0,
-    )
+    .filter((item) => {
+      // Stock blocked while waiting to be addressed is still a valid
+      // transfer source — moving it out is exactly how that hold gets
+      // resolved. Any other block reason (manual/quality hold) stays
+      // excluded until someone releases it explicitly.
+      const isTransferable =
+        item.status === "Disponível" || item.blockReason === PENDING_ADDRESSING_BLOCK_REASON;
+
+      return isTransferable && Number(item.saldo.replace(/\./g, "").replace(",", ".")) > 0;
+    })
     .map((item) => ({
       value: item.id,
       depositanteId: item.depositanteId,
       enderecoId:
         enderecosInventario.find((endereco) => endereco.codigo === item.endereco)?.id ?? "",
-      label: `${item.protocol} • ${item.sku} • ${item.productName} • ${item.endereco} • saldo ${item.saldo}`,
+      label:
+        item.blockReason === PENDING_ADDRESSING_BLOCK_REASON
+          ? `${item.protocol} • ${item.sku} • ${item.productName} • ${item.endereco} • saldo ${item.saldo} • aguardando endereçamento`
+          : `${item.protocol} • ${item.sku} • ${item.productName} • ${item.endereco} • saldo ${item.saldo}`,
     }))
     .filter((item) => item.enderecoId);
 

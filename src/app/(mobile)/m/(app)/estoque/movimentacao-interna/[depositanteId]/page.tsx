@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { MovimentacaoProdutoListClient } from "./movimentacao-produto-list-client";
@@ -36,7 +37,11 @@ export default async function MobileStockTransferProdutosPage({
 
   const balances = await listStockBalancesFromDb({ depositanteId });
   const produtos = balances
-    .filter((item) => item.status === "Disponível" && item.rawQuantidade - item.rawReserved > 0)
+    .filter(
+      (item) =>
+        (item.status === "Disponível" || item.blockReason === PENDING_ADDRESSING_BLOCK_REASON) &&
+        item.rawQuantidade - item.rawReserved > 0,
+    )
     .map((item) => ({
       estoqueId: item.id,
       nome: item.productName,
