@@ -101,6 +101,10 @@ export function MobileReceivingPanel({
   // Item whose quantity just closed out and still needs lot/expiry: the scanner
   // steps aside for this form, then hands control back to the camera.
   const [lotPromptItemId, setLotPromptItemId] = useState<string | null>(null);
+  // Item that was just bipped again after already reaching its expected
+  // quantity: every unit beyond that is a physical surplus over the NF, so it
+  // needs an explicit confirmation instead of being silently accepted.
+  const [surplusPromptItemId, setSurplusPromptItemId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   // Brief green outline on the camera frame, used instead of the full-screen
@@ -128,11 +132,17 @@ export function MobileReceivingPanel({
   const scanItem = items.find((item) => item.id === scanItemId) ?? null;
   const scanReceived = scanItem ? normalizeQuantity(scanItem.receivedQuantityValue) : 0;
   const scanMissing = scanItem ? Math.max(scanItem.expectedQuantity - scanReceived, 0) : 0;
+  const scanSurplus = scanItem ? Math.max(scanReceived - scanItem.expectedQuantity, 0) : 0;
+  const scanIsComplete = scanItem ? scanItem.expectedQuantity > 0 && scanReceived >= scanItem.expectedQuantity : false;
+  const scanNeedsLotOrExpiry = scanItem
+    ? (scanItem.requireLot && !scanItem.lotValue.trim()) || (scanItem.requireExpiry && !scanItem.expiryValue.trim())
+    : false;
   const lotPromptItem = items.find((item) => item.id === lotPromptItemId) ?? null;
   const isLotPromptComplete = lotPromptItem
     ? (!lotPromptItem.requireLot || Boolean(lotPromptItem.lotValue.trim())) &&
       (!lotPromptItem.requireExpiry || Boolean(lotPromptItem.expiryValue.trim()))
     : false;
+  const surplusPromptItem = items.find((item) => item.id === surplusPromptItemId) ?? null;
 
   const applyScanRef = useRef<(code: string) => void>(() => {});
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
@@ -251,6 +261,43 @@ export function MobileReceivingPanel({
     openScanner();
   }
 
+  /** Operator tapped "Informar lote e validade" from inside the camera view,
+   * once satisfied with the physical count (exactly at the expected amount
+   * or after confirming one or more surplus units). */
+  function openLotPromptForScanItem() {
+    if (!scanItem) return;
+    closeScanner();
+    setLotPromptItemId(scanItem.id);
+  }
+
+  /** Operator confirmed a physical unit beyond what the NF predicted. */
+  function confirmSurplus() {
+    if (!surplusPromptItem) return;
+
+    const nextQuantity = normalizeQuantity(surplusPromptItem.receivedQuantityValue) + 1;
+
+    setItems((list) =>
+      list.map((item) =>
+        item.id === surplusPromptItem.id
+          ? { ...item, receivedQuantityValue: String(nextQuantity) }
+          : item,
+      ),
+    );
+
+    setSurplusPromptItemId(null);
+    setActiveItemId(surplusPromptItem.id);
+    setScanItemId(surplusPromptItem.id);
+    openScanner();
+  }
+
+  /** Operator dismissed the surplus prompt without confirming an extra unit
+   * (e.g. it was an accidental re-scan). */
+  function dismissSurplusPrompt() {
+    if (surplusPromptItem) setScanItemId(surplusPromptItem.id);
+    setSurplusPromptItemId(null);
+    openScanner();
+  }
+
   function updateItem(
     itemId: string,
     field: keyof Pick<ReceivingItemState, "receivedQuantityValue" | "lotValue" | "expiryValue">,
@@ -281,20 +328,17 @@ export function MobileReceivingPanel({
     const current = normalizeQuantity(matchedItem.receivedQuantityValue);
 
     if (current >= matchedItem.expectedQuantity) {
-      flash({
-        type: "warn",
-        title: "Quantidade completa",
-        code: matchedItem.sku,
-        sub: `Este item já tem as ${matchedItem.expectedQuantity} unidades previstas.`,
-      });
+      // Already at (or past) the NF's expected count: every unit from here on
+      // is a physical surplus, so it gets its own explicit confirmation
+      // instead of being silently accepted or blocked outright.
+      closeScanner();
+      setActiveItemId(matchedItem.id);
+      setSurplusPromptItemId(matchedItem.id);
       return;
     }
 
     const nextQuantity = current + 1;
     const isComplete = nextQuantity >= matchedItem.expectedQuantity;
-    const needsLotOrExpiry =
-      (matchedItem.requireLot && !matchedItem.lotValue.trim()) ||
-      (matchedItem.requireExpiry && !matchedItem.expiryValue.trim());
 
     setItems((list) =>
       list.map((item) =>
@@ -324,18 +368,10 @@ export function MobileReceivingPanel({
       sub: `${nextQuantity}/${matchedItem.expectedQuantity} recebido(s).`,
     });
 
-    // Quantity closed out: hand the screen over to the lot/expiry form when the
-    // product requires it, otherwise clear the counter and keep scanning.
-    if (needsLotOrExpiry) {
-      window.setTimeout(() => {
-        closeScanner();
-        setScanItemId(null);
-        setLotPromptItemId(matchedItem.id);
-      }, FLASH_DURATION_MS);
-      return;
-    }
-
-    window.setTimeout(() => setScanItemId(null), FLASH_DURATION_MS);
+    // Quantity closed out, but the camera stays open either way: the operator
+    // decides when to move on, either by bipping again (registered as a
+    // surplus unit above) or by tapping "Informar lote e validade" once the
+    // physical count is really done.
   }
 
   useEffect(() => {
@@ -721,7 +757,7 @@ export function MobileReceivingPanel({
                         height: "100%",
                         borderRadius: 999,
                         background: mobileColors.green,
-                        width: `${Math.round((scanReceived / scanItem.expectedQuantity) * 100)}%`,
+                        width: `${Math.min(100, Math.round((scanReceived / scanItem.expectedQuantity) * 100))}%`,
                         transition: "width 0.3s ease",
                       }}
                     />
@@ -731,6 +767,21 @@ export function MobileReceivingPanel({
                   <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12.5 }}>
                     Faltam {scanMissing} {scanMissing === 1 ? "unidade" : "unidades"}
                   </span>
+                ) : scanSurplus > 0 ? (
+                  <span style={{ color: mobileColors.amber, fontSize: 12.5, fontWeight: 700 }}>
+                    +{scanSurplus} {scanSurplus === 1 ? "unidade" : "unidades"} além do previsto
+                  </span>
+                ) : null}
+                {scanIsComplete && scanNeedsLotOrExpiry ? (
+                  <button
+                    type="button"
+                    onClick={openLotPromptForScanItem}
+                    className="mt-1 flex h-[44px] items-center justify-center gap-2 rounded-[13px] px-5 text-[13.5px] font-extrabold text-white"
+                    style={{ background: mobileGradient, boxShadow: "0 8px 20px rgba(99,102,241,0.4)" }}
+                  >
+                    <MobileIcon name="check" size={16} strokeWidth={2.6} />
+                    Informar lote e validade
+                  </button>
                 ) : null}
               </>
             ) : (
@@ -770,7 +821,7 @@ export function MobileReceivingPanel({
                   {lotPromptItem.description}
                 </span>
                 <span className="text-[12px]" style={{ color: mobileColors.muted }}>
-                  {lotPromptItem.expectedQuantity} de {lotPromptItem.expectedQuantity} bipadas
+                  {normalizeQuantity(lotPromptItem.receivedQuantityValue)} de {lotPromptItem.expectedQuantity} bipadas
                 </span>
               </div>
             </div>
@@ -824,6 +875,65 @@ export function MobileReceivingPanel({
               style={{ color: mobileColors.muted }}
             >
               Preencher depois
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {surplusPromptItem ? (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 320, background: "rgba(5,7,13,0.75)", display: "flex", alignItems: "flex-end" }}
+        >
+          <div
+            className="w-full"
+            style={{
+              background: mobileColors.bgAlt,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTop: `1px solid ${hexAlpha(mobileColors.amber, 0.35)}`,
+              padding: "22px 18px calc(22px + env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <span
+                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[12px]"
+                style={{ background: hexAlpha(mobileColors.amber, 0.16), color: mobileColors.amber }}
+              >
+                <AlertTriangle className="h-5 w-5" strokeWidth={2.4} />
+              </span>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px] font-extrabold" style={{ color: mobileColors.text }}>
+                  Confirmar sobra da unidade
+                </span>
+                <span className="text-[12px]" style={{ color: mobileColors.muted }}>
+                  {surplusPromptItem.description} · {surplusPromptItem.sku}
+                </span>
+              </div>
+            </div>
+
+            <p className="mb-5 text-[13.5px] leading-relaxed" style={{ color: mobileColors.muted }}>
+              Esse item já tem as {surplusPromptItem.expectedQuantity} unidades previstas na NF.
+              Confirma que recebeu mais 1 unidade além do previsto (
+              {normalizeQuantity(surplusPromptItem.receivedQuantityValue) + 1} no total)?
+            </p>
+
+            <button
+              type="button"
+              onClick={confirmSurplus}
+              className="flex h-[56px] w-full items-center justify-center gap-2 rounded-[17px] text-[16px] font-extrabold text-white"
+              style={{ background: mobileColors.amber, boxShadow: "0 10px 26px rgba(245,158,11,0.35)" }}
+            >
+              <AlertTriangle className="h-[19px] w-[19px]" strokeWidth={2.2} />
+              Confirmar sobra
+            </button>
+
+            <button
+              type="button"
+              onClick={dismissSurplusPrompt}
+              className="mt-2 h-11 w-full rounded-xl text-[13px] font-bold"
+              style={{ color: mobileColors.muted }}
+            >
+              Foi engano, não bipar
             </button>
           </div>
         </div>
