@@ -25,6 +25,23 @@ type ShippingSupplyPayloadItem = {
   totalCost: number;
 };
 
+type RequestedStockItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+};
+
+type ManualShippingOrderItemDraft = {
+  depositante_id: string;
+  produto_id: string;
+  codigo_produto: string | null;
+  sku: string | null;
+  nome: string;
+  unidade: string;
+  quantidade: number;
+  payload_origem: Record<string, unknown>;
+};
+
 export type ManualShippingOrderSubmissionState = {
   status: "idle" | "success" | "error";
   feedback?: string;
@@ -353,6 +370,55 @@ export async function createManualShippingOrderAction(formData: FormData) {
     fail("nf-duplicada", "J\u00e1 existe um pedido deste depositante com o mesmo n\u00famero de NF-e.");
   }
 
+  let manualItemRows: ManualShippingOrderItemDraft[] = [];
+  if (selectedProductIds.length > 0) {
+    const { data: selectedProducts, error: selectedProductsError } = await adminSupabase
+      .from("produtos")
+      .select("id, nome, sku, codigo_interno, codigo_externo, unidade_estocagem")
+      .eq("depositante_id", depositanteId)
+      .in("id", selectedProductIds);
+
+    if (selectedProductsError) {
+      fail("erro", selectedProductsError.message || "Nao foi possivel consultar os produtos selecionados.");
+    }
+
+    const productById = new Map((selectedProducts ?? []).map((produto) => [produto.id, produto]));
+    manualItemRows = selectedProductIds.flatMap((productId, index) => {
+      const produto = productById.get(productId);
+      const quantidade = Number.isFinite(selectedProductQuantities[index]) && selectedProductQuantities[index] > 0
+        ? selectedProductQuantities[index]
+        : 1;
+
+      return produto
+        ? [{
+            depositante_id: depositanteId,
+            produto_id: produto.id,
+            codigo_produto: produto.codigo_externo || produto.codigo_interno || null,
+            sku: produto.sku || null,
+            nome: produto.nome,
+            unidade: produto.unidade_estocagem || "UNIDADE",
+            quantidade,
+            payload_origem: { manual: true },
+          }]
+        : [];
+    });
+
+    if (manualItemRows.length !== selectedProductIds.length) {
+      fail("erro", "Um ou mais produtos selecionados nao pertencem ao depositante do pedido.");
+    }
+
+    await assertAvailableStockForShippingOrder({
+      adminSupabase,
+      depositanteId,
+      items: manualItemRows.map((item) => ({
+        productId: item.produto_id,
+        name: item.nome,
+        quantity: item.quantidade,
+      })),
+      fail,
+    });
+  }
+
   const channelLabel = getSalesChannelLabel(salesChannelCode) ?? "Venda direta";
   const comercial = buildManualCommercialPayload({
     salesChannelCode,
@@ -435,33 +501,11 @@ export async function createManualShippingOrderAction(formData: FormData) {
       fail("erro", error?.message || "O pedido n\u00e3o p\u00f4de ser criado.");
     }
 
-    if (selectedProductIds.length > 0) {
-      const { data: selectedProducts } = await adminSupabase
-        .from("produtos")
-        .select("id, nome, sku, codigo_interno, codigo_externo, unidade_estocagem")
-        .in("id", selectedProductIds);
-
-      const productById = new Map((selectedProducts ?? []).map((produto) => [produto.id, produto]));
-      const itemRows = selectedProductIds.flatMap((productId, index) => {
-        const produto = productById.get(productId);
-        const quantidade = Number.isFinite(selectedProductQuantities[index]) && selectedProductQuantities[index] > 0
-          ? selectedProductQuantities[index]
-          : 1;
-
-        return produto
-          ? [{
-              pedido_expedicao_id: createdOrder.id,
-              depositante_id: depositanteId,
-              produto_id: produto.id,
-              codigo_produto: produto.codigo_externo || produto.codigo_interno || null,
-              sku: produto.sku || null,
-              nome: produto.nome,
-              unidade: produto.unidade_estocagem || "UNIDADE",
-              quantidade,
-              payload_origem: { manual: true },
-            }]
-          : [];
-      });
+    if (manualItemRows.length > 0) {
+      const itemRows = manualItemRows.map((item) => ({
+        pedido_expedicao_id: createdOrder.id,
+        ...item,
+      }));
 
       if (itemRows.length > 0) {
         const { error: itemError } = await adminSupabase.from("pedidos_expedicao_itens").insert(itemRows);
@@ -689,6 +733,17 @@ async function createXmlShippingOrderSubmission(formData: FormData): Promise<Man
   if (matchedProducts.unmatched.length > 0 || matchedProducts.matched.length !== parsedNfe.items.length) {
     fail("xml-produtos-nao-mapeados");
   }
+
+  await assertAvailableStockForShippingOrder({
+    adminSupabase,
+    depositanteId,
+    items: matchedProducts.matched.map((item) => ({
+      productId: item.productId,
+      name: item.nome,
+      quantity: item.quantidade,
+    })),
+    fail,
+  });
 
   const channelLabel = getSalesChannelLabel(salesChannelCode) ?? "Venda direta";
   const totalUnits = matchedProducts.matched.reduce((sum, item) => sum + item.quantidade, 0);
@@ -983,6 +1038,84 @@ function extractShippingSupplies(formData: FormData): ShippingSupplyPayloadItem[
 function normalizeDecimalInput(value: string) {
   const normalized = Number(value.replace(",", "."));
   return Number.isFinite(normalized) ? normalized : 0;
+}
+
+async function assertAvailableStockForShippingOrder({
+  adminSupabase,
+  depositanteId,
+  items,
+  fail,
+}: {
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>;
+  depositanteId: string;
+  items: RequestedStockItem[];
+  fail: (feedback: string, detail: string) => never;
+}) {
+  const requestedByProduct = new Map<string, { name: string; quantity: number }>();
+
+  for (const item of items) {
+    if (!item.productId || item.quantity <= 0) continue;
+    const current = requestedByProduct.get(item.productId);
+    requestedByProduct.set(item.productId, {
+      name: current?.name || item.name,
+      quantity: (current?.quantity ?? 0) + item.quantity,
+    });
+  }
+
+  const productIds = [...requestedByProduct.keys()];
+  if (productIds.length === 0) return;
+
+  const { data: stockRows, error } = await adminSupabase
+    .from("estoque")
+    .select("produto_id, quantidade, quantidade_reservada, bloqueado")
+    .eq("depositante_id", depositanteId)
+    .in("produto_id", productIds);
+
+  if (error) {
+    fail("erro", error.message || "Nao foi possivel validar o estoque disponivel.");
+  }
+
+  const availableByProduct = new Map<string, number>();
+  for (const row of stockRows ?? []) {
+    if (row.bloqueado) continue;
+
+    const available = Math.max(
+      0,
+      Number(row.quantidade ?? 0) - Number(row.quantidade_reservada ?? 0),
+    );
+    availableByProduct.set(
+      row.produto_id,
+      (availableByProduct.get(row.produto_id) ?? 0) + available,
+    );
+  }
+
+  const shortages = [...requestedByProduct.entries()]
+    .map(([productId, requested]) => {
+      const available = availableByProduct.get(productId) ?? 0;
+      return {
+        name: requested.name,
+        requested: requested.quantity,
+        available,
+        missing: requested.quantity - available,
+      };
+    })
+    .filter((item) => item.missing > 0);
+
+  if (shortages.length > 0) {
+    const detail = shortages
+      .slice(0, 4)
+      .map((item) =>
+        `${item.name}: solicitadas ${formatStockQuantity(item.requested)}, disponiveis ${formatStockQuantity(item.available)}, faltam ${formatStockQuantity(item.missing)}`,
+      )
+      .join("; ");
+    fail("estoque-insuficiente", `Estoque insuficiente para criar o pedido. ${detail}`);
+  }
+}
+
+function formatStockQuantity(value: number) {
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 }
 
 function mapSupplyKindLabel(kind: string) {

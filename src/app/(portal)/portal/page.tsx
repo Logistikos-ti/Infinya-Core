@@ -150,15 +150,20 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
             .order("nome"),
           adminSupabase
             .from("estoque")
-            .select("produto_id, quantidade")
+            .select("produto_id, quantidade, quantidade_reservada, bloqueado")
             .eq("depositante_id", depositanteId),
         ])
       : [{ data: [] }, { data: [] }];
   const stockByProduct = new Map<string, number>();
   for (const item of portalStockRows ?? []) {
+    if (item.bloqueado) continue;
+    const available = Math.max(
+      0,
+      Number(item.quantidade ?? 0) - Number(item.quantidade_reservada ?? 0),
+    );
     stockByProduct.set(
       item.produto_id,
-      (stockByProduct.get(item.produto_id) ?? 0) + Number(item.quantidade ?? 0),
+      (stockByProduct.get(item.produto_id) ?? 0) + available,
     );
   }
   const portalProducts = (portalProductRows ?? []).map((product) => ({
