@@ -629,9 +629,14 @@ export function ProdutosDashboard({
                 <div className="mb-6 flex flex-col gap-3">
                   <span className={`${spaceGrotesk.className} text-sm font-bold`}>Estoque por endereço</span>
                   <div className="flex flex-col gap-2">
-                    {selectedData.locs.length > 0 ? selectedData.locs.map((l: {code: string, qty: string}, i: number) => (
+                    {selectedData.locs.length > 0 ? selectedData.locs.map((l: {code: string, qty: string, sub?: string}, i: number) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-xl border" style={{ borderColor: t.border, background: t.cardBg }}>
-                        <span className={`${spaceGrotesk.className} text-[13.5px] font-bold`}>{l.code}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`${spaceGrotesk.className} text-[13.5px] font-bold`}>{l.code}</span>
+                          {l.sub ? (
+                            <span className="text-[11.5px]" style={{ color: t.textSub }}>{l.sub}</span>
+                          ) : null}
+                        </div>
                         <span className="text-[13px]" style={{ color: t.textSub }}>{l.qty}</span>
                       </div>
                     )) : (

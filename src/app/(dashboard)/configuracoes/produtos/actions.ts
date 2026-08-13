@@ -13,7 +13,7 @@ import {
   sanitizeFileName,
 } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { formatDateTimePtBr } from "@/lib/utils";
+import { formatDatePtBr, formatDateTimePtBr } from "@/lib/utils";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
 export type ProdutoActionState = {
@@ -851,14 +851,24 @@ export async function fetchProdutoDrawerDetails(produtoId: string) {
   // 1. Fetch locs
   const { data: stockRecords } = await adminSupabase
     .from("estoque")
-    .select("quantidade, enderecos(codigo)")
+    .select("quantidade, lote, validade_em, enderecos(codigo)")
     .eq("produto_id", produtoId)
     .gt("quantidade", 0);
-    
-  const locs = (stockRecords || []).map((s: any) => ({
-    code: s.enderecos?.codigo || "Sem endereço",
-    qty: `${s.quantidade} un`
-  }));
+
+  // Two rows can share the same endereço when they're different lotes (ex.:
+  // validades diferentes recebidas em datas distintas) — mostramos o
+  // lote/validade de cada uma para deixar claro que não é duplicata.
+  const locs = (stockRecords || []).map((s: any) => {
+    const lotePart = s.lote ? `Lote ${s.lote}` : null;
+    const validadePart = s.validade_em ? `Val. ${formatDatePtBr(s.validade_em)}` : null;
+    const sub = [lotePart, validadePart].filter(Boolean).join(" · ") || undefined;
+
+    return {
+      code: s.enderecos?.codigo || "Sem endereço",
+      qty: `${s.quantidade} un`,
+      sub,
+    };
+  });
 
   const { data: produto } = await adminSupabase
     .from("produtos")
