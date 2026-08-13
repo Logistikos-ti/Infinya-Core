@@ -71,6 +71,7 @@ export function ProdutosDashboard({
   const [view, setView] = useState<"gallery" | "table">("gallery");
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   const [selectedData, setSelectedData] = useState<any>(null);
+  const ruptureFilterActive = searchParams.get("status") === "ruptura";
 
   // Theme variables
   const t = dark
@@ -176,6 +177,8 @@ export function ProdutosDashboard({
     params.set("page", "1");
     return `${pathname}?${params.toString()}`;
   };
+
+  const getRuptureFilterHref = () => getFilteredHref({ status: ruptureFilterActive ? "" : "ruptura" });
 
   const filteredProdutos = useMemo(() => {
     if (activeCat === "Todas") return enrichedProdutos;
@@ -335,12 +338,18 @@ export function ProdutosDashboard({
             key={i}
             onClick={() => {
               if (k.label === "Em ruptura") {
-                window.location.href = getFilteredHref({ status: "ruptura" });
+                window.location.href = getRuptureFilterHref();
               }
             }}
             className={`p-5 rounded-2xl border flex flex-col gap-3 transition ${k.label === "Em ruptura" ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(239,68,68,0.16)]" : ""}`}
-            style={{ borderColor: t.border, background: t.cardBg }}
-            title={k.label === "Em ruptura" ? "Filtrar produtos em ruptura" : undefined}
+            style={{
+              borderColor: k.label === "Em ruptura" && ruptureFilterActive ? "rgba(239,68,68,0.62)" : t.border,
+              background: k.label === "Em ruptura" && ruptureFilterActive
+                ? "linear-gradient(135deg, rgba(239,68,68,0.18), rgba(239,68,68,0.07))"
+                : t.cardBg,
+              boxShadow: k.label === "Em ruptura" && ruptureFilterActive ? "0 16px 34px rgba(239,68,68,0.12)" : undefined,
+            }}
+            title={k.label === "Em ruptura" ? (ruptureFilterActive ? "Limpar filtro de ruptura" : "Filtrar produtos em ruptura") : undefined}
           >
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold" style={{ color: t.textSub }}>{k.label}</span>
