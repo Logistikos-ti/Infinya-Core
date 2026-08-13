@@ -53,6 +53,8 @@ type ItemLine = {
   produtoId: string;
   quantidade: string;
   origem?: string;
+  lote?: string;
+  validadeEm?: string;
 };
 
 type XmlPreview = {
@@ -81,7 +83,7 @@ const inputClassName =
   "h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-white/10";
 
 function emptyItemLine(): ItemLine {
-  return { key: crypto.randomUUID(), produtoId: "", quantidade: "" };
+  return { key: crypto.randomUUID(), produtoId: "", quantidade: "", lote: "", validadeEm: "" };
 }
 
 function createXmlItemKey(item: {
@@ -312,6 +314,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               produtoId: item.productId,
               quantidade: String(item.quantidade),
               origem: item.origemEan ?? item.origemCodigo ?? item.sku,
+              lote: item.lote ?? "",
+              validadeEm: item.validadeEm ?? "",
             }))
           : [emptyItemLine()],
       );
@@ -359,7 +363,11 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     }
   }
 
-  function updateItemLine(key: string, field: "produtoId" | "quantidade", value: string) {
+  function updateItemLine(
+    key: string,
+    field: "produtoId" | "quantidade" | "lote" | "validadeEm",
+    value: string,
+  ) {
     setItems((current) =>
       current.map((line) => (line.key === key ? { ...line, [field]: value } : line)),
     );
@@ -400,6 +408,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
           produtoId,
           quantidade: String(item.quantidade),
           origem: item.key,
+          lote: item.lote ?? "",
+          validadeEm: item.validadeEm ?? "",
         },
       ];
     });
@@ -506,6 +516,19 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         "resolucoesXml",
         JSON.stringify(
           Object.entries(xmlResolutions).map(([key, produtoId]) => ({ key, produtoId })),
+        ),
+      );
+      formData.append(
+        "itensXml",
+        JSON.stringify(
+          items
+            .filter((line) => line.produtoId)
+            .map((line) => ({
+              produtoId: line.produtoId,
+              quantidade: line.quantidade,
+              lote: line.lote?.trim() || null,
+              validadeEm: line.validadeEm || null,
+            })),
         ),
       );
 
@@ -1005,17 +1028,58 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                             return (
                               <div
                                 key={line.key}
-                                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs dark:border-white/10 dark:bg-[#0c1526]"
+                                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs shadow-sm dark:border-white/10 dark:bg-[#0c1526]"
                               >
-                                <span className="min-w-0 truncate font-bold text-slate-900 dark:text-white">
-                                  {product?.nome ?? "Produto vinculado"}
-                                </span>
-                                <span className="shrink-0 text-slate-500 dark:text-slate-400">
-                                  {line.quantidade} un.
-                                </span>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <span className="block truncate font-bold text-slate-900 dark:text-white">
+                                      {product?.nome ?? "Produto vinculado"}
+                                    </span>
+                                    <span className="mt-1 block text-slate-500 dark:text-slate-400">
+                                      {line.quantidade} un. previstas
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                      line.lote || line.validadeEm
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                                    }`}
+                                  >
+                                    {line.lote || line.validadeEm ? "Rastreabilidade informada" : "Sem lote/validade"}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  <label className="space-y-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    Lote
+                                    <input
+                                      className={inputClassName}
+                                      value={line.lote ?? ""}
+                                      onChange={(event) =>
+                                        updateItemLine(line.key, "lote", event.target.value)
+                                      }
+                                      placeholder="Preencha se não vier no XML"
+                                    />
+                                  </label>
+                                  <label className="space-y-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                                    Validade
+                                    <input
+                                      type="date"
+                                      className={inputClassName}
+                                      value={line.validadeEm ?? ""}
+                                      onChange={(event) =>
+                                        updateItemLine(line.key, "validadeEm", event.target.value)
+                                      }
+                                    />
+                                  </label>
+                                </div>
                               </div>
                             );
                           })}
+                      </div>
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                        Se a NF-e nÃ£o trouxer lote e validade para produtos que exigem rastreabilidade, preencha aqui.
+                        Caso siga sem essa informaÃ§Ã£o, o operador completa no recebimento fÃ­sico e isso pode gerar custo operacional na fatura.
                       </div>
                       {xmlPreview.unmatched.length ? (
                         <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">

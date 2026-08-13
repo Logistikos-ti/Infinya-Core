@@ -45,6 +45,7 @@ export async function POST(request: Request) {
   const transportadora = String(formData.get("transportadora") ?? "").trim();
   const observacoesPortal = String(formData.get("observacoes") ?? "").trim();
   const xmlResolutions = parseXmlResolutions(String(formData.get("resolucoesXml") ?? "[]"));
+  const xmlItemOverrides = parseXmlItemOverrides(String(formData.get("itensXml") ?? "[]"));
   const file = formData.get("arquivo");
 
   if (!depositanteId) {
@@ -175,6 +176,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  const finalMatchedItems = applyReceivingItemOverrides(resolvedMatched, xmlItemOverrides);
   const groupedItems = new Map<
     string,
     {
@@ -187,7 +189,7 @@ export async function POST(request: Request) {
     }
   >();
 
-  for (const item of resolvedMatched) {
+  for (const item of finalMatchedItems) {
     for (const line of expandMatchedReceivingItem(item)) {
       const key = [line.productId, line.lote ?? "", line.validadeEm ?? ""].join("|");
       const existing = groupedItems.get(key);
@@ -362,6 +364,46 @@ function expandMatchedReceivingItem(item: {
   }));
 }
 
+type XmlItemOverride = {
+  produtoId: string;
+  quantidade: number | null;
+  lote: string | null;
+  validadeEm: string | null;
+};
+
+function applyReceivingItemOverrides<
+  T extends {
+    productId: string;
+    quantidade: number;
+    lote?: string | null;
+    validadeEm?: string | null;
+    lotes?: Array<{ lote: string | null; validadeEm: string | null; quantidade: number | null }>;
+  },
+>(items: T[], overrides: XmlItemOverride[]) {
+  const pendingOverrides = [...overrides];
+
+  return items.map((item) => {
+    const overrideIndex = pendingOverrides.findIndex(
+      (override) => override.produtoId === item.productId,
+    );
+
+    if (overrideIndex < 0) {
+      return item;
+    }
+
+    const [override] = pendingOverrides.splice(overrideIndex, 1);
+    const hasManualTraceability = Boolean(override.lote || override.validadeEm);
+
+    return {
+      ...item,
+      quantidade: override.quantidade && override.quantidade > 0 ? override.quantidade : item.quantidade,
+      lote: override.lote ?? item.lote ?? null,
+      validadeEm: override.validadeEm ?? item.validadeEm ?? null,
+      lotes: hasManualTraceability ? [] : item.lotes,
+    };
+  });
+}
+
 function extractForecastDate(issuedAt: string | null) {
   if (issuedAt && /^\d{4}-\d{2}-\d{2}/.test(issuedAt)) {
     return issuedAt.slice(0, 10);
@@ -407,4 +449,38 @@ function parseXmlResolutions(rawValue: string) {
   }
 
   return resolutions;
+}
+
+function parseXmlItemOverrides(rawValue: string): XmlItemOverride[] {
+  try {
+    const parsed = JSON.parse(rawValue) as unknown;
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+
+        const produtoId = "produtoId" in item ? String(item.produtoId ?? "").trim() : "";
+        const quantidadeRaw = "quantidade" in item ? Number(item.quantidade) : Number.NaN;
+        const lote = "lote" in item ? String(item.lote ?? "").trim() : "";
+        const validadeEm = "validadeEm" in item ? String(item.validadeEm ?? "").trim() : "";
+
+        if (!produtoId) {
+          return null;
+        }
+
+        return {
+          produtoId,
+          quantidade: Number.isFinite(quantidadeRaw) && quantidadeRaw > 0 ? quantidadeRaw : null,
+          lote: lote || null,
+          validadeEm: /^\d{4}-\d{2}-\d{2}$/.test(validadeEm) ? validadeEm : null,
+        };
+      })
+      .filter((item): item is XmlItemOverride => Boolean(item));
+  } catch {
+    return [];
+  }
 }
