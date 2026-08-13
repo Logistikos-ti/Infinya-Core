@@ -11,6 +11,7 @@ type CreatePortalProductPayload = {
   sku?: unknown;
   codigoInterno?: unknown;
   codigoExterno?: unknown;
+  metodoRetirada?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -23,6 +24,8 @@ export async function POST(request: Request) {
   const codigoExterno = String(payload.codigoExterno ?? "").trim();
   const codigoInterno = String(payload.codigoInterno ?? "").trim() || codigoExterno;
   const sku = String(payload.sku ?? "").trim() || codigoInterno || codigoExterno;
+  const metodoRetirada = normalizeWithdrawalMethod(payload.metodoRetirada);
+  const requiresTraceability = metodoRetirada === "FEFO";
 
   if (!depositanteId) {
     return NextResponse.json({ error: "Depositante nao identificado." }, { status: 400 });
@@ -83,10 +86,10 @@ export async function POST(request: Request) {
       nome,
       descricao: "Criado automaticamente pela importacao de XML de recebimento.",
       categoria: "Sem categoria",
-      metodo_retirada: "FEFO",
+      metodo_retirada: metodoRetirada,
       unidade_estocagem: "UNIDADE",
-      exige_lote: false,
-      exige_validade: false,
+      exige_lote: requiresTraceability,
+      exige_validade: requiresTraceability,
       ativo: true,
     })
     .select("id, nome, sku, codigo_interno, codigo_externo, unidade_estocagem")
@@ -128,4 +131,14 @@ function normalizeProduct(product: {
 
 function escapeSupabaseFilterValue(value: string) {
   return value.replace(/,/g, "\\,").replace(/\)/g, "\\)");
+}
+
+function normalizeWithdrawalMethod(value: unknown): "FEFO" | "FIFO" | "LIFO" {
+  const method = String(value ?? "FEFO").trim().toUpperCase();
+
+  if (method === "FIFO" || method === "LIFO") {
+    return method;
+  }
+
+  return "FEFO";
 }
