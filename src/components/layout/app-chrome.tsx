@@ -108,6 +108,15 @@ function getGlobalSearchConfig(path: string): GlobalSearchConfig {
     };
   }
 
+  if (path === "/estoque/quarentena") {
+    return {
+      targetPath: "/estoque/quarentena",
+      param: "q",
+      placeholder: "Buscar produto, SKU, endereço ou motivo...",
+      available: true,
+    };
+  }
+
   if (path === "/romaneio") {
     return {
       targetPath: "/romaneio",

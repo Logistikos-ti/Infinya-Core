@@ -25,6 +25,7 @@ import {
   ScrollText,
   Send,
   Settings2,
+  ShieldAlert,
   SlidersHorizontal,
   Tag,
   Truck,
@@ -67,6 +68,12 @@ const navigation: ReadonlyArray<{
   },
   { href: "/expedicao", label: "Expedição", icon: Send, module: "expedicao" },
   { href: "/estoque", label: "Estoque", icon: Layers, module: "estoque" },
+  {
+    href: "/estoque/quarentena",
+    label: "Quarentena",
+    icon: ShieldAlert,
+    module: "estoque",
+  },
   {
     href: "/romaneio",
     label: "Romaneio",
@@ -168,6 +175,12 @@ export function AppSidebar({
                     href: "/estoque",
                     label: "Estoque",
                     icon: Layers,
+                    module: "estoque" as AppModule,
+                  },
+                  {
+                    href: "/estoque/quarentena",
+                    label: "Quarentena",
+                    icon: ShieldAlert,
                     module: "estoque" as AppModule,
                   },
                 ]
@@ -283,8 +296,12 @@ export function AppSidebar({
             const [itemPath, itemQuery] = item.href.split("?");
             const isActive = itemQuery
               ? currentPath === item.href
-              : currentPath === itemPath ||
-                currentPath.startsWith(`${itemPath}/`);
+              : itemPath === "/estoque"
+                ? currentPath === "/estoque" ||
+                  (currentPath.startsWith("/estoque/") &&
+                    !currentPath.startsWith("/estoque/quarentena"))
+                : currentPath === itemPath ||
+                  currentPath.startsWith(`${itemPath}/`);
 
             return (
               <Link

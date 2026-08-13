@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw, LogOut, ShieldAlert } from "lucide-react";
+import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { StockTransferQuickModal } from "./stock-transfer-quick-modal";
 import { StockAdjustmentModal } from "./stock-adjustment-modal";
 import { StockInventoryModal } from "./stock-inventory-modal";
 import { StockManualExitModal } from "./stock-manual-exit-modal";
-import { StockQuarantineModal } from "./stock-quarantine-modal";
 import { formatDateTimePtBr } from "@/lib/utils";
 
 export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses = [], movements = [], onClose }: { t: any; sku: any; allBalances?: any[]; allAddresses?: any[]; movements?: any[]; onClose: () => void }) {
@@ -17,7 +16,6 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showManualExit, setShowManualExit] = useState(false);
-  const [showQuarantine, setShowQuarantine] = useState(false);
   
   const skuIdToFind = sku.productId || sku.sku;
   const skuBalances = allBalances.filter(
@@ -257,9 +255,6 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           <button onClick={() => setShowManualExit(true)} style={{ height: "46px", borderRadius: "12px", border: "1px solid rgba(239,68,68,.45)", background: "rgba(239,68,68,.08)", color: "#EF4444", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
             <LogOut size={16} /> Saída manual
           </button>
-          <button onClick={() => setShowQuarantine(true)} style={{ gridColumn: "1 / -1", height: "46px", borderRadius: "12px", border: "1px solid rgba(245,158,11,.48)", background: "rgba(245,158,11,.1)", color: "#D97706", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", transition: "all 0.2s ease" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.borderColor = "#F59E0B"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = "rgba(245,158,11,.48)"; }}>
-            <ShieldAlert size={16} /> Quarentena
-          </button>
         </div>
       </div>
 
@@ -315,18 +310,6 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
         />
       )}
 
-      {showQuarantine && (
-        <StockQuarantineModal
-          sku={sku}
-          allBalances={allBalances}
-          t={t}
-          onClose={() => setShowQuarantine(false)}
-          onSuccess={() => {
-            setShowQuarantine(false);
-            window.location.reload();
-          }}
-        />
-      )}
     </div>
   );
 }

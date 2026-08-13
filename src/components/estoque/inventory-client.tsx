@@ -10,7 +10,6 @@ import { InventoryTableLot } from "./inventory-table-lot";
 import { InventoryAlerts } from "./inventory-alerts";
 import { InventoryDetailDrawer } from "./inventory-detail-drawer";
 import { InitialStockModal } from "./initial-stock-modal";
-import { StockQuarantinePanel } from "./stock-quarantine-panel";
 
 const INVENTORY_VIEW_STATE_KEY = "infinoos-wms:inventory-view";
 
@@ -250,8 +249,6 @@ export function InventoryClient({ data }: { data: any }) {
       ) : (
         <InventoryTableLot t={t} balances={filteredBalances} />
       )}
-
-      <StockQuarantinePanel t={t} items={data.stockQuarantine || []} />
 
       <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
 
