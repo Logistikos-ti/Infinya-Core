@@ -17,6 +17,7 @@ type ConfiguracoesProdutosPageProps = {
     status?: string;
     metodo?: string;
     unidade?: string;
+    categoria?: string;
     page?: string;
     perPage?: string;
   }>;
@@ -38,6 +39,7 @@ export default async function ConfiguracoesProdutosPage({
   const statusFiltro = params?.status?.trim() ?? "ativos";
   const metodoFiltro = params?.metodo?.trim() ?? "";
   const unidadeFiltro = params?.unidade?.trim() ?? "";
+  const categoriaFiltro = params?.categoria?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   const startIndex = (page - 1) * perPage;
@@ -51,46 +53,104 @@ export default async function ConfiguracoesProdutosPage({
   const depositanteFiltroEfetivo =
     depositanteFiltro || (visibleDepositantes.length === 1 ? visibleDepositantes[0]?.id ?? "" : "");
 
+  const applyCommonProductFilters = <T extends ReturnType<typeof adminSupabase.from>>(
+    query: T,
+  ) => {
+    let nextQuery = query;
+
+    if (searchTerm) {
+      const escapedSearch = escapeSupabaseLike(searchTerm);
+      nextQuery = nextQuery.or(
+        [
+          `nome.ilike.%${escapedSearch}%`,
+          `sku.ilike.%${escapedSearch}%`,
+          `codigo_interno.ilike.%${escapedSearch}%`,
+          `codigo_externo.ilike.%${escapedSearch}%`,
+        ].join(","),
+      ) as T;
+    }
+
+    if (depositanteFiltroEfetivo) {
+      nextQuery = nextQuery.eq("depositante_id", depositanteFiltroEfetivo) as T;
+    }
+
+    if (metodoFiltro) {
+      nextQuery = nextQuery.eq("metodo_retirada", metodoFiltro) as T;
+    }
+
+    if (unidadeFiltro) {
+      nextQuery = nextQuery.eq("unidade_estocagem", unidadeFiltro) as T;
+    }
+
+    if (categoriaFiltro) {
+      nextQuery = nextQuery.eq("categoria", categoriaFiltro) as T;
+    }
+
+    return nextQuery;
+  };
+
+  let stockStatusIds: string[] | null = null;
+  if (statusFiltro === "ruptura" || statusFiltro === "baixo") {
+    let candidateQuery = adminSupabase
+      .from("produtos")
+      .select("id, qtd_minima")
+      .eq("ativo", true);
+
+    candidateQuery = applyCommonProductFilters(candidateQuery);
+    const { data: candidateProducts } = await candidateQuery;
+    const candidateIds = (candidateProducts ?? []).map((product) => product.id);
+
+    let candidateStock: { produto_id: string; quantidade: number }[] = [];
+    if (candidateIds.length) {
+      const { data } = await adminSupabase
+        .from("estoque")
+        .select("produto_id, quantidade")
+        .in("produto_id", candidateIds);
+      candidateStock = data ?? [];
+    }
+
+    const candidateStockMap = candidateStock.reduce((acc, curr) => {
+      const qty = Number(curr.quantidade) || 0;
+      acc[curr.produto_id] = (acc[curr.produto_id] || 0) + qty;
+      return acc;
+    }, {} as Record<string, number>);
+
+    stockStatusIds = (candidateProducts ?? [])
+      .filter((product) => {
+        const stock = candidateStockMap[product.id] || 0;
+        const min = Number(product.qtd_minima) || 0;
+
+        if (statusFiltro === "ruptura") return stock === 0;
+        return stock > 0 && min > 0 && stock < min;
+      })
+      .map((product) => product.id);
+  }
+
+  const emptyStockStatusFilter = stockStatusIds !== null && stockStatusIds.length === 0;
+
   let productsQuery = adminSupabase
     .from("produtos")
     .select(
-      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url, peso_kg, altura_cm, largura_cm, comprimento_cm",
+      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima",
       { count: "exact" },
     )
     .order("nome")
     .range(startIndex, startIndex + perPage - 1);
 
-  if (searchTerm) {
-    const escapedSearch = escapeSupabaseLike(searchTerm);
-    productsQuery = productsQuery.or(
-      [
-        `nome.ilike.%${escapedSearch}%`,
-        `sku.ilike.%${escapedSearch}%`,
-        `codigo_interno.ilike.%${escapedSearch}%`,
-        `codigo_externo.ilike.%${escapedSearch}%`,
-      ].join(","),
-    );
-  }
-
-  if (depositanteFiltroEfetivo) {
-    productsQuery = productsQuery.eq("depositante_id", depositanteFiltroEfetivo);
-  }
+  productsQuery = applyCommonProductFilters(productsQuery);
 
   if (statusFiltro === "ativos") {
     productsQuery = productsQuery.eq("ativo", true);
   } else if (statusFiltro === "inativos") {
     productsQuery = productsQuery.eq("ativo", false);
+  } else if (stockStatusIds) {
+    productsQuery = productsQuery.eq("ativo", true).in("id", stockStatusIds);
   }
 
-  if (metodoFiltro) {
-    productsQuery = productsQuery.eq("metodo_retirada", metodoFiltro);
-  }
-
-  if (unidadeFiltro) {
-    productsQuery = productsQuery.eq("unidade_estocagem", unidadeFiltro);
-  }
-
-  const [{ data: products, count }] = await Promise.all([productsQuery]);
+  const [{ data: products, count }, { data: categoryRows }] = await Promise.all([
+    emptyStockStatusFilter ? Promise.resolve({ data: [], count: 0 }) : productsQuery,
+    adminSupabase.from("produtos").select("categoria").eq("ativo", true),
+  ]);
 
   // Calculate global KPIs for active products
   const { data: allActiveProducts } = await adminSupabase
@@ -131,6 +191,7 @@ export default async function ConfiguracoesProdutosPage({
     status: statusFiltro,
     metodo: metodoFiltro,
     unidade: unidadeFiltro,
+    categoria: categoriaFiltro,
     perPage: String(perPage),
   };
 
@@ -156,7 +217,22 @@ export default async function ConfiguracoesProdutosPage({
     ...p,
     depositante_nome: ((p.depositante as { nome?: string } | null) ?? null)?.nome ?? null,
     estoque: stockByProduct[p.id] ?? 0,
+    estoque_minimo: Number(p.qtd_minima) || 0,
+    estoque_maximo: Number(p.qtd_maxima) || 0,
   }));
+
+  const categoryOptions = Array.from(
+    new Set([
+      "Seco / Ambiente",
+      "Refrigerado",
+      "Congelado",
+      "Frágil",
+      "Perigoso (DG)",
+      "Alto Valor",
+      "Volumoso",
+      ...(categoryRows ?? []).map((row) => row.categoria).filter(Boolean),
+    ]),
+  ) as string[];
 
   return (
     <div className="space-y-6">
@@ -170,6 +246,7 @@ export default async function ConfiguracoesProdutosPage({
         totalProducts={totalProducts}
         globalBaixos={globalBaixos}
         globalRupturas={globalRupturas}
+        categoryOptions={categoryOptions}
         formSlot={
           <Link href="/configuracoes/produtos/novo">
             <button className="h-11 px-5 border-none rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] flex items-center gap-2 transition-transform hover:-translate-y-[1px]">
@@ -184,10 +261,15 @@ export default async function ConfiguracoesProdutosPage({
             status={statusFiltro}
             metodo={metodoFiltro}
             unidade={unidadeFiltro}
+            categoria={categoriaFiltro}
             perPage={String(perPage)}
             depositantes={visibleDepositantes.map((depositante) => ({
               value: depositante.id,
               label: depositante.nome,
+            }))}
+            categorias={categoryOptions.map((categoria) => ({
+              value: categoria,
+              label: categoria,
             }))}
           />
         }

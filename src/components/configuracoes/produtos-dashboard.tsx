@@ -48,6 +48,7 @@ type ProdutosDashboardProps = {
   filtersSlot?: React.ReactNode;
   importSlot?: React.ReactNode;
   backButtonSlot?: React.ReactNode;
+  categoryOptions?: string[];
 };
 
 export function ProdutosDashboard({
@@ -60,6 +61,7 @@ export function ProdutosDashboard({
   filtersSlot,
   importSlot,
   backButtonSlot,
+  categoryOptions = [],
 }: ProdutosDashboardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
@@ -157,11 +159,23 @@ export function ProdutosDashboard({
   }, [totalProducts, globalBaixos, globalRupturas, t.textSub]);
 
   const uniqueCats = useMemo(() => {
-    const set = new Set(enrichedProdutos.map(p => p.category));
+    const set = new Set([...categoryOptions, ...enrichedProdutos.map(p => p.category)].filter(Boolean));
     return ["Todas", ...Array.from(set)];
-  }, [enrichedProdutos]);
+  }, [categoryOptions, enrichedProdutos]);
 
   const [activeCat, setActiveCat] = useState("Todas");
+
+  const getFilteredHref = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    });
+
+    params.set("page", "1");
+    return `${pathname}?${params.toString()}`;
+  };
 
   const filteredProdutos = useMemo(() => {
     if (activeCat === "Todas") return enrichedProdutos;
@@ -317,7 +331,17 @@ export function ProdutosDashboard({
       {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {kpis.map((k, i) => (
-          <div key={i} className="p-5 rounded-2xl border flex flex-col gap-3" style={{ borderColor: t.border, background: t.cardBg }}>
+          <div
+            key={i}
+            onClick={() => {
+              if (k.label === "Em ruptura") {
+                window.location.href = getFilteredHref({ status: "ruptura" });
+              }
+            }}
+            className={`p-5 rounded-2xl border flex flex-col gap-3 transition ${k.label === "Em ruptura" ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(239,68,68,0.16)]" : ""}`}
+            style={{ borderColor: t.border, background: t.cardBg }}
+            title={k.label === "Em ruptura" ? "Filtrar produtos em ruptura" : undefined}
+          >
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-semibold" style={{ color: t.textSub }}>{k.label}</span>
               <span className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: k.iconBg, color: k.iconColor }}>
