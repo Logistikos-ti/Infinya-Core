@@ -238,7 +238,12 @@ export function AppChrome({ children, user }: AppChromeProps) {
   );
 
   useEffect(() => {
-    if (isPickingWave || currentPath.startsWith("/expedicao/conferencia") || !globalSearchConfig.available) {
+    if (
+      isPickingWave ||
+      currentPath.startsWith("/expedicao/conferencia") ||
+      !globalSearchConfig.available ||
+      globalSearch === globalSearchValueFromUrl
+    ) {
       return;
     }
 
@@ -247,7 +252,14 @@ export function AppChrome({ children, user }: AppChromeProps) {
     }, 260);
 
     return () => window.clearTimeout(timer);
-  }, [applyGlobalSearch, currentPath, globalSearch, globalSearchConfig.available, isPickingWave]);
+  }, [
+    applyGlobalSearch,
+    currentPath,
+    globalSearch,
+    globalSearchConfig.available,
+    globalSearchValueFromUrl,
+    isPickingWave,
+  ]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
