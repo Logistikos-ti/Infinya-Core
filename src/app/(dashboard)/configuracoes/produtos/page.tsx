@@ -160,20 +160,12 @@ export default async function ConfiguracoesProdutosPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <Link href={compactMode ? "/m/inicio" : "/configuracoes"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
-          <span className="mr-1.5 text-slate-500 font-normal">‹</span> Configurações
-        </Link>
-        <div className="flex items-center gap-2 text-[14px] ml-1">
-          <span className="text-slate-500">Configurações</span>
-          <span className="text-slate-300 text-[12px]">›</span>
-          <span className="text-slate-900 dark:text-slate-100 font-medium">Produtos</span>
-        </div>
-      </div>
-
-
-
       <ProdutosDashboard
+        backButtonSlot={
+          <Link href={compactMode ? "/m/inicio" : "/configuracoes"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
+            <span className="mr-1.5 text-slate-500 font-normal">‹</span> Configurações
+          </Link>
+        }
         produtos={mappedProducts}
         totalProducts={totalProducts}
         globalBaixos={globalBaixos}

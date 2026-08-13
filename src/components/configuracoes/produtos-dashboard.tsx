@@ -47,6 +47,7 @@ type ProdutosDashboardProps = {
   paginationSlot?: React.ReactNode;
   filtersSlot?: React.ReactNode;
   importSlot?: React.ReactNode;
+  backButtonSlot?: React.ReactNode;
 };
 
 export function ProdutosDashboard({
@@ -58,6 +59,7 @@ export function ProdutosDashboard({
   paginationSlot,
   filtersSlot,
   importSlot,
+  backButtonSlot,
 }: ProdutosDashboardProps) {
   const { resolvedTheme } = useTheme();
   const dark = resolvedTheme === "dark";
@@ -266,8 +268,15 @@ export function ProdutosDashboard({
       {/* Header and Toggles */}
       <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub }}>
-            <span>Estoque</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
+          <div className="flex items-center gap-2">
+            {backButtonSlot && (
+              <div className="mr-2">
+                {backButtonSlot}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub }}>
+              <span>{backButtonSlot ? "Configurações" : "Estoque"}</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
+            </div>
           </div>
           <h1 className={`${spaceGrotesk.className} text-[28px] font-bold m-0 leading-tight`}>
             Catálogo de produtos
