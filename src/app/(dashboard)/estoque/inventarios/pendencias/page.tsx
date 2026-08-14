@@ -6,7 +6,8 @@ import { CycleCountHistory } from "@/components/estoque/cycle-count-history";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { requireModuleAccess } from "@/lib/auth";
 import { isAdminUser } from "@/lib/permissions";
-import { listPendingCycleCountAdjustments, listCycleCountsFromDb } from "@/lib/stock-cycle-counts";
+import { listPendingCycleCountAdjustments, listCycleCountsFromDb, CycleCountSummary } from "@/lib/stock-cycle-counts";
+import { listCompletedGeneralInventoriesFromDb } from "@/lib/general-inventories";
 
 type PageProps = {
   searchParams?: Promise<{
@@ -22,7 +23,20 @@ export default async function EstoqueInventarioPendenciasPage({ searchParams }: 
   const tab = params?.tab === "historico" ? "historico" : "pendentes";
 
   const result = await listPendingCycleCountAdjustments();
-  const historyResult = tab === "historico" ? await listCycleCountsFromDb(undefined, 50, "CONCLUIDA") : null;
+  let mergedHistory: CycleCountSummary[] = [];
+
+  if (tab === "historico") {
+    const [cycleCounts, generalInventories] = await Promise.all([
+      listCycleCountsFromDb(undefined, 50, "CONCLUIDA").then(res => res.data),
+      listCompletedGeneralInventoriesFromDb(50)
+    ]);
+    
+    mergedHistory = [...cycleCounts, ...generalInventories].sort((a, b) => {
+      const timeA = a.timestamp ?? 0;
+      const timeB = b.timestamp ?? 0;
+      return timeB - timeA;
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -89,8 +103,8 @@ export default async function EstoqueInventarioPendenciasPage({ searchParams }: 
         </>
       )}
 
-      {tab === "historico" && historyResult && (
-        <CycleCountHistory items={historyResult.data} />
+      {tab === "historico" && (
+        <CycleCountHistory items={mergedHistory} />
       )}
     </div>
   );

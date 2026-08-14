@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardCheck, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ClipboardCheck, ArrowRight, CheckCircle2, Download } from "lucide-react";
 import type { CycleCountSummary } from "@/lib/stock-cycle-counts";
 
 export function CycleCountHistory({ items }: { items: CycleCountSummary[] }) {
@@ -40,6 +40,11 @@ export function CycleCountHistory({ items }: { items: CycleCountSummary[] }) {
                     {item.blindCount && (
                       <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
                         CEGA
+                      </span>
+                    )}
+                    {item.type === "GERAL" && (
+                      <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        GERAL
                       </span>
                     )}
                   </div>
@@ -81,12 +86,25 @@ export function CycleCountHistory({ items }: { items: CycleCountSummary[] }) {
                   <span className="text-slate-600 dark:text-slate-300">{item.createdAt}</span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    href={`/estoque/inventarios/${item.id}`}
-                    className="inline-flex items-center justify-center rounded-full bg-white p-2 text-slate-400 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:bg-zinc-900 dark:ring-white/10 dark:hover:bg-zinc-800 dark:hover:text-white"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  {item.type === "GERAL" ? (
+                    <a
+                      href={`/api/estoque/inventarios-gerais/${item.id}/relatorio`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full bg-white p-2 text-slate-400 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:bg-zinc-900 dark:ring-white/10 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-400"
+                      title="Baixar Relatório (CSV)"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                  ) : (
+                    <Link
+                      href={`/estoque/inventarios/${item.id}`}
+                      className="inline-flex items-center justify-center rounded-full bg-white p-2 text-slate-400 shadow-sm ring-1 ring-inset ring-slate-200 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:bg-zinc-900 dark:ring-white/10 dark:hover:bg-zinc-800 dark:hover:text-white"
+                      title="Ver Detalhes"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

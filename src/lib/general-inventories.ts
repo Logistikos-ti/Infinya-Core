@@ -402,3 +402,40 @@ export async function getGeneralInventoryReport(id: string) {
     .join("\r\n");
   return { detail, csv: `\ufeff${csv}` };
 }
+
+export async function listCompletedGeneralInventoriesFromDb(limit = 50): Promise<import('./stock-cycle-counts').CycleCountSummary[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data: headers, error } = await supabase
+    .from("inventarios_gerais")
+    .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, depositante:depositantes(nome)")
+    .eq("status", "CONCLUIDA")
+    .order("concluido_em", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (missingTable(error)) return [];
+    throw new Error("Não foi possível carregar o histórico de inventários gerais: " + error.message);
+  }
+
+  const summaries = await Promise.all((headers || []).map(async (header) => {
+    const detail = await getGeneralInventory(header.id);
+    if (!detail) return null;
+    return {
+      id: detail.id,
+      type: "GERAL" as const,
+      titulo: `Inventário Geral (${detail.dataOperacional})`,
+      depositanteId: detail.depositanteId,
+      depositante: detail.depositante,
+      area: "Todas as áreas",
+      status: detail.status,
+      blindCount: false,
+      createdAt: detail.concluidoEm || detail.iniciadoEm,
+      countedItems: detail.contados,
+      totalItems: detail.totalItens,
+      divergentItems: detail.divergentes,
+      timestamp: header.concluido_em ? new Date(header.concluido_em).getTime() : new Date(header.iniciado_em).getTime(),
+    };
+  }));
+
+  return summaries.filter(Boolean) as import('./stock-cycle-counts').CycleCountSummary[];
+}

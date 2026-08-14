@@ -3,6 +3,7 @@ import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/
 
 export type CycleCountSummary = {
   id: string;
+  type?: "CICLICO" | "GERAL";
   titulo: string;
   depositanteId: string;
   depositante: string;
@@ -13,6 +14,7 @@ export type CycleCountSummary = {
   countedItems: number;
   totalItems: number;
   divergentItems: number;
+  timestamp?: number;
 };
 
 export type PendingCycleCountAdjustment = {
