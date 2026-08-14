@@ -417,38 +417,44 @@ export function StockQuarantinePageClient({
           onClick={() => setSelectedItem(null)}
         >
           <aside
-            className="h-full w-full max-w-[500px] overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
+            className="flex h-dvh w-full max-w-[420px] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-7 py-6 dark:border-white/10">
-              <div>
-                <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-amber-500">Item em quarentena</p>
-                <h2 className="font-['Space_Grotesk'] text-2xl font-extrabold text-slate-950 dark:text-white">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+              <div className="min-w-0">
+                <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-amber-500">
+                  {selectedItem.isMissingDefaultAddress ? "Produto sem endereço padrão" : "Item em quarentena"}
+                </p>
+                <h2 className="line-clamp-2 font-['Space_Grotesk'] text-lg font-extrabold leading-tight text-slate-950 dark:text-white" title={selectedItem.productName}>
                   {selectedItem.productName}
                 </h2>
-                <StatusPill status={selectedItem.status} label={selectedItem.statusLabel} />
+                <div className="mt-2">
+                  <StatusPill status={selectedItem.status} label={selectedItem.statusLabel} />
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedItem(null)}
-                className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
                 aria-label="Fechar detalhe da quarentena"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="grid gap-5 px-7 py-6">
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-                <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-violet-500 shadow-sm dark:bg-slate-900">
+            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4">
+              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-violet-500 shadow-sm dark:bg-slate-900">
                   {selectedItem.imageUrl ? (
                     <img src={selectedItem.imageUrl} alt={selectedItem.productName} className="h-full w-full object-cover" />
                   ) : (
-                    <PackageOpen size={26} />
+                    <PackageOpen size={20} />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-extrabold text-slate-950 dark:text-white">{selectedItem.productName}</p>
+                  <p className="truncate text-base font-extrabold text-slate-950 dark:text-white" title={selectedItem.productName}>
+                    {selectedItem.productName}
+                  </p>
                   <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">SKU {selectedItem.sku}</p>
                   {selectedItem.internalCode ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400">Código interno {selectedItem.internalCode}</p>
@@ -463,14 +469,14 @@ export function StockQuarantinePageClient({
                 <InfoTile label="Área" value={selectedItem.area} />
               </div>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Motivo da quarentena
+                  {selectedItem.isMissingDefaultAddress ? "Pendência operacional" : "Motivo da quarentena"}
                 </p>
                 <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{selectedItem.reason}</p>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                   Registro
                 </p>
@@ -489,7 +495,7 @@ export function StockQuarantinePageClient({
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Ações</p>
                 {selectedItem.status === "EM_QUARENTENA" && canResolve ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -528,7 +534,7 @@ export function StockQuarantinePageClient({
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
       <p className="mb-1 text-xs font-bold text-slate-500 dark:text-slate-400">{label}</p>
       <p className="text-sm font-extrabold text-slate-950 dark:text-white">{value}</p>
     </div>
