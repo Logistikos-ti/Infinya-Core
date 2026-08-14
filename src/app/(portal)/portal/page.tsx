@@ -1018,14 +1018,12 @@ function QuarantineView({
         </div>
         {quarantine.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse text-left">
+            <table className="w-full min-w-[760px] border-collapse text-left">
               <thead className="text-[12px] uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
                 <tr>
                   {[
                     "Produto",
-                    "Endereço",
                     "Quantidade",
-                    "Motivo",
                     "Status",
                     "Registro",
                     "Operador",
@@ -1069,17 +1067,8 @@ function QuarantineView({
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      {item.endereco}
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {item.area}
-                      </p>
-                    </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-950 dark:text-white">
                       {item.quantityLabel} un
-                    </td>
-                    <td className="max-w-[260px] px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.reason}
                     </td>
                     <td className="px-5 py-4">
                       <QuarantineStatusPill status={item.status} label={item.statusLabel} />
