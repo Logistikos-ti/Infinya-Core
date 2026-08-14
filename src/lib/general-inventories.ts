@@ -408,7 +408,7 @@ export async function listCompletedGeneralInventoriesFromDb(limit = 50): Promise
   const { data: headers, error } = await supabase
     .from("inventarios_gerais")
     .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, depositante:depositantes(nome)")
-    .eq("status", "CONCLUIDA")
+    .eq("status", "CONCLUIDO")
     .order("concluido_em", { ascending: false })
     .limit(limit);
 
