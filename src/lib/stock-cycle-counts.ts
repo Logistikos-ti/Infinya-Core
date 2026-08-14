@@ -140,16 +140,27 @@ type DetailItemRow = {
 
 export async function listCycleCountsFromDb(
   depositanteId?: string,
+  limit: number = 8,
+  status?: string,
 ): Promise<CycleCountTablesResult<CycleCountSummary[]>> {
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("contagens_estoque")
     .select(
       "id, titulo, depositante_id, area, status, contagem_cega, created_at, depositante:depositantes(nome)",
     )
-    .order("created_at", { ascending: false })
-    .limit(8);
+    .order("created_at", { ascending: false });
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  if (limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (isMissingCycleCountTables(error)) {
     return { available: false, data: [] };
