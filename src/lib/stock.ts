@@ -118,6 +118,7 @@ export type StockBalance = {
   available: string;
   rawQuantidade: number;
   rawReserved: number;
+  rawAvailable: number;
   validade: string;
   status: string;
   blockReason: string;
@@ -571,7 +572,7 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
 
   const rawQuantidade = Number(item.quantidade ?? 0);
   const rawReserved = Number((item as any).quantidade_reservada ?? 0);
-  const available = Math.max(0, rawQuantidade - rawReserved);
+  const available = item.bloqueado ? 0 : Math.max(0, rawQuantidade - rawReserved);
 
   return {
     id: item.id,
@@ -590,6 +591,7 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     available: available.toLocaleString("pt-BR"),
     rawQuantidade,
     rawReserved,
+    rawAvailable: available,
     validade: expiryDate ? formatDate(expiryDate) : "-",
     status: item.bloqueado ? "Bloqueado" : "Disponível",
     blockReason: item.bloqueio_motivo?.trim() || "",

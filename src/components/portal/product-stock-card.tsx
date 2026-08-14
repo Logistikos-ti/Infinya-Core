@@ -76,7 +76,7 @@ export function ProductStockCard({
   item: StockBalance;
   canManage?: boolean;
 }) {
-  const quantity = Number(item.rawQuantidade ?? 0);
+  const quantity = Number(item.rawAvailable ?? 0);
   const configuredMaximum = Number(item.maxQuantity ?? 0);
   const configuredMinimum = Number(item.minQuantity ?? 0);
   const initialMaximum =

@@ -28,7 +28,7 @@ export async function GET() {
       sku: balance.sku || "",
       quantidade: 0,
     };
-    current.quantidade += Number(balance.rawQuantidade ?? 0);
+    current.quantidade += Number(balance.rawAvailable ?? 0);
     products.set(balance.productId, current);
   }
 

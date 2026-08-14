@@ -195,11 +195,11 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     ? selectedOrderCandidate
     : null;
   const totalUnits = stock.reduce(
-    (sum, item) => sum + Number(item.rawQuantidade ?? 0),
+    (sum, item) => sum + Number(item.rawAvailable ?? 0),
     0,
   );
   const lowStock = stock
-    .filter((item) => Number(item.rawQuantidade ?? 0) <= 5)
+    .filter((item) => Number(item.rawAvailable ?? 0) <= 5)
     .slice(0, 5);
 
   return (
@@ -562,7 +562,7 @@ function ProductsView({
       </div>
       <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
         {visibleProducts.map((item) => {
-          const quantity = Number(item.rawQuantidade ?? 0);
+          const quantity = Number(item.rawAvailable ?? 0);
           const minimum = Number(item.minQuantity ?? 0);
           const maximum = Math.max(
             Number(item.maxQuantity ?? 0),
@@ -694,7 +694,8 @@ function aggregatePortalProductStock(stock: PortalProductStockItem[]) {
       Number(existing.rawQuantidade ?? 0) + Number(item.rawQuantidade ?? 0);
     const rawReserved =
       Number(existing.rawReserved ?? 0) + Number(item.rawReserved ?? 0);
-    const available = Math.max(0, rawQuantidade - rawReserved);
+    const available =
+      Number(existing.rawAvailable ?? 0) + Number(item.rawAvailable ?? 0);
     const endereco =
       existing.endereco === item.endereco
         ? existing.endereco
@@ -708,6 +709,7 @@ function aggregatePortalProductStock(stock: PortalProductStockItem[]) {
       lote,
       rawQuantidade,
       rawReserved,
+      rawAvailable: available,
       saldo: rawQuantidade.toLocaleString("pt-BR"),
       reserved: rawReserved.toLocaleString("pt-BR"),
       available: available.toLocaleString("pt-BR"),
@@ -1427,7 +1429,7 @@ function StockRow({
         <p className="text-[11px] text-slate-500">{item.sku || "Sem código"}</p>
       </div>
       <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600">
-        {item.rawQuantidade ?? 0}
+        {item.rawAvailable ?? 0}
       </span>
     </div>
   );
