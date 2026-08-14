@@ -88,7 +88,7 @@ export function StockQuarantinePageClient({
   const stats = useMemo(() => {
     const count = (targetStatus: string) =>
       allItems.filter((item) => item.status === targetStatus).length;
-    const pendingAddressing = allItems.filter((item) => item.isSystemHold).length;
+    const pendingAddressing = allItems.filter((item) => item.isMissingDefaultAddress).length;
 
     return [
       {
@@ -120,7 +120,7 @@ export function StockQuarantinePageClient({
 
   const displayItems = useMemo(() => {
     if (tableMode === "pending-addressing") {
-      return allItems.filter((item) => item.isSystemHold);
+      return allItems.filter((item) => item.isMissingDefaultAddress);
     }
 
     return items;
@@ -421,7 +421,9 @@ export function StockQuarantinePageClient({
               {displayItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
-                    Nenhum item encontrado para os filtros atuais.
+                    {tableMode === "pending-addressing"
+                      ? "Nenhum produto sem endereço padrão para recebimento."
+                      : "Nenhum item encontrado para os filtros atuais."}
                   </td>
                 </tr>
               ) : null}

@@ -47,6 +47,17 @@ type PendingAddressingStockRow = {
   endereco: Relation<{ codigo?: string | null; area?: string | null }>;
 };
 
+type MissingDefaultAddressProductRow = {
+  id: string;
+  depositante_id: string;
+  sku: string | null;
+  nome: string | null;
+  codigo_interno: string | null;
+  imagem_principal_url: string | null;
+  created_at: string | null;
+  depositante: Relation<{ nome?: string | null }>;
+};
+
 export type StockQuarantineFilters = {
   depositanteId?: string;
   status?: string;
@@ -80,12 +91,14 @@ export type StockQuarantineItem = {
   resolvedAtLabel: string;
   resolvedBy: string;
   isSystemHold?: boolean;
+  isMissingDefaultAddress?: boolean;
   resolutionHint?: string;
 };
 
 export async function listStockQuarantineFromDb(filters?: StockQuarantineFilters) {
   const formalRows = await listFormalQuarantineRows(filters);
   const pendingAddressingRows = await listPendingAddressingHolds(filters);
+  const missingDefaultAddressRows = await listMissingDefaultAddressProducts(filters);
   const formalStockIds = new Set(
     formalRows
       .filter((item) => item.status === "EM_QUARENTENA" && item.stockId)
@@ -94,6 +107,7 @@ export async function listStockQuarantineFromDb(filters?: StockQuarantineFilters
   const mergedRows = [
     ...formalRows,
     ...pendingAddressingRows.filter((item) => !formalStockIds.has(item.stockId)),
+    ...missingDefaultAddressRows,
   ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
   const rows =
@@ -160,6 +174,60 @@ async function listPendingAddressingHolds(filters?: StockQuarantineFilters) {
   return ((data ?? []) as PendingAddressingStockRow[])
     .filter(isPendingAddressingHold)
     .map(mapPendingAddressingHold);
+}
+
+async function listMissingDefaultAddressProducts(filters?: StockQuarantineFilters) {
+  const supabase = createSupabaseAdminClient();
+  let query = supabase
+    .from("produtos")
+    .select(
+      "id, depositante_id, sku, nome, codigo_interno, imagem_principal_url, created_at, depositante:depositantes(nome)",
+    )
+    .eq("ativo", true)
+    .is("endereco_padrao_id", null)
+    .order("nome", { ascending: true });
+
+  if (filters?.depositanteId) {
+    query = query.eq("depositante_id", filters.depositanteId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (error.message.includes("endereco_padrao_id") || error.message.includes("schema cache")) return [];
+    throw new Error(`Nao foi possivel carregar produtos sem endereco padrao: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as MissingDefaultAddressProductRow[];
+  const productIds = rows.map((item) => item.id);
+  const stockTotalsByProduct = await sumStockByProduct(productIds);
+
+  return rows.map((row) => mapMissingDefaultAddressProduct(row, stockTotalsByProduct.get(row.id) ?? 0));
+}
+
+async function sumStockByProduct(productIds: string[]) {
+  const totals = new Map<string, number>();
+  if (productIds.length === 0) return totals;
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("estoque")
+    .select("produto_id, quantidade")
+    .in("produto_id", productIds)
+    .gt("quantidade", 0);
+
+  if (error) {
+    throw new Error(`Nao foi possivel somar estoque dos produtos sem endereco padrao: ${error.message}`);
+  }
+
+  for (const row of data ?? []) {
+    const productId = String((row as { produto_id?: string }).produto_id ?? "");
+    if (!productId) continue;
+    const quantity = Number((row as { quantidade?: number | string }).quantidade ?? 0);
+    totals.set(productId, (totals.get(productId) ?? 0) + quantity);
+  }
+
+  return totals;
 }
 
 function filterQuarantineRows(rows: StockQuarantineItem[], productTerm?: string) {
@@ -296,6 +364,41 @@ function mapPendingAddressingHold(row: PendingAddressingStockRow): StockQuaranti
     resolvedBy: "",
     isSystemHold: true,
     resolutionHint: "Resolver por movimentação interna para o endereço definitivo do produto.",
+  };
+}
+
+function mapMissingDefaultAddressProduct(row: MissingDefaultAddressProductRow, quantity: number): StockQuarantineItem {
+  const depositante = firstRelation(row.depositante);
+  const createdAt = row.created_at || new Date(0).toISOString();
+
+  return {
+    id: `missing-default-address:${row.id}`,
+    depositanteId: row.depositante_id,
+    productId: row.id,
+    stockId: null,
+    addressId: null,
+    depositante: depositante?.nome?.trim() || "Sem depositante",
+    sku: row.sku?.trim() || row.codigo_interno?.trim() || "SKU",
+    productName: row.nome?.trim() || "Produto sem descrição",
+    internalCode: row.codigo_interno?.trim() || "",
+    imageUrl: row.imagem_principal_url ?? null,
+    endereco: "Sem endereço padrão",
+    area: "Recebimento",
+    quantity,
+    quantityLabel: quantity.toLocaleString("pt-BR"),
+    reason:
+      "Produto ativo sem endereço padrão para recebimento. Cadastre o endereço padrão no produto para evitar triagem manual e bloqueios operacionais.",
+    status: "SEM_ENDERECO_PADRAO",
+    statusLabel: "Sem endereço padrão",
+    resolutionNotes: "",
+    createdAt,
+    createdAtLabel: row.created_at ? formatDateTimePtBr(row.created_at) : "Cadastro sem data",
+    createdBy: "Cadastro de produto",
+    resolvedAt: null,
+    resolvedAtLabel: "",
+    resolvedBy: "",
+    isMissingDefaultAddress: true,
+    resolutionHint: "Editar o produto e definir o endereço padrão de recebimento.",
   };
 }
 
