@@ -1,6 +1,5 @@
 import { requireModuleAccess } from "@/lib/auth";
 import { canManageMultipleTenants, isAdminUser } from "@/lib/permissions";
-import { listStockBalancesFromDb } from "@/lib/stock";
 import { listStockQuarantineFromDb } from "@/lib/stock-quarantine";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
@@ -39,15 +38,10 @@ export default async function StockQuarantinePage({
         ? requestedDepositanteId
         : "";
 
-  const [allQuarantineItems, stockBalances] = await Promise.all([
-    listStockQuarantineFromDb({
-      depositanteId: effectiveDepositanteId || undefined,
-      productTerm: productTerm || undefined,
-    }),
-    listStockBalancesFromDb({
-      depositanteId: effectiveDepositanteId || undefined,
-    }),
-  ]);
+  const allQuarantineItems = await listStockQuarantineFromDb({
+    depositanteId: effectiveDepositanteId || undefined,
+    productTerm: productTerm || undefined,
+  });
 
   const filteredItems =
     status === "TODOS"
@@ -59,9 +53,6 @@ export default async function StockQuarantinePage({
       depositantes={depositanteOptions}
       items={filteredItems}
       allItems={allQuarantineItems}
-      stockBalances={stockBalances.filter((item) =>
-        visibleDepositanteIds.has(item.depositanteId),
-      )}
       initialDepositanteId={effectiveDepositanteId}
       initialStatus={status}
       initialQuery={productTerm}
