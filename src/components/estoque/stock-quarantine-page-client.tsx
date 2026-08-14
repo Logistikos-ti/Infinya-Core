@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArchiveRestore,
-  CheckCircle2,
   PackageOpen,
   ShieldAlert,
   Trash2,
@@ -42,6 +41,8 @@ const STATUS_OPTIONS: FancySelectOption[] = [
   { value: "TODOS", label: "Todos" },
 ];
 
+type TableMode = "status" | "pending-addressing";
+
 export function StockQuarantinePageClient({
   depositantes,
   items,
@@ -59,6 +60,7 @@ export function StockQuarantinePageClient({
   const [depositanteId, setDepositanteId] = useState(initialDepositanteId);
   const [status, setStatus] = useState(initialStatus);
   const [query, setQuery] = useState(initialQuery);
+  const [tableMode, setTableMode] = useState<TableMode>("status");
   const [selectedItem, setSelectedItem] = useState<StockQuarantineItem | null>(null);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -66,7 +68,6 @@ export function StockQuarantinePageClient({
   } | null>(null);
 
   const t = {
-    appBg: isDark ? "#0B1120" : "#EEF4FB",
     border: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
     text: isDark ? "#F8FAFC" : "#0F172A",
     textSub: isDark ? "#94A3B8" : "#64748B",
@@ -87,6 +88,7 @@ export function StockQuarantinePageClient({
   const stats = useMemo(() => {
     const count = (targetStatus: string) =>
       allItems.filter((item) => item.status === targetStatus).length;
+    const pendingAddressing = allItems.filter((item) => item.isSystemHold).length;
 
     return [
       {
@@ -94,27 +96,43 @@ export function StockQuarantinePageClient({
         value: count("EM_QUARENTENA"),
         icon: ShieldAlert,
         color: "#F59E0B",
-      },
-      {
-        label: "Liberados",
-        value: count("LIBERADO"),
-        icon: CheckCircle2,
-        color: "#10B981",
+        mode: "status" as TableMode,
+        status: "EM_QUARENTENA",
       },
       {
         label: "Descartados",
         value: count("DESCARTADO"),
         icon: Trash2,
         color: "#EF4444",
+        mode: "status" as TableMode,
+        status: "DESCARTADO",
       },
       {
-        label: "Registros",
-        value: allItems.length,
+        label: "Produtos sem endereço padrão",
+        value: pendingAddressing,
         icon: PackageOpen,
         color: "#3B82F6",
+        mode: "pending-addressing" as TableMode,
+        status: "EM_QUARENTENA",
       },
     ];
   }, [allItems]);
+
+  const displayItems = useMemo(() => {
+    if (tableMode === "pending-addressing") {
+      return allItems.filter((item) => item.isSystemHold);
+    }
+
+    return items;
+  }, [allItems, items, tableMode]);
+
+  function handleStatClick(stat: { mode: TableMode; status: string }) {
+    setTableMode(stat.mode);
+    if (stat.status !== status) {
+      setStatus(stat.status);
+      updateRoute({ status: stat.status });
+    }
+  }
 
   function updateRoute(next: { depositanteId?: string; status?: string; q?: string }) {
     const params = new URLSearchParams();
@@ -162,7 +180,7 @@ export function StockQuarantinePageClient({
         flex: 1,
         overflowY: "auto",
         padding: "28px 32px 40px",
-        background: t.appBg,
+        background: "transparent",
         color: t.text,
       }}
     >
@@ -211,11 +229,24 @@ export function StockQuarantinePageClient({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14, marginBottom: 18 }}>
         {stats.map((stat) => {
           const Icon = stat.icon;
+          const isActive = tableMode === stat.mode && status === stat.status;
           return (
-            <div key={stat.label} style={{ border: `1px solid ${t.border}`, borderRadius: 18, background: t.cardBg, padding: 18 }}>
+            <button
+              key={stat.label}
+              type="button"
+              onClick={() => handleStatClick(stat)}
+              className="text-left transition hover:-translate-y-0.5 hover:shadow-lg"
+              style={{
+                border: `1px solid ${isActive ? stat.color : t.border}`,
+                borderRadius: 18,
+                background: t.cardBg,
+                padding: 18,
+                boxShadow: isActive ? `0 14px 34px ${stat.color}24` : "none",
+              }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.textSub }}>{stat.label}</p>
@@ -237,7 +268,7 @@ export function StockQuarantinePageClient({
                   <Icon size={18} />
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -257,6 +288,7 @@ export function StockQuarantinePageClient({
             name="quarantine-status"
             value={status}
             onChange={(value) => {
+              setTableMode("status");
               setStatus(value);
               updateRoute({ status: value });
             }}
@@ -268,6 +300,7 @@ export function StockQuarantinePageClient({
               name="quarantine-filter-depositante"
               value={depositanteId}
               onChange={(value) => {
+                setTableMode("status");
                 setDepositanteId(value);
                 updateRoute({ depositanteId: value });
               }}
@@ -280,9 +313,15 @@ export function StockQuarantinePageClient({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") updateRoute({ q: query });
+                if (event.key === "Enter") {
+                  setTableMode("status");
+                  updateRoute({ q: query });
+                }
               }}
-              onBlur={() => updateRoute({ q: query })}
+              onBlur={() => {
+                setTableMode("status");
+                updateRoute({ q: query });
+              }}
               placeholder="Produto, SKU, endereço ou motivo..."
               className="h-[52px] rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition hover:border-cyan-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-cyan-900/40"
             />
@@ -324,7 +363,7 @@ export function StockQuarantinePageClient({
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {displayItems.map((item) => (
                 <tr
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
@@ -379,7 +418,7 @@ export function StockQuarantinePageClient({
                   </td>
                 </tr>
               ))}
-              {items.length === 0 ? (
+              {displayItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
                     Nenhum item encontrado para os filtros atuais.
