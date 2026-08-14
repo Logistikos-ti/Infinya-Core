@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { listStockBalancesFromDb } from "@/lib/stock";
 import { MovimentacaoDepositanteListClient } from "./movimentacao-depositante-list-client";
@@ -30,7 +31,9 @@ export default async function MobileStockTransferDepositantesPage() {
   const balances = await listStockBalancesFromDb();
   const countByDepositante = new Map<string, number>();
   for (const item of balances) {
-    if (item.status !== "Disponível" || item.rawQuantidade - item.rawReserved <= 0) continue;
+    const isTransferable =
+      item.status === "Disponível" || item.blockReason === PENDING_ADDRESSING_BLOCK_REASON;
+    if (!isTransferable || item.rawQuantidade - item.rawReserved <= 0) continue;
     if (!visibleIds.has(item.depositanteId)) continue;
     countByDepositante.set(item.depositanteId, (countByDepositante.get(item.depositanteId) ?? 0) + 1);
   }

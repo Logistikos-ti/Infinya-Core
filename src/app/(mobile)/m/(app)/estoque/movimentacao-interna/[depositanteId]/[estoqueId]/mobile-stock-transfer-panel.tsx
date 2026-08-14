@@ -30,15 +30,18 @@ type Props = {
   estoqueId: string;
   produtoNome: string;
   produtoSku: string;
-  produtoBarcode: string | null;
-  produtoCodigoInterno: string | null;
   produtoImagemUrl: string | null;
   origemCodigo: string;
   disponivel: number;
   destinos: Destino[];
 };
 
-type ScanPhase = "produto" | "origem" | "destino" | "quantidade";
+// "produto" isn't scanned here anymore: the operator already bipped it on
+// the previous screen (movimentacao-scan-client.tsx), which resolved this
+// exact saldo before ever opening this panel. Origem stays a real scan step
+// -- it's the one piece of information that screen couldn't confirm on its
+// own (a physical position check before moving stock out of it).
+type ScanPhase = "origem" | "destino" | "quantidade";
 
 export function MobileStockTransferPanel({
   depositanteId,
@@ -46,15 +49,13 @@ export function MobileStockTransferPanel({
   estoqueId,
   produtoNome,
   produtoSku,
-  produtoBarcode,
-  produtoCodigoInterno,
   produtoImagemUrl,
   origemCodigo,
   disponivel,
   destinos,
 }: Props) {
   const router = useRouter();
-  const [scanPhase, setScanPhase] = useState<ScanPhase>("produto");
+  const [scanPhase, setScanPhase] = useState<ScanPhase>("origem");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [destino, setDestino] = useState<Destino | null>(null);
@@ -79,7 +80,7 @@ export function MobileStockTransferPanel({
   });
 
   // Opens on its own -- the operator has nothing else to do before bipping
-  // the product, so a button tap first would just be an extra step.
+  // the endereço de origem, so a button tap first would just be an extra step.
   useEffect(() => {
     setScannerOpen(true);
   }, []);
@@ -149,18 +150,6 @@ export function MobileStockTransferPanel({
   function applyScan(rawValue: string) {
     const normalized = normalizeScan(rawValue);
     if (!normalized) return;
-
-    if (scanPhase === "produto") {
-      const candidates = [produtoBarcode, produtoCodigoInterno, produtoSku].filter(Boolean) as string[];
-      const matches = candidates.some((value) => normalizeScan(value) === normalized);
-      if (!matches) {
-        flash({ type: "err", title: "Produto incorreto", code: rawValue, sub: "Este código não pertence a este produto." });
-        return;
-      }
-      flash({ type: "ok", title: "Produto OK", code: produtoSku, sub: "Bipe agora o endereço de origem" });
-      setScanPhase("origem");
-      return;
-    }
 
     if (scanPhase === "origem") {
       const expected = normalizeScan(origemCodigo);
@@ -240,13 +229,11 @@ export function MobileStockTransferPanel({
 
   const phaseColor = mobileColors.violet;
   const scanTitle =
-    scanPhase === "produto"
-      ? "Bipe o produto"
-      : scanPhase === "origem"
-        ? "Bipe o endereço de origem"
-        : scanPhase === "destino"
-          ? "Bipe o endereço de destino"
-          : "Informe a quantidade";
+    scanPhase === "origem"
+      ? "Bipe o endereço de origem"
+      : scanPhase === "destino"
+        ? "Bipe o endereço de destino"
+        : "Informe a quantidade";
 
   return (
     <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
@@ -308,7 +295,7 @@ export function MobileStockTransferPanel({
                 className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[8px] text-[13px] font-extrabold"
                 style={{ background: hexAlpha(phaseColor, 0.18), color: phaseColor, ...headingFont }}
               >
-                {scanPhase === "produto" ? "1" : scanPhase === "origem" ? "2" : scanPhase === "destino" ? "3" : "4"}
+                {scanPhase === "origem" ? "1" : scanPhase === "destino" ? "2" : "3"}
               </span>
               <span className="text-[13px] font-extrabold uppercase tracking-wide" style={{ color: phaseColor }}>
                 {scanTitle}
@@ -346,14 +333,14 @@ export function MobileStockTransferPanel({
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px]"
                   style={{ background: hexAlpha(phaseColor, 0.16), color: phaseColor }}
                 >
-                  <MobileIcon name={scanPhase === "produto" ? "code" : "loc"} size={20} />
+                  <MobileIcon name="loc" size={20} />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-[11px] uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    {scanPhase === "produto" ? "Código de barras" : scanPhase === "origem" ? "Endereço de origem" : "Qualquer endereço ativo, diferente da origem"}
+                    {scanPhase === "origem" ? "Endereço de origem" : "Qualquer endereço ativo, diferente da origem"}
                   </span>
                   <span className="truncate text-[22px] font-bold tracking-wide" style={{ color: mobileColors.text, ...headingFont }}>
-                    {scanPhase === "produto" ? produtoBarcode || produtoSku : scanPhase === "origem" ? origemCodigo : "—"}
+                    {scanPhase === "origem" ? origemCodigo : "—"}
                   </span>
                 </div>
               </div>
@@ -489,17 +476,14 @@ export function MobileStockTransferPanel({
                   fontSize: scanPhase === "origem" ? 22 : 17,
                   lineHeight: 1.15,
                   display: "-webkit-box",
-                  WebkitLineClamp: scanPhase === "produto" ? 2 : 1,
+                  WebkitLineClamp: 1,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                   ...headingFont,
                 }}
               >
-                {scanPhase === "produto" ? produtoNome : scanPhase === "origem" ? origemCodigo : "Qualquer endereço ativo"}
+                {scanPhase === "origem" ? origemCodigo : "Qualquer endereço ativo"}
               </span>
-              {scanPhase === "produto" ? (
-                <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, ...headingFont }}>{produtoSku}</span>
-              ) : null}
             </div>
             <button
               type="button"

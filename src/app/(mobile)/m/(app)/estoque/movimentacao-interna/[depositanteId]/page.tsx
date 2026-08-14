@@ -2,10 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUserContext } from "@/lib/auth";
 import { canAccessModule } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
-import { listStockBalancesFromDb } from "@/lib/stock";
-import { MovimentacaoProdutoListClient } from "./movimentacao-produto-list-client";
+import { MovimentacaoScanClient } from "./movimentacao-scan-client";
 
 export default async function MobileStockTransferProdutosPage({
   params,
@@ -35,28 +33,8 @@ export default async function MobileStockTransferProdutosPage({
     notFound();
   }
 
-  const balances = await listStockBalancesFromDb({ depositanteId });
-  const produtos = balances
-    .filter(
-      (item) =>
-        (item.status === "Disponível" || item.blockReason === PENDING_ADDRESSING_BLOCK_REASON) &&
-        item.rawQuantidade - item.rawReserved > 0,
-    )
-    .map((item) => ({
-      estoqueId: item.id,
-      nome: item.productName,
-      sku: item.sku,
-      endereco: item.endereco,
-      area: item.area,
-      disponivel: item.rawQuantidade - item.rawReserved,
-      imagemUrl: item.imageUrl ?? null,
-    }));
-
-  return (
-    <MovimentacaoProdutoListClient
-      depositanteId={depositanteId}
-      depositanteNome={depositanteRow.nome}
-      produtos={produtos}
-    />
-  );
+  // The old "pick a saldo from the list" step is gone -- the camera opens
+  // right here and the operator's own scan resolves which saldo to open
+  // (see movimentacao-scan-client.tsx and /api/estoque/resolver-produto).
+  return <MovimentacaoScanClient depositanteId={depositanteId} depositanteNome={depositanteRow.nome} />;
 }

@@ -12,8 +12,6 @@ type RelationName =
       sku?: string;
       codigo?: string;
       area?: string;
-      codigo_externo?: string | null;
-      codigo_interno?: string | null;
       imagem_principal_url?: string | null;
     }
   | Array<{
@@ -21,15 +19,13 @@ type RelationName =
       sku?: string;
       codigo?: string;
       area?: string;
-      codigo_externo?: string | null;
-      codigo_interno?: string | null;
       imagem_principal_url?: string | null;
     }>
   | null;
 
 function extractField(
   value: RelationName,
-  field: "nome" | "sku" | "codigo" | "area" | "codigo_externo" | "codigo_interno" | "imagem_principal_url",
+  field: "nome" | "sku" | "codigo" | "area" | "imagem_principal_url",
 ) {
   const row = Array.isArray(value) ? value[0] : value;
   return row?.[field] ?? "";
@@ -66,7 +62,7 @@ export default async function MobileStockTransferFlowPage({
   const { data: estoqueRow } = await adminSupabase
     .from("estoque")
     .select(
-      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, endereco_id, produto:produtos(nome, sku, codigo_externo, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area)",
+      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, endereco_id, produto:produtos(nome, sku, imagem_principal_url), endereco:enderecos(codigo, area)",
     )
     .eq("id", estoqueId)
     .eq("depositante_id", depositanteId)
@@ -102,8 +98,6 @@ export default async function MobileStockTransferFlowPage({
       estoqueId={estoqueRow.id}
       produtoNome={extractField(estoqueRow.produto, "nome") || "Produto"}
       produtoSku={extractField(estoqueRow.produto, "sku") || "Sem SKU"}
-      produtoBarcode={extractField(estoqueRow.produto, "codigo_externo") || null}
-      produtoCodigoInterno={extractField(estoqueRow.produto, "codigo_interno") || null}
       produtoImagemUrl={extractField(estoqueRow.produto, "imagem_principal_url") || null}
       origemCodigo={extractField(estoqueRow.endereco, "codigo") || "Sem endereço"}
       disponivel={disponivel}
