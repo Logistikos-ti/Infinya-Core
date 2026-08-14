@@ -213,14 +213,37 @@ export function StockQuarantinePanel({ t, items = [] }: StockQuarantinePanelProp
                   <td style={{ padding: "15px 20px", borderBottom: `1px solid ${t.border}`, color: t.text, fontWeight: 900 }}>
                     {item.quantityLabel} un
                   </td>
-                  <td style={{ padding: "15px 20px", borderBottom: `1px solid ${t.border}`, color: t.textSub, maxWidth: 260 }}>
+                  <td style={{ padding: "15px 20px", borderBottom: `1px solid ${t.border}`, color: t.textSub, maxWidth: 280 }}>
                     {item.reason}
+                    {item.resolutionHint ? (
+                      <p style={{ margin: "8px 0 0", color: "#0891B2", fontWeight: 800 }}>
+                        {item.resolutionHint}
+                      </p>
+                    ) : null}
                   </td>
                   <td style={{ padding: "15px 20px", borderBottom: `1px solid ${t.border}`, color: t.textSub }}>
                     {item.createdAtLabel}
                     <p style={{ margin: "2px 0 0", fontWeight: 700, color: t.text }}>{item.createdBy}</p>
                   </td>
                   <td style={{ padding: "15px 20px", borderBottom: `1px solid ${t.border}` }}>
+                    {item.isSystemHold ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          minHeight: 36,
+                          borderRadius: 11,
+                          border: "1px solid rgba(6,182,212,.35)",
+                          background: "rgba(6,182,212,.1)",
+                          color: "#0891B2",
+                          fontWeight: 900,
+                          padding: "0 12px",
+                          fontSize: 12,
+                        }}
+                      >
+                        Endereçar estoque
+                      </span>
+                    ) : (
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
                         type="button"
@@ -263,6 +286,7 @@ export function StockQuarantinePanel({ t, items = [] }: StockQuarantinePanelProp
                         <Trash2 size={15} /> Descartar
                       </button>
                     </div>
+                    )}
                   </td>
                 </tr>
               ))}

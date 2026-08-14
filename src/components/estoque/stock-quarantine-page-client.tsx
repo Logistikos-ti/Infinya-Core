@@ -421,7 +421,14 @@ export function StockQuarantinePageClient({
                       <span style={{ color: t.textSub }}>{item.area}</span>
                     </td>
                     <td style={{ padding: 16, fontWeight: 800 }}>{item.quantityLabel}</td>
-                    <td style={{ padding: 16, maxWidth: 240, color: t.textSub, fontSize: 13 }}>{item.reason}</td>
+                    <td style={{ padding: 16, maxWidth: 260, color: t.textSub, fontSize: 13 }}>
+                      {item.reason}
+                      {item.resolutionHint ? (
+                        <p style={{ margin: "8px 0 0", color: "#0891B2", fontWeight: 800 }}>
+                          {item.resolutionHint}
+                        </p>
+                      ) : null}
+                    </td>
                     <td style={{ padding: 16 }}>
                       <StatusPill status={item.status} label={item.statusLabel} />
                     </td>
@@ -437,7 +444,14 @@ export function StockQuarantinePageClient({
                       ) : null}
                     </td>
                     <td style={{ padding: 16 }}>
-                      {item.status === "EM_QUARENTENA" && canResolve ? (
+                      {item.isSystemHold ? (
+                        <span
+                          className="inline-flex rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-extrabold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-200"
+                          title={item.resolutionHint}
+                        >
+                          Endereçar estoque
+                        </span>
+                      ) : item.status === "EM_QUARENTENA" && canResolve ? (
                         <div style={{ display: "flex", gap: 8 }}>
                           <button
                             type="button"
