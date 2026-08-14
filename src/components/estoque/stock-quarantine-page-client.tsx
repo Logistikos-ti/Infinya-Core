@@ -12,10 +12,7 @@ import {
 import { useTheme } from "next-themes";
 
 import type { StockQuarantineItem } from "@/lib/stock-quarantine";
-import {
-  FancySelectInput,
-  type FancySelectOption,
-} from "@/components/ui/fancy-select-input";
+import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import { cn } from "@/lib/utils";
 
 type DepositanteOption = {
@@ -33,13 +30,6 @@ type StockQuarantinePageClientProps = {
   canSelectDepositante: boolean;
   canResolve: boolean;
 };
-
-const STATUS_OPTIONS: FancySelectOption[] = [
-  { value: "EM_QUARENTENA", label: "Em quarentena" },
-  { value: "LIBERADO", label: "Liberados" },
-  { value: "DESCARTADO", label: "Descartados" },
-  { value: "TODOS", label: "Todos" },
-];
 
 type TableMode = "status" | "pending-addressing";
 
@@ -277,23 +267,12 @@ export function StockQuarantinePageClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: canSelectDepositante ? "minmax(160px, 220px) minmax(160px, 220px) 1fr" : "minmax(160px, 220px) 1fr",
+            gridTemplateColumns: canSelectDepositante ? "minmax(160px, 220px) 1fr" : "1fr",
             gap: 12,
             padding: 18,
             borderBottom: `1px solid ${t.border}`,
           }}
         >
-          <FancySelectInput
-            label="Status"
-            name="quarantine-status"
-            value={status}
-            onChange={(value) => {
-              setTableMode("status");
-              setStatus(value);
-              updateRoute({ status: value });
-            }}
-            options={STATUS_OPTIONS}
-          />
           {canSelectDepositante ? (
             <FancySelectInput
               label="Depositante"
