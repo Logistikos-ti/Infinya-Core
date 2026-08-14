@@ -2,11 +2,21 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArchiveRestore, CheckCircle2, PackageOpen, ShieldAlert, Trash2 } from "lucide-react";
+import {
+  ArchiveRestore,
+  CheckCircle2,
+  PackageOpen,
+  ShieldAlert,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import type { StockQuarantineItem } from "@/lib/stock-quarantine";
-import { FancySelectInput, type FancySelectOption } from "@/components/ui/fancy-select-input";
+import {
+  FancySelectInput,
+  type FancySelectOption,
+} from "@/components/ui/fancy-select-input";
 import { cn } from "@/lib/utils";
 
 type DepositanteOption = {
@@ -49,10 +59,14 @@ export function StockQuarantinePageClient({
   const [depositanteId, setDepositanteId] = useState(initialDepositanteId);
   const [status, setStatus] = useState(initialStatus);
   const [query, setQuery] = useState(initialQuery);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<StockQuarantineItem | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const t = {
-    appBg: isDark ? "#0B1120" : "#FFFFFF",
+    appBg: isDark ? "#0B1120" : "#EEF4FB",
     border: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
     text: isDark ? "#F8FAFC" : "#0F172A",
     textSub: isDark ? "#94A3B8" : "#64748B",
@@ -71,7 +85,8 @@ export function StockQuarantinePageClient({
   );
 
   const stats = useMemo(() => {
-    const count = (targetStatus: string) => allItems.filter((item) => item.status === targetStatus).length;
+    const count = (targetStatus: string) =>
+      allItems.filter((item) => item.status === targetStatus).length;
 
     return [
       {
@@ -126,7 +141,10 @@ export function StockQuarantinePageClient({
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      setFeedback({ type: "error", message: payload.error || "Não foi possível atualizar a quarentena." });
+      setFeedback({
+        type: "error",
+        message: payload.error || "Não foi possível atualizar a quarentena.",
+      });
       return;
     }
 
@@ -134,6 +152,7 @@ export function StockQuarantinePageClient({
       type: "success",
       message: action === "release" ? "Saldo liberado para estoque." : "Saldo descartado da quarentena.",
     });
+    setSelectedItem((current) => (current?.id === id ? null : current));
     router.refresh();
   }
 
@@ -165,9 +184,11 @@ export function StockQuarantinePageClient({
             <span>›</span>
             <span style={{ color: t.text, fontWeight: 700 }}>Quarentena</span>
           </div>
-          <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800 }}>Quarentena</h1>
+          <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800 }}>
+            Quarentena
+          </h1>
           <p style={{ margin: 0, fontSize: 14.5, color: t.textSub }}>
-            Acompanhe produtos avariados, vencidos, suspeitos ou pendentes de tratativa sem misturar com o estoque operacional.
+            Produtos retidos por divergência, avaria, falta de endereço ou pendência operacional.
           </p>
         </div>
         <div
@@ -190,14 +211,7 @@ export function StockQuarantinePageClient({
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          gap: 14,
-          marginBottom: 18,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, marginBottom: 18 }}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -232,7 +246,7 @@ export function StockQuarantinePageClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(160px, 220px) minmax(160px, 220px) 1fr",
+            gridTemplateColumns: canSelectDepositante ? "minmax(160px, 220px) minmax(160px, 220px) 1fr" : "minmax(160px, 220px) 1fr",
             gap: 12,
             padding: 18,
             borderBottom: `1px solid ${t.border}`,
@@ -259,9 +273,7 @@ export function StockQuarantinePageClient({
               }}
               options={depositanteOptions}
             />
-          ) : (
-            <div />
-          )}
+          ) : null}
           <label style={{ display: "grid", gap: 4 }}>
             <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: t.textSub }}>Buscar</span>
             <input
@@ -291,10 +303,10 @@ export function StockQuarantinePageClient({
         ) : null}
 
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
             <thead style={{ background: t.headBg }}>
               <tr>
-                {["Produto", "Depositante", "Endereço", "Qtd.", "Motivo", "Status", "Registro", "Ações"].map((header) => (
+                {["Produto", "Depositante", "Endereço", "Qtd.", "Status", "Registro"].map((header) => (
                   <th
                     key={header}
                     style={{
@@ -313,7 +325,12 @@ export function StockQuarantinePageClient({
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.id} style={{ borderTop: `1px solid ${t.border}` }}>
+                <tr
+                  key={item.id}
+                  onClick={() => setSelectedItem(item)}
+                  className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-white/5"
+                  style={{ borderTop: `1px solid ${t.border}` }}
+                >
                   <td style={{ padding: 16 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div
@@ -336,7 +353,7 @@ export function StockQuarantinePageClient({
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <strong
-                          style={{ display: "block", maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          style={{ display: "block", maxWidth: 340, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                           title={item.productName}
                         >
                           {item.productName}
@@ -352,12 +369,6 @@ export function StockQuarantinePageClient({
                     <span style={{ color: t.textSub }}>{item.area}</span>
                   </td>
                   <td style={{ padding: 16, fontWeight: 800 }}>{item.quantityLabel}</td>
-                  <td style={{ padding: 16, maxWidth: 300, color: t.textSub, fontSize: 13 }}>
-                    {item.reason}
-                    {item.resolutionHint ? (
-                      <p style={{ margin: "8px 0 0", color: "#0891B2", fontWeight: 800 }}>{item.resolutionHint}</p>
-                    ) : null}
-                  </td>
                   <td style={{ padding: 16 }}>
                     <StatusPill status={item.status} label={item.statusLabel} />
                   </td>
@@ -365,51 +376,12 @@ export function StockQuarantinePageClient({
                     <strong style={{ color: t.text }}>{item.createdBy}</strong>
                     <br />
                     {item.createdAtLabel}
-                    {item.resolvedAtLabel ? (
-                      <>
-                        <br />
-                        Resolvido por {item.resolvedBy || "Sistema"} em {item.resolvedAtLabel}
-                      </>
-                    ) : null}
-                  </td>
-                  <td style={{ padding: 16 }}>
-                    {item.isSystemHold ? (
-                      <span
-                        className="inline-flex rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-extrabold text-cyan-700 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-200"
-                        title={item.resolutionHint}
-                      >
-                        Endereçar estoque
-                      </span>
-                    ) : item.status === "EM_QUARENTENA" && canResolve ? (
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => resolveQuarantine(item.id, "release")}
-                          className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-bold text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-                        >
-                          <ArchiveRestore size={15} />
-                          Liberar
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => resolveQuarantine(item.id, "discard")}
-                          className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 text-sm font-bold text-rose-700 transition hover:-translate-y-0.5 hover:border-rose-400 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
-                        >
-                          <Trash2 size={15} />
-                          Descartar
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ color: t.textSub, fontSize: 13 }}>Sem ação pendente</span>
-                    )}
                   </td>
                 </tr>
               ))}
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
+                  <td colSpan={6} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
                     Nenhum item encontrado para os filtros atuais.
                   </td>
                 </tr>
@@ -418,6 +390,127 @@ export function StockQuarantinePageClient({
           </table>
         </div>
       </section>
+
+      {selectedItem ? (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-slate-950/45 backdrop-blur-sm"
+          onClick={() => setSelectedItem(null)}
+        >
+          <aside
+            className="h-full w-full max-w-[500px] overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-7 py-6 dark:border-white/10">
+              <div>
+                <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-amber-500">Item em quarentena</p>
+                <h2 className="font-['Space_Grotesk'] text-2xl font-extrabold text-slate-950 dark:text-white">
+                  {selectedItem.productName}
+                </h2>
+                <StatusPill status={selectedItem.status} label={selectedItem.statusLabel} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedItem(null)}
+                className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+                aria-label="Fechar detalhe da quarentena"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-5 px-7 py-6">
+              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-violet-500 shadow-sm dark:bg-slate-900">
+                  {selectedItem.imageUrl ? (
+                    <img src={selectedItem.imageUrl} alt={selectedItem.productName} className="h-full w-full object-cover" />
+                  ) : (
+                    <PackageOpen size={26} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-extrabold text-slate-950 dark:text-white">{selectedItem.productName}</p>
+                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">SKU {selectedItem.sku}</p>
+                  {selectedItem.internalCode ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Código interno {selectedItem.internalCode}</p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <InfoTile label="Depositante" value={selectedItem.depositante} />
+                <InfoTile label="Quantidade retida" value={`${selectedItem.quantityLabel} un`} />
+                <InfoTile label="Endereço" value={selectedItem.endereco} />
+                <InfoTile label="Área" value={selectedItem.area} />
+              </div>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Motivo da quarentena
+                </p>
+                <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{selectedItem.reason}</p>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Registro
+                </p>
+                <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p>
+                    Criado por <strong className="text-slate-950 dark:text-white">{selectedItem.createdBy}</strong> em{" "}
+                    <strong className="text-slate-950 dark:text-white">{selectedItem.createdAtLabel}</strong>
+                  </p>
+                  {selectedItem.resolvedAtLabel ? (
+                    <p>
+                      Resolvido por <strong className="text-slate-950 dark:text-white">{selectedItem.resolvedBy || "Sistema"}</strong> em{" "}
+                      <strong className="text-slate-950 dark:text-white">{selectedItem.resolvedAtLabel}</strong>
+                    </p>
+                  ) : null}
+                  {selectedItem.resolutionNotes ? <p>Observação: {selectedItem.resolutionNotes}</p> : null}
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+                <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Ações</p>
+                {selectedItem.status === "EM_QUARENTENA" && canResolve ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => resolveQuarantine(selectedItem.id, "release")}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-extrabold text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
+                    >
+                      <ArchiveRestore size={16} />
+                      Liberar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => resolveQuarantine(selectedItem.id, "discard")}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-extrabold text-rose-700 transition hover:-translate-y-0.5 hover:border-rose-400 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
+                    >
+                      <Trash2 size={16} />
+                      Descartar
+                    </button>
+                  </div>
+                ) : (
+                  <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-300">
+                    Sem ação pendente para este item.
+                  </p>
+                )}
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+      <p className="mb-1 text-xs font-bold text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-sm font-extrabold text-slate-950 dark:text-white">{value}</p>
     </div>
   );
 }
