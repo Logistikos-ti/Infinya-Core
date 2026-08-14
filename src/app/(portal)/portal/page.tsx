@@ -517,15 +517,16 @@ function ProductsView({
 }) {
   const pageSize = 9;
   const normalizedSearch = search.toLocaleLowerCase("pt-BR");
+  const productStock = aggregatePortalProductStock(stock);
   const filteredStock = normalizedSearch
-    ? stock.filter((item) =>
+    ? productStock.filter((item) =>
         [item.productName, item.sku, item.internalCode]
           .filter(Boolean)
           .some((value) =>
             String(value).toLocaleLowerCase("pt-BR").includes(normalizedSearch),
           ),
       )
-    : stock;
+    : productStock;
   const totalPages = Math.max(1, Math.ceil(filteredStock.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleProducts = filteredStock.slice(
@@ -670,6 +671,50 @@ function ProductsView({
       ) : null}
     </>
   );
+}
+
+type PortalProductStockItem = Awaited<ReturnType<typeof listStockBalancesFromDb>>[number];
+
+function aggregatePortalProductStock(stock: PortalProductStockItem[]) {
+  const grouped = new Map<string, PortalProductStockItem>();
+
+  for (const item of stock) {
+    const key = item.productId || item.id;
+    const existing = grouped.get(key);
+
+    if (!existing) {
+      grouped.set(key, {
+        ...item,
+        id: key,
+      });
+      continue;
+    }
+
+    const rawQuantidade =
+      Number(existing.rawQuantidade ?? 0) + Number(item.rawQuantidade ?? 0);
+    const rawReserved =
+      Number(existing.rawReserved ?? 0) + Number(item.rawReserved ?? 0);
+    const available = Math.max(0, rawQuantidade - rawReserved);
+    const endereco =
+      existing.endereco === item.endereco
+        ? existing.endereco
+        : "Múltiplos endereços";
+    const lote =
+      existing.lote === item.lote ? existing.lote : "Múltiplos lotes";
+
+    grouped.set(key, {
+      ...existing,
+      endereco,
+      lote,
+      rawQuantidade,
+      rawReserved,
+      saldo: rawQuantidade.toLocaleString("pt-BR"),
+      reserved: rawReserved.toLocaleString("pt-BR"),
+      available: available.toLocaleString("pt-BR"),
+    });
+  }
+
+  return Array.from(grouped.values());
 }
 
 function ProductPagination({

@@ -138,7 +138,7 @@ export function ProductStockCard({
     setError("");
 
     try {
-      const response = await fetch(`/api/portal/produtos/${item.id}/limites`, {
+      const response = await fetch(`/api/portal/produtos/${item.productId || item.id}/limites`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ minimum: nextMinimum, maximum: nextMaximum }),
