@@ -417,7 +417,7 @@ export function StockQuarantinePageClient({
           onClick={() => setSelectedItem(null)}
         >
           <aside
-            className="flex h-dvh w-full max-w-[420px] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
+            className="flex h-full w-full max-w-[420px] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
@@ -442,7 +442,7 @@ export function StockQuarantinePageClient({
               </button>
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 pb-8">
               <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
                 <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-violet-500 shadow-sm dark:bg-slate-900">
                   {selectedItem.imageUrl ? (
@@ -474,6 +474,11 @@ export function StockQuarantinePageClient({
                   {selectedItem.isMissingDefaultAddress ? "Pendência operacional" : "Motivo da quarentena"}
                 </p>
                 <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{selectedItem.reason}</p>
+                {selectedItem.resolutionHint ? (
+                  <div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                    <strong>Dica:</strong> {selectedItem.resolutionHint}
+                  </div>
+                ) : null}
               </section>
 
               <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
@@ -518,6 +523,14 @@ export function StockQuarantinePageClient({
                       Descartar
                     </button>
                   </div>
+                ) : selectedItem.isMissingDefaultAddress ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/cadastros/produtos/${selectedItem.productId}`)}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 text-sm font-extrabold text-white transition hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600"
+                  >
+                    Editar Produto
+                  </button>
                 ) : (
                   <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-300">
                     Sem ação pendente para este item.
