@@ -170,6 +170,10 @@ export type ShippingOrderSummary = {
   divergenceReporter: string | null;
   cancellationReporter: string | null;
   cancellationReason: string | null;
+  pickingOperator?: string | null;
+  pickingAt?: string | null;
+  conferenceOperator?: string | null;
+  conferenceAt?: string | null;
   tratamentoDivergencia?: {
     acao?: string;
     tipo?: string;
@@ -930,6 +934,14 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     (typeof divergence.motivo === "string" && divergence.motivo.trim() ? divergence.motivo.trim() : null) ||
     (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
     (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
+
+  const pickingOperator = typeof cancellation.operadorNome === "string" && cancellation.operadorNome.trim() ? cancellation.operadorNome.trim() : null;
+  const pickingAtRaw = typeof cancellation.finalizadaEm === "string" ? cancellation.finalizadaEm : (typeof cancellation.atualizadaEm === "string" ? cancellation.atualizadaEm : null);
+  const pickingAt = pickingAtRaw ? formatDateTimeInSaoPaulo(pickingAtRaw, "") : null;
+
+  const conferenceOperator = typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null;
+  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : null;
+  const conferenceAt = conferenceAtRaw ? formatDateTimeInSaoPaulo(conferenceAtRaw, "") : null;
   const storeDisplay = extractStore(payload, item.numero_loja);
   const fullShipment = extractFullRelation(item.remessa_full);
   const isFull = item.origem === "FULL" || Boolean(fullShipment);
@@ -1011,6 +1023,10 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     divergenceReporter,
     cancellationReporter,
     cancellationReason,
+    pickingOperator,
+    pickingAt,
+    conferenceOperator,
+    conferenceAt,
     tratamentoDivergencia: isRecord(payload.tratamentoDivergencia)
       ? (payload.tratamentoDivergencia as any)
       : null,

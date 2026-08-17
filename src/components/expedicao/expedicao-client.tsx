@@ -1254,18 +1254,37 @@ export function ExpedicaoClient({ data }: { data: any }) {
           else if (status === 'CONFERIDO' || status === 'PRONTO_ROMANEIO') orderIdx = 3;
           else if (status === 'EXPEDIDO' || status === 'ENTREGUE') orderIdx = 4;
 
+          const formatIsoTime = (isoString?: string | null) => {
+            if (!isoString) return "";
+            const d = new Date(isoString);
+            if (Number.isNaN(d.getTime())) return "";
+            return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", {hour: '2-digit', minute:'2-digit'});
+          };
+
           const stepMeta = [
             { title: 'Pedido recebido', sub: o?.raw?.orderDate ? `Em ${o.raw.orderDate}` : 'Integração e-commerce' },
-            { title: 'Em separação', sub: 'Picking no armazém' },
-            { title: 'Conferência', sub: 'Validação de saída' },
-            { title: 'Expedido', sub: 'Despacho / coleta' }
+            { 
+              title: 'Em separação', 
+              sub: o?.raw?.pickingOperator ? `Separado por ${o.raw.pickingOperator}${o.raw.pickingAt ? ` em ${o.raw.pickingAt}` : ''}` : 'Picking no armazém',
+              customData: Boolean(o?.raw?.pickingOperator)
+            },
+            { 
+              title: 'Conferência', 
+              sub: o?.raw?.conferenceOperator ? `Conferido por ${o.raw.conferenceOperator}${o.raw.conferenceAt ? ` em ${o.raw.conferenceAt}` : ''}` : 'Validação de saída',
+              customData: Boolean(o?.raw?.conferenceOperator)
+            },
+            { 
+              title: 'Expedido', 
+              sub: o?.raw?.dispatchedAtIso ? `Despachado${formatIsoTime(o.raw.dispatchedAtIso) ? ` em ${formatIsoTime(o.raw.dispatchedAtIso)}` : ''}` : 'Despacho / coleta',
+              customData: Boolean(o?.raw?.dispatchedAtIso)
+            }
           ];
 
           return stepMeta.map((s, i) => {
             const done = i < orderIdx, cur = i === orderIdx;
             return {
               title: s.title,
-              sub: done ? 'Concluído' : (cur ? 'Em andamento' : s.sub),
+              sub: (done || cur) && s.customData ? s.sub : (done ? 'Concluído' : (cur ? 'Em andamento' : s.sub)),
               dot: done ? '#10B981' : (cur ? '#8B5CF6' : t.barTrack),
               halo: done ? 'rgba(16,185,129,0.18)' : (cur ? 'rgba(139,92,246,0.2)' : 'transparent'),
               line: i < orderIdx ? '#10B981' : t.border,
