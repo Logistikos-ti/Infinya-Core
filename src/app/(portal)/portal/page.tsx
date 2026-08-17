@@ -978,18 +978,12 @@ function QuarantineView({
         </div>
       </div>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
         <QuarantineStatCard
           label="Em quarentena"
           value={activeItems.length}
           help={`${activeUnits.toLocaleString("pt-BR")} un retidas`}
           tone="amber"
-        />
-        <QuarantineStatCard
-          label="Liberados"
-          value={releasedItems.length}
-          help="Retornaram ao estoque"
-          tone="emerald"
         />
         <QuarantineStatCard
           label="Descartados"
