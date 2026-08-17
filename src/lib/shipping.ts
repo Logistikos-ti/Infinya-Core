@@ -940,7 +940,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
   const pickingAt = pickingAtRaw ? formatDateTimeInSaoPaulo(pickingAtRaw, "") : null;
 
   const conferenceOperator = typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null;
-  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : null;
+  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : (typeof conference.finalizadaEm === "string" ? conference.finalizadaEm : (typeof conference.atualizadaEm === "string" ? conference.atualizadaEm : null));
   const conferenceAt = conferenceAtRaw ? formatDateTimeInSaoPaulo(conferenceAtRaw, "") : null;
   const storeDisplay = extractStore(payload, item.numero_loja);
   const fullShipment = extractFullRelation(item.remessa_full);
