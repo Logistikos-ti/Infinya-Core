@@ -100,7 +100,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ? listStockBalancesFromDb({ depositanteId })
       : Promise.resolve([]),
     view === "inicio" || view === "quarentena"
-      ? listStockQuarantineFromDb({ depositanteId })
+      ? listStockQuarantineFromDb({ depositanteId }).then(items => items.filter(item => !item.isMissingDefaultAddress))
       : Promise.resolve([]),
   ]);
   const fullShipments = view === "full" ? await listFullShipmentsFromDb(depositanteId) : [];
