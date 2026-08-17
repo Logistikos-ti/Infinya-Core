@@ -328,7 +328,6 @@ export function ShippingDivergenceDrawer({
             /* SELEÇÃO DE AÇÕES DE RESOLUÇÃO (Depositante com ação ativa) */
             <form id="divergence-resolution-form" onSubmit={handleSubmit} className="space-y-4">
               <input type="hidden" name="orderId" value={order.id} />
-              <input type="hidden" name="resolutionType" value="CANCELAR_DEFINITIVO" />
               {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
 
               <div>
@@ -336,33 +335,47 @@ export function ShippingDivergenceDrawer({
                   Ação de Resolução:
                 </label>
                 
-                {/* Opção Única: Cancelar Definitivo */}
-                <div className="rounded-2xl border border-rose-500 bg-rose-500/10 ring-1 ring-rose-500 p-4 transition">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                      <XCircle className="h-5 w-5" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="cursor-pointer rounded-2xl border border-blue-500/30 bg-blue-50/50 p-4 transition hover:border-blue-500 hover:bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:bg-blue-500/10 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-500/10 has-[:checked]:ring-1 has-[:checked]:ring-blue-500">
+                    <input type="radio" name="resolutionType" value="RETORNAR_FILA" className="sr-only" defaultChecked />
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                        <Boxes className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                          Retornar para Fila (Aguardar Estoque)
+                        </h4>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          Devolve o pedido para a fila (Status Novo), ideal para aguardar o recebimento de estoque pendente.
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                  </label>
+
+                  <label className="cursor-pointer rounded-2xl border border-rose-500/30 bg-rose-50/50 p-4 transition hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/20 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 has-[:checked]:border-rose-500 has-[:checked]:bg-rose-500/10 has-[:checked]:ring-1 has-[:checked]:ring-rose-500">
+                    <input type="radio" name="resolutionType" value="CANCELAR_DEFINITIVO" className="sr-only" />
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                        <XCircle className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                           Confirmar Cancelamento Definitivo
                         </h4>
-                        <span className="rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                          Encerramento
-                        </span>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                          Encerra o pedido por divergência e retira do fluxo.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                        Confirma o cancelamento do pedido por divergência constatada no armazém. O pedido será encerrado definitivamente e retirado do fluxo operacional.
-                      </p>
                     </div>
-                  </div>
+                  </label>
                 </div>
               </div>
 
               {/* Observações Opcionais */}
               <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1.5">
-                  Observação do Cancelamento (Opcional):
+                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1.5 mt-4">
+                  Observação da Tratativa (Opcional):
                 </label>
                 <textarea
                   name="notes"
@@ -384,17 +397,17 @@ export function ShippingDivergenceDrawer({
               type="submit"
               form="divergence-resolution-form"
               disabled={isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm font-bold shadow-md transition disabled:opacity-50 bg-rose-600 hover:bg-rose-700 text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm font-bold shadow-md transition disabled:opacity-50 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
             >
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Processando cancelamento...
+                  Processando tratativa...
                 </>
               ) : (
                 <>
-                  <XCircle className="h-4 w-4" />
-                  Confirmar Cancelamento Definitivo
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirmar Tratativa
                 </>
               )}
             </button>

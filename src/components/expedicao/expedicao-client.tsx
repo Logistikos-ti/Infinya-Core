@@ -125,6 +125,8 @@ function getOrderUploadFeedback(feedback?: string) {
       return { title: "Status atualizado", detail: "O status do pedido foi alterado e o registro da mudança foi salvo no histórico operacional." };
     case "divergencia-reaberta-separacao":
       return { title: "Separação reaberta com sucesso", detail: "O pedido foi devolvido para a fila de separação (picking) e está pronto para nova coleta." };
+    case "divergencia-retornada":
+      return { title: "Pedido retornado", detail: "A divergência foi tratada e o pedido retornou para a fila (Novo) aguardando estoque." };
     case "divergencia-cancelada":
       return { title: "Cancelamento confirmado", detail: "A divergência foi tratada e o pedido foi marcado como cancelado definitivamente." };
     case "nf-obrigatoria":

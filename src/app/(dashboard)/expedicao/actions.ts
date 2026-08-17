@@ -1306,6 +1306,29 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
     redirect(buildRedirectUrl("divergencia-prosseguida"));
   }
 
+  if (resolutionType === "RETORNAR_FILA") {
+    const updatedPayload = {
+      ...payload,
+      divergenciaTratada: true,
+      tratamentoDivergencia: treatmentRecord,
+      historicoDivergencias: updatedHistory,
+    };
+
+    await adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: "NOVO",
+        payload_origem: updatedPayload,
+      })
+      .eq("id", orderId);
+
+    revalidatePath("/portal");
+    revalidatePath("/expedicao");
+    revalidatePath(`/expedicao/${orderId}`);
+
+    redirect(buildRedirectUrl("divergencia-retornada"));
+  }
+
   if (resolutionType === "CANCELAR_DEFINITIVO") {
     const updatedPayload = {
       ...payload,
