@@ -267,6 +267,81 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
   redirect("/expedicao?feedback=status-atualizado");
 }
 
+export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  const rawIds = String(formData.get("ids") ?? "");
+  const nextStatus = String(formData.get("status") ?? "").trim().toUpperCase();
+
+  let ids: string[] = [];
+  try {
+    const parsed = JSON.parse(rawIds);
+    ids = Array.isArray(parsed)
+      ? [...new Set(parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0))]
+      : [];
+  } catch {
+    ids = [];
+  }
+
+  if (!ids.length || !manualShippingOrderStatuses.has(nextStatus)) {
+    redirect("/expedicao?feedback=status-invalido");
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: orders, error: ordersError } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, payload_origem")
+    .in("id", ids);
+
+  if (ordersError || !orders || orders.length === 0) {
+    redirect("/expedicao?feedback=erro");
+  }
+
+  const changeBase = {
+    statusNovo: nextStatus,
+    alteradoEm: new Date().toISOString(),
+    alteradoPorId: user.id,
+    alteradoPorNome: user.nome,
+    alteradoPorPapel: user.papel,
+  };
+
+  const updatePromises = orders.map(async (order) => {
+    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+    const previousHistory = Array.isArray(payload.historicoStatusManual)
+      ? payload.historicoStatusManual
+      : [];
+    const change = { ...changeBase, statusAnterior: order.status };
+
+    if (nextStatus === "EM_CONFERENCIA" && order.status !== "EM_CONFERENCIA") {
+      await adminSupabase.rpc("reservar_pedido_para_conferencia" as never, {
+        p_pedido_id: order.id,
+        p_usuario_id: user.id,
+      } as never);
+    }
+
+    return adminSupabase
+      .from("pedidos_expedicao")
+      .update({
+        status: nextStatus,
+        payload_origem: {
+          ...payload,
+          ultimoAjusteStatusManual: change,
+          historicoStatusManual: [...previousHistory, change],
+        },
+      })
+      .eq("id", order.id);
+  });
+
+  await Promise.all(updatePromises);
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+  revalidatePath("/expedicao/conferencia");
+  revalidatePath("/expedicao/conferidos");
+  revalidatePath("/romaneio");
+  revalidatePath("/portal");
+  redirect("/expedicao?feedback=status-atualizado");
+}
+
 export async function createManualShippingOrderAction(formData: FormData) {
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
   const inlineResponse = String(formData.get("inlineResponse") ?? "") === "1";

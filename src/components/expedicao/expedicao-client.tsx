@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import {
   changeShippingOrderStatusAction,
+  bulkChangeShippingOrderStatusAction,
   createOperationalManualShippingOrderAction,
   bulkDeleteShippingOrdersAction,
   deleteShippingOrderAction,
@@ -831,12 +832,30 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </React.Fragment>)}
                 <div style={{flex: "1"}}></div>
                 {canDeleteOrder && selectedOrderIds.length > 0 ? (
-                  <form action={bulkDeleteShippingOrdersAction} onSubmit={(event) => {
-                    if (!window.confirm(`Excluir ${selectedOrderIds.length} pedido(s) selecionado(s)? Documentos, itens e vínculos operacionais também serão removidos. Esta ação não pode ser desfeita.`)) event.preventDefault();
-                  }}>
-                    <input type="hidden" name="ids" value={JSON.stringify(selectedOrderIds)} />
-                    <button type="submit" style={{ height: "36px", padding: "0 14px", display: "inline-flex", alignItems: "center", gap: "7px", border: "1px solid rgba(244,63,94,.42)", borderRadius: "9px", background: isDark ? "rgba(244,63,94,.12)" : "#FFF1F2", color: "#E11D48", fontSize: "12.5px", fontWeight: 800, cursor: "pointer" }}><Trash2 size={15} />Excluir {selectedOrderIds.length}</button>
-                  </form>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <form action={bulkChangeShippingOrderStatusAction} onSubmit={(event) => {
+                      if (!window.confirm(`Alterar o status de ${selectedOrderIds.length} pedido(s) selecionado(s)?`)) {
+                        event.preventDefault();
+                      }
+                    }} style={{ display: "flex", gap: "6px" }}>
+                      <input type="hidden" name="ids" value={JSON.stringify(selectedOrderIds)} />
+                      <select name="status" required style={{ height: "36px", padding: "0 10px", border: `1px solid ${t.border}`, borderRadius: "9px", background: t.inputBg, color: t.text, fontSize: "12.5px", fontWeight: 700, cursor: "pointer", outline: "none", width: "160px" }}>
+                        <option value="">Alterar status para...</option>
+                        {manualOrderStatusOptions.map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                      <button type="submit" style={{ height: "36px", padding: "0 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12.5px", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        Aplicar
+                      </button>
+                    </form>
+                    <form action={bulkDeleteShippingOrdersAction} onSubmit={(event) => {
+                      if (!window.confirm(`Excluir ${selectedOrderIds.length} pedido(s) selecionado(s)? Documentos, itens e vínculos operacionais também serão removidos. Esta ação não pode ser desfeita.`)) event.preventDefault();
+                    }}>
+                      <input type="hidden" name="ids" value={JSON.stringify(selectedOrderIds)} />
+                      <button type="submit" title={`Excluir ${selectedOrderIds.length} pedido(s)`} style={{ width: "36px", height: "36px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(244,63,94,.42)", borderRadius: "9px", background: isDark ? "rgba(244,63,94,.12)" : "#FFF1F2", color: "#E11D48", cursor: "pointer" }}><Trash2 size={16} /></button>
+                    </form>
+                  </div>
                 ) : null}
                 <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount} pedidos na fila · {sortSummary}</span>
               </div>
