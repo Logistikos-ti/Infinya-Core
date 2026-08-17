@@ -526,7 +526,7 @@ export function StockQuarantinePageClient({
                 ) : selectedItem.isMissingDefaultAddress ? (
                   <button
                     type="button"
-                    onClick={() => router.push(`/configuracoes/produtos/${selectedItem.productId}`)}
+                    onClick={() => router.push(`/configuracoes/produtos/${selectedItem.productId}/editar`)}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 text-sm font-extrabold text-white transition hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600"
                   >
                     Editar Produto
