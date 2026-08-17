@@ -258,6 +258,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [treatingDivergenceOrder, setTreatingDivergenceOrder] = useState<any | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkStatusMenuOpen, setBulkStatusMenuOpen] = useState(false);
+  const [bulkSelectedStatus, setBulkSelectedStatus] = useState("");
   const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -839,13 +841,44 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       }
                     }} style={{ display: "flex", gap: "6px" }}>
                       <input type="hidden" name="ids" value={JSON.stringify(selectedOrderIds)} />
-                      <select name="status" required style={{ height: "36px", padding: "0 10px", border: `1px solid ${t.border}`, borderRadius: "9px", background: t.inputBg, color: t.text, fontSize: "12.5px", fontWeight: 700, cursor: "pointer", outline: "none", width: "160px" }}>
-                        <option value="">Alterar status para...</option>
-                        {manualOrderStatusOptions.map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
-                      </select>
-                      <button type="submit" style={{ height: "36px", padding: "0 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12.5px", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      <input type="hidden" name="status" value={bulkSelectedStatus} />
+
+                      <div style={{ position: "relative", width: "190px" }}>
+                        <button
+                          type="button"
+                          aria-haspopup="listbox"
+                          aria-expanded={bulkStatusMenuOpen}
+                          onClick={() => setBulkStatusMenuOpen((open) => !open)}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", width: "100%", height: "36px", padding: "0 11px", borderRadius: "9px", border: `1.5px solid ${bulkStatusMenuOpen ? "#3B82F6" : t.border}`, background: t.inputBg, color: t.text, fontSize: "12.5px", fontWeight: 700, cursor: "pointer", outline: "none", boxShadow: bulkStatusMenuOpen ? "0 0 0 3px rgba(59,130,246,.13)" : "none", transition: "border-color .16s ease, box-shadow .16s ease" }}
+                        >
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {bulkSelectedStatus ? manualOrderStatusOptions.find(([v]) => v === bulkSelectedStatus)?.[1] : "Alterar status para..."}
+                          </span>
+                          <ChevronDown size={15} color={bulkStatusMenuOpen ? "#3B82F6" : t.textSub} style={{ flexShrink: 0, transform: bulkStatusMenuOpen ? "rotate(180deg)" : "none", transition: "transform .16s ease" }} />
+                        </button>
+                        {bulkStatusMenuOpen ? (
+                          <div role="listbox" style={{ position: "absolute", zIndex: 30, top: "calc(100% + 6px)", left: 0, right: 0, maxHeight: "230px", overflowY: "auto", padding: "6px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.cardBg, boxShadow: isDark ? "0 16px 32px rgba(0,0,0,0.2)" : "0 16px 32px rgba(0,0,0,0.08)", animation: "popIn .16s ease" }}>
+                            {manualOrderStatusOptions.map(([value, label]) => {
+                              const isSelected = value === bulkSelectedStatus;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={isSelected}
+                                  onClick={() => { setBulkSelectedStatus(value); setBulkStatusMenuOpen(false); }}
+                                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", minHeight: "34px", padding: "0 9px", border: 0, borderRadius: "7px", background: isSelected ? (isDark ? "rgba(59,130,246,.12)" : "#EFF6FF") : "transparent", color: isSelected ? "#2563EB" : t.text, fontSize: "12.5px", fontWeight: isSelected ? 800 : 600, textAlign: "left", cursor: "pointer" }}
+                                >
+                                  <span>{label}</span>
+                                  {isSelected ? <Check size={15} color="#2563EB" /> : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <button type="submit" disabled={!bulkSelectedStatus} style={{ opacity: bulkSelectedStatus ? 1 : 0.5, height: "36px", padding: "0 14px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: 0, borderRadius: "9px", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)", color: "#fff", fontSize: "12.5px", fontWeight: 800, cursor: bulkSelectedStatus ? "pointer" : "default", whiteSpace: "nowrap" }}>
                         Aplicar
                       </button>
                     </form>
