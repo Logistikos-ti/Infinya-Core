@@ -258,6 +258,9 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
                           </td>
                           <td className="whitespace-nowrap px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400">
                             {registeredBy}
+                            {order.divergenceAt && (
+                              <span className="block text-[10px] text-slate-400 dark:text-slate-500">{order.divergenceAt}</span>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-5 py-3.5">
                             {tratativaEl}

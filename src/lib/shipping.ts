@@ -168,8 +168,11 @@ export type ShippingOrderSummary = {
   createdByAt: string | null;
   createdBySource: string;
   divergenceReporter: string | null;
-  cancellationReporter: string | null;
-  cancellationReason: string | null;
+  cancellationReporter?: string | null;
+  cancellationReason?: string | null;
+  divergenceAtRaw: string | null;
+  divergenceAt: string | null;
+  divergenceAuthorized?: boolean;
   pickingOperator?: string | null;
   pickingAt?: string | null;
   conferenceOperator?: string | null;
@@ -935,6 +938,12 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
     (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
 
+  const divergenceAtRaw = 
+    (typeof divergence.registradoEm === "string" ? divergence.registradoEm : null) ||
+    (typeof conference.marcadoComoDivergenteEm === "string" ? conference.marcadoComoDivergenteEm : null) ||
+    (typeof cancellation.canceladoEm === "string" ? cancellation.canceladoEm : null);
+  const divergenceAt = divergenceAtRaw ? formatDateTimeInSaoPaulo(divergenceAtRaw, "") : null;
+
   const manualHistory = Array.isArray(payload.historicoStatusManual) ? payload.historicoStatusManual : [];
   const manualSeparacao = manualHistory.slice().reverse().find((h: any) => h.novoStatus === "SEPARADO" || h.novoStatus === "EM_SEPARACAO");
   const manualConferencia = manualHistory.slice().reverse().find((h: any) => h.novoStatus === "CONFERIDO" || h.novoStatus === "PRONTO_ROMANEIO");
@@ -1025,6 +1034,8 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     createdByAt: createdByAtRaw ? formatDateTimeInSaoPaulo(createdByAtRaw, "") : null,
     createdBySource: createdByName ? "Pedido manual" : item.origem === "BLING" ? "Integração Bling" : "Sistema",
     divergenceReporter,
+    divergenceAtRaw,
+    divergenceAt,
     cancellationReporter,
     cancellationReason,
     pickingOperator,

@@ -19,6 +19,7 @@ type ShippingDivergenceTreatmentPanelProps = {
   orderNumber: string;
   divergenceReason: string;
   reportedBy?: string | null;
+  reportedAt?: string | null;
   status: string;
 };
 
@@ -29,6 +30,7 @@ export function ShippingDivergenceTreatmentPanel({
   orderNumber,
   divergenceReason,
   reportedBy,
+  reportedAt,
   status,
 }: ShippingDivergenceTreatmentPanelProps) {
   const [selectedAction, setSelectedAction] = useState<ActionType>(null);
@@ -96,6 +98,9 @@ export function ShippingDivergenceTreatmentPanel({
             {reportedBy ? (
               <p className="text-xs text-slate-600 dark:text-zinc-400">
                 Registrado por: <strong className="text-slate-900 dark:text-zinc-200">{reportedBy}</strong>
+                {reportedAt ? (
+                  <> em <strong className="text-slate-900 dark:text-zinc-200">{reportedAt}</strong></>
+                ) : null}
               </p>
             ) : null}
           </div>

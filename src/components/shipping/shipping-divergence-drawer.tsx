@@ -79,6 +79,7 @@ export function ShippingDivergenceDrawer({
   const orderNumber = order.displayNumber || order.code;
   const reason = order.cancellationReason || order.raw?.cancellationReason || "Divergência registrada durante o fluxo de expedição.";
   const reporter = order.divergenceReporter || order.raw?.divergenceReporter || order.raw?.cancellationReporter || "Sistema";
+  const divergenceAt = order.raw?.divergenceAt || (order as any).divergenceAt || null;
   const items = order.items || order.raw?.items || [];
   const depositante = order.depositante || order.raw?.depositante || "-";
   const customer = order.customer || order.raw?.customer || "Cliente não informado";
@@ -158,6 +159,9 @@ export function ShippingDivergenceDrawer({
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-zinc-400 pt-1">
                   Registrado por: <strong className="text-slate-700 dark:text-zinc-300">{reporter}</strong>
+                  {divergenceAt ? (
+                    <> em <strong className="text-slate-700 dark:text-zinc-300">{divergenceAt}</strong></>
+                  ) : null}
                 </p>
               </div>
             </div>

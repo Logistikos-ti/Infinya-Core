@@ -74,6 +74,7 @@ export default async function ShippingOrderDetailPage({
           orderNumber={order.displayNumber || order.code}
           divergenceReason={order.cancellationReason || "Divergência registrada durante o fluxo de expedição."}
           reportedBy={order.divergenceReporter}
+          reportedAt={order.divergenceAt}
           status={order.statusLabel}
         />
       ) : null}
