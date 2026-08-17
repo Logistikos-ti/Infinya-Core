@@ -935,12 +935,16 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     (typeof conference.motivoDivergencia === "string" && conference.motivoDivergencia.trim() ? conference.motivoDivergencia.trim() : null) ||
     (typeof cancellation.motivoCancelamento === "string" && cancellation.motivoCancelamento.trim() ? cancellation.motivoCancelamento.trim() : null);
 
-  const pickingOperator = typeof cancellation.operadorNome === "string" && cancellation.operadorNome.trim() ? cancellation.operadorNome.trim() : null;
-  const pickingAtRaw = typeof cancellation.finalizadaEm === "string" ? cancellation.finalizadaEm : (typeof cancellation.atualizadaEm === "string" ? cancellation.atualizadaEm : null);
+  const manualHistory = Array.isArray(payload.historicoStatusManual) ? payload.historicoStatusManual : [];
+  const manualSeparacao = manualHistory.slice().reverse().find((h: any) => h.novoStatus === "SEPARADO" || h.novoStatus === "EM_SEPARACAO");
+  const manualConferencia = manualHistory.slice().reverse().find((h: any) => h.novoStatus === "CONFERIDO" || h.novoStatus === "PRONTO_ROMANEIO");
+
+  const pickingOperator = (typeof cancellation.operadorNome === "string" && cancellation.operadorNome.trim() ? cancellation.operadorNome.trim() : null) || (manualSeparacao?.alteradoPorNome) || null;
+  const pickingAtRaw = typeof cancellation.finalizadaEm === "string" ? cancellation.finalizadaEm : (typeof cancellation.atualizadaEm === "string" ? cancellation.atualizadaEm : (manualSeparacao?.alteradoEm || null));
   const pickingAt = pickingAtRaw ? formatDateTimeInSaoPaulo(pickingAtRaw, "") : null;
 
-  const conferenceOperator = typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null;
-  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : (typeof conference.finalizadaEm === "string" ? conference.finalizadaEm : (typeof conference.atualizadaEm === "string" ? conference.atualizadaEm : null));
+  const conferenceOperator = (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) || (manualConferencia?.alteradoPorNome) || null;
+  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : (typeof conference.finalizadaEm === "string" ? conference.finalizadaEm : (typeof conference.atualizadaEm === "string" ? conference.atualizadaEm : (manualConferencia?.alteradoEm || null)));
   const conferenceAt = conferenceAtRaw ? formatDateTimeInSaoPaulo(conferenceAtRaw, "") : null;
   const storeDisplay = extractStore(payload, item.numero_loja);
   const fullShipment = extractFullRelation(item.remessa_full);
