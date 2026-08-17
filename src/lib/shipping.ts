@@ -943,8 +943,8 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
   const pickingAtRaw = typeof cancellation.finalizadaEm === "string" ? cancellation.finalizadaEm : (typeof cancellation.atualizadaEm === "string" ? cancellation.atualizadaEm : (manualSeparacao?.alteradoEm || null));
   const pickingAt = pickingAtRaw ? formatDateTimeInSaoPaulo(pickingAtRaw, "") : null;
 
-  const conferenceOperator = (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) || (manualConferencia?.alteradoPorNome) || null;
-  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : (typeof conference.finalizadaEm === "string" ? conference.finalizadaEm : (typeof conference.atualizadaEm === "string" ? conference.atualizadaEm : (manualConferencia?.alteradoEm || null)));
+  const conferenceOperator = (typeof conference.operadorNome === "string" && conference.operadorNome.trim() ? conference.operadorNome.trim() : null) || (manualConferencia?.alteradoPorNome) || (typeof payload.danfe_conferida_por === "string" ? payload.danfe_conferida_por.trim() : null) || null;
+  const conferenceAtRaw = typeof conference.conferidoEm === "string" ? conference.conferidoEm : (typeof conference.finalizadaEm === "string" ? conference.finalizadaEm : (typeof conference.atualizadaEm === "string" ? conference.atualizadaEm : (manualConferencia?.alteradoEm || (typeof payload.danfe_conferida_em === "string" ? payload.danfe_conferida_em : null))));
   const conferenceAt = conferenceAtRaw ? formatDateTimeInSaoPaulo(conferenceAtRaw, "") : null;
   const storeDisplay = extractStore(payload, item.numero_loja);
   const fullShipment = extractFullRelation(item.remessa_full);
