@@ -1347,7 +1347,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
           });
         }
 
-        const btnText = (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO")
+        const isDivergent = sel.statusLabel === "Aguardando tratativa";
+        const btnText = isDivergent
+          ? "Fechar"
+          : (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO")
           ? "Iniciar Separação ›"
           : (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA")
           ? "Iniciar Conferência ›"
@@ -1821,7 +1824,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 ) : null}
                 <button 
                   onClick={() => {
-                    if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
+                    const isDiv = sel.statusLabel === "Aguardando tratativa";
+                    if (isDiv) setSelectedOrder(null);
+                    else if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
                     else if (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
                     else if (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO") router.push("/expedicao/conferidos");
                     else setSelectedOrder(null);
