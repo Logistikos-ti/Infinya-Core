@@ -1056,16 +1056,17 @@ function PortalOrderDetailDrawer({
             </div>
           </section>
         </div>
-        <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]">
-          <button
-            type="button"
-            disabled={order.status === "EXPEDIDO" || order.status === "CANCELADO"}
-            onClick={() => setShowCancelForm(true)}
-            className="flex h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:-translate-y-px hover:border-rose-300 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400"
-          >
-            Cancelar Pedido
-          </button>
-        </footer>
+        {!(order.status === "EXPEDIDO" || order.status === "CANCELADO" || order.cancellationReason || order.cancellationReporter) && (
+          <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]">
+            <button
+              type="button"
+              onClick={() => setShowCancelForm(true)}
+              className="flex h-11 w-full items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:-translate-y-px hover:border-rose-300 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400"
+            >
+              Cancelar Pedido
+            </button>
+          </footer>
+        )}
           </>
         )}
         {uploadOpen ? (
