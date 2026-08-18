@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileSignature, FileText, LoaderCircle, Package, Paperclip, Plus, Tag, X, XCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { repairMojibake } from "@/lib/sales-channels";
 import { APP_TIME_ZONE, parseAppDate } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { PortalXmlOrderDrawer } from "@/components/portal/portal-xml-order-drawe
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
+import { cancelPortalOrderAction } from "@/app/(portal)/portal/cancel-action";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -633,6 +634,8 @@ function PortalOrderDetailDrawer({
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadDefaultTipo, setUploadDefaultTipo] = useState<string>("CARTA_CORRECAO");
+  const [previewAttachment, setPreviewAttachment] = useState<any>(null);
+  const [isCancelling, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
 
   const hasNfe = order.attachments.some(
@@ -988,13 +991,38 @@ function PortalOrderDetailDrawer({
           </section>
         </div>
         <footer className="border-t border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#0f172a]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white"
-          >
-            Fechar
-          </button>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={isCancelling || (order.status !== "NOVO" && order.status !== "AGUARDANDO_INTEGRACAO")}
+              onClick={() => {
+                if (window.confirm("Tem certeza que deseja cancelar este pedido?")) {
+                  startTransition(async () => {
+                    const result = await cancelPortalOrderAction(order.id);
+                    if (result.ok) {
+                      onClose();
+                    } else {
+                      window.alert(result.error || "Falha ao cancelar pedido.");
+                    }
+                  });
+                }
+              }}
+              className="flex h-11 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:-translate-y-px hover:border-rose-300 disabled:pointer-events-none disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400"
+            >
+              {isCancelling ? (
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+              ) : (
+                "Cancelar"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-800 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-white"
+            >
+              Fechar
+            </button>
+          </div>
         </footer>
         {uploadOpen ? (
           <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm animate-in fade-in">
