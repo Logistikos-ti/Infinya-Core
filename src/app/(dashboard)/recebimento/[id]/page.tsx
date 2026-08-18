@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";`nimport { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";
+import { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";
 import { ReceivingConferencePanel } from "@/components/receiving/receiving-conference-panel";
 import { requireModuleAccess } from "@/lib/auth";
 import {

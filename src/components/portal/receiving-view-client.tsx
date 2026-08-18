@@ -244,7 +244,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [selected, setSelected] = useState<ReceivingItem | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [uploadingDivergenceXml, setUploadingDivergenceXml] = useState(false);
-  const [divergenceError, setDivergenceError] = useState("");`n  const [uploadingDivergenceXml, setUploadingDivergenceXml] = useState(false);`n  const [divergenceError, setDivergenceError] = useState("");
+  const [divergenceError, setDivergenceError] = useState("");
   const [cancelError, setCancelError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
