@@ -8,7 +8,8 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import { StatCard } from "@/components/dashboard/stat-card";`nimport { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";`nimport { ReleaseQuarantineButton } from "@/components/receiving/release-quarantine-button";
 import { ReceivingConferencePanel } from "@/components/receiving/receiving-conference-panel";
 import { requireModuleAccess } from "@/lib/auth";
 import {
@@ -118,7 +119,11 @@ export default async function RecebimentoDetalhePage({
         </section>
       ) : null}
 
-      {order.status === "QUARENTENA_CORRIGIDA" ? ( <ReleaseQuarantineButton orderId={order.id} /> ) : null}`n`n      <ReceivingConferencePanel
+      {order.status === "QUARENTENA_CORRIGIDA" ? ( <ReleaseQuarantineButton orderId={order.id} /> ) : null}`n`n      {order.status === "QUARENTENA_CORRIGIDA" ? (
+        <ReleaseQuarantineButton orderId={order.id} />
+      ) : null}
+
+      <ReceivingConferencePanel
         orderId={order.id}
         initialItems={order.items}
         addresses={addresses.data ?? []}
