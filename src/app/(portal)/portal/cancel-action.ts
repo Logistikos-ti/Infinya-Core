@@ -1,17 +1,21 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export async function cancelPortalOrderAction(orderId: string): Promise<{ ok: boolean; error?: string }> {
+export async function requestPortalOrderCancellationAction(orderId: string, message: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const user = await requireRoleAccess(["DEPOSITANTE", "ADMIN", "TI", "OPERADOR"]);
     const admin = createSupabaseAdminClient();
     
+    if (!message || !message.trim()) {
+      return { ok: false, error: "Informe a mensagem para solicitar o cancelamento." };
+    }
+
     const { data: order, error: readError } = await admin
       .from("pedidos_expedicao")
-      .select("id, status, depositante_id, payload_origem")
+      .select("id, status, depositante_id, payload_origem, codigo, numero_wms, numero_pedido")
       .eq("id", orderId)
       .maybeSingle();
       
@@ -31,31 +35,51 @@ export async function cancelPortalOrderAction(orderId: string): Promise<{ ok: bo
       return { ok: false, error: "O pedido já está cancelado." };
     }
 
-    // Try to reverse any stock movements in case it was already picked or being picked
-    const { error: reversalError } = await admin.rpc("estornar_baixas_separacao" as never, {
-      p_pedido_id: orderId,
-      p_usuario_id: user.id,
-      p_motivo: "Cancelamento pelo depositante no portal",
-    } as never);
+    const pedidoIdentificador = order.numero_wms || order.codigo || order.numero_pedido || orderId;
 
-    if (reversalError) {
-      console.error("Failed to reverse stock on portal cancellation:", reversalError);
+    // 1. Create Support Ticket
+    const subject = "Cancelamento de pedido " + pedidoIdentificador;
+    const { data: ticket, error: ticketError } = await admin
+      .from("suporte_chamados")
+      .insert({
+        depositante_id: order.depositante_id,
+        criado_por: user.id,
+        assunto: subject,
+        categoria: "Cancelamento",
+      })
+      .select("id")
+      .single();
+
+    if (ticketError || !ticket) {
+      throw ticketError || new Error("Não foi possível criar o chamado.");
     }
 
+    const { error: commentError } = await admin
+      .from("suporte_comentarios")
+      .insert({ chamado_id: ticket.id, autor_id: user.id, texto: message });
+
+    if (commentError) {
+      throw commentError;
+    }
+
+    // 2. Update Order to Divergence / Aguardando Tratativa
     const payload = (typeof order.payload_origem === "object" && order.payload_origem !== null) ? order.payload_origem as Record<string, unknown> : {};
 
     const { error: updateError } = await admin
       .from("pedidos_expedicao")
       .update({
-        status: "CANCELADO",
+        status: "DIVERGENCIA",
         payload_origem: {
           ...payload,
-          cancelamento: {
-            canceladoEm: new Date().toISOString(),
-            canceladoPor: user.id,
-            canceladoPorNome: user.nome,
-            motivo: "Cancelado pelo portal",
-          }
+          divergenciaTratada: false,
+          divergencia: {
+            motivo: "Solicitação de cancelamento pelo depositante via chamado.",
+            tipo: "Cancelamento",
+            chamado_id: ticket.id,
+            registradoPorNome: user.nome,
+          },
+          cancellationReporter: user.id,
+          cancellationReason: message,
         }
       })
       .eq("id", orderId);
@@ -67,7 +91,7 @@ export async function cancelPortalOrderAction(orderId: string): Promise<{ ok: bo
     revalidatePath("/portal");
     return { ok: true };
   } catch (error) {
-    console.error("Failed to cancel order from portal:", error);
-    return { ok: false, error: "Ocorreu um erro ao cancelar o pedido." };
+    console.error("Failed to request order cancellation from portal:", error);
+    return { ok: false, error: "Ocorreu um erro ao solicitar o cancelamento." };
   }
 }

@@ -22,7 +22,7 @@ type Comment = {
   createdAt?: string;
 };
 
-const categories = ["Divergência", "Estoque", "Financeiro", "Outros"];
+const categories = ["Cancelamento", "Divergência", "Estoque", "Financeiro", "Outros"];
 
 const initialTickets: Ticket[] = [];
 
