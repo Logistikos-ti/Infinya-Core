@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
+
 export async function requestPortalOrderCancellationAction(orderId: string, message: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const user = await requireRoleAccess(["DEPOSITANTE", "ADMIN", "TI", "OPERADOR"]);
@@ -15,7 +17,10 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
 
     const { data: order, error: readError } = await admin
       .from("pedidos_expedicao")
-      .select("id, status, depositante_id, payload_origem, codigo, numero_wms, numero_pedido")
+      .select(`
+        id, status, depositante_id, payload_origem, codigo, numero_wms, numero_pedido,
+        depositantes (nome)
+      `)
       .eq("id", orderId)
       .maybeSingle();
       
@@ -35,10 +40,14 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
       return { ok: false, error: "O pedido já está cancelado." };
     }
 
-    const pedidoIdentificador = order.numero_wms || order.codigo || order.numero_pedido || orderId;
+    const depositanteNome = order.depositantes && typeof order.depositantes === "object" && !Array.isArray(order.depositantes)
+      ? (order.depositantes as { nome: string }).nome
+      : null;
+
+    const formattedOrderNumber = formatWmsOrderNumber(order.numero_wms, order.codigo || order.numero_pedido || orderId, depositanteNome);
 
     // 1. Create Support Ticket
-    const subject = "Cancelamento de pedido " + pedidoIdentificador;
+    const subject = "Cancelamento de pedido " + formattedOrderNumber;
     const { data: ticket, error: ticketError } = await admin
       .from("suporte_chamados")
       .insert({
