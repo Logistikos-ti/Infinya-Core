@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
@@ -29,6 +29,7 @@ import { SupportClient } from "@/components/portal/support-client";
 import { ProductStockCard } from "@/components/portal/product-stock-card";
 import { ProductSearchInput } from "@/components/portal/product-search-input";
 import { ReceivingViewClient } from "@/components/portal/receiving-view-client";
+import { QuarantineViewClient } from "@/components/portal/quarantine-view-client";
 import { listSupportTicketsFromDb } from "@/lib/support";
 import { PortalOrdersView } from "@/components/portal/portal-orders-view";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -245,7 +246,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         />
       ) : null}
       {view === "quarentena" ? (
-        <QuarantineView quarantine={quarantine} />
+        <QuarantineViewClient quarantine={quarantine} />
       ) : null}
       {view === "recebimento" ? (
         <ReceivingViewClient
@@ -291,11 +292,11 @@ function MasterPortalWelcome({ invalidSelection }: { invalidSelection: boolean }
           Escolha um depositante para visualizar o portal
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-300">
-          Este modo permite validar a experiência de cada cliente sem alterar o seu perfil de TI ou o acesso de outros usuários.
+          Este modo permite validar a experiÃªncia de cada cliente sem alterar o seu perfil de TI ou o acesso de outros usuÃ¡rios.
         </p>
         {invalidSelection ? (
           <p className="mt-5 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
-            O depositante selecionado não está ativo ou não foi encontrado. Escolha outro no seletor superior.
+            O depositante selecionado nÃ£o estÃ¡ ativo ou nÃ£o foi encontrado. Escolha outro no seletor superior.
           </p>
         ) : null}
       </div>
@@ -336,13 +337,13 @@ function DashboardView({
   return (
     <>
       <PageIntro
-        title={`Olá, ${depositanteName} 👋`}
-        description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expedição."
+        title={`OlÃ¡, ${depositanteName} ðŸ‘‹`}
+        description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expediÃ§Ã£o."
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={PackageCheck}
-          label="Pedidos em operação"
+          label="Pedidos em operaÃ§Ã£o"
           value={orders.length}
           delta="Atualizado agora"
         />
@@ -356,7 +357,7 @@ function DashboardView({
           icon={Truck}
           label="Recebimentos"
           value={receiving.length}
-          delta="Solicitações"
+          delta="SolicitaÃ§Ãµes"
         />
         <StatCard
           icon={ClipboardList}
@@ -379,20 +380,20 @@ function DashboardView({
             <EmptyState text="Nenhum pedido encontrado." />
           )}
         </Panel>
-        <Panel title="Níveis de estoque">
+        <Panel title="NÃ­veis de estoque">
           <div className="mb-2 flex items-center gap-1.5 px-5 text-xs text-slate-500 dark:text-slate-400">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
             <span>
               <span className="font-semibold text-rose-500">
                 {lowStock.length}
               </span>{" "}
-              itens em atenção
+              itens em atenÃ§Ã£o
             </span>
           </div>
           {lowStock.length ? (
             lowStock.map((item) => <StockRow key={item.id} item={item} />)
           ) : (
-            <EmptyState text="Nenhum item próximo do limite." />
+            <EmptyState text="Nenhum item prÃ³ximo do limite." />
           )}
         </Panel>
       </div>
@@ -410,7 +411,7 @@ function OrdersView({
   const filters = [
     { label: "Todos", value: "" },
     { label: "Recebido", value: "Recebido" },
-    { label: "Em separação", value: "Em separação" },
+    { label: "Em separaÃ§Ã£o", value: "Em separaÃ§Ã£o" },
     { label: "Expedido", value: "Expedido" },
     { label: "Cancelado", value: "Cancelado" },
   ];
@@ -419,7 +420,7 @@ function OrdersView({
   const matchesFilter = (order: (typeof orders)[number], value: string) => {
     if (!value) return true;
     if (value === "Recebido") return order.status === "NOVO";
-    if (value === "Em separação") {
+    if (value === "Em separaÃ§Ã£o") {
       return ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(order.status);
     }
     if (value === "Expedido") return order.status === "EXPEDIDO";
@@ -434,7 +435,7 @@ function OrdersView({
     <>
       <ViewHeader
         title="Meus pedidos"
-        description="Pedidos enviados ao CD para separação e expedição."
+        description="Pedidos enviados ao CD para separaÃ§Ã£o e expediÃ§Ã£o."
         action="+ Novo pedido"
       />
       <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
@@ -474,7 +475,7 @@ function OrdersView({
                   "Cliente",
                   "Origem",
                   "Itens",
-                  "Criação",
+                  "CriaÃ§Ã£o",
                   "Status",
                   "",
                 ].map((item) => (
@@ -575,7 +576,7 @@ function ProductsView({
             quantity === 0
               ? { label: "Sem estoque", tone: "rose" }
               : quantity <= minimum
-                ? { label: "Atenção", tone: "amber" }
+                ? { label: "AtenÃ§Ã£o", tone: "amber" }
                 : { label: "Monitorado", tone: "emerald" };
           const statusClasses = {
             rose: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
@@ -608,7 +609,7 @@ function ProductsView({
                     {item.productName ?? "Produto"}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {item.sku || "Sem código"}
+                    {item.sku || "Sem cÃ³digo"}
                   </p>
                 </div>
               </div>
@@ -619,7 +620,7 @@ function ProductsView({
                   >
                     {quantity}
                   </p>
-                  <p className="text-[11px] text-slate-500">disponível</p>
+                  <p className="text-[11px] text-slate-500">disponÃ­vel</p>
                 </div>
                 <span
                   className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${statusClasses}`}
@@ -631,7 +632,7 @@ function ProductsView({
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                     <span>Min {minimum}</span>
-                    <span>Máx {maximum}</span>
+                    <span>MÃ¡x {maximum}</span>
                   </div>
                   <div className="relative h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
                     <span
@@ -642,7 +643,7 @@ function ProductsView({
                 </div>
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-400"
-                  title="Configuração de estoque"
+                  title="ConfiguraÃ§Ã£o de estoque"
                 >
                   <Settings2 className="h-4 w-4" />
                 </span>
@@ -656,7 +657,7 @@ function ProductsView({
           text={
             search
               ? "Nenhum produto encontrado para esse filtro."
-              : "Nenhum produto disponível no estoque."
+              : "Nenhum produto disponÃ­vel no estoque."
           }
         />
       ) : null}
@@ -699,9 +700,9 @@ function aggregatePortalProductStock(stock: PortalProductStockItem[]) {
     const endereco =
       existing.endereco === item.endereco
         ? existing.endereco
-        : "Múltiplos endereços";
+        : "MÃºltiplos endereÃ§os";
     const lote =
-      existing.lote === item.lote ? existing.lote : "Múltiplos lotes";
+      existing.lote === item.lote ? existing.lote : "MÃºltiplos lotes";
 
     grouped.set(key, {
       ...existing,
@@ -747,13 +748,13 @@ function ProductPagination({
   return (
     <div className="flex min-h-20 flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-8 py-4 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
       <span className="text-sm text-slate-500 dark:text-slate-400">
-        Mostrando {firstItem}–{lastItem} de {totalItems} produtos
+        Mostrando {firstItem}â€“{lastItem} de {totalItems} produtos
       </span>
       <div className="flex items-center gap-2">
         <PaginationLink
           page={currentPage - 1}
           disabled={currentPage === 1}
-          ariaLabel="Página anterior"
+          ariaLabel="PÃ¡gina anterior"
           search={search}
           portalDepositanteId={portalDepositanteId}
         >
@@ -772,7 +773,7 @@ function ProductPagination({
               key={page}
               page={page}
               active={page === currentPage}
-              ariaLabel={`Página ${page}`}
+              ariaLabel={`PÃ¡gina ${page}`}
               search={search}
               portalDepositanteId={portalDepositanteId}
             >
@@ -783,7 +784,7 @@ function ProductPagination({
         <PaginationLink
           page={currentPage + 1}
           disabled={currentPage === totalPages}
-          ariaLabel="Próxima página"
+          ariaLabel="PrÃ³xima pÃ¡gina"
           search={search}
           portalDepositanteId={portalDepositanteId}
         >
@@ -805,7 +806,7 @@ function LegacyProductPagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
       <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-        Página {currentPage} de {totalPages}
+        PÃ¡gina {currentPage} de {totalPages}
       </span>
       <div className="flex items-center gap-1.5">
         <PaginationLink page={currentPage - 1} disabled={currentPage === 1}>
@@ -820,7 +821,7 @@ function LegacyProductPagination({
           page={currentPage + 1}
           disabled={currentPage === totalPages}
         >
-          Próxima
+          PrÃ³xima
         </PaginationLink>
       </div>
     </div>
@@ -883,7 +884,7 @@ function ReceivingView({
       <ViewHeader
         title="Recebimento"
         description="Agende entradas de mercadoria e acompanhe o recebimento no CD."
-        action="+ Nova solicitação"
+        action="+ Nova solicitaÃ§Ã£o"
       />
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MiniKpi
@@ -904,9 +905,9 @@ function ReceivingView({
           color="bg-emerald-500"
         />
         <MiniKpi
-          label="Divergências"
+          label="DivergÃªncias"
           value={
-            receiving.filter((item) => item.status === "Divergência").length
+            receiving.filter((item) => item.status === "DivergÃªncia").length
           }
           color="bg-rose-500"
         />
@@ -917,10 +918,10 @@ function ReceivingView({
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-white/5">
               <tr>
                 {[
-                  "Solicitação",
+                  "SolicitaÃ§Ã£o",
                   "Fornecedor",
                   "Volumes",
-                  "Previsão",
+                  "PrevisÃ£o",
                   "Status",
                 ].map((item) => (
                   <th key={item} className="px-5 py-3 font-bold">
@@ -948,139 +949,8 @@ function ReceivingView({
           </table>
         </div>
         {!receiving.length ? (
-          <EmptyState text="Nenhuma solicitação nesse filtro." />
+          <EmptyState text="Nenhuma solicitaÃ§Ã£o nesse filtro." />
         ) : null}
-      </div>
-    </>
-  );
-}
-
-function QuarantineView({
-  quarantine,
-}: {
-  quarantine: Awaited<ReturnType<typeof listStockQuarantineFromDb>>;
-}) {
-  const activeItems = quarantine.filter((item) => item.status === "EM_QUARENTENA");
-  const releasedItems = quarantine.filter((item) => item.status === "LIBERADO");
-  const discardedItems = quarantine.filter((item) => item.status === "DESCARTADO");
-  const activeUnits = activeItems.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
-
-  return (
-    <>
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
-        <div>
-          <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
-            Quarentena
-          </h2>
-          <p className="mt-1.5 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
-            Produtos retidos por avaria, divergência ou análise operacional antes de voltarem ao estoque disponível.
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-5 grid gap-4 sm:grid-cols-2">
-        <QuarantineStatCard
-          label="Em quarentena"
-          value={activeItems.length}
-          help={`${activeUnits.toLocaleString("pt-BR")} un retidas`}
-          tone="amber"
-        />
-        <QuarantineStatCard
-          label="Descartados"
-          value={discardedItems.length}
-          help="Baixa definitiva"
-          tone="rose"
-        />
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]">
-        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
-            <ShieldAlert className="h-5 w-5" />
-          </span>
-          <div>
-            <h3 className="font-display text-base font-bold text-slate-950 dark:text-white">
-              Itens retidos
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Acompanhe o que está indisponível para separação e expedição.
-            </p>
-          </div>
-          <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-white/10 dark:text-slate-300">
-            {quarantine.length} registro(s)
-          </span>
-        </div>
-        {quarantine.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left">
-              <thead className="text-[12px] uppercase tracking-[0.04em] text-slate-500 dark:text-slate-400">
-                <tr>
-                  {[
-                    "Produto",
-                    "Quantidade",
-                    "Status",
-                    "Registro",
-                    "Operador",
-                  ].map((label) => (
-                    <th
-                      key={label}
-                      className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-5 py-3 font-bold dark:border-white/10 dark:bg-white/5"
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {quarantine.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-slate-100 last:border-b-0 dark:border-white/10"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 dark:bg-white/10">
-                          {item.imageUrl ? (
-                            <img
-                              src={item.imageUrl}
-                              alt={item.productName}
-                              className="h-full w-full object-contain"
-                            />
-                          ) : (
-                            <Package className="h-5 w-5 text-slate-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-950 dark:text-white">
-                            {item.productName}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {item.sku}
-                            {item.internalCode ? ` · ${item.internalCode}` : ""}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-950 dark:text-white">
-                      {item.quantityLabel} un
-                    </td>
-                    <td className="px-5 py-4">
-                      <QuarantineStatusPill status={item.status} label={item.statusLabel} />
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.createdAtLabel}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                      {item.createdBy}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState text="Nenhum item em quarentena no momento." />
-        )}
       </div>
     </>
   );
@@ -1143,7 +1013,7 @@ function InvoicesView() {
     <>
       <ViewHeader
         title="Faturas"
-        description="Acompanhe suas faturas e os custos operacionais do período."
+        description="Acompanhe suas faturas e os custos operacionais do perÃ­odo."
       />
       <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
         <div className="max-w-md text-center">
@@ -1157,8 +1027,8 @@ function InvoicesView() {
             Faturas em breve
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Estamos preparando esta área para apresentar suas faturas e os
-            detalhes de armazenagem, manuseio e expedição com segurança.
+            Estamos preparando esta Ã¡rea para apresentar suas faturas e os
+            detalhes de armazenagem, manuseio e expediÃ§Ã£o com seguranÃ§a.
           </p>
         </div>
       </div>
@@ -1171,19 +1041,19 @@ function LegacyInvoicesView() {
     <>
       <ViewHeader
         title="Faturas & armazenagem"
-        description="Custos de armazenagem, manuseio e expedição do período."
+        description="Custos de armazenagem, manuseio e expediÃ§Ã£o do perÃ­odo."
       />
       <div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
         <div className="flex items-center gap-3 border-b border-slate-100 p-5 dark:border-white/10">
           <FileText className="h-5 w-5 text-violet-500" />
           <div>
-            <p className="text-sm font-bold">Faturas do período</p>
+            <p className="text-sm font-bold">Faturas do perÃ­odo</p>
             <p className="text-xs text-slate-500">
-              Os documentos financeiros aparecerão aqui quando liberados.
+              Os documentos financeiros aparecerÃ£o aqui quando liberados.
             </p>
           </div>
         </div>
-        <EmptyState text="Nenhuma fatura disponível." />
+        <EmptyState text="Nenhuma fatura disponÃ­vel." />
       </div>
     </>
   );
@@ -1198,7 +1068,7 @@ function SupportView({
     <>
       <ViewHeader
         title="Suporte"
-        description="Abra um chamado ou acompanhe as solicitações com a equipe Infinoos."
+        description="Abra um chamado ou acompanhe as solicitaÃ§Ãµes com a equipe Infinoos."
       />
       <SupportClient initialTickets={initialTickets} />
     </>
@@ -1340,10 +1210,10 @@ function OrderRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">
-          {order.customer ?? "Cliente não informado"}
+          {order.customer ?? "Cliente nÃ£o informado"}
         </p>
         <p className="text-[11px] text-slate-500">
-          {order.marketplace || order.channel || "Operação própria"} ·{" "}
+          {order.marketplace || order.channel || "OperaÃ§Ã£o prÃ³pria"} Â·{" "}
           {order.itemCount ?? 0} item(ns)
         </p>
       </div>
@@ -1363,14 +1233,14 @@ function OrderTableRow({
       </td>
       <td className="px-5 py-[14px]">
         <p className="max-w-[200px] truncate text-sm font-semibold">
-          {order.customer ?? "Cliente não informado"}
+          {order.customer ?? "Cliente nÃ£o informado"}
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          {order.destination ?? "Destino não informado"}
+          {order.destination ?? "Destino nÃ£o informado"}
         </p>
       </td>
       <td className="px-5 py-[14px] text-[13.5px] font-semibold">
-        {order.marketplace || order.channel || "Operação própria"}
+        {order.marketplace || order.channel || "OperaÃ§Ã£o prÃ³pria"}
       </td>
       <td className="px-5 py-[14px] font-display text-sm font-semibold">
         {order.itemCount ?? 0} item{(order.itemCount ?? 0) === 1 ? "" : "s"}
@@ -1409,7 +1279,7 @@ function StockRow({
         <p className="truncate text-xs font-semibold">
           {item.productName ?? "Produto"}
         </p>
-        <p className="text-[11px] text-slate-500">{item.sku || "Sem código"}</p>
+        <p className="text-[11px] text-slate-500">{item.sku || "Sem cÃ³digo"}</p>
       </div>
       <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600">
         {item.rawAvailable ?? 0}
@@ -1448,5 +1318,6 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 function formatDate(value: string | null | undefined) {
-  return formatDatePtBr(value, "—");
+  return formatDatePtBr(value, "â€”");
 }
+
