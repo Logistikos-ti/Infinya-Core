@@ -16,18 +16,33 @@ export async function cancelPortalOrderAction(orderId: string): Promise<{ ok: bo
       .maybeSingle();
       
     if (readError || !order) {
-      return { ok: false, error: "Pedido não encontrado." };
+      return { ok: false, error: "Pedido nÃ£o encontrado." };
     }
     
     if (user.papel === "DEPOSITANTE" && user.depositanteId !== order.depositante_id) {
-      return { ok: false, error: "Sem permissão para cancelar este pedido." };
+      return { ok: false, error: "Sem permissÃ£o para cancelar este pedido." };
     }
 
-    if (order.status !== "NOVO" && order.status !== "AGUARDANDO_INTEGRACAO") {
-      return { ok: false, error: "O pedido já está em processamento e não pode ser cancelado pelo portal. Contate o suporte." };
+    if (order.status === "EXPEDIDO") {
+      return { ok: false, error: "O pedido jÃ¡ foi expedido e nÃ£o pode ser cancelado." };
+    }
+    
+    if (order.status === "CANCELADO") {
+      return { ok: false, error: "O pedido jÃ¡ estÃ¡ cancelado." };
     }
 
-    const payload = (typeof order.payload_origem === "object" && order.payload_origem !== null) ? order.payload_origem as any : {};
+    // Try to reverse any stock movements in case it was already picked or being picked
+    const { error: reversalError } = await admin.rpc("estornar_baixas_separacao" as never, {
+      p_pedido_id: orderId,
+      p_usuario_id: user.id,
+      p_motivo: "Cancelamento pelo depositante no portal",
+    } as never);
+
+    if (reversalError) {
+      console.error("Failed to reverse stock on portal cancellation:", reversalError);
+    }
+
+    const payload = (typeof order.payload_origem === "object" && order.payload_origem !== null) ? order.payload_origem as Record<string, unknown> : {};
 
     const { error: updateError } = await admin
       .from("pedidos_expedicao")

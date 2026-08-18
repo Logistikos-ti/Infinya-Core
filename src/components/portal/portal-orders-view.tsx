@@ -994,7 +994,7 @@ function PortalOrderDetailDrawer({
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              disabled={isCancelling || (order.status !== "NOVO" && order.status !== "AGUARDANDO_INTEGRACAO")}
+              disabled={isCancelling || order.status === "EXPEDIDO" || order.status === "CANCELADO"}
               onClick={() => {
                 if (window.confirm("Tem certeza que deseja cancelar este pedido?")) {
                   startTransition(async () => {
