@@ -705,6 +705,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       EM_RECEBIMENTO: "Em recebimento",
       RECEBIMENTO: "Em recebimento",
       CONFERIDO: "Conferido",
+      RECEBIDO: "Recebido",
       DIVERGENCIA: "Divergência (Quarentena)",
       QUARENTENA_CORRIGIDA: "Quarentena Corrigida",
       CANCELADO: "Cancelado",
