@@ -714,7 +714,14 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
 
   const statusStyle = (status: string) => {
     const label = displayStatus(status);
-    if (label === "Conferido") {
+    if (label === "Agendado") {
+      return {
+        background: "bg-yellow-500/10",
+        color: "text-yellow-700 dark:text-yellow-400",
+        dot: "bg-yellow-500",
+      };
+    }
+    if (label === "Recebido" || label === "Conferido") {
       return {
         background: "bg-emerald-500/10",
         color: "text-emerald-600 dark:text-emerald-300",
@@ -728,24 +735,24 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         dot: "bg-blue-500",
       };
     }
-    if (label === "DivergÃªncia") {
+    if (label.includes("Divergência") || label.includes("Quarentena")) {
       return {
-        background: "bg-rose-500/10",
-        color: "text-rose-600 dark:text-rose-300",
-        dot: "bg-rose-500",
+        background: "bg-orange-500/10",
+        color: "text-orange-600 dark:text-orange-400",
+        dot: "bg-orange-500",
       };
     }
     if (label === "Cancelado") {
       return {
-        background: "bg-slate-500/10",
-        color: "text-slate-500 dark:text-slate-400",
-        dot: "bg-slate-400",
+        background: "bg-red-500/10",
+        color: "text-red-600 dark:text-red-400",
+        dot: "bg-red-500",
       };
     }
     return {
-      background: "bg-violet-500/10",
-      color: "text-violet-600 dark:text-violet-300",
-      dot: "bg-violet-500",
+      background: "bg-slate-500/10",
+      color: "text-slate-600 dark:text-slate-300",
+      dot: "bg-slate-500",
     };
   };
 
@@ -757,10 +764,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       (item) => displayStatus(item.status) === "Em recebimento",
     ).length,
     conferido: receiving.filter(
-      (item) => displayStatus(item.status) === "Conferido",
+      (item) => displayStatus(item.status) === "Conferido" || displayStatus(item.status) === "Recebido",
     ).length,
     divergencia: receiving.filter(
-      (item) => displayStatus(item.status) === "DivergÃªncia",
+      (item) => displayStatus(item.status).includes("Divergência") || displayStatus(item.status).includes("Quarentena"),
     ).length,
   };
 
