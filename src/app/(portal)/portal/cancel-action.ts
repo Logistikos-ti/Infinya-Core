@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { requireRoleAccess } from "@/lib/auth";
@@ -68,7 +68,6 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
     const { error: updateError } = await admin
       .from("pedidos_expedicao")
       .update({
-        status: "DIVERGENCIA",
         payload_origem: {
           ...payload,
           divergenciaTratada: false,
