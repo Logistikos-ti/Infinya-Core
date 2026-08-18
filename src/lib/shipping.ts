@@ -1415,13 +1415,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function formatShippingStatusLabel(status: string, payload?: Record<string, unknown> | null) {
   const normalizedPayload = isRecord(payload) ? payload : {};
   const hasTratamento = isRecord(normalizedPayload.tratamentoDivergencia) || Boolean(normalizedPayload.divergenciaTratada);
-  const tratamento = isRecord(normalizedPayload.tratamentoDivergencia) ? (normalizedPayload.tratamentoDivergencia as any) : null;
   const hasDivergencePending =
     Boolean(
       normalizedPayload.divergencia ||
+      normalizedPayload.cancellationReason ||
       (isRecord(normalizedPayload.separacao) && (normalizedPayload.separacao as any).cancelado) ||
       (isRecord(normalizedPayload.conferencia) && (normalizedPayload.conferencia as any).motivoDivergencia)
     ) && !hasTratamento;
+
+  if (hasDivergencePending) {
+    return "Aguardando tratativa";
+  }
 
   switch (status) {
     case "NOVO":
