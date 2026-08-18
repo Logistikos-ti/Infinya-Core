@@ -144,6 +144,7 @@ export function MobileReceivingPanel({
     : false;
   const surplusPromptItem = items.find((item) => item.id === surplusPromptItemId) ?? null;
 
+  const lastScanTimeRef = useRef<number>(0);
   const applyScanRef = useRef<(code: string) => void>(() => {});
   const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
 
@@ -311,6 +312,12 @@ export function MobileReceivingPanel({
   }
 
   function applyScan(rawValue: string) {
+    const now = Date.now();
+    // Debounce de 1500ms para evitar leitura duplicada acidental ao retirar o produto
+    if (now - lastScanTimeRef.current < 1500) {
+      return;
+    }
+
     const normalizedScan = normalizeScan(rawValue);
     if (!normalizedScan) return;
 
@@ -321,9 +328,12 @@ export function MobileReceivingPanel({
     );
 
     if (!matchedItem) {
+      lastScanTimeRef.current = now; // Atualiza o tempo para não floodar a tela de erro
       flash({ type: "err", title: "Não encontrado", code: rawValue, sub: "Código não encontrado neste recebimento." });
       return;
     }
+
+    lastScanTimeRef.current = now;
 
     const current = normalizeQuantity(matchedItem.receivedQuantityValue);
 
