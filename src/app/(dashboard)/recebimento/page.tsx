@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   AlertTriangle,
   ClipboardList,
@@ -150,8 +150,8 @@ export default async function RecebimentoPage({
           <div>
             <p className="font-semibold">Recebimento em desenvolvimento</p>
             <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-100/75">
-              Esta área já está disponível para consulta dos operadores, mas o
-              fluxo operacional ainda está sendo finalizado.
+              Esta Ã¡rea jÃ¡ estÃ¡ disponÃ­vel para consulta dos operadores, mas o
+              fluxo operacional ainda estÃ¡ sendo finalizado.
             </p>
           </div>
         </div>
@@ -466,9 +466,9 @@ export default async function RecebimentoPage({
         ) : null}
       </section>
 
-      {/* Grid secundário: ocorrências e tarefas */}
+      {/* Grid secundÃ¡rio: ocorrÃªncias e tarefas */}
       <section className="grid gap-6 xl:grid-cols-2">
-        {/* Ocorrências */}
+        {/* OcorrÃªncias */}
         <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/65 backdrop-blur-md shadow-sm border border-zinc-200/80 dark:border-zinc-800/80 p-6 hover:border-rose-500/30 transition-all">
           <h2 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-rose-500" />{" "}
@@ -613,14 +613,14 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "EM_RECEBIMENTO") {
     return (
       <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-        Em conferência
+        Em conferÃªncia
       </span>
     );
   }
-  if (status === "DIVERGENCIA") {
+  if (status === "DIVERGENCIA") { return ( <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"> Com divergência </span> ); } if (status === "QUARENTENA_CORRIGIDA") {
     return (
       <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-        Com divergência
+        Com divergÃªncia
       </span>
     );
   }

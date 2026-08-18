@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AlertTriangle, Check, Clock, FileText, Link2, PackagePlus, Plus, Trash2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -190,7 +190,7 @@ function TimePickerInput({
         <span className="inline-flex items-center gap-3">
           <Clock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
           <span className={value ? "" : "text-slate-400 dark:text-slate-500"}>
-            {value || "Selecionar horário"}
+            {value || "Selecionar horÃ¡rio"}
           </span>
         </span>
       </button>
@@ -228,7 +228,7 @@ function TimePickerInput({
               }}
               className="mt-3 h-10 w-full rounded-xl border border-slate-200 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
             >
-              Limpar horário
+              Limpar horÃ¡rio
             </button>
           </div>
         </div>
@@ -244,6 +244,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [selected, setSelected] = useState<ReceivingItem | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [uploadingDivergenceXml, setUploadingDivergenceXml] = useState(false);
+  const [divergenceError, setDivergenceError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
@@ -500,7 +502,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       return;
     }
     if (!form.supplier.trim()) {
-      setError("Informe a transportadora que trará este recebimento.");
+      setError("Informe a transportadora que trarÃ¡ este recebimento.");
       return;
     }
     const unresolvedItems = xmlPreview?.unmatched.filter((item) => !xmlResolutions[item.key]) ?? [];
@@ -560,7 +562,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
 
       if (!response.ok) {
         const unmatchedMessage = payload.unmatchedItems?.length
-          ? ` Itens sem vínculo: ${payload.unmatchedItems.slice(0, 4).map((item) => item.descricao).join(", ")}${payload.unmatchedItems.length > 4 ? "..." : ""}`
+          ? ` Itens sem vÃ­nculo: ${payload.unmatchedItems.slice(0, 4).map((item) => item.descricao).join(", ")}${payload.unmatchedItems.length > 4 ? "..." : ""}`
           : "";
         throw new Error(`${payload.error ?? "Falha ao importar o XML."}${unmatchedMessage}`);
       }
@@ -568,7 +570,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       resetAndClose();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Não foi possível importar o XML.",
+        submitError instanceof Error ? submitError.message : "NÃ£o foi possÃ­vel importar o XML.",
       );
     } finally {
       setSaving(false);
@@ -614,7 +616,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       if (!response.ok) {
         throw new Error(
           payload.error ||
-            `Não foi possível enviar a solicitação (HTTP ${response.status}).`,
+            `NÃ£o foi possÃ­vel enviar a solicitaÃ§Ã£o (HTTP ${response.status}).`,
         );
       }
       resetAndClose();
@@ -622,7 +624,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Não foi possível enviar a solicitação.",
+          : "NÃ£o foi possÃ­vel enviar a solicitaÃ§Ã£o.",
       );
     } finally {
       setSaving(false);
@@ -637,9 +639,37 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     void submitManualRequest();
   }
 
+  async function submitDivergenceXml(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!selected) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDivergenceXml(true);
+    setDivergenceError("");
+
+    const formData = new FormData();
+    formData.append("xml", file);
+
+    try {
+      const { submitDivergenceXmlCorrection } = await import("@/app/(portal)/portal/xml-divergence-action");
+      const res = await submitDivergenceXmlCorrection(selected.id, formData);
+      if (res.error) {
+        setDivergenceError(res.error);
+      } else {
+        setSelected(null);
+        alert("XML recebido e validado com sucesso! A divergÃªncia foi corrigida.");
+      }
+    } catch (err: any) {
+      setDivergenceError("Falha na comunicaÃ§Ã£o com o servidor.");
+    } finally {
+      setUploadingDivergenceXml(false);
+      e.target.value = "";
+    }
+  }
+
   async function cancelOrder() {
     if (!selected) return;
-    if (!window.confirm(`Cancelar a solicitação ${selected.code}? Essa ação não pode ser desfeita.`)) {
+    if (!window.confirm(`Cancelar a solicitaÃ§Ã£o ${selected.code}? Essa aÃ§Ã£o nÃ£o pode ser desfeita.`)) {
       return;
     }
 
@@ -654,14 +684,14 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Não foi possível cancelar o recebimento.");
+        throw new Error(payload.error ?? "NÃ£o foi possÃ­vel cancelar o recebimento.");
       }
 
       setSelected(null);
       router.refresh();
     } catch (cancelErr) {
       setCancelError(
-        cancelErr instanceof Error ? cancelErr.message : "Não foi possível cancelar o recebimento.",
+        cancelErr instanceof Error ? cancelErr.message : "NÃ£o foi possÃ­vel cancelar o recebimento.",
       );
     } finally {
       setCancelling(false);
@@ -675,7 +705,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       EM_RECEBIMENTO: "Em recebimento",
       RECEBIMENTO: "Em recebimento",
       CONFERIDO: "Conferido",
-      DIVERGENCIA: "Divergência",
+      DIVERGENCIA: "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida",
       CANCELADO: "Cancelado",
     };
     return labels[status] ?? status;
@@ -697,7 +727,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         dot: "bg-blue-500",
       };
     }
-    if (label === "Divergência") {
+    if (label === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida") {
       return {
         background: "bg-rose-500/10",
         color: "text-rose-600 dark:text-rose-300",
@@ -729,7 +759,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       (item) => displayStatus(item.status) === "Conferido",
     ).length,
     divergencia: receiving.filter(
-      (item) => displayStatus(item.status) === "Divergência",
+      (item) => displayStatus(item.status) === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida",
     ).length,
   };
 
@@ -750,7 +780,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
           className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5"
         >
           <span className="text-lg leading-none">+</span>
-          Nova solicitação
+          Nova solicitaÃ§Ã£o
         </button>
       </div>
 
@@ -771,7 +801,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
           color="bg-emerald-500"
         />
         <MiniKpi
-          label="Divergências"
+          label="DivergÃªncias"
           value={counts.divergencia}
           color="bg-rose-500"
         />
@@ -783,10 +813,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
             <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.04em] text-slate-500 dark:bg-white/5">
               <tr>
                 {[
-                  "Solicitação",
+                  "SolicitaÃ§Ã£o",
                   "Transportadora",
                   "Volumes",
-                  "Previsão",
+                  "PrevisÃ£o",
                   "XML",
                   "Status",
                   "",
@@ -816,7 +846,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   <td className="max-w-[260px] px-5 py-3.5">
                     <div className="flex flex-col gap-0.5">
                       <span className="truncate text-sm font-semibold">
-                        {item.supplier ?? "Fornecedor não informado"}
+                        {item.supplier ?? "Fornecedor nÃ£o informado"}
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         NF-e {item.noteNumber || "-"}
@@ -828,7 +858,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     {item.volumeCount === 1 ? "vol." : "vols."}
                   </td>
                   <td className="px-5 py-3.5 text-[13.5px] font-semibold">
-                    {item.etaTime ?? item.eta ?? "Sem previsão"}
+                    {item.etaTime ?? item.eta ?? "Sem previsÃ£o"}
                   </td>
                   <td className="px-5 py-3.5">
                     <span
@@ -853,7 +883,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right text-lg font-bold text-slate-400 dark:text-slate-500">
-                    ⬺
+                    â¬º
                   </td>
                 </tr>
               ))}
@@ -862,7 +892,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         </div>
         {!receiving.length ? (
           <div className="p-10 text-center text-sm text-slate-500 dark:text-slate-400">
-            Nenhuma solicitação nesse filtro.
+            Nenhuma solicitaÃ§Ã£o nesse filtro.
           </div>
         ) : null}
       </div>
@@ -872,11 +902,11 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
           className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-200 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
           role="dialog"
           aria-modal="true"
-          aria-label="Nova solicitação de recebimento"
+          aria-label="Nova solicitaÃ§Ã£o de recebimento"
         >
           <button
             type="button"
-            aria-label="Fechar nova solicitação"
+            aria-label="Fechar nova solicitaÃ§Ã£o"
             onClick={closeDrawer}
             className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-[3px]"
           />
@@ -889,13 +919,13 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
               <div className="relative flex items-start justify-between gap-3">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-xs font-bold tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                    SOLICITAÇÃO DE RECEBIMENTO
+                    SOLICITAÃ‡ÃƒO DE RECEBIMENTO
                   </span>
                   <h3 className="font-display text-2xl font-bold leading-none text-slate-950 dark:text-white">
                     Agendar entrada no CD
                   </h3>
                   <p className="text-[13px] text-slate-500 dark:text-slate-400">
-                    Informe a nota e anexe o XML para agilizar a conferência.
+                    Informe a nota e anexe o XML para agilizar a conferÃªncia.
                   </p>
                 </div>
                 <button
@@ -915,7 +945,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   Tipo de recebimento
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {["NF-e XML", "Manual", "Transferência"].map((item) => (
+                  {["NF-e XML", "Manual", "TransferÃªncia"].map((item) => (
                     <button
                       key={item}
                       type="button"
@@ -952,7 +982,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         {xmlReading
                           ? "Lendo XML e cruzando os itens..."
                           : xmlFile
-                          ? "Fornecedor e itens serão preenchidos automaticamente"
+                          ? "Fornecedor e itens serÃ£o preenchidos automaticamente"
                           : "Arraste o arquivo ou clique para selecionar"}
                       </span>
                     </span>
@@ -965,7 +995,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     onChange={(event) => void selectXml(event.target.files?.[0])}
                   />
                   <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                    O sistema lê o XML e vincula os itens aos produtos cadastrados por EAN, código interno ou nome.
+                    O sistema lÃª o XML e vincula os itens aos produtos cadastrados por EAN, cÃ³digo interno ou nome.
                   </p>
                   <section className="space-y-3.5">
                     <h4 className="text-[13px] font-bold text-slate-900 dark:text-white">
@@ -973,7 +1003,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     </h4>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1.5 text-xs text-slate-500">
-                        Nº da NF-e
+                        NÂº da NF-e
                         <input
                           className={inputClassName}
                           value={form.nf}
@@ -987,7 +1017,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           className={inputClassName}
                           value={form.supplier}
                           onChange={(event) => updateField("supplier", event.target.value)}
-                          placeholder="Ex.: Rodoline, Correios, transportadora própria..."
+                          placeholder="Ex.: Rodoline, Correios, transportadora prÃ³pria..."
                         />
                       </label>
                       <DatePickerInput
@@ -998,7 +1028,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         compact
                       />
                       <TimePickerInput
-                        label="Horário previsto"
+                        label="HorÃ¡rio previsto"
                         name="horarioPrevistoXml"
                         value={form.hour}
                         onChange={(value) => updateField("hour", value)}
@@ -1014,7 +1044,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                             XML lido com sucesso
                           </h4>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            NF-e {xmlPreview.noteNumber} · {xmlPreview.supplierName}
+                            NF-e {xmlPreview.noteNumber} Â· {xmlPreview.supplierName}
                           </p>
                         </div>
                         <span
@@ -1025,7 +1055,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           }`}
                         >
                           {xmlPreview.unmatched.length
-                            ? `${xmlPreview.unmatched.length} sem vínculo`
+                            ? `${xmlPreview.unmatched.length} sem vÃ­nculo`
                             : `${xmlPreview.matchedCount} item(ns) vinculado(s)`}
                         </span>
                       </div>
@@ -1067,7 +1097,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                       onChange={(event) =>
                                         updateItemLine(line.key, "lote", event.target.value)
                                       }
-                                      placeholder="Preencha se não vier no XML"
+                                      placeholder="Preencha se nÃ£o vier no XML"
                                     />
                                   </label>
                                   <label className="space-y-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
@@ -1087,8 +1117,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           })}
                       </div>
                       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-                        Se a NF-e nÃ£o trouxer lote e validade para produtos que exigem rastreabilidade, preencha aqui.
-                        Caso siga sem essa informaÃ§Ã£o, o operador completa no recebimento fÃ­sico e isso pode gerar custo operacional na fatura.
+                        Se a NF-e nÃƒÂ£o trouxer lote e validade para produtos que exigem rastreabilidade, preencha aqui.
+                        Caso siga sem essa informaÃƒÂ§ÃƒÂ£o, o operador completa no recebimento fÃƒÂ­sico e isso pode gerar custo operacional na fatura.
                       </div>
                       {xmlPreview.unmatched.length ? (
                         <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
@@ -1123,7 +1153,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                         {item.descricao}
                                       </p>
                                       <p className="mt-1 text-slate-500 dark:text-slate-400">
-                                        {item.ean ?? item.codigo ?? "Sem código"} · {item.quantidade} un.
+                                        {item.ean ?? item.codigo ?? "Sem cÃ³digo"} Â· {item.quantidade} un.
                                       </p>
                                     </div>
                                     {resolvedProductId ? (
@@ -1146,7 +1176,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                           <option value="">Selecione um produto cadastrado</option>
                                           {productOptions.map((product) => (
                                             <option key={product.id} value={product.id}>
-                                              {product.nome} · {product.sku}
+                                              {product.nome} Â· {product.sku}
                                             </option>
                                           ))}
                                         </select>
@@ -1192,7 +1222,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                             placeholder="EAN/GTIN"
                                           />
                                           <label className="space-y-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 sm:col-span-2">
-                                            MÃ©todo de retirada
+                                            MÃƒÂ©todo de retirada
                                             <select
                                               className={inputClassName}
                                               value={draft.metodoRetirada}
@@ -1204,14 +1234,14 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                                 )
                                               }
                                             >
-                                              <option value="FEFO">FEFO - validade mais prÃ³xima sai primeiro</option>
+                                              <option value="FEFO">FEFO - validade mais prÃƒÂ³xima sai primeiro</option>
                                               <option value="FIFO">FIFO - primeiro que entra, primeiro que sai</option>
-                                              <option value="LIFO">LIFO - Ãºltimo que entra, primeiro que sai</option>
+                                              <option value="LIFO">LIFO - ÃƒÂºltimo que entra, primeiro que sai</option>
                                             </select>
                                           </label>
                                         </div>
                                         <p className="mt-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-medium text-cyan-900 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-100">
-                                          Se nada for alterado, o produto serÃ¡ criado como FEFO, unidade e com lote/validade obrigatÃ³rios.
+                                          Se nada for alterado, o produto serÃƒÂ¡ criado como FEFO, unidade e com lote/validade obrigatÃƒÂ³rios.
                                         </p>
                                         {createError ? (
                                           <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
@@ -1239,7 +1269,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   ) : null}
 
                   <label className="block space-y-1.5 text-xs text-slate-500">
-                    Observações
+                    ObservaÃ§Ãµes
                     <textarea
                       className={`${inputClassName} min-h-20 resize-y py-3`}
                       value={form.notes}
@@ -1256,7 +1286,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     </h4>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="space-y-1.5 text-xs text-slate-500">
-                        Nº da NF-e
+                        NÂº da NF-e
                         <input
                           className={inputClassName}
                           value={form.nf}
@@ -1285,7 +1315,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                         compact
                       />
                       <TimePickerInput
-                        label="Horário previsto"
+                        label="HorÃ¡rio previsto"
                         name="horarioPrevisto"
                         value={form.hour}
                         onChange={(value) => updateField("hour", value)}
@@ -1320,7 +1350,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                             <option value="">Selecione o produto</option>
                             {productOptions.map((product) => (
                               <option key={product.id} value={product.id}>
-                                {product.nome} · {product.sku}
+                                {product.nome} Â· {product.sku}
                               </option>
                             ))}
                           </select>
@@ -1354,7 +1384,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     </section>
 
                   <label className="block space-y-1.5 text-xs text-slate-500">
-                    Observações
+                    ObservaÃ§Ãµes
                     <textarea
                       className={`${inputClassName} min-h-20 resize-y py-3`}
                       value={form.notes}
@@ -1371,11 +1401,11 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     <AlertTriangle className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-bold">Atenção sobre lote e validade</p>
+                    <p className="font-bold">AtenÃ§Ã£o sobre lote e validade</p>
                     <p className="mt-1 leading-relaxed text-amber-800/90 dark:text-amber-100/80">
-                      O recebimento pode ser enviado sem lote e validade. Porém, quando os produtos exigirem
-                      esse controle e as informações não vierem no XML ou na solicitação, a equipe operacional
-                      poderá tratar o preenchimento manualmente, gerando possível custo adicional na próxima
+                      O recebimento pode ser enviado sem lote e validade. PorÃ©m, quando os produtos exigirem
+                      esse controle e as informaÃ§Ãµes nÃ£o vierem no XML ou na solicitaÃ§Ã£o, a equipe operacional
+                      poderÃ¡ tratar o preenchimento manualmente, gerando possÃ­vel custo adicional na prÃ³xima
                       fatura.
                     </p>
                   </div>
@@ -1404,8 +1434,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 disabled={saving}
                 className="inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
               >
-                <span className="text-lg leading-none">→</span>
-                {saving ? <MobileButtonSpinner /> : "Enviar solicitação"}
+                <span className="text-lg leading-none">â†’</span>
+                {saving ? <MobileButtonSpinner /> : "Enviar solicitaÃ§Ã£o"}
               </button>
             </div>
           </aside>
@@ -1457,10 +1487,10 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
             <div className="flex-1 space-y-4.5 overflow-y-auto px-6 py-6">
               <div className="flex flex-col gap-1">
                 <span className="text-[15px] font-bold text-slate-900 dark:text-white">
-                  {selected.supplier ?? "Fornecedor não informado"}
+                  {selected.supplier ?? "Fornecedor nÃ£o informado"}
                 </span>
                 <span className="text-[12.5px] text-slate-500 dark:text-slate-400">
-                  NF-e {selected.noteNumber || "-"} ·{" "}
+                  NF-e {selected.noteNumber || "-"} Â·{" "}
                   {selected.volumeCount ?? 0} {selected.volumeCount === 1 ? "vol." : "vols."}
                 </span>
               </div>
@@ -1471,7 +1501,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                   <span className="text-sm font-bold text-slate-900 dark:text-white">{selected.eta ?? "-"}</span>
                 </div>
                 <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
-                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">Horário previsto</span>
+                  <span className="text-[11.5px] text-slate-500 dark:text-slate-400">HorÃ¡rio previsto</span>
                   <span className="font-display text-sm font-bold text-slate-900 dark:text-white">
                     {selected.etaTime ?? "-"}
                   </span>
@@ -1499,7 +1529,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 {selected.items.length ? (
                   <div className="space-y-2">
                     {selected.items.map((item) => {
-                      const isDivergent = item.status === "DIVERGENCIA";
+                      const isDivergent = item.status === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida";
                       const isDone = item.status === "RECEBIDO";
                       return (
                         <div
@@ -1542,7 +1572,37 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     {cancelError}
                   </p>
                 ) : null}
-                {(selected.status === "AGUARDANDO" || selected.status === "RASCUNHO") &&
+                {divergenceError ? (
+                  <p className="mb-3 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                    {divergenceError}
+                  </p>
+                ) : null}
+                {selected.status === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida" ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 text-center">
+                      Recebimento com divergÃªncia fÃ­sica. Anexe a nova NF-e (XML) corrigida.
+                    </p>
+                    <label
+                      className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 ${uploadingDivergenceXml ? "cursor-wait opacity-60" : ""}`}
+                    >
+                      {uploadingDivergenceXml ? (
+                        <MobileButtonSpinner size={20} />
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          <span>Anexar XML Corrigido</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept=".xml"
+                        className="hidden"
+                        disabled={uploadingDivergenceXml}
+                        onChange={submitDivergenceXml}
+                      />
+                    </label>
+                  </div>
+                ) : (selected.status === "AGUARDANDO" || selected.status === "RASCUNHO") &&
                 !selected.items.some((item) => item.received > 0) ? (
                   <button
                     type="button"
@@ -1550,11 +1610,11 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     disabled={cancelling}
                     className="h-11 w-full rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-wait disabled:opacity-60 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
                   >
-                    {cancelling ? <MobileButtonSpinner size={20} /> : "Cancelar solicitação"}
+                    {cancelling ? <MobileButtonSpinner size={20} /> : "Cancelar solicitaÃ§Ã£o"}
                   </button>
                 ) : (
                   <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-                    Este recebimento já está em andamento no CD e não pode mais ser cancelado por aqui.
+                    Este recebimento jÃ¡ estÃ¡ em andamento no CD e nÃ£o pode mais ser cancelado por aqui.
                   </p>
                 )}
               </div>

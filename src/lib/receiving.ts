@@ -222,7 +222,11 @@ export async function listReceivingOrdersFromDb(
     .order("created_at", { ascending: false });
 
   if (filters?.status) {
-    query = query.eq("status", filters.status);
+    if (filters.status === "DIVERGENCIA") {
+      query = query.in("status", ["DIVERGENCIA", "QUARENTENA_CORRIGIDA"]);
+    } else {
+      query = query.eq("status", filters.status);
+    }
   }
 
   if (filters?.depositanteId) {
