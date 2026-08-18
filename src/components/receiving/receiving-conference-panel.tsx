@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, CameraOff, Focus, Search, Volume2 } from "lucide-react";
+import { AlertTriangle, Barcode, Camera, CameraOff, Focus, Search, Volume2 } from "lucide-react";
 import type { ReceivingOrderDetail } from "@/lib/receiving";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
@@ -359,7 +359,9 @@ export function ReceivingConferencePanel({
     cameraLoopRef.current = window.requestAnimationFrame(loop);
   }
 
-  async function submitConference(finalizar: boolean) {
+  const [divergentItems, setDivergentItems] = useState<{ sku: string; nome: string; previsto: number; recebido: number }[] | null>(null);
+
+  async function submitConference(finalizar: boolean, confirmarDivergencia = false) {
     setIsSaving(true);
     setError(null);
     setMessage(null);
@@ -371,6 +373,7 @@ export function ReceivingConferencePanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          confirmarDivergencia,
           enderecoId,
           finalizar,
           items: items.map((item) => ({
@@ -385,6 +388,11 @@ export function ReceivingConferencePanel({
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.divergentItems) {
+          setDivergentItems(result.divergentItems);
+          playFeedbackTone("error");
+          return;
+        }
         setError(result.error ?? "Não foi possível salvar a conferência.");
         playFeedbackTone("error");
         return;
