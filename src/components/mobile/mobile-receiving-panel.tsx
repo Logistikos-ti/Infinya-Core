@@ -428,6 +428,7 @@ export function MobileReceivingPanel({
       const result = await response.json();
 
       if (!response.ok) {
+        setDivergenceReview(null);
         setError(result.error ?? "Não foi possível salvar a conferência.");
         return;
       }
