@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   AlertTriangle,
@@ -80,7 +80,7 @@ export default async function RecebimentoDetalhePage({
           icon={ClipboardCheck}
           label="SKUs previstos"
           value={String(order.skuCount)}
-          help="Itens esperados para conferência"
+          help="Itens esperados para conferÃªncia"
         />
         <StatCard
           icon={FileText}
@@ -90,11 +90,11 @@ export default async function RecebimentoDetalhePage({
         />
         <StatCard
           icon={order.divergence.hasAny ? AlertTriangle : ClipboardCheck}
-          label={order.divergence.hasAny ? "Divergências" : "Chegada prevista"}
+          label={order.divergence.hasAny ? "DivergÃªncias" : "Chegada prevista"}
           value={order.divergence.hasAny ? String(order.divergence.itemCount) : order.eta}
           help={
             order.divergence.hasAny
-              ? `${order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) com diferença`
+              ? `${order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) com diferenÃ§a`
               : `Status atual: ${order.status}`
           }
         />
@@ -106,23 +106,19 @@ export default async function RecebimentoDetalhePage({
             <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-700 dark:text-amber-300" />
             <div>
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                Divergência encontrada entre a NF-e e a conferência física
+                DivergÃªncia encontrada entre a NF-e e a conferÃªncia fÃ­sica
               </p>
               <p className="mt-1 text-sm text-amber-800 dark:text-amber-100">
-                {order.divergence.itemCount} item(ns) com diferença, somando{" "}
+                {order.divergence.itemCount} item(ns) com diferenÃ§a, somando{" "}
                 {order.divergence.totalQuantity.toLocaleString("pt-BR")} volume(s) fora do
-                previsto. As ocorrências abaixo ficam vinculadas somente a este recebimento.
+                previsto. As ocorrÃªncias abaixo ficam vinculadas somente a este recebimento.
               </p>
             </div>
           </div>
         </section>
       ) : null}
 
-      {order.status === "QUARENTENA_CORRIGIDA" ? (
-        <ReleaseQuarantineButton orderId={order.id} />
-      ) : null}
-
-      <ReceivingConferencePanel
+      {order.status === "QUARENTENA_CORRIGIDA" ? ( <ReleaseQuarantineButton orderId={order.id} /> ) : null}`n`n      <ReceivingConferencePanel
         orderId={order.id}
         initialItems={order.items}
         addresses={addresses.data ?? []}
@@ -132,7 +128,7 @@ export default async function RecebimentoDetalhePage({
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Itens da conferência
+              Itens da conferÃªncia
             </h2>
             <span
               className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -142,8 +138,8 @@ export default async function RecebimentoDetalhePage({
               }`}
             >
               {order.divergence.hasAny
-                ? `${order.divergence.itemCount} divergência(s)`
-                : "Conferência sem divergências"}
+                ? `${order.divergence.itemCount} divergÃªncia(s)`
+                : "ConferÃªncia sem divergÃªncias"}
             </span>
           </div>
 
@@ -152,10 +148,10 @@ export default async function RecebimentoDetalhePage({
               <thead className="border-b border-slate-200 text-slate-500 dark:border-zinc-800 dark:text-slate-400">
                 <tr>
                   <th className="pb-3 font-medium">SKU</th>
-                  <th className="pb-3 font-medium">Descrição</th>
+                  <th className="pb-3 font-medium">DescriÃ§Ã£o</th>
                   <th className="pb-3 font-medium">Previsto</th>
                   <th className="pb-3 font-medium">Recebido</th>
-                  <th className="pb-3 font-medium">Conferência</th>
+                  <th className="pb-3 font-medium">ConferÃªncia</th>
                   <th className="pb-3 font-medium">Lote</th>
                   <th className="pb-3 font-medium">Validade</th>
                 </tr>
@@ -202,11 +198,11 @@ export default async function RecebimentoDetalhePage({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                  Protocolos de depósito gerados
+                  Protocolos de depÃ³sito gerados
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Saldos lançados a partir deste recebimento, já com rastreabilidade por lote,
-                  validade e endereço.
+                  Saldos lanÃ§ados a partir deste recebimento, jÃ¡ com rastreabilidade por lote,
+                  validade e endereÃ§o.
                 </p>
               </div>
               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
@@ -227,7 +223,7 @@ export default async function RecebimentoDetalhePage({
                           {protocol.protocol}
                         </p>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          {protocol.sku} • {protocol.productName} • {protocol.endereco} • {protocol.area}
+                          {protocol.sku} â€¢ {protocol.productName} â€¢ {protocol.endereco} â€¢ {protocol.area}
                         </p>
                         <div className="mt-2 grid gap-1 text-sm text-slate-600 dark:text-slate-300">
                           <p>Lote: {protocol.lote}</p>
@@ -257,7 +253,7 @@ export default async function RecebimentoDetalhePage({
                 ))
               ) : (
                 <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-zinc-950/40 dark:text-slate-300">
-                  Os protocolos aparecem aqui assim que a conferência conclui a entrada em estoque.
+                  Os protocolos aparecem aqui assim que a conferÃªncia conclui a entrada em estoque.
                 </div>
               )}
             </div>
@@ -278,7 +274,7 @@ export default async function RecebimentoDetalhePage({
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Ocorrências relacionadas
+              OcorrÃªncias relacionadas
             </h2>
             <div className="mt-4 space-y-3">
               {relatedIssues.length ? (
@@ -293,7 +289,7 @@ export default async function RecebimentoDetalhePage({
                 ))
               ) : (
                 <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-zinc-950/40 dark:text-slate-300">
-                  Nenhuma ocorrência vinculada até o momento.
+                  Nenhuma ocorrÃªncia vinculada atÃ© o momento.
                 </div>
               )}
             </div>

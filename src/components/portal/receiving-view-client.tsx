@@ -242,10 +242,8 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
   const [open, setOpen] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selected, setSelected] = useState<ReceivingItem | null>(null);
-  const [cancelling, setCancelling] = useState(false);
+  const [cancelling, setCancelling] = useState(false);`n  const [uploadingDivergenceXml, setUploadingDivergenceXml] = useState(false);`n  const [divergenceError, setDivergenceError] = useState("");
   const [cancelError, setCancelError] = useState("");
-  const [uploadingDivergenceXml, setUploadingDivergenceXml] = useState(false);
-  const [divergenceError, setDivergenceError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [xmlFile, setXmlFile] = useState<File | null>(null);
@@ -639,35 +637,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     void submitManualRequest();
   }
 
-  async function submitDivergenceXml(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!selected) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingDivergenceXml(true);
-    setDivergenceError("");
-
-    const formData = new FormData();
-    formData.append("xml", file);
-
-    try {
-      const { submitDivergenceXmlCorrection } = await import("@/app/(portal)/portal/xml-divergence-action");
-      const res = await submitDivergenceXmlCorrection(selected.id, formData);
-      if (res.error) {
-        setDivergenceError(res.error);
-      } else {
-        setSelected(null);
-        alert("XML recebido e validado com sucesso! A divergÃªncia foi corrigida.");
-      }
-    } catch (err: any) {
-      setDivergenceError("Falha na comunicaÃ§Ã£o com o servidor.");
-    } finally {
-      setUploadingDivergenceXml(false);
-      e.target.value = "";
-    }
-  }
-
-  async function cancelOrder() {
+  async function submitDivergenceXml(e: React.ChangeEvent<HTMLInputElement>) { if (!selected) return; const file = e.target.files?.[0]; if (!file) return; setUploadingDivergenceXml(true); setDivergenceError(""); const formData = new FormData(); formData.append("xml", file); try { const { submitDivergenceXmlCorrection } = await import("@/app/(portal)/portal/xml-divergence-action"); const res = await submitDivergenceXmlCorrection(selected.id, formData); if (res.error) { setDivergenceError(res.error); } else { setSelected(null); alert("XML recebido e validado com sucesso! A divergência foi corrigida."); } } catch (err: any) { setDivergenceError("Falha na comunicação com o servidor."); } finally { setUploadingDivergenceXml(false); e.target.value = ""; } }`n`n  async function cancelOrder() {
     if (!selected) return;
     if (!window.confirm(`Cancelar a solicitaÃ§Ã£o ${selected.code}? Essa aÃ§Ã£o nÃ£o pode ser desfeita.`)) {
       return;
@@ -727,7 +697,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
         dot: "bg-blue-500",
       };
     }
-    if (label === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida") {
+    if (label === "DivergÃªncia") {
       return {
         background: "bg-rose-500/10",
         color: "text-rose-600 dark:text-rose-300",
@@ -759,7 +729,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       (item) => displayStatus(item.status) === "Conferido",
     ).length,
     divergencia: receiving.filter(
-      (item) => displayStatus(item.status) === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida",
+      (item) => displayStatus(item.status) === "DivergÃªncia",
     ).length,
   };
 
@@ -1529,7 +1499,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                 {selected.items.length ? (
                   <div className="space-y-2">
                     {selected.items.map((item) => {
-                      const isDivergent = item.status === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida";
+                      const isDivergent = item.status === "DIVERGENCIA";
                       const isDone = item.status === "RECEBIDO";
                       return (
                         <div
@@ -1572,37 +1542,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                     {cancelError}
                   </p>
                 ) : null}
-                {divergenceError ? (
-                  <p className="mb-3 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300">
-                    {divergenceError}
-                  </p>
-                ) : null}
-                {selected.status === "Divergência (Quarentena)", QUARENTENA_CORRIGIDA: "Quarentena Corrigida" ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 text-center">
-                      Recebimento com divergÃªncia fÃ­sica. Anexe a nova NF-e (XML) corrigida.
-                    </p>
-                    <label
-                      className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 ${uploadingDivergenceXml ? "cursor-wait opacity-60" : ""}`}
-                    >
-                      {uploadingDivergenceXml ? (
-                        <MobileButtonSpinner size={20} />
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4" />
-                          <span>Anexar XML Corrigido</span>
-                        </>
-                      )}
-                      <input
-                        type="file"
-                        accept=".xml"
-                        className="hidden"
-                        disabled={uploadingDivergenceXml}
-                        onChange={submitDivergenceXml}
-                      />
-                    </label>
-                  </div>
-                ) : (selected.status === "AGUARDANDO" || selected.status === "RASCUNHO") &&
+                {divergenceError ? ( <p className="mb-3 rounded-xl bg-rose-500/10 p-3 text-xs font-semibold text-rose-600 dark:text-rose-300"> {divergenceError} </p> ) : null} {selected.status === "DIVERGENCIA" ? ( <div className="flex flex-col gap-2"> <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 text-center"> Recebimento com divergência física. Anexe a nova NF-e (XML) corrigida. </p> <label className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 ${uploadingDivergenceXml ? "cursor-wait opacity-60" : ""}`}> {uploadingDivergenceXml ? ( <MobileButtonSpinner size={20} /> ) : ( <> <Upload className="h-4 w-4" /> <span>Anexar XML Corrigido</span> </> )} <input type="file" accept=".xml" className="hidden" disabled={uploadingDivergenceXml} onChange={submitDivergenceXml} /> </label> </div> ) : (selected.status === "AGUARDANDO" || selected.status === "RASCUNHO") &&
                 !selected.items.some((item) => item.received > 0) ? (
                   <button
                     type="button"
