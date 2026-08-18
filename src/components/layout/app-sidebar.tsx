@@ -112,6 +112,7 @@ type AppSidebarProps = {
   sidebarWidth?: number;
   setSidebarWidth?: (width: number) => void;
   navigationOverride?: ReadonlyArray<SidebarNavigationItem>;
+  openTicketsCount?: number;
 };
 
 export function AppSidebar({
@@ -122,6 +123,7 @@ export function AppSidebar({
   sidebarWidth,
   setSidebarWidth,
   navigationOverride,
+  openTicketsCount,
 }: AppSidebarProps) {
   const isYMS = currentPath.startsWith("/yms");
   const [isDragging, setIsDragging] = useState(false);
@@ -327,7 +329,15 @@ export function AppSidebar({
                       "drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]",
                   )}
                 />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
+                {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
+                {item.href === "/suporte" && openTicketsCount && openTicketsCount > 0 ? (
+                  <span className={cn(
+                    "absolute right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-sm",
+                    isCollapsed && "right-1 top-1 h-4 min-w-[16px] px-1 text-[8px]"
+                  )}>
+                    {openTicketsCount > 99 ? "99+" : openTicketsCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

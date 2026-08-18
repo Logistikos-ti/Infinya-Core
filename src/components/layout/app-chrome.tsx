@@ -15,6 +15,7 @@ import { isAdminUser } from "@/lib/permissions";
 type AppChromeProps = {
   children: ReactNode;
   user: AppUserContext;
+  openTicketsCount?: number;
 };
 
 type GlobalSearchConfig = {
@@ -158,7 +159,7 @@ function getGlobalSearchConfig(path: string): GlobalSearchConfig {
   };
 }
 
-export function AppChrome({ children, user }: AppChromeProps) {
+export function AppChrome({ children, user, openTicketsCount }: AppChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -327,6 +328,7 @@ useEffect(() => {
           setIsCollapsed={setIsCollapsed}
           sidebarWidth={sidebarWidth}
           setSidebarWidth={setSidebarWidth}
+          openTicketsCount={openTicketsCount}
         />
       </div>
 
