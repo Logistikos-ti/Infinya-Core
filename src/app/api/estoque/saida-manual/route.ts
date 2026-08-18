@@ -1,5 +1,6 @@
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { createManualStockExit, uploadManualExitPhoto } from "@/lib/stock-manual-exit";
+import { createStockQuarantine } from "@/lib/stock-quarantine";
 import { allowedSaidaManualFotoMimeTypes, maxSaidaManualFotoFileSizeBytes } from "@/lib/storage";
 
 export async function POST(request: Request) {
