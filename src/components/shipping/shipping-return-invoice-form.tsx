@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertTriangle, CheckCircle2, FileUp, LoaderCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileCheck2, FileUp, LoaderCircle } from "lucide-react";
 import {
   uploadReturnInvoiceAction,
   type UploadReturnInvoiceState,
@@ -14,12 +14,12 @@ export type ReturnInvoiceExpectedItem = {
   quantity: string;
 };
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={disabled || pending}
       className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:-translate-y-px disabled:cursor-wait disabled:opacity-50"
     >
       {pending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
@@ -46,6 +46,9 @@ export function ReturnInvoiceForm({
   const [state, formAction] = useActionState<UploadReturnInvoiceState, FormData>(uploadReturnInvoiceAction, {
     status: "idle",
   });
+  // O input de arquivo fica escondido dentro do label, entao sem guardar o
+  // nome aqui a tela nao dava nenhum sinal de que o XML foi selecionado.
+  const [fileName, setFileName] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.status === "success") onSuccess?.();
@@ -111,12 +114,34 @@ export function ReturnInvoiceForm({
 
       <form action={formAction} className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="orderId" value={orderId} />
-        <label className="flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:-translate-y-px dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-          <FileUp className="h-4 w-4 shrink-0 text-amber-600" />
-          <span className="truncate">Selecionar XML da NF-e de devolução</span>
-          <input type="file" name="returnInvoiceXml" required accept=".xml,application/xml,text/xml" className="hidden" />
+        <label
+          className={`flex h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm font-bold transition hover:-translate-y-px ${
+            fileName
+              ? "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-200"
+              : "border-amber-300 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          }`}
+        >
+          {fileName ? (
+            <FileCheck2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+          ) : (
+            <FileUp className="h-4 w-4 shrink-0 text-amber-600" />
+          )}
+          <span className="truncate">{fileName ?? "Selecionar XML da NF-e de devolução"}</span>
+          {fileName ? (
+            <span className="ml-auto shrink-0 text-xs font-extrabold uppercase tracking-wide opacity-70">
+              Trocar
+            </span>
+          ) : null}
+          <input
+            type="file"
+            name="returnInvoiceXml"
+            required
+            accept=".xml,application/xml,text/xml"
+            onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+            className="hidden"
+          />
         </label>
-        <SubmitButton />
+        <SubmitButton disabled={!fileName} />
       </form>
     </>
   );
