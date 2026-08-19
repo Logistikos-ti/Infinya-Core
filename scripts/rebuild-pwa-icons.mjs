@@ -51,35 +51,59 @@ const BACKGROUND = "radial-gradient(circle at 50% 42%, #16244e 0%, #0a1231 55%, 
  */
 const CONTENT_RATIO = { any: 0.8, maskable: 0.62 };
 
-async function renderIcon(browser, { size, purpose, outputPath }) {
+/**
+ * Raio dos cantos, como fracao do lado. 0 = quadrado.
+ *
+ * REGRA IMPORTANTE: so arredondar icone que a plataforma renderiza como
+ * esta. Arredondar cria cantos transparentes, e transparencia foi a causa
+ * original da moldura branca. Portanto:
+ *   - "any"      -> arredondado. E desenhado direto (taskbar, dialogo de
+ *                   instalacao); os cantos transparentes mostram o fundo
+ *                   real da superficie, que e o resultado desejado.
+ *   - "maskable" -> SEMPRE quadrado. O SO aplica o proprio recorte; um PNG
+ *                   ja arredondado seria arredondado duas vezes.
+ *   - apple      -> SEMPRE quadrado. O iOS aplica o proprio recorte e nao
+ *                   lida bem com transparencia (chega a preencher os cantos
+ *                   com preto), conforme a HIG da Apple.
+ *
+ * 22% aproxima o squircle usado por iOS/macOS e fica natural no Windows.
+ */
+const CORNER_RADIUS_RATIO = 0.22;
+
+async function renderIcon(browser, { size, purpose, rounded, outputPath }) {
   const page = await browser.newPage({
     viewport: { width: size, height: size },
     deviceScaleFactor: 1,
   });
 
   const contentWidth = Math.round(size * CONTENT_RATIO[purpose]);
+  const radius = rounded ? Math.round(size * CORNER_RADIUS_RATIO) : 0;
 
   const html = `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
     <style>
-      html, body { margin: 0; padding: 0; }
-      body {
+      html, body { margin: 0; padding: 0; background: transparent; }
+      body { width: ${size}px; height: ${size}px; }
+      /* O fundo vive no .icon, nao no body, para que o border-radius recorte
+         de verdade e os cantos saiam transparentes no PNG. */
+      .icon {
         width: ${size}px;
         height: ${size}px;
+        border-radius: ${radius}px;
         background: ${BACKGROUND};
+        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        overflow: hidden;
       }
       /* O SVG mantem a proporcao 120:96 do viewBox; fixamos a largura e a
          altura acompanha, com o flex centralizando nos dois eixos. */
       svg { width: ${contentWidth}px; height: auto; display: block; }
     </style>
   </head>
-  <body>${markSvg}</body>
+  <body><div class="icon">${markSvg}</div></body>
 </html>`;
 
   await page.setContent(html, { waitUntil: "load" });
@@ -87,20 +111,31 @@ async function renderIcon(browser, { size, purpose, outputPath }) {
   await page.screenshot({
     path: outputPath,
     clip: { x: 0, y: 0, width: size, height: size },
-    omitBackground: false,
+    // Precisa ser true para que os cantos fora do border-radius fiquem
+    // transparentes em vez de brancos.
+    omitBackground: true,
     type: "png",
   });
   await page.close();
 
-  console.log(`  ${purpose.padEnd(8)} ${String(size).padStart(3)}px  ->  ${path.basename(outputPath)}`);
+  const shape = rounded ? `r=${radius}px` : "quadrado";
+  console.log(
+    `  ${purpose.padEnd(8)} ${String(size).padStart(3)}px  ${shape.padEnd(11)} ->  ${path.basename(outputPath)}`,
+  );
 }
 
 const targets = [
-  // Icones referenciados pelo manifest.
-  { size: 192, purpose: "any", dir: brandingDir, file: "infinoos-mark-192.png" },
-  { size: 512, purpose: "any", dir: brandingDir, file: "infinoos-mark-512.png" },
-  { size: 192, purpose: "maskable", dir: brandingDir, file: "infinoos-mark-maskable-192.png" },
-  { size: 512, purpose: "maskable", dir: brandingDir, file: "infinoos-mark-maskable-512.png" },
+  // Manifest, purpose "any": renderizados direto -> arredondados.
+  { size: 192, purpose: "any", rounded: true, dir: brandingDir, file: "infinoos-mark-192.png" },
+  { size: 512, purpose: "any", rounded: true, dir: brandingDir, file: "infinoos-mark-512.png" },
+
+  // Manifest, purpose "maskable": o SO recorta -> quadrados.
+  { size: 192, purpose: "maskable", rounded: false, dir: brandingDir, file: "infinoos-mark-maskable-192.png" },
+  { size: 512, purpose: "maskable", rounded: false, dir: brandingDir, file: "infinoos-mark-maskable-512.png" },
+
+  // apple-touch-icon: quadrado e opaco, o iOS aplica o proprio recorte.
+  // Referenciado por `metadata.icons.apple` em src/app/layout.tsx.
+  { size: 180, purpose: "any", rounded: false, dir: brandingDir, file: "infinoos-mark-apple-180.png" },
 
   // Convencao de arquivo do Next (src/app/icon.png e src/app/apple-icon.png).
   // Hoje o `metadata.icons` declarado em src/app/layout.tsx tem precedencia
@@ -108,10 +143,8 @@ const targets = [
   // referenciados -- mas continuam servidos em /icon.png e /apple-icon.png.
   // Regeramos junto para nao deixar arte velha divergente no repo: se um dia
   // o metadata.icons for removido, o Next passa a usar estes arquivos.
-  { size: 512, purpose: "any", dir: appDir, file: "icon.png" },
-  // 180px e o tamanho canonico do apple-touch-icon. A Apple aplica o proprio
-  // recorte e nao lida bem com transparencia, entao vai quadrado e opaco.
-  { size: 180, purpose: "any", dir: appDir, file: "apple-icon.png" },
+  { size: 512, purpose: "any", rounded: true, dir: appDir, file: "icon.png" },
+  { size: 180, purpose: "any", rounded: false, dir: appDir, file: "apple-icon.png" },
 ];
 
 const browser = await chromium.launch();
@@ -121,6 +154,7 @@ try {
     await renderIcon(browser, {
       size: target.size,
       purpose: target.purpose,
+      rounded: target.rounded,
       outputPath: path.join(target.dir, target.file),
     });
   }

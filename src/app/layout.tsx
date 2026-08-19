@@ -36,7 +36,10 @@ export const metadata: Metadata = {
     title: "WMS",
   },
   icons: {
-    apple: [{ url: "/branding/infinoos-mark-192.png", sizes: "192x192", type: "image/png" }],
+    // O apple-touch-icon precisa ser quadrado e opaco: o iOS aplica o próprio
+    // recorte e preenche transparência com preto. Por isso ele aponta para um
+    // arquivo dedicado, e não para os ícones arredondados usados no resto.
+    apple: [{ url: "/branding/infinoos-mark-apple-180.png", sizes: "180x180", type: "image/png" }],
     icon: [
       { url: "/branding/infinoos-mark-192.png", sizes: "192x192", type: "image/png" },
       { url: "/branding/infinoos-mark-512.png", sizes: "512x512", type: "image/png" },
