@@ -9,6 +9,7 @@ import { ShippingDanfePanel } from "@/components/shipping/shipping-danfe-panel";
 import { ShippingDivergenceTreatmentPanel } from "@/components/shipping/shipping-divergence-treatment-panel";
 import { ShippingGeneratedLabelPanel } from "@/components/shipping/shipping-generated-label-panel";
 import { ShippingMercadoLivreSyncPanel } from "@/components/shipping/shipping-mercado-livre-sync-panel";
+import { ShippingReturnInvoicePanel } from "@/components/shipping/shipping-return-invoice-panel";
 import { ShippingXmlSyncPanel } from "@/components/shipping/shipping-xml-sync-panel";
 import { requireModuleAccess } from "@/lib/auth";
 import { getShippingOrderDetailFromDb } from "@/lib/shipping";
@@ -66,6 +67,17 @@ export default async function ShippingOrderDetailPage({
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
           Pedido atualizado com sucesso.
         </div>
+      ) : null}
+
+      {order.awaitingReturnInvoice ? (
+        <ShippingReturnInvoicePanel
+          orderId={order.id}
+          items={order.items.map((item) => ({
+            code: item.code,
+            name: item.name,
+            quantity: item.quantity,
+          }))}
+        />
       ) : null}
 
       {order.cancellationReason || order.status === "DIVERGENCIA" || order.status === "CANCELADO" || order.status === "ERRO" ? (

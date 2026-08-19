@@ -34,6 +34,15 @@ type RelationFull = {
   coleta_prevista_em?: string | null;
 }[] | null;
 
+export type ShippingOperationType = "VENDA" | "RETIRADA";
+
+/** Status em que uma retirada aguarda o XML da NF-e de devolução emitida pelo armazém. */
+export const AWAITING_RETURN_INVOICE_STATUS = "AGUARDANDO_NF_DEVOLUCAO";
+
+export function normalizeShippingOperationType(value: unknown): ShippingOperationType {
+  return String(value ?? "").trim().toUpperCase() === "RETIRADA" ? "RETIRADA" : "VENDA";
+}
+
 type RawShippingOrderRow = {
   id: string;
   codigo: string;
@@ -56,6 +65,7 @@ type RawShippingOrderRow = {
   cliente_uf: string | null;
   observacoes?: string | null;
   payload_origem: Record<string, unknown> | null;
+  tipo_operacao?: string | null;
   depositante_id?: string;
   depositante: RelationName;
   remessa_full?: RelationFull;
@@ -99,6 +109,7 @@ type RawShippingOrderDetailRow = {
   sincronizado_em: string | null;
   payload_origem: Record<string, unknown> | null;
   observacoes: string | null;
+  tipo_operacao?: string | null;
   depositante_id: string;
   depositante: RelationName;
   remessa_full?: RelationFull;
@@ -197,6 +208,9 @@ export type ShippingOrderSummary = {
   fullShippingMode: string | null;
   fullCollectionAt: string | null;
   fullCarrier: string | null;
+  operationType: ShippingOperationType;
+  isRetirada: boolean;
+  awaitingReturnInvoice: boolean;
 };
 
 type ShippingOrderFilters = {
@@ -309,6 +323,9 @@ export type ShippingOrderDetail = {
   fullShippingMode: string | null;
   fullCollectionAt: string | null;
   fullCarrier: string | null;
+  operationType: ShippingOperationType;
+  isRetirada: boolean;
+  awaitingReturnInvoice: boolean;
 };
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
@@ -316,7 +333,7 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   let query = supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .order("data_pedido", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -599,7 +616,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -629,6 +646,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const fullShippingMode = fullShipment?.modalidade_envio?.trim() || null;
   const fullCollectionAt = fullShipment?.coleta_prevista_em || null;
   const fullCarrier = repairMojibake(fullShipment?.transportadora_nome?.trim() || "") || null;
+  const operationType = normalizeShippingOperationType(order.tipo_operacao);
   const customer = order.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [order.cliente_cidade?.trim(), order.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
@@ -638,7 +656,9 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     extractInvoice(payload, (order as any).documentos),
     (order as any).documentos,
   );
-  const orderType = extractOrderType(payload, order.origem);
+  // Para o operador logístico, uma retirada é lida como devolução ao cliente.
+  const orderType =
+    operationType === "RETIRADA" ? "Devolução ao cliente" : extractOrderType(payload, order.origem);
   const storeDisplay = extractStore(payload, order.numero_loja);
   const salesChannelCode = readManualSalesChannelCode(payload) ?? detectSalesChannelFromPayload(payload)?.value ?? null;
   const mercadoLivre = extractMercadoLivrePayload(payload);
@@ -753,6 +773,9 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     fullShippingMode,
     fullCollectionAt,
     fullCarrier,
+    operationType,
+    isRetirada: operationType === "RETIRADA",
+    awaitingReturnInvoice: operationType === "RETIRADA" && order.status === AWAITING_RETURN_INVOICE_STATUS,
   } satisfies ShippingOrderDetail;
 }
 
@@ -964,6 +987,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
   const fullCarrier = repairMojibake(fullShipment?.transportadora_nome?.trim() || "") || null;
   const marketplace = fullMarketplace || extractMarketplace(payload);
   const carrierName = fullCarrier || extractCarrierName(payload);
+  const operationType = normalizeShippingOperationType(item.tipo_operacao);
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
   const destination =
     [item.cliente_cidade?.trim(), item.cliente_uf?.trim()].filter(Boolean).join(" - ") ||
@@ -1058,6 +1082,9 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     fullShippingMode,
     fullCollectionAt,
     fullCarrier,
+    operationType,
+    isRetirada: operationType === "RETIRADA",
+    awaitingReturnInvoice: operationType === "RETIRADA" && item.status === AWAITING_RETURN_INVOICE_STATUS,
   };
 }
 
@@ -1439,6 +1466,8 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
   }
 
   switch (status) {
+    case AWAITING_RETURN_INVOICE_STATUS:
+      return "Aguardando NF de devolução";
     case "NOVO":
       return "Novo";
     case "EM_SEPARACAO":

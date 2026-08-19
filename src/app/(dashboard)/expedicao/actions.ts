@@ -210,12 +210,37 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
   const adminSupabase = createSupabaseAdminClient();
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, status, payload_origem")
+    .select("id, status, payload_origem, tipo_operacao")
     .eq("id", id)
     .maybeSingle();
 
   if (orderError || !order) {
     redirect("/expedicao?feedback=erro");
+  }
+
+  const isRetirada = String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA";
+
+  // Uma retirada só sai do bloqueio quando a NF-e de devolução é validada
+  // (a validação move para NOVO) ou quando é cancelada.
+  if (
+    order.status === "AGUARDANDO_NF_DEVOLUCAO" &&
+    nextStatus !== "CANCELADO" &&
+    nextStatus !== "AGUARDANDO_NF_DEVOLUCAO"
+  ) {
+    redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
+  }
+
+  // Cancelar a retirada devolve ao estoque o saldo reservado na solicitação.
+  if (isRetirada && nextStatus === "CANCELADO" && order.status !== "CANCELADO") {
+    const { error: releaseError } = await adminSupabase.rpc("liberar_reserva_retirada" as never, {
+      p_pedido_id: id,
+      p_motivo: "cancelamento-retirada",
+      p_usuario_id: user.id,
+    } as never);
+
+    if (releaseError) {
+      redirect("/expedicao?feedback=erro-liberar-reserva");
+    }
   }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
@@ -289,11 +314,20 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
   const adminSupabase = createSupabaseAdminClient();
   const { data: orders, error: ordersError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, status, payload_origem")
+    .select("id, status, payload_origem, tipo_operacao")
     .in("id", ids);
 
   if (ordersError || !orders || orders.length === 0) {
     redirect("/expedicao?feedback=erro");
+  }
+
+  // Retiradas bloqueadas não podem avançar em lote: só saem via NF-e validada
+  // ou cancelamento individual, que precisa liberar a reserva de estoque.
+  if (
+    nextStatus !== "CANCELADO" &&
+    orders.some((order) => order.status === "AGUARDANDO_NF_DEVOLUCAO")
+  ) {
+    redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
   }
 
   const changeBase = {
@@ -314,6 +348,18 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
     if (nextStatus === "EM_CONFERENCIA" && order.status !== "EM_CONFERENCIA") {
       await adminSupabase.rpc("reservar_pedido_para_conferencia" as never, {
         p_pedido_id: order.id,
+        p_usuario_id: user.id,
+      } as never);
+    }
+
+    if (
+      String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA" &&
+      nextStatus === "CANCELADO" &&
+      order.status !== "CANCELADO"
+    ) {
+      await adminSupabase.rpc("liberar_reserva_retirada" as never, {
+        p_pedido_id: order.id,
+        p_motivo: "cancelamento-retirada-lote",
         p_usuario_id: user.id,
       } as never);
     }
@@ -941,12 +987,17 @@ async function createXmlShippingOrderSubmission(formData: FormData): Promise<Man
 }
 
 export async function deleteShippingOrderAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  const user = await requireRoleAccess(["ADMIN", "TI"]);
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirect("/expedicao?feedback=erro");
 
   const adminSupabase = createSupabaseAdminClient();
+
+  // Excluir uma retirada sem estornar deixaria a reserva órfã travando o saldo
+  // para sempre: movimentacoes_estoque.referencia_id não tem FK para o pedido.
+  await releaseRetiradaReservationsBeforeDelete(adminSupabase, [id], user.id);
+
   const { data: documents, error: documentsReadError } = await adminSupabase
     .from("documentos_armazenados")
     .select("caminho_storage")
@@ -983,7 +1034,7 @@ export async function deleteShippingOrderAction(formData: FormData) {
 }
 
 export async function bulkDeleteShippingOrdersAction(formData: FormData) {
-  await requireRoleAccess(["ADMIN", "TI"]);
+  const user = await requireRoleAccess(["ADMIN", "TI"]);
 
   const rawIds = String(formData.get("ids") ?? "");
   let ids: string[] = [];
@@ -999,6 +1050,9 @@ export async function bulkDeleteShippingOrdersAction(formData: FormData) {
   if (!ids.length) redirect("/expedicao?feedback=erro");
 
   const adminSupabase = createSupabaseAdminClient();
+
+  await releaseRetiradaReservationsBeforeDelete(adminSupabase, ids, user.id);
+
   const { data: documents, error: documentsReadError } = await adminSupabase
     .from("documentos_armazenados")
     .select("caminho_storage")
@@ -1031,6 +1085,33 @@ export async function bulkDeleteShippingOrdersAction(formData: FormData) {
   revalidatePath("/expedicao/conferidos");
   revalidatePath("/romaneio");
   redirect("/expedicao?feedback=excluidos");
+}
+
+/**
+ * Estorna as reservas de estoque das retiradas presentes na lista antes de uma
+ * exclusão definitiva. Sem isso o saldo ficaria reservado sem dono, já que
+ * `movimentacoes_estoque.referencia_id` não possui FK para `pedidos_expedicao`.
+ */
+async function releaseRetiradaReservationsBeforeDelete(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  ids: string[],
+  usuarioId: string,
+) {
+  const { data: orders } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("id, status, tipo_operacao")
+    .in("id", ids);
+
+  for (const order of orders ?? []) {
+    const isRetirada = String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA";
+    if (!isRetirada || order.status === "EXPEDIDO") continue;
+
+    await adminSupabase.rpc("liberar_reserva_retirada" as never, {
+      p_pedido_id: order.id,
+      p_motivo: "exclusao-retirada",
+      p_usuario_id: usuarioId,
+    } as never);
+  }
 }
 
 function buildManualShippingOrderCode() {

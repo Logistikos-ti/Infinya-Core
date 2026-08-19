@@ -7,6 +7,8 @@ import { repairMojibake } from "@/lib/sales-channels";
 import { APP_TIME_ZONE, parseAppDate } from "@/lib/utils";
 import type { ShippingOrderDetail, ShippingOrderSummary } from "@/lib/shipping";
 import { PortalNewOrderDrawer } from "@/components/portal/portal-new-order-drawer";
+import { PortalNewOrderTypeSelector, type PortalNewOrderType } from "@/components/portal/portal-new-order-type-selector";
+import { PortalRetiradaDrawer } from "@/components/portal/portal-retirada-drawer";
 import { PortalXmlOrderDrawer } from "@/components/portal/portal-xml-order-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
@@ -48,6 +50,8 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   const [now, setNow] = useState(() => Date.now());
   const [newOrderOpen, setNewOrderOpen] = useState(openNewOrder);
   const [xmlOrderOpen, setXmlOrderOpen] = useState(false);
+  const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
+  const [retiradaOpen, setRetiradaOpen] = useState(false);
   const [treatingDivergenceOrder, setTreatingDivergenceOrder] = useState<ShippingOrderSummary | null>(null);
   const [detailVisible, setDetailVisible] = useState(Boolean(selectedOrder));
   const [openingOrder, setOpeningOrder] = useState(false);
@@ -145,7 +149,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
           {canCreateManualOrder ? (
             <button
               type="button"
-              onClick={() => setNewOrderOpen(true)}
+              onClick={() => setTypeSelectorOpen(true)}
               className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-lg shadow-indigo-500/20 transition-transform hover:-translate-y-px"
             >
               <Plus className="h-4 w-4" />
@@ -383,6 +387,24 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
         />
       ) : null}
       {xmlOrderOpen ? <PortalXmlOrderDrawer depositanteId={depositanteId} depositanteName={depositanteName} onClose={() => setXmlOrderOpen(false)} /> : null}
+      {typeSelectorOpen && canCreateManualOrder ? (
+        <PortalNewOrderTypeSelector
+          onClose={() => setTypeSelectorOpen(false)}
+          onChoose={(type: PortalNewOrderType) => {
+            setTypeSelectorOpen(false);
+            if (type === "EXPEDICAO") setNewOrderOpen(true);
+            else setRetiradaOpen(true);
+          }}
+        />
+      ) : null}
+      {retiradaOpen && canCreateManualOrder ? (
+        <PortalRetiradaDrawer
+          depositanteId={depositanteId}
+          depositanteName={depositanteName}
+          products={products}
+          onClose={() => setRetiradaOpen(false)}
+        />
+      ) : null}
       {selectedOrder && detailVisible ? <PortalOrderDetailDrawer order={selectedOrder} onClose={() => { setDetailVisible(false); window.history.replaceState({}, "", "/portal?view=pedidos"); }} /> : null}
       
       {/* Slide-over Drawer para Tratamento / Visualização de Divergências pelo Depositante */}
