@@ -16,7 +16,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path = public
-as $`$
+as $$
 declare
   v_estoque record;
   v_quarentena_id uuid;
@@ -123,4 +123,4 @@ begin
 
   return v_quarentena_id;
 end;
-$`$;
+$$;

@@ -96,9 +96,15 @@ export type StockQuarantineItem = {
 };
 
 export async function listStockQuarantineFromDb(filters?: StockQuarantineFilters) {
-  const formalRows = await listFormalQuarantineRows(filters);
-  const pendingAddressingRows = await listPendingAddressingHolds(filters);
-  const missingDefaultAddressRows = await listMissingDefaultAddressProducts(filters);
+  // These three don't depend on each other -- running them one after another
+  // triples the round-trip latency for no reason, which on a page that's
+  // already doing several other queries (the portal's default view) adds up
+  // fast and pushes it closer to the platform's response-time ceiling.
+  const [formalRows, pendingAddressingRows, missingDefaultAddressRows] = await Promise.all([
+    listFormalQuarantineRows(filters),
+    listPendingAddressingHolds(filters),
+    listMissingDefaultAddressProducts(filters),
+  ]);
   const formalStockIds = new Set(
     formalRows
       .filter((item) => item.status === "EM_QUARENTENA" && item.stockId)

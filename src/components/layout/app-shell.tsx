@@ -9,16 +9,43 @@ type AppShellProps = {
 
 export async function AppShell({ children }: AppShellProps) {
   const user = await requireUserContext();
-  
-  let openTicketsCount = 0;
-  if (user.papel !== "DEPOSITANTE") {
+  const openTicketsCount = user.papel === "DEPOSITANTE" ? 0 : await getOpenTicketsCount();
+
+  return <AppChrome user={user} openTicketsCount={openTicketsCount}>{children}</AppChrome>;
+}
+
+// AppShell wraps every single authenticated page, so this query runs on
+// every request. It must never be able to hold up the whole app: a sidebar
+// badge isn't worth blocking the entire WMS if the query is ever slow, or
+// the table/connection is unavailable for any reason. Fails silently to 0
+// (no badge shown) instead of letting the page hang or error out.
+async function getOpenTicketsCount() {
+  try {
     const admin = createSupabaseAdminClient();
-    const { count } = await admin
+    const query = admin
       .from("suporte_chamados")
       .select("id", { count: "exact", head: true })
       .not("status", "eq", "Resolvido");
-    openTicketsCount = count || 0;
-  }
 
-  return <AppChrome user={user} openTicketsCount={openTicketsCount}>{children}</AppChrome>;
+    const { count } = await withTimeout(query, 3000);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Timed out")), timeoutMs);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
