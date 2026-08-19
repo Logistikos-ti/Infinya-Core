@@ -151,6 +151,63 @@ test("normaliza zeros a esquerda, caixa e espacos no codigo", () => {
   assert.equal(result.ok, true);
 });
 
+// Regressao do caso real (NF-e 18944, Balsamo para unhas 15g): o pedido
+// guardava o EAN em codigo_produto e o codigo interno em sku, enquanto a NF-e
+// trazia o codigo interno em cProd e o EAN em cEAN -- a ordem invertida. Como
+// o casamento usava so o primeiro codigo de cada lado, o MESMO item aparecia
+// simultaneamente como "ausente na NF-e" e "nao consta no pedido".
+test("casa o item quando pedido e NF-e invertem a ordem dos codigos (bug real)", () => {
+  const result = validateReturnInvoiceAgainstOrder(
+    [
+      orderItem({
+        codigoProduto: "7896768490985",
+        sku: "BALS_UNHAS_15",
+        nome: "Balsamo para unhas 15g",
+        quantidade: 50,
+      }),
+    ],
+    nfe([{ codigo: "BALS_UNHAS_15", ean: "7896768490985", descricao: "Balsamo Para Unhas 15G", quantidade: 50 }]),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.divergences, []);
+});
+
+test("continua acusando quantidade errada mesmo com os codigos invertidos", () => {
+  const result = validateReturnInvoiceAgainstOrder(
+    [orderItem({ codigoProduto: "7896768490985", sku: "BALS_UNHAS_15", nome: "Balsamo", quantidade: 50 })],
+    nfe([{ codigo: "BALS_UNHAS_15", ean: "7896768490985", quantidade: 48 }]),
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.divergences.length, 1);
+  assert.equal(result.divergences[0].kind, "QUANTIDADE");
+  assert.equal(result.divergences[0].expected, 50);
+  assert.equal(result.divergences[0].found, 48);
+});
+
+test("casa quando so um dos lados tem o segundo codigo", () => {
+  // Pedido so tem o EAN; a NF-e traz cProd interno + o mesmo EAN.
+  const result = validateReturnInvoiceAgainstOrder(
+    [orderItem({ codigoProduto: "7896768490985", sku: null, quantidade: 5 })],
+    nfe([{ codigo: "BALS_UNHAS_15", ean: "7896768490985", quantidade: 5 }]),
+  );
+
+  assert.equal(result.ok, true);
+});
+
+test("produtos realmente diferentes continuam divergindo", () => {
+  const result = validateReturnInvoiceAgainstOrder(
+    [orderItem({ codigoProduto: "AAA", sku: "SKU-A", nome: "Produto A", quantidade: 2 })],
+    nfe([{ codigo: "BBB", ean: "999", descricao: "Produto B", quantidade: 2 }]),
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.divergences.length, 2);
+  assert.ok(result.divergences.some((d) => d.kind === "FALTANDO_NA_NF"));
+  assert.ok(result.divergences.some((d) => d.kind === "SOBRANDO_NA_NF"));
+});
+
 test("tolera ruido de ponto flutuante em quantidades fracionadas", () => {
   const result = validateReturnInvoiceAgainstOrder(
     [orderItem({ codigoProduto: "ABC-1", quantidade: 0.1 + 0.2 })],
