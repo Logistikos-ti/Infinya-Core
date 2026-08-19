@@ -51,6 +51,7 @@ import {
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
+import { ShippingReturnInvoiceModal } from "@/components/shipping/shipping-return-invoice-modal";
 import { createPortal, useFormStatus } from "react-dom";
 import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
@@ -258,6 +259,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   type OrderSortKey = "order" | "invoice" | "customer" | "depositante" | "channel" | "items" | "conference" | "sla" | "status";
   const [sort, setSort] = useState<{ key: OrderSortKey; direction: "asc" | "desc" }>({ key: "order", direction: "asc" });
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  // Retirada cuja NF-e de devolução está sendo anexada pelo modal.
+  const [returnInvoiceOrder, setReturnInvoiceOrder] = useState<any | null>(null);
   const [treatingDivergenceOrder, setTreatingDivergenceOrder] = useState<any | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [bulkStatusMenuOpen, setBulkStatusMenuOpen] = useState(false);
@@ -1841,10 +1844,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   onClick={() => {
                     const isDiv = sel.statusLabel === "Aguardando tratativa";
                     if (isDiv) setSelectedOrder(null);
-                    // A retirada nao pode ir para separacao: leva o operador
-                    // ao detalhe, onde fica o painel de upload da NF-e de
-                    // devolucao que destrava o pedido.
-                    else if (sel.raw?.status === "AGUARDANDO_NF_DEVOLUCAO") router.push(`/expedicao/${sel.id}`);
+                    // A retirada nao vai para separacao: abre o modal de anexo
+                    // da NF-e de devolucao ali mesmo, sem trocar de tela. A
+                    // validacao acontece dentro do modal.
+                    else if (sel.raw?.status === "AGUARDANDO_NF_DEVOLUCAO") {
+                      setReturnInvoiceOrder(sel);
+                      setSelectedOrder(null);
+                    }
                     else if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
                     else if (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
                     else if (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO") router.push("/expedicao/conferidos");
@@ -2054,6 +2060,20 @@ export function ExpedicaoClient({ data }: { data: any }) {
         onClose={() => setTreatingDivergenceOrder(null)}
         readOnly={true}
       />
+
+      {/* Anexo da NF-e de devolução de uma retirada, sem sair da lista */}
+      {returnInvoiceOrder ? (
+        <ShippingReturnInvoiceModal
+          orderId={returnInvoiceOrder.id}
+          orderNumber={returnInvoiceOrder.code || ""}
+          items={(returnInvoiceOrder.raw?.items ?? []).map((item: any) => ({
+            code: item.sku || "",
+            name: item.name,
+            quantity: Number(item.quantity ?? 0).toLocaleString("pt-BR"),
+          }))}
+          onClose={() => setReturnInvoiceOrder(null)}
+        />
+      ) : null}
       
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes drawerIn {
