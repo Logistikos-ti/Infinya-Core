@@ -18,13 +18,13 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#040816",
     categories: ["business", "productivity", "utilities"],
     lang: "pt-BR",
-    // Cada ícone é declarado duas vezes: uma como "any" (para o launcher
-    // padrão) e outra como "maskable" (para o recorte adaptativo do Android
-    // e do PWA no desktop). Sem a variante maskable o SO desenha um fundo
-    // branco atrás do PNG. Confirmado que o mesmo arquivo serve aos dois
-    // usos: infinoos-mark-512.png e infinoos-mark-maskable-512.png eram
-    // byte a byte idênticos, ou seja, a arte já preenche a área com o fundo
-    // do brand — safe zone respeitada.
+    // Arquivos distintos por finalidade — a mesma arte não serve às duas.
+    // "any" é renderizado direto (taskbar, diálogo de instalação), então a
+    // arte vem grande; "maskable" é recortado num círculo pelo SO, então a
+    // arte vem menor para caber na safe zone. Todos são quadrados opacos
+    // preenchidos com o fundo do brand: sem transparência, que é o que
+    // fazia o Windows pintar branco por baixo. Gerados por
+    // scripts/rebuild-pwa-icons.mjs a partir de infinoos-icon-wms.svg.
     icons: [
       {
         src: "/branding/infinoos-mark-192.png",
@@ -33,19 +33,19 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "any",
       },
       {
-        src: "/branding/infinoos-mark-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "maskable",
-      },
-      {
         src: "/branding/infinoos-mark-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/branding/infinoos-mark-512.png",
+        src: "/branding/infinoos-mark-maskable-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/branding/infinoos-mark-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
