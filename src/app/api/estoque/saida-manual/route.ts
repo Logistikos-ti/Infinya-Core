@@ -1,4 +1,4 @@
-import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+﻿import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
 import { createManualStockExit, uploadManualExitPhoto } from "@/lib/stock-manual-exit";
 import { createStockQuarantine } from "@/lib/stock-quarantine";
 import { allowedSaidaManualFotoMimeTypes, maxSaidaManualFotoFileSizeBytes } from "@/lib/storage";
@@ -61,6 +61,19 @@ export async function POST(request: Request) {
           bytes: Buffer.from(await photoFile.arrayBuffer()),
         })
       : null;
+
+    if (reason.toUpperCase().includes("AVARIA")) {
+      const quarantineId = await createStockQuarantine({
+        stockId,
+        quantity,
+        reason,
+        userId: auth.user.id,
+        tipo: "AVARIA",
+        fotoUrl,
+      });
+
+      return Response.json({ message: "Produto movido para quarentena devido à avaria.", result: quarantineId });
+    }
 
     const result = await createManualStockExit({
       userId: auth.user.id,
