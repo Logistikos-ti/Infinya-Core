@@ -24,7 +24,7 @@ export function PortalNewOrderTypeSelector({
           <div>
             <p className="text-xs font-extrabold tracking-[0.13em] text-slate-500 dark:text-slate-400">NOVO PEDIDO</p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950 dark:text-white">Escolha o tipo</h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecione o que voce deseja registrar.</p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecione o que você deseja registrar.</p>
           </div>
           <button
             type="button"
@@ -46,7 +46,7 @@ export function PortalNewOrderTypeSelector({
               <Truck className="h-5 w-5" />
             </span>
             <div>
-              <strong className="block text-sm font-extrabold text-slate-950 dark:text-white">Expedicao</strong>
+              <strong className="block text-sm font-extrabold text-slate-950 dark:text-white">Expedição</strong>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Pedido de venda ao consumidor final. NF-e emitida pelo depositante.
               </p>
@@ -64,7 +64,7 @@ export function PortalNewOrderTypeSelector({
             <div>
               <strong className="block text-sm font-extrabold text-slate-950 dark:text-white">Retirada de mercadoria</strong>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Devolucao ao depositante. NF-e de devolucao emitida pelo armazem.
+                Devolução ao depositante. NF-e de devolução emitida pelo armazém.
               </p>
             </div>
           </button>

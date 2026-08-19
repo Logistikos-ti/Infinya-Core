@@ -104,7 +104,7 @@ export function PortalRetiradaDrawer({
             <p className="text-xs font-extrabold tracking-[0.13em] text-amber-600 dark:text-amber-300">RETIRADA DE MERCADORIA</p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Solicitar retirada</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              O pedido fica bloqueado ate o armazem emitir a NF-e de devolucao.
+              O pedido fica bloqueado até o armazém emitir a NF-e de devolução.
             </p>
           </div>
           <button
@@ -136,7 +136,7 @@ export function PortalRetiradaDrawer({
             ))}
 
             <section>
-              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Operacao</h3>
+              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Operação</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   Depositante
@@ -147,9 +147,9 @@ export function PortalRetiradaDrawer({
                   />
                 </label>
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Numero do pedido
+                  Número do pedido
                   <input
-                    value="Sera gerado (WMS-...)"
+                    value="Será gerado (WMS-...)"
                     readOnly
                     className="mt-1.5 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm italic text-slate-500 outline-none dark:border-white/10 dark:bg-white/5"
                   />
@@ -158,15 +158,15 @@ export function PortalRetiradaDrawer({
             </section>
 
             <section>
-              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Destinatario</h3>
+              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Destinatário</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  ["clienteNome", "Nome do destinatario", "Ex.: Deposito Central", true],
+                  ["clienteNome", "Nome do destinatário", "Ex.: Depósito Central", true],
                   ["clienteDocumento", "CPF / CNPJ", "000.000.000-00", false],
                   ["clienteCep", "CEP", "00000-000", false],
-                  ["clienteCidade", "Cidade / UF", "Sao Paulo - SP", false],
-                  ["clienteEndereco", "Endereco", "Ex.: Rua das Flores", false],
-                  ["clienteNumero", "Numero", "Ex.: 125", false],
+                  ["clienteCidade", "Cidade / UF", "São Paulo · SP", false],
+                  ["clienteEndereco", "Endereço", "Ex.: Rua das Flores", false],
+                  ["clienteNumero", "Número", "Ex.: 125", false],
                   ["clienteTelefone", "Telefone", "(00) 00000-0000", false],
                 ].map(([name, label, placeholder, required]) => (
                   <label key={String(name)} className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -196,7 +196,7 @@ export function PortalRetiradaDrawer({
               </div>
               {!selected.length ? (
                 <div className="rounded-xl border border-dashed border-slate-300 px-4 py-5 text-center text-sm text-slate-500 dark:border-white/15">
-                  Somente itens com estoque disponivel podem ser retirados.
+                  Somente itens com estoque disponível podem ser retirados.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -212,7 +212,7 @@ export function PortalRetiradaDrawer({
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-slate-900 dark:text-white">{product.nome}</strong>
                         <small className="text-xs text-slate-500">
-                          {product.sku || product.codigo_interno || "Sem codigo"} - {product.estoque_disponivel} disponivel
+                          {product.sku || product.codigo_interno || "Sem código"} · {product.estoque_disponivel} disponível
                         </small>
                       </span>
                       <button
@@ -283,15 +283,15 @@ export function PortalRetiradaDrawer({
                   Transportadora
                   <input
                     name="carrierName"
-                    placeholder="Ex.: Frete proprio, Coleta agendada..."
+                    placeholder="Ex.: Frete próprio, Coleta agendada..."
                     className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 outline-none focus:border-amber-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
                   />
                 </label>
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Servico / observacao
+                  Serviço / observação
                   <input
                     name="shippingService"
-                    placeholder="Ex.: Coleta 10h, motorista Joao"
+                    placeholder="Ex.: Coleta 10h, motorista João"
                     className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-900 outline-none focus:border-amber-400 dark:border-white/10 dark:bg-white/5 dark:text-white"
                   />
                 </label>
@@ -341,7 +341,7 @@ export function PortalRetiradaDrawer({
               {!filteredProducts.length ? (
                 <div className="grid place-items-center gap-2 py-16 text-center text-sm text-slate-500">
                   <PackageX className="h-10 w-10 text-slate-400" />
-                  Nenhum produto com estoque disponivel para retirada.
+                  Nenhum produto com estoque disponível para retirada.
                 </div>
               ) : (
                 filteredProducts.map((product) => {
@@ -365,7 +365,7 @@ export function PortalRetiradaDrawer({
                       <span className="min-w-0 flex-1">
                         <strong className="block truncate text-sm text-slate-900 dark:text-white">{product.nome}</strong>
                         <small className="text-xs text-slate-500">
-                          {product.sku || product.codigo_interno || "Sem codigo"} - {product.estoque_disponivel} disponivel
+                          {product.sku || product.codigo_interno || "Sem código"} · {product.estoque_disponivel} disponível
                         </small>
                       </span>
                       <span className={`text-xs font-extrabold ${added ? "text-emerald-500" : "text-amber-600"}`}>
@@ -390,7 +390,7 @@ export function PortalRetiradaDrawer({
                 onClick={() => setPickerOpen(false)}
                 className="h-12 w-full rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-sm font-extrabold text-white disabled:opacity-50"
               >
-                Concluir selecao ({selected.length})
+                Concluir seleção ({selected.length})
               </button>
             </div>
           </div>
