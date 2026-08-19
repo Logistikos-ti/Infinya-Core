@@ -359,7 +359,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setError(
         xmlError instanceof Error
           ? xmlError.message
-          : "Nao foi possivel ler o XML da NF-e.",
+          : "Não foi possível ler o XML da NF-e.",
       );
       setItems([emptyItemLine()]);
     } finally {
@@ -468,7 +468,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       };
 
       if (!response.ok || !payload.product) {
-        throw new Error(payload.error ?? "Nao foi possivel criar o produto.");
+        throw new Error(payload.error ?? "Não foi possível criar o produto.");
       }
 
       setProductOptions((current) => {
@@ -485,7 +485,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
       setProductCreateError((current) => ({
         ...current,
         [item.key]:
-          createError instanceof Error ? createError.message : "Nao foi possivel criar o produto.",
+          createError instanceof Error ? createError.message : "Não foi possível criar o produto.",
       }));
     } finally {
       setCreatingProductKey(null);
@@ -508,7 +508,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
     const unresolvedItems = xmlPreview?.unmatched.filter((item) => !xmlResolutions[item.key]) ?? [];
     if (unresolvedItems.length) {
       setError(
-        `Resolva ${unresolvedItems.length} item(ns) sem vinculo antes de enviar a solicitacao.`,
+        `Resolva ${unresolvedItems.length} item(ns) sem vínculo antes de enviar a solicitação.`,
       );
       return;
     }
@@ -1134,7 +1134,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                           <div className="flex items-start gap-2">
                             <PackagePlus className="mt-0.5 h-4 w-4 shrink-0" />
                             <div>
-                              <p className="font-bold">Resolver itens sem vinculo</p>
+                              <p className="font-bold">Resolver itens sem vínculo</p>
                               <p className="mt-0.5 text-amber-800/80 dark:text-amber-100/75">
                                 Vincule cada item a um produto existente ou crie um cadastro novo antes de enviar.
                               </p>
@@ -1220,7 +1220,7 @@ export function ReceivingViewClient({ receiving, depositanteId, products }: Rece
                                             onChange={(event) =>
                                               updateProductDraft(item.key, "codigoInterno", event.target.value)
                                             }
-                                            placeholder="Codigo interno"
+                                            placeholder="Código interno"
                                           />
                                           <input
                                             className={`${inputClassName} sm:col-span-2`}

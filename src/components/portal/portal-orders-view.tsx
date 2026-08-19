@@ -446,7 +446,7 @@ function feedbackDetails(feedback?: string) {
   if (feedback === "nf-obrigatoria") return "Anexe o arquivo XML da nota fiscal antes de enviar o pedido.";
   if (feedback === "nf-invalida") return "A XML não é válida ou não contém a estrutura necessária da NF-e, incluindo número da nota.";
   if (feedback === "nf-duplicada") return "Já existe um pedido deste depositante com o mesmo número de NF-e. Confira a nota antes de tentar novamente.";
-  if (feedback === "estoque-insuficiente") return "Um ou mais itens nao possuem saldo disponivel suficiente. Ajuste a quantidade ou regularize o estoque antes de enviar.";
+  if (feedback === "estoque-insuficiente") return "Um ou mais itens não possuem saldo disponível suficiente. Ajuste a quantidade ou regularize o estoque antes de enviar.";
   if (feedback === "erro") return "O sistema não conseguiu concluir a criação. Verifique os dados do pedido e tente novamente.";
   return null;
 }

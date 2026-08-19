@@ -20,7 +20,7 @@ function getFile(formData: FormData, field: string) {
 }
 
 function assertDocument(file: File | null, label: string) {
-  if (!file) throw new Error(`${label} e obrigatorio.`);
+  if (!file) throw new Error(`${label} é obrigatório.`);
   if (file.size > maxDocumentFileSizeBytes) throw new Error(`${label} excede o limite de 10 MB.`);
   if (!allowedDocumentMimeTypes.includes(file.type as (typeof allowedDocumentMimeTypes)[number])) {
     throw new Error(`${label} deve ser PDF, XML, PNG ou JPG.`);
@@ -29,7 +29,7 @@ function assertDocument(file: File | null, label: string) {
 
 function buildCollectionAt(date: string, time: string) {
   const value = new Date(`${date}T${time}:00-03:00`);
-  if (!date || !time || Number.isNaN(value.getTime())) throw new Error("Informe data e horario previstos para a coleta.");
+  if (!date || !time || Number.isNaN(value.getTime())) throw new Error("Informe data e horário previstos para a coleta.");
   return value.toISOString();
 }
 
@@ -59,7 +59,7 @@ export async function createFullShipmentAction(
     );
     const invoiceXml = getFile(formData, "invoiceXml");
     assertDocument(invoiceXml, "O XML da NF-e");
-    for (const field of requiredDocumentFields) assertDocument(getFile(formData, field), field === "entryAuthorization" ? "A autorizacao de entrada" : "A etiqueta de volume");
+    for (const field of requiredDocumentFields) assertDocument(getFile(formData, field), field === "entryAuthorization" ? "A autorização de entrada" : "A etiqueta de volume");
     if (!depositanteId || !marketplace) throw new Error("Selecione o depositante e o marketplace.");
     if (modalidadeEnvio !== "COLETA" && modalidadeEnvio !== "TRANSPORTADORA") {
       throw new Error("Escolha se o pedido Full será por coleta ou transportadora.");
@@ -71,7 +71,7 @@ export async function createFullShipmentAction(
     if (modalidadeEnvio === "TRANSPORTADORA") {
       assertDocument(carrierLabel, "A etiqueta da transportadora");
     }
-    if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) throw new Error("Voce nao pode criar uma remessa para outro depositante.");
+    if (user.papel === "DEPOSITANTE" && user.depositanteId !== depositanteId) throw new Error("Você não pode criar uma remessa para outro depositante.");
 
     const xmlBuffer = await invoiceXml!.arrayBuffer();
     const nfe = parseNfeXml(decodeXmlBuffer(xmlBuffer));
@@ -85,7 +85,7 @@ export async function createFullShipmentAction(
     if (productsError) throw productsError;
     const productMatch = matchNfeProductsToCatalog(nfe.items, products ?? []);
     if (productMatch.unmatched.length) {
-      throw new Error(`Nao encontramos no catalogo: ${productMatch.unmatched.slice(0, 3).map((item) => item.descricao).join(", ")}. Cadastre ou corrija os SKUs antes de enviar.`);
+      throw new Error(`Não encontramos no catálogo: ${productMatch.unmatched.slice(0, 3).map((item) => item.descricao).join(", ")}. Cadastre ou corrija os SKUs antes de enviar.`);
     }
 
     const requestedByProduct = new Map<string, { name: string; quantity: number }>();
@@ -130,7 +130,7 @@ export async function createFullShipmentAction(
     itemLabels.forEach((file) => assertDocument(file, "A etiqueta do produto"));
     if (nfe.accessKey) {
       const { data: duplicate } = await admin.from("remessas_full").select("codigo").eq("depositante_id", depositanteId).eq("chave_acesso", nfe.accessKey).maybeSingle();
-      if (duplicate) throw new Error(`Esta NF-e ja esta vinculada a remessa ${duplicate.codigo}.`);
+      if (duplicate) throw new Error(`Esta NF-e já está vinculada à remessa ${duplicate.codigo}.`);
     }
 
     const code = `FULL-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)}`;
@@ -146,13 +146,13 @@ export async function createFullShipmentAction(
       observacoes: String(formData.get("observacoes") ?? "").trim() || null,
       criado_por: user.id, payload_origem: { nfe, tipo: "FULL" },
     }).select("id").single();
-    if (shipmentError || !shipment) throw shipmentError ?? new Error("Nao foi possivel criar a remessa Full.");
+    if (shipmentError || !shipment) throw shipmentError ?? new Error("Não foi possível criar a remessa Full.");
 
     const { data: itemRows, error: itemsError } = await admin.from("remessas_full_itens").insert(productMatch.matched.map((item) => ({
       remessa_full_id: shipment.id, depositante_id: depositanteId, produto_id: item.productId,
       codigo_produto: item.origemCodigo, sku: item.sku, ean: item.origemEan, nome: item.nome, quantidade: item.quantidade,
     }))).select("id");
-    if (itemsError || !itemRows) throw itemsError ?? new Error("Nao foi possivel registrar os itens da remessa.");
+    if (itemsError || !itemRows) throw itemsError ?? new Error("Não foi possível registrar os itens da remessa.");
 
     const uploads: Array<{ file: File; type: string; itemId?: string }> = [
       { file: invoiceXml!, type: "XML_NF" },
@@ -251,7 +251,7 @@ export async function createFullShipmentAction(
         })
         .select("id")
         .single();
-      if (orderError || !createdOrder) throw orderError ?? new Error("Nao foi possivel criar o pedido operacional da remessa Full.");
+      if (orderError || !createdOrder) throw orderError ?? new Error("Não foi possível criar o pedido operacional da remessa Full.");
       createdOrderId = createdOrder.id;
 
       const orderItems = productMatch.matched.map((item) => ({
@@ -304,8 +304,8 @@ export async function createFullShipmentAction(
 
     revalidatePath("/portal");
     revalidatePath("/expedicao");
-    return { status: "success", detail: `Remessa ${code} criada e pronta para preparacao.` };
+    return { status: "success", detail: `Remessa ${code} criada e pronta para preparação.` };
   } catch (error) {
-    return { status: "error", detail: error instanceof Error ? error.message : "Nao foi possivel criar a remessa Full." };
+    return { status: "error", detail: error instanceof Error ? error.message : "Não foi possível criar a remessa Full." };
   }
 }
