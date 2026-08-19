@@ -54,19 +54,26 @@ const CONTENT_RATIO = { any: 0.8, maskable: 0.62 };
 /**
  * Raio dos cantos, como fracao do lado. 0 = quadrado.
  *
- * REGRA IMPORTANTE: so arredondar icone que a plataforma renderiza como
- * esta. Arredondar cria cantos transparentes, e transparencia foi a causa
- * original da moldura branca. Portanto:
- *   - "any"      -> arredondado. E desenhado direto (taskbar, dialogo de
- *                   instalacao); os cantos transparentes mostram o fundo
- *                   real da superficie, que e o resultado desejado.
- *   - "maskable" -> SEMPRE quadrado. O SO aplica o proprio recorte; um PNG
- *                   ja arredondado seria arredondado duas vezes.
- *   - apple      -> SEMPRE quadrado. O iOS aplica o proprio recorte e nao
- *                   lida bem com transparencia (chega a preencher os cantos
- *                   com preto), conforme a HIG da Apple.
+ * NAO ARREDONDE NENHUM ICONE AQUI. Ja tentamos, e regride.
  *
- * 22% aproxima o squircle usado por iOS/macOS e fica natural no Windows.
+ * Historico, para nao repetirmos:
+ *   1. Icones originais eram squircle com transparencia em volta ->
+ *      moldura branca no Windows.
+ *   2. Trocamos por quadrados opacos -> resolveu em todo lugar.
+ *   3. Arredondamos os "any" a pedido (raio 22%) -> ficou bom no dialogo de
+ *      instalacao do Chrome, mas ao fixar na barra de tarefas do Windows a
+ *      moldura branca VOLTOU. Canto arredondado e canto transparente, e o
+ *      atalho do Windows preenche transparencia com branco.
+ *
+ * Conclusao: na barra de tarefas, opaco e a unica forma que nunca mostra
+ * branco. O arredondamento tem que vir do SO, nao do arquivo:
+ *   - Android    -> arredonda sozinho a partir do icone "maskable".
+ *   - iOS        -> arredonda sozinho a partir do apple-touch-icon.
+ *   - Windows    -> nao arredonda icone de PWA; fica quadrado mesmo, que e
+ *                   o comportamento nativo da plataforma.
+ *
+ * Mantido parametrizavel apenas para registrar a decisao; todos os alvos
+ * abaixo usam rounded: false.
  */
 const CORNER_RADIUS_RATIO = 0.22;
 
@@ -125,9 +132,10 @@ async function renderIcon(browser, { size, purpose, rounded, outputPath }) {
 }
 
 const targets = [
-  // Manifest, purpose "any": renderizados direto -> arredondados.
-  { size: 192, purpose: "any", rounded: true, dir: brandingDir, file: "infinoos-mark-192.png" },
-  { size: 512, purpose: "any", rounded: true, dir: brandingDir, file: "infinoos-mark-512.png" },
+  // Manifest, purpose "any": renderizados direto (barra de tarefas do
+  // Windows, dialogo de instalacao). Opacos -- ver CORNER_RADIUS_RATIO.
+  { size: 192, purpose: "any", rounded: false, dir: brandingDir, file: "infinoos-mark-192.png" },
+  { size: 512, purpose: "any", rounded: false, dir: brandingDir, file: "infinoos-mark-512.png" },
 
   // Manifest, purpose "maskable": o SO recorta -> quadrados.
   { size: 192, purpose: "maskable", rounded: false, dir: brandingDir, file: "infinoos-mark-maskable-192.png" },
@@ -143,7 +151,7 @@ const targets = [
   // referenciados -- mas continuam servidos em /icon.png e /apple-icon.png.
   // Regeramos junto para nao deixar arte velha divergente no repo: se um dia
   // o metadata.icons for removido, o Next passa a usar estes arquivos.
-  { size: 512, purpose: "any", rounded: true, dir: appDir, file: "icon.png" },
+  { size: 512, purpose: "any", rounded: false, dir: appDir, file: "icon.png" },
   { size: 180, purpose: "any", rounded: false, dir: appDir, file: "apple-icon.png" },
 ];
 
