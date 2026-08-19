@@ -1,97 +1,53 @@
-// Bumped from v3: the previous version cached every same-origin GET
-// cache-first and never revalidated, which included RSC payloads (the actual
-// page data). Collectors kept showing records that had already been completed
-// or deleted. Renaming the cache makes the activate handler purge the stale one.
-const CACHE_NAME = "infinoos-wms-pwa-v4";
-const STATIC_ASSETS = [
-  "/manifest.webmanifest",
-  "/branding/infinoos-mark-192.png",
-  "/branding/infinoos-mark-512.png",
-  "/branding/infinoos-mark-maskable-512.png",
-  "/m",
-  "/m/login",
-];
+// Self-destructing service worker.
+//
+// Prior versions (v3, and v4 under some cache states) intercepted every
+// same-origin GET with a cache-first policy and could hang authenticated
+// pages for MINUTES on the client, while the server itself was fine — the
+// SW was serving stale HTML shells that then made requests against paths
+// that no longer matched the current build. Users had to manually go to
+// DevTools → Application → Service Workers → Unregister to recover.
+//
+// This SW takes control on the first navigation after it is fetched, wipes
+// every cache, unregisters itself so no more fetch events are intercepted,
+// and force-reloads every open tab so users see the fresh app without
+// having to click reload. On the next navigation the client script
+// (PwaRegister) does NOT register a new SW, so nothing takes over again.
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()),
-  );
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
-      )
-      .then(() => self.clients.claim()),
-  );
-});
+    (async () => {
+      // 1. Wipe every cache the old SW may have left behind.
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
 
-/**
- * Only build output and media are safe to serve from cache. Everything else
- * (documents, RSC payloads, API responses) reflects live warehouse state and
- * must come from the network.
- */
-function isCacheableAsset(url) {
-  if (url.pathname.startsWith("/_next/static/")) return true;
-  if (url.pathname === "/manifest.webmanifest") return true;
-  return /\.(?:png|jpe?g|svg|webp|avif|gif|ico|woff2?|ttf)$/i.test(url.pathname);
-}
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-
-  if (request.method !== "GET") {
-    return;
-  }
-
-  let url;
-  try {
-    url = new URL(request.url);
-  } catch {
-    return;
-  }
-
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  // Page loads: always hit the network, falling back to the cached login shell
-  // only when the device is genuinely offline.
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(async () => {
-        const cache = await caches.open(CACHE_NAME);
-        return (await cache.match("/m/login")) || Response.error();
-      }),
-    );
-    return;
-  }
-
-  // Anything that is not a static asset — RSC payloads (`?_rsc=`), API routes,
-  // server action responses — is left entirely to the network so the collector
-  // never renders stale data.
-  if (!isCacheableAsset(url)) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) {
-        return cached;
+      // 2. Unregister this SW so no more fetch events are intercepted.
+      try {
+        await self.registration.unregister();
+      } catch {
+        // Best-effort; if unregister fails the fetch handler below is a no-op
+        // anyway, so the browser proceeds normally.
       }
 
-      return fetch(request).then((response) => {
-        // Only store complete, successful responses; caching an opaque or error
-        // response would pin a broken asset until the next cache bump.
-        if (response.ok && response.type === "basic") {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+      // 3. Force every open tab to reload against the network so users see
+      //    the fresh app immediately, without a manual refresh.
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        try {
+          await client.navigate(client.url);
+        } catch {
+          // Some clients (cross-origin, closed) reject; ignore.
         }
-        return response;
-      });
-    }),
+      }
+    })(),
   );
 });
+
+// Never intercept requests. If the browser fires a fetch event before
+// unregister() completes, do nothing — the browser proceeds with a normal
+// network fetch. Calling respondWith() with anything (even a passthrough)
+// is exactly the kind of thing that caused this outage.
+self.addEventListener("fetch", () => {});
