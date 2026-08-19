@@ -396,7 +396,12 @@ export function ExpedicaoClient({ data }: { data: any }) {
 
   const matchesOperationalFilter = (order: any, filterId: string) => {
     if (filterId === "todos") return true;
-    if (filterId === "aguardando") return order.status === "NOVO";
+    // Retiradas entram em "Aguardando" junto com os pedidos novos: elas estao
+    // paradas esperando o operador anexar a NF-e de devolucao, entao e aqui
+    // que ele precisa enxerga-las. Sem isso o pedido so aparecia em "Todos".
+    if (filterId === "aguardando") {
+      return order.status === "NOVO" || order.status === "AGUARDANDO_NF_DEVOLUCAO";
+    }
     if (filterId === "separacao") return order.status === "EM_SEPARACAO";
     if (filterId === "conferencia") return order.status === "EM_CONFERENCIA" || order.status === "SEPARADO";
     if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO" || order.status === "CONFERIDO";
@@ -456,6 +461,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
     
     // Calculate count with real data
     const count = s.statusFilter ? data.orders.filter((o:any) => {
+      // Mesma regra do matchesOperationalFilter: retirada aguardando NF-e de
+      // devolucao conta como "Aguardando".
+      if (s.id === 'aguardando') return o.status === 'NOVO' || o.status === 'AGUARDANDO_NF_DEVOLUCAO';
       if (s.id === 'conferencia') return o.status === 'EM_CONFERENCIA' || o.status === 'SEPARADO';
       if (s.id === 'pronto-coleta') return o.status === 'PRONTO_ROMANEIO' || o.status === 'CONFERIDO';
       if (s.id === 'expedido') return o.status === 'EXPEDIDO';
@@ -498,6 +506,9 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const getStatusStyle = (s: string) => {
     const statusMap: Record<string, { bg: string; color: string }> = {
       "NOVO": { bg: "rgba(100,116,139,0.15)", color: "#64748B" },
+      // Retirada travada esperando a NF-e de devolucao: ambar, o mesmo tom de
+      // atencao usado em divergencia, para nao se confundir com um pedido novo.
+      "AGUARDANDO_NF_DEVOLUCAO": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
       "EM_SEPARACAO": { bg: "rgba(59,130,246,0.15)", color: "#3B82F6" },
       "SEPARADO": { bg: "rgba(59,130,246,0.15)", color: "#3B82F6" },
       "EM_CONFERENCIA": { bg: "rgba(139,92,246,0.15)", color: "#8B5CF6" },
@@ -1352,6 +1363,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
         const isDivergent = sel.statusLabel === "Aguardando tratativa";
         const btnText = isDivergent
           ? "Fechar"
+          : sel.raw?.status === "AGUARDANDO_NF_DEVOLUCAO"
+          ? "Anexar NF-e de devolução ›"
           : (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO")
           ? "Iniciar Separação ›"
           : (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA")
@@ -1828,6 +1841,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   onClick={() => {
                     const isDiv = sel.statusLabel === "Aguardando tratativa";
                     if (isDiv) setSelectedOrder(null);
+                    // A retirada nao pode ir para separacao: leva o operador
+                    // ao detalhe, onde fica o painel de upload da NF-e de
+                    // devolucao que destrava o pedido.
+                    else if (sel.raw?.status === "AGUARDANDO_NF_DEVOLUCAO") router.push(`/expedicao/${sel.id}`);
                     else if (sel.raw?.status === "NOVO" || sel.raw?.status === "EM_SEPARACAO") router.push(`/expedicao/separacao/${sel.id}`);
                     else if (sel.raw?.status === "SEPARADO" || sel.raw?.status === "EM_CONFERENCIA") router.push(`/expedicao/conferencia/${sel.id}`);
                     else if (sel.raw?.status === "CONFERIDO" || sel.raw?.status === "PRONTO_ROMANEIO") router.push("/expedicao/conferidos");
