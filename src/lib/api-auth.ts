@@ -62,6 +62,37 @@ export async function requireApiModuleAccess(module: AppModule) {
   return auth;
 }
 
+/**
+ * Acesso aos documentos anexados a um pedido de expedição (XML da NF-e,
+ * DANFE, etiqueta, carta de correção).
+ *
+ * O portal mostra esses anexos ao depositante, mas o papel DEPOSITANTE não
+ * tem o módulo `expedicao` — só ADMIN, TI e OPERADOR têm. Com o gate padrão
+ * o card aparecia habilitado no portal e o download respondia 403.
+ *
+ * Aqui liberamos o depositante apenas para estas rotas de documento. Isso
+ * não amplia o que ele enxerga: cada rota ainda chama
+ * `ensureUserCanAccessDepositante` com o depositante do pedido, então ele
+ * continua restrito aos próprios pedidos, e segue sem acesso à tela
+ * `/expedicao` do backoffice.
+ */
+export async function requireApiShippingDocumentAccess() {
+  const auth = await requireApiUser();
+
+  if (auth.response) {
+    return auth;
+  }
+
+  if (auth.user.papel === "DEPOSITANTE" || canAccessModule(auth.user, "expedicao")) {
+    return auth;
+  }
+
+  return {
+    user: null,
+    response: NextResponse.json({ error: getAccessDeniedErrorMessage("expedicao") }, { status: 403 }),
+  };
+}
+
 export async function requireApiConfigSectionAccess(section: ConfigSection) {
   const auth = await requireApiModuleAccess("configuracoes");
 

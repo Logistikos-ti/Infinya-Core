@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { gunzipSync } from "node:zlib";
-import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { ensureUserCanAccessDepositante, requireApiShippingDocumentAccess } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { documentsBucketName } from "@/lib/storage";
 
@@ -12,7 +12,7 @@ type RouteProps = {
 };
 
 export async function GET(request: Request, { params }: RouteProps) {
-  const auth = await requireApiModuleAccess("expedicao");
+  const auth = await requireApiShippingDocumentAccess();
 
   if (auth.response) {
     return auth.response;

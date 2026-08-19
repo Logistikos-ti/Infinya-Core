@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { gunzipSync } from "node:zlib";
-import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { ensureUserCanAccessDepositante, requireApiShippingDocumentAccess } from "@/lib/api-auth";
 import { buildSimplifiedDanfePdf, buildSimplifiedDanfePdfFromXml } from "@/lib/shipping-danfe";
 import type { ImportedNfeItem } from "@/lib/nfe-import";
 import { extractCarrierName } from "@/lib/shipping";
@@ -14,7 +14,7 @@ type RouteContext = {
 };
 
 export async function GET(request: Request, context: RouteContext) {
-  const auth = await requireApiModuleAccess("expedicao");
+  const auth = await requireApiShippingDocumentAccess();
 
   if (auth.response) {
     return auth.response;
