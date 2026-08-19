@@ -976,10 +976,15 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     readString(payload.expedido_em) ||
     readString(conference.liberadoParaRomaneioEm) ||
     null;
-  const nfe = await resolveStoredInvoiceNumber(
-    extractInvoice(payload, (item as any).documentos),
-    (item as any).documentos,
-  );
+  // Nunca baixar/parsear o XML do storage aqui: mapShippingOrderSummary roda
+  // para CADA pedido da listagem (Promise.all sobre todos os pedidos do
+  // depositante). Cada download é uma chamada extra à API de Storage do
+  // Supabase — dezenas por página, multiplicadas por todos os usuários, o que
+  // satura os limites do Supabase sob carga do time e faz a função da Vercel
+  // estourar o timeout de resposta. O número que dá para extrair do payload/
+  // nome do arquivo já basta para a lista; a tela de detalhe
+  // (getShippingOrderDetailFromDb) continua resolvendo o número exato via XML.
+  const nfe = extractInvoice(payload, (item as any).documentos);
   const docs = Array.isArray((item as any).documentos) ? (item as any).documentos : [];
   const hasNfe = docs.some((d: any) => d.tipo === "NF" || d.tipo === "XML_NF" || (d.mime_type && d.mime_type.includes("xml")));
   const hasEtiqueta = docs.some((d: any) => d.tipo === "ETIQUETA");
@@ -1222,9 +1227,15 @@ async function resolveStoredInvoiceNumber(fallback: string, documents?: any[]) {
 
   try {
     const supabase = createSupabaseAdminClient();
-    const downloadResult = await supabase.storage
-      .from(documentsBucketName)
-      .download(xmlDocument.caminho_storage);
+    // Timeout defensivo: se o Storage do Supabase demorar/pendurar (visto sob
+    // carga a partir da Vercel), preferimos devolver o fallback a deixar a
+    // função inteira travar até ser morta pelo timeout de resposta da Vercel.
+    const downloadResult = await Promise.race([
+      supabase.storage.from(documentsBucketName).download(xmlDocument.caminho_storage),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("storage download timeout")), 4000),
+      ),
+    ]);
 
     if (downloadResult.error || !downloadResult.data) return fallback;
 
