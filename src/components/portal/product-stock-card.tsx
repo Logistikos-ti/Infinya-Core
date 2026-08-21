@@ -3,7 +3,6 @@
 import {
   Barcode,
   Boxes,
-  CalendarDays,
   Info,
   Layers3,
   MapPin,
@@ -236,7 +235,7 @@ export function ProductStockCard({
                     {item.productName ?? "Produto"}
                   </h3>
                   <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                    {item.sku || item.internalCode || "Sem código"} · {item.withdrawalLabel}
+                    {item.sku || "Sem SKU"} · {item.withdrawalMethod}
                   </p>
                 </div>
               </div>
@@ -296,9 +295,8 @@ export function ProductStockCard({
                 </h4>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <DetailField icon={Barcode} label="SKU" value={displayValue(item.sku, "Sem SKU")} />
-                  <DetailField icon={Barcode} label="Código interno" value={displayValue(item.internalCode, "Sem código interno")} />
                   <DetailField icon={Boxes} label="Depositante" value={displayValue(item.depositante)} wide />
-                  <DetailField icon={Layers3} label="Método de retirada" value={displayValue(item.withdrawalLabel)} />
+                  <DetailField icon={Layers3} label="Método" value={item.withdrawalMethod} />
                   <DetailField icon={ShieldCheck} label="Status" value={displayValue(item.status)} />
                 </div>
               </section>
@@ -309,9 +307,6 @@ export function ProductStockCard({
                 </h4>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <DetailField icon={MapPin} label="Endereço" value={displayValue(item.endereco, "Sem endereço")} wide />
-                  <DetailField icon={Layers3} label="Área" value={displayValue(item.area, "Sem área")} />
-                  <DetailField icon={Boxes} label="Lote" value={displayValue(item.lote, "Sem lote")} />
-                  <DetailField icon={CalendarDays} label="Validade" value={displayValue(item.validade, "Sem validade")} wide />
                 </div>
               </section>
 
