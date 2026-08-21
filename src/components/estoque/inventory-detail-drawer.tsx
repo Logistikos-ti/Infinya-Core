@@ -355,9 +355,10 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
                   type="button"
                   aria-label="Fechar histórico"
                   onClick={() => setShowMovementHistory(false)}
+                  className="group transition-all duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-lg active:translate-y-0 active:scale-95"
                   style={{ width: "38px", height: "38px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.textSub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
-                  <X size={18} />
+                  <X size={18} className="transition-transform duration-200 ease-out group-hover:rotate-90" />
                 </button>
               </div>
             </div>
