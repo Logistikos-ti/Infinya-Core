@@ -50,6 +50,7 @@ import {
 } from "@/app/(dashboard)/expedicao/actions";
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
+import { ShippingFullDocumentsCard } from "@/components/shipping/shipping-full-documents-card";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingReturnInvoiceModal } from "@/components/shipping/shipping-return-invoice-modal";
 import { createPortal, useFormStatus } from "react-dom";
@@ -1552,6 +1553,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     )}
                   </div>
                 )}
+
+                {sel.raw?.isFull && sel.raw?.id ? (
+                  <ShippingFullDocumentsCard orderId={sel.raw.id} />
+                ) : null}
 
                 {isPedidosFull ? (
                   <>
