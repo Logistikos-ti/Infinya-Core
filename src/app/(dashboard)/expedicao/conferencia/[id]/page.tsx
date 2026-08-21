@@ -45,6 +45,7 @@ export default async function ShippingConferenceDetailPage({
         orderId: orderDetail.id,
         depositanteId: orderDetail.depositanteId,
         attachments: orderDetail.attachments,
+        isFull: orderDetail.isFull,
         isBlingOrder: orderDetail.origin === "BLING",
         isMercadoLivreOrder: orderDetail.salesChannelCode === "MERCADO_LIVRE",
         hasTrackingCode: orderDetail.trackingCode !== "Rastreio não informado",

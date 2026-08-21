@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 
 import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
+import { ShippingFullDocumentsCard } from "@/components/shipping/shipping-full-documents-card";
 import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
@@ -27,6 +28,7 @@ type ShippingConferencePanelProps = {
     orderId: string;
     depositanteId: string;
     attachments: ShippingAttachment[];
+    isFull: boolean;
     isBlingOrder: boolean;
     isMercadoLivreOrder: boolean;
     hasTrackingCode: boolean;
@@ -649,14 +651,17 @@ export function ShippingConferencePanel({
         </form>
 
         {full && documents && documents.depositanteId && (
-          <ShippingConferenceDocumentsPanel
-            orderId={order.id}
-            depositanteId={documents.depositanteId}
-            attachments={documents.attachments}
-            canUploadAttachments={documents.canUploadAttachments}
-            unlocked={full}
-            formId="shipping-conference-form"
-          />
+          <div className="w-full">
+            {documents.isFull ? <ShippingFullDocumentsCard orderId={order.id} /> : null}
+            <ShippingConferenceDocumentsPanel
+              orderId={order.id}
+              depositanteId={documents.depositanteId}
+              attachments={documents.attachments}
+              canUploadAttachments={documents.canUploadAttachments}
+              unlocked={full}
+              formId="shipping-conference-form"
+            />
+          </div>
         )}
 
         {/* Action bar */}
