@@ -125,7 +125,7 @@ export function ShippingFullDocumentsCard({ orderId }: { orderId: string }) {
             {error}
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-3">
             {documentOrder.map((type) => {
               const meta = documentMeta[type as keyof typeof documentMeta];
               const document = documentsByType.get(type);
@@ -162,7 +162,7 @@ export function ShippingFullDocumentsCard({ orderId }: { orderId: string }) {
               );
             })}
 
-            <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-900/65">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-900/65">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${itemLabels.length ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300" : "bg-slate-200 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500"}`}>
@@ -193,7 +193,7 @@ export function ShippingFullDocumentsCard({ orderId }: { orderId: string }) {
               {itemLabels.length ? (
                 <details className="mt-3 border-t border-slate-200 pt-3 dark:border-zinc-800">
                   <summary className="cursor-pointer select-none text-[11px] font-bold text-violet-700 dark:text-violet-300">Ver etiquetas por produto</summary>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-2 flex flex-col gap-2">
                     {itemLabels.map((document, index) => (
                       <ShippingAttachmentPreviewDialog
                         key={document.id}

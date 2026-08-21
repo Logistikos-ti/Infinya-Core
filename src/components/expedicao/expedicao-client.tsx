@@ -1554,10 +1554,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   </div>
                 )}
 
-                {sel.raw?.isFull && sel.raw?.id ? (
-                  <ShippingFullDocumentsCard orderId={sel.raw.id} />
-                ) : null}
-
                 {isPedidosFull ? (
                   <>
                     {/* customer info */}
@@ -1592,6 +1588,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         </div>
                       ))}
                     </div>
+
+                    {sel.raw?.isFull && sel.raw?.id ? (
+                      <ShippingFullDocumentsCard orderId={sel.raw.id} />
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -1882,6 +1882,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
                         </div>
                       );
                     })()}
+
+                    {sel.raw?.isFull && sel.raw?.id ? (
+                      <ShippingFullDocumentsCard orderId={sel.raw.id} />
+                    ) : null}
 
                     {/* carrier + dock + specs */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
