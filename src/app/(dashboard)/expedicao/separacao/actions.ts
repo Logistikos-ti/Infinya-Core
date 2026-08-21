@@ -670,38 +670,156 @@ function appendFeedback(path: string, feedback: string) {
   return `${path}${separator}feedback=${feedback}`;
 }
 
-export async function createShippingWaveAction(orderIds: string[]) {
+type CreatedShippingWave = {
+  id: string;
+  code: string;
+  orderIds: string[];
+  reused: boolean;
+};
+
+export async function createShippingWaveAction(orderIds: string[]): Promise<CreatedShippingWave> {
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const supabase = createSupabaseAdminClient();
-  const codigo = `W-${Math.floor(100 + Math.random() * 900)}`; // e.g. W-204
+  const normalizedOrderIds = Array.from(
+    new Set(orderIds.map((orderId) => String(orderId).trim()).filter(Boolean)),
+  );
 
-  const { data: onda, error } = await supabase
-    .from('ondas_separacao')
-    .insert({
-      codigo,
-      status: 'PENDENTE'
-    })
-    .select('id, codigo')
-    .single();
-    
-  if (error) {
-    console.error('Error creating wave:', error);
-    return 'temp-wave-id';
+  if (!normalizedOrderIds.length) {
+    throw new Error("Selecione ao menos um pedido para criar a onda.");
   }
-  
-  const links = orderIds.map(id => ({
-    onda_separacao_id: onda.id,
-    pedido_expedicao_id: id
+
+  // A resposta da primeira tentativa pode se perder no navegador mesmo depois
+  // de o banco concluir a criação. Neste caso, reutilizamos a onda ativa em vez
+  // de duplicar os vínculos quando o operador tenta novamente.
+  const { data: existingLinks, error: existingLinksError } = await supabase
+    .from("ondas_separacao_pedidos")
+    .select("onda_separacao_id, pedido_expedicao_id")
+    .in("pedido_expedicao_id", normalizedOrderIds);
+
+  if (existingLinksError) {
+    throw new Error("Não foi possível verificar as ondas existentes.");
+  }
+
+  const existingWaveIds = Array.from(
+    new Set((existingLinks ?? []).map((link) => String(link.onda_separacao_id))),
+  );
+
+  if (existingWaveIds.length) {
+    const { data: activeExistingWaves, error: activeWavesError } = await supabase
+      .from("ondas_separacao")
+      .select("id, codigo, status")
+      .in("id", existingWaveIds)
+      .in("status", ["PENDENTE", "EM_SEPARACAO"]);
+
+    if (activeWavesError) {
+      throw new Error("Não foi possível validar a onda ativa dos pedidos.");
+    }
+
+    for (const wave of activeExistingWaves ?? []) {
+      const linkedOrderIds = (existingLinks ?? [])
+        .filter((link) => link.onda_separacao_id === wave.id)
+        .map((link) => String(link.pedido_expedicao_id));
+      const containsEverySelectedOrder = normalizedOrderIds.every((orderId) =>
+        linkedOrderIds.includes(orderId),
+      );
+
+      if (containsEverySelectedOrder) {
+        return {
+          id: String(wave.id),
+          code: String(wave.codigo),
+          orderIds: normalizedOrderIds,
+          reused: true,
+        };
+      }
+    }
+
+    if ((activeExistingWaves ?? []).length > 0) {
+      throw new Error("Um ou mais pedidos selecionados já pertencem a outra onda ativa.");
+    }
+  }
+
+  const { data: eligibleOrders, error: eligibleOrdersError } = await supabase
+    .from("pedidos_expedicao")
+    .select("id, status")
+    .in("id", normalizedOrderIds);
+
+  if (eligibleOrdersError || (eligibleOrders ?? []).length !== normalizedOrderIds.length) {
+    throw new Error("Não foi possível validar todos os pedidos selecionados.");
+  }
+
+  const unavailableOrder = (eligibleOrders ?? []).find((order) => order.status !== "NOVO");
+  if (unavailableOrder) {
+    throw new Error("Um dos pedidos selecionados não está mais aguardando separação.");
+  }
+
+  let onda: { id: string; codigo: string } | null = null;
+  let waveCreationError: { code?: string; message?: string } | null = null;
+
+  // O codigo e unico no banco. Tentamos novamente em uma colisao rara sem
+  // transformar o primeiro clique do operador em uma falha silenciosa.
+  for (let attempt = 0; attempt < 5 && !onda; attempt += 1) {
+    const codigo = `W-${Math.floor(100 + Math.random() * 900)}`;
+    const result = await supabase
+      .from("ondas_separacao")
+      .insert({ codigo, status: "PENDENTE" })
+      .select("id, codigo")
+      .single();
+
+    if (!result.error && result.data) {
+      onda = result.data;
+      break;
+    }
+
+    waveCreationError = result.error;
+    if (result.error?.code !== "23505") {
+      break;
+    }
+  }
+
+  if (!onda) {
+    console.error("Error creating wave:", waveCreationError);
+    throw new Error("Não foi possível criar a onda de separação.");
+  }
+
+  const { data: claimedOrders, error: claimError } = await supabase
+    .from("pedidos_expedicao")
+    .update({ status: "EM_SEPARACAO" })
+    .in("id", normalizedOrderIds)
+    .eq("status", "NOVO")
+    .select("id");
+
+  if (claimError || (claimedOrders ?? []).length !== normalizedOrderIds.length) {
+    await supabase.from("ondas_separacao").delete().eq("id", onda.id);
+    throw new Error("Um dos pedidos foi movimentado por outro operador. Atualize a fila e tente novamente.");
+  }
+
+  const links = normalizedOrderIds.map((id) => ({
+    onda_separacao_id: onda!.id,
+    pedido_expedicao_id: id,
   }));
-  
-  await supabase.from('ondas_separacao_pedidos').insert(links);
 
-  // Update orders status so they disappear from "NOVO" list
-  await supabase
-    .from('pedidos_expedicao')
-    .update({ status: 'EM_SEPARACAO' })
-    .in('id', orderIds);
+  const { error: linksError } = await supabase.from("ondas_separacao_pedidos").insert(links);
 
-  return onda.id;
+  if (linksError) {
+    console.error("Error linking orders to wave:", linksError);
+    await supabase
+      .from("pedidos_expedicao")
+      .update({ status: "NOVO" })
+      .in("id", normalizedOrderIds)
+      .eq("status", "EM_SEPARACAO");
+    await supabase.from("ondas_separacao").delete().eq("id", onda.id);
+    throw new Error("A onda não conseguiu vincular todos os pedidos.");
+  }
+
+  revalidatePath("/expedicao");
+  revalidatePath("/expedicao/separacao");
+
+  return {
+    id: onda.id,
+    code: onda.codigo,
+    orderIds: normalizedOrderIds,
+    reused: false,
+  };
 }
 
 const ADVANCED_ORDER_STATUSES = ['SEPARADO', 'EM_CONFERENCIA', 'CONFERIDO', 'PRONTO_ROMANEIO', 'EXPEDIDO', 'CANCELADO'];

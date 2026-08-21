@@ -29,6 +29,7 @@ export function ShippingPickingWavesView({
   const [selectedDepositante, setSelectedDepositante] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [openingWave, setOpeningWave] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
@@ -196,13 +197,19 @@ export function ShippingPickingWavesView({
   
   const [isCreating, setIsCreating] = useState(false);
   const handleCreateWave = async () => {
-    if (selectedOrderIds.length === 0) return;
+    if (selectedOrderIds.length === 0 || isCreating) return;
     setIsCreating(true);
+    setCreateError(null);
     try {
-      const waveId = await createShippingWaveAction(selectedOrderIds);
-      window.location.reload();
+      const wave = await createShippingWaveAction(selectedOrderIds);
+      await startShippingWaveAction(wave.id);
+      setShowCreate(false);
+      router.push(
+        `/expedicao/separacao/lote?ids=${encodeURIComponent(wave.orderIds.join(","))}&wave=${encodeURIComponent(wave.code)}`,
+      );
     } catch (e) {
       console.error(e);
+      setCreateError(e instanceof Error ? e.message : "Não foi possível criar a onda. Tente novamente.");
       setIsCreating(false);
     }
   };
@@ -437,6 +444,24 @@ export function ShippingPickingWavesView({
                 </div>
               </div>
 
+              {createError ? (
+                <div
+                  role="alert"
+                  style={{
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: "12px",
+                    background: "rgba(239,68,68,0.08)",
+                    color: "#EF4444",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    lineHeight: 1.5,
+                    padding: "12px 14px",
+                  }}
+                >
+                  {createError}
+                </div>
+              ) : null}
+
               {eligibleOrders.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -495,13 +520,14 @@ export function ShippingPickingWavesView({
                 Cancelar
               </button>
               <button 
-                disabled={selectedOrderIds.length === 0}
+                disabled={selectedOrderIds.length === 0 || isCreating}
                 onClick={handleCreateWave} 
-                style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: selectedOrderIds.length === 0 ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedOrderIds.length === 0 ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: selectedOrderIds.length === 0 ? "not-allowed" : "pointer", boxShadow: selectedOrderIds.length === 0 ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
-                onMouseEnter={(e) => { if(selectedOrderIds.length > 0) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
-                onMouseLeave={(e) => { if(selectedOrderIds.length > 0) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", height: "44px", padding: "0 24px", borderRadius: "12px", border: "none", background: selectedOrderIds.length === 0 || isCreating ? t.border : "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: selectedOrderIds.length === 0 || isCreating ? t.textSub : "#fff", fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: selectedOrderIds.length === 0 || isCreating ? "not-allowed" : "pointer", boxShadow: selectedOrderIds.length === 0 || isCreating ? "none" : "0 8px 22px rgba(99,102,241,0.32)", transition: "all 0.2s ease" }}
+                onMouseEnter={(e) => { if(selectedOrderIds.length > 0 && !isCreating) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 24px rgba(99,102,241,0.4)"; } }}
+                onMouseLeave={(e) => { if(selectedOrderIds.length > 0 && !isCreating) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 8px 22px rgba(99,102,241,0.32)"; } }}
               >
-                Criar e iniciar separação →
+                {isCreating ? <MobileButtonSpinner size={20} /> : null}
+                {isCreating ? "Criando onda..." : "Criar e iniciar separação →"}
               </button>
             </div>
           </div>

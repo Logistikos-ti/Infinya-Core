@@ -70,10 +70,14 @@ export function MobileWaveCreateForm({ orders, depositantes }: MobileWaveCreateF
     setIsCreating(true);
     setError(null);
     try {
-      const waveId = await createShippingWaveAction(selectedIds);
-      router.push(`/m/separacao/${waveId}`);
-    } catch {
-      setError("Não foi possível criar a onda. Tente novamente.");
+      const wave = await createShippingWaveAction(selectedIds);
+      router.push(`/m/separacao/${wave.id}`);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Não foi possível criar a onda. Tente novamente.",
+      );
       setIsCreating(false);
     }
   }
