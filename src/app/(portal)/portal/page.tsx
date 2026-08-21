@@ -292,11 +292,11 @@ function MasterPortalWelcome({ invalidSelection }: { invalidSelection: boolean }
           Escolha um depositante para visualizar o portal
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-300">
-          Este modo permite validar a experiÃªncia de cada cliente sem alterar o seu perfil de TI ou o acesso de outros usuÃ¡rios.
+          Este modo permite validar a experiência de cada cliente sem alterar o seu perfil de TI ou o acesso de outros usuários.
         </p>
         {invalidSelection ? (
           <p className="mt-5 rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">
-            O depositante selecionado nÃ£o estÃ¡ ativo ou nÃ£o foi encontrado. Escolha outro no seletor superior.
+            O depositante selecionado não está ativo ou não foi encontrado. Escolha outro no seletor superior.
           </p>
         ) : null}
       </div>
@@ -337,13 +337,13 @@ function DashboardView({
   return (
     <>
       <PageIntro
-        title={`OlÃ¡, ${depositanteName} ðŸ‘‹`}
-        description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expediÃ§Ã£o."
+        title={`Olá, ${depositanteName} 👋`}
+        description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expedição."
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={PackageCheck}
-          label="Pedidos em operaÃ§Ã£o"
+          label="Pedidos em operação"
           value={orders.length}
           delta="Atualizado agora"
         />
@@ -357,7 +357,7 @@ function DashboardView({
           icon={Truck}
           label="Recebimentos"
           value={receiving.length}
-          delta="SolicitaÃ§Ãµes"
+          delta="Solicitações"
         />
         <StatCard
           icon={ClipboardList}
@@ -380,20 +380,20 @@ function DashboardView({
             <EmptyState text="Nenhum pedido encontrado." />
           )}
         </Panel>
-        <Panel title="NÃ­veis de estoque">
+        <Panel title="Níveis de estoque">
           <div className="mb-2 flex items-center gap-1.5 px-5 text-xs text-slate-500 dark:text-slate-400">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
             <span>
               <span className="font-semibold text-rose-500">
                 {lowStock.length}
               </span>{" "}
-              itens em atenÃ§Ã£o
+              itens em atenção
             </span>
           </div>
           {lowStock.length ? (
             lowStock.map((item) => <StockRow key={item.id} item={item} />)
           ) : (
-            <EmptyState text="Nenhum item prÃ³ximo do limite." />
+            <EmptyState text="Nenhum item próximo do limite." />
           )}
         </Panel>
       </div>
@@ -1210,10 +1210,10 @@ function OrderRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">
-          {order.customer ?? "Cliente nÃ£o informado"}
+          {order.customer ?? "Cliente não informado"}
         </p>
         <p className="text-[11px] text-slate-500">
-          {order.marketplace || order.channel || "OperaÃ§Ã£o prÃ³pria"} Â·{" "}
+          {order.marketplace || order.channel || "Operação própria"} ·{" "}
           {order.itemCount ?? 0} item(ns)
         </p>
       </div>
@@ -1279,7 +1279,7 @@ function StockRow({
         <p className="truncate text-xs font-semibold">
           {item.productName ?? "Produto"}
         </p>
-        <p className="text-[11px] text-slate-500">{item.sku || "Sem cÃ³digo"}</p>
+        <p className="text-[11px] text-slate-500">{item.sku || "Sem código"}</p>
       </div>
       <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[11px] font-bold text-amber-600">
         {item.rawAvailable ?? 0}
@@ -1318,6 +1318,6 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 function formatDate(value: string | null | undefined) {
-  return formatDatePtBr(value, "â€”");
+  return formatDatePtBr(value, "—");
 }
 
