@@ -849,6 +849,17 @@ export function ExpedicaoClient({ data }: { data: any }) {
                   <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
                 </React.Fragment>)}
                 <div style={{flex: "1"}}></div>
+                {/* Mesma busca da listagem completa: ambas as tabelas leem de
+                    searchedOrders, entao o estado ja e compartilhado. */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "36px", width: "320px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg }}>
+                  <Search size={16} color={t.textSub} />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    placeholder="Buscar pedido, cliente, NF, marketplace..."
+                    style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px" }}
+                  />
+                </div>
                 {canDeleteOrder && selectedOrderIds.length > 0 ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <form action={bulkChangeShippingOrderStatusAction} onSubmit={(event) => {
@@ -926,6 +937,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </tr>
                   </thead>
                   <tbody>
+                    {orders?.length === 0 ? (
+                      <tr>
+                        <td colSpan={columns.length} style={{ padding: "60px 20px", textAlign: "center", color: t.textSub, fontSize: "14px", fontWeight: "500" }}>
+                          {searchQuery
+                            ? `Nenhum pedido encontrado para "${searchQuery}" neste filtro.`
+                            : "Nenhum pedido encontrado para este filtro."}
+                        </td>
+                      </tr>
+                    ) : null}
                     {orders?.map((o: any, i: number) => <React.Fragment key={i}>
                       <tr onClick={() => setSelectedOrder(o)} style={{borderBottom: `1px solid ${t.border }`, cursor: "pointer", transition: "background 0.15s ease"}} >
                         {canDeleteOrder ? <td style={{ padding: "14px 12px 14px 20px", width: 42 }}><input type="checkbox" aria-label={`Selecionar ${o.code}`} checked={selectedOrderIds.includes(o.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleOrderSelection(o.id)} style={{ width: 16, height: 16, accentColor: "#7C3AED", cursor: "pointer" }} /></td> : null}
