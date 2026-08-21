@@ -3,30 +3,38 @@
 import { CalendarDays, Clock3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const SAO_PAULO_TIME_ZONE = "America/Sao_Paulo";
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  weekday: "long",
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-  timeZone: SAO_PAULO_TIME_ZONE,
-});
-
-const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: false,
-  timeZone: SAO_PAULO_TIME_ZONE,
-});
+const TIME_ZONE_BY_UF: Record<string, string> = {
+  AC: "America/Rio_Branco",
+  AM: "America/Manaus",
+  MS: "America/Campo_Grande",
+  MT: "America/Cuiaba",
+  RO: "America/Porto_Velho",
+  RR: "America/Boa_Vista",
+};
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function PortalDateTime() {
+export function PortalDateTime({ city, uf }: { city?: string; uf?: string }) {
   const [now, setNow] = useState<Date | null>(null);
+  const normalizedUf = uf?.trim().toUpperCase() ?? "";
+  const timeZone = TIME_ZONE_BY_UF[normalizedUf] ?? "America/Sao_Paulo";
+  const location = [city?.trim(), normalizedUf].filter(Boolean).join(" - ");
+  const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone,
+  });
+  const timeFormatter = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone,
+  });
 
   useEffect(() => {
     setNow(new Date());
@@ -47,9 +55,11 @@ export function PortalDateTime() {
         <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold tabular-nums text-slate-950 dark:text-white">
           <Clock3 className="h-3.5 w-3.5 text-indigo-500" />
           {now ? timeFormatter.format(now) : "--:--:--"}
-          <span className="text-[10px] font-semibold uppercase text-slate-400">
-            São Paulo
-          </span>
+          {location ? (
+            <span className="text-[10px] font-semibold uppercase text-slate-400">
+              {location}
+            </span>
+          ) : null}
         </p>
       </div>
     </div>

@@ -84,6 +84,16 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const depositanteName = isMasterPreview
     ? selectedDepositante.data?.nome ?? "Portal do depositante"
     : user.depositanteNome || user.nome;
+  const { data: portalDepositanteProfile } = await adminSupabase
+    .from("depositantes")
+    .select("configuracoes, observacoes")
+    .eq("id", depositanteId)
+    .maybeSingle();
+  const portalDepositanteConfig = parseDepositanteConfiguracoes(
+    portalDepositanteProfile?.configuracoes
+      ? JSON.stringify(portalDepositanteProfile.configuracoes)
+      : portalDepositanteProfile?.observacoes ?? null,
+  );
   const integrationsEnabled = isPortalIntegrationEnabled(depositanteName);
   const canManagePortal = isMasterPreview || user.portalProfile === "GESTOR";
   const view = normalizeView(requestedView, integrationsEnabled && canManagePortal, canManagePortal);
@@ -177,19 +187,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     ...product,
     estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
-  const { data: integrationDepositante } =
-    view === "integracoes"
-      ? await adminSupabase
-          .from("depositantes")
-          .select("configuracoes, observacoes")
-          .eq("id", depositanteId)
-          .maybeSingle()
-      : { data: null };
-  const integrationConfig = parseDepositanteConfiguracoes(
-    integrationDepositante?.configuracoes
-      ? JSON.stringify(integrationDepositante.configuracoes)
-      : integrationDepositante?.observacoes ?? null,
-  );
+  const integrationConfig = portalDepositanteConfig;
   const selectedOrderCandidate = params?.order
     ? await getShippingOrderDetailFromDb(params.order, user)
     : null;
@@ -215,6 +213,8 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           totalUnits={totalUnits}
           lowStock={lowStock}
           portalDepositanteId={isMasterPreview ? depositanteId : ""}
+          depositanteCity={portalDepositanteConfig.enderecoFiscal.cidade}
+          depositanteUf={portalDepositanteConfig.enderecoFiscal.uf}
         />
       ) : null}
       {view === "pedidos" ? (
@@ -326,6 +326,8 @@ function DashboardView({
   totalUnits,
   lowStock,
   portalDepositanteId,
+  depositanteCity,
+  depositanteUf,
 }: {
   depositanteName: string;
   orders: Awaited<ReturnType<typeof listShippingOrdersFromDb>>;
@@ -334,13 +336,15 @@ function DashboardView({
   totalUnits: number;
   lowStock: Awaited<ReturnType<typeof listStockBalancesFromDb>>;
   portalDepositanteId: string;
+  depositanteCity: string;
+  depositanteUf: string;
 }) {
   return (
     <>
       <PageIntro
         title={`Olá, ${depositanteName} 👋`}
         description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expedição."
-        aside={<PortalDateTime />}
+        aside={<PortalDateTime city={depositanteCity} uf={depositanteUf} />}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
