@@ -267,6 +267,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [bulkSelectedStatus, setBulkSelectedStatus] = useState("");
   const [hoveredProductIndex, setHoveredProductIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  // Na aba raiz a busca fica recolhida como lupa e expande ao clicar.
+  const [searchOpen, setSearchOpen] = useState(false);
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
   const [newOrderDepositanteOpen, setNewOrderDepositanteOpen] = useState(false);
@@ -427,7 +429,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: "pronto-coleta", label: "Pronto para coleta", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
     { id: "expedido", label: "Expedido", count: expedidosNoMesAtual, hasCount: true, isAlert: false },
     { id: "cancelados", label: "Cancelados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "cancelados")).length, hasCount: true, isAlert: false },
-    { id: "atrasados", label: "Atrasados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "atrasados")).length, hasCount: true, isAlert: true },
     { id: "todos", label: "Todos", count: ordersForOperationalQueue.length, hasCount: false, isAlert: false },
   ];
 
@@ -848,18 +849,48 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 {filters?.map((f: any, i: number) => <React.Fragment key={i}>
                   <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
                 </React.Fragment>)}
+                {/* Busca recolhida logo apos o ultimo filtro ("Todos"). O estado
+                    e o mesmo da listagem completa: ambas as tabelas leem de
+                    searchedOrders. */}
+                {searchOpen ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "320px", padding: "0 8px 0 12px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg }}>
+                    <Search size={16} color={t.textSub} />
+                    <input
+                      autoFocus
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setSearchQuery("");
+                          setSearchOpen(false);
+                          setCurrentPage(1);
+                        }
+                      }}
+                      placeholder="Buscar pedido, cliente, NF, marketplace..."
+                      style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(""); setSearchOpen(false); setCurrentPage(1); }}
+                      aria-label="Fechar busca"
+                      title="Fechar busca"
+                      style={{ width: "24px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: "6px", background: "transparent", color: t.textSub, cursor: "pointer" }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    aria-label="Buscar pedidos"
+                    title="Buscar pedidos"
+                    style={{ width: "36px", height: "36px", display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer" }}
+                  >
+                    <Search size={16} />
+                  </button>
+                )}
                 <div style={{flex: "1"}}></div>
-                {/* Mesma busca da listagem completa: ambas as tabelas leem de
-                    searchedOrders, entao o estado ja e compartilhado. */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "36px", width: "320px", padding: "0 12px", borderRadius: "8px", border: `1px solid ${t.border}`, background: t.inputBg }}>
-                  <Search size={16} color={t.textSub} />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                    placeholder="Buscar pedido, cliente, NF, marketplace..."
-                    style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px" }}
-                  />
-                </div>
                 {canDeleteOrder && selectedOrderIds.length > 0 ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <form action={bulkChangeShippingOrderStatusAction} onSubmit={(event) => {
@@ -917,7 +948,6 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </form>
                   </div>
                 ) : null}
-                <span style={{fontSize: "13px", color: `${t.textSub }`}}>{ordersCount} pedidos na fila · {sortSummary}</span>
               </div>
               <div style={{overflowX: "auto"}}>
                 <table style={{width: "100%", borderCollapse: "collapse", minWidth: "960px"}}>
