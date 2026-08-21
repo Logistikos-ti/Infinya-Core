@@ -266,11 +266,15 @@ export async function createStockQuarantine({
   quantity,
   reason,
   userId,
+  tipo = "OUTRO",
+  fotoUrl = null,
 }: {
   stockId: string;
   quantity: number;
   reason: string;
   userId: string;
+  tipo?: string;
+  fotoUrl?: string | null;
 }) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.rpc("criar_quarentena_estoque", {
@@ -278,6 +282,8 @@ export async function createStockQuarantine({
     p_quantidade: quantity,
     p_motivo: reason,
     p_usuario_id: userId,
+    p_tipo: tipo,
+    p_foto_url: fotoUrl,
   });
 
   if (error) {
@@ -318,6 +324,7 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
   const endereco = firstRelation(row.endereco);
   const createdBy = firstRelation(row.criado_por);
   const resolvedBy = firstRelation(row.resolvido_por);
+  const tipo = inferQuarantineType(row.tipo, row.motivo);
 
   return {
     id: row.id,
@@ -335,7 +342,7 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
     quantity,
     quantityLabel: quantity.toLocaleString("pt-BR"),
     reason: row.motivo?.trim() || "Sem motivo informado",
-    tipo: row.tipo?.trim() || "OUTRO",
+    tipo,
     fotoUrl: row.foto_url ?? null,
     status: row.status,
     statusLabel: formatStatus(row.status),
@@ -347,6 +354,15 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
     resolvedAtLabel: row.resolved_at ? formatDateTimePtBr(row.resolved_at) : "",
     resolvedBy: resolvedBy?.nome?.trim() || "",
   };
+}
+
+function inferQuarantineType(type: string | null, reason: string | null) {
+  const normalizedType = type?.trim().toUpperCase();
+  const normalizedReason = normalizeSearch(reason ?? "");
+
+  if (normalizedType === "AVARIA" || normalizedReason.includes("avaria")) return "AVARIA";
+  if (normalizedType === "RECEBIMENTO") return "RECEBIMENTO";
+  return normalizedType || "OUTRO";
 }
 
 function mapPendingAddressingHold(row: PendingAddressingStockRow): StockQuarantineItem {
