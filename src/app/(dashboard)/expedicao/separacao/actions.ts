@@ -912,7 +912,7 @@ export async function cancelPickingOrderAction(orderId: string) {
 }
 
 export async function deleteShippingWavesAction(waveIds: string[]) {
-  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
+  await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
   
   // 1. Fetch links to get order IDs
@@ -946,22 +946,6 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
       .map((order) => order.id);
   }
 
-  if (resettableOrderIds.length > 0) {
-    const reversalResults = await Promise.all(
-      resettableOrderIds.map((orderId) =>
-        adminSupabase.rpc("estornar_baixas_separacao" as never, {
-          p_pedido_id: orderId,
-          p_usuario_id: user.id,
-          p_motivo: "Exclusao administrativa da onda de separacao",
-        } as never),
-      ),
-    );
-
-    if (reversalResults.some((result) => result.error)) {
-      throw new Error("Nao foi possivel liberar as reservas da onda.");
-    }
-  }
-
   // 2. Delete links
   await adminSupabase
     .from('ondas_separacao_pedidos')
@@ -984,6 +968,11 @@ export async function deleteShippingWavesAction(waveIds: string[]) {
     await adminSupabase
       .from('pedidos_expedicao_itens')
       .update({ quantidade_separada: 0 })
+      .in('pedido_expedicao_id', resettableOrderIds);
+
+    await adminSupabase
+      .from('bipagens_separacao')
+      .delete()
       .in('pedido_expedicao_id', resettableOrderIds);
   }
 

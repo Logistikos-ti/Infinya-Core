@@ -269,6 +269,14 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [searchQuery, setSearchQuery] = useState("");
   // Na aba raiz a busca fica recolhida como lupa e expande ao clicar.
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // O input fica sempre montado (para a largura poder animar), entao o foco ao
+  // abrir precisa ser dado na mao -- autoFocus so dispararia na montagem.
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [newOrderDepositante, setNewOrderDepositante] = useState(data.depositanteOptions?.[0]?.id ?? "");
   const [newOrderDepositanteOpen, setNewOrderDepositanteOpen] = useState(false);
@@ -845,52 +853,19 @@ export function ExpedicaoClient({ data }: { data: any }) {
           {/* ORDERS TABLE DASHBOARD */}
           { isOrders && (
             <div style={{borderRadius: "16px", border: `1px solid ${t.border }`, background: `${t.cardBg }`, overflow: "hidden"}}>
-              <div style={{display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border }`, flexWrap: "wrap"}}>
-                {filters?.map((f: any, i: number) => <React.Fragment key={i}>
-                  <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
-                </React.Fragment>)}
-                {/* Busca recolhida logo apos o ultimo filtro ("Todos"). O estado
-                    e o mesmo da listagem completa: ambas as tabelas leem de
-                    searchedOrders. */}
-                {searchOpen ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", height: "36px", width: "320px", padding: "0 8px 0 12px", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg }}>
-                    <Search size={16} color={t.textSub} />
-                    <input
-                      autoFocus
-                      value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setSearchQuery("");
-                          setSearchOpen(false);
-                          setCurrentPage(1);
-                        }
-                      }}
-                      placeholder="Buscar pedido, cliente, NF, marketplace..."
-                      style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "13px" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { setSearchQuery(""); setSearchOpen(false); setCurrentPage(1); }}
-                      aria-label="Fechar busca"
-                      title="Fechar busca"
-                      style={{ width: "24px", height: "24px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: "6px", background: "transparent", color: t.textSub, cursor: "pointer" }}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(true)}
-                    aria-label="Buscar pedidos"
-                    title="Buscar pedidos"
-                    style={{ width: "36px", height: "36px", display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "9px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.textSub, cursor: "pointer" }}
-                  >
-                    <Search size={16} />
-                  </button>
-                )}
-                <div style={{flex: "1"}}></div>
+              {/* Linha sem wrap: os chips ficam num container proprio que
+                  absorve o espaco livre. Sem isso, ao expandir, a busca
+                  (ultimo item) nao cabia e pulava para uma segunda linha,
+                  indo parar na esquerda.
+                  Os chips rolam na horizontal em vez de quebrar: se
+                  quebrassem, abrir a busca aumentaria a altura da linha e a
+                  animacao ficaria aos pulos. Assim a altura e constante. */}
+              <div style={{display: "flex", alignItems: "center", gap: "10px", padding: "16px 20px", borderBottom: `1px solid ${t.border }`, flexWrap: "nowrap"}}>
+                <div className="filter-chips-scroll" style={{display: "flex", alignItems: "center", gap: "10px", flexWrap: "nowrap", flex: "1 1 auto", minWidth: 0, overflowX: "auto", overflowY: "hidden", paddingBottom: "2px"}}>
+                  {filters?.map((f: any, i: number) => <React.Fragment key={i}>
+                    <button onClick={f.action} style={{height: "36px", padding: "0 15px", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13px", fontWeight: "700", cursor: "pointer", border: `1px solid ${f.border }`, background: `${f.bg }`, color: `${f.color }`, transition: "all 0.18s ease", display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap"}}>{f.label }{ f.hasCount && (<span style={{padding: "1px 8px", borderRadius: "999px", fontSize: "11px", fontWeight: `${f.countFw || "600"}`, background: `${f.countBg }`, color: `${f.countColor }`}}>{f.count }</span>)}</button>
+                  </React.Fragment>)}
+                </div>
                 {canDeleteOrder && selectedOrderIds.length > 0 ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <form action={bulkChangeShippingOrderStatusAction} onSubmit={(event) => {
@@ -948,6 +923,83 @@ export function ExpedicaoClient({ data }: { data: any }) {
                     </form>
                   </div>
                 ) : null}
+
+                {/* Busca na extremidade direita. E um unico container que anima
+                    a largura de 36px (so a lupa) ate 320px; como ele e o ultimo
+                    item da linha, a borda direita fica fixa e o crescimento
+                    acontece para a esquerda. Manter um unico elemento (em vez de
+                    trocar botao por caixa) e o que permite a transicao ser
+                    continua. O estado da busca e o mesmo da listagem completa:
+                    ambas as tabelas leem de searchedOrders. */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    height: "36px",
+                    width: searchOpen ? "320px" : "36px",
+                    borderRadius: "9px",
+                    border: `1px solid ${searchOpen ? t.border : "transparent"}`,
+                    background: searchOpen ? t.inputBg : "transparent",
+                    overflow: "hidden",
+                    transition: "width .32s cubic-bezier(.22,1,.36,1), background-color .22s ease, border-color .22s ease",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (searchOpen) {
+                        searchInputRef.current?.focus();
+                      } else {
+                        setSearchOpen(true);
+                      }
+                    }}
+                    aria-label="Buscar pedidos"
+                    aria-expanded={searchOpen}
+                    title="Buscar pedidos"
+                    style={{ width: "34px", height: "34px", flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: "9px", background: "transparent", color: t.textSub, cursor: "pointer" }}
+                  >
+                    <Search size={16} />
+                  </button>
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    tabIndex={searchOpen ? 0 : -1}
+                    aria-hidden={!searchOpen}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setSearchQuery("");
+                        setSearchOpen(false);
+                        setCurrentPage(1);
+                      }
+                    }}
+                    placeholder="Buscar pedido, cliente, NF, marketplace..."
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      height: "100%",
+                      border: "none",
+                      outline: "none",
+                      background: "transparent",
+                      color: t.text,
+                      fontFamily: "'Manrope', sans-serif",
+                      fontSize: "13px",
+                      opacity: searchOpen ? 1 : 0,
+                      transition: "opacity .18s ease",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(""); setSearchOpen(false); setCurrentPage(1); }}
+                    aria-label="Fechar busca"
+                    tabIndex={searchOpen ? 0 : -1}
+                    title="Fechar busca"
+                    style={{ width: "24px", height: "24px", flexShrink: 0, marginRight: "8px", display: "inline-flex", alignItems: "center", justifyContent: "center", border: "none", borderRadius: "6px", background: "transparent", color: t.textSub, cursor: "pointer", opacity: searchOpen ? 1 : 0, pointerEvents: searchOpen ? "auto" : "none", transition: "opacity .18s ease" }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
               <div style={{overflowX: "auto"}}>
                 <table style={{width: "100%", borderCollapse: "collapse", minWidth: "960px"}}>
@@ -2130,6 +2182,10 @@ export function ExpedicaoClient({ data }: { data: any }) {
           from { transform: translateX(40px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
         }
+        /* Os chips de filtro rolam quando a busca expande; a barra de rolagem
+           fica oculta para nao poluir a linha. */
+        .filter-chips-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .filter-chips-scroll::-webkit-scrollbar { display: none; }
         .new-order-cancel:hover { border-color: #64748B !important; box-shadow: 0 0 0 3px rgba(100,116,139,.14); }
         .new-order-submit:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(99,102,241,.38) !important; }
         @keyframes overlayFade {

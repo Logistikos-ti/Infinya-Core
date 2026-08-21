@@ -14,6 +14,12 @@ import {
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { extractMarketplace, formatShippingStatusLabel } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  buildRemainingPickingAllocations,
+  type PickingAllocationsByOrder,
+  type PickingItemStockAllocation,
+  type PickingOrderAllocations,
+} from "@/lib/shipping-reservation-allocation";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -84,6 +90,20 @@ type RawPickingStockRow = {
         metodo_retirada?: string | null;
       }
     | null;
+};
+
+type RawPickingReservationMovementRow = {
+  referencia_id: string | null;
+  estoque_id: string | null;
+  quantidade: number | string | null;
+  observacoes: string | null;
+};
+
+type RawPickingScanRow = {
+  pedido_expedicao_id: string;
+  item_pedido_id: string;
+  estoque_id: string;
+  quantidade: number | string | null;
 };
 
 type RawOperatorRow = {
@@ -304,6 +324,9 @@ export async function listShippingPickingOrdersFromDb(
   );
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders, commercialKitRulesByDepositante) : [];
+  const allocationsByOrder = includeRouteData
+    ? await loadPickingAllocations(supabase, rawOrders)
+    : new Map<string, PickingOrderAllocations>();
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
 
   const orders = rawOrders
@@ -317,6 +340,7 @@ export async function listShippingPickingOrdersFromDb(
           order.depositante_id,
           commercialKitRulesByDepositante,
         ),
+        allocationsByOrder.get(order.id),
       ),
     )
     .filter((order) => {
@@ -361,6 +385,9 @@ export async function listShippingPickingOrdersByIdsFromDb(
     .filter((order) => !isBlingWebhookSummaryOrder(order.observacoes));
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, rawOrders);
   const stockRows = includeRouteData ? await loadPickingStockRows(supabase, rawOrders, commercialKitRulesByDepositante) : [];
+  const allocationsByOrder = includeRouteData
+    ? await loadPickingAllocations(supabase, rawOrders)
+    : new Map<string, PickingOrderAllocations>();
   const productImageMap = await loadProductImageMap(supabase, rawOrders, stockRows);
   const orderMap = new Map(
     rawOrders.map((order) => [
@@ -374,6 +401,7 @@ export async function listShippingPickingOrdersByIdsFromDb(
           order.depositante_id,
           commercialKitRulesByDepositante,
         ),
+        allocationsByOrder.get(order.id),
       ),
     ]),
   );
@@ -409,6 +437,7 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
 
   const commercialKitRulesByDepositante = await loadCommercialKitRulesByDepositante(supabase, [rawOrder]);
   const stockRows = await loadPickingStockRows(supabase, [rawOrder], commercialKitRulesByDepositante);
+  const allocationsByOrder = await loadPickingAllocations(supabase, [rawOrder]);
   const productImageMap = await loadProductImageMap(supabase, [rawOrder], stockRows);
   return mapPickingOrder(
     rawOrder,
@@ -419,6 +448,7 @@ export async function getShippingPickingOrderFromDb(user: AppUserContext, id: st
       rawOrder.depositante_id,
       commercialKitRulesByDepositante,
     ),
+    allocationsByOrder.get(rawOrder.id),
   );
 }
 
@@ -428,6 +458,7 @@ function mapPickingOrder(
   includeRouteData: boolean,
   productImageMap: Map<string, string>,
   commercialKitRules: CommercialKitRuleDefinition[],
+  itemAllocations?: PickingOrderAllocations,
 ) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const picking = extractPickingPayload(payload);
@@ -455,6 +486,7 @@ function mapPickingOrder(
       includeRouteData,
       productImageMap,
       commercialKitRules,
+      itemAllocations?.get(item.id),
     ),
   );
   const routeStops = includeRouteData ? buildRouteStops(items) : [];
@@ -560,6 +592,7 @@ function mapPickingItem(
   includeRouteData: boolean,
   productImageMap: Map<string, string>,
   commercialKitRules: CommercialKitRuleDefinition[],
+  stockAllocation?: PickingItemStockAllocation,
 ) {
   const hydratedItem = hydratePickingItemWithCommercialKit(item, commercialKitRules);
   const requestedKits = Number(item.quantidade ?? 0);
@@ -582,7 +615,7 @@ function mapPickingItem(
       itemBarcode,
       itemPackBarcode,
       itemPackQuantity,
-    });
+    }, stockAllocation);
   }
 
   const progressMap = buildKitProgressMap(normalizePickingKitProgress(hydratedItem.payload_origem));
@@ -596,6 +629,7 @@ function mapPickingItem(
     const matchedStocks = includeRouteData
         ? stockRows
           .filter((row) => matchesStockToKitComponent(row, component))
+          .filter((row) => !stockAllocation || stockAllocation.has(row.id))
           .sort(compareStocksForPicking)
       : [];
 
@@ -606,8 +640,8 @@ function mapPickingItem(
         break;
       }
 
-      let available = getAvailableQuantity(stock);
-      if (available <= 0) {
+      let available = getPickingRouteQuantity(stock, stockAllocation);
+      if (available <= 0 && !stockAllocation) {
         available = Math.max(remaining, 1); // Fallback: allow directing shortage to 0-stock bin
       }
       
@@ -699,6 +733,7 @@ function mapSimplePickingItem(
     itemPackBarcode: string;
     itemPackQuantity: number;
   },
+  stockAllocation?: PickingItemStockAllocation,
 ) {
   const requestedQuantity = meta.requestedKits;
   const separatedQuantity = Number(item.quantidade_separada ?? 0);
@@ -706,6 +741,7 @@ function mapSimplePickingItem(
     ? stockRows
         
         .filter((row) => matchesStockToItem(row, item))
+        .filter((row) => !stockAllocation || stockAllocation.has(row.id))
         .sort(compareStocksForPicking)
     : [];
 
@@ -717,8 +753,8 @@ function mapSimplePickingItem(
       break;
     }
 
-    let available = getAvailableQuantity(stock);
-    if (available <= 0) {
+    let available = getPickingRouteQuantity(stock, stockAllocation);
+    if (available <= 0 && !stockAllocation) {
       available = Math.max(remaining, 1); // Fallback: allow directing shortage to 0-stock bin
     }
 
@@ -827,6 +863,59 @@ async function loadPickingStockRows(
   }
 
   return (stockData ?? []) as RawPickingStockRow[];
+}
+
+async function loadPickingAllocations(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: RawPickingOrderRow[],
+): Promise<PickingAllocationsByOrder> {
+  const orderIds = [...new Set(orders.map((order) => order.id).filter(Boolean))];
+  if (!orderIds.length) {
+    return new Map();
+  }
+
+  const [{ data: movementData, error: movementError }, { data: scanData, error: scanError }] =
+    await Promise.all([
+      supabase
+        .from("movimentacoes_estoque")
+        .select("referencia_id, estoque_id, quantidade, observacoes")
+        .in("referencia_id", orderIds)
+        .eq("referencia_tipo", "RESERVA_SEPARACAO_ONDA")
+        .eq("tipo", "BLOQUEIO"),
+      supabase
+        .from("bipagens_separacao")
+        .select("pedido_expedicao_id, item_pedido_id, estoque_id, quantidade")
+        .in("pedido_expedicao_id", orderIds),
+    ]);
+
+  if (movementError) {
+    throw new Error(`Não foi possível carregar as reservas da separação: ${movementError.message}`);
+  }
+
+  // During a rolling deployment the audit table may not exist yet. The
+  // reservation movements still provide a safe route until the migration is
+  // applied; afterward scans are subtracted normally.
+  return buildRemainingPickingAllocations(
+    ((movementData ?? []) as RawPickingReservationMovementRow[]).map((movement) => ({
+      orderId: movement.referencia_id,
+      itemId: extractReservedItemId(movement.observacoes),
+      stockId: movement.estoque_id,
+      quantity: Number(movement.quantidade ?? 0),
+    })),
+    (scanError ? [] : ((scanData ?? []) as RawPickingScanRow[])).map((scan) => ({
+      orderId: scan.pedido_expedicao_id,
+      itemId: scan.item_pedido_id,
+      stockId: scan.estoque_id,
+      quantity: Number(scan.quantidade ?? 0),
+    })),
+  );
+}
+
+function extractReservedItemId(value: string | null | undefined) {
+  const match = value?.match(
+    /reserva-criacao:item:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):produto:/i,
+  );
+  return match?.[1] ?? null;
 }
 
 async function loadProductImageMap(
@@ -1189,6 +1278,21 @@ function getAvailableQuantity(stock: RawPickingStockRow) {
     Number(stock.quantidade ?? 0) - Number(stock.quantidade_reservada ?? 0),
     0,
   );
+}
+
+function getPickingRouteQuantity(
+  stock: RawPickingStockRow,
+  stockAllocation?: PickingItemStockAllocation,
+) {
+  if (stock.bloqueado) {
+    return 0;
+  }
+
+  if (stockAllocation) {
+    return Math.max(stockAllocation.get(stock.id) ?? 0, 0);
+  }
+
+  return getAvailableQuantity(stock);
 }
 
 function getÁreaPriority(area: string | null | undefined) {

@@ -50,20 +50,6 @@ export async function resetPickingOrdersToQueue(
   const resettableIds = data.map((order) => order.id);
 
   const now = new Date().toISOString();
-  const reversalResults = await Promise.all(
-    (data ?? []).map((order) =>
-      adminSupabase.rpc("estornar_baixas_separacao" as never, {
-        p_pedido_id: order.id,
-        p_usuario_id: user.id,
-        p_motivo: reason === "inatividade" ? "Inatividade na onda de separação" : "Cancelamento da onda de separação",
-      } as never),
-    ),
-  );
-
-  if (reversalResults.some((result) => result.error)) {
-    return { success: false as const };
-  }
-
   const updates = (data ?? []).map((order) => {
     const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
 
@@ -104,6 +90,18 @@ export async function resetPickingOrdersToQueue(
   );
 
   if (itemResetResults.some((result) => result.error)) {
+    return { success: false as const };
+  }
+
+  // Returning to the queue resets the operational scan progress, but the
+  // allocation belongs to the order and remains active until cancellation or
+  // physical debit at conference.
+  const { error: scanResetError } = await adminSupabase
+    .from("bipagens_separacao")
+    .delete()
+    .in("pedido_expedicao_id", resettableIds);
+
+  if (scanResetError && !isMissingPickingScanTable(scanResetError)) {
     return { success: false as const };
   }
 
@@ -181,4 +179,15 @@ function readString(value: unknown) {
   }
 
   return null;
+}
+
+function isMissingPickingScanTable(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    message.includes("bipagens_separacao") ||
+    message.includes("schema cache")
+  );
 }
