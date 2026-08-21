@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
+import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import { formatDateTimePtBr } from "@/lib/utils";
 
 type Relation<T> = T | T[] | null;
@@ -12,6 +13,8 @@ type QuarantineRow = {
   endereco_id: string | null;
   quantidade: number | string;
   motivo: string;
+  tipo: string | null;
+  foto_url: string | null;
   status: string;
   resolucao_observacoes: string | null;
   created_at: string;
@@ -81,6 +84,8 @@ export type StockQuarantineItem = {
   quantity: number;
   quantityLabel: string;
   reason: string;
+  tipo: string;
+  fotoUrl: string | null;
   status: string;
   statusLabel: string;
   resolutionNotes: string;
@@ -132,7 +137,7 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
     let query = supabase
       .from("estoque_quarentena")
       .select(
-        "id, depositante_id, produto_id, estoque_id, endereco_id, quantidade, motivo, status, resolucao_observacoes, created_at, resolved_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area), criado_por:usuarios!estoque_quarentena_criado_por_fkey(nome), resolvido_por:usuarios!estoque_quarentena_resolvido_por_fkey(nome)",
+        "id, depositante_id, produto_id, estoque_id, endereco_id, quantidade, motivo, tipo, foto_url, status, resolucao_observacoes, created_at, resolved_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area), criado_por:usuarios!estoque_quarentena_criado_por_fkey(nome), resolvido_por:usuarios!estoque_quarentena_resolvido_por_fkey(nome)",
       )
       .order("created_at", { ascending: false });
 
@@ -149,7 +154,16 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
       throw new Error(`Nao foi possivel carregar a quarentena: ${error.message}`);
     }
 
-    return ((data ?? []) as QuarantineRow[]).map(mapQuarantineRow);
+    return ((data ?? []) as QuarantineRow[])
+      .filter(
+        (row) =>
+          !isHiddenLegacyDamageEntry({
+            createdAt: row.created_at,
+            type: row.tipo,
+            description: row.motivo,
+          }),
+      )
+      .map(mapQuarantineRow);
   } catch (error) {
     if (error instanceof Error && error.message.includes("schema cache")) return [];
     throw error;
@@ -321,6 +335,8 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
     quantity,
     quantityLabel: quantity.toLocaleString("pt-BR"),
     reason: row.motivo?.trim() || "Sem motivo informado",
+    tipo: row.tipo?.trim() || "OUTRO",
+    fotoUrl: row.foto_url ?? null,
     status: row.status,
     statusLabel: formatStatus(row.status),
     resolutionNotes: row.resolucao_observacoes?.trim() || "",
@@ -359,6 +375,8 @@ function mapPendingAddressingHold(row: PendingAddressingStockRow): StockQuaranti
     reason:
       `Saldo bloqueado automaticamente em ${enderecoLabel} porque o produto ainda não tem endereço definitivo/padrão. ` +
       "Defina ou movimente para o endereço correto para liberar a operação.",
+    tipo: "OUTRO",
+    fotoUrl: null,
     status: "EM_QUARENTENA",
     statusLabel: "Em quarentena",
     resolutionNotes: "",
@@ -394,6 +412,8 @@ function mapMissingDefaultAddressProduct(row: MissingDefaultAddressProductRow, q
     quantityLabel: quantity.toLocaleString("pt-BR"),
     reason:
       "Produto ativo sem endereço padrão para recebimento. Cadastre o endereço padrão no produto para evitar triagem manual e bloqueios operacionais.",
+    tipo: "OUTRO",
+    fotoUrl: null,
     status: "SEM_ENDERECO_PADRAO",
     statusLabel: "Sem endereço padrão",
     resolutionNotes: "",

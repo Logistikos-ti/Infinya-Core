@@ -4,6 +4,7 @@ import { AddressImportPanel } from "@/components/configuracoes/address-import-pa
 import { EnderecoForm } from "@/components/configuracoes/endereco-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import { EnderecosDashboard } from "@/components/configuracoes/enderecos-dashboard";
 import {
   generateEnderecosAction,
@@ -55,6 +56,13 @@ export default async function ConfiguracoesEnderecosPage({
     (enderecos ?? []).map((endereco) => [
       endereco.id,
       (movementRows ?? [])
+        .filter(
+          (movement) =>
+            !isHiddenLegacyDamageEntry({
+              createdAt: movement.created_at,
+              description: movement.observacoes,
+            }),
+        )
         .filter((movement) => movement.endereco_origem_id === endereco.id || movement.endereco_destino_id === endereco.id)
         .slice(0, 6),
     ]),

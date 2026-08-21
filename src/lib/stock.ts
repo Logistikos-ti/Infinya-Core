@@ -1,6 +1,7 @@
 /* eslint-disable */
 import type { AppUserContext } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
 type ProductRelation =
@@ -274,7 +275,7 @@ export async function listStockMovementsFromDb(filters?: StockFilters, limit: nu
     .from("movimentacoes_estoque")
     .select(STOCK_MOVEMENT_SELECT)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(limit + 50);
 
   if (filters?.depositanteId) {
     query = query.eq("depositante_id", filters.depositanteId);
@@ -283,7 +284,9 @@ export async function listStockMovementsFromDb(filters?: StockFilters, limit: nu
   const { data } = await query;
 
   return ((data ?? []) as RawMovementRow[])
+    .filter((item) => !isHiddenLegacyStockMovement(item))
     .filter((item) => matchesMovementFilters(item, filters))
+    .slice(0, limit)
     .map(mapMovementSummary);
 }
 
@@ -312,7 +315,7 @@ export async function listAllStockMovementsByProductId(productId: string) {
     }
   }
 
-  return rows.map(mapMovementSummary);
+  return rows.filter((item) => !isHiddenLegacyStockMovement(item)).map(mapMovementSummary);
 }
 
 export async function listStockTraceabilityProtocolsFromDb(
@@ -460,7 +463,10 @@ export async function getStockTraceabilityDetailFromDb(stockId: string) {
     .eq("estoque_id", stock.id)
     .order("created_at", { ascending: true });
 
-  const movements = ((movementRows ?? []) as RawMovementRow[]).map((item) => ({
+  const visibleMovementRows = ((movementRows ?? []) as RawMovementRow[]).filter(
+    (item) => !isHiddenLegacyStockMovement(item),
+  );
+  const movements = visibleMovementRows.map((item) => ({
     id: item.id,
     type: formatMovementType(item.tipo),
     quantity: Number(item.quantidade ?? 0).toLocaleString("pt-BR"),
@@ -917,6 +923,14 @@ function normalizeSearch(value: string | null | undefined) {
       .toLocaleLowerCase("pt-BR")
       .trim() ?? ""
   );
+}
+
+function isHiddenLegacyStockMovement(item: RawMovementRow) {
+  return isHiddenLegacyDamageEntry({
+    createdAt: item.created_at,
+    type: item.referencia_tipo,
+    description: item.observacoes,
+  });
 }
 
 function startOfToday() {
