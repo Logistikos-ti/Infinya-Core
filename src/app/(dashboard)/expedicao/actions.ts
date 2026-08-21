@@ -218,8 +218,6 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=erro");
   }
 
-  const isRetirada = String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA";
-
   // Uma retirada só sai do bloqueio quando a NF-e de devolução é validada
   // (a validação move para NOVO) ou quando é cancelada.
   if (
@@ -230,18 +228,9 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
   }
 
-  // Cancelar a retirada devolve ao estoque o saldo reservado na solicitação.
-  if (isRetirada && nextStatus === "CANCELADO" && order.status !== "CANCELADO") {
-    const { error: releaseError } = await adminSupabase.rpc("liberar_reserva_retirada" as never, {
-      p_pedido_id: id,
-      p_motivo: "cancelamento-retirada",
-      p_usuario_id: user.id,
-    } as never);
-
-    if (releaseError) {
-      redirect("/expedicao?feedback=erro-liberar-reserva");
-    }
-  }
+  // O estorno da reserva ao cancelar vem do trigger de status, que chama
+  // `estornar_baixas_separacao` — vale igual para retirada e para venda.
+  // `liberar_reserva_retirada` não é mais chamada aqui.
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const previousHistory = Array.isArray(payload.historicoStatusManual)
@@ -256,16 +245,13 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     alteradoPorPapel: user.papel,
   };
 
-  if (nextStatus === "EM_CONFERENCIA" && order.status !== "EM_CONFERENCIA") {
-    const { error: reservationError } = await adminSupabase.rpc("reservar_pedido_para_conferencia" as never, {
-      p_pedido_id: id,
-      p_usuario_id: user.id,
-    } as never);
-
-    if (reservationError) {
-      redirect(`/expedicao?feedback=erro-reserva-conferencia`);
-    }
-  }
+  // A reserva ao entrar em conferência é garantida pelo trigger
+  // `proteger_transicao_estoque_pedido`, que chama
+  // `reservar_estoque_pedido_criado`. A antiga `reservar_pedido_para_conferencia`
+  // não é mais chamada: além de redundante no modelo de reserva na criação, ela
+  // reservava sem o marcador `reserva-criacao:item:` (o que faria a bipagem
+  // recusar o endereço) e ainda ordenava por uma coluna `validade` que não
+  // existe — a coluna é `validade_em`.
 
   const { error: updateError } = await adminSupabase
     .from("pedidos_expedicao")
@@ -345,24 +331,8 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
       : [];
     const change = { ...changeBase, statusAnterior: order.status };
 
-    if (nextStatus === "EM_CONFERENCIA" && order.status !== "EM_CONFERENCIA") {
-      await adminSupabase.rpc("reservar_pedido_para_conferencia" as never, {
-        p_pedido_id: order.id,
-        p_usuario_id: user.id,
-      } as never);
-    }
-
-    if (
-      String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA" &&
-      nextStatus === "CANCELADO" &&
-      order.status !== "CANCELADO"
-    ) {
-      await adminSupabase.rpc("liberar_reserva_retirada" as never, {
-        p_pedido_id: order.id,
-        p_motivo: "cancelamento-retirada-lote",
-        p_usuario_id: user.id,
-      } as never);
-    }
+    // Idem à alteração individual: quem reserva ao entrar em conferência é o
+    // trigger no banco, não esta action.
 
     return adminSupabase
       .from("pedidos_expedicao")
@@ -987,16 +957,17 @@ async function createXmlShippingOrderSubmission(formData: FormData): Promise<Man
 }
 
 export async function deleteShippingOrderAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  await requireRoleAccess(["ADMIN", "TI"]);
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) redirect("/expedicao?feedback=erro");
 
   const adminSupabase = createSupabaseAdminClient();
 
-  // Excluir uma retirada sem estornar deixaria a reserva órfã travando o saldo
-  // para sempre: movimentacoes_estoque.referencia_id não tem FK para o pedido.
-  await releaseRetiradaReservationsBeforeDelete(adminSupabase, [id], user.id);
+  // O estorno na exclusão é automático: apagar as linhas de
+  // `pedidos_expedicao_itens` dispara
+  // `trg_liberar_reserva_item_pedido_expedicao_delete`, que devolve o saldo
+  // reservado e limpa as bipagens do item. Vale para retirada e para venda.
 
   const { data: documents, error: documentsReadError } = await adminSupabase
     .from("documentos_armazenados")
@@ -1034,7 +1005,7 @@ export async function deleteShippingOrderAction(formData: FormData) {
 }
 
 export async function bulkDeleteShippingOrdersAction(formData: FormData) {
-  const user = await requireRoleAccess(["ADMIN", "TI"]);
+  await requireRoleAccess(["ADMIN", "TI"]);
 
   const rawIds = String(formData.get("ids") ?? "");
   let ids: string[] = [];
@@ -1050,8 +1021,6 @@ export async function bulkDeleteShippingOrdersAction(formData: FormData) {
   if (!ids.length) redirect("/expedicao?feedback=erro");
 
   const adminSupabase = createSupabaseAdminClient();
-
-  await releaseRetiradaReservationsBeforeDelete(adminSupabase, ids, user.id);
 
   const { data: documents, error: documentsReadError } = await adminSupabase
     .from("documentos_armazenados")
@@ -1085,33 +1054,6 @@ export async function bulkDeleteShippingOrdersAction(formData: FormData) {
   revalidatePath("/expedicao/conferidos");
   revalidatePath("/romaneio");
   redirect("/expedicao?feedback=excluidos");
-}
-
-/**
- * Estorna as reservas de estoque das retiradas presentes na lista antes de uma
- * exclusão definitiva. Sem isso o saldo ficaria reservado sem dono, já que
- * `movimentacoes_estoque.referencia_id` não possui FK para `pedidos_expedicao`.
- */
-async function releaseRetiradaReservationsBeforeDelete(
-  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
-  ids: string[],
-  usuarioId: string,
-) {
-  const { data: orders } = await adminSupabase
-    .from("pedidos_expedicao")
-    .select("id, status, tipo_operacao")
-    .in("id", ids);
-
-  for (const order of orders ?? []) {
-    const isRetirada = String(order.tipo_operacao ?? "").toUpperCase() === "RETIRADA";
-    if (!isRetirada || order.status === "EXPEDIDO") continue;
-
-    await adminSupabase.rpc("liberar_reserva_retirada" as never, {
-      p_pedido_id: order.id,
-      p_motivo: "exclusao-retirada",
-      p_usuario_id: usuarioId,
-    } as never);
-  }
 }
 
 function buildManualShippingOrderCode() {

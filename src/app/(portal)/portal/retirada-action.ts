@@ -140,28 +140,25 @@ export async function createRetiradaDepositanteAction(
 
   const orderId = createdOrder.id as string;
 
+  // A reserva do estoque acontece aqui, no INSERT dos itens: o trigger
+  // `trg_reservar_item_pedido_expedicao_insert` chama
+  // `reservar_item_pedido_expedicao` para cada item. Se faltar saldo, ele
+  // levanta a exceção e o INSERT falha, caindo no tratamento abaixo.
+  //
+  // Não chamamos mais `reservar_estoque_retirada`: ela gravava a reserva com
+  // outro marcador em `observacoes`, e a bipagem só aceita
+  // `reserva-criacao:item:<id>:` — a retirada travava na separação com
+  // "Este endereço não possui saldo reservado para o item deste pedido".
+  // Além disso ela não expandia KIT em componentes, como o trigger faz.
   const { error: itemsError } = await adminSupabase
     .from("pedidos_expedicao_itens")
     .insert(itemDrafts.map((item) => ({ pedido_expedicao_id: orderId, ...item })));
 
   if (itemsError) {
     await adminSupabase.from("pedidos_expedicao").delete().eq("id", orderId);
-    return { status: "error", detail: itemsError.message || "Não foi possível gravar os itens da retirada." };
-  }
-
-  // Reserva o saldo imediatamente: a partir daqui o estoque some do disponível
-  // para qualquer outro pedido, até a retirada ser concluída ou cancelada.
-  const { error: reservationError } = await adminSupabase.rpc("reservar_estoque_retirada" as never, {
-    p_pedido_id: orderId,
-    p_usuario_id: user.id,
-  } as never);
-
-  if (reservationError) {
-    await adminSupabase.from("pedidos_expedicao_itens").delete().eq("pedido_expedicao_id", orderId);
-    await adminSupabase.from("pedidos_expedicao").delete().eq("id", orderId);
     return {
       status: "error",
-      detail: reservationError.message || "Saldo disponível insuficiente para atender a retirada.",
+      detail: itemsError.message || "Não foi possível reservar o estoque para a retirada.",
     };
   }
 
