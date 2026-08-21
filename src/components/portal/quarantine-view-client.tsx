@@ -125,10 +125,6 @@ export function QuarantineViewClient({
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {item.sku}
-                            {item.internalCode ? " · " + item.internalCode : ""}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-xs">
-                            {item.reason}
                           </p>
                         </div>
                       </div>
