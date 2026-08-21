@@ -39,6 +39,7 @@ import { PortalIntegrationsView } from "@/components/portal/portal-integrations-
 import { formatDatePtBr } from "@/lib/utils";
 import { listFullShipmentsFromDb } from "@/lib/full-orders";
 import { PortalFullOrdersView } from "@/components/portal/portal-full-orders-view";
+import { PortalDateTime } from "@/components/portal/portal-date-time";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -339,6 +340,7 @@ function DashboardView({
       <PageIntro
         title={`Olá, ${depositanteName} 👋`}
         description="Acompanhe seu estoque no CD Infinoos e envie novos pedidos para expedição."
+        aside={<PortalDateTime />}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -1078,18 +1080,23 @@ function SupportView({
 function PageIntro({
   title,
   description,
+  aside,
 }: {
   title: string;
   description: string;
+  aside?: React.ReactNode;
 }) {
   return (
-    <div className="mb-7">
-      <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
-        {title}
-      </h2>
-      <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-        {description}
-      </p>
+    <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 className="font-display text-[27px] font-bold tracking-tight text-slate-950 dark:text-white">
+          {title}
+        </h2>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+          {description}
+        </p>
+      </div>
+      {aside}
     </div>
   );
 }
