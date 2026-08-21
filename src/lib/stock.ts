@@ -93,6 +93,9 @@ type RawMovementRow = {
   criado_por: UserRelation;
 };
 
+const STOCK_MOVEMENT_SELECT =
+  "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)";
+
 type RawReceivingOrderReference = {
   id: string;
   codigo: string;
@@ -269,9 +272,7 @@ export async function listStockMovementsFromDb(filters?: StockFilters, limit: nu
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("movimentacoes_estoque")
-    .select(
-      "id, depositante_id, tipo, quantidade, created_at, referencia_tipo, referencia_id, observacoes, produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima), endereco_origem:enderecos!movimentacoes_estoque_endereco_origem_id_fkey(codigo, area), endereco_destino:enderecos!movimentacoes_estoque_endereco_destino_id_fkey(codigo, area), estoque:estoque_id(lote, validade_em), criado_por:usuarios(nome)",
-    )
+    .select(STOCK_MOVEMENT_SELECT)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -284,6 +285,34 @@ export async function listStockMovementsFromDb(filters?: StockFilters, limit: nu
   return ((data ?? []) as RawMovementRow[])
     .filter((item) => matchesMovementFilters(item, filters))
     .map(mapMovementSummary);
+}
+
+export async function listAllStockMovementsByProductId(productId: string) {
+  const supabase = createSupabaseAdminClient();
+  const pageSize = 500;
+  const rows: RawMovementRow[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("movimentacoes_estoque")
+      .select(STOCK_MOVEMENT_SELECT)
+      .eq("produto_id", productId)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Não foi possível carregar o histórico do produto: ${error.message}`);
+    }
+
+    const page = (data ?? []) as RawMovementRow[];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows.map(mapMovementSummary);
 }
 
 export async function listStockTraceabilityProtocolsFromDb(

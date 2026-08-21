@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw, LogOut } from "lucide-react";
+import { PackageOpen, X, ArrowRightLeft, ArrowRight, RotateCcw, LogOut, History, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { StockTransferQuickModal } from "./stock-transfer-quick-modal";
@@ -16,6 +15,10 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
   const [showAdjustment, setShowAdjustment] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showManualExit, setShowManualExit] = useState(false);
+  const [showMovementHistory, setShowMovementHistory] = useState(false);
+  const [movementHistory, setMovementHistory] = useState<any[]>([]);
+  const [movementHistoryLoading, setMovementHistoryLoading] = useState(false);
+  const [movementHistoryError, setMovementHistoryError] = useState("");
   
   const skuIdToFind = sku.productId || sku.sku;
   const skuBalances = allBalances.filter(
@@ -68,6 +71,41 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
 
   const formatMovementDateTime = (value: string) => {
     return formatDateTimePtBr(value, "Data não informada");
+  };
+
+  const loadMovementHistory = async () => {
+    if (!sku.productId) {
+      setMovementHistoryError("Não foi possível identificar o produto para carregar o histórico.");
+      return;
+    }
+
+    setMovementHistoryLoading(true);
+    setMovementHistoryError("");
+
+    try {
+      const response = await fetch(
+        `/api/estoque/movimentacoes?produtoId=${encodeURIComponent(sku.productId)}`,
+        { cache: "no-store" },
+      );
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Não foi possível carregar o histórico do produto.");
+      }
+
+      setMovementHistory(Array.isArray(payload?.movements) ? payload.movements : []);
+    } catch (error) {
+      setMovementHistoryError(
+        error instanceof Error ? error.message : "Não foi possível carregar o histórico do produto.",
+      );
+    } finally {
+      setMovementHistoryLoading(false);
+    }
+  };
+
+  const openMovementHistory = () => {
+    setShowMovementHistory(true);
+    void loadMovementHistory();
   };
 
   return (
@@ -187,32 +225,57 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
             </div>
           )}
 
-          {skuMovements.length > 0 && (
+          {(skuMovements.length > 0 || sku.productId) && (
             <div style={{ marginBottom: "22px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>{"Movimenta\u00e7\u00f5es recentes"}</span>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {skuMovements.map((m, i) => {
-                  const colors = getColors(m.type);
-                  return (
-                    <div key={m.id || `${m.createdAt}-${i}`} style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) auto", columnGap: "10px", minHeight: "61px" }}>
-                      <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
-                        {i < skuMovements.length - 1 && <span style={{ position: "absolute", top: "13px", bottom: "-6px", width: "2px", background: t.border }} />}
-                        <span style={{ position: "relative", zIndex: 1, marginTop: "4px", width: "11px", height: "11px", borderRadius: "50%", background: colors.dot, boxShadow: `0 0 0 4px ${colors.halo}` }} />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{movementLabel(m.type)}</span>
-                        <span style={{ fontSize: "11.5px", lineHeight: 1.45, color: t.textSub }}>
-                          {formatMovementDateTime(m.createdAt)} {"\u00b7"} {m.observation || m.reference || "Sem observa\u00e7\u00e3o"}
-                        </span>
-                        <span style={{ fontSize: "11.5px", lineHeight: 1.35, color: t.textSub }}>Operador: {m.operatorName || "Sistema"}</span>
-                      </div>
-                      <span style={{ alignSelf: "start", paddingTop: "1px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "12.5px", fontWeight: 700, color: colors.qtyColor, whiteSpace: "nowrap" }}>
-                        {m.type.includes("TRANSFERENCIA") ? "" : colors.sign}{Number(m.quantity || 0).toLocaleString("pt-BR")} un
-                      </span>
-                    </div>
-                  );
-                })}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "14px", fontWeight: 700, color: t.text }}>Movimentações recentes</span>
+                <button
+                  type="button"
+                  onClick={openMovementHistory}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", minHeight: "34px", padding: "0 12px", borderRadius: "10px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: "12px", fontWeight: 700, cursor: "pointer", transition: "transform .18s ease, border-color .18s ease, box-shadow .18s ease" }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.transform = "translateY(-2px)";
+                    event.currentTarget.style.borderColor = "#6366F1";
+                    event.currentTarget.style.boxShadow = "0 8px 18px rgba(79,70,229,.14)";
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.transform = "translateY(0)";
+                    event.currentTarget.style.borderColor = t.border;
+                    event.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <History size={14} /> Ver mais
+                </button>
               </div>
+              {skuMovements.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {skuMovements.map((m, i) => {
+                    const colors = getColors(m.type);
+                    return (
+                      <div key={m.id || `${m.createdAt}-${i}`} style={{ display: "grid", gridTemplateColumns: "20px minmax(0, 1fr) auto", columnGap: "10px", minHeight: "61px" }}>
+                        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+                          {i < skuMovements.length - 1 && <span style={{ position: "absolute", top: "13px", bottom: "-6px", width: "2px", background: t.border }} />}
+                          <span style={{ position: "relative", zIndex: 1, marginTop: "4px", width: "11px", height: "11px", borderRadius: "50%", background: colors.dot, boxShadow: `0 0 0 4px ${colors.halo}` }} />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 700, color: t.text }}>{movementLabel(m.type)}</span>
+                          <span style={{ fontSize: "11.5px", lineHeight: 1.45, color: t.textSub }}>
+                            {formatMovementDateTime(m.createdAt)} {"\u00b7"} {m.observation || m.reference || "Sem observação"}
+                          </span>
+                          <span style={{ fontSize: "11.5px", lineHeight: 1.35, color: t.textSub }}>Operador: {m.operatorName || "Sistema"}</span>
+                        </div>
+                        <span style={{ alignSelf: "start", paddingTop: "1px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "12.5px", fontWeight: 700, color: colors.qtyColor, whiteSpace: "nowrap" }}>
+                          {m.type.includes("TRANSFERENCIA") ? "" : colors.sign}{Number(m.quantity || 0).toLocaleString("pt-BR")} un
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ padding: "14px", borderRadius: "12px", border: `1px dashed ${t.border}`, color: t.textSub, fontSize: "12px" }}>
+                  Nenhuma movimentação recente carregada. Use <strong>Ver mais</strong> para consultar o histórico completo.
+                </div>
+              )}
             </div>
           )}
 
@@ -257,6 +320,102 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
           </button>
         </div>
       </div>
+
+      {showMovementHistory && (
+        <div
+          onClick={() => setShowMovementHistory(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", background: "rgba(5,9,20,.68)", backdropFilter: "blur(5px)", animation: "overlayFade .2s ease" }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="movement-history-title"
+            onClick={(event) => event.stopPropagation()}
+            style={{ width: "min(760px, 100%)", maxHeight: "min(780px, calc(100vh - 32px))", overflow: "hidden", borderRadius: "20px", border: `1px solid ${t.border}`, background: t.drawerBg, color: t.text, boxShadow: "0 28px 80px rgba(0,0,0,.38)", display: "flex", flexDirection: "column", animation: "drawerIn .25s cubic-bezier(.3,1,.4,1)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "20px 22px", borderBottom: `1px solid ${t.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                <div style={{ width: "42px", height: "42px", borderRadius: "13px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#6366F1", background: "rgba(99,102,241,.12)" }}>
+                  <History size={21} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <h2 id="movement-history-title" style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "18px", fontWeight: 700, color: t.text }}>Histórico de movimentações</h2>
+                  <p style={{ margin: "3px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "12px", color: t.textSub }}>
+                    {sku.productName || sku.sku} · SKU {sku.sku}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                {!movementHistoryLoading && !movementHistoryError && (
+                  <span style={{ padding: "5px 10px", borderRadius: "999px", background: "rgba(99,102,241,.12)", color: "#6366F1", fontSize: "11px", fontWeight: 800 }}>
+                    {movementHistory.length} {movementHistory.length === 1 ? "registro" : "registros"}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-label="Fechar histórico"
+                  onClick={() => setShowMovementHistory(false)}
+                  style={{ width: "38px", height: "38px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.cardBg, color: t.textSub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
+              {movementHistoryLoading ? (
+                <div style={{ minHeight: "280px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", color: t.textSub }}>
+                  <Loader2 size={30} className="animate-spin" style={{ color: "#6366F1" }} />
+                  <span style={{ fontSize: "13px", fontWeight: 600 }}>Carregando todas as movimentações...</span>
+                </div>
+              ) : movementHistoryError ? (
+                <div style={{ minHeight: "280px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", textAlign: "center" }}>
+                  <div style={{ maxWidth: "480px", padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(239,68,68,.35)", background: "rgba(239,68,68,.08)", color: "#EF4444", fontSize: "13px", lineHeight: 1.5 }}>
+                    {movementHistoryError}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadMovementHistory()}
+                    style={{ minHeight: "40px", padding: "0 17px", borderRadius: "11px", border: "none", background: "linear-gradient(135deg,#3B82F6,#8B5CF6)", color: "#fff", fontSize: "13px", fontWeight: 800, cursor: "pointer" }}
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : movementHistory.length === 0 ? (
+                <div style={{ minHeight: "280px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", textAlign: "center", color: t.textSub }}>
+                  <History size={34} style={{ opacity: .55 }} />
+                  <strong style={{ color: t.text }}>Nenhuma movimentação encontrada</strong>
+                  <span style={{ fontSize: "12px" }}>Este produto ainda não possui movimentações registradas.</span>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {movementHistory.map((movement, index) => {
+                    const colors = getColors(movement.type);
+                    return (
+                      <div key={movement.id || `${movement.createdAt}-${index}`} style={{ display: "grid", gridTemplateColumns: "24px minmax(0,1fr) auto", columnGap: "12px", minHeight: "76px" }}>
+                        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+                          {index < movementHistory.length - 1 && <span style={{ position: "absolute", top: "14px", bottom: "-7px", width: "2px", background: t.border }} />}
+                          <span style={{ position: "relative", zIndex: 1, marginTop: "5px", width: "12px", height: "12px", borderRadius: "50%", background: colors.dot, boxShadow: `0 0 0 4px ${colors.halo}` }} />
+                        </div>
+                        <div style={{ minWidth: 0, paddingBottom: "18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "13.5px", fontWeight: 700, color: t.text }}>{movementLabel(movement.type)}</span>
+                          <span style={{ fontSize: "12px", lineHeight: 1.5, color: t.textSub }}>
+                            {formatMovementDateTime(movement.createdAt)} · {movement.observation || movement.reference || "Sem observação"}
+                          </span>
+                          <span style={{ fontSize: "11.5px", color: t.textSub }}>Operador: {movement.operatorName || "Sistema"}</span>
+                        </div>
+                        <span style={{ paddingTop: "2px", fontFamily: "'Space Grotesk', sans-serif", fontSize: "13px", fontWeight: 800, color: colors.qtyColor, whiteSpace: "nowrap" }}>
+                          {movement.type.includes("TRANSFERENCIA") ? "" : colors.sign}{Number(movement.quantity || 0).toLocaleString("pt-BR")} un
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTransfer && (
         <StockTransferQuickModal

@@ -1,5 +1,52 @@
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
+import { listAllStockMovementsByProductId } from "@/lib/stock";
 import { transferStockBalance } from "@/lib/stock-transfer";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+export async function GET(request: Request) {
+  const auth = await requireApiModuleAccess("estoque");
+
+  if (auth.response) {
+    return auth.response;
+  }
+
+  const productId = new URL(request.url).searchParams.get("produtoId")?.trim();
+
+  if (!productId) {
+    return Response.json({ error: "Informe o produto para consultar o histórico." }, { status: 400 });
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data: product, error } = await supabase
+    .from("produtos")
+    .select("id, depositante_id")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (error || !product) {
+    return Response.json({ error: "Produto não encontrado." }, { status: 404 });
+  }
+
+  const scopeError = ensureUserCanAccessDepositante(auth.user, product.depositante_id);
+  if (scopeError) {
+    return scopeError;
+  }
+
+  try {
+    const movements = await listAllStockMovementsByProductId(productId);
+    return Response.json({ movements });
+  } catch (queryError) {
+    return Response.json(
+      {
+        error:
+          queryError instanceof Error
+            ? queryError.message
+            : "Não foi possível carregar o histórico do produto.",
+      },
+      { status: 500 },
+    );
+  }
+}
 
 export async function POST(request: Request) {
   const auth = await requireApiModuleAccess("estoque");
