@@ -15,6 +15,7 @@ import {
 } from "@/lib/bling";
 import type { DepositanteBlingConfig } from "@/lib/depositantes";
 import { listShippingOrderDocumentTypes, storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
+import { replaceShippingOrderItems } from "@/lib/shipping-order-items-replacement";
 
 type ProductLookupRow = {
   id: string;
@@ -220,50 +221,38 @@ async function upsertShippingOrder({
     throw new Error(saveOrderError?.message ?? "Não foi possível salvar o pedido de expedição.");
   }
 
-  const { error: deleteItemsError } = await adminSupabase
-    .from("pedidos_expedicao_itens")
-    .delete()
-    .eq("pedido_expedicao_id", savedOrder.id);
-
-  if (deleteItemsError) {
-    throw new Error(deleteItemsError.message);
-  }
-
-  if (saleOrder.itens.length) {
-    const itemsPayload = saleOrder.itens.map((item, index) => {
-      const matchedProductByCode = matchProductByCode(productsByCode, item.codigo, item.gtin);
-      const resolvedMatch = resolveCommercialKitMatch({
-        itemCode: item.codigo,
-        itemDescription: item.descricao,
-        existingPayload: item.payload,
-        matchedProductByCode,
-        rules: commercialKitRules,
-      });
-      const matchedProduct = resolvedMatch.matchedProduct;
-
-      return {
-        pedido_expedicao_id: savedOrder.id,
-        depositante_id: depositanteId,
-        referencia_externa: item.id ?? `${saleOrder.id}-${index + 1}`,
-        produto_id: matchedProduct?.id ?? null,
-        codigo_produto: item.codigo,
-        sku: matchedProduct?.sku ?? item.codigo,
-        nome: item.descricao ?? matchedProduct?.nome ?? `Item ${index + 1}`,
-        unidade: item.unidade,
-        quantidade: item.quantidade,
-        quantidade_separada: 0,
-        payload_origem: resolvedMatch.payload,
-      };
+  const itemsPayload = saleOrder.itens.map((item, index) => {
+    const matchedProductByCode = matchProductByCode(productsByCode, item.codigo, item.gtin);
+    const resolvedMatch = resolveCommercialKitMatch({
+      itemCode: item.codigo,
+      itemDescription: item.descricao,
+      existingPayload: item.payload,
+      matchedProductByCode,
+      rules: commercialKitRules,
     });
+    const matchedProduct = resolvedMatch.matchedProduct;
 
-    const { error: insertItemsError } = await adminSupabase
-      .from("pedidos_expedicao_itens")
-      .insert(itemsPayload);
+    return {
+      pedido_expedicao_id: savedOrder.id,
+      depositante_id: depositanteId,
+      referencia_externa: item.id ?? `${saleOrder.id}-${index + 1}`,
+      produto_id: matchedProduct?.id ?? null,
+      codigo_produto: item.codigo,
+      sku: matchedProduct?.sku ?? item.codigo,
+      nome: item.descricao ?? matchedProduct?.nome ?? `Item ${index + 1}`,
+      unidade: item.unidade,
+      quantidade: item.quantidade,
+      quantidade_separada: 0,
+      payload_origem: resolvedMatch.payload,
+    };
+  });
 
-    if (insertItemsError) {
-      throw new Error(insertItemsError.message);
-    }
-  }
+  await replaceShippingOrderItems({
+    adminSupabase,
+    orderId: savedOrder.id,
+    items: itemsPayload,
+    removeNewOrderOnFailure: isNewOrder,
+  });
 
   const attachmentSummary = await syncShippingOrderAttachments({
     adminSupabase,
