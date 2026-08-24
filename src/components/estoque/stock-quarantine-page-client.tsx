@@ -33,6 +33,16 @@ type StockQuarantinePageClientProps = {
 
 type TableMode = "status" | "pending-addressing";
 
+function formatQuarantineType(tipo: string) {
+  const normalizedType = tipo.trim().toUpperCase();
+
+  if (normalizedType === "AVARIA") return "Avaria";
+  if (normalizedType === "RECEBIMENTO") return "Recebimento";
+  if (normalizedType === "DEVOLUCAO" || normalizedType === "DEVOLUÇÃO") return "Devolução";
+
+  return "Outro";
+}
+
 export function StockQuarantinePageClient({
   depositantes,
   items,
@@ -324,7 +334,7 @@ export function StockQuarantinePageClient({
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
             <thead style={{ background: t.headBg }}>
               <tr>
-                {["Produto", "Depositante", "Endereço", "Qtd.", "Status", "Registro"].map((header) => (
+                {["Produto", "Tipo", "Depositante", "Endereço", "Qtd.", "Status", "Registro"].map((header) => (
                   <th
                     key={header}
                     style={{
@@ -380,6 +390,9 @@ export function StockQuarantinePageClient({
                       </div>
                     </div>
                   </td>
+                  <td style={{ padding: 16, fontSize: 13, fontWeight: 700 }}>
+                    {formatQuarantineType(item.tipo)}
+                  </td>
                   <td style={{ padding: 16, fontSize: 13, color: t.textSub }}>{item.depositante}</td>
                   <td style={{ padding: 16, fontSize: 13 }}>
                     <strong>{item.endereco}</strong>
@@ -399,7 +412,7 @@ export function StockQuarantinePageClient({
               ))}
               {displayItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
+                  <td colSpan={7} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
                     {tableMode === "pending-addressing"
                       ? "Nenhum produto sem endereço padrão para recebimento."
                       : "Nenhum item encontrado para os filtros atuais."}
