@@ -3,8 +3,9 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArchiveRestore,
+  CheckCircle2,
   Eye,
+  LoaderCircle,
   PackageOpen,
   ShieldAlert,
   Trash2,
@@ -29,7 +30,7 @@ type StockQuarantinePageClientProps = {
   initialStatus: string;
   initialQuery: string;
   canSelectDepositante: boolean;
-  canResolve: boolean;
+  canConfirm: boolean;
 };
 
 type TableMode = "status" | "pending-addressing";
@@ -52,18 +53,19 @@ export function StockQuarantinePageClient({
   initialStatus,
   initialQuery,
   canSelectDepositante,
-  canResolve,
+  canConfirm,
 }: StockQuarantinePageClientProps) {
   const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [depositanteId, setDepositanteId] = useState(initialDepositanteId);
   const [status, setStatus] = useState(initialStatus);
   const [query, setQuery] = useState(initialQuery);
   const [tableMode, setTableMode] = useState<TableMode>("status");
   const [selectedItem, setSelectedItem] = useState<StockQuarantineItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -151,29 +153,38 @@ export function StockQuarantinePageClient({
     });
   }
 
-  async function resolveQuarantine(id: string, action: "release" | "discard") {
-    setFeedback(null);
-    const response = await fetch(`/api/estoque/quarentena/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    const payload = await response.json().catch(() => ({}));
+  async function confirmQuarantine(item: StockQuarantineItem) {
+    if (isConfirming) return;
 
-    if (!response.ok) {
+    setFeedback(null);
+    setIsConfirming(true);
+
+    try {
+      const response = await fetch(`/api/estoque/quarentena/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm" }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Não foi possível confirmar a execução.");
+      }
+
+      setFeedback({
+        type: "success",
+        message: payload.message || "Execução física confirmada.",
+      });
+      setSelectedItem(null);
+      router.refresh();
+    } catch (error) {
       setFeedback({
         type: "error",
-        message: payload.error || "Não foi possível atualizar a quarentena.",
+        message: error instanceof Error ? error.message : "Não foi possível confirmar a execução.",
       });
-      return;
+    } finally {
+      setIsConfirming(false);
     }
-
-    setFeedback({
-      type: "success",
-      message: action === "release" ? "Saldo liberado para estoque." : "Saldo descartado da quarentena.",
-    });
-    setSelectedItem((current) => (current?.id === id ? null : current));
-    router.refresh();
   }
 
   return (
@@ -547,28 +558,7 @@ export function StockQuarantinePageClient({
 
               <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Ações</p>
-                {selectedItem.status === "EM_QUARENTENA" && canResolve ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => resolveQuarantine(selectedItem.id, "release")}
-                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-extrabold text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-                    >
-                      <ArchiveRestore size={16} />
-                      Liberar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => resolveQuarantine(selectedItem.id, "discard")}
-                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-extrabold text-rose-700 transition hover:-translate-y-0.5 hover:border-rose-400 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
-                    >
-                      <Trash2 size={16} />
-                      Descartar
-                    </button>
-                  </div>
-                ) : selectedItem.isMissingDefaultAddress ? (
+                {selectedItem.isMissingDefaultAddress ? (
                   <button
                     type="button"
                     onClick={() => router.push(`/configuracoes/produtos/${selectedItem.productId}/editar`)}
@@ -576,6 +566,60 @@ export function StockQuarantinePageClient({
                   >
                     Editar Produto
                   </button>
+                ) : selectedItem.status === "EM_QUARENTENA" && selectedItem.depositanteDecision ? (
+                  <div className="space-y-3">
+                    <div
+                      className={`rounded-2xl border p-4 ${
+                        selectedItem.depositanteDecision === "DOAR"
+                          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10"
+                          : "border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10"
+                      }`}
+                    >
+                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                        Decisão do depositante
+                      </p>
+                      <p className="mt-1 text-base font-extrabold text-slate-950 dark:text-white">
+                        {selectedItem.depositanteDecisionLabel}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                        {selectedItem.depositanteDecisionBy || "Depositante"}
+                        {selectedItem.depositanteDecisionAtLabel
+                          ? ` em ${selectedItem.depositanteDecisionAtLabel}`
+                          : ""}
+                      </p>
+                      {selectedItem.depositanteDecisionNotes ? (
+                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
+                          {selectedItem.depositanteDecisionNotes}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    {canConfirm ? (
+                      <button
+                        type="button"
+                        disabled={isConfirming}
+                        onClick={() => confirmQuarantine(selectedItem)}
+                        className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 ${
+                          selectedItem.depositanteDecision === "DOAR"
+                            ? "bg-emerald-600 hover:bg-emerald-700"
+                            : "bg-rose-600 hover:bg-rose-700"
+                        }`}
+                      >
+                        {isConfirming ? (
+                          <LoaderCircle size={17} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={17} />
+                        )}
+                        {selectedItem.depositanteDecision === "DOAR"
+                          ? "Confirmar que foi doado / liberado"
+                          : "Confirmar que foi descartado"}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : selectedItem.status === "EM_QUARENTENA" ? (
+                  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                    Aguardando o depositante decidir entre doar/liberar ou descartar. O operador não pode definir este destino.
+                  </p>
                 ) : (
                   <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-300">
                     Sem ação pendente para este item.

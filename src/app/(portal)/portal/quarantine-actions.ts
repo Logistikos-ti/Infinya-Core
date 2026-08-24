@@ -1,19 +1,17 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { resolveStockQuarantine } from "@/lib/stock-quarantine";
+import { recordStockQuarantineDecision } from "@/lib/stock-quarantine";
 
 export async function discardPortalQuarantine(quarantineId: string) {
-  const supabase = createSupabaseServerClient();
-  const auth = await supabase.auth.getUser();
+  const user = await requireRoleAccess(["DEPOSITANTE"]);
 
-  if (!auth.data.user) {
-    return { error: "Não autenticado." };
+  if (user.portalProfile !== "GESTOR") {
+    return { error: "Somente o gestor do depositante pode decidir o destino da quarentena." };
   }
 
-  // Ensure user can access this quarantine record
   const adminSupabase = createSupabaseAdminClient();
   const { data: qRecord } = await adminSupabase
     .from("estoque_quarentena")
@@ -24,22 +22,29 @@ export async function discardPortalQuarantine(quarantineId: string) {
   if (!qRecord) {
     return { error: "Registro não encontrado." };
   }
-  
+
+  if (!user.depositanteId || qRecord.depositante_id !== user.depositanteId) {
+    return { error: "Este registro não pertence ao seu depositante." };
+  }
+
   if (qRecord.status !== "EM_QUARENTENA") {
     return { error: "Esta quarentena já foi resolvida." };
   }
-  
+
   try {
-    await resolveStockQuarantine({
+    await recordStockQuarantineDecision({
       quarantineId,
-      action: "discard",
-      userId: auth.data.user.id,
-      observations: "Descartado pelo depositante via portal",
+      decision: "DESCARTAR",
+      userId: user.id,
+      observations: "Descarte autorizado pelo depositante via portal",
     });
 
     revalidatePath("/portal");
-    return { success: true };
+    return {
+      success: true,
+      detail: "Descarte autorizado. Aguardando confirmação física do operador logístico.",
+    };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Falha ao descartar item." };
+    return { error: error instanceof Error ? error.message : "Falha ao registrar a decisão." };
   }
 }

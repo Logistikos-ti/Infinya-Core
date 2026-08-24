@@ -16,6 +16,9 @@ type QuarantineRow = {
   tipo: string | null;
   foto_url: string | null;
   status: string;
+  decisao_depositante: string | null;
+  decisao_observacoes: string | null;
+  decisao_em: string | null;
   resolucao_observacoes: string | null;
   created_at: string;
   resolved_at: string | null;
@@ -28,6 +31,7 @@ type QuarantineRow = {
   }>;
   endereco: Relation<{ codigo?: string | null; area?: string | null }>;
   criado_por: Relation<{ nome?: string | null }>;
+  decisao_por: Relation<{ nome?: string | null }>;
   resolvido_por: Relation<{ nome?: string | null }>;
 };
 
@@ -88,6 +92,12 @@ export type StockQuarantineItem = {
   fotoUrl: string | null;
   status: string;
   statusLabel: string;
+  depositanteDecision: "DOAR" | "DESCARTAR" | "";
+  depositanteDecisionLabel: string;
+  depositanteDecisionNotes: string;
+  depositanteDecisionAt: string | null;
+  depositanteDecisionAtLabel: string;
+  depositanteDecisionBy: string;
   resolutionNotes: string;
   createdAt: string;
   createdAtLabel: string;
@@ -137,7 +147,7 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
     let query = supabase
       .from("estoque_quarentena")
       .select(
-        "id, depositante_id, produto_id, estoque_id, endereco_id, quantidade, motivo, tipo, foto_url, status, resolucao_observacoes, created_at, resolved_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area), criado_por:usuarios!estoque_quarentena_criado_por_fkey(nome), resolvido_por:usuarios!estoque_quarentena_resolvido_por_fkey(nome)",
+        "id, depositante_id, produto_id, estoque_id, endereco_id, quantidade, motivo, tipo, foto_url, status, decisao_depositante, decisao_observacoes, decisao_em, resolucao_observacoes, created_at, resolved_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area), criado_por:usuarios!estoque_quarentena_criado_por_fkey(nome), decisao_por:usuarios!estoque_quarentena_decisao_por_fkey(nome), resolvido_por:usuarios!estoque_quarentena_resolvido_por_fkey(nome)",
       )
       .order("created_at", { ascending: false });
 
@@ -148,22 +158,37 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
     const { data, error } = await query;
 
     if (error) {
+      if (
+        error.code === "42703" ||
+        error.message.includes("decisao_depositante") ||
+        error.message.includes("estoque_quarentena_decisao_por_fkey")
+      ) {
+        let legacyQuery = supabase
+          .from("estoque_quarentena")
+          .select(
+            "id, depositante_id, produto_id, estoque_id, endereco_id, quantidade, motivo, tipo, foto_url, status, resolucao_observacoes, created_at, resolved_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, imagem_principal_url), endereco:enderecos(codigo, area), criado_por:usuarios!estoque_quarentena_criado_por_fkey(nome), resolvido_por:usuarios!estoque_quarentena_resolvido_por_fkey(nome)",
+          )
+          .order("created_at", { ascending: false });
+
+        if (filters?.depositanteId) {
+          legacyQuery = legacyQuery.eq("depositante_id", filters.depositanteId);
+        }
+
+        const { data: legacyData, error: legacyError } = await legacyQuery;
+        if (legacyError) {
+          throw new Error(`Nao foi possivel carregar a quarentena: ${legacyError.message}`);
+        }
+
+        return mapFormalQuarantineRows((legacyData ?? []) as unknown as QuarantineRow[]);
+      }
+
       if (error.code === "42P01" || error.message.includes("schema cache")) {
         return [];
       }
       throw new Error(`Nao foi possivel carregar a quarentena: ${error.message}`);
     }
 
-    return ((data ?? []) as QuarantineRow[])
-      .filter(
-        (row) =>
-          !isHiddenLegacyDamageEntry({
-            createdAt: row.created_at,
-            type: row.tipo,
-            description: row.motivo,
-          }),
-      )
-      .map(mapQuarantineRow);
+    return mapFormalQuarantineRows((data ?? []) as QuarantineRow[]);
   } catch (error) {
     if (error instanceof Error && error.message.includes("schema cache")) return [];
     throw error;
@@ -300,14 +325,14 @@ export async function resolveStockQuarantine({
   observations,
 }: {
   quarantineId: string;
-  action: "release" | "discard";
+  action: "donate" | "discard";
   userId: string;
   observations?: string;
 }) {
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.rpc("resolver_quarentena_estoque", {
     p_quarentena_id: quarantineId,
-    p_acao: action === "release" ? "LIBERAR" : "DESCARTAR",
+    p_acao: action === "donate" ? "DOAR" : "DESCARTAR",
     p_usuario_id: userId,
     p_observacoes: observations ?? null,
   });
@@ -317,14 +342,56 @@ export async function resolveStockQuarantine({
   }
 }
 
+function mapFormalQuarantineRows(rows: QuarantineRow[]) {
+  return rows
+    .filter(
+      (row) =>
+        !isHiddenLegacyDamageEntry({
+          createdAt: row.created_at,
+          type: row.tipo,
+          description: row.motivo,
+        }),
+    )
+    .map(mapQuarantineRow);
+}
+
+export async function recordStockQuarantineDecision({
+  quarantineId,
+  decision,
+  userId,
+  observations,
+}: {
+  quarantineId: string;
+  decision: "DOAR" | "DESCARTAR";
+  userId: string;
+  observations?: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.rpc("registrar_decisao_quarentena", {
+    p_quarentena_id: quarantineId,
+    p_decisao: decision,
+    p_usuario_id: userId,
+    p_observacoes: observations ?? null,
+  });
+
+  if (error) {
+    throw new Error(error.message || "Nao foi possivel registrar a decisao da quarentena.");
+  }
+}
+
 function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
   const quantity = Number(row.quantidade ?? 0);
   const product = firstRelation(row.produto);
   const depositante = firstRelation(row.depositante);
   const endereco = firstRelation(row.endereco);
   const createdBy = firstRelation(row.criado_por);
+  const decisionBy = firstRelation(row.decisao_por);
   const resolvedBy = firstRelation(row.resolvido_por);
   const tipo = inferQuarantineType(row.tipo, row.motivo);
+  const decision =
+    row.decisao_depositante === "DOAR" || row.decisao_depositante === "DESCARTAR"
+      ? row.decisao_depositante
+      : "";
 
   return {
     id: row.id,
@@ -345,7 +412,19 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
     tipo,
     fotoUrl: row.foto_url ?? null,
     status: row.status,
-    statusLabel: formatStatus(row.status),
+    statusLabel:
+      row.status === "EM_QUARENTENA" && decision
+        ? "Aguardando confirmação"
+        : row.status === "LIBERADO" && decision === "DOAR"
+          ? "Doado / liberado"
+          : formatStatus(row.status),
+    depositanteDecision: decision,
+    depositanteDecisionLabel:
+      decision === "DOAR" ? "Doar / liberar" : decision === "DESCARTAR" ? "Descartar" : "",
+    depositanteDecisionNotes: row.decisao_observacoes?.trim() || "",
+    depositanteDecisionAt: row.decisao_em,
+    depositanteDecisionAtLabel: row.decisao_em ? formatDateTimePtBr(row.decisao_em) : "",
+    depositanteDecisionBy: decisionBy?.nome?.trim() || "",
     resolutionNotes: row.resolucao_observacoes?.trim() || "",
     createdAt: row.created_at,
     createdAtLabel: formatDateTimePtBr(row.created_at),
@@ -395,6 +474,12 @@ function mapPendingAddressingHold(row: PendingAddressingStockRow): StockQuaranti
     fotoUrl: null,
     status: "EM_QUARENTENA",
     statusLabel: "Em quarentena",
+    depositanteDecision: "",
+    depositanteDecisionLabel: "",
+    depositanteDecisionNotes: "",
+    depositanteDecisionAt: null,
+    depositanteDecisionAtLabel: "",
+    depositanteDecisionBy: "",
     resolutionNotes: "",
     createdAt,
     createdAtLabel: formatDateTimePtBr(createdAt),
@@ -432,6 +517,12 @@ function mapMissingDefaultAddressProduct(row: MissingDefaultAddressProductRow, q
     fotoUrl: null,
     status: "SEM_ENDERECO_PADRAO",
     statusLabel: "Sem endereço padrão",
+    depositanteDecision: "",
+    depositanteDecisionLabel: "",
+    depositanteDecisionNotes: "",
+    depositanteDecisionAt: null,
+    depositanteDecisionAtLabel: "",
+    depositanteDecisionBy: "",
     resolutionNotes: "",
     createdAt,
     createdAtLabel: row.created_at ? formatDateTimePtBr(row.created_at) : "Cadastro sem data",

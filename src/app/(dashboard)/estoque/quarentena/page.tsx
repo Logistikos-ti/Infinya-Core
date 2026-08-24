@@ -57,7 +57,7 @@ export default async function StockQuarantinePage({
       initialStatus={status}
       initialQuery={productTerm}
       canSelectDepositante={canManageMultipleTenants(user)}
-      canResolve={isAdminUser(user) || user.papel === "TI" || user.papel === "OPERADOR"}
+      canConfirm={isAdminUser(user) || user.papel === "TI" || user.papel === "OPERADOR"}
     />
   );
 }

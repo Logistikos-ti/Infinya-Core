@@ -1,15 +1,19 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
   CalendarClock,
   Camera,
   Eye,
+  Gift,
+  LoaderCircle,
   MapPin,
   Package,
   ShieldAlert,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -17,11 +21,16 @@ import type { LucideIcon } from "lucide-react";
 
 export function QuarantineViewClient({
   quarantine,
+  canDecide,
 }: {
   quarantine: any[];
+  canDecide: boolean;
 }) {
+  const router = useRouter();
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"DOAR" | "DESCARTAR" | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const activeItems = quarantine.filter((item) => item.status === "EM_QUARENTENA");
   const discardedItems = quarantine.filter((item) => item.status === "DESCARTADO");
@@ -31,6 +40,48 @@ export function QuarantineViewClient({
     if (tipo === "AVARIA") return "Avaria";
     if (tipo === "RECEBIMENTO") return "Recebimento";
     return "Outro";
+  }
+
+  async function decideQuarantine(decision: "DOAR" | "DESCARTAR") {
+    if (!selectedItem || pendingAction) return;
+
+    setFeedback(null);
+    setPendingAction(decision);
+
+    try {
+      const response = await fetch(`/api/estoque/quarentena/${selectedItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: decision === "DOAR" ? "decide_donate" : "decide_discard",
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Não foi possível registrar a decisão.");
+      }
+
+      setSelectedItem((current: any) =>
+        current
+          ? {
+              ...current,
+              depositanteDecision: decision,
+              depositanteDecisionLabel: decision === "DOAR" ? "Doar / liberar" : "Descartar",
+              statusLabel: "Aguardando confirmação",
+            }
+          : current,
+      );
+      setFeedback({ type: "success", message: payload.message || "Decisão registrada com sucesso." });
+      router.refresh();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Não foi possível registrar a decisão.",
+      });
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   return (
@@ -144,7 +195,10 @@ export function QuarantineViewClient({
                     <td className="px-5 py-4 text-right">
                       <button
                         type="button"
-                        onClick={() => setSelectedItem(item)}
+                        onClick={() => {
+                          setFeedback(null);
+                          setSelectedItem(item);
+                        }}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 hover:shadow-sm dark:border-white/10 dark:text-slate-400 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
                         title="Visualizar quarentena"
                         aria-label={`Visualizar quarentena de ${item.productName}`}
@@ -209,6 +263,18 @@ export function QuarantineViewClient({
             </div>
 
             <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+              {feedback ? (
+                <div
+                  className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+                    feedback.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                      : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                  }`}
+                >
+                  {feedback.message}
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-3 gap-3">
                 <DetailCard label="Tipo" value={getTipoLabel(selectedItem.tipo)} />
                 <DetailCard label="Quantidade" value={`${selectedItem.quantityLabel} un`} />
@@ -278,6 +344,61 @@ export function QuarantineViewClient({
                   </div>
                 )}
               </DrawerSection>
+
+              {selectedItem.status === "EM_QUARENTENA" && !selectedItem.isSystemHold ? (
+                <DrawerSection icon={ShieldAlert} title="Decisão do depositante">
+                  <div className="space-y-3">
+                    {selectedItem.depositanteDecision ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+                        <p className="text-xs font-bold uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">
+                          Decisão registrada
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-amber-900 dark:text-amber-100">
+                          {selectedItem.depositanteDecisionLabel}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-amber-700 dark:text-amber-300">
+                          Aguardando a confirmação física do operador logístico.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                        Defina o destino do item. O saldo continuará bloqueado até o operador confirmar a execução.
+                      </p>
+                    )}
+
+                    {canDecide ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          disabled={pendingAction !== null}
+                          onClick={() => decideQuarantine("DOAR")}
+                          className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 ${
+                            selectedItem.depositanteDecision === "DOAR"
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                          }`}
+                        >
+                          {pendingAction === "DOAR" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+                          Doar / liberar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pendingAction !== null}
+                          onClick={() => decideQuarantine("DESCARTAR")}
+                          className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-bold transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 ${
+                            selectedItem.depositanteDecision === "DESCARTAR"
+                              ? "border-rose-500 bg-rose-500 text-white"
+                              : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                          }`}
+                        >
+                          {pendingAction === "DESCARTAR" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          Descartar
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </DrawerSection>
+              ) : null}
             </div>
           </aside>
         </div>
