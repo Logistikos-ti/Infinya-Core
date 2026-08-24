@@ -59,6 +59,60 @@ const manualShippingOrderStatuses = new Set([
   "CANCELADO",
 ]);
 
+const reservationStatuses = new Set([
+  "NOVO",
+  "EM_SEPARACAO",
+  "SEPARADO",
+  "EM_CONFERENCIA",
+]);
+
+function buildManualStatusPayload(input: {
+  payload: Record<string, unknown>;
+  previousStatus: string;
+  nextStatus: string;
+  user: { id: string; nome: string; papel: string };
+}) {
+  const { payload, previousStatus, nextStatus, user } = input;
+  const previousHistory = Array.isArray(payload.historicoStatusManual)
+    ? payload.historicoStatusManual
+    : [];
+  const change = {
+    statusAnterior: previousStatus,
+    statusNovo: nextStatus,
+    alteradoEm: new Date().toISOString(),
+    alteradoPorId: user.id,
+    alteradoPorNome: user.nome,
+    alteradoPorPapel: user.papel,
+  };
+  const reopening = previousStatus === "CANCELADO" && reservationStatuses.has(nextStatus);
+
+  if (!reopening) {
+    return {
+      ...payload,
+      ultimoAjusteStatusManual: change,
+      historicoStatusManual: [...previousHistory, change],
+    };
+  }
+
+  const previousPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  return {
+    ...payload,
+    divergenciaTratada: true,
+    divergenciaTratadaEm: change.alteradoEm,
+    divergenciaTratadaPor: user.id,
+    divergenciaTratadaPorNome: user.nome,
+    separacao: {
+      ...previousPicking,
+      cancelado: false,
+      reabertoEm: change.alteradoEm,
+      reabertoPor: user.id,
+      reabertoPorNome: user.nome,
+    },
+    ultimoAjusteStatusManual: change,
+    historicoStatusManual: [...previousHistory, change],
+  };
+}
+
 class ManualShippingOrderSubmissionError extends Error {
   constructor(
     readonly feedback: string,
@@ -233,17 +287,29 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
   // `liberar_reserva_retirada` não é mais chamada aqui.
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  const previousHistory = Array.isArray(payload.historicoStatusManual)
-    ? payload.historicoStatusManual
-    : [];
-  const change = {
-    statusAnterior: order.status,
-    statusNovo: nextStatus,
-    alteradoEm: new Date().toISOString(),
-    alteradoPorId: user.id,
-    alteradoPorNome: user.nome,
-    alteradoPorPapel: user.papel,
-  };
+  const nextPayload = buildManualStatusPayload({
+    payload,
+    previousStatus: order.status,
+    nextStatus,
+    user,
+  });
+  const reopeningCancelledOrder =
+    order.status === "CANCELADO" && reservationStatuses.has(nextStatus);
+
+  if (reopeningCancelledOrder) {
+    const [waveCleanup, scanCleanup, itemReset] = await Promise.all([
+      adminSupabase.from("ondas_separacao_pedidos").delete().eq("pedido_expedicao_id", id),
+      adminSupabase.from("bipagens_separacao").delete().eq("pedido_expedicao_id", id),
+      adminSupabase
+        .from("pedidos_expedicao_itens")
+        .update({ quantidade_separada: 0 })
+        .eq("pedido_expedicao_id", id),
+    ]);
+
+    if (waveCleanup.error || scanCleanup.error || itemReset.error) {
+      redirect("/expedicao?feedback=erro");
+    }
+  }
 
   // A reserva ao entrar em conferência é garantida pelo trigger
   // `proteger_transicao_estoque_pedido`, que chama
@@ -257,16 +323,29 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     .from("pedidos_expedicao")
     .update({
       status: nextStatus,
-      payload_origem: {
-        ...payload,
-        ultimoAjusteStatusManual: change,
-        historicoStatusManual: [...previousHistory, change],
-      },
+      payload_origem: nextPayload,
     })
     .eq("id", id);
 
   if (updateError) {
     redirect("/expedicao?feedback=erro");
+  }
+
+  // This fallback protects deployments while the database migration that
+  // makes reopening atomic is still rolling out. Once the trigger is active,
+  // the RPC is idempotent and simply finds the reservation already complete.
+  if (reopeningCancelledOrder) {
+    const { error: reservationError } = await adminSupabase.rpc(
+      "reservar_estoque_pedido_criado" as never,
+      { p_pedido_id: id, p_usuario_id: user.id } as never,
+    );
+    if (reservationError) {
+      await adminSupabase
+        .from("pedidos_expedicao")
+        .update({ status: "CANCELADO", payload_origem: payload })
+        .eq("id", id);
+      redirect("/expedicao?feedback=reserva-insuficiente");
+    }
   }
 
   revalidatePath("/expedicao");
@@ -316,20 +395,37 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
   }
 
-  const changeBase = {
-    statusNovo: nextStatus,
-    alteradoEm: new Date().toISOString(),
-    alteradoPorId: user.id,
-    alteradoPorNome: user.nome,
-    alteradoPorPapel: user.papel,
-  };
-
   const updatePromises = orders.map(async (order) => {
     const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-    const previousHistory = Array.isArray(payload.historicoStatusManual)
-      ? payload.historicoStatusManual
-      : [];
-    const change = { ...changeBase, statusAnterior: order.status };
+    const nextPayload = buildManualStatusPayload({
+      payload,
+      previousStatus: order.status,
+      nextStatus,
+      user,
+    });
+    const reopeningCancelledOrder =
+      order.status === "CANCELADO" && reservationStatuses.has(nextStatus);
+
+    if (reopeningCancelledOrder) {
+      const [waveCleanup, scanCleanup, itemReset] = await Promise.all([
+        adminSupabase
+          .from("ondas_separacao_pedidos")
+          .delete()
+          .eq("pedido_expedicao_id", order.id),
+        adminSupabase
+          .from("bipagens_separacao")
+          .delete()
+          .eq("pedido_expedicao_id", order.id),
+        adminSupabase
+          .from("pedidos_expedicao_itens")
+          .update({ quantidade_separada: 0 })
+          .eq("pedido_expedicao_id", order.id),
+      ]);
+
+      if (waveCleanup.error || scanCleanup.error || itemReset.error) {
+        return { error: waveCleanup.error ?? scanCleanup.error ?? itemReset.error };
+      }
+    }
 
     // Idem à alteração individual: quem reserva ao entrar em conferência é o
     // trigger no banco, não esta action.
@@ -338,16 +434,33 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
       .from("pedidos_expedicao")
       .update({
         status: nextStatus,
-        payload_origem: {
-          ...payload,
-          ultimoAjusteStatusManual: change,
-          historicoStatusManual: [...previousHistory, change],
-        },
+        payload_origem: nextPayload,
       })
       .eq("id", order.id);
   });
 
-  await Promise.all(updatePromises);
+  const updateResults = await Promise.all(updatePromises);
+  if (updateResults.some((result) => result.error)) {
+    redirect("/expedicao?feedback=erro");
+  }
+
+  const reopenedOrders = orders.filter(
+    (order) => order.status === "CANCELADO" && reservationStatuses.has(nextStatus),
+  );
+  for (const order of reopenedOrders) {
+    const { error: reservationError } = await adminSupabase.rpc(
+      "reservar_estoque_pedido_criado" as never,
+      { p_pedido_id: order.id, p_usuario_id: user.id } as never,
+    );
+    if (reservationError) {
+      const originalPayload = isRecord(order.payload_origem) ? order.payload_origem : {};
+      await adminSupabase
+        .from("pedidos_expedicao")
+        .update({ status: "CANCELADO", payload_origem: originalPayload })
+        .eq("id", order.id);
+      redirect("/expedicao?feedback=reserva-insuficiente");
+    }
+  }
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/separacao");
@@ -1378,4 +1491,3 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
 
   redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=opcao-invalida`);
 }
-
