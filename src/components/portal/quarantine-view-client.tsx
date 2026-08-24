@@ -22,9 +22,11 @@ import type { LucideIcon } from "lucide-react";
 export function QuarantineViewClient({
   quarantine,
   canDecide,
+  actingDepositanteId,
 }: {
   quarantine: any[];
   canDecide: boolean;
+  actingDepositanteId?: string;
 }) {
   const router = useRouter();
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -54,6 +56,7 @@ export function QuarantineViewClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: decision === "DOAR" ? "decide_donate" : "decide_discard",
+          actingDepositanteId,
         }),
       });
       const payload = await response.json().catch(() => ({}));

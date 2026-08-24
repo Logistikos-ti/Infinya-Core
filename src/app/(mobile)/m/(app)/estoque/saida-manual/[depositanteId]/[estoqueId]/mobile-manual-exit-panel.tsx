@@ -152,6 +152,10 @@ export function MobileManualExitPanel({
 
   async function handleConfirm() {
     if (isSaving || count <= 0 || !reason) return;
+    if (reason === "AVARIA" && !photoFile) {
+      setError("Tire ou anexe uma foto da avaria para continuar.");
+      return;
+    }
     if (reason === "OUTRO" && !reasonDetail.trim()) {
       setError("Descreva o motivo da saída.");
       return;
@@ -382,7 +386,7 @@ export function MobileManualExitPanel({
               {reason === "AVARIA" ? (
                 <div className="flex flex-col gap-2">
                   <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: mobileColors.muted }}>
-                    Foto da avaria (opcional)
+                    Foto da avaria (obrigatória)
                   </span>
 
                   <input
@@ -469,7 +473,7 @@ export function MobileManualExitPanel({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isSaving || editingCount || count <= 0 || !reason}
+            disabled={isSaving || editingCount || count <= 0 || !reason || (reason === "AVARIA" && !photoFile)}
             className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
             style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
           >

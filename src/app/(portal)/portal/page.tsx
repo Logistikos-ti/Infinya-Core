@@ -249,7 +249,8 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       {view === "quarentena" ? (
         <QuarantineViewClient
           quarantine={quarantine}
-          canDecide={user.papel === "DEPOSITANTE" && user.portalProfile === "GESTOR"}
+          canDecide={isMasterPreview || (user.papel === "DEPOSITANTE" && user.portalProfile === "GESTOR")}
+          actingDepositanteId={isMasterPreview ? depositanteId : undefined}
         />
       ) : null}
       {view === "recebimento" ? (

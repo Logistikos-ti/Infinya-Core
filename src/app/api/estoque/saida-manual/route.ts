@@ -52,6 +52,13 @@ export async function POST(request: Request) {
     }
   }
 
+  if (reason.toUpperCase().includes("AVARIA") && !photoFile) {
+    return Response.json(
+      { error: "Anexe uma foto da avaria para registrar a quarentena." },
+      { status: 400 },
+    );
+  }
+
   try {
     const fotoUrl = photoFile
       ? await uploadManualExitPhoto({

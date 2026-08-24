@@ -22,7 +22,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   const payload = (await request.json().catch(() => null)) as
-    | { action?: QuarantineAction; observations?: string }
+    | { action?: QuarantineAction; observations?: string; actingDepositanteId?: string }
     | null;
 
   if (
@@ -56,14 +56,15 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   try {
     if (payload.action === "decide_donate" || payload.action === "decide_discard") {
-      if (auth.user.papel !== "DEPOSITANTE") {
-        return Response.json(
-          { error: "Somente o depositante pode decidir o destino da quarentena." },
-          { status: 403 },
-        );
-      }
+      const isPortalManager =
+        auth.user.papel === "DEPOSITANTE" &&
+        auth.user.portalProfile === "GESTOR" &&
+        auth.user.depositanteId === quarantine.depositante_id;
+      const isMasterActingForDepositante =
+        (auth.user.papel === "ADMIN" || auth.user.papel === "TI") &&
+        payload.actingDepositanteId === quarantine.depositante_id;
 
-      if (auth.user.portalProfile !== "GESTOR" || auth.user.depositanteId !== quarantine.depositante_id) {
+      if (!isPortalManager && !isMasterActingForDepositante) {
         return Response.json(
           { error: "Seu perfil não pode decidir esta quarentena." },
           { status: 403 },
