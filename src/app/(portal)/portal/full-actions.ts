@@ -10,6 +10,14 @@ import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes
 export type FullShipmentSubmissionState = {
   status: "idle" | "success" | "error";
   detail?: string;
+  errorCode?: "UNMATCHED_PRODUCTS";
+  unmatchedProducts?: Array<{
+    key: string;
+    name: string;
+    code: string | null;
+    ean: string | null;
+    quantity: number;
+  }>;
 };
 
 const requiredDocumentFields = ["entryAuthorization", "volumeLabel"] as const;
@@ -40,6 +48,16 @@ function fullSalesChannelCode(value: string) {
   if (normalized.includes("amazon")) return "AMAZON";
   if (normalized.includes("magalu") || normalized.includes("magazine")) return "MAGAZINE_LUIZA";
   return "OUTRO";
+}
+
+function fullUnmatchedProductKey(item: {
+  codigo: string | null;
+  ean: string | null;
+  descricao: string;
+}) {
+  return [item.codigo ?? "", item.ean ?? "", item.descricao]
+    .map((value) => value.trim().toLocaleLowerCase("pt-BR"))
+    .join("|");
 }
 
 export async function createFullShipmentAction(
@@ -85,7 +103,18 @@ export async function createFullShipmentAction(
     if (productsError) throw productsError;
     const productMatch = matchNfeProductsToCatalog(nfe.items, products ?? []);
     if (productMatch.unmatched.length) {
-      throw new Error(`Não encontramos no catálogo: ${productMatch.unmatched.slice(0, 3).map((item) => item.descricao).join(", ")}. Cadastre ou corrija os SKUs antes de enviar.`);
+      return {
+        status: "error",
+        errorCode: "UNMATCHED_PRODUCTS",
+        detail: `${productMatch.unmatched.length} produto(s) da NF-e ainda não possuem vínculo com o catálogo. Cadastre ou vincule os itens abaixo para continuar.`,
+        unmatchedProducts: productMatch.unmatched.map((item) => ({
+          key: fullUnmatchedProductKey(item),
+          name: item.descricao,
+          code: item.codigo,
+          ean: item.ean,
+          quantity: item.quantidade,
+        })),
+      };
     }
 
     const requestedByProduct = new Map<string, { name: string; quantity: number }>();

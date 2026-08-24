@@ -2,13 +2,20 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, CircleAlert, FileCode2, PackageCheck, Upload, X } from "lucide-react";
+import { Check, CircleAlert, FileCode2, Loader2, PackageCheck, PackagePlus, Upload, X } from "lucide-react";
 import { createFullShipmentAction, type FullShipmentSubmissionState } from "@/app/(portal)/portal/full-actions";
 import type { FullShipmentSummary } from "@/lib/full-orders";
 
 const marketplaces = ["Mercado Livre Full", "Shopee Fulfillment", "Amazon FBA", "Magalu Full", "Outro"];
 type DeliveryMode = "COLETA" | "TRANSPORTADORA";
 type XmlItem = { key: string; code: string; name: string; quantity: string };
+type QuickProductDraft = {
+  name: string;
+  sku: string;
+  internalCode: string;
+  ean: string;
+  withdrawalMethod: "FEFO" | "FIFO" | "LIFO";
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -71,13 +78,41 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
   const [itemLabelFiles, setItemLabelFiles] = useState<File[]>([]);
   const [itemLabelCount, setItemLabelCount] = useState(0);
   const itemLabelsInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [state, action] = useActionState(createFullShipmentAction, { status: "idle" } as FullShipmentSubmissionState);
+  const [resultDismissed, setResultDismissed] = useState(false);
+  const [quickProductDrafts, setQuickProductDrafts] = useState<Record<string, QuickProductDraft>>({});
+  const [registeringProductKey, setRegisteringProductKey] = useState<string | null>(null);
+  const [registeredProductKeys, setRegisteredProductKeys] = useState<string[]>([]);
+  const [quickProductErrors, setQuickProductErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (state.status !== "success") return;
     const timeout = window.setTimeout(() => { onClose(); window.location.assign("/portal?view=full"); }, 1300);
     return () => window.clearTimeout(timeout);
   }, [onClose, state.status]);
+
+  useEffect(() => {
+    setResultDismissed(false);
+
+    if (state.errorCode !== "UNMATCHED_PRODUCTS" || !state.unmatchedProducts?.length) return;
+
+    setQuickProductDrafts((current) => {
+      const next = { ...current };
+      state.unmatchedProducts?.forEach((item) => {
+        if (next[item.key]) return;
+        const preferredCode = item.code?.trim() || item.ean?.trim() || "";
+        next[item.key] = {
+          name: item.name,
+          sku: preferredCode,
+          internalCode: preferredCode,
+          ean: item.ean?.trim() || "",
+          withdrawalMethod: "FEFO",
+        };
+      });
+      return next;
+    });
+  }, [state]);
 
   const minimumLabels = useMemo(() => items.map((item) => item.key), [items]);
   const itemLabelsComplete = itemLabelCount > 0 && itemLabelCount === items.length;
@@ -120,11 +155,80 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
     if (itemLabelsInputRef.current) itemLabelsInputRef.current.value = "";
   }
 
+  function updateQuickProductDraft(
+    key: string,
+    field: keyof QuickProductDraft,
+    value: string,
+  ) {
+    setQuickProductDrafts((current) => ({
+      ...current,
+      [key]: {
+        ...current[key],
+        [field]: value,
+      },
+    }));
+  }
+
+  async function registerQuickProduct(
+    item: NonNullable<FullShipmentSubmissionState["unmatchedProducts"]>[number],
+  ) {
+    const draft = quickProductDrafts[item.key];
+    if (!draft?.name.trim()) {
+      setQuickProductErrors((current) => ({
+        ...current,
+        [item.key]: "Informe o nome do produto.",
+      }));
+      return;
+    }
+
+    setRegisteringProductKey(item.key);
+    setQuickProductErrors((current) => ({ ...current, [item.key]: "" }));
+
+    try {
+      const response = await fetch("/api/portal/produtos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          depositanteId,
+          nome: draft.name,
+          sku: draft.sku,
+          codigoInterno: draft.internalCode,
+          codigoExterno: draft.ean,
+          metodoRetirada: draft.withdrawalMethod,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        product?: { id: string };
+      };
+
+      if (!response.ok || !payload.product) {
+        throw new Error(payload.error ?? "Não foi possível cadastrar o produto.");
+      }
+
+      setRegisteredProductKeys((current) =>
+        current.includes(item.key) ? current : [...current, item.key],
+      );
+    } catch (error) {
+      setQuickProductErrors((current) => ({
+        ...current,
+        [item.key]: error instanceof Error ? error.message : "Não foi possível cadastrar o produto.",
+      }));
+    } finally {
+      setRegisteringProductKey(null);
+    }
+  }
+
+  function retryFullShipment() {
+    setResultDismissed(true);
+    requestAnimationFrame(() => formRef.current?.requestSubmit());
+  }
+
   return <div className="fixed inset-0 z-[90] flex justify-end">
     <button onClick={onClose} aria-label="Fechar" className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" />
     <aside className="relative flex h-full w-full max-w-[620px] flex-col bg-white shadow-2xl dark:bg-[#0c1424]">
       <header className="flex items-start justify-between border-b border-slate-200 px-6 py-6 dark:border-white/10"><div><p className="text-xs font-extrabold tracking-[.14em] text-violet-600">PEDIDO FULL</p><h2 className="mt-1 text-2xl font-bold">Enviar reposição ao CD</h2><p className="mt-1 text-sm text-slate-500">A DANFE é gerada automaticamente a partir da NF-e XML.</p></div><button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-white/10"><X className="h-5 w-5" /></button></header>
-      <form action={action} className="flex min-h-0 flex-1 flex-col">
+      <form ref={formRef} action={action} className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
           <input type="hidden" name="depositanteId" value={depositanteId} />
           <input type="hidden" name="marketplace" value={marketplace} />
@@ -141,7 +245,69 @@ function FullDrawer({ depositanteId, onClose }: { depositanteId: string; onClose
         </div>
         <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10"><button onClick={onClose} type="button" className="h-12 rounded-xl border border-slate-200 px-5 text-sm font-bold dark:border-white/10">Cancelar</button><SubmitButton /></footer>
       </form>
-      {state.status !== "idle" ? <div className="absolute inset-0 z-20 grid place-items-center bg-slate-950/55 p-6"><div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl dark:bg-[#101c2e]"><div className={state.status === "success" ? "text-emerald-500" : "text-rose-500"}>{state.status === "success" ? <Check className="h-9 w-9" /> : <CircleAlert className="h-9 w-9" />}</div><h3 className="mt-3 text-lg font-extrabold">{state.status === "success" ? "Remessa Full criada" : "Não foi possível criar"}</h3><p className="mt-2 text-sm text-slate-500">{state.detail}</p>{state.status === "error" ? <button type="button" onClick={() => window.location.reload()} className="mt-5 h-10 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white">Fechar</button> : null}</div></div> : null}
+      {state.status !== "idle" && !resultDismissed ? (
+        <div className="absolute inset-0 z-20 grid place-items-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm sm:p-6">
+          <div className={`my-auto w-full rounded-3xl bg-white p-5 shadow-2xl dark:bg-[#101c2e] sm:p-6 ${state.errorCode === "UNMATCHED_PRODUCTS" ? "max-w-2xl" : "max-w-sm"}`}>
+            <div className={state.status === "success" ? "text-emerald-500" : "text-rose-500"}>
+              {state.status === "success" ? <Check className="h-9 w-9" /> : state.errorCode === "UNMATCHED_PRODUCTS" ? <PackagePlus className="h-9 w-9" /> : <CircleAlert className="h-9 w-9" />}
+            </div>
+            <h3 className="mt-3 text-lg font-extrabold">
+              {state.status === "success" ? "Remessa Full criada" : state.errorCode === "UNMATCHED_PRODUCTS" ? "Cadastro rápido necessário" : "Não foi possível criar"}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{state.detail}</p>
+
+            {state.errorCode === "UNMATCHED_PRODUCTS" && state.unmatchedProducts?.length ? (
+              <div className="mt-5 max-h-[58vh] space-y-3 overflow-y-auto pr-1">
+                {state.unmatchedProducts.map((item) => {
+                  const draft = quickProductDrafts[item.key];
+                  const registered = registeredProductKeys.includes(item.key);
+                  const registering = registeringProductKey === item.key;
+                  const error = quickProductErrors[item.key];
+
+                  return (
+                    <article key={item.key} className={`rounded-2xl border p-4 ${registered ? "border-emerald-300 bg-emerald-50/70 dark:border-emerald-500/40 dark:bg-emerald-500/10" : "border-amber-200 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-500/10"}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 dark:text-white">{item.name}</p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{item.ean || item.code || "Sem código"} · {item.quantity} un.</p>
+                        </div>
+                        {registered ? <span className="shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Vinculado</span> : null}
+                      </div>
+
+                      {!registered && draft ? (
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                          <input value={draft.name} onChange={(event) => updateQuickProductDraft(item.key, "name", event.target.value)} placeholder="Nome do produto" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5 sm:col-span-2" />
+                          <input value={draft.sku} onChange={(event) => updateQuickProductDraft(item.key, "sku", event.target.value)} placeholder="SKU" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5" />
+                          <input value={draft.internalCode} onChange={(event) => updateQuickProductDraft(item.key, "internalCode", event.target.value)} placeholder="Código interno" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5" />
+                          <input value={draft.ean} onChange={(event) => updateQuickProductDraft(item.key, "ean", event.target.value)} placeholder="EAN/GTIN" className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-400 dark:border-white/10 dark:bg-white/5" />
+                          <select value={draft.withdrawalMethod} onChange={(event) => updateQuickProductDraft(item.key, "withdrawalMethod", event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#152238]">
+                            <option value="FEFO">FEFO</option>
+                            <option value="FIFO">FIFO</option>
+                            <option value="LIFO">LIFO</option>
+                          </select>
+                          {error ? <p className="text-xs font-semibold text-rose-600 dark:text-rose-300 sm:col-span-2">{error}</p> : null}
+                          <button type="button" onClick={() => void registerQuickProduct(item)} disabled={registering} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-65 sm:col-span-2">
+                            {registering ? <><Loader2 className="h-4 w-4 animate-spin" /> Cadastrando...</> : "Criar e vincular produto"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {state.status === "error" ? (
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <button type="button" onClick={() => setResultDismissed(true)} className="h-11 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5">Voltar</button>
+                {state.errorCode === "UNMATCHED_PRODUCTS" ? (
+                  <button type="button" onClick={retryFullShipment} disabled={!state.unmatchedProducts?.every((item) => registeredProductKeys.includes(item.key))} className="h-11 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40">Continuar envio</button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </aside>
   </div>;
 }
