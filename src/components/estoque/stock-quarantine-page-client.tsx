@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArchiveRestore,
+  Eye,
   PackageOpen,
   ShieldAlert,
   Trash2,
@@ -62,6 +63,7 @@ export function StockQuarantinePageClient({
   const [query, setQuery] = useState(initialQuery);
   const [tableMode, setTableMode] = useState<TableMode>("status");
   const [selectedItem, setSelectedItem] = useState<StockQuarantineItem | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -514,6 +516,36 @@ export function StockQuarantinePageClient({
               </section>
 
               <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+                <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                  Foto da avaria
+                </p>
+                {selectedItem.fotoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPhoto(selectedItem.fotoUrl)}
+                    className="group relative block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-left transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-lg dark:border-white/10 dark:bg-slate-900"
+                    aria-label="Ampliar foto da avaria"
+                  >
+                    <img
+                      src={selectedItem.fotoUrl}
+                      alt={`Foto da avaria de ${selectedItem.productName}`}
+                      className="h-52 w-full object-contain"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-xl">
+                        <Eye size={16} />
+                        Ampliar foto
+                      </span>
+                    </span>
+                  </button>
+                ) : (
+                  <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center text-sm font-semibold text-slate-500 dark:border-white/15 dark:bg-slate-900 dark:text-slate-400">
+                    Nenhuma foto de avaria registrada.
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Ações</p>
                 {selectedItem.status === "EM_QUARENTENA" && canResolve ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -552,6 +584,40 @@ export function StockQuarantinePageClient({
               </section>
             </div>
           </aside>
+        </div>
+      ) : null}
+
+      {selectedPhoto ? (
+        <div
+          className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/80 p-4 backdrop-blur-md"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-white shadow-2xl dark:bg-slate-950"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-rose-500">Evidência operacional</p>
+                <h2 className="mt-1 text-lg font-extrabold text-slate-950 dark:text-white">Foto da avaria</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+                aria-label="Fechar foto da avaria"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="grid min-h-0 flex-1 place-items-center overflow-auto bg-slate-100 p-4 dark:bg-slate-900">
+              <img
+                src={selectedPhoto}
+                alt="Foto ampliada da avaria"
+                className="max-h-[76vh] max-w-full rounded-2xl object-contain shadow-xl"
+              />
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
