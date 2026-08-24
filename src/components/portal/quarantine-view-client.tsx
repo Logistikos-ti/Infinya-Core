@@ -25,6 +25,12 @@ export function QuarantineViewClient({
     }
   }
 
+  function getTipoLabel(tipo: string) {
+    if (tipo === "AVARIA") return "Avaria";
+    if (tipo === "RECEBIMENTO") return "Recebimento";
+    return "Outro";
+  }
+
   return (
     <>
       <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
@@ -79,6 +85,7 @@ export function QuarantineViewClient({
                 <tr>
                   {[
                     "Produto",
+                    "Tipo",
                     "Quantidade",
                     "Status",
                     "Ações",
@@ -120,6 +127,9 @@ export function QuarantineViewClient({
                           </p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {getTipoLabel(item.tipo)}
                     </td>
                     <td className="px-5 py-4 text-sm font-bold text-slate-950 dark:text-white">
                       {item.quantityLabel} un
