@@ -127,6 +127,7 @@ export async function savePickingProgressAction(formData: FormData) {
     ((order.itens ?? []) as Array<{
       id: string;
       quantidade: number | string | null;
+      quantidade_separada?: number | string | null;
       payload_origem: Record<string, unknown> | null;
     }>).map((item) => [item.id, item]),
   );
@@ -174,7 +175,11 @@ export async function savePickingProgressAction(formData: FormData) {
           .eq("pedido_expedicao_id", orderId);
       }
 
-      const sanitizedQuantity = Math.max(0, Math.min(quantityValues[index], requestedQuantity));
+      const currentSeparatedQuantity = normalizeQuantity(String(itemRecord.quantidade_separada ?? 0));
+      const sanitizedQuantity = Math.max(
+        currentSeparatedQuantity,
+        Math.max(0, Math.min(quantityValues[index], requestedQuantity)),
+      );
       canComplete = canComplete && sanitizedQuantity >= requestedQuantity;
       return adminSupabase
         .from("pedidos_expedicao_itens")
@@ -380,7 +385,13 @@ export async function savePickingWaveProgressAction(formData: FormData) {
           .eq("pedido_expedicao_id", orderId);
       }
 
-      const sanitizedQuantity = Math.max(0, Math.min(quantityValues[index], requestedQuantity));
+      const currentSeparatedQuantity = normalizeQuantity(
+        String(itemRecord.item.quantidade_separada ?? 0),
+      );
+      const sanitizedQuantity = Math.max(
+        currentSeparatedQuantity,
+        Math.max(0, Math.min(quantityValues[index], requestedQuantity)),
+      );
       orderCompletionMap.set(
         orderId,
         (orderCompletionMap.get(orderId) ?? true) && sanitizedQuantity >= requestedQuantity,
@@ -498,14 +509,40 @@ export async function savePickingWaveDraftAction(
   if (!items.length) return { ok: true };
 
   const adminSupabase = createSupabaseAdminClient();
+  const itemIds = Array.from(new Set(items.map((item) => item.itemId).filter(Boolean)));
+  const { data: currentItemRows, error: currentItemsError } = await adminSupabase
+    .from("pedidos_expedicao_itens")
+    .select("id, quantidade, quantidade_separada")
+    .in("id", itemIds);
+
+  if (currentItemsError) {
+    console.error("Failed to read current mobile picking progress:", currentItemsError);
+    return { ok: false as const, message: currentItemsError.message };
+  }
+
+  const currentProgressByItem = new Map(
+    (currentItemRows ?? []).map((item) => [
+      item.id,
+      {
+        requested: normalizeQuantity(String(item.quantidade ?? 0)),
+        separated: normalizeQuantity(String(item.quantidade_separada ?? 0)),
+      },
+    ]),
+  );
   const results = await Promise.all(
-    items.map(({ orderId, itemId, separatedQuantity }) =>
-      adminSupabase
+    items.map(({ orderId, itemId, separatedQuantity }) => {
+      const current = currentProgressByItem.get(itemId);
+      const submittedQuantity = normalizeQuantity(String(separatedQuantity));
+      const monotonicQuantity = current
+        ? Math.min(current.requested, Math.max(current.separated, submittedQuantity))
+        : submittedQuantity;
+
+      return adminSupabase
         .from("pedidos_expedicao_itens")
-        .update({ quantidade_separada: normalizeQuantity(String(separatedQuantity)) })
+        .update({ quantidade_separada: monotonicQuantity })
         .eq("id", itemId)
-        .eq("pedido_expedicao_id", orderId),
-    ),
+        .eq("pedido_expedicao_id", orderId);
+    }),
   );
 
   const firstItemError = results.find((result) => result.error)?.error;
@@ -934,8 +971,31 @@ export async function registerPickingScanAction(input: {
   } as never);
 
   if (error) {
+    if (error.message.toLowerCase().includes("ultrapassa a quantidade reservada")) {
+      const reconciliation = await reconcileSimplePickingItemFromScans(
+        adminSupabase,
+        input.orderId,
+        input.itemId,
+      );
+
+      if (reconciliation?.complete) {
+        revalidatePath("/expedicao/separacao");
+        revalidatePath("/m/separacao");
+        return {
+          ok: true as const,
+          data: {
+            alreadyProcessed: true,
+            reconciled: true,
+            itemQuantity: reconciliation.separatedQuantity,
+          },
+        };
+      }
+    }
+
     return { ok: false as const, message: error.message };
   }
+
+  await reconcileSimplePickingItemFromScans(adminSupabase, input.orderId, input.itemId);
 
   revalidatePath("/estoque");
   revalidatePath("/expedicao");
@@ -943,6 +1003,65 @@ export async function registerPickingScanAction(input: {
   revalidatePath("/m/separacao");
 
   return { ok: true as const, data };
+}
+
+async function reconcileSimplePickingItemFromScans(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  orderId: string,
+  itemId: string,
+) {
+  const [{ data: item, error: itemError }, { data: scans, error: scansError }] = await Promise.all([
+    adminSupabase
+      .from("pedidos_expedicao_itens")
+      .select("id, produto_id, quantidade, quantidade_separada")
+      .eq("id", itemId)
+      .eq("pedido_expedicao_id", orderId)
+      .maybeSingle(),
+    adminSupabase
+      .from("bipagens_separacao")
+      .select("produto_id, quantidade")
+      .eq("pedido_expedicao_id", orderId)
+      .eq("item_pedido_id", itemId),
+  ]);
+
+  if (itemError || scansError || !item || !(scans ?? []).length || !item.produto_id) {
+    return null;
+  }
+
+  const isSimpleItem = (scans ?? []).every((scan) => scan.produto_id === item.produto_id);
+  if (!isSimpleItem) {
+    return null;
+  }
+
+  const requestedQuantity = normalizeQuantity(String(item.quantidade ?? 0));
+  const currentQuantity = normalizeQuantity(String(item.quantidade_separada ?? 0));
+  const scannedQuantity = (scans ?? []).reduce(
+    (total, scan) => total + normalizeQuantity(String(scan.quantidade ?? 0)),
+    0,
+  );
+  const separatedQuantity = Math.min(
+    requestedQuantity,
+    Math.max(currentQuantity, scannedQuantity),
+  );
+
+  if (separatedQuantity > currentQuantity) {
+    const { error: updateError } = await adminSupabase
+      .from("pedidos_expedicao_itens")
+      .update({ quantidade_separada: separatedQuantity })
+      .eq("id", itemId)
+      .eq("pedido_expedicao_id", orderId)
+      .lt("quantidade_separada", separatedQuantity);
+
+    if (updateError) {
+      console.error("Failed to reconcile picking progress from scans:", updateError);
+      return null;
+    }
+  }
+
+  return {
+    complete: separatedQuantity >= requestedQuantity,
+    separatedQuantity,
+  };
 }
 
 export async function cancelPickingOrderAction(orderId: string) {
