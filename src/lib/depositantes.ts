@@ -41,6 +41,18 @@ export type DepositanteBlingConfig = {
   lastSyncAt: string | null;
   webhook: DepositanteBlingWebhook | null;
   monitoring: DepositanteBlingMonitoring | null;
+  importFilter: DepositanteBlingImportFilter | null;
+};
+
+export type DepositanteBlingImportFilter = {
+  enabled: boolean;
+  warehouseName: string | null;
+  acceptedSituationIds: string[];
+  acceptedSituationNames: string[];
+  allowedStoreIds: string[];
+  allowedStoreNames: string[];
+  allowedBusinessUnitIds: string[];
+  allowedBusinessUnitNames: string[];
 };
 
 export type DepositanteBlingMonitoring = {
@@ -174,6 +186,17 @@ export function buildStoredDepositanteConfiguracoes(
           webhook: configuracoes.bling.webhook
             ? {
                 ...configuracoes.bling.webhook,
+              }
+            : null,
+          importFilter: configuracoes.bling.importFilter
+            ? {
+                ...configuracoes.bling.importFilter,
+                acceptedSituationIds: [...configuracoes.bling.importFilter.acceptedSituationIds],
+                acceptedSituationNames: [...configuracoes.bling.importFilter.acceptedSituationNames],
+                allowedStoreIds: [...configuracoes.bling.importFilter.allowedStoreIds],
+                allowedStoreNames: [...configuracoes.bling.importFilter.allowedStoreNames],
+                allowedBusinessUnitIds: [...configuracoes.bling.importFilter.allowedBusinessUnitIds],
+                allowedBusinessUnitNames: [...configuracoes.bling.importFilter.allowedBusinessUnitNames],
               }
             : null,
         }
@@ -346,6 +369,30 @@ function normalizeBlingConfig(value: unknown): DepositanteBlingConfig | null {
         }
       : null,
     monitoring: normalizeBlingMonitoring(raw.monitoring),
+    importFilter: normalizeBlingImportFilter(raw.importFilter),
+  };
+}
+
+function normalizeBlingImportFilter(value: unknown): DepositanteBlingImportFilter | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const strings = (candidate: unknown) =>
+    Array.isArray(candidate)
+      ? candidate.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+      : [];
+
+  return {
+    enabled: getOptionalBoolean(raw.enabled, false),
+    warehouseName: getNullableString(raw.warehouseName),
+    acceptedSituationIds: strings(raw.acceptedSituationIds),
+    acceptedSituationNames: strings(raw.acceptedSituationNames),
+    allowedStoreIds: strings(raw.allowedStoreIds),
+    allowedStoreNames: strings(raw.allowedStoreNames),
+    allowedBusinessUnitIds: strings(raw.allowedBusinessUnitIds),
+    allowedBusinessUnitNames: strings(raw.allowedBusinessUnitNames),
   };
 }
 

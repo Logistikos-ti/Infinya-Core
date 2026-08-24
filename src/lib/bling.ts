@@ -42,6 +42,9 @@ export type BlingSaleOrderPayload = {
   dataSaida: string | null;
   total: number | null;
   situacao: string | null;
+  situacaoId: string | null;
+  loja: { id: string | null; nome: string | null } | null;
+  unidadeNegocio: { id: string | null; nome: string | null } | null;
   observacoes: string | null;
   contato: {
     nome: string | null;
@@ -263,6 +266,9 @@ export async function fetchBlingSaleOrder(
   const normalizedItems = itens
     .map((item) => normalizeBlingSaleOrderItem(item))
     .filter((item): item is NonNullable<ReturnType<typeof normalizeBlingSaleOrderItem>> => item !== null);
+  const situacao = objectValue(data.situacao);
+  const loja = objectValue(data.loja);
+  const unidadeNegocio = objectValue(data.unidadeNegocio);
 
   return {
     id: stringifyValue(data.id) ?? orderId,
@@ -272,6 +278,16 @@ export async function fetchBlingSaleOrder(
     dataSaida: stringifyValue(data.dataSaida) ?? stringifyValue(data.dataPrevista),
     total: parseNumericValue(data.total),
     situacao: extractSituacao(data.situacao),
+    situacaoId: situacao ? stringifyValue(situacao.id) : null,
+    loja: loja
+      ? { id: stringifyValue(loja.id), nome: stringifyValue(loja.nome) ?? stringifyValue(loja.descricao) }
+      : null,
+    unidadeNegocio: unidadeNegocio
+      ? {
+          id: stringifyValue(unidadeNegocio.id),
+          nome: stringifyValue(unidadeNegocio.nome) ?? stringifyValue(unidadeNegocio.descricao),
+        }
+      : null,
     observacoes: stringifyValue(data.observacoes),
     contato: {
       nome: stringifyValue(contato.nome) ?? stringifyValue(etiqueta.nome),
@@ -537,6 +553,7 @@ export function buildBlingConnectionConfig(
   tokens: BlingOAuthTokens,
   company: BlingCompanyInfo | null,
   webhookUrl: string,
+  previousConfig: DepositanteBlingConfig | null = null,
 ): DepositanteBlingConfig {
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
   const now = new Date().toISOString();
@@ -579,7 +596,14 @@ export function buildBlingConnectionConfig(
       lastXmlSyncMessage: null,
       lastXmlSyncAt: null,
     },
+    importFilter: previousConfig?.importFilter ?? null,
   };
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 export function validateBlingWebhookSignature(payload: string, signatureHeader: string | null) {

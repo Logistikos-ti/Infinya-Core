@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/api-auth";
 import { buildBlingConnectionConfig, exchangeBlingAuthorizationCode, fetchBlingCompanyInfo, getBlingWebhookUrl } from "@/lib/bling";
-import { updateDepositanteBlingConfig } from "@/lib/depositantes";
+import { parseDepositanteConfiguracoes, updateDepositanteBlingConfig } from "@/lib/depositantes";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { canManagePortalIntegrations } from "@/lib/portal-integration-access";
 
@@ -76,10 +76,12 @@ export async function GET(request: Request) {
     const rawConfig = depositante.configuracoes
       ? JSON.stringify(depositante.configuracoes)
       : depositante.observacoes;
+    const previousBlingConfig = parseDepositanteConfiguracoes(rawConfig).bling;
     const nextBlingConfig = buildBlingConnectionConfig(
       tokens,
       company,
       getBlingWebhookUrl(requestUrl.origin),
+      previousBlingConfig,
     );
 
     const { error: updateError } = await adminSupabase

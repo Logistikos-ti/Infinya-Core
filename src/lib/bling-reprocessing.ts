@@ -14,6 +14,7 @@ import {
   isBlingInsufficientScopeError,
 } from "@/lib/bling";
 import type { DepositanteBlingConfig } from "@/lib/depositantes";
+import { evaluateBlingSaleOrderImport } from "@/lib/bling-import-filter";
 import { listShippingOrderDocumentTypes, storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
 import { replaceShippingOrderItems } from "@/lib/shipping-order-items-replacement";
 
@@ -90,6 +91,7 @@ export async function reprocessRecentBlingOrdersForDepositante({
         accessToken,
         saleOrder,
         eventName: "manual.reprocess",
+        importFilter: refreshedConfig.importFilter,
       });
 
       results.push({
@@ -150,12 +152,14 @@ async function upsertShippingOrder({
   accessToken,
   saleOrder,
   eventName,
+  importFilter,
 }: {
   adminSupabase: SupabaseClient;
   depositanteId: string;
   accessToken: string;
   saleOrder: BlingSaleOrderPayload;
   eventName: string;
+  importFilter: DepositanteBlingConfig["importFilter"];
 }) {
   const { data: existingOrder, error: existingOrderError } = await adminSupabase
     .from("pedidos_expedicao")
@@ -169,13 +173,12 @@ async function upsertShippingOrder({
   }
 
   const isNewOrder = !existingOrder;
-  const situacaoRaw = saleOrder.situacao?.toLocaleLowerCase("pt-BR") || "";
-  const isOpen = situacaoRaw.includes("aberto") || situacaoRaw.includes("andamento");
+  const admission = evaluateBlingSaleOrderImport(importFilter, saleOrder);
 
-  if (isNewOrder && !isOpen) {
+  if (isNewOrder && !admission.allowed) {
     return {
       synced: false,
-      attachmentSummary: `Pedido ignorado (status no Bling: '${saleOrder.situacao}'). O WMS só importa novos pedidos 'Em aberto'.`
+      attachmentSummary: admission.reason,
     };
   }
 

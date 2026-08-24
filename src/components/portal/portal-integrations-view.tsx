@@ -3,6 +3,7 @@ import type {
   DepositanteBlingConfig,
   DepositanteMercadoLivreConfig,
 } from "@/lib/depositantes";
+import { BlingImportConfiguration } from "@/components/portal/bling-import-configuration";
 
 type Props = {
   depositanteId: string;
@@ -65,6 +66,8 @@ export function PortalIntegrationsView({
           href={`/api/integracoes/mercado-livre/oauth/start?depositanteId=${encodeURIComponent(depositanteId)}&portal=1`}
         />
       </div>
+
+      {bling?.connected ? <BlingImportConfiguration depositanteId={depositanteId} /> : null}
 
       <div className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-500" />
