@@ -1,29 +1,31 @@
 ﻿"use client";
 
-import { useState, useTransition } from "react";
-import { ShieldAlert, Package, Camera, Trash2, X } from "lucide-react";
-import { discardPortalQuarantine } from "@/app/(portal)/portal/quarantine-actions";
+import { useState } from "react";
+import type { ReactNode } from "react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  Camera,
+  Eye,
+  MapPin,
+  Package,
+  ShieldAlert,
+  UserRound,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export function QuarantineViewClient({
   quarantine,
 }: {
   quarantine: any[];
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const activeItems = quarantine.filter((item) => item.status === "EM_QUARENTENA");
   const discardedItems = quarantine.filter((item) => item.status === "DESCARTADO");
   const activeUnits = activeItems.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
-
-  function handleDiscard(id: string) {
-    if (confirm("Tem certeza que deseja autorizar o descarte deste produto? Esta ação não pode ser desfeita e o saldo será baixado definitivamente.")) {
-      startTransition(async () => {
-        const result = await discardPortalQuarantine(id);
-        if (result.error) alert(result.error);
-      });
-    }
-  }
 
   function getTipoLabel(tipo: string) {
     if (tipo === "AVARIA") return "Avaria";
@@ -88,7 +90,7 @@ export function QuarantineViewClient({
                     "Tipo",
                     "Quantidade",
                     "Status",
-                    "Ações",
+                    "",
                   ].map((label) => (
                     <th
                       key={label}
@@ -139,29 +141,16 @@ export function QuarantineViewClient({
                         {item.statusLabel}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        {item.fotoUrl && (
-                          <button
-                            onClick={() => setSelectedPhoto(item.fotoUrl)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5"
-                            title="Ver foto"
-                          >
-                            <Camera className="h-4 w-4" />
-                          </button>
-                        )}
-                        {item.status === "EM_QUARENTENA" && (
-                          <button
-                            onClick={() => handleDiscard(item.id)}
-                            disabled={isPending}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-500/10"
-                            title="Descartar produto"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>Descartar</span>
-                          </button>
-                        )}
-                      </div>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 hover:shadow-sm dark:border-white/10 dark:text-slate-400 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                        title="Visualizar quarentena"
+                        aria-label={`Visualizar quarentena de ${item.productName}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -174,6 +163,125 @@ export function QuarantineViewClient({
           </div>
         )}
       </div>
+
+      {selectedItem && (
+        <div
+          className="fixed inset-0 z-[90] flex justify-end bg-slate-950/50 backdrop-blur-sm"
+          onClick={() => setSelectedItem(null)}
+        >
+          <aside
+            className="flex h-full w-full max-w-[480px] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0b1528]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-white/10">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-slate-100 dark:bg-white/10">
+                  {selectedItem.imageUrl ? (
+                    <img
+                      src={selectedItem.imageUrl}
+                      alt={selectedItem.productName}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <Package className="h-5 w-5 text-slate-400" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-amber-500">
+                    Detalhes da quarentena
+                  </p>
+                  <h3 className="mt-1 line-clamp-2 font-display text-lg font-bold leading-tight text-slate-950 dark:text-white">
+                    {selectedItem.productName}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {selectedItem.sku || "SKU não informado"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedItem(null)}
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 dark:border-white/10 dark:text-slate-400 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                aria-label="Fechar detalhes"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+              <div className="grid grid-cols-3 gap-3">
+                <DetailCard label="Tipo" value={getTipoLabel(selectedItem.tipo)} />
+                <DetailCard label="Quantidade" value={`${selectedItem.quantityLabel} un`} />
+                <DetailCard label="Status" value={selectedItem.statusLabel} />
+              </div>
+
+              <DrawerSection icon={AlertTriangle} title="Motivo da retenção">
+                <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {selectedItem.reason || "Motivo não informado."}
+                </p>
+              </DrawerSection>
+
+              <DrawerSection icon={MapPin} title="Localização">
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailCard label="Endereço" value={selectedItem.endereco || "Não informado"} />
+                  <DetailCard label="Área" value={selectedItem.area || "Não informada"} />
+                </div>
+              </DrawerSection>
+
+              <DrawerSection icon={UserRound} title="Registro operacional">
+                <div className="grid grid-cols-2 gap-3">
+                  <DetailCard label="Registrado por" value={selectedItem.createdBy || "Sistema"} />
+                  <DetailCard label="Data do registro" value={selectedItem.createdAtLabel || "Não informada"} />
+                </div>
+              </DrawerSection>
+
+              {(selectedItem.resolutionNotes || selectedItem.resolvedAtLabel || selectedItem.resolvedBy) && (
+                <DrawerSection icon={CalendarClock} title="Resolução">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <DetailCard label="Resolvido por" value={selectedItem.resolvedBy || "Não informado"} />
+                      <DetailCard label="Data da resolução" value={selectedItem.resolvedAtLabel || "Não informada"} />
+                    </div>
+                    {selectedItem.resolutionNotes ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                        {selectedItem.resolutionNotes}
+                      </div>
+                    ) : null}
+                  </div>
+                </DrawerSection>
+              )}
+
+              <DrawerSection icon={Camera} title="Foto da avaria">
+                {selectedItem.fotoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPhoto(selectedItem.fotoUrl)}
+                    className="group relative block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md dark:border-white/10 dark:bg-slate-950 dark:hover:border-violet-500/40"
+                  >
+                    <img
+                      src={selectedItem.fotoUrl}
+                      alt={`Foto da avaria de ${selectedItem.productName}`}
+                      className="max-h-[360px] w-full object-contain"
+                    />
+                    <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-950/75 px-3 py-2 text-xs font-bold text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+                      <Eye className="h-3.5 w-3.5" /> Ampliar foto
+                    </span>
+                  </button>
+                ) : (
+                  <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center dark:border-white/15 dark:bg-white/[0.03]">
+                    <div>
+                      <Camera className="mx-auto h-6 w-6 text-slate-400" />
+                      <p className="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                        Nenhuma foto de avaria registrada.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </DrawerSection>
+            </div>
+          </aside>
+        </div>
+      )}
 
       {selectedPhoto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
@@ -194,5 +302,40 @@ export function QuarantineViewClient({
         </div>
       )}
     </>
+  );
+}
+
+function DetailCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-white/10 dark:bg-white/5">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-bold text-slate-900 dark:text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DrawerSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-500/10 text-violet-500">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h4 className="text-sm font-bold text-slate-950 dark:text-white">{title}</h4>
+      </div>
+      {children}
+    </section>
   );
 }
