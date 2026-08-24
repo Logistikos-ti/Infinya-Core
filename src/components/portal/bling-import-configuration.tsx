@@ -6,6 +6,7 @@ import type { DepositanteBlingImportFilter } from "@/lib/depositantes";
 
 type Props = {
   depositanteId: string;
+  embedded?: boolean;
 };
 
 const emptyFilter: DepositanteBlingImportFilter = {
@@ -19,7 +20,7 @@ const emptyFilter: DepositanteBlingImportFilter = {
   allowedBusinessUnitNames: [],
 };
 
-export function BlingImportConfiguration({ depositanteId }: Props) {
+export function BlingImportConfiguration({ depositanteId, embedded = false }: Props) {
   const [filter, setFilter] = useState<DepositanteBlingImportFilter>(emptyFilter);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,14 +69,14 @@ export function BlingImportConfiguration({ depositanteId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex min-h-32 items-center justify-center rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]">
+      <div className={`flex min-h-32 items-center justify-center ${embedded ? "" : "rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101b30]"}`}>
         <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
       </div>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+    <section className={embedded ? "" : "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101b30]"}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-400/10 dark:text-violet-300">

@@ -1,4 +1,7 @@
-import { CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { CheckCircle2, ChevronDown, RefreshCw, Settings, ShieldCheck } from "lucide-react";
 import type {
   DepositanteBlingConfig,
   DepositanteMercadoLivreConfig,
@@ -18,6 +21,7 @@ export function PortalIntegrationsView({
   mercadoLivre,
   feedback,
 }: Props) {
+  const [blingSettingsOpen, setBlingSettingsOpen] = useState(false);
   const successMessage =
     feedback === "bling-conectado"
       ? "Bling conectado com sucesso."
@@ -55,6 +59,13 @@ export function PortalIntegrationsView({
           account={bling?.companyName}
           provider="bling"
           href={`/api/integracoes/bling/oauth/start?depositanteId=${encodeURIComponent(depositanteId)}&portal=1`}
+          settingsOpen={blingSettingsOpen}
+          onSettingsClick={bling?.connected ? () => setBlingSettingsOpen((open) => !open) : undefined}
+          settingsContent={
+            blingSettingsOpen && bling?.connected ? (
+              <BlingImportConfiguration depositanteId={depositanteId} embedded />
+            ) : null
+          }
         />
         <IntegrationCard
           title="Mercado Livre"
@@ -66,8 +77,6 @@ export function PortalIntegrationsView({
           href={`/api/integracoes/mercado-livre/oauth/start?depositanteId=${encodeURIComponent(depositanteId)}&portal=1`}
         />
       </div>
-
-      {bling?.connected ? <BlingImportConfiguration depositanteId={depositanteId} /> : null}
 
       <div className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-500" />
@@ -85,6 +94,9 @@ function IntegrationCard({
   href,
   provider,
   benefit,
+  settingsOpen = false,
+  onSettingsClick,
+  settingsContent,
 }: {
   title: string;
   description: string;
@@ -93,14 +105,31 @@ function IntegrationCard({
   href: string;
   provider: "bling" | "mercado-livre";
   benefit: string;
+  settingsOpen?: boolean;
+  onSettingsClick?: () => void;
+  settingsContent?: ReactNode;
 }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#101b30]">
+    <article className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-[box-shadow] dark:border-white/10 dark:bg-[#101b30] ${settingsOpen ? "md:col-span-2 shadow-lg" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         <IntegrationLogo provider={provider} />
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${connected ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}>
-          {connected ? "Conectado" : "Não conectado"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${connected ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}>
+            {connected ? "Conectado" : "Não conectado"}
+          </span>
+          {onSettingsClick ? (
+            <button
+              type="button"
+              onClick={onSettingsClick}
+              aria-expanded={settingsOpen}
+              aria-label={settingsOpen ? `Fechar configurações do ${title}` : `Configurar ${title}`}
+              title={settingsOpen ? "Fechar política de entrada" : "Configurar política de entrada"}
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-xl border transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 ${settingsOpen ? "border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-300" : "border-slate-200 bg-white text-slate-500 hover:border-cyan-300 hover:text-cyan-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"}`}
+            >
+              <Settings className={`h-4 w-4 transition-transform duration-300 ${settingsOpen ? "rotate-90" : ""}`} />
+            </button>
+          ) : null}
+        </div>
       </div>
       <h2 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">{title}</h2>
       <p className="mt-2 min-h-11 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
@@ -129,6 +158,25 @@ function IntegrationCard({
         <RefreshCw className="h-4 w-4" />
         {connected ? `Reconectar ${title}` : `Conectar ${title}`}
       </a>
+      {settingsContent ? (
+        <div className="mt-6 border-t border-slate-200 pt-6 dark:border-white/10">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-500">Configuração da integração</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Defina quais pedidos do Bling devem entrar no WMS.</p>
+            </div>
+            <button
+              type="button"
+              onClick={onSettingsClick}
+              className="inline-flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              Recolher
+              <ChevronDown className="h-4 w-4 rotate-180" />
+            </button>
+          </div>
+          {settingsContent}
+        </div>
+      ) : null}
     </article>
   );
 }
