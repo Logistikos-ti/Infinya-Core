@@ -121,7 +121,8 @@ export function PortalChrome({
   const searchParamKey = currentView === "produtos" ? "search" : "q";
   const searchValue = searchParams.get(searchParamKey) ?? "";
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(288);
+  // Largura alinhada com Infinoos People/ERP/WMS: 76 compacta / 264 expandida.
+  const [sidebarWidth, setSidebarWidth] = useState(264);
   const [preferenceLoaded, setPreferenceLoaded] = useState(false);
   const [search, setSearch] = useState(searchValue);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -171,12 +172,12 @@ export function PortalChrome({
     const collapsed = window.localStorage.getItem(
       "infinoos-portal-sidebar-collapsed",
     );
-    const width = Number(
-      window.localStorage.getItem("infinoos-portal-sidebar-width"),
-    );
     if (collapsed !== null) setIsCollapsed(collapsed === "true");
-    if (Number.isFinite(width) && width >= 200 && width <= 500)
-      setSidebarWidth(width);
+
+    // Drag-resize removido — largura é fixa. Limpa valor antigo cacheado
+    // pra usuários que tinham 288 salvo (antes do rebranding da sidebar).
+    window.localStorage.removeItem("infinoos-portal-sidebar-width");
+
     setPreferenceLoaded(true);
   }, []);
 
@@ -186,11 +187,7 @@ export function PortalChrome({
       "infinoos-portal-sidebar-collapsed",
       String(isCollapsed),
     );
-    window.localStorage.setItem(
-      "infinoos-portal-sidebar-width",
-      String(sidebarWidth),
-    );
-  }, [isCollapsed, preferenceLoaded, sidebarWidth]);
+  }, [isCollapsed, preferenceLoaded]);
 
   useEffect(() => {
     setSearch(searchValue);
@@ -271,7 +268,7 @@ export function PortalChrome({
     currentView === "inicio" ? "/portal" : `${pathname}?view=${currentView}`,
   );
   const style = {
-    "--sidebar-width": isCollapsed ? "80px" : `${sidebarWidth}px`,
+    "--sidebar-width": isCollapsed ? "76px" : `${sidebarWidth}px`,
   } as React.CSSProperties;
 
   function navigate(href: string) {
@@ -323,7 +320,12 @@ export function PortalChrome({
       style={style}
       className="flex min-h-screen w-full overflow-hidden bg-[#f5f7fb] text-slate-900 dark:bg-[#0a1120] dark:text-slate-100"
     >
-      <div className="hidden shrink-0 lg:block">
+      {/* Wrapper com largura reservada — sidebar é position:fixed no CSS novo,
+          então o flex-1 do main precisaria passar por baixo sem esse spacer. */}
+      <div
+        className="hidden shrink-0 lg:block"
+        style={{ width: "calc(var(--sidebar-width) + 28px)" }}
+      >
         <AppSidebar
           user={user}
           currentPath={activePath}
