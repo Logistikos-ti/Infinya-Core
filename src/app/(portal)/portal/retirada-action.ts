@@ -109,6 +109,11 @@ export async function createRetiradaDepositanteAction(
     observacoes: observacoes || null,
     payload_origem: {
       retirada: true,
+      // `criado_por` (snake_case) na raiz é lido pelo trigger de auditoria
+      // (registrar_auditoria_tabela), que resolve o nome/papel do usuário
+      // consultando public.usuarios. Sem essa chave o INSERT via service_role
+      // ficava com autoria nula na tabela auditoria_eventos.
+      criado_por: user.id,
       criadoPor: {
         userId: user.id,
         nome: user.nome,

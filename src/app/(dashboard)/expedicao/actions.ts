@@ -631,6 +631,9 @@ export async function createManualShippingOrderAction(formData: FormData) {
 
   const payloadOrigem = {
     manual: true,
+    // `criado_por` (snake_case) na raiz é lido pelo trigger de auditoria
+    // (registrar_auditoria_tabela) para preencher usuario_nome/papel.
+    criado_por: user.id,
     criadoPor: {
       userId: user.id,
       nome: user.nome,
@@ -956,6 +959,8 @@ async function createXmlShippingOrderSubmission(formData: FormData): Promise<Man
   const payloadOrigem = {
     manual: true,
     importadoPorXml: true,
+    // Idem: chave snake_case na raiz para o trigger de auditoria enxergar.
+    criado_por: user.id,
     criadoPor: { userId: user.id, nome: user.nome, papel: user.papel, em: new Date().toISOString() },
     comercial: buildManualCommercialPayload({ salesChannelCode, customStoreName }),
     destinatario: {
