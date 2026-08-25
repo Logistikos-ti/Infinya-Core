@@ -193,7 +193,8 @@ export function AppChrome({ children, user, openTicketsCount }: AppChromeProps) 
   const [globalSearch, setGlobalSearch] = useState(globalSearchValueFromUrl);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(288);
+  // Larguras alinhadas com a sidebar do Infinoos People/ERP: 76 compacta / 264 expandida.
+  const [sidebarWidth, setSidebarWidth] = useState(264);
   const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
 
   const [waveCode, setWaveCode] = useState("W-000");
@@ -286,16 +287,14 @@ export function AppChrome({ children, user, openTicketsCount }: AppChromeProps) 
 
 useEffect(() => {
     const storedCollapsed = window.localStorage.getItem("infinoos-sidebar-collapsed");
-    const storedWidth = window.localStorage.getItem("infinoos-sidebar-width");
 
     if (storedCollapsed !== null) {
       setIsCollapsed(storedCollapsed === "true");
     }
 
-    const parsedWidth = storedWidth ? Number(storedWidth) : NaN;
-    if (Number.isFinite(parsedWidth) && parsedWidth >= 200 && parsedWidth <= 500) {
-      setSidebarWidth(parsedWidth);
-    }
+    // Ignora valor antigo de largura persistida — drag-resize removido, largura é fixa.
+    // Também limpa o valor cacheado pra não voltar a interferir se drag-resize retornar.
+    window.localStorage.removeItem("infinoos-sidebar-width");
 
     setSidebarPreferenceLoaded(true);
   }, []);
@@ -303,11 +302,10 @@ useEffect(() => {
   useEffect(() => {
     if (!sidebarPreferenceLoaded) return;
     window.localStorage.setItem("infinoos-sidebar-collapsed", String(isCollapsed));
-    window.localStorage.setItem("infinoos-sidebar-width", String(sidebarWidth));
-  }, [isCollapsed, sidebarPreferenceLoaded, sidebarWidth]);
+  }, [isCollapsed, sidebarPreferenceLoaded]);
 
   const style = {
-    '--sidebar-width': isCollapsed ? '80px' : `${sidebarWidth}px`
+    '--sidebar-width': isCollapsed ? '76px' : `${sidebarWidth}px`
   } as React.CSSProperties;
 
   return (
@@ -319,9 +317,11 @@ useEffect(() => {
         <div className="absolute bottom-[-10%] right-[-10%] h-[30%] w-[30%] rounded-full bg-accent-500/14 blur-[120px]"></div>
       </div>
 
-      {/* Sidebar - Hidden on mobile, block on lg */}
-      <div className="hidden lg:block z-10">
-        <AppSidebar 
+      {/* Sidebar - Hidden on mobile, block on lg
+          Width reservada via CSS var pra o main content (flex-1) não passar
+          por baixo da sidebar fixed. --sidebar-width vem do wrapper root. */}
+      <div className="hidden lg:block z-10 flex-shrink-0" style={{ width: 'calc(var(--sidebar-width) + 28px)' }}>
+        <AppSidebar
           user={user} 
           currentPath={currentPath} 
           isCollapsed={isCollapsed}

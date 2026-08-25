@@ -1,101 +1,97 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-
-import { Space_Grotesk } from "next/font/google";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  Activity,
-  Archive,
-  BarChart3,
-  Boxes,
-  ClipboardList,
-  Cpu,
-  FileCode2,
-  FileText,
-  Layers,
-  LayoutDashboard,
-  Map,
-  MapPin,
-  PackageCheck,
-  PackageOpen,
-  PieChart,
-  Receipt,
-  Route,
-  ScrollText,
-  Send,
-  Settings2,
-  ShieldAlert,
-  SlidersHorizontal,
-  Tag,
-  Truck,
-  ChevronDown,
-  CircleHelp,
+  Activity, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, FileCode2,
+  Layers, LogOut, MapPin, PackageOpen, PieChart, Receipt, Route, Send,
+  ShieldAlert, SlidersHorizontal, Tag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { LogoutButton } from "@/components/auth/logout-button";
-import { InfinyaBrand } from "@/components/branding/infinya-brand";
 import type { AppUserContext } from "@/lib/auth";
 import {
-  canAccessConfigSection,
-  canAccessModule,
-  getRoleLabel,
-  isCatalogAndStockOperatorUser,
-  isProductCatalogOnlyUser,
+  canAccessConfigSection, canAccessModule, getRoleLabel,
+  isCatalogAndStockOperatorUser, isProductCatalogOnlyUser,
   type AppModule,
 } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
+import { logoutAction } from "@/app/(auth)/login/actions";
 
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
+/**
+ * Sidebar do Infinoos WMS — visual e estrutura idênticos ao Infinoos People.
+ *
+ * Estrutura preservada do padrão Infinoos:
+ * - Grupos com section labels em maiúsculas
+ * - Footer com avatar + user + logout (hover vermelho)
+ * - Tooltip portalizado no modo recolhido
+ * - Larguras 76 (compacta) / 264 (expandida) via CSS var
+ *
+ * Lógica preservada do WMS antigo:
+ * - Filtragem por papel: canAccessModule / isProductCatalogOnly / isCatalogAndStockOperator
+ * - Ticket badge em Suporte
+ * - Distinção WMS vs YMS
+ */
 
-const navigation: ReadonlyArray<{
+type Item = {
   href: string;
   label: string;
   icon: LucideIcon;
   module: AppModule;
-}> = [
+  badge?: string;
+};
+
+type Grupo = {
+  id: string;
+  label: string;
+  itens: Item[];
+};
+
+// Catálogo agrupado (mesmo padrão do Infinoos People)
+const GRUPOS_COMPLETOS: Grupo[] = [
   {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: Activity,
-    module: "dashboard",
+    id: "OPERACAO",
+    label: "Operação",
+    itens: [
+      { href: "/dashboard",    label: "Dashboard",   icon: Activity,      module: "dashboard" },
+      { href: "/recebimento",  label: "Recebimento", icon: PackageOpen,   module: "recebimento" },
+      { href: "/expedicao",    label: "Expedição",   icon: Send,          module: "expedicao" },
+      { href: "/romaneio",     label: "Romaneio",    icon: ClipboardList, module: "romaneio" },
+    ],
   },
   {
-    href: "/recebimento",
-    label: "Recebimento",
-    icon: PackageOpen,
-    module: "recebimento",
-  },
-  { href: "/expedicao", label: "Expedição", icon: Send, module: "expedicao" },
-  { href: "/estoque", label: "Estoque", icon: Layers, module: "estoque" },
-  {
-    href: "/estoque/quarentena",
-    label: "Quarentena",
-    icon: ShieldAlert,
-    module: "estoque",
+    id: "ESTOQUE",
+    label: "Estoque",
+    itens: [
+      { href: "/estoque",            label: "Estoque",    icon: Layers,      module: "estoque" },
+      { href: "/estoque/quarentena", label: "Quarentena", icon: ShieldAlert, module: "estoque" },
+    ],
   },
   {
-    href: "/romaneio",
-    label: "Romaneio",
-    icon: ClipboardList,
-    module: "romaneio",
+    id: "FISCAL",
+    label: "Fiscal & Análise",
+    itens: [
+      { href: "/nfe",         label: "NF-e",       icon: FileCode2, module: "nfe" },
+      { href: "/relatorios",  label: "Relatórios", icon: PieChart,  module: "relatorios" },
+      { href: "/financeiro",  label: "Financeiro", icon: Receipt,   module: "financeiro" },
+    ],
   },
-  { href: "/nfe", label: "NF-e", icon: FileCode2, module: "nfe" },
   {
-    href: "/relatorios",
-    label: "Relatórios",
-    icon: PieChart,
-    module: "relatorios",
+    id: "AREAS",
+    label: "Áreas",
+    itens: [
+      { href: "/yms", label: "YMS (Docas)", icon: Route, module: "yms" },
+    ],
   },
-  { href: "/yms", label: "YMS (Docas)", icon: Route, module: "yms" },
   {
-    href: "/configuracoes",
-    label: "Configurações",
-    icon: SlidersHorizontal,
-    module: "configuracoes",
+    id: "SISTEMA",
+    label: "Sistema",
+    itens: [
+      { href: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, module: "configuracoes" },
+      { href: "/suporte",       label: "Suporte",       icon: CircleHelp,        module: "dashboard" },
+    ],
   },
-  { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" },
-] as const;
+];
 
 export type SidebarNavigationItem = {
   href: string;
@@ -109,353 +105,234 @@ type AppSidebarProps = {
   currentPath: string;
   isCollapsed?: boolean;
   setIsCollapsed?: (collapsed: boolean) => void;
-  sidebarWidth?: number;
-  setSidebarWidth?: (width: number) => void;
+  sidebarWidth?: number;               // legado — ignorado, largura fixa
+  setSidebarWidth?: (width: number) => void;  // legado
   navigationOverride?: ReadonlyArray<SidebarNavigationItem>;
   openTicketsCount?: number;
 };
 
+type FlyoutState = { label: string; top: number; left: number; active: boolean } | null;
+
 export function AppSidebar({
   user,
   currentPath,
-  isCollapsed,
+  isCollapsed = false,
   setIsCollapsed,
-  sidebarWidth,
-  setSidebarWidth,
   navigationOverride,
   openTicketsCount,
 }: AppSidebarProps) {
+  const [flyout, setFlyout] = useState<FlyoutState>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const isYMS = currentPath.startsWith("/yms");
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<boolean>(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    dragRef.current = true;
-    setIsDragging(true);
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!dragRef.current) return;
-    let newWidth = e.clientX;
-    if (newWidth < 200) newWidth = 200;
-    if (newWidth > 500) newWidth = 500;
-    if (setSidebarWidth) setSidebarWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    dragRef.current = false;
-    setIsDragging(false);
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
-  };
-
-  const visibleNavigation =
-    navigationOverride ??
-    (isProductCatalogOnlyUser(user)
-      ? [
-          {
-            href: "/configuracoes/produtos",
-            label: "Produtos",
-            icon: Tag,
-            module: "configuracoes" as AppModule,
-          },
-          {
-            href: "/suporte",
-            label: "Suporte",
-            icon: CircleHelp,
-            module: "dashboard" as AppModule,
-          },
-        ]
+  // Aplica filtros por papel do usuário e retorna grupos visíveis
+  const gruposVisiveis: Grupo[] = navigationOverride
+    ? [{ id: "OVERRIDE", label: "", itens: [...navigationOverride] }]
+    : isProductCatalogOnlyUser(user)
+      ? [{
+          id: "PRODUTO",
+          label: "Cadastros",
+          itens: [
+            { href: "/configuracoes/produtos", label: "Produtos", icon: Tag,        module: "configuracoes" },
+            { href: "/suporte",                label: "Suporte",  icon: CircleHelp, module: "dashboard" },
+          ],
+        }]
       : isCatalogAndStockOperatorUser(user)
-        ? [
-          ...(canAccessModule(user, "estoque")
-              ? [
-                  {
-                    href: "/estoque",
-                    label: "Estoque",
-                    icon: Layers,
-                    module: "estoque" as AppModule,
-                  },
-                  {
-                    href: "/estoque/quarentena",
-                    label: "Quarentena",
-                    icon: ShieldAlert,
-                    module: "estoque" as AppModule,
-                  },
-                ]
-              : []),
-            ...(canAccessModule(user, "recebimento")
-              ? [
-                  {
-                    href: "/recebimento",
-                    label: "Recebimento",
-                    icon: PackageOpen,
-                    module: "recebimento" as AppModule,
-                  },
-                ]
-              : []),
-            ...(canAccessModule(user, "expedicao")
-              ? [{ href: "/expedicao", label: "Expedição", icon: Send }]
-              : []),
-            ...(canAccessModule(user, "romaneio")
-              ? [
-                  {
-                    href: "/romaneio",
-                    label: "Romaneio",
-                    icon: ClipboardList,
-                    module: "romaneio" as AppModule,
-                  },
-                ]
-              : []),
-            {
-              href: "/configuracoes/produtos",
-              label: "Produtos",
-              icon: Tag,
-              module: "configuracoes" as AppModule,
-            },
-            ...(canAccessConfigSection(user, "enderecos")
-              ? [
-                  {
-                    href: "/configuracoes/enderecos",
-                    label: "Endereços",
-                    icon: MapPin,
-                  },
-                ]
-              : []),
-            {
-              href: "/suporte",
-              label: "Suporte",
-              icon: CircleHelp,
-              module: "dashboard" as AppModule,
-            },
-          ]
-        : navigation.filter((item) => canAccessModule(user, item.module)));
+        ? buildOperatorGrupos(user)
+        : filtrarPorPapel(user);
 
-  // Filtragem visual entre os módulos WMS e YMS
-  const currentNavItems = visibleNavigation.filter((item) => {
-    if (isYMS) {
-      // No YMS, mostramos apenas itens do YMS
-      return item.module === "yms";
-    }
-    // No WMS, escondemos os itens específicos do YMS
-    return item.module !== "yms";
-  });
+  // WMS vs YMS
+  const gruposFinais = gruposVisiveis
+    .map((g) => ({
+      ...g,
+      itens: g.itens.filter((item) => isYMS ? item.module === "yms" : item.module !== "yms"),
+    }))
+    .filter((g) => g.itens.length > 0);
+
+  const handleFlyoutEnter = (e: React.MouseEvent<HTMLLIElement>, label: string, active: boolean) => {
+    if (!isCollapsed) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setFlyout({ label, active, top: r.top + r.height / 2 - 22, left: r.right + 16 });
+  };
+  const handleFlyoutLeave = () => setFlyout(null);
+
+  const nomeUsuario = user.nome ?? user.email ?? "";
+  const funcao = getRoleLabel(user.papel);
 
   return (
-    <aside
-      style={{
-        width: isCollapsed ? 80 : sidebarWidth,
-        transition: isDragging
-          ? "none"
-          : "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
-      className="glass-card relative sticky top-0 z-10 m-0 flex min-h-screen flex-shrink-0 flex-col justify-between rounded-none border-r border-slate-200/50 bg-white/40 p-4 backdrop-blur-2xl dark:border-white/5 dark:bg-[#0a1128]/50"
-    >
-      {/* Drag handle */}
-      {!isCollapsed && setSidebarWidth && (
-        <div
-          onMouseDown={handleMouseDown}
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 z-50 transition-colors"
-        />
-      )}
+    <aside className={`sb ${isCollapsed ? "sb--collapsed" : ""}`}>
+      <div className="sb__grid" aria-hidden />
+      <div className="sb__scan" aria-hidden />
 
-      <div>
-        <div
-          className={cn(
-            "flex items-center mb-8",
-            isCollapsed ? "flex-col gap-4" : "justify-between gap-2",
-          )}
+      {/* Header */}
+      <div className="sb__header">
+        <div className="sb__logo">
+          <Image src="/branding/icone-infinoos-wms.svg" alt="Infinoos WMS" width={40} height={40} priority />
+        </div>
+        <div className="sb__brand">
+          <span className="sb__eyebrow">INFINOOS</span>
+          <span className="sb__title">WMS</span>
+        </div>
+        <button
+          type="button"
+          className="sb__toggle"
+          onClick={() => setIsCollapsed?.(!isCollapsed)}
+          aria-label={isCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
+          title={isCollapsed ? "Expandir" : "Recolher"}
         >
-          <div
-            className={cn(
-              isCollapsed ? "flex justify-center" : "flex-1 min-w-0",
-            )}
-          >
-            <ModuleSwitcher
-              currentPath={currentPath}
-              isCollapsed={!!isCollapsed}
-            />
-          </div>
+          {isCollapsed ? (
+            <Image src="/branding/icone-infinoos-wms.svg" alt="Infinoos" width={40} height={40} />
+          ) : (
+            <ChevronsLeft size={17} />
+          )}
+        </button>
+      </div>
+
+      {/* Conteúdo — mesma estrutura do HR: grupos com section labels */}
+      <div className="sb__content">
+        {gruposFinais.map((g) => (
+          <section key={g.id}>
+            {g.label && <div className="sb__section-label">{g.label}</div>}
+            <ul className="sb__list">
+              {g.itens.map((item, i) => {
+                const Icon = item.icon;
+                const [itemPath] = item.href.split("?");
+                const active = currentPath === itemPath || currentPath.startsWith(itemPath + "/");
+                const ticketBadge = item.href === "/suporte" && (openTicketsCount ?? 0) > 0;
+
+                return (
+                  <li
+                    key={item.href}
+                    className={`sb__item ${active ? "sb__item--active" : ""}`}
+                    style={{ animationDelay: `${i * 28}ms` }}
+                    onMouseEnter={(e) => handleFlyoutEnter(e, item.label, active)}
+                    onMouseLeave={handleFlyoutLeave}
+                  >
+                    <Link href={item.href} className="sb__link">
+                      <Icon className="sb__icon" />
+                      <span className="sb__label">{item.label}</span>
+                      {ticketBadge && (
+                        <span
+                          className="sb__badge"
+                          style={{
+                            background: "rgba(239,68,68,0.16)",
+                            borderColor: "rgba(239,68,68,0.35)",
+                            color: "#F87171",
+                          }}
+                        >
+                          {openTicketsCount}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+
+      {/* Footer — igual ao HR */}
+      <div className="sb__footer">
+        <div className="sb__avatar">{initials(nomeUsuario)}</div>
+        <div className="sb__user">
+          <div className="sb__user-name">{nomeCurto(nomeUsuario)}</div>
+          <span className="sb__user-role">{funcao}</span>
+        </div>
+        <form action={logoutAction}>
           <button
-            onClick={() => setIsCollapsed?.(!isCollapsed)}
-            className="p-2 rounded-xl bg-slate-100/50 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 transition-colors flex-shrink-0"
-            title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+            type="submit"
+            className="sb__menu-toggle sb__menu-toggle--logout"
+            aria-label="Sair"
+            title="Sair"
           >
-            {isCollapsed ? (
-              <ChevronDown className="w-5 h-5 -rotate-90" />
-            ) : (
-              <ChevronDown className="w-5 h-5 rotate-90" />
-            )}
+            <LogOut size={15} />
           </button>
-        </div>
-
-        <nav className="space-y-1.5">
-          {currentNavItems.map((item) => {
-            const Icon = item.icon;
-            const [itemPath, itemQuery] = item.href.split("?");
-            const isActive = itemQuery
-              ? currentPath === item.href
-              : itemPath === "/estoque"
-                ? currentPath === "/estoque" ||
-                  (currentPath.startsWith("/estoque/") &&
-                    !currentPath.startsWith("/estoque/quarentena"))
-                : currentPath === itemPath ||
-                  currentPath.startsWith(`${itemPath}/`);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={isCollapsed ? item.label : undefined}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-300",
-                  spaceGrotesk.className,
-                  isCollapsed && "justify-center px-0",
-                  isActive
-                    ? "bg-gradient-to-r from-cyan-500/10 to-transparent text-cyan-700 dark:from-cyan-400/15 dark:text-cyan-300"
-                    : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white",
-                )}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.6)] dark:bg-cyan-400 dark:shadow-[0_0_16px_rgba(34,211,238,0.7)]" />
-                )}
-                <Icon
-                  className={cn(
-                    "h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110",
-                    isActive &&
-                      "drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] dark:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)]",
-                  )}
-                />
-                {!isCollapsed && <span className="truncate flex-1">{item.label}</span>}
-                {item.href === "/suporte" && openTicketsCount && openTicketsCount > 0 ? (
-                  <span className={cn(
-                    "absolute right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-sm",
-                    isCollapsed && "right-1 top-1 h-4 min-w-[16px] px-1 text-[8px]"
-                  )}>
-                    {openTicketsCount > 99 ? "99+" : openTicketsCount}
-                  </span>
-                ) : null}
-              </Link>
-            );
-          })}
-        </nav>
+        </form>
       </div>
 
-      <div
-        className={cn(
-          "mt-4 border-t border-slate-200/80 pt-4 dark:border-white/10",
-          isCollapsed ? "px-0 flex flex-col items-center gap-4" : "px-2 py-3",
-        )}
-      >
-        {!isCollapsed && (
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Sessão ativa
-          </p>
-        )}
+      {/* Flyout portalizado */}
+      {mounted && isCollapsed && flyout && createPortal(
         <div
-          className={cn(
-            "flex items-center",
-            isCollapsed ? "justify-center" : "justify-between gap-3",
-          )}
+          className={`sb-flyout ${flyout.active ? "sb-flyout--active" : ""}`}
+          style={{ top: flyout.top, left: flyout.left }}
         >
-          {!isCollapsed && (
-            <div className="overflow-hidden">
-              <p className="truncate text-sm font-bold text-slate-950 dark:text-white">
-                {user.nome}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {getRoleLabel(user.papel)}
-              </p>
-            </div>
-          )}
-          <LogoutButton />
-        </div>
-      </div>
+          {flyout.label}
+        </div>,
+        document.body,
+      )}
     </aside>
   );
 }
 
-function ModuleSwitcher({
-  currentPath,
-  isCollapsed,
-}: {
-  currentPath: string;
-  isCollapsed: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const isYMS = currentPath.startsWith("/yms");
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative px-1" ref={ref}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "flex w-full items-center justify-between rounded-2xl border border-transparent p-1.5 transition-colors hover:bg-slate-100/50 dark:hover:bg-white/5",
-          isCollapsed &&
-            "justify-center p-0 hover:bg-transparent dark:hover:bg-transparent",
-        )}
-      >
-        {isCollapsed ? (
-          <InfinyaBrand glyphOnly className="w-10 h-10" />
-        ) : (
-          <>
-            <InfinyaBrand compact naked isYMS={isYMS} />
-            <ChevronDown
-              className={`h-4 w-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-            />
-          </>
-        )}
-      </button>
-
-      {isOpen && !isCollapsed && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#0a1128]">
-          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Módulos Disponíveis
-          </p>
-          <Link
-            href="/dashboard"
-            onClick={() => setIsOpen(false)}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-              !isYMS
-                ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
-            }`}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
-              <LayoutDashboard className="h-4 w-4" />
-            </div>
-            Infinoos WMS
-          </Link>
-          <Link
-            href="/yms"
-            onClick={() => setIsOpen(false)}
-            className={`mt-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-              isYMS
-                ? "bg-slate-100 text-slate-900 dark:bg-white/10 dark:text-white"
-                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
-            }`}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
-              <Map className="h-4 w-4" />
-            </div>
-            Infinoos YMS
-          </Link>
-        </div>
-      )}
-    </div>
-  );
+// Filtra os grupos completos deixando só itens acessíveis pro papel
+function filtrarPorPapel(user: AppUserContext): Grupo[] {
+  return GRUPOS_COMPLETOS.map((g) => ({
+    ...g,
+    itens: g.itens.filter((item) => canAccessModule(user, item.module)),
+  })).filter((g) => g.itens.length > 0);
 }
+
+// Nav customizada pro operador de catálogo+estoque
+function buildOperatorGrupos(user: AppUserContext): Grupo[] {
+  const operacao: Item[] = [];
+  if (canAccessModule(user, "recebimento"))
+    operacao.push({ href: "/recebimento", label: "Recebimento", icon: PackageOpen, module: "recebimento" });
+  if (canAccessModule(user, "expedicao"))
+    operacao.push({ href: "/expedicao", label: "Expedição", icon: Send, module: "expedicao" });
+  if (canAccessModule(user, "romaneio"))
+    operacao.push({ href: "/romaneio", label: "Romaneio", icon: ClipboardList, module: "romaneio" });
+
+  const estoque: Item[] = [];
+  if (canAccessModule(user, "estoque")) {
+    estoque.push(
+      { href: "/estoque",            label: "Estoque",    icon: Layers,      module: "estoque" },
+      { href: "/estoque/quarentena", label: "Quarentena", icon: ShieldAlert, module: "estoque" },
+    );
+  }
+
+  const cadastros: Item[] = [
+    { href: "/configuracoes/produtos", label: "Produtos", icon: Tag, module: "configuracoes" },
+  ];
+  if (canAccessConfigSection(user, "enderecos")) {
+    cadastros.push({ href: "/configuracoes/enderecos", label: "Endereços", icon: MapPin, module: "configuracoes" });
+  }
+
+  const sistema: Item[] = [
+    { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" },
+  ];
+
+  return [
+    { id: "OPERACAO",  label: "Operação",  itens: operacao },
+    { id: "ESTOQUE",   label: "Estoque",   itens: estoque },
+    { id: "CADASTROS", label: "Cadastros", itens: cadastros },
+    { id: "SISTEMA",   label: "Sistema",   itens: sistema },
+  ].filter((g) => g.itens.length > 0);
+}
+
+// Helpers idênticos ao Infinoos People
+
+function nomeCurto(nome: string): string {
+  const LIMITE = 18;
+  const s = String(nome || "").trim().replace(/\s+/g, " ");
+  if (!s) return "";
+  if (s.length <= LIMITE) return s;
+  const partes = s.split(" ");
+  if (partes.length >= 2) {
+    const primeiroUltimo = `${partes[0]} ${partes[partes.length - 1]}`;
+    if (primeiroUltimo.length <= LIMITE) return primeiroUltimo;
+  }
+  return partes[0];
+}
+
+function initials(name: string): string {
+  const parts = String(name || "").trim().split(/\s+/);
+  if (parts.length === 0 || !parts[0]) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// evita warning "unused"
+export { ChevronsRight };

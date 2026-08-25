@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="ggrad" x1="0" y1="0" x2="1" y2="0.6">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#4f6cf7"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="gbg" cx="0.5" cy="0.32" r="0.9">
+      <stop offset="0" stop-color="#16224d"/>
+      <stop offset="0.62" stop-color="#0a1128"/>
+      <stop offset="1" stop-color="#070c1d"/>
+    </radialGradient>
+    <filter id="gglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5"/>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#gbg)"/>
+  <g transform="translate(122.88, 200.704) scale(6.485333)">
+    <g filter="url(#gglow)" opacity="0.85">
+      <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="url(#ggrad)" stroke-width="12"/>
+      <path d="M44,33 L44,14 L60,4 L76,14 L76,33 Z" fill="url(#ggrad)"/>
+    </g>
+    <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="url(#ggrad)" stroke-width="10.5"/>
+    <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.8"/>
+    <path d="M44,33 L44,14 L60,4 L76,14 L76,33 Z" fill="url(#ggrad)"/>
+    <path d="M44,14 L60,4 L76,14" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M53,33 L53,21 L67,21 L67,33" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round"/>
+  </g>
+</svg>
