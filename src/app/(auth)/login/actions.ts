@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isEmailLike, normalizeUserLogin } from "@/lib/user-login";
 import { getCurrentUserContext } from "@/lib/auth";
+import { safeRecordAuditEvent } from "@/lib/audit";
 
 export type LoginActionState = {
   error: string | null;
@@ -36,6 +37,14 @@ export async function loginAction(
       .maybeSingle();
 
     if (!profileByLogin?.email) {
+      await safeRecordAuditEvent({
+        modulo: "ACESSOS",
+        acao: "LOGIN_FALHOU",
+        entidadeTipo: "sessao",
+        resultado: "NEGADO",
+        origem: "AUTENTICACAO",
+        metadados: { identificador: normalizedLogin, motivo: "LOGIN_NAO_ENCONTRADO" },
+      });
       return { error: "Não foi possível encontrar um usuário com esse login." };
     }
 
@@ -49,10 +58,26 @@ export async function loginAction(
   } = await supabase.auth.signInWithPassword({ email: authEmail, password });
 
   if (error) {
+    await safeRecordAuditEvent({
+      modulo: "ACESSOS",
+      acao: "LOGIN_FALHOU",
+      entidadeTipo: "sessao",
+      resultado: "NEGADO",
+      origem: "AUTENTICACAO",
+      metadados: { identificador: normalizedLogin || identifier, motivo: "CREDENCIAIS_INVALIDAS" },
+    });
     return { error: "Não foi possível entrar com essas credenciais." };
   }
 
   if (!user) {
+    await safeRecordAuditEvent({
+      modulo: "ACESSOS",
+      acao: "LOGIN_FALHOU",
+      entidadeTipo: "sessao",
+      resultado: "ERRO",
+      origem: "AUTENTICACAO",
+      metadados: { identificador: normalizedLogin || identifier, motivo: "SESSAO_NAO_INICIADA" },
+    });
     return { error: "Não foi possível iniciar a sessão do usuário." };
   }
   const { data: profile } = await adminSupabase
@@ -62,6 +87,16 @@ export async function loginAction(
     .maybeSingle();
 
   if (!profile) {
+    await safeRecordAuditEvent({
+      actor: { id: user.id },
+      modulo: "ACESSOS",
+      acao: "LOGIN_FALHOU",
+      entidadeTipo: "sessao",
+      entidadeId: user.id,
+      resultado: "NEGADO",
+      origem: "AUTENTICACAO",
+      metadados: { motivo: "PERFIL_OPERACIONAL_AUSENTE" },
+    });
     await supabase.auth.signOut();
     return {
       error: "Seu usuário existe no Auth, mas ainda não foi vinculado ao perfil operacional do WMS.",
@@ -69,6 +104,16 @@ export async function loginAction(
   }
 
   if (!profile.ativo) {
+    await safeRecordAuditEvent({
+      actor: { id: user.id },
+      modulo: "ACESSOS",
+      acao: "LOGIN_FALHOU",
+      entidadeTipo: "sessao",
+      entidadeId: user.id,
+      resultado: "NEGADO",
+      origem: "AUTENTICACAO",
+      metadados: { motivo: "USUARIO_INATIVO" },
+    });
     await supabase.auth.signOut();
     return {
       error: "Este usuário está inativo no WMS. Solicite liberação ao administrador.",
@@ -84,6 +129,15 @@ export async function loginAction(
     .eq("id", user.id);
 
   const currentUser = await getCurrentUserContext();
+  await safeRecordAuditEvent({
+    actor: currentUser,
+    modulo: "ACESSOS",
+    acao: "LOGIN",
+    entidadeTipo: "sessao",
+    entidadeId: user.id,
+    origem: "AUTENTICACAO",
+    metadados: { metodo: isEmailLike(identifier) ? "EMAIL" : "LOGIN" },
+  });
   const fallbackRedirect = currentUser ? getPreferredWebRoute(currentUser) : "/dashboard";
   const nextRedirect = redirectTo.startsWith("/") ? redirectTo : fallbackRedirect;
 
@@ -91,6 +145,15 @@ export async function loginAction(
 }
 
 export async function logoutAction() {
+  const currentUser = await getCurrentUserContext();
+  await safeRecordAuditEvent({
+    actor: currentUser,
+    modulo: "ACESSOS",
+    acao: "LOGOUT",
+    entidadeTipo: "sessao",
+    entidadeId: currentUser?.id ?? null,
+    origem: "AUTENTICACAO",
+  });
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
 

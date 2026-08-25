@@ -44,17 +44,8 @@ const configModules = [
   },
 ] as const;
 
-type ConfiguracoesPageProps = {
-  searchParams?: Promise<{
-    preview?: string;
-    legacy?: string;
-    tab?: string;
-  }>;
-};
-
-export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesPageProps) {
+export default async function ConfiguracoesPage() {
   const currentUser = await requireModuleAccess("configuracoes");
-  const params = searchParams ? await searchParams : undefined;
 
   if (isProductCatalogOnlyUser(currentUser)) {
     redirect("/configuracoes/produtos");
@@ -239,6 +230,17 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{module.description}</p>
           </Link>
         ))}
+        {isAdminUser(currentUser) ? (
+          <Link
+            href="/configuracoes/auditoria"
+            className="glass-card infinya-border-glow rounded-[24px] p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:shadow-[0_18px_50px_rgba(34,211,238,0.08)]"
+          >
+            <p className="text-base font-semibold text-slate-950 dark:text-white">Auditoria</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Histórico imutável de acessos, alterações críticas e eventos operacionais do WMS.
+            </p>
+          </Link>
+        ) : null}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
