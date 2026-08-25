@@ -131,8 +131,9 @@ export default async function ConfiguracoesPage() {
       : (transportadorasResult.data ?? []);
   const activeCarriers = transportadoras.filter((item) => item.ativo).length;
   const visibleConfigModules = isFullConfigUser
-    ? configModules
+    ? configModules.filter((module) => module.href !== "/configuracoes/produtos")
     : configModules.filter((module) =>
+        module.href !== "/configuracoes/produtos" &&
         allowedSections.includes(module.href.split("/").pop() as ConfigSection),
       );
 

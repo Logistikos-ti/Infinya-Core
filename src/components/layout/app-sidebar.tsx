@@ -65,6 +65,7 @@ const GRUPOS_COMPLETOS: Grupo[] = [
     itens: [
       { href: "/estoque",            label: "Estoque",    icon: Layers,      module: "estoque" },
       { href: "/estoque/quarentena", label: "Quarentena", icon: ShieldAlert, module: "estoque" },
+      { href: "/configuracoes/produtos", label: "Produtos", icon: Tag, module: "configuracoes" },
     ],
   },
   {
@@ -271,7 +272,11 @@ export function AppSidebar({
 function filtrarPorPapel(user: AppUserContext): Grupo[] {
   return GRUPOS_COMPLETOS.map((g) => ({
     ...g,
-    itens: g.itens.filter((item) => canAccessModule(user, item.module)),
+    itens: g.itens.filter(
+      (item) =>
+        canAccessModule(user, item.module) &&
+        (item.href !== "/configuracoes/produtos" || canAccessConfigSection(user, "produtos")),
+    ),
   })).filter((g) => g.itens.length > 0);
 }
 
