@@ -199,8 +199,13 @@ export function AppSidebar({
             <ul className="sb__list">
               {g.itens.map((item, i) => {
                 const Icon = item.icon;
-                const [itemPath] = item.href.split("?");
-                const active = currentPath === itemPath || currentPath.startsWith(itemPath + "/");
+                // Se o href tem query (?), casa exatamente com a URL atual (portal usa
+                // ?view=X — não podemos ignorar a query, senão todos os itens do portal
+                // batem em /portal). Sem query, aceita prefixo normal.
+                const hasQuery = item.href.includes("?");
+                const active = hasQuery
+                  ? currentPath === item.href
+                  : currentPath === item.href || currentPath.startsWith(item.href + "/");
                 const ticketBadge = item.href === "/suporte" && (openTicketsCount ?? 0) > 0;
 
                 return (
