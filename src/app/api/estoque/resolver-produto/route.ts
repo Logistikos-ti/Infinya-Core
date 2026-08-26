@@ -22,13 +22,14 @@ function escapeSupabaseValue(value: string) {
 
 /**
  * Resolves a scanned barcode to the matching estoque row(s) for Entrada
- * Manual / Saída Manual / Movimentação Interna, replacing the old "pick from
- * the product list" step -- the operator now bips the product right after
- * choosing the depositante, and this endpoint figures out which saldo(s)
- * that corresponds to. A product stored in a single location resolves
- * straight to one estoqueId; a product split across multiple locations
- * comes back as several matches so the client can show a short chooser
- * (only for that product, not the full catalog).
+ * Manual / Saída Manual / Movimentação Interna / Divisão de Lote, replacing
+ * the old "pick from the product list" step -- the operator now bips the
+ * product right after choosing the depositante, and this endpoint figures
+ * out which saldo(s) that corresponds to. A product stored in a single
+ * location resolves straight to one estoqueId; a product split across
+ * multiple locations (or multiple lotes at the same location) comes back as
+ * several matches so the client can show a short chooser (only for that
+ * product, not the full catalog).
  */
 export async function POST(request: Request) {
   const auth = await requireApiModuleAccess("estoque");
@@ -37,13 +38,19 @@ export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as {
     depositanteId?: string;
     barcode?: string;
-    mode?: "entrada" | "saida" | "movimentacao";
+    mode?: "entrada" | "saida" | "movimentacao" | "divisao-lote";
   } | null;
 
   const depositanteId = String(payload?.depositanteId ?? "").trim();
   const barcode = String(payload?.barcode ?? "").trim();
   const mode =
-    payload?.mode === "entrada" ? "entrada" : payload?.mode === "movimentacao" ? "movimentacao" : "saida";
+    payload?.mode === "entrada"
+      ? "entrada"
+      : payload?.mode === "movimentacao"
+        ? "movimentacao"
+        : payload?.mode === "divisao-lote"
+          ? "divisao-lote"
+          : "saida";
 
   if (!depositanteId || !barcode) {
     return Response.json({ error: "Informe o depositante e o código bipado." }, { status: 400 });
@@ -87,7 +94,9 @@ export async function POST(request: Request) {
 
   let estoqueQuery = admin
     .from("estoque")
-    .select("id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, endereco:enderecos(codigo)")
+    .select(
+      "id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, lote, validade_em, endereco:enderecos(codigo)",
+    )
     .eq("depositante_id", depositanteId)
     .eq("produto_id", produto.id);
 
@@ -113,10 +122,15 @@ export async function POST(request: Request) {
       enderecoCodigo: extractCodigo(row.endereco) || "Sem endereço",
       quantidade: Number(row.quantidade ?? 0),
       disponivel: Number(row.quantidade ?? 0) - Number(row.quantidade_reservada ?? 0),
+      lote: row.lote ?? null,
+      validadeEm: row.validade_em ?? null,
     }))
-    // Saída e movimentação só podem partir de saldos com disponível > 0;
-    // entrada pode lançar em qualquer saldo já cadastrado, mesmo zerado.
-    .filter((row) => (mode === "saida" || mode === "movimentacao" ? row.disponivel > 0 : true));
+    // Saída, movimentação e divisão de lote só podem partir de saldos com
+    // disponível > 0; entrada pode lançar em qualquer saldo já cadastrado,
+    // mesmo zerado.
+    .filter((row) =>
+      mode === "saida" || mode === "movimentacao" || mode === "divisao-lote" ? row.disponivel > 0 : true,
+    );
 
   if (!matches.length) {
     return Response.json(
@@ -126,7 +140,9 @@ export async function POST(request: Request) {
             ? "Produto sem saldo disponível para saída neste depositante."
             : mode === "movimentacao"
               ? "Produto sem saldo disponível para movimentar neste depositante."
-              : "Produto sem saldo cadastrado neste depositante.",
+              : mode === "divisao-lote"
+                ? "Produto sem saldo disponível para dividir neste depositante."
+                : "Produto sem saldo cadastrado neste depositante.",
       },
       { status: 404 },
     );

@@ -10,7 +10,7 @@ export function EstoqueListClient() {
     <MobileListShell
       title="Fluxos do Estoque"
       subtitle="Auditoria e controle"
-      count="7"
+      count="8"
       onBack={() => router.push("/m/inicio")}
       items={[
         {
@@ -75,6 +75,15 @@ export function EstoqueListClient() {
           tagColor: mobileColors.green,
           sub: "Registre devoluções, correções e achados",
           onClick: () => router.push("/m/estoque/entrada-manual"),
+        },
+        {
+          icon: "code",
+          iconColor: mobileColors.cyan,
+          title: "Dividir lote",
+          tag: "Correção",
+          tagColor: mobileColors.cyan,
+          sub: "Separe um saldo em lotes com validades diferentes",
+          onClick: () => router.push("/m/estoque/divisao-lote"),
         },
       ]}
     />
