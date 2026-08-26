@@ -38,7 +38,17 @@ export default async function MobileEntradaManualFlowPage({
   params: Promise<{ depositanteId: string; estoqueId: string }>;
 }) {
   const { depositanteId, estoqueId } = await params;
-  const user = await getCurrentUserContext();
+  const adminSupabase = createSupabaseAdminClient();
+
+  const [user, { data: depositanteRow }] = await Promise.all([
+    getCurrentUserContext(),
+    adminSupabase
+      .from("depositantes")
+      .select("id, nome")
+      .eq("id", depositanteId)
+      .eq("ativo", true)
+      .maybeSingle(),
+  ]);
 
   if (!user || !user.ativo) {
     redirect("/m/login");
@@ -47,14 +57,6 @@ export default async function MobileEntradaManualFlowPage({
   if (!canAccessModule(user, "estoque")) {
     redirect("/m/inicio");
   }
-
-  const adminSupabase = createSupabaseAdminClient();
-  const { data: depositanteRow } = await adminSupabase
-    .from("depositantes")
-    .select("id, nome")
-    .eq("id", depositanteId)
-    .eq("ativo", true)
-    .maybeSingle();
 
   if (!depositanteRow || !filterDepositanteOptionsByUser(user, [depositanteRow]).length) {
     notFound();

@@ -7,7 +7,17 @@ import { listStockBalancesFromDb } from "@/lib/stock";
 import { SaidaManualDepositanteListClient } from "./saida-manual-depositante-list-client";
 
 export default async function MobileSaidaManualDepositantesPage() {
-  const user = await getCurrentUserContext();
+  const adminSupabase = createSupabaseAdminClient();
+
+  const [user, { data: depositantesRows }, balances] = await Promise.all([
+    getCurrentUserContext(),
+    adminSupabase
+      .from("depositantes")
+      .select("id, nome, codigo, logo_url")
+      .eq("ativo", true)
+      .order("nome"),
+    listStockBalancesFromDb(),
+  ]);
 
   if (!user || !user.ativo) {
     redirect("/m/login");
@@ -17,17 +27,9 @@ export default async function MobileSaidaManualDepositantesPage() {
     redirect("/m/inicio");
   }
 
-  const adminSupabase = createSupabaseAdminClient();
-  const { data: depositantesRows } = await adminSupabase
-    .from("depositantes")
-    .select("id, nome, codigo, logo_url")
-    .eq("ativo", true)
-    .order("nome");
-
   const visibleDepositantes = filterDepositanteOptionsByUser(user, depositantesRows ?? []);
   const visibleIds = new Set(visibleDepositantes.map((item) => item.id));
 
-  const balances = await listStockBalancesFromDb();
   const countByDepositante = new Map<string, number>();
   for (const item of balances) {
     if (item.status !== "Disponível" || item.rawQuantidade - item.rawReserved <= 0) continue;
