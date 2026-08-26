@@ -1,4 +1,5 @@
 import type { AppUserContext } from "@/lib/auth";
+import { registrarLancamentosExpedicao } from "@/lib/billing";
 import { formatShippingStatusLabel } from "@/lib/shipping";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -422,6 +423,7 @@ export async function releaseRomaneioRecord(params: { user: AppUserContext; roma
     if (updateOrdersError) {
       throw new Error(`Romaneio liberado, mas os pedidos não foram atualizados: ${updateOrdersError.message}`);
     }
+
   }
 }
 
@@ -1012,6 +1014,8 @@ export async function validateAndAssignOrderDanfeToRomaneio({
     })
     .eq("id", orderId);
 
+  registrarLancamentosExpedicao([orderId]).catch(() => {});
+
   // 3. Find an ABERTO romaneio for this carrier
   const { data: romaneios } = await admin
     .from("romaneios_carga")
@@ -1182,6 +1186,8 @@ export async function completeRomaneioWithDoubleCheck({
       updated_at: new Date().toISOString(),
     })
     .in("id", allOrderIds);
+
+  // Cobrança agora acontece na conferência, não no romaneio
 
   return { ok: true, romaneioId, codigo: romaneio.codigo };
 }

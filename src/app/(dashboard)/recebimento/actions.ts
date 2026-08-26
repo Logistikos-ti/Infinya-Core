@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { registrarLancamentoRecebimento } from "@/lib/billing";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function releaseQuarantinedReceiving(orderId: string) {
@@ -79,6 +80,9 @@ export async function releaseQuarantinedReceiving(orderId: string) {
     .from("pedidos_recebimento")
     .update({ status: "RECEBIDO" })
     .eq("id", orderId);
+
+  // 4b. Registrar cobrança de recebimento
+  registrarLancamentoRecebimento(orderId).catch(() => {});
 
   // 5. Close any open occurrence
   await supabase

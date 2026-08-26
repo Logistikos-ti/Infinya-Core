@@ -39,6 +39,7 @@ import { PortalIntegrationsView } from "@/components/portal/portal-integrations-
 import { formatDatePtBr } from "@/lib/utils";
 import { listFullShipmentsFromDb } from "@/lib/full-orders";
 import { PortalFullOrdersView } from "@/components/portal/portal-full-orders-view";
+import { PortalInvoicesView } from "@/components/portal/portal-invoices-view";
 import { PortalDateTime } from "@/components/portal/portal-date-time";
 
 export const dynamic = "force-dynamic";
@@ -270,7 +271,15 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
           }))}
         />
       ) : null}
-      {view === "faturas" ? <InvoicesView /> : null}
+      {view === "faturas" ? (
+        <>
+          <ViewHeader
+            title="Faturas"
+            description="Acompanhe suas faturas e os custos operacionais em tempo real."
+          />
+          <PortalInvoicesView depositanteId={depositanteId} />
+        </>
+      ) : null}
       {view === "suporte" ? (
         <SupportView initialTickets={supportTickets} />
       ) : null}

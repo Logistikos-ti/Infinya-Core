@@ -36,6 +36,14 @@ export const allowedSaidaManualFotoMimeTypes = [
   "image/heic",
 ] as const;
 
+export const faturasBucketName = "wms-faturas";
+export const maxFaturaFileSizeBytes = 10 * 1024 * 1024;
+export const allowedFaturaMimeTypes = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+] as const;
+
 export function sanitizeFileName(fileName: string) {
   return fileName
     .normalize("NFD")

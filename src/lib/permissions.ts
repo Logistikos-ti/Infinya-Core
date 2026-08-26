@@ -11,6 +11,7 @@ export type AppModule =
   | "estoque"
   | "nfe"
   | "relatorios"
+  | "financeiro"
   | "yms"
   | "configuracoes";
 
@@ -30,6 +31,7 @@ export const APP_MODULES: AppModule[] = [
   "estoque",
   "nfe",
   "relatorios",
+  "financeiro",
   "yms",
   "configuracoes",
 ];
@@ -52,6 +54,7 @@ const roleDefaultModules: Record<AppRole, readonly AppModule[]> = {
     "estoque",
     "nfe",
     "relatorios",
+    "financeiro",
     "yms",
     "configuracoes",
   ],
@@ -63,6 +66,7 @@ const roleDefaultModules: Record<AppRole, readonly AppModule[]> = {
     "estoque",
     "nfe",
     "relatorios",
+    "financeiro",
     "yms",
     "configuracoes",
   ],
@@ -279,6 +283,8 @@ export function getModuleLabel(module: AppModule) {
       return "Relatórios";
     case "yms":
       return "YMS";
+    case "financeiro":
+      return "Financeiro";
     case "configuracoes":
       return "Configurações";
     default:

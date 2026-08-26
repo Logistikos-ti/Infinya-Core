@@ -12,6 +12,7 @@ import {
   type SalesChannelCode,
 } from "@/lib/sales-channels";
 import { decodeXmlBuffer, matchNfeProductsToCatalog, parseNfeXml } from "@/lib/nfe-import";
+import { registrarLancamentosExpedicao } from "@/lib/billing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -1436,6 +1437,8 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
         payload_origem: updatedPayload,
       })
       .eq("id", orderId);
+
+    registrarLancamentosExpedicao([orderId]).catch(() => {});
 
     revalidatePath("/portal");
     revalidatePath("/expedicao");

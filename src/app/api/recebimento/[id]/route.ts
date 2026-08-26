@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiModuleAccess } from "@/lib/api-auth";
+import { registrarLancamentoRecebimento } from "@/lib/billing";
 import { getReceivingOrderDetailFromDb } from "@/lib/receiving";
 import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
@@ -485,6 +486,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   const finalizedLocationMessage = usedFallbackAddress
     ? `lançado no estoque nos endereços cadastrados dos produtos (itens sem endereço próprio foram para ${address.codigo})`
     : "lançado no estoque nos endereços cadastrados dos produtos";
+
+  if (parsed.data.finalizar && orderStatus === "RECEBIDO") {
+    registrarLancamentoRecebimento(order.id).catch(() => {});
+  }
 
   const responseMessage = parsed.data.finalizar
     ? hasDivergence

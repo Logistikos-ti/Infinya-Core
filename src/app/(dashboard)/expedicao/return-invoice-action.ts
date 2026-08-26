@@ -11,6 +11,7 @@ import {
   validateReturnInvoiceAgainstOrder,
   type ReturnInvoiceDivergence,
 } from "@/lib/return-invoice-validation";
+import { registrarLancamentoLogisticaReversa } from "@/lib/billing";
 import { AWAITING_RETURN_INVOICE_STATUS, normalizeShippingOperationType } from "@/lib/shipping";
 
 export type UploadReturnInvoiceState = {
@@ -154,6 +155,8 @@ export async function uploadReturnInvoiceAction(
   if (updateError) {
     return { status: "error", detail: updateError.message || "Não foi possível liberar o pedido." };
   }
+
+  registrarLancamentoLogisticaReversa(orderId).catch(() => {});
 
   revalidatePath("/expedicao");
   revalidatePath(`/expedicao/${orderId}`);

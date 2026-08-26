@@ -11,6 +11,7 @@ import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/
 import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateShippingDanfeScan } from "@/lib/shipping-danfe-validation";
+import { registrarLancamentosExpedicao } from "@/lib/billing";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 import { autoAssignOrderToRomaneio } from "@/lib/romaneio-records";
@@ -262,6 +263,10 @@ export async function saveShippingConferenceAction(formData: FormData) {
     redirect(`${redirectBase}/${orderId}?feedback=erro`);
   }
 
+  if (nextStatus === "PRONTO_ROMANEIO") {
+    registrarLancamentosExpedicao([orderId]).catch(() => {});
+  }
+
   let assignedRomaneioCodigo = "";
   if (isReleaseToRomaneio) {
     try {
@@ -456,6 +461,8 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
       },
     })
     .eq("id", orderId);
+
+  registrarLancamentosExpedicao([orderId]).catch(() => {});
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/conferencia");

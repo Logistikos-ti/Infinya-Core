@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/snapshot-armazenamento",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/fechamento-mensal",
+      "schedule": "0 23 28-31 * *"
+    }
+  ]
+}
