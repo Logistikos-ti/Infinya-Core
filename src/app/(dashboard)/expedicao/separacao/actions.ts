@@ -4,8 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { buildPickingKitPayload, calculateKitOperationalTotals } from "@/lib/product-kits";
+import { isOrderLockedForDecision } from "@/lib/shipping";
 import { resetPickingOrdersToQueue } from "@/lib/shipping-picking-reset";
-import { canResetPickingOrderToQueue, resolveNextPickingStatus } from "@/lib/shipping-picking-status";
+import {
+  canResetPickingOrderToQueue,
+  PICKING_EDITABLE_STATUSES,
+  resolveNextPickingStatus,
+} from "@/lib/shipping-picking-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type KitProgressEntry = {
@@ -325,6 +330,16 @@ export async function savePickingWaveProgressAction(formData: FormData) {
   }
 
   const orders = (data ?? []) as PickingOrderRecord[];
+
+  const orphanedOrderIds = await findOrphanedPickingOrderIds(adminSupabase, orders);
+  if (orphanedOrderIds.size) {
+    redirect(appendFeedback(returnTo, "onda-encerrada"));
+  }
+
+  if (orders.some((order) => isOrderLockedForDecision(order.status))) {
+    redirect(appendFeedback(returnTo, "cancelamento-em-andamento"));
+  }
+
   const orderMap = new Map(orders.map((order) => [order.id, order]));
   const itemMap = new Map(
     orders.flatMap((order) =>
@@ -564,48 +579,62 @@ export async function savePickingWaveDraftAction(
     return { ok: false as const, message: orderReadError.message };
   }
 
+  const orphanedOrderIds = await findOrphanedPickingOrderIds(
+    adminSupabase,
+    ((orderRows ?? []) as PickingOrderRecord[]).map((order) => ({ id: order.id, status: order.status })),
+  );
+
+  if (((orderRows ?? []) as PickingOrderRecord[]).some((order) => isOrderLockedForDecision(order.status))) {
+    return {
+      ok: false as const,
+      message: "Um ou mais pedidos estão com cancelamento ou divergência em andamento e não podem ser bipados.",
+    };
+  }
+
   const now = new Date().toISOString();
-  const orderUpdates = ((orderRows ?? []) as PickingOrderRecord[]).map((order) => {
-    const complete = (order.itens ?? []).every(
-      (item) => normalizeQuantity(String(item.quantidade_separada ?? 0)) >= normalizeQuantity(String(item.quantidade ?? 0)),
-    );
-    const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-    const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
+  const orderUpdates = ((orderRows ?? []) as PickingOrderRecord[])
+    .filter((order) => !orphanedOrderIds.has(order.id))
+    .map((order) => {
+      const complete = (order.itens ?? []).every(
+        (item) => normalizeQuantity(String(item.quantidade_separada ?? 0)) >= normalizeQuantity(String(item.quantidade ?? 0)),
+      );
+      const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+      const currentPicking = isRecord(payload.separacao) ? payload.separacao : {};
 
-    // Preserve any post-picking status -- see src/lib/shipping-picking-status.ts.
-    // This is the main culprit of the "após a DANFE ser bipada, o pedido
-    // sai da conferência e volta uns minutos depois" bug: the picking
-    // interface's debounced draft auto-save fires ~350ms after any items
-    // change and sends every order in the wave back to this action, and
-    // without this gate a wave that still contained an already-released
-    // order would silently clobber it back to SEPARADO / EM_SEPARACAO.
-    // No separate "intent" here (this action only ever recomputes from item
-    // completeness), so "complete" is passed unconditionally -- that maps
-    // exactly onto this call site's original complete ? SEPARADO : EM_SEPARACAO.
-    const nextStatus = resolveNextPickingStatus({
-      currentStatus: order.status,
-      intent: "complete",
-      itemsComplete: complete,
-    });
+      // Preserve any post-picking status -- see src/lib/shipping-picking-status.ts.
+      // This is the main culprit of the "após a DANFE ser bipada, o pedido
+      // sai da conferência e volta uns minutos depois" bug: the picking
+      // interface's debounced draft auto-save fires ~350ms after any items
+      // change and sends every order in the wave back to this action, and
+      // without this gate a wave that still contained an already-released
+      // order would silently clobber it back to SEPARADO / EM_SEPARACAO.
+      // No separate "intent" here (this action only ever recomputes from item
+      // completeness), so "complete" is passed unconditionally -- that maps
+      // exactly onto this call site's original complete ? SEPARADO : EM_SEPARACAO.
+      const nextStatus = resolveNextPickingStatus({
+        currentStatus: order.status,
+        intent: "complete",
+        itemsComplete: complete,
+      });
 
-    return adminSupabase
-      .from("pedidos_expedicao")
-      .update({
-        status: nextStatus,
-        payload_origem: {
-          ...payload,
-          separacao: {
-            ...currentPicking,
-            operadorId: readString(currentPicking.operadorId) || user.id,
-            operadorNome: readString(currentPicking.operadorNome) || user.nome,
-            iniciadaEm: readString(currentPicking.iniciadaEm) || now,
-            atualizadaEm: now,
-            finalizadaEm: complete ? readString(currentPicking.finalizadaEm) || now : null,
+      return adminSupabase
+        .from("pedidos_expedicao")
+        .update({
+          status: nextStatus,
+          payload_origem: {
+            ...payload,
+            separacao: {
+              ...currentPicking,
+              operadorId: readString(currentPicking.operadorId) || user.id,
+              operadorNome: readString(currentPicking.operadorNome) || user.nome,
+              iniciadaEm: readString(currentPicking.iniciadaEm) || now,
+              atualizadaEm: now,
+              finalizadaEm: complete ? readString(currentPicking.finalizadaEm) || now : null,
+            },
           },
-        },
-      })
-      .eq("id", order.id);
-  });
+        })
+        .eq("id", order.id);
+    });
 
   if (orderUpdates.length) {
     const orderUpdateResults = await Promise.all(orderUpdates);
@@ -619,6 +648,13 @@ export async function savePickingWaveDraftAction(
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/separacao");
   revalidatePath("/m/separacao");
+
+  if (orphanedOrderIds.size) {
+    return {
+      ok: false as const,
+      message: "A onda de um ou mais pedidos foi encerrada. Volte para a fila e comece a separação novamente.",
+    };
+  }
 
   return { ok: true as const };
 }
@@ -705,6 +741,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function appendFeedback(path: string, feedback: string) {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}feedback=${feedback}`;
+}
+
+// Guards the exact failure mode from the WMS-DEV-01534 incident (2026-08-27):
+// deleting a wave cascades onto ondas_separacao_pedidos, but a picking tab
+// left open for that wave has no way to know its link is gone -- its next
+// scan/autosave would otherwise resurrect EM_SEPARACAO on an order with zero
+// wave membership. Only orders currently in PICKING_EDITABLE_STATUSES matter
+// here: anything past picking is already protected by resolveNextPickingStatus.
+async function findOrphanedPickingOrderIds(
+  adminSupabase: ReturnType<typeof createSupabaseAdminClient>,
+  orders: { id: string; status: string }[],
+): Promise<Set<string>> {
+  const editableOrderIds = orders
+    .filter((order) => PICKING_EDITABLE_STATUSES.has(order.status))
+    .map((order) => order.id);
+
+  if (!editableOrderIds.length) return new Set();
+
+  const { data, error } = await adminSupabase
+    .from("ondas_separacao_pedidos")
+    .select("pedido_expedicao_id")
+    .in("pedido_expedicao_id", editableOrderIds);
+
+  if (error) {
+    throw new Error(`Não foi possível confirmar o vínculo da onda dos pedidos: ${error.message}`);
+  }
+
+  const linkedOrderIds = new Set((data ?? []).map((row) => row.pedido_expedicao_id));
+  return new Set(editableOrderIds.filter((id) => !linkedOrderIds.has(id)));
 }
 
 type CreatedShippingWave = {
@@ -961,6 +1026,17 @@ export async function registerPickingScanAction(input: {
   }
 
   const adminSupabase = createSupabaseAdminClient();
+
+  const { data: orderStatusRow } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("status")
+    .eq("id", input.orderId)
+    .maybeSingle();
+
+  if (orderStatusRow && isOrderLockedForDecision(orderStatusRow.status)) {
+    return { ok: false as const, message: "Este pedido está com cancelamento ou divergência em andamento e não pode ser bipado." };
+  }
+
   const { data, error } = await adminSupabase.rpc("registrar_bipagem_separacao" as never, {
     p_pedido_id: input.orderId,
     p_item_id: input.itemId,
@@ -1065,6 +1141,13 @@ async function reconcileSimplePickingItemFromScans(
 }
 
 export async function cancelPickingOrderAction(orderId: string) {
+  // "Sem estoque" is a fulfillment problem, NOT a cancel-with-physical-return:
+  // the item was never pulled from the shelf, so there is nothing to bipar
+  // back. It flags a SEM_ESTOQUE divergence and moves the order to CANCELADO
+  // so it surfaces for the depositante's tratativa (Prosseguir / Retornar à
+  // fila / Cancelar definitivo). Only that final "Cancelar definitivo"
+  // decision routes into the mandatory return-scan flow, and only when goods
+  // were actually picked -- see resolveShippingOrderDivergenceAction.
   const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR"]);
   const adminSupabase = createSupabaseAdminClient();
   const now = new Date().toISOString();
@@ -1098,9 +1181,6 @@ export async function cancelPickingOrderAction(orderId: string) {
   const { data: updatedOrder, error } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
-      // DIVERGENCIA is a receiving-only status in the current database enum.
-      // Keep the order in the supported CANCELADO state and record the
-      // operational reason so the expedition divergence view can surface it.
       status: "CANCELADO",
       payload_origem: {
         ...payload,

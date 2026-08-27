@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { openShippingOrderCancellation } from "@/app/(dashboard)/expedicao/cancelamento/actions";
 import {
   type CommercialKitRuleDefinition,
   resolveCommercialKitMatch,
@@ -305,11 +306,21 @@ async function upsertShippingOrder({
 
   const productsByCode = await loadProductsByCode(adminSupabase, depositanteId, saleOrder.itens);
   const commercialKitRules = await loadCommercialKitRules(adminSupabase, depositanteId);
-  const preservedStatus = resolveShippingStatus({
-    currentStatus: (existingOrder as ExistingShippingOrderRow | null)?.status ?? null,
+  const existingStatus = (existingOrder as ExistingShippingOrderRow | null)?.status ?? null;
+  const resolvedStatus = resolveShippingStatus({
+    currentStatus: existingStatus,
     eventName,
     sourceStatus: saleOrder.situacao,
   });
+  // A pedido that already left NOVO needs the mandatory return-to-stock scan
+  // before it can actually become CANCELADO -- see
+  // src/app/(dashboard)/expedicao/cancelamento/actions.ts. Cancelling here
+  // (no interactive user, no one physically at the warehouse to scan) instead
+  // opens a pending cancellation process after the upsert below, and this
+  // upsert itself keeps the order at its current status in the meantime.
+  const cancellationRequestedByBling =
+    !isNewOrder && resolvedStatus === "CANCELADO" && existingStatus !== null && existingStatus !== "NOVO";
+  const preservedStatus = cancellationRequestedByBling ? existingStatus! : resolvedStatus;
   const headerPayload = {
     depositante_id: depositanteId,
     codigo: (existingOrder as ExistingShippingOrderRow | null)?.codigo ?? buildShippingOrderCode(saleOrder.id),
@@ -351,6 +362,18 @@ async function upsertShippingOrder({
 
   if (saveOrderError || !savedOrder) {
     throw new Error(saveOrderError?.message ?? "Não foi possível salvar o pedido de expedição.");
+  }
+
+  if (cancellationRequestedByBling) {
+    try {
+      await openShippingOrderCancellation({
+        orderId: savedOrder.id,
+        motivo: "Cancelamento solicitado pelo marketplace/Bling (webhook).",
+        user: { id: null },
+      });
+    } catch (error) {
+      console.error("Failed to open Bling-requested cancellation:", error);
+    }
   }
 
   const itemsPayload = saleOrder.itens.map((item, index) => {

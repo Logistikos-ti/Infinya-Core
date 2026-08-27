@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireRoleAccess } from "@/lib/auth";
+import { openShippingOrderCancellation } from "@/app/(dashboard)/expedicao/cancelamento/actions";
 import { storeOperationalDocumentFromBuffer } from "@/lib/operational-documents";
 import {
   buildManualCommercialPayload,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/sales-channels";
 import { decodeXmlBuffer, matchNfeProductsToCatalog, parseNfeXml } from "@/lib/nfe-import";
 import { registrarLancamentosExpedicao } from "@/lib/billing";
+import { isOrderLockedForDecision } from "@/lib/shipping";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { allowedDocumentMimeTypes, documentsBucketName, maxDocumentFileSizeBytes } from "@/lib/storage";
 
@@ -164,9 +166,17 @@ export async function updateShippingOrderAction(formData: FormData) {
   const adminSupabase = createSupabaseAdminClient();
   const { data: currentOrder } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("origem, payload_origem")
+    .select("status, origem, payload_origem")
     .eq("id", id)
     .maybeSingle();
+
+  // The edit form's status <select> has no option for the system-managed
+  // limbo statuses (EM_CANCELAMENTO / EM_DIVERGENCIA), so a browser would
+  // silently submit whatever its first option is. Block the whole edit
+  // outright rather than letting that silently kick the order out of limbo.
+  if (currentOrder && isOrderLockedForDecision(currentOrder.status)) {
+    redirect(`/expedicao/${id}/editar?feedback=cancelamento-em-andamento`);
+  }
 
   const currentPayload =
     currentOrder?.payload_origem && typeof currentOrder.payload_origem === "object" && !Array.isArray(currentOrder.payload_origem)
@@ -273,6 +283,13 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=erro");
   }
 
+  // A locked order (EM_CANCELAMENTO / EM_DIVERGENCIA) only leaves via its
+  // sanctioned path -- the return-scan conclude/abandon, or the divergence
+  // tratativa -- never via a manual retarget here.
+  if (isOrderLockedForDecision(order.status)) {
+    redirect("/expedicao?feedback=cancelamento-em-andamento");
+  }
+
   // Uma retirada só sai do bloqueio quando a NF-e de devolução é validada
   // (a validação move para NOVO) ou quando é cancelada.
   if (
@@ -283,9 +300,28 @@ export async function changeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
   }
 
-  // O estorno da reserva ao cancelar vem do trigger de status, que chama
-  // `estornar_baixas_separacao` — vale igual para retirada e para venda.
-  // `liberar_reserva_retirada` não é mais chamada aqui.
+  // Cancelar um pedido que já saiu de NOVO agora abre um processo formal de
+  // devolução com bipagem obrigatória — ver
+  // src/app/(dashboard)/expedicao/cancelamento/actions.ts. O estorno da
+  // reserva continua vindo do trigger de status (`estornar_baixas_separacao`),
+  // disparado quando a RPC de conclusão do cancelamento grava status=CANCELADO.
+  if (nextStatus === "CANCELADO" && order.status !== "CANCELADO") {
+    const result = await openShippingOrderCancellation({ orderId: id, user });
+
+    if (!result.ok) {
+      redirect("/expedicao?feedback=erro");
+    }
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/separacao");
+    revalidatePath("/expedicao/conferencia");
+
+    if (result.concluido) {
+      redirect("/expedicao?feedback=cancelado");
+    }
+
+    redirect(`/expedicao/cancelamento/${result.cancelamentoId}`);
+  }
 
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const nextPayload = buildManualStatusPayload({
@@ -387,6 +423,13 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
     redirect("/expedicao?feedback=erro");
   }
 
+  // A locked order (EM_CANCELAMENTO / EM_DIVERGENCIA) only leaves via its
+  // sanctioned path, never a manual retarget -- block the whole batch rather
+  // than silently skipping just that order.
+  if (orders.some((order) => isOrderLockedForDecision(order.status))) {
+    redirect("/expedicao?feedback=cancelamento-em-andamento");
+  }
+
   // Retiradas bloqueadas não podem avançar em lote: só saem via NF-e validada
   // ou cancelamento individual, que precisa liberar a reserva de estoque.
   if (
@@ -394,6 +437,36 @@ export async function bulkChangeShippingOrderStatusAction(formData: FormData) {
     orders.some((order) => order.status === "AGUARDANDO_NF_DEVOLUCAO")
   ) {
     redirect("/expedicao?feedback=retirada-sem-nf-devolucao");
+  }
+
+  // Bulk cancellation only makes sense for orders still at NOVO -- anything
+  // past that needs the physical return-to-stock scan, which is inherently a
+  // one-order-at-a-time task. See
+  // src/app/(dashboard)/expedicao/cancelamento/actions.ts.
+  if (nextStatus === "CANCELADO") {
+    const cancellableIds = orders.filter((order) => order.status === "NOVO").map((order) => order.id);
+    const skippedCount = orders.length - cancellableIds.length;
+
+    const results = await Promise.all(
+      cancellableIds.map((orderId) => openShippingOrderCancellation({ orderId, user })),
+    );
+
+    if (results.some((result) => !result.ok)) {
+      redirect("/expedicao?feedback=erro");
+    }
+
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/separacao");
+    revalidatePath("/expedicao/conferencia");
+    revalidatePath("/expedicao/conferidos");
+    revalidatePath("/romaneio");
+    revalidatePath("/portal");
+
+    redirect(
+      skippedCount > 0
+        ? "/expedicao?feedback=cancelamento-parcial-requer-bipagem"
+        : "/expedicao?feedback=status-atualizado",
+    );
   }
 
   const updatePromises = orders.map(async (order) => {
@@ -1083,6 +1156,19 @@ export async function deleteShippingOrderAction(formData: FormData) {
 
   const adminSupabase = createSupabaseAdminClient();
 
+  const { data: orderToDelete } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
+  // Deleting pedidos_expedicao_itens fires a trigger that releases reserved
+  // stock -- directly conflicting with an in-progress return-scan or a
+  // divergence review that is holding that same stock/pick data.
+  if (orderToDelete && isOrderLockedForDecision(orderToDelete.status)) {
+    redirect("/expedicao?feedback=cancelamento-em-andamento");
+  }
+
   // O estorno na exclusão é automático: apagar as linhas de
   // `pedidos_expedicao_itens` dispara
   // `trg_liberar_reserva_item_pedido_expedicao_delete`, que devolve o saldo
@@ -1140,6 +1226,15 @@ export async function bulkDeleteShippingOrdersAction(formData: FormData) {
   if (!ids.length) redirect("/expedicao?feedback=erro");
 
   const adminSupabase = createSupabaseAdminClient();
+
+  const { data: ordersToDelete } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("status")
+    .in("id", ids);
+
+  if ((ordersToDelete ?? []).some((order) => isOrderLockedForDecision(order.status))) {
+    redirect("/expedicao?feedback=cancelamento-em-andamento");
+  }
 
   const { data: documents, error: documentsReadError } = await adminSupabase
     .from("documentos_armazenados")
@@ -1474,27 +1569,56 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
   }
 
   if (resolutionType === "CANCELAR_DEFINITIVO") {
-    const updatedPayload = {
-      ...payload,
-      divergenciaTratada: true,
-      canceladoDefinitivo: true,
-      tratamentoDivergencia: treatmentRecord,
-      historicoDivergencias: updatedHistory,
-    };
+    // A "sem estoque" flag (cancelPickingOrderAction) already moved the order
+    // to CANCELADO with nothing physically pulled from the shelf, so there is
+    // nothing to bipar back -- "Cancelar definitivo" here is just the
+    // depositante confirming it. Keep the original behavior (mark treated,
+    // stay CANCELADO) and do NOT route into the return-scan flow.
+    if (order.status === "CANCELADO") {
+      const updatedPayload = {
+        ...payload,
+        divergenciaTratada: true,
+        canceladoDefinitivo: true,
+        tratamentoDivergencia: treatmentRecord,
+        historicoDivergencias: updatedHistory,
+      };
 
-    await adminSupabase
-      .from("pedidos_expedicao")
-      .update({
-        status: "CANCELADO",
-        payload_origem: updatedPayload,
-      })
-      .eq("id", orderId);
+      await adminSupabase
+        .from("pedidos_expedicao")
+        .update({ status: "CANCELADO", payload_origem: updatedPayload })
+        .eq("id", orderId);
+
+      revalidatePath("/portal");
+      revalidatePath("/expedicao");
+      revalidatePath(`/expedicao/${orderId}`);
+
+      redirect(buildRedirectUrl("divergencia-cancelada"));
+    }
+
+    // The order is still live (goods were actually picked, e.g. a conference
+    // divergence): route into the mandatory return-to-stock scan flow -- see
+    // src/app/(dashboard)/expedicao/cancelamento/actions.ts. A DEPOSITANTE can
+    // open it but never reaches the scan screen itself (warehouse-staff-only),
+    // so they're sent back to their own view instead of the bipagem page.
+    const result = await openShippingOrderCancellation({
+      orderId,
+      motivo: `Cancelamento definitivo por divergência (${actorName}).`,
+      user,
+    });
+
+    if (!result.ok) {
+      redirect(buildRedirectUrl("erro"));
+    }
 
     revalidatePath("/portal");
     revalidatePath("/expedicao");
     revalidatePath(`/expedicao/${orderId}`);
 
-    redirect(buildRedirectUrl("divergencia-cancelada"));
+    if (isDepositante || result.concluido) {
+      redirect(buildRedirectUrl("divergencia-cancelada"));
+    }
+
+    redirect(`/expedicao/cancelamento/${result.cancelamentoId}`);
   }
 
   redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=opcao-invalida`);

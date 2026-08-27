@@ -1,6 +1,13 @@
 ﻿import { requireApiModuleAccess } from "@/lib/api-auth";
 import type { AppUserContext } from "@/lib/auth";
+import { listDamageReport } from "@/lib/damage-report";
 import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
+import {
+  listOperationalSlaReport,
+  type OperationalSlaBand,
+} from "@/lib/operational-sla-report";
+import { listReverseLogisticsReport } from "@/lib/reverse-logistics-report";
+import { listSalesReport } from "@/lib/sales-report";
 import { listStockBalancesFromDb } from "@/lib/stock";
 
 type StockExportRow = {
@@ -36,6 +43,66 @@ type FiscalExportRow = {
   UltimaEmissao: string;
 };
 
+type SlaExportRow = {
+  Pedido: string;
+  Depositante: string;
+  Cliente: string;
+  Status: string;
+  EtapaAtual: string;
+  CriadoEm: string;
+  InicioSeparacao: string;
+  InicioConferencia: string;
+  Conclusao: string;
+  TempoDecorrido: string;
+  Meta: string;
+  SLA: string;
+};
+
+type DamageExportRow = {
+  Depositante: string;
+  SKU: string;
+  Produto: string;
+  CodigoInterno: string;
+  Quantidade: string;
+  Motivo: string;
+  Endereco: string;
+  Área: string;
+  Status: string;
+  Decisao: string;
+  CriadoEm: string;
+  CriadoPor: string;
+  ResolvidoEm: string;
+  ResolvidoPor: string;
+};
+
+type ReverseLogisticsExportRow = {
+  Depositante: string;
+  Pedido: string;
+  Cliente: string;
+  Quantidade: string;
+  ValorUnitario: string;
+  ValorTotal: string;
+  NFDevolucao: string;
+  ChaveNFDevolucao: string;
+  NFRecebidaEm: string;
+  MesAno: string;
+  LancadoEm: string;
+};
+
+type SalesExportRow = {
+  Depositante: string;
+  Pedido: string;
+  Cliente: string;
+  UF: string;
+  Canal: string;
+  Marketplace: string;
+  Status: string;
+  ValorTotal: string;
+  Itens: string;
+  Unidades: string;
+  CriadoEm: string;
+};
+
 export async function GET(request: Request) {
   const auth = await requireApiModuleAccess("relatorios");
 
@@ -52,6 +119,10 @@ export async function GET(request: Request) {
       reports: [
         "saldo-estoque",
         "nfe-resumo",
+        "sla-operacional",
+        "avarias",
+        "logistica-reversa",
+        "vendas",
       ],
     });
   }
@@ -64,10 +135,178 @@ export async function GET(request: Request) {
     return exportFiscalSummaryReport(auth.user, searchParams, format);
   }
 
+  if (report === "sla-operacional") {
+    return exportOperationalSlaReport(auth.user, searchParams, format);
+  }
+
+  if (report === "avarias") {
+    return exportDamageReport(auth.user, searchParams, format);
+  }
+
+  if (report === "logistica-reversa") {
+    return exportReverseLogisticsReport(auth.user, searchParams, format);
+  }
+
+  if (report === "vendas") {
+    return exportSalesReport(auth.user, searchParams, format);
+  }
+
   return Response.json(
-    { error: "RelatÃ³rio invÃ¡lido. Use saldo-estoque ou nfe-resumo." },
+    {
+      error:
+        "Relatório inválido. Use saldo-estoque, nfe-resumo, sla-operacional, avarias, logistica-reversa ou vendas.",
+    },
     { status: 400 },
   );
+}
+
+async function exportSalesReport(user: AppUserContext, searchParams: URLSearchParams, format: string) {
+  const depositanteId =
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
+
+  const report = await listSalesReport(user, {
+    depositanteId,
+    dateFrom: searchParams.get("dataInicio")?.trim() || undefined,
+    dateTo: searchParams.get("dataFim")?.trim() || undefined,
+    channel: searchParams.get("canal")?.trim() || undefined,
+  });
+
+  const rows: SalesExportRow[] = report.rows.map((item) => ({
+    Depositante: item.depositante,
+    Pedido: item.orderNumber,
+    Cliente: item.customer,
+    UF: item.uf,
+    Canal: item.channelLabel,
+    Marketplace: item.isMarketplace ? "Sim" : "Não",
+    Status: item.statusLabel,
+    ValorTotal: formatCurrency(item.totalValue),
+    Itens: String(item.totalItems),
+    Unidades: String(item.totalUnits),
+    CriadoEm: item.createdAtLabel,
+  }));
+
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-vendas-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "Vendas",
+  });
+}
+
+async function exportReverseLogisticsReport(
+  user: AppUserContext,
+  searchParams: URLSearchParams,
+  format: string,
+) {
+  const depositanteId =
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
+
+  const report = await listReverseLogisticsReport(user, {
+    depositanteId,
+    dateFrom: searchParams.get("dataInicio")?.trim() || undefined,
+    dateTo: searchParams.get("dataFim")?.trim() || undefined,
+  });
+
+  const rows: ReverseLogisticsExportRow[] = report.rows.map((item) => ({
+    Depositante: item.depositante,
+    Pedido: item.orderNumber,
+    Cliente: item.customer,
+    Quantidade: item.quantityLabel,
+    ValorUnitario: formatCurrency(item.unitValue),
+    ValorTotal: formatCurrency(item.totalValue),
+    NFDevolucao: item.invoiceNumber || "-",
+    ChaveNFDevolucao: item.invoiceKey || "-",
+    NFRecebidaEm: item.invoiceReceivedAtLabel || "-",
+    MesAno: item.mesAno,
+    LancadoEm: item.createdAtLabel,
+  }));
+
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-logistica-reversa-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "Logistica Reversa",
+  });
+}
+
+async function exportDamageReport(
+  user: AppUserContext,
+  searchParams: URLSearchParams,
+  format: string,
+) {
+  const depositanteId =
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
+
+  const report = await listDamageReport(user, {
+    depositanteId,
+    dateFrom: searchParams.get("dataInicio")?.trim() || undefined,
+    dateTo: searchParams.get("dataFim")?.trim() || undefined,
+    status: searchParams.get("status")?.trim() || undefined,
+  });
+
+  const rows: DamageExportRow[] = report.rows.map((item) => ({
+    Depositante: item.depositante,
+    SKU: item.sku,
+    Produto: item.productName,
+    CodigoInterno: item.internalCode || "-",
+    Quantidade: item.quantityLabel,
+    Motivo: item.reason,
+    Endereco: item.endereco,
+    Área: item.area,
+    Status: item.statusLabel,
+    Decisao: item.depositanteDecisionLabel || "-",
+    CriadoEm: item.createdAtLabel,
+    CriadoPor: item.createdBy,
+    ResolvidoEm: item.resolvedAtLabel || "-",
+    ResolvidoPor: item.resolvedBy || "-",
+  }));
+
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-avarias-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "Avarias",
+  });
+}
+
+async function exportOperationalSlaReport(
+  user: AppUserContext,
+  searchParams: URLSearchParams,
+  format: string,
+) {
+  const depositanteId =
+    user.papel === "DEPOSITANTE"
+      ? user.depositanteId ?? undefined
+      : searchParams.get("depositante")?.trim() || undefined;
+  const band = normalizeSlaBand(searchParams.get("faixa"));
+
+  const report = await listOperationalSlaReport(user, {
+    depositanteId,
+    dateFrom: searchParams.get("dataInicio")?.trim() || undefined,
+    dateTo: searchParams.get("dataFim")?.trim() || undefined,
+    status: searchParams.get("status")?.trim() || undefined,
+    band: band || undefined,
+  });
+
+  const rows: SlaExportRow[] = report.rows.map((item) => ({
+    Pedido: item.orderNumber,
+    Depositante: item.depositante,
+    Cliente: item.customer,
+    Status: item.statusLabel,
+    EtapaAtual: item.currentStage,
+    CriadoEm: item.createdAtLabel,
+    InicioSeparacao: formatIsoDate(item.pickingStartedAtIso),
+    InicioConferencia: formatIsoDate(item.conferenceStartedAtIso),
+    Conclusao: formatIsoDate(item.completedAtIso),
+    TempoDecorrido: item.elapsedLabel,
+    Meta: `Até ${item.targetHours}h`,
+    SLA: item.bandLabel,
+  }));
+
+  return exportRows(rows, format, {
+    fileBaseName: `relatorio-sla-operacional-${new Date().toISOString().slice(0, 10)}`,
+    worksheetName: "SLA Operacional",
+  });
 }
 
 async function exportStockBalanceReport(
@@ -285,6 +524,32 @@ function formatCurrency(value: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function normalizeSlaBand(value: string | null): OperationalSlaBand | "" {
+  if (
+    value === "NO_PRAZO" ||
+    value === "ATENCAO" ||
+    value === "ATRASADO" ||
+    value === "CANCELADO"
+  ) {
+    return value;
+  }
+
+  return "";
+}
+
+function formatIsoDate(value: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }
 
 

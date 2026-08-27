@@ -51,7 +51,11 @@ export default async function PickingWavePage({ searchParams }: PickingWavePageP
               ? "Ainda existem itens pendentes nesta onda. Revise as quantidades antes de concluir."
               : feedback === "inatividade"
                 ? "A onda foi devolvida para a fila por inatividade do operador."
-                : "Nao foi possivel concluir a operacao solicitada."}
+                : feedback === "onda-encerrada"
+                  ? "Esta onda foi encerrada ou excluida por outra sessao. Volte para a fila e inicie a separacao novamente."
+                  : feedback === "cancelamento-em-andamento"
+                    ? "Um ou mais pedidos desta onda ja tem um cancelamento em andamento e nao podem ser bipados."
+                    : "Nao foi possivel concluir a operacao solicitada."}
         </div>
       ) : null}
 

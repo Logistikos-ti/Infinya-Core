@@ -39,6 +39,37 @@ export type ShippingOperationType = "VENDA" | "RETIRADA";
 /** Status em que uma retirada aguarda o XML da NF-e de devolução emitida pelo armazém. */
 export const AWAITING_RETURN_INVOICE_STATUS = "AGUARDANDO_NF_DEVOLUCAO";
 
+// Set by openShippingOrderCancellation (src/app/(dashboard)/expedicao/cancelamento/actions.ts)
+// while a mandatory scan-to-return cancellation is EM_ANDAMENTO. Exits only
+// via concluir_cancelamento_pedido_expedicao (-> CANCELADO) or
+// abandonShippingOrderCancellationAction (-> status_pedido_na_abertura).
+export const AWAITING_CANCELLATION_RETURN_STATUS = "EM_CANCELAMENTO";
+
+export function isAwaitingCancellationReturn(status: string) {
+  return status === AWAITING_CANCELLATION_RETURN_STATUS;
+}
+
+// Set by markShippingOrderAsDivergentAction when a conference divergence is
+// reported. Keeps the order out of the active queues and preserves its pick
+// data (bipagens_separacao + reservation) while it waits for the depositante's
+// tratativa. Exits only via resolveShippingOrderDivergenceAction (prosseguir
+// -> PRONTO_ROMANEIO, retornar -> NOVO, cancelar definitivo -> the return-scan
+// cancellation flow).
+export const IN_DIVERGENCE_REVIEW_STATUS = "EM_DIVERGENCIA";
+
+export function isInDivergenceReview(status: string) {
+  return status === IN_DIVERGENCE_REVIEW_STATUS;
+}
+
+// Both EM_CANCELAMENTO and EM_DIVERGENCIA are "locked pending a decision"
+// states: an order in either must not be advanced/mutated by the normal
+// actions (romaneio release, delete, manual status change, order edit,
+// conference save). The sanctioned way out is the return-scan flow
+// (EM_CANCELAMENTO) or the divergence tratativa (EM_DIVERGENCIA).
+export function isOrderLockedForDecision(status: string) {
+  return isAwaitingCancellationReturn(status) || isInDivergenceReview(status);
+}
+
 export function normalizeShippingOperationType(value: unknown): ShippingOperationType {
   return String(value ?? "").trim().toUpperCase() === "RETIRADA" ? "RETIRADA" : "VENDA";
 }
@@ -1468,6 +1499,10 @@ export function formatShippingStatusLabel(status: string, payload?: Record<strin
   switch (status) {
     case AWAITING_RETURN_INVOICE_STATUS:
       return "Aguardando NF de devolução";
+    case AWAITING_CANCELLATION_RETURN_STATUS:
+      return "Cancelamento em andamento";
+    case IN_DIVERGENCE_REVIEW_STATUS:
+      return "Em divergência";
     case "NOVO":
       return "Novo";
     case "EM_SEPARACAO":

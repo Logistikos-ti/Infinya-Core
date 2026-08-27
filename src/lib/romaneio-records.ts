@@ -1,6 +1,6 @@
 import type { AppUserContext } from "@/lib/auth";
 import { registrarLancamentosExpedicao } from "@/lib/billing";
-import { formatShippingStatusLabel } from "@/lib/shipping";
+import { formatShippingStatusLabel, isOrderLockedForDecision } from "@/lib/shipping";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -980,6 +980,10 @@ export async function validateAndAssignOrderDanfeToRomaneio({
 
   if (orderError || !order) {
     throw new Error("Pedido não encontrado no banco de dados.");
+  }
+
+  if (isOrderLockedForDecision(order.status)) {
+    throw new Error("Este pedido está com cancelamento ou divergência em andamento e não pode ser liberado para romaneio.");
   }
 
   // 2. Validate DANFE / code

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRoleAccess } from "@/lib/auth";
+import { openShippingOrderCancellation } from "@/app/(dashboard)/expedicao/cancelamento/actions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
@@ -10,7 +11,7 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
   try {
     const user = await requireRoleAccess(["DEPOSITANTE", "ADMIN", "TI", "OPERADOR"]);
     const admin = createSupabaseAdminClient();
-    
+
     if (!message || !message.trim()) {
       return { ok: false, error: "Informe a mensagem para solicitar o cancelamento." };
     }
@@ -23,11 +24,11 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
       `)
       .eq("id", orderId)
       .maybeSingle();
-      
+
     if (readError || !order) {
       return { ok: false, error: "Pedido não encontrado." };
     }
-    
+
     if (user.papel === "DEPOSITANTE" && user.depositanteId !== order.depositante_id) {
       return { ok: false, error: "Sem permissão para cancelar este pedido." };
     }
@@ -35,7 +36,7 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
     if (order.status === "EXPEDIDO") {
       return { ok: false, error: "O pedido já foi expedido e não pode ser cancelado." };
     }
-    
+
     if (order.status === "CANCELADO") {
       return { ok: false, error: "O pedido já está cancelado." };
     }
@@ -46,7 +47,9 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
 
     const formattedOrderNumber = formatWmsOrderNumber(order.numero_wms, order.codigo || order.numero_pedido || orderId, depositanteNome);
 
-    // 1. Create Support Ticket
+    // Support ticket kept as the audit/communication record of who asked to
+    // cancel and why -- but the cancellation now happens for real instead of
+    // just flagging for a manual warehouse decision.
     const subject = "Cancelamento de pedido " + formattedOrderNumber;
     const { data: ticket, error: ticketError } = await admin
       .from("suporte_chamados")
@@ -71,32 +74,24 @@ export async function requestPortalOrderCancellationAction(orderId: string, mess
       throw commentError;
     }
 
-    // 2. Update Order to Divergence / Aguardando Tratativa
-    const payload = (typeof order.payload_origem === "object" && order.payload_origem !== null) ? order.payload_origem as Record<string, unknown> : {};
+    // Route into the single cancellation entry point: if goods were already
+    // separated (status past NOVO with picked items), this moves the order to
+    // EM_CANCELAMENTO and the warehouse must scan the physical return to stock
+    // before it becomes CANCELADO; if nothing was separated, it cancels
+    // instantly. See src/app/(dashboard)/expedicao/cancelamento/actions.ts.
+    const result = await openShippingOrderCancellation({
+      orderId,
+      motivo: `Cancelamento solicitado pelo depositante (${user.nome}): ${message.trim()}`,
+      user,
+    });
 
-    const { error: updateError } = await admin
-      .from("pedidos_expedicao")
-      .update({
-        payload_origem: {
-          ...payload,
-          divergenciaTratada: false,
-          divergencia: {
-            motivo: "Solicitação de cancelamento pelo depositante via chamado.",
-            tipo: "Cancelamento",
-            chamado_id: ticket.id,
-            registradoPorNome: user.nome,
-          },
-          cancellationReporter: user.id,
-          cancellationReason: message,
-        }
-      })
-      .eq("id", orderId);
-
-    if (updateError) {
-      throw updateError;
+    if (!result.ok) {
+      return { ok: false, error: result.message };
     }
 
     revalidatePath("/portal");
+    revalidatePath("/expedicao");
+    revalidatePath("/expedicao/cancelamento");
     return { ok: true };
   } catch (error) {
     console.error("Failed to request order cancellation from portal:", error);

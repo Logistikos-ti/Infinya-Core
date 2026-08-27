@@ -11,7 +11,8 @@ import { buildConferenceKitPayload, calculateKitOperationalTotals } from "@/lib/
 import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateShippingDanfeScan } from "@/lib/shipping-danfe-validation";
-import { registrarLancamentosExpedicao } from "@/lib/billing";
+import { isOrderLockedForDecision } from "@/lib/shipping";
+import { registrarLancamentosExpedicao, registrarLancamentoDocumento } from "@/lib/billing";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 import { autoAssignOrderToRomaneio } from "@/lib/romaneio-records";
@@ -75,6 +76,10 @@ export async function saveShippingConferenceAction(formData: FormData) {
 
   if (orderError || !order) {
     redirect(`${redirectBase}?feedback=erro`);
+  }
+
+  if (isOrderLockedForDecision(order.status)) {
+    redirect(`${redirectBase}?feedback=cancelamento-em-andamento`);
   }
 
   const itemMap = new Map(
@@ -334,10 +339,6 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
     redirect(`/expedicao/conferencia?feedback=erro`);
   }
 
-  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
-  const now = new Date().toISOString();
-
   let operatorName = user.nome || "Operador";
   if (operatorId) {
     const { data: opData } = await adminSupabase
@@ -350,10 +351,22 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
     }
   }
 
+  // "Reportar divergência" is a flag-for-decision, NOT a cancel-with-return.
+  // Moving to EM_DIVERGENCIA (instead of hard-cancelling to CANCELADO) keeps
+  // the order out of the active queues while PRESERVING its pick data
+  // (bipagens_separacao + reservation) -- a hard cancel would fire
+  // estornar_baixas_separacao and delete that history, which the eventual
+  // return-to-stock scan needs to restock the correct bins. The order surfaces
+  // for the depositante's tratativa; only "Cancelar definitivo" then routes
+  // into the return-scan flow (see resolveShippingOrderDivergenceAction).
+  const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
+  const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
+  const now = new Date().toISOString();
+
   await adminSupabase
     .from("pedidos_expedicao")
     .update({
-      status: "CANCELADO",
+      status: "EM_DIVERGENCIA",
       payload_origem: {
         ...payload,
         conferencia: {
@@ -364,9 +377,10 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
         },
         divergencia: {
           registradoPorNome: operatorName,
-          motivo: wrongProductScans > 0 
-            ? `Divergência: ${wrongProductScans} produto(s) incorreto(s) bipado(s).` 
-            : "Divergência reportada durante a conferência.",
+          motivo:
+            wrongProductScans > 0
+              ? `Divergência: ${wrongProductScans} produto(s) incorreto(s) bipado(s).`
+              : "Divergência reportada durante a conferência.",
           tipo: "Conferência",
           registradoEm: now,
         },
@@ -404,6 +418,10 @@ export async function releaseShippingOrderToRomaneioAction(formData: FormData) {
 
   if (error || !order) {
     redirect(`${fallbackRedirect}?feedback=erro`);
+  }
+
+  if (isOrderLockedForDecision(order.status)) {
+    redirect(`${fallbackRedirect}?feedback=cancelamento-em-andamento`);
   }
 
   const itemRows =
@@ -496,6 +514,10 @@ export async function releaseShippingOrderWithoutRomaneioAction(formData: FormDa
 
   if (error || !order) {
     redirect(`${fallbackRedirect}?feedback=erro`);
+  }
+
+  if (isOrderLockedForDecision(order.status)) {
+    redirect(`${fallbackRedirect}?feedback=cancelamento-em-andamento`);
   }
 
   const itemRows =
@@ -630,7 +652,7 @@ export async function uploadShippingAttachmentAction(
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
 
-    await storeOperationalDocumentFromBuffer({
+    const documento = await storeOperationalDocumentFromBuffer({
       adminSupabase,
       depositanteId,
       tipo,
@@ -640,6 +662,8 @@ export async function uploadShippingAttachmentAction(
       pedidoExpedicaoId: orderId,
       enviadoPor: user.id,
     });
+
+    registrarLancamentoDocumento(documento.id).catch(() => {});
 
     revalidatePath("/expedicao");
     revalidatePath("/portal");

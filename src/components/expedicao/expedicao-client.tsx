@@ -38,7 +38,8 @@ import {
   ArrowUp,
   ArrowDown,
   XCircle,
-  FileSignature
+  FileSignature,
+  PackageX
 } from "lucide-react";
 import {
   changeShippingOrderStatusAction,
@@ -366,7 +367,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     const hasTratamento = Boolean(o.divergenciaTratada || o.tratamentoDivergencia || o.raw?.divergenciaTratada || o.raw?.tratamentoDivergencia);
     if (hasTratamento) return false;
     return (
-      ["DIVERGENCIA", "DIVERGENTE", "ERRO", "CANCELADO"].includes(o.status) &&
+      ["DIVERGENCIA", "DIVERGENTE", "ERRO", "EM_DIVERGENCIA", "CANCELADO"].includes(o.status) &&
       (o.status !== "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter))
     );
   };
@@ -420,6 +421,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (filterId === "conferencia") return order.status === "EM_CONFERENCIA" || order.status === "SEPARADO";
     if (filterId === "pronto-coleta") return order.status === "PRONTO_ROMANEIO" || order.status === "CONFERIDO";
     if (filterId === "expedido") return order.status === "EXPEDIDO";
+    if (filterId === "cancelamento-pendente") return order.status === "EM_CANCELAMENTO";
     if (filterId === "cancelados" || filterId === "cancelado") return order.status === "CANCELADO";
     if (filterId === "atrasados") return order.ageTone === "LATE";
     return false;
@@ -437,6 +439,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: "conferencia", label: "Em conferência", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "conferencia")).length, hasCount: true, isAlert: false },
     { id: "pronto-coleta", label: "Pronto para coleta", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "pronto-coleta")).length, hasCount: true, isAlert: false },
     { id: "expedido", label: "Expedido", count: expedidosNoMesAtual, hasCount: true, isAlert: false },
+    { id: "cancelamento-pendente", label: "Cancelamento em andamento", count: ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, "cancelamento-pendente")).length, hasCount: true, isAlert: true },
     { id: "cancelados", label: "Cancelados", count: data.orders.filter((order: any) => matchesOperationalFilter(order, "cancelados")).length, hasCount: true, isAlert: false },
     { id: "todos", label: "Todos", count: ordersForOperationalQueue.length, hasCount: false, isAlert: false },
   ];
@@ -466,6 +469,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     { id: 'conferencia', label: 'Em conferência', icon: 'Scan', accent: '#8B5CF6', statusFilter: 'EM_CONFERENCIA' },
     { id: 'pronto-coleta', label: 'Pronto para coleta', icon: 'PackageCheck', accent: '#10B981', statusFilter: 'PRONTO_ROMANEIO' },
     { id: 'expedido', label: 'Expedido', icon: 'Truck', accent: '#3B82F6', statusFilter: 'EXPEDIDO' },
+    { id: 'cancelamento-pendente', label: 'Cancelamento em andamento', icon: 'PackageX', accent: '#DC2626', statusFilter: 'EM_CANCELAMENTO' },
     { id: 'cancelados', label: 'Cancelados', icon: 'XCircle', accent: '#EF4444', statusFilter: 'CANCELADO' }
   ];
   
@@ -491,6 +495,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
     if (s.id === 'conferencia') iconEl = <Scan size={16} />;
     if (s.id === 'pronto-coleta') iconEl = <PackageCheck size={16} />;
     if (s.id === 'expedido') iconEl = <Truck size={16} />;
+    if (s.id === 'cancelamento-pendente') iconEl = <PackageX size={16} />;
     if (s.id === 'cancelados') iconEl = <XCircle size={16} />;
 
     // bg hex with opacity for iconBg
@@ -528,6 +533,11 @@ export function ExpedicaoClient({ data }: { data: any }) {
       "CONFERIDO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
       "PRONTO_ROMANEIO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
       "EXPEDIDO": { bg: "rgba(16,185,129,0.15)", color: "#10B981" },
+      // Cancelamento em andamento: vermelho mais escuro que CANCELADO, pra
+      // sinalizar "em processo" sem confundir com "já cancelado".
+      "EM_CANCELAMENTO": { bg: "rgba(220,38,38,0.14)", color: "#DC2626" },
+      // Em divergência: âmbar, o mesmo tom de "atenção/aguardando tratativa".
+      "EM_DIVERGENCIA": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
       "CANCELADO": { bg: "rgba(239,68,68,0.15)", color: "#EF4444" },
       "DIVERGENTE": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
       "DIVERGENCIA": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" }

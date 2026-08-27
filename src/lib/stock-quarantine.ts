@@ -70,6 +70,10 @@ export type StockQuarantineFilters = {
   status?: string;
   productTerm?: string;
   limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  /** Skips the pending-addressing/missing-default-address system holds, returning only formal `estoque_quarentena` rows. */
+  formalOnly?: boolean;
 };
 
 export type StockQuarantineItem = {
@@ -111,6 +115,16 @@ export type StockQuarantineItem = {
 };
 
 export async function listStockQuarantineFromDb(filters?: StockQuarantineFilters) {
+  if (filters?.formalOnly) {
+    const formalRows = await listFormalQuarantineRows(filters);
+    const rows =
+      filters.status && filters.status !== "TODOS"
+        ? formalRows.filter((item) => item.status === filters.status)
+        : formalRows;
+    const filteredRows = filterQuarantineRows(rows, filters.productTerm);
+    return filters.limit ? filteredRows.slice(0, filters.limit) : filteredRows;
+  }
+
   // These three don't depend on each other -- running them one after another
   // triples the round-trip latency for no reason, which on a page that's
   // already doing several other queries (the portal's default view) adds up
@@ -155,6 +169,14 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
       query = query.eq("depositante_id", filters.depositanteId);
     }
 
+    if (filters?.dateFrom) {
+      query = query.gte("created_at", `${filters.dateFrom}T00:00:00-03:00`);
+    }
+
+    if (filters?.dateTo) {
+      query = query.lte("created_at", `${filters.dateTo}T23:59:59.999-03:00`);
+    }
+
     const { data, error } = await query;
 
     if (error) {
@@ -172,6 +194,14 @@ async function listFormalQuarantineRows(filters?: StockQuarantineFilters) {
 
         if (filters?.depositanteId) {
           legacyQuery = legacyQuery.eq("depositante_id", filters.depositanteId);
+        }
+
+        if (filters?.dateFrom) {
+          legacyQuery = legacyQuery.gte("created_at", `${filters.dateFrom}T00:00:00-03:00`);
+        }
+
+        if (filters?.dateTo) {
+          legacyQuery = legacyQuery.lte("created_at", `${filters.dateTo}T23:59:59.999-03:00`);
         }
 
         const { data: legacyData, error: legacyError } = await legacyQuery;

@@ -20,6 +20,7 @@ const filters = [
   { label: "Recebido", value: "Recebido" },
   { label: "Em separação", value: "Em separação" },
   { label: "Expedido", value: "Expedido" },
+  { label: "Cancelamento em andamento", value: "Cancelamento em andamento" },
   { label: "Cancelado", value: "Cancelado" },
 ] as const;
 
@@ -62,7 +63,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
         (o) =>
           !o.divergenciaTratada &&
           !o.tratamentoDivergencia &&
-          ["DIVERGENCIA", "DIVERGENTE", "ERRO", "CANCELADO"].includes(o.status) &&
+          ["DIVERGENCIA", "DIVERGENTE", "ERRO", "EM_DIVERGENCIA", "CANCELADO"].includes(o.status) &&
           (o.status !== "CANCELADO" || Boolean(o.divergenceReporter || o.cancellationReason || o.cancellationReporter)),
       ),
     [orders],
@@ -458,6 +459,7 @@ function matchesFilter(order: ShippingOrderSummary, filter: string) {
     return ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(order.status);
   }
   if (filter === "Expedido") return order.status === "EXPEDIDO";
+  if (filter === "Cancelamento em andamento") return order.status === "EM_CANCELAMENTO";
   if (filter === "Cancelado") return order.status === "CANCELADO";
   return false;
 }
@@ -1221,6 +1223,8 @@ function getOperationalStatusStyle(status: string, label?: string) {
     CONFERIDO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
     PRONTO_ROMANEIO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
     EXPEDIDO: { background: "rgba(16,185,129,.15)", color: "#10B981" },
+    EM_CANCELAMENTO: { background: "rgba(220,38,38,.14)", color: "#DC2626" },
+    EM_DIVERGENCIA: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
     CANCELADO: { background: "rgba(239,68,68,.15)", color: "#EF4444" },
     DIVERGENTE: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
     DIVERGENCIA: { background: "rgba(245,158,11,.15)", color: "#F59E0B" },
