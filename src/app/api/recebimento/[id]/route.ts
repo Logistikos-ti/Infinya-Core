@@ -488,7 +488,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     : "lançado no estoque nos endereços cadastrados dos produtos";
 
   if (parsed.data.finalizar && orderStatus === "RECEBIDO") {
-    registrarLancamentoRecebimento(order.id).catch(() => {});
+    // Awaited (not fire-and-forget): an un-awaited call here risks being cut
+    // short once the response below is sent and the serverless function
+    // freezes, silently dropping the billing insert.
+    await registrarLancamentoRecebimento(order.id).catch(() => {});
   }
 
   const responseMessage = parsed.data.finalizar
