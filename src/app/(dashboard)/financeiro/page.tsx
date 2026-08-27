@@ -175,12 +175,33 @@ export default async function FinanceiroPage() {
     observacoes: c.observacoes as string | null,
   }));
 
-  const pedidoExpedicaoIds = Array.from(
+  const documentoArmazenadoIds = Array.from(
     new Set(
       (lancamentosRes.data ?? [])
-        .filter((l) => l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id)
+        .filter((l) => l.referencia_tipo === "DOCUMENTO_ARMAZENADO" && l.referencia_id)
         .map((l) => l.referencia_id as string),
     ),
+  );
+  const pedidoIdByDocumentoId = new Map<string, string>();
+  if (documentoArmazenadoIds.length > 0) {
+    const { data: documentosRes } = await admin
+      .from("documentos_armazenados")
+      .select("id, pedido_expedicao_id")
+      .in("id", documentoArmazenadoIds);
+    (documentosRes ?? []).forEach((d) => {
+      if (d.pedido_expedicao_id) {
+        pedidoIdByDocumentoId.set(d.id as string, d.pedido_expedicao_id as string);
+      }
+    });
+  }
+
+  const pedidoExpedicaoIds = Array.from(
+    new Set([
+      ...(lancamentosRes.data ?? [])
+        .filter((l) => l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id)
+        .map((l) => l.referencia_id as string),
+      ...pedidoIdByDocumentoId.values(),
+    ]),
   );
   const pedidoInfoById = new Map<string, { numeroWms: number | null; codigo: string }>();
   if (pedidoExpedicaoIds.length > 0) {
@@ -196,10 +217,13 @@ export default async function FinanceiroPage() {
   const extrato: ExtratoRow[] = (lancamentosRes.data ?? []).map((l) => {
     const tipoServico = l.tipo_servico as string;
     const depNome = (l.depositantes as { nome?: string } | null)?.nome ?? null;
-    const pedidoInfo =
+    const pedidoId =
       l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id
-        ? pedidoInfoById.get(l.referencia_id as string)
-        : undefined;
+        ? (l.referencia_id as string)
+        : l.referencia_tipo === "DOCUMENTO_ARMAZENADO" && l.referencia_id
+          ? pedidoIdByDocumentoId.get(l.referencia_id as string)
+          : undefined;
+    const pedidoInfo = pedidoId ? pedidoInfoById.get(pedidoId) : undefined;
     const codigo = pedidoInfo
       ? formatWmsOrderNumber(pedidoInfo.numeroWms, pedidoInfo.codigo, depNome)
       : `${CODIGO_PREFIX[tipoServico] ?? "LAN"}-${(l.mes_ano as string).replace("-", "").slice(2)}`;
