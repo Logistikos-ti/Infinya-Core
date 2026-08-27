@@ -86,6 +86,25 @@ async function fetchAllLancamentos(admin: ReturnType<typeof createSupabaseAdminC
   return all;
 }
 
+// A single .in() call with hundreds of UUIDs produces a request URL long
+// enough to get rejected outright ("Bad Request") once the id list grows —
+// this actually happened once the extrato started fetching every
+// lançamento instead of just the most recent 500. Chunk it so the id-count
+// ceiling moves out of reach instead of resurfacing as volume grows.
+async function fetchRowsInChunks<Row>(
+  ids: string[],
+  chunkSize: number,
+  fetchChunk: (chunk: string[]) => PromiseLike<{ data: Row[] | null; error: { message: string } | null }>,
+): Promise<Row[]> {
+  const rows: Row[] = [];
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const { data, error } = await fetchChunk(ids.slice(i, i + chunkSize));
+    if (error) continue;
+    if (data) rows.push(...data);
+  }
+  return rows;
+}
+
 export default async function FinanceiroPage() {
   await requireModuleAccess("financeiro");
 
@@ -207,11 +226,10 @@ export default async function FinanceiroPage() {
   );
   const pedidoIdByDocumentoId = new Map<string, string>();
   if (documentoArmazenadoIds.length > 0) {
-    const { data: documentosRes } = await admin
-      .from("documentos_armazenados")
-      .select("id, pedido_expedicao_id")
-      .in("id", documentoArmazenadoIds);
-    (documentosRes ?? []).forEach((d) => {
+    const documentosRes = await fetchRowsInChunks(documentoArmazenadoIds, 200, (chunk) =>
+      admin.from("documentos_armazenados").select("id, pedido_expedicao_id").in("id", chunk),
+    );
+    documentosRes.forEach((d) => {
       if (d.pedido_expedicao_id) {
         pedidoIdByDocumentoId.set(d.id as string, d.pedido_expedicao_id as string);
       }
@@ -228,11 +246,10 @@ export default async function FinanceiroPage() {
   );
   const pedidoInfoById = new Map<string, { numeroWms: number | null; codigo: string }>();
   if (pedidoExpedicaoIds.length > 0) {
-    const { data: pedidosRes } = await admin
-      .from("pedidos_expedicao")
-      .select("id, numero_wms, codigo")
-      .in("id", pedidoExpedicaoIds);
-    (pedidosRes ?? []).forEach((p) =>
+    const pedidosRes = await fetchRowsInChunks(pedidoExpedicaoIds, 200, (chunk) =>
+      admin.from("pedidos_expedicao").select("id, numero_wms, codigo").in("id", chunk),
+    );
+    pedidosRes.forEach((p) =>
       pedidoInfoById.set(p.id as string, { numeroWms: p.numero_wms as number | null, codigo: p.codigo as string }),
     );
   }
@@ -246,11 +263,10 @@ export default async function FinanceiroPage() {
   );
   const recebimentoCodigoById = new Map<string, string>();
   if (pedidoRecebimentoIds.length > 0) {
-    const { data: recebimentosRes } = await admin
-      .from("pedidos_recebimento")
-      .select("id, codigo")
-      .in("id", pedidoRecebimentoIds);
-    (recebimentosRes ?? []).forEach((p) => recebimentoCodigoById.set(p.id as string, p.codigo as string));
+    const recebimentosRes = await fetchRowsInChunks(pedidoRecebimentoIds, 200, (chunk) =>
+      admin.from("pedidos_recebimento").select("id, codigo").in("id", chunk),
+    );
+    recebimentosRes.forEach((p) => recebimentoCodigoById.set(p.id as string, p.codigo as string));
   }
 
   const extrato: ExtratoRow[] = lancamentos.map((l) => {
