@@ -19,6 +19,8 @@ type ContratoEdit = {
   tarifa_posicao: number;
   valor_ponto_coleta: number;
   valor_impressao_nf: number;
+  valor_carta_correcao: number;
+  valor_outro_documento: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
@@ -247,6 +249,14 @@ export function ContratoForm({
               <Field label="Impressão NF">
                 <MoneyInput name="valor_impressao_nf" defaultValue={String(currentEditItem?.valor_impressao_nf ?? 0.5)} />
                 {state.errors?.valor_impressao_nf && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_impressao_nf}</p>}
+              </Field>
+              <Field label="Carta de correção (CC-e)">
+                <MoneyInput name="valor_carta_correcao" defaultValue={String(currentEditItem?.valor_carta_correcao ?? 0)} />
+                {state.errors?.valor_carta_correcao && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_carta_correcao}</p>}
+              </Field>
+              <Field label="Outro documento">
+                <MoneyInput name="valor_outro_documento" defaultValue={String(currentEditItem?.valor_outro_documento ?? 0)} />
+                {state.errors?.valor_outro_documento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_outro_documento}</p>}
               </Field>
             </div>
           </Section>

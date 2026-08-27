@@ -12,6 +12,8 @@ const FIELDS = [
   "tarifa_posicao",
   "valor_ponto_coleta",
   "valor_impressao_nf",
+  "valor_carta_correcao",
+  "valor_outro_documento",
   "taxa_frete_fixa",
   "taxa_frete_percentual",
   "tarifa_recebimento",

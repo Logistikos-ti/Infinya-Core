@@ -5,7 +5,7 @@ import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const TIPOS_SERVICO = [
-  "FULFILLMENT", "PONTO_COLETA", "IMPRESSAO_NF", "GESTAO_FRETE",
+  "FULFILLMENT", "PONTO_COLETA", "IMPRESSAO_NF", "CARTA_CORRECAO", "OUTRO_DOCUMENTO", "GESTAO_FRETE",
   "RECEBIMENTO", "ARMAZENAMENTO", "INSUMO", "LOGISTICA_REVERSA",
   "SOFTWARE", "REFRIGERADOR", "DESCONTO", "COBRANCA_EXTRA",
 ] as const;
@@ -14,6 +14,8 @@ const TIPO_SERVICO_LABELS: Record<string, string> = {
   FULFILLMENT: "Fulfillment",
   PONTO_COLETA: "Ponto de Coleta",
   IMPRESSAO_NF: "Impressão NF",
+  CARTA_CORRECAO: "Carta de Correção",
+  OUTRO_DOCUMENTO: "Outro Documento",
   GESTAO_FRETE: "Gestão de Frete",
   RECEBIMENTO: "Recebimento",
   ARMAZENAMENTO: "Armazenamento",

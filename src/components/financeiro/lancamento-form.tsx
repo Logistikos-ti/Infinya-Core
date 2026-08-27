@@ -17,6 +17,8 @@ const TIPOS_SERVICO = [
   { value: "FULFILLMENT", label: "Fulfillment" },
   { value: "PONTO_COLETA", label: "Ponto de Coleta" },
   { value: "IMPRESSAO_NF", label: "Impressão NF" },
+  { value: "CARTA_CORRECAO", label: "Carta de Correção" },
+  { value: "OUTRO_DOCUMENTO", label: "Outro Documento" },
   { value: "GESTAO_FRETE", label: "Gestão de Frete" },
   { value: "RECEBIMENTO", label: "Recebimento" },
   { value: "ARMAZENAMENTO", label: "Armazenamento" },

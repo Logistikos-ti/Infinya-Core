@@ -43,6 +43,8 @@ type ContratoRow = {
   valor_ponto_coleta: number;
   marketplaces_ponto_coleta: string[];
   valor_impressao_nf: number;
+  valor_carta_correcao: number;
+  valor_outro_documento: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
@@ -74,6 +76,8 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     tarifa_posicao: contrato.tarifa_posicao,
     valor_ponto_coleta: contrato.valor_ponto_coleta,
     valor_impressao_nf: contrato.valor_impressao_nf,
+    valor_carta_correcao: contrato.valor_carta_correcao,
+    valor_outro_documento: contrato.valor_outro_documento,
     taxa_frete_fixa: contrato.taxa_frete_fixa,
     taxa_frete_percentual: contrato.taxa_frete_percentual,
     tarifa_recebimento: contrato.tarifa_recebimento,
@@ -344,6 +348,71 @@ export async function registrarLancamentoRecebimento(
       total_unidades: totalUnidades,
       tarifa_por_unidade: tarifa,
     },
+    contrato_snapshot: contratoSnapshot(contrato),
+  };
+
+  await inserirLancamentos(admin, [lancamento]);
+  await recalcularFatura(admin, faturaId as string);
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Cobrança: Documento anexado (Carta de Correção / Outro documento)
+// ---------------------------------------------------------------------------
+
+export async function registrarLancamentoDocumento(
+  documentoId: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: documento } = await admin
+    .from("documentos_armazenados")
+    .select("id, depositante_id, tipo, nome_arquivo")
+    .eq("id", documentoId)
+    .single();
+
+  if (!documento) return { ok: false, erro: "Documento não encontrado." };
+
+  const tipoServico: TipoServico | null =
+    documento.tipo === "CARTA_CORRECAO" || documento.tipo === "CCE"
+      ? "CARTA_CORRECAO"
+      : documento.tipo === "OUTRO" || documento.tipo === "DOCUMENTO_ADICIONAL"
+        ? "OUTRO_DOCUMENTO"
+        : null;
+
+  if (!tipoServico) return { ok: true };
+
+  const contrato = await getContratoAtivo(admin, documento.depositante_id);
+  if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
+  if (contrato.tipo_contrato === "consignado") return { ok: true };
+
+  const valor =
+    tipoServico === "CARTA_CORRECAO" ? Number(contrato.valor_carta_correcao) : Number(contrato.valor_outro_documento);
+  if (valor <= 0) return { ok: true };
+
+  const mesAno = getMesAno();
+
+  const { data: faturaId } = await admin.rpc("garantir_ou_criar_fatura", {
+    p_depositante_id: documento.depositante_id,
+    p_mes_ano: mesAno,
+  });
+
+  if (!faturaId) return { ok: false, erro: "Falha ao criar fatura." };
+
+  const lancamento: LancamentoInsert = {
+    depositante_id: documento.depositante_id,
+    fatura_id: faturaId as string,
+    mes_ano: mesAno,
+    tipo_servico: tipoServico,
+    origem: "AUTOMATICO",
+    referencia_tipo: "DOCUMENTO_ARMAZENADO",
+    referencia_id: documento.id,
+    descricao: `${tipoServico === "CARTA_CORRECAO" ? "Carta de correção" : "Outro documento"}: ${documento.nome_arquivo}`,
+    quantidade: 1,
+    valor_unitario: valor,
+    valor_total: valor,
+    memoria_calculo: { tipo_documento: documento.tipo },
     contrato_snapshot: contratoSnapshot(contrato),
   };
 

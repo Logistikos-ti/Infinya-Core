@@ -9,6 +9,8 @@ export type TipoServico =
   | "LOGISTICA_REVERSA"
   | "SOFTWARE"
   | "REFRIGERADOR"
+  | "CARTA_CORRECAO"
+  | "OUTRO_DOCUMENTO"
   | "DESCONTO"
   | "COBRANCA_EXTRA";
 
@@ -18,7 +20,8 @@ export type ReferenciaTipo =
   | "PEDIDO_EXPEDICAO"
   | "PEDIDO_RECEBIMENTO"
   | "ROMANEIO"
-  | "SNAPSHOT_ARMAZENAMENTO";
+  | "SNAPSHOT_ARMAZENAMENTO"
+  | "DOCUMENTO_ARMAZENADO";
 
 export type StatusFatura = "ABERTA" | "FECHADA" | "ENVIADA" | "PAGO";
 

@@ -9,6 +9,8 @@ export const contratoCobrancaFormSchema = z.object({
   tarifa_posicao: z.coerce.number().min(0),
   valor_ponto_coleta: z.coerce.number().min(0),
   valor_impressao_nf: z.coerce.number().min(0),
+  valor_carta_correcao: z.coerce.number().min(0),
+  valor_outro_documento: z.coerce.number().min(0),
   taxa_frete_fixa: z.coerce.number().min(0),
   taxa_frete_percentual: z.coerce.number().min(0).max(1),
   tarifa_recebimento: z.coerce.number().min(0),

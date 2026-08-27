@@ -47,6 +47,8 @@ export type ContratoRow = {
   minimoFulfillment: number;
   valorPontoColeta: number;
   valorImpressaoNf: number;
+  valorCartaCorrecao: number;
+  valorOutroDocumento: number;
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaPosicao: number;
@@ -164,6 +166,8 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   Fulfillment: "#3B82F6",
   "Ponto de coleta": "#8B5CF6",
   "Impressão NF": "#EF4444",
+  "Carta de correção": "#06B6D4",
+  "Outro documento": "#A855F7",
   "Gestão de frete": "#6366F1",
   "Logística reversa": "#F43F5E",
   Recebimento: "#0EA5E9",
@@ -1052,6 +1056,8 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Mínimo fulfillment" value={fmt(activeContrato.minimoFulfillment)} />
             <MiniKv label="Ponto de coleta" value={fmt(activeContrato.valorPontoColeta)} />
             <MiniKv label="Impressão NF" value={fmt(activeContrato.valorImpressaoNf)} />
+            <MiniKv label="Carta de correção" value={fmt(activeContrato.valorCartaCorrecao)} />
+            <MiniKv label="Outro documento" value={fmt(activeContrato.valorOutroDocumento)} />
           </DrawerSection>
           <DrawerSection title="Armazenamento">
             <MiniKv label="Tarifa posição/mês" value={fmt(activeContrato.tarifaPosicao)} />
@@ -1129,6 +1135,8 @@ export function FinanceiroApp(props: Props) {
             tarifa_posicao: contratoBeingEdited.tarifaPosicao,
             valor_ponto_coleta: contratoBeingEdited.valorPontoColeta,
             valor_impressao_nf: contratoBeingEdited.valorImpressaoNf,
+            valor_carta_correcao: contratoBeingEdited.valorCartaCorrecao,
+            valor_outro_documento: contratoBeingEdited.valorOutroDocumento,
             taxa_frete_fixa: contratoBeingEdited.taxaFreteFixa,
             taxa_frete_percentual: contratoBeingEdited.taxaFretePercentual,
             tarifa_recebimento: contratoBeingEdited.tarifaRecebimento,
