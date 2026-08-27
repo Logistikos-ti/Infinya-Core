@@ -105,15 +105,16 @@ type LancamentoInsert = {
 async function inserirLancamentos(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   lancamentos: LancamentoInsert[],
-): Promise<number> {
-  if (!lancamentos.length) return 0;
+): Promise<{ count: number; erro?: string }> {
+  if (!lancamentos.length) return { count: 0 };
 
-  const { data } = await admin
+  const { data, error } = await admin
     .from("lancamentos")
     .upsert(lancamentos, { onConflict: "depositante_id,tipo_servico,referencia_tipo,referencia_id", ignoreDuplicates: true })
     .select("id");
 
-  return data?.length ?? 0;
+  if (error) return { count: 0, erro: error.message };
+  return { count: data?.length ?? 0 };
 }
 
 async function recalcularFatura(
@@ -279,8 +280,9 @@ export async function registrarLancamentosExpedicao(
       }
     }
 
-    const inseridos = await inserirLancamentos(admin, lancamentos);
-    totalInseridos += inseridos;
+    const { count, erro } = await inserirLancamentos(admin, lancamentos);
+    totalInseridos += count;
+    if (erro) erros.push(`Depositante ${depositanteId}: ${erro}`);
 
     await recalcularFatura(admin, faturaId);
   }
@@ -351,7 +353,8 @@ export async function registrarLancamentoRecebimento(
     contrato_snapshot: contratoSnapshot(contrato),
   };
 
-  await inserirLancamentos(admin, [lancamento]);
+  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
   await recalcularFatura(admin, faturaId as string);
 
   return { ok: true };
@@ -416,7 +419,8 @@ export async function registrarLancamentoDocumento(
     contrato_snapshot: contratoSnapshot(contrato),
   };
 
-  await inserirLancamentos(admin, [lancamento]);
+  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
   await recalcularFatura(admin, faturaId as string);
 
   return { ok: true };
@@ -476,7 +480,7 @@ export async function fecharFaturasMensais(
       const tarifa = Number(contrato.tarifa_posicao);
       const valorArmazenamento = roundCurrency(picoPositions * tarifa);
 
-      await inserirLancamentos(admin, [{
+      const { erro: erroArmazenamento } = await inserirLancamentos(admin, [{
         depositante_id: fatura.depositante_id,
         fatura_id: fatura.id,
         mes_ano: mes,
@@ -494,12 +498,15 @@ export async function fecharFaturasMensais(
         },
         contrato_snapshot: snapshot,
       }]);
+      if (erroArmazenamento) {
+        erros.push(`Depositante ${fatura.depositante_id}: armazenamento - ${erroArmazenamento}`);
+      }
     }
 
     // Software
     const valorSoftware = Number(contrato.valor_software);
     if (valorSoftware > 0) {
-      await inserirLancamentos(admin, [{
+      const { erro: erroSoftware } = await inserirLancamentos(admin, [{
         depositante_id: fatura.depositante_id,
         fatura_id: fatura.id,
         mes_ano: mes,
@@ -514,6 +521,9 @@ export async function fecharFaturasMensais(
         memoria_calculo: {},
         contrato_snapshot: snapshot,
       }]);
+      if (erroSoftware) {
+        erros.push(`Depositante ${fatura.depositante_id}: software - ${erroSoftware}`);
+      }
     }
 
     // Refrigerador
@@ -521,7 +531,7 @@ export async function fecharFaturasMensais(
     const valorUnitRefrig = Number(contrato.valor_unitario_refrigerador);
     if (qtdRefrig > 0 && valorUnitRefrig > 0) {
       const totalRefrig = roundCurrency(qtdRefrig * valorUnitRefrig);
-      await inserirLancamentos(admin, [{
+      const { erro: erroRefrig } = await inserirLancamentos(admin, [{
         depositante_id: fatura.depositante_id,
         fatura_id: fatura.id,
         mes_ano: mes,
@@ -536,6 +546,9 @@ export async function fecharFaturasMensais(
         memoria_calculo: { qtd: qtdRefrig, valor_unitario: valorUnitRefrig },
         contrato_snapshot: snapshot,
       }]);
+      if (erroRefrig) {
+        erros.push(`Depositante ${fatura.depositante_id}: refrigerador - ${erroRefrig}`);
+      }
     }
 
     // Recalcular totais e fechar
@@ -620,7 +633,9 @@ export async function registrarLancamentoLogisticaReversa(
     contrato_snapshot: contratoSnapshot(contrato),
   };
 
-  await inserirLancamentos(admin, [lancamento]);
+  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
+
   await recalcularFatura(admin, faturaId as string);
 
   return { ok: true };
