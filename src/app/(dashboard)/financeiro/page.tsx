@@ -58,23 +58,46 @@ function faturaVencimento(mesAno: string): string {
   return next.toISOString().slice(0, 10);
 }
 
+// PostgREST caps every request at 1000 rows regardless of the requested
+// limit, and a single busy month already produces more lançamentos than a
+// flat .limit() used to allow — paginate via range() so the extrato never
+// silently drops older rows once volume grows past one page.
+async function fetchAllLancamentos(admin: ReturnType<typeof createSupabaseAdminClient>) {
+  const pageSize = 1000;
+  const query = () =>
+    admin
+      .from("lancamentos")
+      .select(
+        "id, tipo_servico, valor_total, depositante_id, created_at, mes_ano, referencia_tipo, referencia_id, descricao, depositantes(nome)",
+      )
+      .eq("estornado", false)
+      .order("created_at", { ascending: false });
+
+  type Row = NonNullable<Awaited<ReturnType<typeof query>>["data"]>[number];
+  const all: Row[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await query().range(offset, offset + pageSize - 1);
+    if (error || !data?.length) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+  }
+
+  return all;
+}
+
 export default async function FinanceiroPage() {
   await requireModuleAccess("financeiro");
 
   const admin = createSupabaseAdminClient();
 
-  const [depositantesRes, faturasRes, contratosRes, insumosRes, contasPagarRes, lancamentosRes] = await Promise.all([
+  const [depositantesRes, faturasRes, contratosRes, insumosRes, contasPagarRes, lancamentos] = await Promise.all([
     admin.from("depositantes").select("id, nome, ativo").eq("ativo", true).order("nome"),
     admin.from("faturas").select("*, depositantes(id, nome)").order("mes_ano", { ascending: false }),
     admin.from("contratos_cobranca").select("*, depositantes(id, nome, cnpj, logo_url)").order("created_at", { ascending: false }),
     admin.from("insumos_catalogo").select("*").order("ordem").order("nome"),
     admin.from("contas_pagar").select("*").order("vencimento", { ascending: true }),
-    admin
-      .from("lancamentos")
-      .select("id, tipo_servico, valor_total, depositante_id, created_at, mes_ano, referencia_tipo, referencia_id, descricao, depositantes(nome)")
-      .eq("estornado", false)
-      .order("created_at", { ascending: false })
-      .limit(500),
+    fetchAllLancamentos(admin),
   ]);
 
   const depositantes: Depositante[] = (depositantesRes.data ?? []).map((d) => ({ id: d.id, nome: d.nome }));
@@ -177,7 +200,7 @@ export default async function FinanceiroPage() {
 
   const documentoArmazenadoIds = Array.from(
     new Set(
-      (lancamentosRes.data ?? [])
+      lancamentos
         .filter((l) => l.referencia_tipo === "DOCUMENTO_ARMAZENADO" && l.referencia_id)
         .map((l) => l.referencia_id as string),
     ),
@@ -197,7 +220,7 @@ export default async function FinanceiroPage() {
 
   const pedidoExpedicaoIds = Array.from(
     new Set([
-      ...(lancamentosRes.data ?? [])
+      ...lancamentos
         .filter((l) => l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id)
         .map((l) => l.referencia_id as string),
       ...pedidoIdByDocumentoId.values(),
@@ -214,7 +237,7 @@ export default async function FinanceiroPage() {
     );
   }
 
-  const extrato: ExtratoRow[] = (lancamentosRes.data ?? []).map((l) => {
+  const extrato: ExtratoRow[] = lancamentos.map((l) => {
     const tipoServico = l.tipo_servico as string;
     const depNome = (l.depositantes as { nome?: string } | null)?.nome ?? null;
     const pedidoId =
