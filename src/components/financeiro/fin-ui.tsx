@@ -22,6 +22,7 @@ const STATUS_CLASSES: Record<string, string> = {
   PAGO: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
   RECEBIDA: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
   ATIVO: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
+  FATURADO: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
   PENDENTE: "text-amber-600 bg-amber-500/10 dark:text-amber-400",
   ABERTA: "text-blue-600 bg-blue-500/10 dark:text-blue-400",
   FECHADA: "text-amber-600 bg-amber-500/10 dark:text-amber-400",

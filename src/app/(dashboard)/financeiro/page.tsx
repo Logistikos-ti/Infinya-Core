@@ -11,19 +11,40 @@ import {
 import { requireModuleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-const TIPO_BUCKET: Record<string, string> = {
-  FULFILLMENT: "Expedição",
-  PONTO_COLETA: "Expedição",
-  IMPRESSAO_NF: "Expedição",
-  GESTAO_FRETE: "Expedição",
-  LOGISTICA_REVERSA: "Expedição",
+// Rótulo do selo na 1ª coluna do extrato — um por tipo_servico, não mais
+// agrupado por categoria ampla (senão fulfillment/ponto de coleta/impressão
+// NF ficavam todos indistinguíveis como "Expedição").
+const TIPO_SERVICO_LABEL: Record<string, string> = {
+  FULFILLMENT: "Fulfillment",
+  PONTO_COLETA: "Ponto de coleta",
+  IMPRESSAO_NF: "Impressão NF",
+  GESTAO_FRETE: "Gestão de frete",
+  LOGISTICA_REVERSA: "Logística reversa",
   RECEBIMENTO: "Recebimento",
-  ARMAZENAMENTO: "Armazenamento",
-  SOFTWARE: "Armazenamento",
-  REFRIGERADOR: "Armazenamento",
-  INSUMO: "Insumos",
-  DESCONTO: "Outros",
-  COBRANCA_EXTRA: "Outros",
+  ARMAZENAMENTO: "Armazenagem",
+  SOFTWARE: "Software",
+  REFRIGERADOR: "Refrigerador",
+  INSUMO: "Insumo",
+  DESCONTO: "Desconto",
+  COBRANCA_EXTRA: "Cobrança extra",
+};
+
+// Prefixo do código curto exibido no extrato. Pedidos de expedição usam o
+// numero_wms real do pedido (PED-/PDC-); o resto não tem um pedido
+// associado, então cai no padrão PREFIXO-AAMM (ano+mês do lançamento).
+const CODIGO_PREFIX: Record<string, string> = {
+  FULFILLMENT: "PED",
+  IMPRESSAO_NF: "PED",
+  GESTAO_FRETE: "PED",
+  LOGISTICA_REVERSA: "PED",
+  PONTO_COLETA: "PDC",
+  RECEBIMENTO: "REC",
+  ARMAZENAMENTO: "ARM",
+  SOFTWARE: "SFT",
+  REFRIGERADOR: "REF",
+  INSUMO: "INS",
+  DESCONTO: "DSC",
+  COBRANCA_EXTRA: "EXT",
 };
 
 function faturaVencimento(mesAno: string): string {
@@ -45,7 +66,7 @@ export default async function FinanceiroPage() {
     admin.from("contas_pagar").select("*").order("vencimento", { ascending: true }),
     admin
       .from("lancamentos")
-      .select("id, tipo_servico, valor_total, depositante_id, created_at, descricao, depositantes(nome)")
+      .select("id, tipo_servico, valor_total, depositante_id, created_at, mes_ano, referencia_tipo, referencia_id, descricao, depositantes(nome)")
       .eq("estornado", false)
       .order("created_at", { ascending: false })
       .limit(500),
@@ -147,14 +168,41 @@ export default async function FinanceiroPage() {
     observacoes: c.observacoes as string | null,
   }));
 
-  const extrato: ExtratoRow[] = (lancamentosRes.data ?? []).map((l) => ({
-    id: l.id as string,
-    tipo: TIPO_BUCKET[l.tipo_servico as string] ?? "Outros",
-    depNome: (l.depositantes as { nome?: string } | null)?.nome ?? "—",
-    descricao: l.descricao as string,
-    data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
-    valor: Number(l.valor_total),
-  }));
+  const pedidoExpedicaoIds = Array.from(
+    new Set(
+      (lancamentosRes.data ?? [])
+        .filter((l) => l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id)
+        .map((l) => l.referencia_id as string),
+    ),
+  );
+  const numeroWmsPorPedido = new Map<string, number>();
+  if (pedidoExpedicaoIds.length > 0) {
+    const { data: pedidosRes } = await admin
+      .from("pedidos_expedicao")
+      .select("id, numero_wms")
+      .in("id", pedidoExpedicaoIds);
+    (pedidosRes ?? []).forEach((p) => numeroWmsPorPedido.set(p.id as string, p.numero_wms as number));
+  }
+
+  const extrato: ExtratoRow[] = (lancamentosRes.data ?? []).map((l) => {
+    const tipoServico = l.tipo_servico as string;
+    const prefixo = CODIGO_PREFIX[tipoServico] ?? "LAN";
+    const numeroWms =
+      l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id
+        ? numeroWmsPorPedido.get(l.referencia_id as string)
+        : undefined;
+    const codigo =
+      numeroWms !== undefined ? `${prefixo}-${numeroWms}` : `${prefixo}-${(l.mes_ano as string).replace("-", "").slice(2)}`;
+
+    return {
+      id: l.id as string,
+      tipo: TIPO_SERVICO_LABEL[tipoServico] ?? "Outros",
+      depNome: (l.depositantes as { nome?: string } | null)?.nome ?? "—",
+      codigo,
+      data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
+      valor: Number(l.valor_total),
+    };
+  });
 
   return (
     <FinanceiroApp

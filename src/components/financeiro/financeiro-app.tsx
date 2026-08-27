@@ -97,7 +97,7 @@ export type ExtratoRow = {
   id: string;
   tipo: string;
   depNome: string;
-  descricao: string;
+  codigo: string;
   data: string;
   valor: number;
 };
@@ -1333,10 +1333,18 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
   const fechadas = faturasNoMes.filter((f) => f.status === "FECHADA").length;
 
   const tipoColor: Record<string, string> = {
-    Expedição: "#3B82F6",
-    Recebimento: "#8B5CF6",
-    Armazenamento: "#10B981",
-    Insumos: "#F59E0B",
+    Fulfillment: "#3B82F6",
+    "Ponto de coleta": "#8B5CF6",
+    "Impressão NF": "#06B6D4",
+    "Gestão de frete": "#6366F1",
+    "Logística reversa": "#F43F5E",
+    Recebimento: "#0EA5E9",
+    Armazenagem: "#10B981",
+    Software: "#14B8A6",
+    Refrigerador: "#F59E0B",
+    Insumo: "#F97316",
+    Desconto: "#EC4899",
+    "Cobrança extra": "#64748B",
   };
 
   return (
@@ -1362,11 +1370,13 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
                     {r.tipo}
                   </span>
                   <span className="min-w-[100px] truncate font-bold text-slate-700 dark:text-zinc-300">{r.depNome}</span>
-                  <span className="hidden flex-1 truncate text-slate-400 dark:text-zinc-500 sm:block">{r.descricao}</span>
-                  <span className={`${FIN_MONO} whitespace-nowrap text-slate-400 dark:text-zinc-500`}>{r.data}</span>
-                  <span className={`${FIN_MONO} ml-auto min-w-[90px] whitespace-nowrap text-right font-bold text-slate-900 dark:text-zinc-100`}>
+                  <span className={`${FIN_MONO} whitespace-nowrap text-slate-400 dark:text-zinc-500`}>{r.codigo}</span>
+                  <span className="whitespace-nowrap text-slate-400 dark:text-zinc-500">{r.data}</span>
+                  <div className="flex-1" />
+                  <span className={`${FIN_MONO} min-w-[90px] whitespace-nowrap text-right font-bold text-slate-900 dark:text-zinc-100`}>
                     {fmt(r.valor)}
                   </span>
+                  <FinBadge status="Faturado" />
                 </div>
               ))}
             </div>
