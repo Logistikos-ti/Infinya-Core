@@ -2,16 +2,19 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { TipoServico, OrigemLancamento, ReferenciaTipo } from "@/types/billing";
 
 // ---------------------------------------------------------------------------
-// Transportadoras isentas de impressão de NF
+// Transportadoras isentas de impressão de NF: logística própria de
+// marketplace (o canal já cuida da etiqueta) + Correios e Mandaê. Qualquer
+// outra transportadora (Jadlog, transportadora própria etc.) cobra a tarifa
+// configurada no contrato.
 // ---------------------------------------------------------------------------
 const TRANSPORTADORAS_ISENTAS = [
-  "correios", "pac", "sedex", "economico", "econômico", "ecopac", "pac mini",
-  "magalu", "magalulog",
-  "jadlog",
+  "mercado livre", "meli", "shopee", "amazon", "magalu", "magazine luiza",
+  "shein", "tiktok", "kwai", "olist",
+  "correios", "mandae", "mandaê",
 ];
 
 function isTransportadoraIsenta(nome: string | null): boolean {
-  if (!nome || nome.trim() === "") return true;
+  if (!nome || nome.trim() === "") return false;
   const lower = nome.toLowerCase();
   return TRANSPORTADORAS_ISENTAS.some((kw) => lower.includes(kw));
 }
@@ -122,7 +125,6 @@ async function recalcularFatura(
 
 export async function registrarLancamentosExpedicao(
   pedidoIds: string[],
-  romaneioId?: string | null,
 ): Promise<{ total: number; erros: string[] }> {
   const admin = createSupabaseAdminClient();
   let totalInseridos = 0;
@@ -130,20 +132,10 @@ export async function registrarLancamentosExpedicao(
 
   const { data: pedidos } = await admin
     .from("pedidos_expedicao")
-    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens")
+    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens, payload_origem")
     .in("id", pedidoIds);
 
   if (!pedidos?.length) return { total: 0, erros: ["Nenhum pedido encontrado."] };
-
-  let transportadoraNome: string | null = null;
-  if (romaneioId) {
-    const { data: romaneio } = await admin
-      .from("romaneios_carga")
-      .select("id, codigo, transportadora_nome")
-      .eq("id", romaneioId)
-      .single();
-    transportadoraNome = romaneio?.transportadora_nome ?? null;
-  }
 
   const depositanteIds = [...new Set(pedidos.map((p) => p.depositante_id))];
 
@@ -174,6 +166,8 @@ export async function registrarLancamentosExpedicao(
     for (const pedido of pedidosDepo) {
       const valorNf = Number(pedido.valor_total) || 0;
       const canal = (pedido.canal ?? "").toLowerCase();
+      const transportadoraPedido =
+        ((pedido.payload_origem as Record<string, unknown> | null)?.transportadora as string | undefined) ?? null;
 
       // Fulfillment
       if (!isConsignado) {
@@ -231,8 +225,9 @@ export async function registrarLancamentosExpedicao(
         }
       }
 
-      // Impressão NF
-      if (!isConsignado && !isTransportadoraIsenta(transportadoraNome)) {
+      // Impressão NF — cobra sempre que a transportadora do pedido não for
+      // a logística própria de um marketplace (que já cuida da etiqueta).
+      if (!isConsignado && !isTransportadoraIsenta(transportadoraPedido)) {
         const valor = Number(contrato.valor_impressao_nf);
         lancamentos.push({
           depositante_id: depositanteId,
@@ -246,7 +241,7 @@ export async function registrarLancamentosExpedicao(
           quantidade: 1,
           valor_unitario: valor,
           valor_total: valor,
-          memoria_calculo: { transportadora: transportadoraNome },
+          memoria_calculo: { transportadora: transportadoraPedido },
           contrato_snapshot: snapshot,
         });
       }
