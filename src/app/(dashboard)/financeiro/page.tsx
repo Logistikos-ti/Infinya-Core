@@ -237,6 +237,22 @@ export default async function FinanceiroPage() {
     );
   }
 
+  const pedidoRecebimentoIds = Array.from(
+    new Set(
+      lancamentos
+        .filter((l) => l.referencia_tipo === "PEDIDO_RECEBIMENTO" && l.referencia_id)
+        .map((l) => l.referencia_id as string),
+    ),
+  );
+  const recebimentoCodigoById = new Map<string, string>();
+  if (pedidoRecebimentoIds.length > 0) {
+    const { data: recebimentosRes } = await admin
+      .from("pedidos_recebimento")
+      .select("id, codigo")
+      .in("id", pedidoRecebimentoIds);
+    (recebimentosRes ?? []).forEach((p) => recebimentoCodigoById.set(p.id as string, p.codigo as string));
+  }
+
   const extrato: ExtratoRow[] = lancamentos.map((l) => {
     const tipoServico = l.tipo_servico as string;
     const depNome = (l.depositantes as { nome?: string } | null)?.nome ?? null;
@@ -247,9 +263,13 @@ export default async function FinanceiroPage() {
           ? pedidoIdByDocumentoId.get(l.referencia_id as string)
           : undefined;
     const pedidoInfo = pedidoId ? pedidoInfoById.get(pedidoId) : undefined;
+    const recebimentoCodigo =
+      l.referencia_tipo === "PEDIDO_RECEBIMENTO" && l.referencia_id
+        ? recebimentoCodigoById.get(l.referencia_id as string)
+        : undefined;
     const codigo = pedidoInfo
       ? formatWmsOrderNumber(pedidoInfo.numeroWms, pedidoInfo.codigo, depNome)
-      : `${CODIGO_PREFIX[tipoServico] ?? "LAN"}-${(l.mes_ano as string).replace("-", "").slice(2)}`;
+      : (recebimentoCodigo ?? `${CODIGO_PREFIX[tipoServico] ?? "LAN"}-${(l.mes_ano as string).replace("-", "").slice(2)}`);
 
     return {
       id: l.id as string,
