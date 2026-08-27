@@ -201,9 +201,11 @@ export default async function FinanceiroPage() {
     return {
       id: l.id as string,
       tipo: TIPO_SERVICO_LABEL[tipoServico] ?? "Outros",
+      depId: l.depositante_id as string,
       depNome: depNome ?? "—",
       codigo,
       data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
+      dataIso: (l.created_at as string).slice(0, 10),
       valor: Number(l.valor_total),
     };
   });

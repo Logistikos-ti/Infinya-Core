@@ -96,13 +96,15 @@ export type FaturaDocRow = {
 export type ExtratoRow = {
   id: string;
   tipo: string;
+  depId: string;
   depNome: string;
   codigo: string;
   data: string;
+  dataIso: string;
   valor: number;
 };
 
-type Tab = "visao" | "faturamento" | "pagar" | "contratos" | "insumos" | "nfse" | "boletos";
+type Tab = "visao" | "extrato" | "faturamento" | "pagar" | "contratos" | "insumos" | "nfse" | "boletos";
 
 type Props = {
   depositantes: Depositante[];
@@ -148,7 +150,7 @@ function contratoDisplayId(contrato: ContratoRow, allContratos: ContratoRow[]): 
 // Pagar, NFS-e e Boletos continuam implementadas (buildRows, drawers, modal)
 // mas ficam fora da navegação por enquanto; para reexibi-las, é só devolver
 // suas chaves aqui.
-const VISIBLE_TABS: Tab[] = ["visao", "faturamento", "contratos", "insumos"];
+const VISIBLE_TABS: Tab[] = ["visao", "extrato", "faturamento", "contratos", "insumos"];
 
 const CATEGORIA_COLORS: Record<string, string> = {
   Embalagem: "#3B82F6",
@@ -158,8 +160,25 @@ const CATEGORIA_COLORS: Record<string, string> = {
 };
 const CATEGORIA_COLOR_DEFAULT = "#94A3B8";
 
+const TIPO_SERVICO_COLOR: Record<string, string> = {
+  Fulfillment: "#3B82F6",
+  "Ponto de coleta": "#8B5CF6",
+  "Impressão NF": "#EF4444",
+  "Gestão de frete": "#6366F1",
+  "Logística reversa": "#F43F5E",
+  Recebimento: "#0EA5E9",
+  Armazenagem: "#10B981",
+  Software: "#14B8A6",
+  Refrigerador: "#F59E0B",
+  Insumo: "#F97316",
+  Desconto: "#EC4899",
+  "Cobrança extra": "#64748B",
+};
+const TIPO_SERVICO_LABELS = Object.keys(TIPO_SERVICO_COLOR);
+
 const TAB_LABELS: Record<Tab, string> = {
   visao: "Visão geral",
+  extrato: "Extrato",
   faturamento: "Faturamento",
   pagar: "Contas a Pagar",
   contratos: "Contratos",
@@ -182,6 +201,8 @@ export function FinanceiroApp(props: Props) {
   const [depSel, setDepSel] = useState("all");
   const [statusSel, setStatusSel] = useState("all");
   const [monthSel, setMonthSel] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<
@@ -194,6 +215,7 @@ export function FinanceiroApp(props: Props) {
     | "exportContrato"
     | "exportInsumos"
     | "exportFaturamento"
+    | "exportExtrato"
   >(null);
   const [exportDep, setExportDep] = useState("");
   const [exportFormato, setExportFormato] = useState<"pdf" | "docx">("pdf");
@@ -203,6 +225,7 @@ export function FinanceiroApp(props: Props) {
   const [exportInsumosFormato, setExportInsumosFormato] = useState<"csv" | "xlsx" | "pdf">("csv");
   const [exportFatDep, setExportFatDep] = useState("");
   const [exportFatFormato, setExportFatFormato] = useState<"csv" | "xlsx" | "pdf">("csv");
+  const [exportExtratoFormato, setExportExtratoFormato] = useState<"csv" | "xlsx" | "pdf">("csv");
   const [editContratoId, setEditContratoId] = useState<string | null>(null);
   const [novoContratoDepId, setNovoContratoDepId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -218,6 +241,8 @@ export function FinanceiroApp(props: Props) {
     setStatusSel("all");
     setSearch("");
     setActiveId(null);
+    setDateFrom("");
+    setDateTo("");
   }
 
   function closeModal() {
@@ -232,6 +257,7 @@ export function FinanceiroApp(props: Props) {
     setExportInsumosFormato("csv");
     setExportFatDep("");
     setExportFatFormato("csv");
+    setExportExtratoFormato("csv");
   }
 
   function onFormSuccess(msg: string) {
@@ -354,6 +380,28 @@ export function FinanceiroApp(props: Props) {
     showToast(`${count} fatura${count === 1 ? "" : "s"} de ${depNome} exportada${count === 1 ? "" : "s"}.`);
   }
 
+  function exportExtratoCsv() {
+    const filteredIds = new Set(filtered.map((r) => r.id));
+    const items = props.extrato.filter((e) => filteredIds.has(e.id));
+    const header = ["Tipo", "Depositante", "Código", "Data", "Valor"];
+    const linhas = items.map((e) => [e.tipo, e.depNome, e.codigo, e.data, fmt(e.valor)]);
+    const csv = [header, ...linhas].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `extrato-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return items.length;
+  }
+
+  function handleExportExtratoSubmit() {
+    const count = exportExtratoCsv();
+    closeModal();
+    showToast(`${count} lançamento${count === 1 ? "" : "s"} exportado${count === 1 ? "" : "s"}.`);
+  }
+
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
     props.faturas.forEach((f) => set.add(f.mesAno));
@@ -371,6 +419,7 @@ export function FinanceiroApp(props: Props) {
     status?: string;
     searchHay: string;
     depId?: string;
+    dateIso?: string;
   };
 
   const depNomeById = useMemo(() => {
@@ -394,6 +443,37 @@ export function FinanceiroApp(props: Props) {
   const PILL = "rounded-full px-2.5 py-[3px] text-[11.5px] font-bold";
 
   function buildRows(): { head: string[]; rows: DisplayRow[]; showDepFilter: boolean; rightAlign?: number[] } {
+    if (tab === "extrato") {
+      return {
+        head: ["Tipo", "Depositante", "Código", "Data", "Valor", "Status"],
+        showDepFilter: true,
+        rightAlign: [4],
+        rows: props.extrato.map((e) => {
+          const cor = TIPO_SERVICO_COLOR[e.tipo] ?? "#94A3B8";
+          return {
+            id: e.id,
+            depId: e.depId,
+            dateIso: e.dataIso,
+            status: e.tipo,
+            searchHay: `${e.depNome} ${e.codigo} ${e.tipo}`.toLowerCase(),
+            cols: [
+              <span
+                key="t"
+                className={`${PILL} whitespace-nowrap`}
+                style={{ color: cor, backgroundColor: `${cor}1a` }}
+              >
+                {e.tipo}
+              </span>,
+              <span key="d" className={COL_PRIMARY}>{e.depNome}</span>,
+              <span key="c" className={COL_MONO_MUTED}>{e.codigo}</span>,
+              <span key="data" className={COL_MUTED_MONO}>{e.data}</span>,
+              <span key="v" className={COL_VALUE}>{fmt(e.valor)}</span>,
+              <FinBadge key="s" status="Faturado" />,
+            ],
+          };
+        }),
+      };
+    }
     if (tab === "faturamento") {
       return {
         head: ["Depositante", "Competência", "Vencimento", "Valor", "Status", ""],
@@ -557,17 +637,20 @@ export function FinanceiroApp(props: Props) {
     return rows.filter((r) => {
       if (depSel !== "all" && r.depId !== depSel) return false;
       if (statusSel !== "all" && r.status !== statusSel) return false;
+      if (dateFrom && (!r.dateIso || r.dateIso < dateFrom)) return false;
+      if (dateTo && (!r.dateIso || r.dateIso > dateTo)) return false;
       if (q && !r.searchHay.includes(q)) return false;
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, search, depSel, statusSel]);
+  }, [rows, search, depSel, statusSel, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const STATUS_OPTIONS_BY_TAB: Partial<Record<Tab, string[]>> = {
+    extrato: TIPO_SERVICO_LABELS,
     faturamento: ["ABERTA", "FECHADA", "ENVIADA", "PAGO"],
     pagar: ["Pendente", "Pago", "Vencido"],
     contratos: ["Ativo", "Inativo"],
@@ -607,9 +690,9 @@ export function FinanceiroApp(props: Props) {
     [props.contratos],
   );
 
-  const showNovoBtn = tab === "faturamento" || tab === "insumos" || tab === "pagar";
+  const showNovoBtn = tab === "extrato" || tab === "insumos" || tab === "pagar";
   const novoLabel = tab === "insumos" ? "+ Novo insumo" : tab === "pagar" ? "+ Nova conta" : "+ Novo lançamento";
-  const showExportBtn = tab === "contratos" || tab === "insumos" || tab === "faturamento";
+  const showExportBtn = tab === "extrato" || tab === "contratos" || tab === "insumos" || tab === "faturamento";
 
   return (
     <div className="flex h-full flex-col font-[family-name:var(--font-manrope)]">
@@ -648,7 +731,15 @@ export function FinanceiroApp(props: Props) {
             {showExportBtn && (
               <button
                 onClick={() =>
-                  setModal(tab === "insumos" ? "exportInsumos" : tab === "faturamento" ? "exportFaturamento" : "exportContrato")
+                  setModal(
+                    tab === "extrato"
+                      ? "exportExtrato"
+                      : tab === "insumos"
+                        ? "exportInsumos"
+                        : tab === "faturamento"
+                          ? "exportFaturamento"
+                          : "exportContrato",
+                  )
                 }
                 className="flex h-[42px] items-center rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
               >
@@ -747,13 +838,36 @@ export function FinanceiroApp(props: Props) {
                 }}
                 className="h-[42px] rounded-xl border border-slate-200 bg-white px-3 text-[13.5px] font-semibold text-slate-700 outline-none dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-200"
               >
-                <option value="all">Todos os status</option>
+                <option value="all">{tab === "extrato" ? "Todos os tipos" : "Todos os status"}</option>
                 {statusOptions.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
                 ))}
               </select>
+            )}
+            {tab === "extrato" && (
+              <div className="flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 dark:border-white/10 dark:bg-[#101B30]">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setPage(1);
+                  }}
+                  className={`${FIN_MONO} bg-transparent text-[13px] font-semibold text-slate-700 outline-none dark:text-zinc-200`}
+                />
+                <span className="text-slate-400 dark:text-zinc-500">–</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setPage(1);
+                  }}
+                  className={`${FIN_MONO} bg-transparent text-[13px] font-semibold text-slate-700 outline-none dark:text-zinc-200`}
+                />
+              </div>
             )}
           </div>
         )}
@@ -793,6 +907,7 @@ export function FinanceiroApp(props: Props) {
                         <tr
                           key={r.id}
                           onClick={() => {
+                            if (tab === "extrato") return;
                             if (r.id.startsWith("nocontract:")) {
                               setNovoContratoDepId(r.id.slice("nocontract:".length));
                               setModal("novoContrato");
@@ -800,9 +915,9 @@ export function FinanceiroApp(props: Props) {
                               setActiveId(r.id);
                             }
                           }}
-                          className={`cursor-pointer border-t border-slate-500/[0.16] transition hover:bg-slate-50 dark:border-slate-400/[0.14] dark:hover:bg-white/5 ${
-                            activeId === r.id ? "bg-violet-50/60 dark:bg-violet-500/10" : ""
-                          }`}
+                          className={`border-t border-slate-500/[0.16] transition dark:border-slate-400/[0.14] ${
+                            tab === "extrato" ? "" : "cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5"
+                          } ${activeId === r.id ? "bg-violet-50/60 dark:bg-violet-500/10" : ""}`}
                         >
                           {r.cols.map((c, i) => (
                             <td
@@ -829,7 +944,7 @@ export function FinanceiroApp(props: Props) {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 dark:border-white/10"
+                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
                 >
                   ‹
                 </button>
@@ -839,7 +954,7 @@ export function FinanceiroApp(props: Props) {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 disabled:opacity-40 dark:border-white/10"
+                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
                 >
                   ›
                 </button>
@@ -1253,6 +1368,103 @@ export function FinanceiroApp(props: Props) {
         </Modal>
       )}
 
+      {modal === "exportExtrato" && (
+        <Modal title="Exportar extrato" eyebrow="Exportar" onClose={closeModal}>
+          <p className="-mt-2 mb-4 text-[13px] text-slate-500 dark:text-zinc-400">
+            Escolha o filtro e o formato.
+          </p>
+          <div className="flex flex-col gap-3.5">
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
+                Depositante
+              </span>
+              <select
+                value={depSel}
+                onChange={(e) => setDepSel(e.target.value)}
+                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
+              >
+                <option value="all">Todos depositantes</option>
+                {props.depositantes.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
+                Tipo
+              </span>
+              <select
+                value={statusSel}
+                onChange={(e) => setStatusSel(e.target.value)}
+                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
+              >
+                <option value="all">Todos os tipos</option>
+                {TIPO_SERVICO_LABELS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
+                  De
+                </span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className={`${FIN_MONO} h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
+                  Até
+                </span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className={`${FIN_MONO} h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
+                />
+              </label>
+            </div>
+            <div>
+              <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-slate-500 dark:text-zinc-400">
+                Formato
+              </div>
+              <div className="flex gap-2">
+                {(["csv", "xlsx", "pdf"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setExportExtratoFormato(f)}
+                    className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                      exportExtratoFormato === f
+                        ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-500/5 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200 dark:hover:border-violet-500/40"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="mt-5">
+            <button
+              onClick={handleExportExtratoSubmit}
+              className="h-10 w-full rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-[13px] font-extrabold text-white transition hover:brightness-[1.06]"
+            >
+              Exportar
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 rounded-xl border border-violet-400/40 bg-white px-4 py-2.5 text-[12.5px] font-semibold text-slate-900 shadow-2xl dark:bg-[#0C1526] dark:text-zinc-100">
@@ -1332,20 +1544,6 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
   const pendentes = faturasNoMes.filter((f) => f.status === "ABERTA" || f.status === "ENVIADA").length;
   const fechadas = faturasNoMes.filter((f) => f.status === "FECHADA").length;
 
-  const tipoColor: Record<string, string> = {
-    Fulfillment: "#3B82F6",
-    "Ponto de coleta": "#8B5CF6",
-    "Impressão NF": "#EF4444",
-    "Gestão de frete": "#6366F1",
-    "Logística reversa": "#F43F5E",
-    Recebimento: "#0EA5E9",
-    Armazenagem: "#10B981",
-    Software: "#14B8A6",
-    Refrigerador: "#F59E0B",
-    Insumo: "#F97316",
-    Desconto: "#EC4899",
-    "Cobrança extra": "#64748B",
-  };
 
   return (
     <div className="flex-1 overflow-auto p-5 sm:p-6">
@@ -1365,7 +1563,10 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
                 >
                   <span
                     className="min-w-[100px] rounded-full px-2 py-0.5 text-center text-[10.5px] font-bold"
-                    style={{ color: tipoColor[r.tipo] ?? "#94A3B8", background: `${tipoColor[r.tipo] ?? "#94A3B8"}1a` }}
+                    style={{
+                      color: TIPO_SERVICO_COLOR[r.tipo] ?? "#94A3B8",
+                      background: `${TIPO_SERVICO_COLOR[r.tipo] ?? "#94A3B8"}1a`,
+                    }}
                   >
                     {r.tipo}
                   </span>
