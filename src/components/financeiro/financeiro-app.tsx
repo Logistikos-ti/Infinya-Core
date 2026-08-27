@@ -1358,7 +1358,7 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
             <p className="text-sm italic text-slate-400 dark:text-zinc-500">Sem lançamentos no período.</p>
           ) : (
             <div className="flex max-h-[420px] flex-col gap-1.5 overflow-auto pr-1">
-              {extrato.slice(0, 40).map((r) => (
+              {extrato.map((r) => (
                 <div
                   key={r.id}
                   className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs dark:border-white/10 dark:bg-[#101B30]"
