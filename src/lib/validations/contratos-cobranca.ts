@@ -18,6 +18,7 @@ export const contratoCobrancaFormSchema = z.object({
   valor_unitario_refrigerador: z.coerce.number().min(0),
 
   tipo_contrato: z.enum(["padrao", "consignado"]),
+  responsavel: z.string().max(200).optional().default(""),
   vigencia_inicio: z.string().optional().default(""),
   vigencia_fim: z.string().optional().default(""),
   observacoes: z.string().max(2000).optional().default(""),

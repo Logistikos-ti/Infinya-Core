@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { useActionState, useEffect, useState } from "react";
 import {
   criarLancamentoManualAction,
   type LancamentoActionState,
 } from "@/app/(dashboard)/financeiro/lancamentos/actions";
+import { FIN_MONO } from "@/components/financeiro/fin-ui";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type Depositante = { id: string; nome: string };
 
@@ -24,89 +25,132 @@ const TIPOS_SERVICO = [
   { value: "REFRIGERADOR", label: "Refrigerador" },
 ];
 
-const initialState: LancamentoActionState = { success: true, message: null };
+const initialState: LancamentoActionState = { success: false, message: null };
 
-export function LancamentoForm({ depositantes }: { depositantes: Depositante[] }) {
-  const [state, action] = useActionState(criarLancamentoManualAction, initialState);
+const inputBase =
+  "w-full rounded-lg border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-[5px]">
+      <span className="text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function fmtTotal(v: number) {
+  return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function LancamentoForm({
+  depositantes,
+  onSuccess,
+  onCancel,
+}: {
+  depositantes: Depositante[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}) {
+  const [state, action, isPending] = useActionState(criarLancamentoManualAction, initialState);
+  const [quantidade, setQuantidade] = useState("1");
+  const [valorUnitario, setValorUnitario] = useState("");
+
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
+
+  const total = (Number(quantidade) || 0) * (Number(valorUnitario) || 0);
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="flex flex-col gap-3.5">
       {state.message && !state.success && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
           {state.message}
         </div>
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Depositante</span>
-        <select
-          name="depositante_id"
-          required
-          defaultValue=""
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-        >
-          <option value="" disabled>Selecione...</option>
-          {depositantes.map((d) => (
-            <option key={d.id} value={d.id}>{d.nome}</option>
-          ))}
-        </select>
-      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Depositante">
+          <select name="depositante_id" required defaultValue="" className={inputBase}>
+            <option value="" disabled>Selecione…</option>
+            {depositantes.map((d) => (
+              <option key={d.id} value={d.id}>{d.nome}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Tipo de serviço">
+          <select name="tipo_servico" required defaultValue="" className={inputBase}>
+            <option value="" disabled>Selecione…</option>
+            {TIPOS_SERVICO.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Tipo de serviço</span>
-        <select
-          name="tipo_servico"
-          required
-          defaultValue=""
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-        >
-          <option value="" disabled>Selecione...</option>
-          {TIPOS_SERVICO.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Descrição</span>
+      <Field label="Descrição">
         <input
           type="text"
           name="descricao"
-          required
-          placeholder="Ex: Ajuste de cobrança ref. pedido #123"
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          placeholder="Opcional — detalhe do serviço"
+          className={inputBase}
         />
-      </label>
+      </Field>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Quantidade</span>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Quantidade">
           <input
             type="number"
             name="quantidade"
-            defaultValue="1"
+            value={quantidade}
+            onChange={(e) => setQuantidade(e.target.value)}
             step="1"
             min="1"
             required
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+            className={`${inputBase} ${FIN_MONO}`}
           />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Valor unitário (R$)</span>
+        </Field>
+        <Field label="Valor unitário (R$)">
           <input
             type="number"
             name="valor_unitario"
+            value={valorUnitario}
+            onChange={(e) => setValorUnitario(e.target.value)}
             step="0.01"
+            placeholder="0,00"
             required
-            placeholder="0.00"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+            className={`${inputBase} ${FIN_MONO}`}
           />
-        </label>
+        </Field>
+        <Field label="Total">
+          <div
+            className={`${inputBase} ${FIN_MONO} flex items-center font-bold text-slate-900 dark:text-zinc-100`}
+          >
+            {fmtTotal(total)}
+          </div>
+        </Field>
       </div>
 
-      <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
-        Criar lançamento
-      </Button>
+      <div className="mt-1 flex justify-end gap-2.5">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 rounded-lg border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
+          >
+            Cancelar
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-[22px] text-[13px] font-extrabold text-white transition hover:brightness-105 disabled:opacity-60"
+        >
+          {isPending ? <MobileButtonSpinner size={20} /> : "Cadastrar"}
+        </button>
+      </div>
     </form>
   );
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function InsumosRedirect() {
+export default function ContasAPagarRedirect() {
   redirect("/financeiro");
 }

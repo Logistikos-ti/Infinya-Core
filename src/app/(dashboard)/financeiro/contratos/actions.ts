@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { contratoCobrancaFormSchema } from "@/lib/validations/contratos-cobranca";
@@ -16,10 +15,12 @@ const FIELDS = [
   "taxa_frete_fixa",
   "taxa_frete_percentual",
   "tarifa_recebimento",
+  "valor_logistica_reversa",
   "valor_software",
   "qtd_refrigeradores",
   "valor_unitario_refrigerador",
   "tipo_contrato",
+  "responsavel",
   "vigencia_inicio",
   "vigencia_fim",
   "observacoes",
@@ -60,13 +61,26 @@ export async function saveContratoAction(
   }
 
   const admin = createSupabaseAdminClient();
-  const { id, vigencia_inicio, vigencia_fim, observacoes, ...rest } = parsed.data;
+  const { id, vigencia_inicio, vigencia_fim, observacoes, responsavel, ...rest } = parsed.data;
+
+  const emailsList = formData
+    .getAll("emails_cobranca")
+    .map((v) => String(v).trim().toLowerCase())
+    .filter((v) => v.includes("@"));
+
+  const marketplacesPontoColeta = formData
+    .getAll("marketplaces_ponto_coleta")
+    .map((v) => String(v).trim().toLowerCase())
+    .filter(Boolean);
 
   const payload = {
     ...rest,
     vigencia_inicio: vigencia_inicio || null,
     vigencia_fim: vigencia_fim || null,
     observacoes: observacoes || null,
+    responsavel: responsavel || null,
+    emails_cobranca: emailsList.length > 0 ? emailsList : null,
+    marketplaces_ponto_coleta: marketplacesPontoColeta,
   };
 
   if (id) {
@@ -80,8 +94,8 @@ export async function saveContratoAction(
       return { success: false, message: `Erro ao atualizar: ${error.message}` };
     }
 
-    revalidatePath("/financeiro/contratos");
-    redirect("/financeiro/contratos?feedback=salvo");
+    revalidatePath("/financeiro");
+    return { success: true, message: null };
   }
 
   const { error } = await admin
@@ -94,6 +108,6 @@ export async function saveContratoAction(
     return { success: false, message: `Erro ao criar: ${error.message}` };
   }
 
-  revalidatePath("/financeiro/contratos");
-  redirect("/financeiro/contratos?feedback=criado");
+  revalidatePath("/financeiro");
+  return { success: true, message: null };
 }

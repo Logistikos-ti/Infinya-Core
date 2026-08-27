@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -18,8 +17,13 @@ export async function saveInsumoAction(
 
   const id = String(formData.get("id") ?? "").trim() || null;
   const nome = String(formData.get("nome") ?? "").trim();
+  const sku = String(formData.get("sku") ?? "").trim() || null;
+  const categoria = String(formData.get("categoria") ?? "").trim() || null;
   const unidade = String(formData.get("unidade") ?? "").trim() || "un";
   const precoUnitario = Number(formData.get("preco_unitario") ?? 0);
+  const estoqueInicial = Number(formData.get("estoque_inicial") ?? 0);
+  const estoqueMinimo = Number(formData.get("estoque_minimo") ?? 0);
+  const fornecedor = String(formData.get("fornecedor") ?? "").trim() || null;
   const ordem = Number(formData.get("ordem") ?? 0);
   const ativo = formData.get("ativo") === "on";
 
@@ -31,19 +35,30 @@ export async function saveInsumoAction(
   }
 
   const admin = createSupabaseAdminClient();
-  const payload = { nome, unidade, preco_unitario: precoUnitario, ordem, ativo };
+  const payload = {
+    nome,
+    sku,
+    categoria,
+    unidade,
+    preco_unitario: precoUnitario,
+    estoque_inicial: estoqueInicial,
+    estoque_minimo: estoqueMinimo,
+    fornecedor,
+    ordem,
+    ativo,
+  };
 
   if (id) {
     const { error } = await admin.from("insumos_catalogo").update(payload).eq("id", id);
     if (error) return { success: false, message: `Erro ao atualizar: ${error.message}` };
-    revalidatePath("/financeiro/insumos");
-    redirect("/financeiro/insumos?feedback=salvo");
+    revalidatePath("/financeiro");
+    return { success: true, message: null };
   }
 
   const { error } = await admin.from("insumos_catalogo").insert(payload);
   if (error) return { success: false, message: `Erro ao criar: ${error.message}` };
-  revalidatePath("/financeiro/insumos");
-  redirect("/financeiro/insumos?feedback=criado");
+  revalidatePath("/financeiro");
+  return { success: true, message: null };
 }
 
 export async function cobrarInsumoAction(
@@ -102,7 +117,6 @@ export async function cobrarInsumoAction(
 
   await admin.rpc("recalcular_totais_fatura", { p_fatura_id: faturaId });
 
-  revalidatePath("/financeiro/insumos");
   revalidatePath("/financeiro");
-  redirect("/financeiro/insumos?feedback=cobrado");
+  return { success: true, message: null };
 }

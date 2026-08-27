@@ -10,6 +10,7 @@ import { FirstAccessPasswordDialog } from "@/components/layout/first-access-pass
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SoundToggle } from "@/components/sound-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 import { isAdminUser } from "@/lib/permissions";
 
 type AppChromeProps = {
@@ -165,6 +166,12 @@ export function AppChrome({ children, user, openTicketsCount }: AppChromeProps) 
   const searchParams = useSearchParams();
   const currentPath = pathname || "/dashboard";
   const isPickingWave = currentPath === "/expedicao/separacao/lote";
+  const isFinanceiro = currentPath === "/financeiro" || currentPath.startsWith("/financeiro/");
+  const isConfiguracoesRoot = currentPath === "/configuracoes";
+  const isDepositantesFullBleed =
+    currentPath === "/configuracoes/depositantes" ||
+    currentPath === "/configuracoes/depositantes/novo" ||
+    (currentPath.startsWith("/configuracoes/depositantes/") && currentPath.endsWith("/editar"));
   const showAdminMobileShortcuts = isAdminUser(user);
   const searchParamsString = searchParams.toString();
   const globalSearchConfig = useMemo(
@@ -334,7 +341,7 @@ useEffect(() => {
 
       {/* Main Content Área */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className={`${isPickingWave ? "hidden" : ""} z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 ${currentPath.startsWith("/expedicao/conferencia") ? "pl-[22px] pr-4 sm:pr-8" : "px-4 sm:px-8"} lg:border-none lg:border-slate-200/80 dark:border-white/10`}>
+        <header className={`${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed ? "hidden" : ""} z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 ${currentPath.startsWith("/expedicao/conferencia") ? "pl-[22px] pr-4 sm:pr-8" : "px-4 sm:px-8"} lg:border-none lg:border-slate-200/80 dark:border-white/10`}>
           <div className="flex w-full max-w-3xl items-center gap-4">
             {currentPath === "/expedicao/separacao/lote" || currentPath.startsWith("/expedicao/conferencia") ? (
               <div className="flex items-center gap-4">
@@ -379,13 +386,14 @@ useEffect(() => {
               </div>
             )}
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <SoundToggle />
               <ThemeToggle />
             </div>
           </div>
         </header>
 
-        <div className={`flex-1 overflow-y-auto z-10 scroll-smooth ${isPickingWave || currentPath.startsWith("/expedicao/conferencia") ? "" : "px-4 sm:px-8 pb-24 lg:pb-12"}`}>
+        <div className={`flex-1 overflow-y-auto z-10 scroll-smooth ${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed || currentPath.startsWith("/expedicao/conferencia") ? "" : "px-4 sm:px-8 pb-24 lg:pb-12"}`}>
           {showAdminMobileShortcuts ? (
             <section className="mb-4 lg:hidden">
               <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

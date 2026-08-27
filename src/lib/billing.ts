@@ -376,7 +376,7 @@ export async function fecharFaturasMensais(
   mesAno?: string,
 ): Promise<{ fechadas: number; erros: string[] }> {
   const admin = createSupabaseAdminClient();
-  const mes = mesAno ?? getMesAnoAnterior();
+  const mes = mesAno ?? getMesAno();
   const erros: string[] = [];
   let fechadas = 0;
 
@@ -489,12 +489,6 @@ export async function fecharFaturasMensais(
   }
 
   return { fechadas, erros };
-}
-
-function getMesAnoAnterior(): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - 1);
-  return getMesAno(d);
 }
 
 // ---------------------------------------------------------------------------

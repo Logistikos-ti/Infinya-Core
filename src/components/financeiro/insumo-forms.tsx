@@ -1,21 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   saveInsumoAction,
   cobrarInsumoAction,
   type InsumoActionState,
 } from "@/app/(dashboard)/financeiro/insumos/actions";
+import { FIN_MONO } from "@/components/financeiro/fin-ui";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type Depositante = { id: string; nome: string };
 
 type InsumoEdit = {
   id: string;
   nome: string;
+  sku: string | null;
+  categoria: string | null;
   unidade: string;
   preco_unitario: number;
+  estoque_inicial: number;
+  estoque_minimo: number;
+  fornecedor: string | null;
   ordem: number;
   ativo: boolean;
 };
@@ -27,46 +33,90 @@ type InsumoCatalogo = {
   preco_unitario: number;
 };
 
-const initialState: InsumoActionState = { success: true, message: null };
+const initialState: InsumoActionState = { success: false, message: null };
 
-export function InsumoForm({ currentEditItem }: { currentEditItem: InsumoEdit | null }) {
-  const [state, action] = useActionState(saveInsumoAction, initialState);
+const inputBase =
+  "w-full rounded-lg border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
+
+const CATEGORIA_OPTIONS = ["Embalagem", "Etiqueta", "Proteção", "Higiene", "Outros"];
+const UNIDADE_OPTIONS = ["un", "rolo", "caixa", "kg", "L", "m"];
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-[5px]">
+      <span className="text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export function InsumoForm({
+  currentEditItem,
+  onSuccess,
+  onCancel,
+}: {
+  currentEditItem: InsumoEdit | null;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}) {
+  const [state, action, isPending] = useActionState(saveInsumoAction, initialState);
+
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="flex flex-col gap-3.5">
       {currentEditItem && <input type="hidden" name="id" value={currentEditItem.id} />}
+      <input type="hidden" name="ordem" value={String(currentEditItem?.ordem ?? 0)} />
+      <input type="hidden" name="ativo" value={(currentEditItem?.ativo ?? true) ? "on" : "off"} />
 
       {state.message && !state.success && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
           {state.message}
         </div>
       )}
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Nome</span>
+      <Field label="Nome do insumo">
         <input
           type="text"
           name="nome"
           required
           defaultValue={currentEditItem?.nome ?? ""}
-          placeholder="Ex: Etiqueta térmica, Fita adesiva"
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          placeholder="Ex: Caixa papelão 40×30×30"
+          className={inputBase}
         />
-      </label>
+      </Field>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Unidade</span>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="SKU / Código">
           <input
             type="text"
-            name="unidade"
-            defaultValue={currentEditItem?.unidade ?? "un"}
-            placeholder="un"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+            name="sku"
+            defaultValue={currentEditItem?.sku ?? ""}
+            placeholder="Ex: CX-40x30x30"
+            className={`${inputBase} ${FIN_MONO}`}
           />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Preço unit. (R$)</span>
+        </Field>
+        <Field label="Categoria">
+          <select name="categoria" defaultValue={currentEditItem?.categoria ?? CATEGORIA_OPTIONS[0]} className={inputBase}>
+            {CATEGORIA_OPTIONS.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Unidade">
+          <select name="unidade" defaultValue={currentEditItem?.unidade ?? "un"} className={inputBase}>
+            {UNIDADE_OPTIONS.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Custo unitário (R$)">
           <input
             type="number"
             name="preco_unitario"
@@ -74,44 +124,62 @@ export function InsumoForm({ currentEditItem }: { currentEditItem: InsumoEdit | 
             min="0.01"
             required
             defaultValue={String(currentEditItem?.preco_unitario ?? "")}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+            placeholder="0,00"
+            className={`${inputBase} ${FIN_MONO}`}
           />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-zinc-300">Ordem</span>
-          <input
-            type="number"
-            name="ordem"
-            step="1"
-            min="0"
-            defaultValue={String(currentEditItem?.ordem ?? 0)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-          />
-        </label>
+        </Field>
       </div>
 
-      <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-zinc-700 dark:text-zinc-300">
-        <input
-          type="checkbox"
-          name="ativo"
-          defaultChecked={currentEditItem?.ativo ?? true}
-          className="h-4 w-4 rounded"
-        />
-        Insumo ativo
-      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Estoque inicial">
+          <input
+            type="number"
+            name="estoque_inicial"
+            step="1"
+            min="0"
+            defaultValue={String(currentEditItem?.estoque_inicial ?? 0)}
+            className={`${inputBase} ${FIN_MONO}`}
+          />
+        </Field>
+        <Field label="Estoque mínimo">
+          <input
+            type="number"
+            name="estoque_minimo"
+            step="1"
+            min="0"
+            defaultValue={String(currentEditItem?.estoque_minimo ?? 0)}
+            className={`${inputBase} ${FIN_MONO}`}
+          />
+        </Field>
+      </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
-          {currentEditItem ? "Salvar alterações" : "Cadastrar insumo"}
-        </Button>
-        {currentEditItem && (
-          <Link
-            href="/financeiro/insumos"
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      <Field label="Fornecedor">
+        <input
+          type="text"
+          name="fornecedor"
+          defaultValue={currentEditItem?.fornecedor ?? ""}
+          placeholder="Ex: Papel & Cia"
+          className={inputBase}
+        />
+      </Field>
+
+      <div className="mt-1 flex justify-end gap-2.5">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 rounded-lg border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
           >
-            Cancelar edição
-          </Link>
+            Cancelar
+          </button>
         )}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-[22px] text-[13px] font-extrabold text-white transition hover:brightness-105 disabled:opacity-60"
+        >
+          {isPending ? <MobileButtonSpinner size={20} /> : currentEditItem ? "Salvar alterações" : "Cadastrar"}
+        </button>
       </div>
     </form>
   );
@@ -120,11 +188,18 @@ export function InsumoForm({ currentEditItem }: { currentEditItem: InsumoEdit | 
 export function CobrarInsumoForm({
   depositantes,
   insumos,
+  onSuccess,
 }: {
   depositantes: Depositante[];
   insumos: InsumoCatalogo[];
+  onSuccess?: () => void;
 }) {
   const [state, action] = useActionState(cobrarInsumoAction, initialState);
+
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
 
   if (insumos.length === 0) return null;
 

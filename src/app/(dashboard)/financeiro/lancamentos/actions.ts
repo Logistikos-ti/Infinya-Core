@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -10,6 +9,21 @@ const TIPOS_SERVICO = [
   "RECEBIMENTO", "ARMAZENAMENTO", "INSUMO", "LOGISTICA_REVERSA",
   "SOFTWARE", "REFRIGERADOR", "DESCONTO", "COBRANCA_EXTRA",
 ] as const;
+
+const TIPO_SERVICO_LABELS: Record<string, string> = {
+  FULFILLMENT: "Fulfillment",
+  PONTO_COLETA: "Ponto de Coleta",
+  IMPRESSAO_NF: "Impressão NF",
+  GESTAO_FRETE: "Gestão de Frete",
+  RECEBIMENTO: "Recebimento",
+  ARMAZENAMENTO: "Armazenamento",
+  INSUMO: "Insumo",
+  LOGISTICA_REVERSA: "Logística Reversa",
+  SOFTWARE: "Software",
+  REFRIGERADOR: "Refrigerador",
+  DESCONTO: "Desconto",
+  COBRANCA_EXTRA: "Cobrança Extra",
+};
 
 export type LancamentoActionState = {
   success: boolean;
@@ -24,7 +38,7 @@ export async function criarLancamentoManualAction(
 
   const depositanteId = String(formData.get("depositante_id") ?? "").trim();
   const tipoServico = String(formData.get("tipo_servico") ?? "").trim();
-  const descricao = String(formData.get("descricao") ?? "").trim();
+  const descricaoRaw = String(formData.get("descricao") ?? "").trim();
   const quantidade = Number(formData.get("quantidade") ?? 1);
   const valorUnitario = Number(formData.get("valor_unitario") ?? 0);
 
@@ -34,9 +48,7 @@ export async function criarLancamentoManualAction(
   if (!TIPOS_SERVICO.includes(tipoServico as typeof TIPOS_SERVICO[number])) {
     return { success: false, message: "Selecione um tipo de serviço válido." };
   }
-  if (!descricao) {
-    return { success: false, message: "Informe uma descrição." };
-  }
+  const descricao = descricaoRaw || TIPO_SERVICO_LABELS[tipoServico] || tipoServico;
   if (quantidade <= 0) {
     return { success: false, message: "A quantidade deve ser maior que zero." };
   }
@@ -80,7 +92,6 @@ export async function criarLancamentoManualAction(
 
   await admin.rpc("recalcular_totais_fatura", { p_fatura_id: faturaId });
 
-  revalidatePath("/financeiro/lancamentos");
   revalidatePath("/financeiro");
-  redirect("/financeiro/lancamentos?feedback=criado");
+  return { success: true, message: null };
 }

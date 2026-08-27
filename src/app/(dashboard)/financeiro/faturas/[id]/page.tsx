@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { FaturaUpload } from "@/components/financeiro/fatura-upload";
 import { FaturaEnviar } from "@/components/financeiro/fatura-enviar";
+import { FinScope, FinBadge, FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { requireModuleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -35,13 +35,6 @@ const labelServico: Record<string, string> = {
   REFRIGERADOR: "Refrigerador",
   DESCONTO: "Desconto",
   COBRANCA_EXTRA: "Cobrança Extra",
-};
-
-const statusColors: Record<string, string> = {
-  ABERTA: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  FECHADA: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  ENVIADA: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  PAGO: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
 };
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -80,7 +73,7 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
   }
 
   return (
-    <div className="space-y-6">
+    <FinScope>
       <Link
         href="/financeiro"
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -88,28 +81,32 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
         <ArrowLeft className="h-4 w-4" /> Voltar ao financeiro
       </Link>
 
-      <ModulePageHeader
-        title={`Fatura · ${dep?.nome ?? "—"}`}
-        description={formatMesAno(fatura.mes_ano)}
-        badge={fatura.status}
-      />
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className={`${FIN_HEADING} text-2xl font-bold text-slate-900 dark:text-zinc-100`}>
+            Fatura · {dep?.nome ?? "—"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">{formatMesAno(fatura.mes_ano)}</p>
+        </div>
+        <FinBadge status={fatura.status} />
+      </div>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
           <p className="text-xs text-slate-400 dark:text-zinc-500">Total Serviços</p>
-          <p className="text-xl font-semibold text-slate-900 dark:text-zinc-100">
+          <p className={`${FIN_HEADING} text-xl font-bold text-slate-900 dark:text-zinc-100`}>
             {formatCurrency(Number(fatura.total_servicos))}
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
           <p className="text-xs text-slate-400 dark:text-zinc-500">Descontos</p>
-          <p className="text-xl font-semibold text-red-600 dark:text-red-400">
+          <p className={`${FIN_HEADING} text-xl font-bold text-red-500`}>
             - {formatCurrency(Number(fatura.total_descontos))}
           </p>
         </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
           <p className="text-xs text-emerald-600 dark:text-emerald-400">Total a Pagar</p>
-          <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+          <p className={`${FIN_HEADING} text-xl font-bold text-emerald-600 dark:text-emerald-400`}>
             {formatCurrency(Number(fatura.total_a_pagar))}
           </p>
         </div>
@@ -143,7 +140,7 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
       )}
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
+        <h2 className={`${FIN_HEADING} text-lg font-bold text-slate-900 dark:text-zinc-100`}>
           Lançamentos ({items.length})
         </h2>
 
@@ -152,22 +149,22 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
           .map(([tipo, grupo]) => (
             <div
               key={tipo}
-              className="rounded-2xl border border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/70"
+              className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101B30]"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 dark:border-zinc-800">
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 dark:border-white/10">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
                   {labelServico[tipo] ?? tipo}
                   <span className="ml-2 text-xs font-normal text-slate-400 dark:text-zinc-500">
                     ({grupo.items.length})
                   </span>
                 </h3>
-                <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                <span className="font-mono text-sm font-bold text-slate-900 dark:text-zinc-100">
                   {formatCurrency(grupo.total)}
                 </span>
               </div>
               <div className="max-h-64 overflow-y-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-slate-50 dark:bg-zinc-900">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-[#0E1728]">
                     <tr className="text-slate-400 dark:text-zinc-500">
                       <th className="px-5 py-2 font-medium">Descrição</th>
                       <th className="px-3 py-2 text-right font-medium">Qtd</th>
@@ -179,7 +176,7 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
                     {grupo.items.map((l) => (
                       <tr
                         key={l.id}
-                        className="border-t border-slate-50 dark:border-zinc-800/50"
+                        className="border-t border-slate-50 dark:border-white/5"
                       >
                         <td className="px-5 py-2 text-slate-700 dark:text-zinc-300">
                           {l.descricao}
@@ -187,10 +184,10 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
                         <td className="px-3 py-2 text-right text-slate-500 dark:text-zinc-400">
                           {Number(l.quantidade)}
                         </td>
-                        <td className="px-3 py-2 text-right text-slate-500 dark:text-zinc-400">
+                        <td className="px-3 py-2 text-right font-mono text-slate-500 dark:text-zinc-400">
                           {formatCurrency(Number(l.valor_unitario))}
                         </td>
-                        <td className="px-5 py-2 text-right font-medium text-slate-900 dark:text-zinc-100">
+                        <td className="px-5 py-2 text-right font-mono font-bold text-slate-900 dark:text-zinc-100">
                           {formatCurrency(Number(l.valor_total))}
                         </td>
                       </tr>
@@ -201,6 +198,6 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
             </div>
           ))}
       </div>
-    </div>
+    </FinScope>
   );
 }
