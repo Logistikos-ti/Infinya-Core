@@ -1335,7 +1335,7 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
   const tipoColor: Record<string, string> = {
     Fulfillment: "#3B82F6",
     "Ponto de coleta": "#8B5CF6",
-    "Impressão NF": "#06B6D4",
+    "Impressão NF": "#EF4444",
     "Gestão de frete": "#6366F1",
     "Logística reversa": "#F43F5E",
     Recebimento: "#0EA5E9",
@@ -1370,9 +1370,9 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
                     {r.tipo}
                   </span>
                   <span className="min-w-[100px] truncate font-bold text-slate-700 dark:text-zinc-300">{r.depNome}</span>
-                  <span className={`${FIN_MONO} whitespace-nowrap text-slate-400 dark:text-zinc-500`}>{r.codigo}</span>
-                  <span className="whitespace-nowrap text-slate-400 dark:text-zinc-500">{r.data}</span>
                   <div className="flex-1" />
+                  <span className={`${FIN_MONO} whitespace-nowrap text-slate-400 dark:text-zinc-500`}>{r.codigo}</span>
+                  <span className="mr-4 whitespace-nowrap text-slate-400 dark:text-zinc-500">{r.data}</span>
                   <span className={`${FIN_MONO} min-w-[90px] whitespace-nowrap text-right font-bold text-slate-900 dark:text-zinc-100`}>
                     {fmt(r.valor)}
                   </span>

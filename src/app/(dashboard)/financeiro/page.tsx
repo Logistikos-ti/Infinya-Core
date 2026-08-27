@@ -10,6 +10,7 @@ import {
 } from "@/components/financeiro/financeiro-app";
 import { requireModuleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 
 // Rótulo do selo na 1ª coluna do extrato — um por tipo_servico, não mais
 // agrupado por categoria ampla (senão fulfillment/ponto de coleta/impressão
@@ -175,29 +176,32 @@ export default async function FinanceiroPage() {
         .map((l) => l.referencia_id as string),
     ),
   );
-  const numeroWmsPorPedido = new Map<string, number>();
+  const pedidoInfoById = new Map<string, { numeroWms: number | null; codigo: string }>();
   if (pedidoExpedicaoIds.length > 0) {
     const { data: pedidosRes } = await admin
       .from("pedidos_expedicao")
-      .select("id, numero_wms")
+      .select("id, numero_wms, codigo")
       .in("id", pedidoExpedicaoIds);
-    (pedidosRes ?? []).forEach((p) => numeroWmsPorPedido.set(p.id as string, p.numero_wms as number));
+    (pedidosRes ?? []).forEach((p) =>
+      pedidoInfoById.set(p.id as string, { numeroWms: p.numero_wms as number | null, codigo: p.codigo as string }),
+    );
   }
 
   const extrato: ExtratoRow[] = (lancamentosRes.data ?? []).map((l) => {
     const tipoServico = l.tipo_servico as string;
-    const prefixo = CODIGO_PREFIX[tipoServico] ?? "LAN";
-    const numeroWms =
+    const depNome = (l.depositantes as { nome?: string } | null)?.nome ?? null;
+    const pedidoInfo =
       l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id
-        ? numeroWmsPorPedido.get(l.referencia_id as string)
+        ? pedidoInfoById.get(l.referencia_id as string)
         : undefined;
-    const codigo =
-      numeroWms !== undefined ? `${prefixo}-${numeroWms}` : `${prefixo}-${(l.mes_ano as string).replace("-", "").slice(2)}`;
+    const codigo = pedidoInfo
+      ? formatWmsOrderNumber(pedidoInfo.numeroWms, pedidoInfo.codigo, depNome)
+      : `${CODIGO_PREFIX[tipoServico] ?? "LAN"}-${(l.mes_ano as string).replace("-", "").slice(2)}`;
 
     return {
       id: l.id as string,
       tipo: TIPO_SERVICO_LABEL[tipoServico] ?? "Outros",
-      depNome: (l.depositantes as { nome?: string } | null)?.nome ?? "—",
+      depNome: depNome ?? "—",
       codigo,
       data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
       valor: Number(l.valor_total),
