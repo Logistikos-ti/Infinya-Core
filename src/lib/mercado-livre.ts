@@ -72,6 +72,9 @@ export function buildMercadoLivreAuthorizationUrl(state: string) {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", callbackUrl);
   url.searchParams.set("state", state);
+  // offline_access é obrigatório para o Mercado Livre devolver refresh_token;
+  // sem ele o access token expira em ~6h e a integração para de renovar sozinha.
+  url.searchParams.set("scope", "offline_access read write");
   return url.toString();
 }
 

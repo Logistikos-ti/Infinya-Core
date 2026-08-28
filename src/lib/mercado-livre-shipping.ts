@@ -308,7 +308,7 @@ async function persistMonitoring(
     .eq("id", depositanteId);
 }
 
-function getMercadoLivrePayload(payload: Record<string, unknown>) {
+export function getMercadoLivrePayload(payload: Record<string, unknown>) {
   const ml = isRecord(payload.mercadoLivre) ? payload.mercadoLivre : {};
   const fallbackOrderId = readMercadoLivreOrderIdFromPayload(payload);
 
@@ -359,7 +359,7 @@ function readMercadoLivreOrderIdFromPayload(payload: Record<string, unknown>) {
   return null;
 }
 
-function readSalesChannelCode(payload: Record<string, unknown>) {
+export function readSalesChannelCode(payload: Record<string, unknown>) {
   const comercial = isRecord(payload.comercial) ? payload.comercial : null;
   const explicitCode = readString(comercial?.salesChannelCode);
 
