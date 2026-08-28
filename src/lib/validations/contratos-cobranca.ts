@@ -17,6 +17,8 @@ export const contratoCobrancaFormSchema = z.object({
   valor_logistica_reversa: z.coerce.number().min(0),
   valor_cancelamento: z.coerce.number().min(0),
   valor_cancelamento_minimo: z.coerce.number().min(0),
+  valor_retirada: z.coerce.number().min(0),
+  valor_descarte: z.coerce.number().min(0),
   valor_software: z.coerce.number().min(0),
   qtd_refrigeradores: z.coerce.number().int().min(0),
   valor_unitario_refrigerador: z.coerce.number().min(0),

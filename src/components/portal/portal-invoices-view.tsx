@@ -47,6 +47,8 @@ const labelServico: Record<string, string> = {
   INSUMO: "Insumos",
   LOGISTICA_REVERSA: "Logística Reversa",
   CANCELAMENTO: "Cancelamento",
+  RETIRADA: "Retirada",
+  DESCARTE: "Descarte",
   SOFTWARE: "Software",
   REFRIGERADOR: "Refrigerador",
   DESCONTO: "Desconto",

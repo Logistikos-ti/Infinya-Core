@@ -1,4 +1,5 @@
 import { requireApiRoleAccess } from "@/lib/api-auth";
+import { registrarLancamentoQuarentena } from "@/lib/billing";
 import {
   recordStockQuarantineDecision,
   resolveStockQuarantine,
@@ -113,6 +114,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       userId: auth.user.id,
       observations: payload.observations || quarantine.decisao_observacoes || undefined,
     });
+
+    // Awaited (não fire-and-forget): route handler serverless pode congelar
+    // após a resposta e descartar a inserção da cobrança. Erros na cobrança
+    // não devem derrubar a confirmação da quarentena.
+    await registrarLancamentoQuarentena(id).catch(() => {});
 
     return Response.json({
       message:

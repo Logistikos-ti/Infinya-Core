@@ -24,6 +24,8 @@ const TIPOS_SERVICO = [
   { value: "ARMAZENAMENTO", label: "Armazenamento" },
   { value: "LOGISTICA_REVERSA", label: "Logística Reversa" },
   { value: "CANCELAMENTO", label: "Cancelamento" },
+  { value: "RETIRADA", label: "Retirada" },
+  { value: "DESCARTE", label: "Descarte" },
   { value: "SOFTWARE", label: "Software" },
   { value: "REFRIGERADOR", label: "Refrigerador" },
 ];

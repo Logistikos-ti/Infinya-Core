@@ -12,6 +12,8 @@ export type TipoServico =
   | "CARTA_CORRECAO"
   | "OUTRO_DOCUMENTO"
   | "CANCELAMENTO"
+  | "RETIRADA"
+  | "DESCARTE"
   | "DESCONTO"
   | "COBRANCA_EXTRA";
 
@@ -23,7 +25,8 @@ export type ReferenciaTipo =
   | "ROMANEIO"
   | "SNAPSHOT_ARMAZENAMENTO"
   | "DOCUMENTO_ARMAZENADO"
-  | "INSUMO_CONSUMO";
+  | "INSUMO_CONSUMO"
+  | "QUARENTENA";
 
 export type StatusFatura = "ABERTA" | "FECHADA" | "ENVIADA" | "PAGO";
 
@@ -44,6 +47,8 @@ export type ContratoCobranca = {
   insumosDepositante: string[];
   valorCancelamento: number;
   valorCancelamentoMinimo: number;
+  valorRetirada: number;
+  valorDescarte: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;

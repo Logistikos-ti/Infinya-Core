@@ -57,6 +57,8 @@ export type ContratoRow = {
   valorLogisticaReversa: number;
   valorCancelamento: number;
   valorCancelamentoMinimo: number;
+  valorRetirada: number;
+  valorDescarte: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
@@ -174,6 +176,8 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   "Gestão de frete": "#6366F1",
   "Logística reversa": "#F43F5E",
   Cancelamento: "#DC2626",
+  Retirada: "#0D9488",
+  Descarte: "#78716C",
   Recebimento: "#0EA5E9",
   Armazenagem: "#10B981",
   Software: "#14B8A6",
@@ -1073,6 +1077,8 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Logística reversa" value={fmt(activeContrato.valorLogisticaReversa)} />
             <MiniKv label="Cancelamento/item" value={fmt(activeContrato.valorCancelamento)} />
             <MiniKv label="Cancelamento (mínimo)" value={fmt(activeContrato.valorCancelamentoMinimo)} />
+            <MiniKv label="Retirada/un (vencidos)" value={fmt(activeContrato.valorRetirada)} />
+            <MiniKv label="Descarte/un (vencidos)" value={fmt(activeContrato.valorDescarte)} />
           </DrawerSection>
           {activeContrato.observacoes && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
@@ -1153,6 +1159,8 @@ export function FinanceiroApp(props: Props) {
             valor_logistica_reversa: contratoBeingEdited.valorLogisticaReversa,
             valor_cancelamento: contratoBeingEdited.valorCancelamento,
             valor_cancelamento_minimo: contratoBeingEdited.valorCancelamentoMinimo,
+            valor_retirada: contratoBeingEdited.valorRetirada,
+            valor_descarte: contratoBeingEdited.valorDescarte,
             valor_software: contratoBeingEdited.valorSoftware,
             qtd_refrigeradores: contratoBeingEdited.qtdRefrigeradores,
             valor_unitario_refrigerador: contratoBeingEdited.valorUnitarioRefrigerador,

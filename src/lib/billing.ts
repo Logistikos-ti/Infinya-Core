@@ -50,6 +50,8 @@ type ContratoRow = {
   tarifa_recebimento: number;
   valor_cancelamento: number;
   valor_cancelamento_minimo: number;
+  valor_retirada: number;
+  valor_descarte: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -86,6 +88,8 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     valor_logistica_reversa: (contrato as ContratoRow & { valor_logistica_reversa?: number }).valor_logistica_reversa ?? 0,
     valor_cancelamento: contrato.valor_cancelamento,
     valor_cancelamento_minimo: contrato.valor_cancelamento_minimo,
+    valor_retirada: contrato.valor_retirada,
+    valor_descarte: contrato.valor_descarte,
     tipo_contrato: contrato.tipo_contrato,
   };
 }
@@ -840,6 +844,76 @@ export async function registrarLancamentoCancelamento(
       valor_minimo: valorMinimo,
       aplicou_minimo: valorMinimo > valorPorItens,
     },
+    contrato_snapshot: contratoSnapshot(contrato),
+  };
+
+  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
+
+  await recalcularFatura(admin, faturaId as string);
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Cobrança: Produto vencido em quarentena (retirada pelo depositante / descarte)
+// ---------------------------------------------------------------------------
+
+export async function registrarLancamentoQuarentena(
+  quarentenaId: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: q } = await admin
+    .from("estoque_quarentena")
+    .select("id, depositante_id, quantidade, tipo, decisao_depositante, status")
+    .eq("id", quarentenaId)
+    .single();
+
+  if (!q) return { ok: false, erro: "Item de quarentena não encontrado." };
+
+  // Só cobra o fluxo de produtos vencidos (retirada/descarte). Outros motivos
+  // de quarentena (avaria etc.) não entram nesta cobrança.
+  if (String(q.tipo ?? "").trim().toUpperCase() !== "VENCIMENTO") return { ok: true };
+
+  const decisao = String(q.decisao_depositante ?? "").trim().toUpperCase();
+  const tipoServico: TipoServico | null =
+    decisao === "DOAR" ? "RETIRADA" : decisao === "DESCARTAR" ? "DESCARTE" : null;
+  if (!tipoServico) return { ok: true };
+
+  const contrato = await getContratoAtivo(admin, q.depositante_id);
+  if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
+  if (contrato.tipo_contrato === "consignado") return { ok: true };
+
+  const tarifa =
+    tipoServico === "RETIRADA" ? Number(contrato.valor_retirada) : Number(contrato.valor_descarte);
+  if (tarifa <= 0) return { ok: true };
+
+  const quantidade = Number(q.quantidade) || 0;
+  if (quantidade <= 0) return { ok: true };
+  const valorTotal = roundCurrency(quantidade * tarifa);
+
+  const mesAno = getMesAno();
+  const { data: faturaId } = await admin.rpc("garantir_ou_criar_fatura", {
+    p_depositante_id: q.depositante_id,
+    p_mes_ano: mesAno,
+  });
+  if (!faturaId) return { ok: false, erro: "Falha ao criar fatura." };
+
+  const label = tipoServico === "RETIRADA" ? "Retirada de vencidos" : "Descarte de vencidos";
+  const lancamento: LancamentoInsert = {
+    depositante_id: q.depositante_id,
+    fatura_id: faturaId as string,
+    mes_ano: mesAno,
+    tipo_servico: tipoServico,
+    origem: "AUTOMATICO",
+    referencia_tipo: "QUARENTENA",
+    referencia_id: q.id,
+    descricao: `${label} (${quantidade} un)`,
+    quantidade,
+    valor_unitario: tarifa,
+    valor_total: valorTotal,
+    memoria_calculo: { tipo_quarentena: q.tipo, decisao, quantidade, tarifa_unitaria: tarifa },
     contrato_snapshot: contratoSnapshot(contrato),
   };
 
