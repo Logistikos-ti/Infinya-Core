@@ -13,6 +13,7 @@ export type TipoServico =
   | "OUTRO_DOCUMENTO"
   | "ITEM_ADICIONAL"
   | "CONFERENCIA"
+  | "URGENCIA"
   | "CANCELAMENTO"
   | "RETIRADA"
   | "DESCARTE"
@@ -46,6 +47,7 @@ export type ContratoCobranca = {
   valorImpressaoNf: number;
   itensInclusos: number;
   valorItemAdicional: number;
+  valorUrgencia: number;
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaRecebimento: number;

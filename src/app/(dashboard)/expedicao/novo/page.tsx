@@ -177,6 +177,13 @@ export default async function NovoPedidoManualPage({
               <DatePickerInput label="Previsão de envio" name="previsaoEnvioEm" hideLabel />
             </Field>
 
+            <Field label="Prioridade">
+              <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-orange-200 bg-orange-50/50 px-3 text-sm font-medium text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/5 dark:text-orange-300">
+                <input type="checkbox" name="prioritario" value="true" className="h-4 w-4 accent-orange-500" />
+                Pedido prioritário (urgência)
+              </label>
+            </Field>
+
             <Field label="Transportadora">
               <input
                 name="carrierName"

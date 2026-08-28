@@ -52,6 +52,7 @@ export type ContratoRow = {
   valorOutroDocumento: number;
   itensInclusos: number;
   valorItemAdicional: number;
+  valorUrgencia: number;
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaPosicao: number;
@@ -180,6 +181,7 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   "Gestão de frete": "#6366F1",
   "Item adicional": "#2563EB",
   "Conferência unitária": "#0891B2",
+  Urgência: "#EA580C",
   "Logística reversa": "#F43F5E",
   Cancelamento: "#DC2626",
   Retirada: "#0D9488",
@@ -1079,6 +1081,7 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Outro documento" value={fmt(activeContrato.valorOutroDocumento)} />
             <MiniKv label="Itens inclusos" value={String(activeContrato.itensInclusos)} />
             <MiniKv label="Item adicional/un" value={fmt(activeContrato.valorItemAdicional)} />
+            <MiniKv label="Urgência/prioridade" value={fmt(activeContrato.valorUrgencia)} />
           </DrawerSection>
           <DrawerSection title="Armazenamento">
             <MiniKv label="Tarifa posição/mês" value={fmt(activeContrato.tarifaPosicao)} />
@@ -1166,6 +1169,7 @@ export function FinanceiroApp(props: Props) {
             valor_outro_documento: contratoBeingEdited.valorOutroDocumento,
             itens_inclusos: contratoBeingEdited.itensInclusos,
             valor_item_adicional: contratoBeingEdited.valorItemAdicional,
+            valor_urgencia: contratoBeingEdited.valorUrgencia,
             taxa_frete_fixa: contratoBeingEdited.taxaFreteFixa,
             taxa_frete_percentual: contratoBeingEdited.taxaFretePercentual,
             tarifa_recebimento: contratoBeingEdited.tarifaRecebimento,

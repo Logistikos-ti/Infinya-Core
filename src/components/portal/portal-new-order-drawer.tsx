@@ -145,6 +145,14 @@ export function PortalNewOrderDrawer({
             </section>
 
             <section>
+              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Prioridade</h3>
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-700 transition hover:-translate-y-px dark:border-orange-400/30 dark:bg-orange-400/10 dark:text-orange-300">
+                <input type="checkbox" name="prioritario" value="true" className="h-4 w-4 accent-orange-500" />
+                Pedido prioritário / urgente — sujeito à sobretaxa de urgência do contrato
+              </label>
+            </section>
+
+            <section>
               <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Documentos</h3>
               <div className="grid gap-3"><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-slate-700 transition hover:-translate-y-px hover:border-violet-300 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-slate-200"><Upload className="h-5 w-5 text-blue-500" /> Nota fiscal (XML) obrigatório<input type="file" name="invoiceXml" required accept=".xml,application/xml,text/xml" className="hidden" /></label><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700 transition hover:-translate-y-px hover:border-violet-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"><Upload className="h-5 w-5 text-violet-500" /> Etiqueta de envio<input type="file" name="shippingLabel" accept=".pdf,.png,.jpg,.jpeg" className="hidden" /></label></div>
             </section>

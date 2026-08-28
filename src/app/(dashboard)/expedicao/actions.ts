@@ -578,6 +578,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     .toUpperCase()
     .slice(0, 2);
   const previsaoEnvioEm = String(formData.get("previsaoEnvioEm") ?? "").trim();
+  const prioritario = formData.get("prioritario") === "on" || formData.get("prioritario") === "true";
   const dataPedido = String(formData.get("dataPedido") ?? "").trim();
   const observacoes = String(formData.get("observacoes") ?? "").trim();
   const salesChannelCode = String(formData.get("salesChannelCode") ?? "").trim() as SalesChannelCode;
@@ -766,6 +767,7 @@ export async function createManualShippingOrderAction(formData: FormData) {
     quantidade_unidades: Number.isFinite(unitCount) ? unitCount : 0,
     data_pedido: dataPedido ? `${dataPedido}T00:00:00` : new Date().toISOString(),
     previsao_envio_em: previsaoEnvioEm || null,
+    prioritario,
     sincronizado_em: new Date().toISOString(),
     payload_origem: payloadOrigem,
     observacoes: observacoes || null,
@@ -1622,4 +1624,46 @@ export async function resolveShippingOrderDivergenceAction(formData: FormData) {
   }
 
   redirect(`${defaultErrorPath}${defaultErrorPath.includes("?") ? "&" : "?"}feedback=opcao-invalida`);
+}
+
+export async function setShippingOrderPriorityAction(formData: FormData) {
+  const user = await requireRoleAccess(["ADMIN", "TI", "OPERADOR", "DEPOSITANTE"]);
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  const prioritario = String(formData.get("prioritario") ?? "") === "true";
+  const requestedReturn = String(formData.get("returnPath") ?? "").trim();
+  const returnPath =
+    requestedReturn.startsWith("/portal") || requestedReturn.startsWith("/expedicao")
+      ? requestedReturn
+      : `/expedicao/${orderId}`;
+
+  if (!orderId) {
+    redirect(user.papel === "DEPOSITANTE" ? "/portal?view=pedidos" : "/expedicao?feedback=erro");
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+
+  // Depositante só pode marcar os próprios pedidos.
+  const { data: order } = await adminSupabase
+    .from("pedidos_expedicao")
+    .select("depositante_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order) {
+    redirect(user.papel === "DEPOSITANTE" ? "/portal?view=pedidos" : "/expedicao?feedback=erro");
+  }
+  if (user.papel === "DEPOSITANTE" && user.depositanteId !== order.depositante_id) {
+    redirect("/portal?view=pedidos");
+  }
+
+  await adminSupabase
+    .from("pedidos_expedicao")
+    .update({ prioritario })
+    .eq("id", orderId);
+
+  revalidatePath(`/expedicao/${orderId}`);
+  revalidatePath("/expedicao");
+  revalidatePath("/portal");
+  const sep = returnPath.includes("?") ? "&" : "?";
+  redirect(`${returnPath}${sep}feedback=${prioritario ? "prioritario-on" : "prioritario-off"}`);
 }

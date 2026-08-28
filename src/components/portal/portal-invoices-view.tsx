@@ -44,6 +44,7 @@ const labelServico: Record<string, string> = {
   GESTAO_FRETE: "Gestão de Frete",
   ITEM_ADICIONAL: "Item Adicional",
   CONFERENCIA: "Conferência Unitária",
+  URGENCIA: "Urgência",
   RECEBIMENTO: "Recebimento",
   ARMAZENAMENTO: "Armazenamento",
   INSUMO: "Insumos",

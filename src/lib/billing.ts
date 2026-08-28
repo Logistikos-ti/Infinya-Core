@@ -48,6 +48,7 @@ type ContratoRow = {
   valor_outro_documento: number;
   itens_inclusos: number;
   valor_item_adicional: number;
+  valor_urgencia: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
@@ -89,6 +90,7 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     valor_outro_documento: contrato.valor_outro_documento,
     itens_inclusos: contrato.itens_inclusos,
     valor_item_adicional: contrato.valor_item_adicional,
+    valor_urgencia: contrato.valor_urgencia,
     taxa_frete_fixa: contrato.taxa_frete_fixa,
     taxa_frete_percentual: contrato.taxa_frete_percentual,
     tarifa_recebimento: contrato.tarifa_recebimento,
@@ -189,7 +191,7 @@ export async function registrarLancamentosExpedicao(
 
   const { data: pedidos } = await admin
     .from("pedidos_expedicao")
-    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens, quantidade_unidades, payload_origem")
+    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens, quantidade_unidades, prioritario, payload_origem")
     .in("id", pedidoIds);
 
   if (!pedidos?.length) return { total: 0, erros: ["Nenhum pedido encontrado."] };
@@ -362,6 +364,27 @@ export async function registrarLancamentosExpedicao(
             contrato_snapshot: snapshot,
           });
         }
+      }
+
+      // Urgência / prioridade — sobretaxa fixa quando o pedido é marcado como
+      // prioritário (planilha: "valor da expedição + R$X").
+      if (!isConsignado && pedido.prioritario && Number(contrato.valor_urgencia) > 0) {
+        const valorUrgencia = Number(contrato.valor_urgencia);
+        lancamentos.push({
+          depositante_id: depositanteId,
+          fatura_id: faturaId,
+          mes_ano: mesAno,
+          tipo_servico: "URGENCIA",
+          origem: "AUTOMATICO",
+          referencia_tipo: "PEDIDO_EXPEDICAO",
+          referencia_id: pedido.id,
+          descricao: `Urgência/prioridade pedido ${pedido.codigo}`,
+          quantidade: 1,
+          valor_unitario: valorUrgencia,
+          valor_total: valorUrgencia,
+          memoria_calculo: { prioritario: true },
+          contrato_snapshot: snapshot,
+        });
       }
     }
 

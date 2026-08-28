@@ -14,6 +14,7 @@ import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { requestPortalOrderCancellationAction } from "@/app/(portal)/portal/cancel-action";
+import { setShippingOrderPriorityAction } from "@/app/(dashboard)/expedicao/actions";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -741,13 +742,33 @@ function PortalOrderDetailDrawer({
               <h2 className="mt-2 font-display text-[26px] font-bold leading-none text-slate-950 dark:text-white">
                 {order.displayNumber}
               </h2>
-              <span
-                className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold"
-                style={{ color: statusColor, background: `${statusColor}18` }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} />{" "}
-                {repairMojibake(order.statusLabel)}
-              </span>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold"
+                  style={{ color: statusColor, background: `${statusColor}18` }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} />{" "}
+                  {repairMojibake(order.statusLabel)}
+                </span>
+                {order.prioritario ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-600 dark:text-orange-300">
+                    ⚡ Prioritário
+                  </span>
+                ) : null}
+              </div>
+              {order.status === "NOVO" || order.status === "EM_SEPARACAO" ? (
+                <form action={setShippingOrderPriorityAction} className="mt-2">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <input type="hidden" name="prioritario" value={order.prioritario ? "false" : "true"} />
+                  <input type="hidden" name="returnPath" value="/portal?view=pedidos" />
+                  <button
+                    type="submit"
+                    className="text-xs font-bold text-orange-600 underline-offset-2 hover:underline dark:text-orange-300"
+                  >
+                    {order.prioritario ? "Remover prioridade" : "⚡ Marcar como prioritário (urgência)"}
+                  </button>
+                </form>
+              ) : null}
             </div>
             <button
               type="button"

@@ -16,6 +16,7 @@ const FIELDS = [
   "valor_outro_documento",
   "itens_inclusos",
   "valor_item_adicional",
+  "valor_urgencia",
   "taxa_frete_fixa",
   "taxa_frete_percentual",
   "tarifa_recebimento",

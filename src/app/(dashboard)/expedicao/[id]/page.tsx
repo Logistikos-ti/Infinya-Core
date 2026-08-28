@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Eye, Paperclip, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Eye, Paperclip, Pencil, Zap } from "lucide-react";
+import { setShippingOrderPriorityAction } from "@/app/(dashboard)/expedicao/actions";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
@@ -104,6 +105,23 @@ export default async function ShippingOrderDetailPage({
             <Pencil className="h-4 w-4" />
             Editar pedido
           </Link>
+        ) : null}
+        {user.papel !== "DEPOSITANTE" ? (
+          <form action={setShippingOrderPriorityAction}>
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="prioritario" value={order.prioritario ? "false" : "true"} />
+            <button
+              type="submit"
+              className={
+                order.prioritario
+                  ? "inline-flex items-center gap-2 rounded-lg border border-orange-500 bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
+                  : "inline-flex items-center gap-2 rounded-lg border border-orange-300 bg-white px-4 py-2 text-sm font-medium text-orange-600 transition hover:bg-orange-50 dark:border-orange-500/40 dark:bg-transparent dark:text-orange-400 dark:hover:bg-orange-500/10"
+              }
+            >
+              <Zap className="h-4 w-4" />
+              {order.prioritario ? "Prioritário ✓" : "Marcar prioritário"}
+            </button>
+          </form>
         ) : null}
       </div>
 

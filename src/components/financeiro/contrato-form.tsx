@@ -23,6 +23,7 @@ type ContratoEdit = {
   valor_outro_documento: number;
   itens_inclusos: number;
   valor_item_adicional: number;
+  valor_urgencia: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
@@ -292,6 +293,10 @@ export function ContratoForm({
               <Field label="Item adicional/un">
                 <MoneyInput name="valor_item_adicional" defaultValue={String(currentEditItem?.valor_item_adicional ?? 0)} />
                 {state.errors?.valor_item_adicional && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_item_adicional}</p>}
+              </Field>
+              <Field label="Urgência/prioridade">
+                <MoneyInput name="valor_urgencia" defaultValue={String(currentEditItem?.valor_urgencia ?? 0)} />
+                {state.errors?.valor_urgencia && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_urgencia}</p>}
               </Field>
             </div>
           </Section>

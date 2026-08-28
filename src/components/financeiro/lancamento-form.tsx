@@ -24,6 +24,7 @@ const TIPOS_SERVICO = [
   { value: "ARMAZENAMENTO", label: "Armazenamento" },
   { value: "ITEM_ADICIONAL", label: "Item adicional" },
   { value: "CONFERENCIA", label: "Conferência unitária" },
+  { value: "URGENCIA", label: "Urgência" },
   { value: "LOGISTICA_REVERSA", label: "Logística Reversa" },
   { value: "CANCELAMENTO", label: "Cancelamento" },
   { value: "RETIRADA", label: "Retirada" },

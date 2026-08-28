@@ -357,6 +357,7 @@ export type ShippingOrderDetail = {
   operationType: ShippingOperationType;
   isRetirada: boolean;
   awaitingReturnInvoice: boolean;
+  prioritario: boolean;
 };
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
@@ -647,7 +648,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
   const { data, error } = await supabase
     .from("pedidos_expedicao")
     .select(
-      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      "id, codigo, numero_wms, referencia_externa, origem, canal, status, status_origem, numero_pedido, numero_loja, cliente_nome, cliente_documento, cliente_cidade, cliente_uf, valor_total, quantidade_itens, quantidade_unidades, prioritario, created_at, data_pedido, previsao_envio_em, sincronizado_em, payload_origem, observacoes, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -807,6 +808,7 @@ export async function getShippingOrderDetailFromDb(id: string, user?: AppUserCon
     operationType,
     isRetirada: operationType === "RETIRADA",
     awaitingReturnInvoice: operationType === "RETIRADA" && order.status === AWAITING_RETURN_INVOICE_STATUS,
+    prioritario: Boolean((order as { prioritario?: boolean }).prioritario),
   } satisfies ShippingOrderDetail;
 }
 

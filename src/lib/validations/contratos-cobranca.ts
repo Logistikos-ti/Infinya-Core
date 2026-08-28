@@ -13,6 +13,7 @@ export const contratoCobrancaFormSchema = z.object({
   valor_outro_documento: z.coerce.number().min(0),
   itens_inclusos: z.coerce.number().int().min(0),
   valor_item_adicional: z.coerce.number().min(0),
+  valor_urgencia: z.coerce.number().min(0),
   taxa_frete_fixa: z.coerce.number().min(0),
   taxa_frete_percentual: z.coerce.number().min(0).max(1),
   tarifa_recebimento: z.coerce.number().min(0),
