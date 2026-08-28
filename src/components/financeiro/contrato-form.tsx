@@ -271,7 +271,9 @@ export function ContratoForm({
                 {state.errors?.valor_outro_documento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_outro_documento}</p>}
               </Field>
             </div>
+          </Section>
 
+          <Section title="Insumos do depositante">
             <Field label="Insumos que o depositante disponibiliza (não cobra)">
               <div className="flex flex-col gap-2">
                 {insumoRows.map((row) => (
