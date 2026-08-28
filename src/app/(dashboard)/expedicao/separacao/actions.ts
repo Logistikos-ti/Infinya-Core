@@ -1165,7 +1165,11 @@ export async function cancelPickingOrderAction(orderId: string) {
     return { ok: false };
   }
 
-  const { error: reversalError } = await adminSupabase.rpc("estornar_baixas_separacao" as never, {
+  // Not estornar_baixas_separacao: this is the operator physically confirming
+  // the address is empty, so the reversal must also correct estoque.quantidade
+  // for the reserved rows -- otherwise the WMS keeps believing the phantom
+  // quantity exists and the next order for this SKU repeats the same cycle.
+  const { error: reversalError } = await adminSupabase.rpc("estornar_reserva_sem_estoque_fisico" as never, {
     p_pedido_id: orderId,
     p_usuario_id: user.id,
     p_motivo: "Cancelamento por falta de estoque",
