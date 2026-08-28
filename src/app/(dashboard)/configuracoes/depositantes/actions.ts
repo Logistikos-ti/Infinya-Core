@@ -265,6 +265,10 @@ export async function saveDepositanteAction(
 
     revalidatePath("/configuracoes/depositantes");
     revalidatePath(`/configuracoes/depositantes/${parsed.data.id}/editar`);
+    const isOverlay = String(formData.get("isOverlay") ?? "") === "true";
+    if (isOverlay) {
+      return { success: true, message: "Depositante atualizado com sucesso." };
+    }
     redirect("/configuracoes/depositantes?feedback=salvo");
   }
 
@@ -278,6 +282,10 @@ export async function saveDepositanteAction(
   }
 
   revalidatePath("/configuracoes/depositantes");
+  const isOverlay = String(formData.get("isOverlay") ?? "") === "true";
+  if (isOverlay) {
+    return { success: true, message: "Depositante criado com sucesso." };
+  }
   redirect("/configuracoes/depositantes?feedback=criado");
 }
 

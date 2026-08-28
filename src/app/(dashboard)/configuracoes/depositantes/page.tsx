@@ -1,15 +1,34 @@
 import Link from "next/link";
-import { ArrowLeft, PencilLine, Plus, Trash2 } from "lucide-react";
-import { ModulePageHeader } from "@/components/dashboard/module-page-header";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { ChevronLeft } from "lucide-react";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { formatDatePtBr } from "@/lib/utils";
-import {
-  deleteDepositanteAction,
-  toggleDepositanteStatusAction,
-} from "@/app/(dashboard)/configuracoes/depositantes/actions";
+import { FIN_HEADING } from "@/components/financeiro/fin-ui";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notification-bell";
+import { DepositanteRowActions } from "@/components/configuracoes/depositante-row-actions";
+import { NovoDepositanteTrigger } from "@/components/configuracoes/novo-depositante-trigger";
+
+const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
+const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
+const tokenCardBg = "bg-white dark:bg-[#101B30]";
+const tokenText = "text-[#0F172A] dark:text-[#F1F5F9]";
+const tokenTextSub = "text-[#64748B] dark:text-[#8695AD]";
+
+const manropeStyle: React.CSSProperties = {
+  fontFamily: "var(--font-manrope), Manrope, sans-serif",
+};
+
+const avatarPalette: Array<[string, string]> = [
+  ["#3B82F6", "rgba(59,130,246,0.6)"],
+  ["#8B5CF6", "rgba(139,92,246,0.6)"],
+  ["#EC4899", "rgba(236,72,153,0.6)"],
+  ["#10B981", "rgba(16,185,129,0.6)"],
+  ["#F59E0B", "rgba(245,158,11,0.6)"],
+  ["#06B6D4", "rgba(6,182,212,0.6)"],
+  ["#A855F7", "rgba(168,85,247,0.6)"],
+];
 
 type ConfiguracoesDepositantesPageProps = {
   searchParams?: Promise<{
@@ -27,236 +46,268 @@ export default async function ConfiguracoesDepositantesPage({
 
   const { data: depositantes } = await supabase
     .from("depositantes")
-    .select("id, codigo, nome, cnpj, ativo, logo_url, observacoes, configuracoes, created_at")
+    .select("id, codigo, nome, cnpj, ativo, logo_url, observacoes, configuracoes")
     .order("nome");
 
+  const rows = (depositantes ?? []).map((item, index) => {
+    const configuracoes = parseDepositanteConfiguracoes(
+      item.configuracoes ? JSON.stringify(item.configuracoes) : item.observacoes,
+    );
+    const [color, colorFaded] = avatarPalette[index % avatarPalette.length];
+    const cnpjDisplay = formatCnpj(item.cnpj as string);
+
+    return {
+      id: item.id as string,
+      nome: item.nome as string,
+      razaoSocial: configuracoes.razaoSocial || (item.nome as string),
+      cnpj: cnpjDisplay,
+      ativo: item.ativo as boolean,
+      logoUrl: item.logo_url as string | null,
+      initials: getInitials(item.nome as string),
+      avatarBg: `linear-gradient(135deg, ${color}, ${colorFaded})`,
+      editDefaults: {
+        id: item.id as string,
+        codigo: item.codigo as string,
+        nome: item.nome as string,
+        razaoSocial: configuracoes.razaoSocial || (item.nome as string),
+        cnpj: cnpjDisplay,
+        ativo: item.ativo as boolean,
+        logoUrl: (item.logo_url as string | null) ?? null,
+        logoStoragePath: configuracoes.logoStoragePath,
+        enderecoFiscalCep: configuracoes.enderecoFiscal.cep,
+        enderecoFiscalLogradouro: configuracoes.enderecoFiscal.logradouro,
+        enderecoFiscalNumero: configuracoes.enderecoFiscal.numero,
+        enderecoFiscalComplemento: configuracoes.enderecoFiscal.complemento,
+        enderecoFiscalBairro: configuracoes.enderecoFiscal.bairro,
+        enderecoFiscalCidade: configuracoes.enderecoFiscal.cidade,
+        enderecoFiscalUf: configuracoes.enderecoFiscal.uf,
+        emailsContato: configuracoes.emailsContato,
+        telefonesContato: configuracoes.telefonesContato,
+        observacoes: configuracoes.observacoes,
+        metodoRetiradaPadrao: configuracoes.metodoRetiradaPadrao,
+        exigeLotePadrao: configuracoes.exigeLotePadrao,
+        exigeValidadePadrao: configuracoes.exigeValidadePadrao,
+        permiteFracionamento: configuracoes.permiteFracionamento,
+        diasMinimosValidade: configuracoes.diasMinimosValidade,
+        prefixoRecebimento: configuracoes.prefixoRecebimento,
+      },
+    };
+  });
+
   return (
-    <div className="space-y-6">
-      <Link
-        href="/configuracoes"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para configurações
-      </Link>
-
-      <ModulePageHeader
-        title="Depositantes"
-        description="Carteira ativa de clientes do WMS, com gestão de cadastro, status operacional e parâmetros por depositante."
-        badge="Semana 2"
-      />
-
-      {feedback ? (
-        <div
-          className={`rounded-2xl px-4 py-3 text-sm ${
-            feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
-              : "border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
-          }`}
+    <div className="flex h-full flex-col" style={manropeStyle}>
+      <header className={`flex h-[68px] shrink-0 items-center gap-3.5 border-b px-4 sm:px-8 ${tokenBorder}`}>
+        <Link
+          href="/configuracoes"
+          title="Voltar para Configurações"
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          {feedback === "criado"
-            ? "Depositante criado com sucesso."
-            : feedback === "salvo"
-              ? "Depositante atualizado com sucesso."
-              : feedback === "excluido"
-                ? "Depositante excluído com sucesso."
-                : feedback === "vinculos"
-                  ? "Não foi possível excluir este depositante porque já existem vínculos operacionais. Nesse caso, use desativar."
-                  : "Não foi possível concluir a operação solicitada."}
-        </div>
-      ) : null}
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-              Depositantes cadastrados
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Base ativa para produtos, usuários vinculados e operação multi-tenant.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-              {depositantes?.length ?? 0} registros
-            </span>
-            <Link href="/configuracoes/depositantes/novo">
-              <Button className="bg-slate-950 text-white hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white">
-                <Plus className="h-4 w-4" />
-                Novo depositante
-              </Button>
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+        </Link>
+        <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+          <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>Depositantes</h1>
+          <div className={`flex items-center gap-2 text-[12.5px] ${tokenTextSub}`}>
+            <Link href="/configuracoes" className="hover:underline">
+              Configurações
             </Link>
+            <span>›</span>
+            <span className={`font-semibold ${tokenText}`}>Depositantes</span>
           </div>
         </div>
+        <NotificationBell />
+        <ThemeToggle />
+      </header>
 
-        <div className="mt-5 space-y-4">
-          {depositantes?.length ? (
-            depositantes.map((item) => {
-              const configuracoes = parseDepositanteConfiguracoes(
-                item.configuracoes ? JSON.stringify(item.configuracoes) : item.observacoes,
-              );
-              const razaoSocial = configuracoes.razaoSocial || item.nome;
-              const cidadeUf = [
-                configuracoes.enderecoFiscal.cidade,
-                configuracoes.enderecoFiscal.uf,
-              ]
-                .filter(Boolean)
-                .join(" / ");
-              const telefones = configuracoes.telefonesContato.slice(0, 2);
-              const emails = configuracoes.emailsContato.slice(0, 2);
+      <div className="flex-1 space-y-[22px] overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className={`text-sm ${tokenTextSub}`}>Clientes que armazenam produtos no CD.</p>
+          <NovoDepositanteTrigger />
+        </div>
 
-              return (
+        {feedback ? (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              feedback === "criado" || feedback === "salvo" || feedback === "excluido"
+                ? "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] text-[#10B981]"
+                : "border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.08)] text-[#F59E0B]"
+            }`}
+          >
+            {feedback === "criado"
+              ? "Depositante criado com sucesso."
+              : feedback === "salvo"
+                ? "Depositante atualizado com sucesso."
+                : feedback === "excluido"
+                  ? "Depositante excluído com sucesso."
+                  : feedback === "vinculos"
+                    ? "Não foi possível excluir este depositante porque já existem vínculos operacionais. Nesse caso, use desativar."
+                    : "Não foi possível concluir a operação solicitada."}
+          </div>
+        ) : null}
+
+        <div className={`overflow-x-auto rounded-2xl border ${tokenBorder} ${tokenCardBg}`}>
+          <div style={{ minWidth: "720px" }}>
+            <div
+              className={`flex items-center border-b ${tokenBorder} ${tokenInputBg}`}
+              style={{ gap: "16px", padding: "12px 22px" }}
+            >
+              <span
+                className={tokenTextSub}
+                style={{
+                  flex: "2.4 1 0%",
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  textAlign: "left",
+                }}
+              >
+                Nome fantasia / Razão social
+              </span>
+              <span
+                className={tokenTextSub}
+                style={{
+                  flex: "1.4 1 0%",
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  textAlign: "left",
+                }}
+              >
+                CNPJ
+              </span>
+              <span
+                className={tokenTextSub}
+                style={{
+                  flex: "2 1 0%",
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  textAlign: "right",
+                }}
+              >
+                Status / Ações
+              </span>
+            </div>
+
+            {rows.length ? (
+              rows.map((row) => (
                 <div
-                  key={item.id}
-                  className="rounded-2xl border border-slate-200 p-4 dark:border-zinc-800 dark:bg-zinc-950/20"
+                  key={row.id}
+                  className={`flex items-center border-b last:border-b-0 ${tokenBorder}`}
+                  style={{ gap: "16px", padding: "15px 22px" }}
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900">
-                          {item.logo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={item.logo_url}
-                              alt={`Logo ${item.nome}`}
-                              className="h-full w-full object-contain"
-                            />
-                          ) : (
-                            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                              Sem logo
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-base font-semibold text-slate-950 dark:text-white">
-                            {item.nome}
-                          </p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {razaoSocial}
-                          </p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {item.codigo} • {formatCnpj(item.cnpj)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {cidadeUf ? (
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Fiscal: {cidadeUf}
-                        </p>
-                      ) : null}
-
-                      {telefones.length ? (
-                        <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                          {telefones.map((contato) => (
-                            <p key={`${contato.nome}-${contato.telefone}`}>
-                              {contato.nome}: {contato.telefone}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {emails.length ? (
-                        <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                          {emails.map((contato) => (
-                            <p key={contato.email}>{contato.email}</p>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      <div className="flex flex-wrap gap-2">
-                        <Badge>{configuracoes.metodoRetiradaPadrao}</Badge>
-                        <Badge>{configuracoes.exigeLotePadrao ? "Com lote" : "Sem lote"}</Badge>
-                        <Badge>
-                          {configuracoes.exigeValidadePadrao ? "Com validade" : "Sem validade"}
-                        </Badge>
-                        <Badge>
-                          {configuracoes.permiteFracionamento
-                            ? "Fracionamento ativo"
-                            : "Sem fracionamento"}
-                        </Badge>
-                        <Badge>
-                          Validade mínima: {configuracoes.diasMinimosValidade} dias
-                        </Badge>
-                        {configuracoes.prefixoRecebimento ? (
-                          <Badge>Prefixo: {configuracoes.prefixoRecebimento}</Badge>
-                        ) : null}
-                      </div>
-
-                      {configuracoes.observacoes ? (
-                        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                          {configuracoes.observacoes}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-3 lg:text-right">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                          item.ativo
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                            : "bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-300"
-                        }`}
+                  <div
+                    className="flex items-center"
+                    style={{ flex: "2.4 1 0%", gap: "13px", minWidth: "220px" }}
+                  >
+                    {row.logoUrl ? (
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          flexShrink: 0,
+                          borderRadius: "11px",
+                          overflow: "hidden",
+                        }}
                       >
-                        {item.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                      <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                        Criado em {formatDatePtBr(item.created_at)}
-                      </p>
-                      <div className="flex flex-wrap gap-2 lg:justify-end">
-                        <Link
-                          href={`/configuracoes/depositantes/${item.id}/editar`}
-                          className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-slate-300 px-2.5 text-[0.8rem] font-medium text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                          Editar
-                        </Link>
-                        <form action={toggleDepositanteStatusAction}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <input
-                            type="hidden"
-                            name="nextActive"
-                            value={item.ativo ? "false" : "true"}
-                          />
-                          <Button type="submit" variant="outline" size="sm">
-                            {item.ativo ? "Desativar" : "Ativar"}
-                          </Button>
-                        </form>
-                        <form action={deleteDepositanteAction}>
-                          <input type="hidden" name="id" value={item.id} />
-                          <Button
-                            type="submit"
-                            variant="outline"
-                            size="sm"
-                            className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir
-                          </Button>
-                        </form>
+                        <Image
+                          src={row.logoUrl}
+                          alt=""
+                          width={40}
+                          height={40}
+                          unoptimized
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                       </div>
+                    ) : (
+                      <span
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          flexShrink: 0,
+                          borderRadius: "11px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 800,
+                          fontSize: "13.5px",
+                          color: "#FFFFFF",
+                          background: row.avatarBg,
+                        }}
+                      >
+                        {row.initials}
+                      </span>
+                    )}
+                    <div
+                      className="flex flex-col"
+                      style={{ minWidth: 0, gap: "2px" }}
+                    >
+                      <span
+                        className={tokenText}
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {row.nome}
+                      </span>
+                      <span
+                        className={tokenTextSub}
+                        style={{
+                          fontSize: "12px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {row.razaoSocial}
+                      </span>
                     </div>
                   </div>
+                  <span
+                    className={tokenText}
+                    style={{ flex: "1.4 1 0%", fontSize: "13.5px", fontWeight: 600 }}
+                  >
+                    {row.cnpj}
+                  </span>
+                  <div
+                    className="flex items-center justify-end"
+                    style={{ flex: "2 1 0%" }}
+                  >
+                    <DepositanteRowActions
+                      id={row.id}
+                      nome={row.nome}
+                      ativo={row.ativo}
+                      editDefaults={row.editDefaults}
+                    />
+                  </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500 dark:border-zinc-800 dark:text-slate-400">
-              Nenhum depositante cadastrado ainda.
-            </div>
-          )}
+              ))
+            ) : (
+              <div className={`px-[22px] py-10 text-center text-sm ${tokenTextSub}`}>
+                Nenhum depositante cadastrado ainda.
+              </div>
+            )}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-200">
-      {children}
-    </span>
-  );
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
 }
 
 function formatCnpj(value: string) {

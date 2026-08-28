@@ -30,6 +30,7 @@ export type DepositanteBlingWebhook = {
 
 export type DepositanteBlingConfig = {
   connected: boolean;
+  paused: boolean;
   companyId: string | null;
   companyName: string | null;
   accessToken: string | null;
@@ -84,6 +85,7 @@ export type DepositanteMercadoLivreMonitoring = {
 
 export type DepositanteMercadoLivreConfig = {
   connected: boolean;
+  paused: boolean;
   userId: string | null;
   nickname: string | null;
   accessToken: string | null;
@@ -347,6 +349,7 @@ function normalizeBlingConfig(value: unknown): DepositanteBlingConfig | null {
 
   return {
     connected: getOptionalBoolean(raw.connected, false),
+    paused: getOptionalBoolean(raw.paused, false),
     companyId: getNullableString(raw.companyId),
     companyName: getNullableString(raw.companyName),
     accessToken: getNullableString(raw.accessToken),
@@ -428,6 +431,7 @@ function normalizeMercadoLivreConfig(value: unknown): DepositanteMercadoLivreCon
 
   return {
     connected: getOptionalBoolean(raw.connected, false),
+    paused: getOptionalBoolean(raw.paused, false),
     userId: getNullableString(raw.userId),
     nickname: getNullableString(raw.nickname),
     accessToken: getNullableString(raw.accessToken),

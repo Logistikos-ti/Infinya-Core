@@ -12,6 +12,10 @@ export const TRANSPORTADORA_MODALIDADES = [
 
 export type TransportadoraModalidade = (typeof TRANSPORTADORA_MODALIDADES)[number];
 
+export const TRANSPORTADORA_TIPOS = ["RODOVIARIO", "AEREO", "MARITIMO"] as const;
+
+export type TransportadoraTipo = (typeof TRANSPORTADORA_TIPOS)[number];
+
 export type TransportadoraListItem = {
   id: string;
   nome: string;
@@ -19,10 +23,15 @@ export type TransportadoraListItem = {
   cnpj: string;
   email: string | null;
   telefone: string | null;
+  cidade: string | null;
+  uf: string | null;
+  tipo: TransportadoraTipo | null;
   modalidades: TransportadoraModalidade[];
   observacoes: string | null;
   ativo: boolean;
   createdAt: string;
+  romaneiosMes: number;
+  veiculos: number;
 };
 
 export function normalizeTransportadoraModalidades(values: string[]) {
@@ -53,6 +62,39 @@ export function formatTransportadoraModalidade(value: TransportadoraModalidade) 
       return "Coleta reversa";
     default:
       return value;
+  }
+}
+
+export function normalizeTransportadoraTipo(value: string): TransportadoraTipo | null {
+  const upper = value.trim().toUpperCase();
+  return TRANSPORTADORA_TIPOS.includes(upper as TransportadoraTipo)
+    ? (upper as TransportadoraTipo)
+    : null;
+}
+
+export function formatTransportadoraTipo(value: TransportadoraTipo | null) {
+  switch (value) {
+    case "RODOVIARIO":
+      return "Rodoviário";
+    case "AEREO":
+      return "Aéreo";
+    case "MARITIMO":
+      return "Marítimo";
+    default:
+      return "—";
+  }
+}
+
+export function transportadoraTipoColor(value: TransportadoraTipo | null) {
+  switch (value) {
+    case "RODOVIARIO":
+      return "#3B82F6";
+    case "AEREO":
+      return "#8B5CF6";
+    case "MARITIMO":
+      return "#06B6D4";
+    default:
+      return "#64748B";
   }
 }
 

@@ -21,7 +21,9 @@ function buildRedirectUrl(
     | "bling-sincronizado"
     | "bling-identificacao-pendente"
     | "mercado-livre-conectado"
-    | "mercado-livre-desconectado",
+    | "mercado-livre-desconectado"
+    | "integracao-pausada"
+    | "integracao-retomada",
   motivo?: string,
 ) {
   const search = new URLSearchParams({ feedback });
@@ -358,6 +360,74 @@ export async function disconnectMercadoLivreIntegrationAction(formData: FormData
   revalidatePath("/configuracoes/integracoes");
   revalidatePath("/configuracoes/depositantes");
   redirect(buildRedirectUrl("mercado-livre-desconectado"));
+}
+
+// Pausa/retoma uma integração conectada. A pausa é gravada como a flag
+// `paused` dentro da própria config do depositante (JSONB) — registra a
+// intenção operacional; honrar isso nos fluxos de sync (webhook/cron) é um
+// passo seguinte.
+export async function toggleIntegrationPauseAction(formData: FormData) {
+  await requireRoleAccess(["ADMIN", "TI"]);
+
+  const depositanteId = String(formData.get("depositanteId") ?? "").trim();
+  const provider = String(formData.get("provider") ?? "").trim();
+
+  if (!depositanteId || (provider !== "bling" && provider !== "ml")) {
+    redirect(buildRedirectUrl("erro"));
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: depositante, error } = await adminSupabase
+    .from("depositantes")
+    .select("id, configuracoes, observacoes")
+    .eq("id", depositanteId)
+    .maybeSingle();
+
+  if (error || !depositante) {
+    redirect(buildRedirectUrl("erro"));
+  }
+
+  const rawConfig = depositante.configuracoes
+    ? JSON.stringify(depositante.configuracoes)
+    : depositante.observacoes;
+  const config = parseDepositanteConfiguracoes(rawConfig);
+
+  let nextPaused = false;
+
+  if (provider === "bling") {
+    const bling = config.bling;
+    if (!bling?.connected) {
+      redirect(buildRedirectUrl("erro", "Conecte a integração do Bling antes de pausar."));
+    }
+    nextPaused = !bling.paused;
+    const { error: updateError } = await adminSupabase
+      .from("depositantes")
+      .update({ configuracoes: updateDepositanteBlingConfig(rawConfig, { ...bling, paused: nextPaused }) })
+      .eq("id", depositanteId);
+    if (updateError) {
+      redirect(buildRedirectUrl("erro", updateError.message));
+    }
+  } else {
+    const ml = config.mercadoLivre;
+    if (!ml?.connected) {
+      redirect(buildRedirectUrl("erro", "Conecte a integração do Mercado Livre antes de pausar."));
+    }
+    nextPaused = !ml.paused;
+    const { error: updateError } = await adminSupabase
+      .from("depositantes")
+      .update({
+        configuracoes: updateDepositanteMercadoLivreConfig(rawConfig, { ...ml, paused: nextPaused }),
+      })
+      .eq("id", depositanteId);
+    if (updateError) {
+      redirect(buildRedirectUrl("erro", updateError.message));
+    }
+  }
+
+  revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/integracoes");
+  revalidatePath("/configuracoes/depositantes");
+  redirect(buildRedirectUrl(nextPaused ? "integracao-pausada" : "integracao-retomada"));
 }
 
 function buildMonitoringState(

@@ -4,10 +4,163 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import {
   enderecoFormSchema,
   gerarEnderecosFormSchema,
 } from "@/lib/validations/enderecos";
+
+export type EnderecoMovimentacaoDto = {
+  tipo: string;
+  sinal: "+" | "-" | "";
+  quantidade: number;
+  quando: string;
+  dataIso: string;
+  ref: string;
+};
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "agora há pouco";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "ontem";
+  if (d < 7) return `há ${d} dias`;
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+export async function getEnderecoMovimentacoesAction(
+  enderecoId: string,
+  fromIso?: string | null,
+  toIso?: string | null,
+): Promise<EnderecoMovimentacaoDto[]> {
+  await requireConfigSectionAccess("enderecos");
+  const id = String(enderecoId ?? "").trim();
+  if (!id) return [];
+
+  const adminSupabase = createSupabaseAdminClient();
+  let query = adminSupabase
+    .from("movimentacoes_estoque")
+    .select(
+      "id, tipo, quantidade, created_at, observacoes, endereco_origem_id, endereco_destino_id, criado_por:usuarios(nome)",
+    )
+    .or(`endereco_origem_id.eq.${id},endereco_destino_id.eq.${id}`)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (fromIso) query = query.gte("created_at", fromIso);
+  if (toIso) query = query.lte("created_at", toIso);
+
+  const { data } = await query;
+
+  const result: EnderecoMovimentacaoDto[] = [];
+  for (const mov of data ?? []) {
+    if (
+      isHiddenLegacyDamageEntry({ createdAt: mov.created_at, description: mov.observacoes })
+    ) {
+      continue;
+    }
+    const operador = Array.isArray(mov.criado_por) ? mov.criado_por[0] : mov.criado_por;
+    const isDestino = mov.endereco_destino_id === id;
+    const isOrigem = mov.endereco_origem_id === id;
+    const sinal: "+" | "-" | "" = isDestino && !isOrigem ? "+" : isOrigem && !isDestino ? "-" : "";
+    const refParts = [
+      mov.observacoes?.trim() || null,
+      operador?.nome ? `Op. ${operador.nome}` : null,
+    ].filter(Boolean);
+    result.push({
+      tipo: String(mov.tipo ?? ""),
+      sinal,
+      quantidade: Number(mov.quantidade ?? 0),
+      quando: relativeTime(mov.created_at as string),
+      dataIso: mov.created_at as string,
+      ref: refParts.join(" · "),
+    });
+  }
+
+  return result;
+}
+
+export type EnderecoActionState = {
+  success: boolean;
+  message: string | null;
+};
+
+export async function saveEnderecoStateAction(
+  _prevState: EnderecoActionState,
+  formData: FormData,
+): Promise<EnderecoActionState> {
+  await requireConfigSectionAccess("enderecos");
+
+  const parsed = enderecoFormSchema.safeParse({
+    id: String(formData.get("id") ?? "").trim() || undefined,
+    codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
+    descricao: String(formData.get("descricao") ?? "").trim(),
+    area: String(formData.get("area") ?? "PICKING").trim(),
+    rua: String(formData.get("rua") ?? "").trim().toUpperCase(),
+    modulo: String(formData.get("modulo") ?? "").trim().toUpperCase(),
+    nivel: String(formData.get("nivel") ?? "").trim().toUpperCase(),
+    posicao: String(formData.get("posicao") ?? "").trim().toUpperCase(),
+    capacidadeMaxima: String(formData.get("capacidadeMaxima") ?? "").trim(),
+    capacidadePesoKg: String(formData.get("capacidadePesoKg") ?? "").trim(),
+    volumeModo: String(formData.get("volumeModo") ?? "").trim(),
+    alturaCm: String(formData.get("alturaCm") ?? "").trim(),
+    larguraCm: String(formData.get("larguraCm") ?? "").trim(),
+    comprimentoCm: String(formData.get("comprimentoCm") ?? "").trim(),
+    unidadePadrao: String(formData.get("unidadePadrao") ?? "").trim(),
+    ativo: formData.get("ativo") === "on",
+  });
+
+  if (!parsed.success) {
+    return { success: false, message: "Revise os campos e tente novamente." };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const payload = {
+    codigo: parsed.data.codigo,
+    descricao: parsed.data.descricao || null,
+    area: parsed.data.area,
+    rua: parsed.data.rua || null,
+    modulo: parsed.data.modulo || null,
+    nivel: parsed.data.nivel || null,
+    posicao: parsed.data.posicao || null,
+    capacidade_maxima: parsed.data.capacidadeMaxima
+      ? Number(parsed.data.capacidadeMaxima.replace(",", "."))
+      : null,
+    capacidade_peso_kg: parsed.data.capacidadePesoKg
+      ? Number(parsed.data.capacidadePesoKg.replace(",", "."))
+      : null,
+    volume_modo: parsed.data.volumeModo || null,
+    altura_cm: parsed.data.alturaCm ? Number(parsed.data.alturaCm.replace(",", ".")) : null,
+    largura_cm: parsed.data.larguraCm ? Number(parsed.data.larguraCm.replace(",", ".")) : null,
+    comprimento_cm: parsed.data.comprimentoCm
+      ? Number(parsed.data.comprimentoCm.replace(",", "."))
+      : null,
+    unidade_padrao: parsed.data.unidadePadrao || null,
+    ativo: parsed.data.ativo,
+  };
+
+  if (parsed.data.id) {
+    const { error } = await adminSupabase.from("enderecos").update(payload).eq("id", parsed.data.id);
+    if (error) {
+      return { success: false, message: `Não foi possível atualizar o endereço: ${error.message}` };
+    }
+    revalidatePath("/configuracoes");
+    revalidatePath("/configuracoes/enderecos");
+    return { success: true, message: "Endereço atualizado com sucesso." };
+  }
+
+  const { error } = await adminSupabase.from("enderecos").insert(payload);
+  if (error) {
+    return { success: false, message: `Não foi possível criar o endereço: ${error.message}` };
+  }
+  revalidatePath("/configuracoes");
+  revalidatePath("/configuracoes/enderecos");
+  return { success: true, message: "Endereço criado com sucesso." };
+}
 
 export async function saveEnderecoAction(formData: FormData) {
   await requireConfigSectionAccess("enderecos");
@@ -22,6 +175,11 @@ export async function saveEnderecoAction(formData: FormData) {
     nivel: String(formData.get("nivel") ?? "").trim().toUpperCase(),
     posicao: String(formData.get("posicao") ?? "").trim().toUpperCase(),
     capacidadeMaxima: String(formData.get("capacidadeMaxima") ?? "").trim(),
+    capacidadePesoKg: String(formData.get("capacidadePesoKg") ?? "").trim(),
+    volumeModo: String(formData.get("volumeModo") ?? "").trim(),
+    alturaCm: String(formData.get("alturaCm") ?? "").trim(),
+    larguraCm: String(formData.get("larguraCm") ?? "").trim(),
+    comprimentoCm: String(formData.get("comprimentoCm") ?? "").trim(),
     unidadePadrao: String(formData.get("unidadePadrao") ?? "").trim(),
     ativo: formData.get("ativo") === "on",
   });
@@ -41,6 +199,15 @@ export async function saveEnderecoAction(formData: FormData) {
     posicao: parsed.data.posicao || null,
     capacidade_maxima: parsed.data.capacidadeMaxima
       ? Number(parsed.data.capacidadeMaxima.replace(",", "."))
+      : null,
+    capacidade_peso_kg: parsed.data.capacidadePesoKg
+      ? Number(parsed.data.capacidadePesoKg.replace(",", "."))
+      : null,
+    volume_modo: parsed.data.volumeModo || null,
+    altura_cm: parsed.data.alturaCm ? Number(parsed.data.alturaCm.replace(",", ".")) : null,
+    largura_cm: parsed.data.larguraCm ? Number(parsed.data.larguraCm.replace(",", ".")) : null,
+    comprimento_cm: parsed.data.comprimentoCm
+      ? Number(parsed.data.comprimentoCm.replace(",", "."))
       : null,
     unidade_padrao: parsed.data.unidadePadrao || null,
     ativo: parsed.data.ativo,
@@ -90,8 +257,10 @@ export async function deleteEnderecoAction(formData: FormData) {
   await requireConfigSectionAccess("enderecos");
 
   const id = String(formData.get("id") ?? "").trim();
+  const isSpa = String(formData.get("isSpa") ?? "") === "true";
 
   if (!id) {
+    if (isSpa) return { success: false, message: "Endereço não informado." };
     redirect("/configuracoes/enderecos?feedback=erro");
   }
 
@@ -102,17 +271,26 @@ export async function deleteEnderecoAction(formData: FormData) {
     .eq("endereco_id", id);
 
   if ((estoqueCount ?? 0) > 0) {
+    if (isSpa) {
+      return {
+        success: false,
+        message:
+          "Não foi possível excluir: este endereço possui estoque vinculado. Nesse caso, use bloquear.",
+      };
+    }
     redirect("/configuracoes/enderecos?feedback=vinculos");
   }
 
   const { error } = await adminSupabase.from("enderecos").delete().eq("id", id);
 
   if (error) {
+    if (isSpa) return { success: false, message: "Não foi possível excluir o endereço." };
     redirect("/configuracoes/enderecos?feedback=erro");
   }
 
   revalidatePath("/configuracoes");
   revalidatePath("/configuracoes/enderecos");
+  if (isSpa) return { success: true, message: "Endereço excluído." };
   redirect("/configuracoes/enderecos?feedback=excluido");
 }
 
@@ -135,6 +313,11 @@ export async function generateEnderecosAction(formData: FormData) {
     posicaoInicio: Number(formData.get("posicaoInicio") ?? 1),
     posicaoFim: Number(formData.get("posicaoFim") ?? 1),
     capacidadeMaxima: String(formData.get("capacidadeMaxima") ?? "").trim(),
+    capacidadePesoKg: String(formData.get("capacidadePesoKg") ?? "").trim(),
+    volumeModo: String(formData.get("volumeModo") ?? "").trim(),
+    alturaCm: String(formData.get("alturaCm") ?? "").trim(),
+    larguraCm: String(formData.get("larguraCm") ?? "").trim(),
+    comprimentoCm: String(formData.get("comprimentoCm") ?? "").trim(),
     unidadePadrao: String(formData.get("unidadePadrao") ?? "").trim(),
     ativo: formData.get("ativo") === "on",
   });
@@ -186,6 +369,9 @@ export async function generateEnderecosAction(formData: FormData) {
             posicao: posicaoLabel,
             capacidade_maxima: parsed.data.capacidadeMaxima
               ? Number(parsed.data.capacidadeMaxima.replace(",", "."))
+              : null,
+            capacidade_peso_kg: parsed.data.capacidadePesoKg
+              ? Number(parsed.data.capacidadePesoKg.replace(",", "."))
               : null,
             unidade_padrao: parsed.data.unidadePadrao || null,
             ativo: parsed.data.ativo,

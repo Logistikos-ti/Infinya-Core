@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     .order("ocorrido_em", { ascending: false })
     .limit(10000);
 
+  const usuario = clean(params.get("usuario"), 50);
   const modulo = clean(params.get("modulo"), 80);
   const acao = clean(params.get("acao"), 80);
   const resultado = clean(params.get("resultado"), 20);
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest) {
   const ate = clean(params.get("ate"), 10);
   const q = clean(params.get("q"), 100).replace(/[%_,()]/g, " ").trim();
 
+  if (usuario === "sistema") query = query.is("usuario_id", null);
+  else if (usuario) query = query.eq("usuario_id", usuario);
   if (modulo) query = query.eq("modulo", modulo);
   if (acao) query = query.eq("acao", acao);
   if (resultado) query = query.eq("resultado", resultado);

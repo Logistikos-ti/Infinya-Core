@@ -1,217 +1,212 @@
-import Link from "next/link";
-import { AddressBulkGeneratorForm } from "@/components/configuracoes/address-bulk-generator-form";
-import { AddressImportPanel } from "@/components/configuracoes/address-import-panel";
-import { EnderecoForm } from "@/components/configuracoes/endereco-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
-import { EnderecosDashboard } from "@/components/configuracoes/enderecos-dashboard";
-import {
-  generateEnderecosAction,
-  saveEnderecoAction,
-} from "@/app/(dashboard)/configuracoes/enderecos/actions";
+import { EnderecosView } from "@/components/configuracoes/enderecos-view";
 
-type ConfiguracoesEnderecosPageProps = {
-  searchParams?: Promise<{
-    feedback?: string;
-    editar?: string;
-    area?: string;
-    total?: string;
-  }>;
-};
+// Ocupação aproximada: para cada endereço, o sistema calcula a razão de cada
+// dimensão configurada (quantidade vs. capacidade_maxima, e peso total vs.
+// capacidade_peso_kg) e retorna a MÉDIA das razões disponíveis. É uma média
+// operacional, não um número exato.
+function calcularOcupacao(
+  peso: number,
+  volume: number,
+  capacidadePesoKg: number,
+  capacidadeVolume: number,
+): number | null {
+  const razoes: number[] = [];
+  if (capacidadePesoKg > 0) razoes.push(Math.min(1, peso / capacidadePesoKg));
+  if (capacidadeVolume > 0) razoes.push(Math.min(1, volume / capacidadeVolume));
+  if (!razoes.length) return null;
+  const media = razoes.reduce((total, r) => total + r, 0) / razoes.length;
+  return Math.min(100, Math.round(media * 100));
+}
 
-export default async function ConfiguracoesEnderecosPage({
-  searchParams,
-}: ConfiguracoesEnderecosPageProps) {
+// Volume da posição (cm³) a partir do modo configurado.
+function volumeEndereco(
+  modo: string | null,
+  altura: number,
+  largura: number,
+  comprimento: number,
+  capacidadeMaxima: number,
+): number {
+  const volumeBase = altura * largura * comprimento;
+  if (volumeBase <= 0) return 0;
+  if (modo === "PALLET") return volumeBase * Math.max(0, capacidadeMaxima);
+  if (modo === "DIMENSOES") return volumeBase;
+  return 0;
+}
+
+export default async function ConfiguracoesEnderecosPage() {
   await requireConfigSectionAccess("enderecos");
-  const params = searchParams ? await searchParams : undefined;
-  const feedback = params?.feedback ?? null;
-  const editingId = params?.editar ?? null;
-  const areaFilter = params?.area ?? "";
-  const totalGenerated = Number(params?.total ?? 0) || 0;
   const supabase = await createSupabaseServerClient();
 
-  let enderecosQuery = supabase
-    .from("enderecos")
-    .select(
-      "id, codigo, descricao, area, rua, modulo, nivel, posicao, capacidade_maxima, unidade_padrao, ativo, created_at",
-    )
-    .order("codigo");
+  const [{ data: enderecos }, { data: saldos }] = await Promise.all([
+    supabase
+      .from("enderecos")
+      .select(
+        "id, codigo, descricao, area, rua, modulo, nivel, posicao, capacidade_maxima, capacidade_peso_kg, volume_modo, altura_cm, largura_cm, comprimento_cm, unidade_padrao, ativo",
+      )
+      .order("codigo"),
+    supabase
+      .from("estoque")
+      .select(
+        "endereco_id, quantidade, quantidade_reservada, depositante:depositantes(nome), produto:produtos(sku, nome, peso_kg, unidade_estocagem, imagem_principal_url, altura_cm, largura_cm, comprimento_cm)",
+      ),
+  ]);
 
-  if (areaFilter) {
-    enderecosQuery = enderecosQuery.eq("area", areaFilter);
-  }
-
-  const { data: enderecos } = await enderecosQuery;
-  const { data: saldos } = await supabase
-    .from("estoque")
-    .select("endereco_id, quantidade, quantidade_reservada, bloqueado, produto:produtos(sku)");
-  const { data: movementRows } = await supabase
-    .from("movimentacoes_estoque")
-    .select("id, tipo, quantidade, created_at, observacoes, endereco_origem_id, endereco_destino_id, produto:produtos(sku, nome), criado_por:usuarios(nome)")
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const addressMovements = Object.fromEntries(
-    (enderecos ?? []).map((endereco) => [
-      endereco.id,
-      (movementRows ?? [])
-        .filter(
-          (movement) =>
-            !isHiddenLegacyDamageEntry({
-              createdAt: movement.created_at,
-              description: movement.observacoes,
-            }),
-        )
-        .filter((movement) => movement.endereco_origem_id === endereco.id || movement.endereco_destino_id === endereco.id)
-        .slice(0, 6),
-    ]),
-  );
+  const unidadeLabel = (unidade: string | null | undefined) => {
+    switch (unidade) {
+      case "CAIXA":
+        return "cx";
+      case "PALLET":
+        return "plt";
+      case "UNIDADE":
+        return "un";
+      default:
+        return "un";
+    }
+  };
 
   const saldoPorEndereco = new Map<string, number>();
-  const skusPorEndereco = new Map<string, string[]>();
+  const pesoPorEndereco = new Map<string, number>();
+  const volumePorEndereco = new Map<string, number>();
+  const skusPorEndereco = new Map<string, Set<string>>();
+  const produtosPorEndereco = new Map<
+    string,
+    Array<{
+      nome: string;
+      sku: string;
+      quantidade: number;
+      unidade: string;
+      imagemUrl: string | null;
+      depositante: string;
+    }>
+  >();
+  const unidadesPorEndereco = new Map<string, Set<string>>();
   for (const saldo of saldos ?? []) {
-    const quantidadeDisponivel = Math.max(
+    const disponivel = Math.max(
       0,
       Number(saldo.quantidade ?? 0) - Number(saldo.quantidade_reservada ?? 0),
     );
     saldoPorEndereco.set(
       saldo.endereco_id,
-      (saldoPorEndereco.get(saldo.endereco_id) ?? 0) + quantidadeDisponivel,
+      (saldoPorEndereco.get(saldo.endereco_id) ?? 0) + disponivel,
     );
     const produto = Array.isArray(saldo.produto) ? saldo.produto[0] : saldo.produto;
-    if (produto?.sku) {
-      const skus = skusPorEndereco.get(saldo.endereco_id) ?? [];
-      if (!skus.includes(produto.sku)) skus.push(produto.sku);
-      skusPorEndereco.set(saldo.endereco_id, skus);
+    const produtoDim = produto as
+      | { altura_cm?: number | null; largura_cm?: number | null; comprimento_cm?: number | null }
+      | null
+      | undefined;
+    const volumeUnitario =
+      Number(produtoDim?.altura_cm ?? 0) *
+      Number(produtoDim?.largura_cm ?? 0) *
+      Number(produtoDim?.comprimento_cm ?? 0);
+    if (volumeUnitario > 0) {
+      volumePorEndereco.set(
+        saldo.endereco_id,
+        (volumePorEndereco.get(saldo.endereco_id) ?? 0) + disponivel * volumeUnitario,
+      );
+    }
+    const pesoUnitario = Number(produto?.peso_kg ?? 0);
+    if (pesoUnitario > 0) {
+      pesoPorEndereco.set(
+        saldo.endereco_id,
+        (pesoPorEndereco.get(saldo.endereco_id) ?? 0) + disponivel * pesoUnitario,
+      );
+    }
+    if (produto?.sku && disponivel > 0) {
+      const set = skusPorEndereco.get(saldo.endereco_id) ?? new Set<string>();
+      set.add(produto.sku);
+      skusPorEndereco.set(saldo.endereco_id, set);
+    }
+    if (produto?.nome && disponivel > 0) {
+      const unidade = unidadeLabel(
+        (produto as { unidade_estocagem?: string | null }).unidade_estocagem,
+      );
+      const depositanteRel = Array.isArray(saldo.depositante)
+        ? saldo.depositante[0]
+        : saldo.depositante;
+      const lista = produtosPorEndereco.get(saldo.endereco_id) ?? [];
+      lista.push({
+        nome: produto.nome,
+        sku: produto.sku ?? "",
+        quantidade: disponivel,
+        unidade,
+        imagemUrl:
+          (produto as { imagem_principal_url?: string | null }).imagem_principal_url ?? null,
+        depositante: (depositanteRel as { nome?: string } | null)?.nome ?? "",
+      });
+      produtosPorEndereco.set(saldo.endereco_id, lista);
+
+      const unidadeSet = unidadesPorEndereco.get(saldo.endereco_id) ?? new Set<string>();
+      unidadeSet.add(unidade);
+      unidadesPorEndereco.set(saldo.endereco_id, unidadeSet);
     }
   }
 
-  const enderecosAtivos = (enderecos ?? []).filter(
-    (endereco) => endereco.ativo && endereco.area !== "BLOQUEADO",
-  );
-  const enderecosComCapacidade = enderecosAtivos.filter(
-    (endereco) => Number(endereco.capacidade_maxima ?? 0) > 0,
-  );
-  const ocupacaoMedia = enderecosComCapacidade.length
+  const enderecosData = enderecos ?? [];
+
+  const rows = enderecosData.map((e) => {
+    const q = saldoPorEndereco.get(e.id) ?? 0;
+    const peso = pesoPorEndereco.get(e.id) ?? 0;
+    const volume = volumePorEndereco.get(e.id) ?? 0;
+    const cap = Number(e.capacidade_maxima ?? 0);
+    const capPeso = Number(e.capacidade_peso_kg ?? 0);
+    const altura = Number(e.altura_cm ?? 0);
+    const largura = Number(e.largura_cm ?? 0);
+    const comprimento = Number(e.comprimento_cm ?? 0);
+    const volumeModo = (e.volume_modo as string | null) ?? null;
+    const capVolume = volumeEndereco(volumeModo, altura, largura, comprimento, cap);
+    const ocupacao = calcularOcupacao(peso, volume, capPeso, capVolume);
+    return {
+      id: e.id as string,
+      codigo: e.codigo as string,
+      area: e.area as string,
+      descricao: (e.descricao as string | null) ?? "",
+      rua: (e.rua as string | null) ?? "",
+      modulo: (e.modulo as string | null) ?? "",
+      ocupacao,
+      skus: skusPorEndereco.get(e.id)?.size ?? 0,
+      ativo: e.ativo as boolean,
+      quantidade: q,
+      peso,
+      capacidadeMaxima: cap,
+      capacidadePesoKg: capPeso,
+      volumeModo: volumeModo ?? "",
+      alturaCm: altura,
+      larguraCm: largura,
+      comprimentoCm: comprimento,
+      unidadePadrao: (e.unidade_padrao as string | null) ?? "",
+      unidadeSaldo: (() => {
+        const set = unidadesPorEndereco.get(e.id);
+        return set && set.size === 1 ? [...set][0] : "";
+      })(),
+      produtos: (produtosPorEndereco.get(e.id) ?? []).slice(0, 8),
+    };
+  });
+
+  const enderecosAtivos = rows.filter((r) => r.ativo && r.area !== "BLOQUEADO");
+  const enderecosComOcupacao = enderecosAtivos.filter((r) => r.ocupacao != null);
+  const ocupacaoMedia = enderecosComOcupacao.length
     ? Math.round(
-        (enderecosComCapacidade.reduce((total, endereco) => {
-          const capacidade = Number(endereco.capacidade_maxima ?? 0);
-          const saldo = saldoPorEndereco.get(endereco.id) ?? 0;
-          return total + Math.min(1, saldo / capacidade);
-        }, 0) /
-          enderecosComCapacidade.length) *
-          100,
+        enderecosComOcupacao.reduce((total, r) => total + (r.ocupacao ?? 0), 0) /
+          enderecosComOcupacao.length,
       )
     : 0;
-  const enderecosVazios = enderecosAtivos.filter(
-    (endereco) => (saldoPorEndereco.get(endereco.id) ?? 0) <= 0,
-  ).length;
-  const enderecosBloqueados = (enderecos ?? []).filter(
-    (endereco) => !endereco.ativo || endereco.area === "BLOQUEADO",
-  ).length;
-  const addressMetrics = Object.fromEntries(
-    (enderecos ?? []).map((endereco) => {
-      const quantidade = saldoPorEndereco.get(endereco.id) ?? 0;
-      const capacidade = Number(endereco.capacidade_maxima ?? 0);
-      return [endereco.id, {
-        quantidade,
-        skus: skusPorEndereco.get(endereco.id) ?? [],
-        ocupacao: capacidade > 0 ? Math.min(100, Math.round((quantidade / capacidade) * 100)) : null,
-      }];
-    }),
-  );
-  const currentAddress = editingId
-    ? (enderecos ?? []).find((item) => item.id === editingId) ?? null
-    : null;
+  const enderecosVazios = enderecosAtivos.filter((r) => r.quantidade <= 0).length;
+  const enderecosBloqueados = rows.filter((r) => !r.ativo || r.area === "BLOQUEADO").length;
+
+  const areasDisponiveis = Array.from(new Set(enderecosData.map((e) => e.area as string))).sort();
 
   return (
-    <div className="space-y-6">
-      {feedback ? (
-        <div
-          className={`rounded-2xl border px-4 py-3 text-sm font-medium shadow-sm ${
-            feedback === "criado" || feedback === "salvo" || feedback === "excluido"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200"
-              : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200"
-          }`}
-        >
-          {feedback === "criado"
-            ? "Endereço criado com sucesso."
-            : feedback === "salvo"
-              ? "Endereço atualizado com sucesso."
-              : feedback === "excluido"
-                ? "Endereço excluído com sucesso."
-                : feedback === "gerado"
-                  ? `${totalGenerated} endereços gerados ou atualizados com sucesso.`
-                  : feedback === "vinculos"
-                    ? "Não foi possível excluir este endereço porque ele já possui estoque vinculado. Nesse caso, use desativar."
-                    : feedback === "erro-geracao"
-                      ? "Não foi possível gerar os endereços em massa. Revise os intervalos e tente novamente."
-                      : "Não foi possível concluir a operação solicitada."}
-        </div>
-      ) : null}
-
-      <EnderecosDashboard
-        enderecos={enderecos ?? []}
-        addressMetrics={addressMetrics}
-        addressMovements={addressMovements}
-        kpiData={{
-          total: enderecos?.length ?? 0,
-          ocupacaoMedia,
-          vazios: enderecosVazios,
-          bloqueados: enderecosBloqueados,
-        }}
-        initialShowForm={Boolean(currentAddress)}
-        formSlot={
-          <div className="space-y-4">
-            <EnderecoForm
-              key={currentAddress?.id ?? "novo-endereco"}
-              action={saveEnderecoAction}
-              defaultValues={{
-                id: currentAddress?.id,
-                codigo: currentAddress?.codigo ?? "",
-                descricao: currentAddress?.descricao ?? "",
-                area: currentAddress?.area ?? "PICKING",
-                unidadePadrao: currentAddress?.unidade_padrao ?? "",
-                rua: currentAddress?.rua ?? "",
-                modulo: currentAddress?.modulo ?? "",
-                nivel: currentAddress?.nivel ?? "",
-                posicao: currentAddress?.posicao ?? "",
-                capacidadeMaxima: currentAddress?.capacidade_maxima?.toString() ?? "",
-                ativo: currentAddress?.ativo ?? true,
-              }}
-            />
-            {currentAddress && (
-              <div className="flex justify-end">
-                <Link
-                  href="/configuracoes/enderecos"
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-                >
-                  Cancelar edição
-                </Link>
-              </div>
-            )}
-          </div>
-        }
-      >
-        {false && <div className="grid gap-6 xl:grid-cols-2 mt-8">
-          <AddressImportPanel />
-          <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-colors dark:border-white/10 dark:bg-slate-900/40">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                Gerar endereços em massa
-              </h2>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Monte corredores, módulos, níveis e posições em lote para acelerar o setup do armazém.
-              </p>
-            </div>
-            <div className="mt-4">
-              <AddressBulkGeneratorForm action={generateEnderecosAction} />
-            </div>
-          </section>
-        </div>}
-      </EnderecosDashboard>
-    </div>
+    <EnderecosView
+      rows={rows}
+      kpis={{
+        total: enderecosData.length,
+        ocupacaoMedia,
+        vazios: enderecosVazios,
+        bloqueados: enderecosBloqueados,
+      }}
+      areasDisponiveis={areasDisponiveis.length ? areasDisponiveis : ["PICKING", "PULMAO", "RECEBIMENTO", "EXPEDICAO", "QUARENTENA", "BLOQUEADO"]}
+    />
   );
 }
-

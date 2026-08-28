@@ -560,6 +560,7 @@ export function buildBlingConnectionConfig(
 
   return {
     connected: true,
+    paused: false,
     companyId: company?.id ?? null,
     companyName: company?.nome ?? null,
     accessToken: tokens.access_token,

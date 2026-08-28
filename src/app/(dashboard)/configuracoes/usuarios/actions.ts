@@ -16,6 +16,253 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { buildInternalAuthEmail, normalizeUserLogin } from "@/lib/user-login";
 import { usuarioFormSchema, usuarioUpdateFormSchema } from "@/lib/validations/usuarios";
 
+export type UsuarioActionState = {
+  success: boolean;
+  message: string | null;
+};
+
+export async function saveUsuarioAction(
+  _prevState: UsuarioActionState,
+  formData: FormData,
+): Promise<UsuarioActionState> {
+  const id = String(formData.get("id") ?? "").trim();
+
+  if (id) {
+    return updateUsuarioActionState(formData, id);
+  }
+
+  return createUsuarioActionState(formData);
+}
+
+async function createUsuarioActionState(formData: FormData): Promise<UsuarioActionState> {
+  await requireRoleAccess(["ADMIN", "TI"]);
+
+  const parsed = usuarioFormSchema.safeParse({
+    nome: String(formData.get("nome") ?? "").trim(),
+    login: normalizeUserLogin(String(formData.get("login") ?? "")),
+    senha: String(formData.get("senha") ?? "").trim(),
+    papel: String(formData.get("papel") ?? "OPERADOR").trim(),
+    depositanteId: String(formData.get("depositanteId") ?? "").trim() || null,
+    ativo: formData.get("ativo") === "on",
+  });
+  const modulePermissions = parseModulePermissions(formData);
+  const configSections = parseConfigSections(formData, modulePermissions);
+  const portalProfile = parsePortalProfile(
+    formData,
+    String(formData.get("papel") ?? "OPERADOR"),
+  );
+  const contactEmail = String(formData.get("email") ?? "").trim() || null;
+
+  if (!parsed.success) {
+    return { success: false, message: "Revise os campos e tente novamente." };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+  const generatedEmail = buildInternalAuthEmail(parsed.data.login, randomUUID());
+
+  const { data: existingLogin } = await adminSupabase
+    .from("usuarios")
+    .select("id")
+    .eq("login", parsed.data.login)
+    .maybeSingle();
+
+  if (existingLogin) {
+    return {
+      success: false,
+      message: "Esse ID de usuário já existe. Escolha outro identificador.",
+    };
+  }
+
+  const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
+    email: generatedEmail,
+    password: parsed.data.senha,
+    email_confirm: true,
+    user_metadata: {
+      nome: parsed.data.nome,
+      login: parsed.data.login,
+      papel: parsed.data.papel,
+      module_permissions: modulePermissions,
+      config_sections: configSections,
+      portal_profile: portalProfile,
+      force_password_reset: true,
+      contact_email: contactEmail,
+    },
+    app_metadata: {
+      login: parsed.data.login,
+      papel: parsed.data.papel,
+      module_permissions: modulePermissions,
+      config_sections: configSections,
+      portal_profile: portalProfile,
+      force_password_reset: true,
+      contact_email: contactEmail,
+    },
+  });
+
+  if (authError || !authUser.user) {
+    return { success: false, message: "Não foi possível criar o usuário." };
+  }
+
+  const { error: profileError } = await adminSupabase.from("usuarios").insert({
+    id: authUser.user.id,
+    email: generatedEmail,
+    login: parsed.data.login,
+    nome: parsed.data.nome,
+    papel: parsed.data.papel,
+    depositante_id: parsed.data.depositanteId,
+    ativo: parsed.data.ativo,
+  });
+
+  if (profileError) {
+    await adminSupabase.auth.admin.deleteUser(authUser.user.id);
+    return { success: false, message: "Não foi possível gravar o perfil do usuário." };
+  }
+
+  revalidatePaths();
+  return { success: true, message: "Usuário criado com sucesso." };
+}
+
+async function updateUsuarioActionState(
+  formData: FormData,
+  id: string,
+): Promise<UsuarioActionState> {
+  await requireRoleAccess(["ADMIN", "TI"]);
+
+  const actor = await getCurrentUserContext();
+  const parsed = usuarioUpdateFormSchema.safeParse({
+    id,
+    nome: String(formData.get("nome") ?? "").trim(),
+    login: normalizeUserLogin(String(formData.get("login") ?? "")),
+    senha: String(formData.get("senha") ?? "").trim(),
+    papel: String(formData.get("papel") ?? "OPERADOR").trim(),
+    depositanteId: String(formData.get("depositanteId") ?? "").trim() || null,
+    ativo: formData.get("ativo") === "on",
+  });
+  const modulePermissions = parseModulePermissions(formData);
+  const configSections = parseConfigSections(formData, modulePermissions);
+  const portalProfile = parsePortalProfile(
+    formData,
+    String(formData.get("papel") ?? "OPERADOR"),
+  );
+  const contactEmail = String(formData.get("email") ?? "").trim() || null;
+
+  if (!parsed.success) {
+    return { success: false, message: "Revise os campos e tente novamente." };
+  }
+
+  if (actor?.id === parsed.data.id && !parsed.data.ativo) {
+    return {
+      success: false,
+      message: "Seu próprio usuário não pode ser desativado por esta tela.",
+    };
+  }
+
+  const adminSupabase = createSupabaseAdminClient();
+
+  const { data: existingLogin } = await adminSupabase
+    .from("usuarios")
+    .select("id")
+    .eq("login", parsed.data.login)
+    .neq("id", parsed.data.id)
+    .maybeSingle();
+
+  if (existingLogin) {
+    return {
+      success: false,
+      message: "Esse ID de usuário já existe. Escolha outro identificador.",
+    };
+  }
+
+  const { data: currentProfile } = await adminSupabase
+    .from("usuarios")
+    .select("email")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  const { data: currentAuthUser } = await adminSupabase.auth.admin.getUserById(parsed.data.id);
+
+  const persistedEmail =
+    currentProfile?.email || buildInternalAuthEmail(parsed.data.login, parsed.data.id);
+  const forcePasswordReset = parsed.data.senha
+    ? true
+    : currentAuthUser?.user?.user_metadata?.force_password_reset === true;
+
+  const { error: profileError } = await adminSupabase
+    .from("usuarios")
+    .update({
+      email: persistedEmail,
+      login: parsed.data.login,
+      nome: parsed.data.nome,
+      papel: parsed.data.papel,
+      depositante_id: parsed.data.depositanteId,
+      ativo: parsed.data.ativo,
+    })
+    .eq("id", parsed.data.id);
+
+  if (profileError) {
+    return { success: false, message: "Não foi possível atualizar o perfil do usuário." };
+  }
+
+  const attributes: {
+    email: string;
+    user_metadata: {
+      nome: string;
+      login: string;
+      papel: string;
+      module_permissions: AppModule[];
+      config_sections: ConfigSection[];
+      portal_profile: "GESTOR" | "COLABORADOR";
+      force_password_reset: boolean;
+      contact_email: string | null;
+    };
+    app_metadata: {
+      login: string;
+      papel: string;
+      module_permissions: AppModule[];
+      config_sections: ConfigSection[];
+      portal_profile: "GESTOR" | "COLABORADOR";
+      force_password_reset: boolean;
+      contact_email: string | null;
+    };
+    password?: string;
+  } = {
+    email: persistedEmail,
+    user_metadata: {
+      nome: parsed.data.nome,
+      login: parsed.data.login,
+      papel: parsed.data.papel,
+      module_permissions: modulePermissions,
+      config_sections: configSections,
+      portal_profile: portalProfile,
+      force_password_reset: forcePasswordReset,
+      contact_email: contactEmail,
+    },
+    app_metadata: {
+      login: parsed.data.login,
+      papel: parsed.data.papel,
+      module_permissions: modulePermissions,
+      config_sections: configSections,
+      portal_profile: portalProfile,
+      force_password_reset: forcePasswordReset,
+      contact_email: contactEmail,
+    },
+  };
+
+  if (parsed.data.senha) {
+    attributes.password = parsed.data.senha;
+  }
+
+  const { error: authError } = await adminSupabase.auth.admin.updateUserById(
+    parsed.data.id,
+    attributes,
+  );
+
+  if (authError) {
+    return { success: false, message: "Não foi possível atualizar o usuário." };
+  }
+
+  revalidatePaths();
+  return { success: true, message: "Usuário atualizado com sucesso." };
+}
+
 export async function createUsuarioAction(formData: FormData) {
   await requireRoleAccess(["ADMIN", "TI"]);
 
@@ -33,6 +280,7 @@ export async function createUsuarioAction(formData: FormData) {
     formData,
     String(formData.get("papel") ?? "OPERADOR"),
   );
+  const contactEmail = String(formData.get("email") ?? "").trim() || null;
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
@@ -63,6 +311,7 @@ export async function createUsuarioAction(formData: FormData) {
       config_sections: configSections,
       portal_profile: portalProfile,
       force_password_reset: true,
+      contact_email: contactEmail,
     },
     app_metadata: {
       login: parsed.data.login,
@@ -71,6 +320,7 @@ export async function createUsuarioAction(formData: FormData) {
       config_sections: configSections,
       portal_profile: portalProfile,
       force_password_reset: true,
+      contact_email: contactEmail,
     },
   });
 
@@ -116,6 +366,7 @@ export async function updateUsuarioAction(formData: FormData) {
     formData,
     String(formData.get("papel") ?? "OPERADOR"),
   );
+  const contactEmail = String(formData.get("email") ?? "").trim() || null;
 
   if (!parsed.success) {
     redirect("/configuracoes/usuarios?feedback=erro");
@@ -177,6 +428,7 @@ export async function updateUsuarioAction(formData: FormData) {
       config_sections: ConfigSection[];
       portal_profile: "GESTOR" | "COLABORADOR";
       force_password_reset: boolean;
+      contact_email: string | null;
     };
     app_metadata: {
       login: string;
@@ -185,6 +437,7 @@ export async function updateUsuarioAction(formData: FormData) {
       config_sections: ConfigSection[];
       portal_profile: "GESTOR" | "COLABORADOR";
       force_password_reset: boolean;
+      contact_email: string | null;
     };
     password?: string;
   } = {
@@ -197,6 +450,7 @@ export async function updateUsuarioAction(formData: FormData) {
       config_sections: configSections,
       portal_profile: portalProfile,
       force_password_reset: forcePasswordReset,
+      contact_email: contactEmail,
     },
     app_metadata: {
       login: parsed.data.login,
@@ -205,6 +459,7 @@ export async function updateUsuarioAction(formData: FormData) {
       config_sections: configSections,
       portal_profile: portalProfile,
       force_password_reset: forcePasswordReset,
+      contact_email: contactEmail,
     },
   };
 
@@ -251,12 +506,20 @@ export async function deleteUsuarioAction(formData: FormData) {
 
   const actor = await getCurrentUserContext();
   const id = String(formData.get("id") ?? "").trim();
+  const isSpa = String(formData.get("isSpa") ?? "") === "true";
 
   if (!id) {
+    if (isSpa) return { success: false, message: "ID do usuário não informado." };
     redirect("/configuracoes/usuarios?feedback=erro");
   }
 
   if (actor?.id === id) {
+    if (isSpa) {
+      return {
+        success: false,
+        message: "Seu próprio usuário não pode ser excluído por esta tela.",
+      };
+    }
     redirect("/configuracoes/usuarios?feedback=autoprotecao");
   }
 
@@ -264,10 +527,12 @@ export async function deleteUsuarioAction(formData: FormData) {
   const { error } = await adminSupabase.auth.admin.deleteUser(id);
 
   if (error) {
+    if (isSpa) return { success: false, message: "Não foi possível excluir o usuário." };
     redirect("/configuracoes/usuarios?feedback=erro");
   }
 
   revalidatePaths();
+  if (isSpa) return { success: true, message: "Usuário excluído." };
   redirect("/configuracoes/usuarios?feedback=excluido");
 }
 

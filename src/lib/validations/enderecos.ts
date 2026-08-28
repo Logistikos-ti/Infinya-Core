@@ -44,6 +44,39 @@ export const enderecoFormSchema = z.object({
     .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
       message: "Informe uma capacidade válida.",
     }),
+  capacidadePesoKg: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma capacidade de peso válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  volumeModo: z.enum(["DIMENSOES", "PALLET"]).optional().or(z.literal("")),
+  alturaCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma altura válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  larguraCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma largura válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  comprimentoCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe um comprimento válido.",
+    })
+    .optional()
+    .or(z.literal("")),
   unidadePadrao: z.enum(["UNIDADE", "CAIXA", "PALLET"]).optional().or(z.literal("")),
   ativo: z.boolean().default(true),
 });
@@ -92,6 +125,39 @@ export const gerarEnderecosFormSchema = z.object({
     .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
       message: "Informe uma capacidade válida.",
     }),
+  capacidadePesoKg: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma capacidade de peso válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  volumeModo: z.enum(["DIMENSOES", "PALLET"]).optional().or(z.literal("")),
+  alturaCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma altura válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  larguraCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe uma largura válida.",
+    })
+    .optional()
+    .or(z.literal("")),
+  comprimentoCm: z
+    .string()
+    .trim()
+    .refine((value) => !value || !Number.isNaN(Number(value.replace(",", "."))), {
+      message: "Informe um comprimento válido.",
+    })
+    .optional()
+    .or(z.literal("")),
   unidadePadrao: z.enum(["UNIDADE", "CAIXA", "PALLET"]).optional().or(z.literal("")),
   ativo: z.boolean().default(true),
 });

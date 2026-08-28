@@ -1,12 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
-import { useActionState, useMemo, useState } from "react";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { ChevronLeft, Upload, X } from "lucide-react";
 import { saveDepositanteAction } from "@/app/(dashboard)/configuracoes/depositantes/actions";
-import { Button } from "@/components/ui/button";
+import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import type { EmailContato, MetodoRetirada, TelefoneContato } from "@/lib/depositantes";
+
+const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
+const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
+const tokenCardBg = "bg-white dark:bg-[#101B30]";
+const tokenText = "text-[#0F172A] dark:text-[#F1F5F9]";
+const tokenTextSub = "text-[#64748B] dark:text-[#8695AD]";
+const monoFont = "font-[family-name:var(--font-space-grotesk)]";
+const cardClass = `rounded-2xl border ${tokenBorder} ${tokenCardBg} p-6`;
+const inputClass = `h-[46px] w-full rounded-[11px] border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
 
 type DepositanteFormProps = {
   defaultValues?: {
@@ -35,14 +45,22 @@ type DepositanteFormProps = {
     diasMinimosValidade?: number;
     prefixoRecebimento?: string;
   };
+  onClose?: () => void;
 };
 
-export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
+const metodoOptions: Array<{ key: MetodoRetirada; nome: string; desc: string }> = [
+  { key: "FEFO", nome: "FEFO", desc: "Primeiro que vence, primeiro que sai" },
+  { key: "FIFO", nome: "FIFO", desc: "Primeiro que entra, primeiro que sai" },
+  { key: "LIFO", nome: "LIFO", desc: "Último que entra, primeiro que sai" },
+];
+
+export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps) {
   const initialState = {
     success: false,
     message: null,
   };
 
+  const isEdit = Boolean(defaultValues?.id);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(defaultValues?.logoUrl?.trim() ?? "");
   const [removeLogo, setRemoveLogo] = useState(false);
   const [telefonesContato, setTelefonesContato] = useState<TelefoneContato[]>(
@@ -53,468 +71,491 @@ export function DepositanteForm({ defaultValues }: DepositanteFormProps) {
   const [emailsContato, setEmailsContato] = useState<EmailContato[]>(
     defaultValues?.emailsContato?.length ? defaultValues.emailsContato : [{ email: "" }],
   );
+  const [metodoRetiradaPadrao, setMetodoRetiradaPadrao] = useState<MetodoRetirada>(
+    defaultValues?.metodoRetiradaPadrao ?? "FEFO",
+  );
   const [state, formAction, isPending] = useActionState(saveDepositanteAction, initialState);
 
   const hasCurrentLogo = useMemo(() => Boolean(logoPreviewUrl), [logoPreviewUrl]);
 
+  useEffect(() => {
+    if (state.success && onClose) {
+      onClose();
+    }
+  }, [state.success, onClose]);
+
   return (
-    <form
-      action={formAction}
-      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/55"
-    >
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">
-            {defaultValues?.id ? "Editar depositante" : "Novo depositante"}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Cadastro mestre com nome fantasia, razão social, dados fiscais, endereço
-            fiscal, contatos e parâmetros operacionais.
-          </p>
-        </div>
-        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/70">
-          {hasCurrentLogo ? (
-            <Image
-              src={logoPreviewUrl}
-              alt="Preview da logo"
-              width={64}
-              height={64}
-              className="h-full w-full object-contain"
-              unoptimized
-            />
-          ) : (
-            <span className="text-xs font-semibold text-slate-400">Sem logo</span>
-          )}
-        </div>
-      </div>
-
-      <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
-      <input type="hidden" name="currentLogoUrl" value={defaultValues?.logoUrl ?? ""} />
-      <input
-        type="hidden"
-        name="currentLogoStoragePath"
-        value={defaultValues?.logoStoragePath ?? ""}
-      />
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <Field
-          label="Código"
-          name="codigo"
-          defaultValue={defaultValues?.codigo ?? ""}
-          error={state.errors?.codigo}
-        />
-        <Field
-          label="Nome fantasia"
-          name="nome"
-          defaultValue={defaultValues?.nome ?? ""}
-          error={state.errors?.nome}
-        />
-        <Field
-          label="Razão social"
-          name="razaoSocial"
-          defaultValue={defaultValues?.razaoSocial ?? ""}
-          error={state.errors?.razaoSocial}
-        />
-        <Field
-          label="CNPJ"
-          name="cnpj"
-          defaultValue={defaultValues?.cnpj ?? ""}
-          error={state.errors?.cnpj}
-        />
-
-        <label className="block md:col-span-2">
-          <span className="mb-2 block text-sm font-medium text-slate-700">
-            Logo do depositante
-          </span>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-700 transition hover:border-sky-400 hover:bg-sky-50/40 dark:border-white/15 dark:text-slate-200 dark:hover:bg-sky-500/10">
-            <Upload className="h-4 w-4 text-slate-500" />
-            <span>Selecionar imagem PNG, JPG ou WEBP</span>
-            <input
-              type="file"
-              name="logoFile"
-              accept=".png,.jpg,.jpeg,.webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-
-                if (!file) {
-                  return;
-                }
-
-                setRemoveLogo(false);
-                setLogoPreviewUrl(URL.createObjectURL(file));
-              }}
-            />
-          </label>
-          {state.errors?.logoFile ? (
-            <span className="mt-2 block text-xs text-rose-600">{state.errors.logoFile}</span>
-          ) : null}
-          <label className="mt-3 flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
-            <input
-              type="checkbox"
-              name="removeLogo"
-              checked={removeLogo}
-              onChange={(event) => {
-                setRemoveLogo(event.target.checked);
-                if (event.target.checked) {
-                  setLogoPreviewUrl("");
-                } else {
-                  setLogoPreviewUrl(defaultValues?.logoUrl?.trim() ?? "");
-                }
-              }}
-              className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-            />
-            Remover logo atual
-          </label>
-        </label>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
-        <h3 className="text-sm font-semibold text-slate-950">Endereço fiscal</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Field
-            label="CEP"
-            name="enderecoFiscalCep"
-            defaultValue={defaultValues?.enderecoFiscalCep ?? ""}
-            error={state.errors?.enderecoFiscalCep}
-          />
-          <Field
-            label="Logradouro"
-            name="enderecoFiscalLogradouro"
-            defaultValue={defaultValues?.enderecoFiscalLogradouro ?? ""}
-            error={state.errors?.enderecoFiscalLogradouro}
-          />
-          <Field
-            label="Número"
-            name="enderecoFiscalNumero"
-            defaultValue={defaultValues?.enderecoFiscalNumero ?? ""}
-            error={state.errors?.enderecoFiscalNumero}
-          />
-          <Field
-            label="Complemento"
-            name="enderecoFiscalComplemento"
-            defaultValue={defaultValues?.enderecoFiscalComplemento ?? ""}
-            error={state.errors?.enderecoFiscalComplemento}
-          />
-          <Field
-            label="Bairro"
-            name="enderecoFiscalBairro"
-            defaultValue={defaultValues?.enderecoFiscalBairro ?? ""}
-            error={state.errors?.enderecoFiscalBairro}
-          />
-          <Field
-            label="Cidade"
-            name="enderecoFiscalCidade"
-            defaultValue={defaultValues?.enderecoFiscalCidade ?? ""}
-            error={state.errors?.enderecoFiscalCidade}
-          />
-          <Field
-            label="UF"
-            name="enderecoFiscalUf"
-            defaultValue={defaultValues?.enderecoFiscalUf ?? ""}
-            error={state.errors?.enderecoFiscalUf}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-950">Contatos telefônicos</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Cada telefone precisa do nome do responsável.
-            </p>
-          </div>
-          <Button
+    <form action={formAction} className="flex h-full flex-col font-[family-name:var(--font-manrope)]">
+      <header
+        className={`flex h-[68px] shrink-0 items-center gap-3.5 border-b bg-white px-[28px] dark:bg-[#0C1424] ${tokenBorder}`}
+      >
+        {onClose ? (
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setTelefonesContato((current) => [...current, { nome: "", telefone: "" }])
-            }
+            onClick={onClose}
+            title="Voltar"
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <Plus className="h-4 w-4" />
-            Adicionar telefone
-          </Button>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {telefonesContato.map((contato, index) => (
-            <div
-              key={`telefone-${index}`}
-              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_1fr_auto] dark:border-white/10 dark:bg-slate-950/45"
-            >
-              <Field
-                label="Responsável"
-                name="contatoTelefoneNome"
-                defaultValue={contato.nome}
-                error={undefined}
-              />
-              <Field
-                label="Telefone"
-                name="contatoTelefone"
-                defaultValue={contato.telefone}
-                error={undefined}
-              />
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setTelefonesContato((current) =>
-                      current.length === 1
-                        ? [{ nome: "", telefone: "" }]
-                        : current.filter((_, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {state.errors?.contatosTelefone ? (
-            <span className="block text-xs text-rose-600">{state.errors.contatosTelefone}</span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-900/40">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-950">E-mails do depositante</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Para e-mail, basta informar o endereço.
-            </p>
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          </button>
+        ) : (
+          <Link
+            href="/configuracoes/depositantes"
+            title="Voltar"
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          >
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          </Link>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+          <div className={`flex items-center gap-2 text-[12.5px] ${tokenTextSub}`}>
+            <span>Configurações</span>
+            <span>›</span>
+            <span>Depositantes</span>
+            <span>›</span>
+            <span className={`font-semibold ${tokenText}`}>{isEdit ? "Editar" : "Novo"}</span>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEmailsContato((current) => [...current, { email: "" }])}
-          >
-            <Plus className="h-4 w-4" />
-            Adicionar e-mail
-          </Button>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {emailsContato.map((contato, index) => (
-            <div
-              key={`email-${index}`}
-              className="grid gap-3 rounded-2xl border border-slate-200 p-4 md:grid-cols-[1fr_auto] dark:border-white/10 dark:bg-slate-950/45"
-            >
-              <Field
-                label="E-mail"
-                name="contatoEmail"
-                defaultValue={contato.email}
-                error={undefined}
-              />
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setEmailsContato((current) =>
-                      current.length === 1
-                        ? [{ email: "" }]
-                        : current.filter((_, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {state.errors?.contatosEmail ? (
-            <span className="block text-xs text-rose-600">{state.errors.contatosEmail}</span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium text-slate-700">
-            Método de retirada padrão
+          <span className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>
+            {isEdit ? "Editar depositante" : "Novo depositante"}
           </span>
-          <select
-            name="metodoRetiradaPadrao"
-            defaultValue={defaultValues?.metodoRetiradaPadrao ?? "FEFO"}
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-          >
-            <option value="FEFO">FEFO</option>
-            <option value="FIFO">FIFO</option>
-            <option value="LIFO">LIFO</option>
-          </select>
-        </label>
-
-        <Field
-          label="Prefixo de recebimento"
-          name="prefixoRecebimento"
-          defaultValue={defaultValues?.prefixoRecebimento ?? ""}
-          error={state.errors?.prefixoRecebimento}
-        />
-
-        <Field
-          label="Dias mínimos de validade"
-          name="diasMinimosValidade"
-          type="number"
-          defaultValue={String(defaultValues?.diasMinimosValidade ?? 0)}
-          error={state.errors?.diasMinimosValidade}
-        />
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <CheckboxField
-          name="exigeLotePadrao"
-          label="Exigir lote por padrão"
-          description="Novos recebimentos já nascem com conferência de lote habilitada."
-          defaultChecked={defaultValues?.exigeLotePadrao ?? true}
-        />
-        <CheckboxField
-          name="exigeValidadePadrao"
-          label="Exigir validade por padrão"
-          description="Aplica controle de validade e suporte ao FEFO quando necessário."
-          defaultChecked={defaultValues?.exigeValidadePadrao ?? true}
-        />
-        <CheckboxField
-          name="permiteFracionamento"
-          label="Permitir fracionamento"
-          description="Autoriza operação com separação e movimentação fracionada para o cliente."
-          defaultChecked={defaultValues?.permiteFracionamento ?? false}
-        />
-        <CheckboxField
-          name="ativo"
-          label="Depositante ativo"
-          description="Mantém o depositante disponível para novos produtos, usuários e pedidos."
-          defaultChecked={defaultValues?.ativo ?? true}
-        />
-      </div>
-
-      <div className="mt-4">
-        <TextÁreaField
-          label="Observações"
-          name="observacoes"
-          rows={4}
-          defaultValue={defaultValues?.observacoes ?? ""}
-          error={state.errors?.observacoes}
-          placeholder="Condições operacionais, restrições, observações comerciais ou fiscais."
-        />
-      </div>
-
-      {state.message ? (
-        <div
-          className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-            state.success
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-rose-200 bg-rose-50 text-rose-700"
-          }`}
-        >
-          {state.message}
         </div>
-      ) : null}
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Button
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+          >
+            Cancelar
+          </button>
+        ) : (
+          <Link
+            href="/configuracoes/depositantes"
+            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          >
+            <span className={tokenText}>Cancelar</span>
+          </Link>
+        )}
+        <button
           type="submit"
           disabled={isPending}
-          className="bg-slate-950 text-white hover:bg-slate-800 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400"
+          className="flex h-11 shrink-0 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
         >
-          {isPending ? (
-            <MobileButtonSpinner />
-          ) : defaultValues?.id ? (
-            "Salvar alterações"
-          ) : (
-            "Criar depositante"
-          )}
-        </Button>
+          {isPending ? <MobileButtonSpinner /> : isEdit ? "Salvar alterações" : "Salvar depositante"}
+        </button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
+        <div className="mx-auto flex w-full max-w-[860px] flex-col gap-[18px]">
+          <input type="hidden" name="id" value={defaultValues?.id ?? ""} />
+          <input type="hidden" name="isOverlay" value={onClose ? "true" : "false"} />
+          <input type="hidden" name="currentLogoUrl" value={defaultValues?.logoUrl ?? ""} />
+          <input
+            type="hidden"
+            name="currentLogoStoragePath"
+            value={defaultValues?.logoStoragePath ?? ""}
+          />
+
+          <section className={cardClass}>
+            <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Identificação</span>
+            <div className="mt-[18px] flex flex-col gap-5 sm:flex-row sm:gap-[22px]">
+              <div className="flex shrink-0 flex-col items-center gap-2.5">
+                <label
+                  className={`flex h-[110px] w-[110px] cursor-pointer flex-col items-center justify-center gap-[7px] overflow-hidden rounded-[18px] border-[1.5px] ${
+                    hasCurrentLogo ? `border-solid ${tokenBorder}` : "border-dashed border-[rgba(148,163,184,0.14)]"
+                  } ${tokenInputBg}`}
+                >
+                  {hasCurrentLogo ? (
+                    <Image
+                      src={logoPreviewUrl}
+                      alt="Logo do depositante"
+                      width={110}
+                      height={110}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5 text-[#8B5CF6]" />
+                      <span className={`text-center text-[11px] font-bold leading-tight ${tokenTextSub}`}>
+                        Logotipo
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    name="logoFile"
+                    accept=".png,.jpg,.jpeg,.webp"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setRemoveLogo(false);
+                      setLogoPreviewUrl(URL.createObjectURL(file));
+                    }}
+                  />
+                </label>
+                <span className={`max-w-[120px] text-center text-[11px] leading-[1.4] ${tokenTextSub}`}>
+                  PNG ou JPG, quadrado
+                </span>
+                {hasCurrentLogo ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoveLogo(true);
+                      setLogoPreviewUrl("");
+                    }}
+                    className="text-[11px] font-bold text-[#EF4444]"
+                  >
+                    Remover logotipo
+                  </button>
+                ) : null}
+                <input type="checkbox" name="removeLogo" checked={removeLogo} readOnly className="hidden" />
+                {state.errors?.logoFile ? (
+                  <span className="text-center text-xs text-[#EF4444]">{state.errors.logoFile}</span>
+                ) : null}
+              </div>
+
+              <div className="grid flex-1 grid-cols-1 gap-3.5 sm:grid-cols-[1fr_2fr]">
+                <FormField
+                  label="Código"
+                  name="codigo"
+                  defaultValue={defaultValues?.codigo ?? ""}
+                  placeholder="DEP-000"
+                  error={state.errors?.codigo}
+                  mono
+                />
+                <FormField
+                  label="Nome fantasia"
+                  name="nome"
+                  defaultValue={defaultValues?.nome ?? ""}
+                  placeholder="Nome fantasia"
+                  error={state.errors?.nome}
+                />
+                <div className="sm:col-span-2">
+                  <FormField
+                    label="Razão social"
+                    name="razaoSocial"
+                    defaultValue={defaultValues?.razaoSocial ?? ""}
+                    placeholder="Razão social completa"
+                    error={state.errors?.razaoSocial}
+                  />
+                </div>
+                <FormField
+                  label="CNPJ"
+                  name="cnpj"
+                  defaultValue={defaultValues?.cnpj ?? ""}
+                  placeholder="00.000.000/0001-00"
+                  error={state.errors?.cnpj}
+                  mono
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className={cardClass}>
+            <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Endereço fiscal</span>
+            <div className="mt-[18px] grid grid-cols-1 gap-3.5 sm:grid-cols-[1fr_2fr_1fr]">
+              <FormField
+                label="CEP"
+                name="enderecoFiscalCep"
+                defaultValue={defaultValues?.enderecoFiscalCep ?? ""}
+                placeholder="00000-000"
+                error={state.errors?.enderecoFiscalCep}
+                mono
+              />
+              <FormField
+                label="Logradouro"
+                name="enderecoFiscalLogradouro"
+                defaultValue={defaultValues?.enderecoFiscalLogradouro ?? ""}
+                placeholder="Rua, avenida..."
+                error={state.errors?.enderecoFiscalLogradouro}
+              />
+              <FormField
+                label="Número"
+                name="enderecoFiscalNumero"
+                defaultValue={defaultValues?.enderecoFiscalNumero ?? ""}
+                placeholder="000"
+                error={state.errors?.enderecoFiscalNumero}
+                mono
+              />
+              <FormField
+                label="Bairro"
+                name="enderecoFiscalBairro"
+                defaultValue={defaultValues?.enderecoFiscalBairro ?? ""}
+                placeholder="Bairro"
+                error={state.errors?.enderecoFiscalBairro}
+              />
+              <FormField
+                label="Cidade"
+                name="enderecoFiscalCidade"
+                defaultValue={defaultValues?.enderecoFiscalCidade ?? ""}
+                placeholder="Cidade"
+                error={state.errors?.enderecoFiscalCidade}
+              />
+              <FormField
+                label="UF"
+                name="enderecoFiscalUf"
+                defaultValue={defaultValues?.enderecoFiscalUf ?? ""}
+                placeholder="SP"
+                error={state.errors?.enderecoFiscalUf}
+                mono
+              />
+              <input
+                type="hidden"
+                name="enderecoFiscalComplemento"
+                value={defaultValues?.enderecoFiscalComplemento ?? ""}
+              />
+            </div>
+          </section>
+
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <section className={`${cardClass} flex flex-col gap-3.5`}>
+              <div className="flex items-center justify-between">
+                <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Telefones</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTelefonesContato((current) => [...current, { nome: "", telefone: "" }])
+                  }
+                  className="text-[12.5px] font-bold text-[#8B5CF6]"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              {telefonesContato.map((contato, index) => (
+                <div key={`telefone-${index}`} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-[9px]">
+                  <input
+                    type="text"
+                    name="contatoTelefoneNome"
+                    defaultValue={contato.nome}
+                    placeholder="Responsável"
+                    className={`${inputClass} sm:w-[38%]`}
+                  />
+                  <div className="flex items-center gap-[9px]">
+                    <input
+                      type="text"
+                      name="contatoTelefone"
+                      defaultValue={contato.telefone}
+                      placeholder="(00) 00000-0000"
+                      className={`${inputClass} ${monoFont} flex-1`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTelefonesContato((current) =>
+                          current.length === 1
+                            ? [{ nome: "", telefone: "" }]
+                            : current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                      className={`flex h-[46px] w-10 shrink-0 items-center justify-center rounded-[10px] border ${tokenBorder} ${tokenTextSub}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {state.errors?.contatosTelefone ? (
+                <span className="text-xs text-[#EF4444]">{state.errors.contatosTelefone}</span>
+              ) : null}
+            </section>
+
+            <section className={`${cardClass} flex flex-col gap-3.5`}>
+              <div className="flex items-center justify-between">
+                <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>E-mails</span>
+                <button
+                  type="button"
+                  onClick={() => setEmailsContato((current) => [...current, { email: "" }])}
+                  className="text-[12.5px] font-bold text-[#8B5CF6]"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              {emailsContato.map((contato, index) => (
+                <div key={`email-${index}`} className="flex items-center gap-[9px]">
+                  <input
+                    type="email"
+                    name="contatoEmail"
+                    defaultValue={contato.email}
+                    placeholder="contato@empresa.com"
+                    className={`${inputClass} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEmailsContato((current) =>
+                        current.length === 1
+                          ? [{ email: "" }]
+                          : current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                    className={`flex h-[46px] w-10 shrink-0 items-center justify-center rounded-[10px] border ${tokenBorder} ${tokenTextSub}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              {state.errors?.contatosEmail ? (
+                <span className="text-xs text-[#EF4444]">{state.errors.contatosEmail}</span>
+              ) : null}
+            </section>
+          </div>
+
+          <section className={`${cardClass} flex flex-col gap-3.5`}>
+            <div className="flex flex-col gap-1">
+              <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Método de retirada</span>
+              <span className={`text-[13px] ${tokenTextSub}`}>Como a mercadoria deste depositante deixa o CD.</span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {metodoOptions.map((option) => {
+                const active = option.key === metodoRetiradaPadrao;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setMetodoRetiradaPadrao(option.key)}
+                    className={`flex flex-col gap-[5px] rounded-[13px] border-[1.5px] p-4 text-left transition ${
+                      active
+                        ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.1)]"
+                        : `${tokenBorder} ${tokenInputBg}`
+                    }`}
+                  >
+                    <span className={`text-sm font-bold ${tokenText}`}>{option.nome}</span>
+                    <span className={`text-xs leading-[1.4] ${tokenTextSub}`}>{option.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <input type="hidden" name="metodoRetiradaPadrao" value={metodoRetiradaPadrao} />
+          </section>
+
+          <section className={cardClass}>
+            <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Parâmetros operacionais</span>
+            <div className="mt-[18px] grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <FormField
+                label="Prefixo de recebimento"
+                name="prefixoRecebimento"
+                defaultValue={defaultValues?.prefixoRecebimento ?? ""}
+                placeholder="Ex.: REC"
+                error={state.errors?.prefixoRecebimento}
+                mono
+              />
+              <FormField
+                label="Dias mínimos de validade"
+                name="diasMinimosValidade"
+                type="number"
+                defaultValue={String(defaultValues?.diasMinimosValidade ?? 0)}
+                error={state.errors?.diasMinimosValidade}
+                mono
+              />
+            </div>
+            <div className="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ToggleSwitchField
+                name="exigeLotePadrao"
+                label="Exigir lote por padrão"
+                description="Novos recebimentos já nascem com conferência de lote habilitada."
+                defaultChecked={defaultValues?.exigeLotePadrao ?? true}
+              />
+              <ToggleSwitchField
+                name="exigeValidadePadrao"
+                label="Exigir validade por padrão"
+                description="Aplica controle de validade e suporte ao FEFO quando necessário."
+                defaultChecked={defaultValues?.exigeValidadePadrao ?? true}
+              />
+              <ToggleSwitchField
+                name="permiteFracionamento"
+                label="Permitir fracionamento"
+                description="Autoriza separação e movimentação fracionada para o cliente."
+                defaultChecked={defaultValues?.permiteFracionamento ?? false}
+              />
+              <ToggleSwitchField
+                name="ativo"
+                label="Depositante ativo"
+                description="Mantém disponível para novos produtos, usuários e pedidos."
+                defaultChecked={defaultValues?.ativo ?? true}
+              />
+            </div>
+          </section>
+
+          <section className={cardClass}>
+            <span className={`${FIN_HEADING} text-base font-bold ${tokenText}`}>Observações</span>
+            <textarea
+              name="observacoes"
+              rows={4}
+              defaultValue={defaultValues?.observacoes ?? ""}
+              placeholder="Condições operacionais, restrições, observações comerciais ou fiscais."
+              className={`mt-[14px] w-full resize-none rounded-[11px] border px-[15px] py-3 text-sm outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            />
+            {state.errors?.observacoes ? (
+              <span className="mt-1.5 block text-xs text-[#EF4444]">{state.errors.observacoes}</span>
+            ) : null}
+          </section>
+
+          {state.message ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                state.success
+                  ? "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] text-[#10B981]"
+                  : "border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] text-[#EF4444]"
+              }`}
+            >
+              {state.message}
+            </div>
+          ) : null}
+        </div>
       </div>
     </form>
   );
 }
 
-type FieldProps = {
+type FormFieldProps = {
   label: string;
   name: string;
   defaultValue: string;
+  placeholder?: string;
   error?: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "email";
+  mono?: boolean;
 };
 
-function Field({ label, name, defaultValue, error, type = "text" }: FieldProps) {
+function FormField({ label, name, defaultValue, placeholder, error, type = "text", mono }: FormFieldProps) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>
+    <div className="flex flex-col gap-[7px]">
+      <span className={`text-[12.5px] font-bold ${tokenTextSub}`}>{label}</span>
       <input
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-      />
-      {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
-    </label>
-  );
-}
-
-type TextÁreaFieldProps = {
-  label: string;
-  name: string;
-  rows: number;
-  defaultValue: string;
-  error?: string;
-  placeholder?: string;
-};
-
-function TextÁreaField({
-  label,
-  name,
-  rows,
-  defaultValue,
-  error,
-  placeholder,
-}: TextÁreaFieldProps) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>
-      <textarea
-        name={name}
-        rows={rows}
-        defaultValue={defaultValue}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+        className={`${inputClass} ${mono ? monoFont : ""}`}
       />
-      {error ? <span className="mt-2 block text-xs text-rose-600">{error}</span> : null}
-    </label>
+      {error ? <span className="text-xs text-[#EF4444]">{error}</span> : null}
+    </div>
   );
 }
 
-type CheckboxFieldProps = {
-  name: string;
-  label: string;
-  description: string;
-  defaultChecked: boolean;
-};
-
-function CheckboxField({
+function ToggleSwitchField({
   name,
   label,
   description,
   defaultChecked,
-}: CheckboxFieldProps) {
+}: {
+  name: string;
+  label: string;
+  description: string;
+  defaultChecked: boolean;
+}) {
   return (
-    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-200">
-      <input
-        type="checkbox"
-        name={name}
-        defaultChecked={defaultChecked}
-        className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-      />
-      <span>
-        <span className="font-medium text-slate-950">{label}</span>
-        <span className="mt-1 block text-slate-500">{description}</span>
+    <label className={`flex items-center justify-between gap-4 rounded-2xl border p-4 ${tokenBorder} ${tokenInputBg}`}>
+      <span className="flex flex-col gap-1">
+        <span className={`text-sm font-bold ${tokenText}`}>{label}</span>
+        <span className={`text-xs leading-[1.4] ${tokenTextSub}`}>{description}</span>
+      </span>
+      <span className="relative inline-flex h-[26px] w-[46px] shrink-0 items-center">
+        <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
+        <span className="absolute inset-0 rounded-full bg-[rgba(100,116,139,0.3)] transition-colors peer-checked:bg-[#10B981] dark:bg-[rgba(148,163,184,0.25)]" />
+        <span className="absolute left-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform peer-checked:translate-x-5" />
       </span>
     </label>
   );

@@ -267,6 +267,7 @@ export function buildMercadoLivreConnectionConfig(
 ): DepositanteMercadoLivreConfig {
   return {
     connected: true,
+    paused: false,
     userId: user?.id ?? stringifyValue(tokens.user_id),
     nickname: user?.nickname ?? null,
     accessToken: tokens.access_token,
