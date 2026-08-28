@@ -6,6 +6,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const TIPOS_SERVICO = [
   "FULFILLMENT", "PONTO_COLETA", "IMPRESSAO_NF", "CARTA_CORRECAO", "OUTRO_DOCUMENTO", "GESTAO_FRETE",
+  "ITEM_ADICIONAL", "CONFERENCIA",
   "RECEBIMENTO", "ARMAZENAMENTO", "INSUMO", "LOGISTICA_REVERSA", "CANCELAMENTO",
   "RETIRADA", "DESCARTE",
   "SOFTWARE", "REFRIGERADOR", "DESCONTO", "COBRANCA_EXTRA",
@@ -18,6 +19,8 @@ const TIPO_SERVICO_LABELS: Record<string, string> = {
   CARTA_CORRECAO: "Carta de Correção",
   OUTRO_DOCUMENTO: "Outro Documento",
   GESTAO_FRETE: "Gestão de Frete",
+  ITEM_ADICIONAL: "Item Adicional",
+  CONFERENCIA: "Conferência Unitária",
   RECEBIMENTO: "Recebimento",
   ARMAZENAMENTO: "Armazenamento",
   INSUMO: "Insumo",

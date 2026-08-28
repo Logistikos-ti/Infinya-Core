@@ -50,10 +50,13 @@ export type ContratoRow = {
   valorImpressaoNf: number;
   valorCartaCorrecao: number;
   valorOutroDocumento: number;
+  itensInclusos: number;
+  valorItemAdicional: number;
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaPosicao: number;
   tarifaRecebimento: number;
+  tarifaConferencia: number;
   valorLogisticaReversa: number;
   valorCancelamento: number;
   valorCancelamentoMinimo: number;
@@ -174,6 +177,8 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   "Carta de correção": "#06B6D4",
   "Outro documento": "#A855F7",
   "Gestão de frete": "#6366F1",
+  "Item adicional": "#2563EB",
+  "Conferência unitária": "#0891B2",
   "Logística reversa": "#F43F5E",
   Cancelamento: "#DC2626",
   Retirada: "#0D9488",
@@ -1070,10 +1075,13 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Impressão NF" value={fmt(activeContrato.valorImpressaoNf)} />
             <MiniKv label="Carta de correção" value={fmt(activeContrato.valorCartaCorrecao)} />
             <MiniKv label="Outro documento" value={fmt(activeContrato.valorOutroDocumento)} />
+            <MiniKv label="Itens inclusos" value={String(activeContrato.itensInclusos)} />
+            <MiniKv label="Item adicional/un" value={fmt(activeContrato.valorItemAdicional)} />
           </DrawerSection>
           <DrawerSection title="Armazenamento">
             <MiniKv label="Tarifa posição/mês" value={fmt(activeContrato.tarifaPosicao)} />
             <MiniKv label="Tarifa recebimento" value={fmt(activeContrato.tarifaRecebimento)} />
+            <MiniKv label="Conferência unitária" value={fmt(activeContrato.tarifaConferencia)} />
             <MiniKv label="Logística reversa" value={fmt(activeContrato.valorLogisticaReversa)} />
             <MiniKv label="Cancelamento/item" value={fmt(activeContrato.valorCancelamento)} />
             <MiniKv label="Cancelamento (mínimo)" value={fmt(activeContrato.valorCancelamentoMinimo)} />
@@ -1153,9 +1161,12 @@ export function FinanceiroApp(props: Props) {
             valor_impressao_nf: contratoBeingEdited.valorImpressaoNf,
             valor_carta_correcao: contratoBeingEdited.valorCartaCorrecao,
             valor_outro_documento: contratoBeingEdited.valorOutroDocumento,
+            itens_inclusos: contratoBeingEdited.itensInclusos,
+            valor_item_adicional: contratoBeingEdited.valorItemAdicional,
             taxa_frete_fixa: contratoBeingEdited.taxaFreteFixa,
             taxa_frete_percentual: contratoBeingEdited.taxaFretePercentual,
             tarifa_recebimento: contratoBeingEdited.tarifaRecebimento,
+            tarifa_conferencia: contratoBeingEdited.tarifaConferencia,
             valor_logistica_reversa: contratoBeingEdited.valorLogisticaReversa,
             valor_cancelamento: contratoBeingEdited.valorCancelamento,
             valor_cancelamento_minimo: contratoBeingEdited.valorCancelamentoMinimo,

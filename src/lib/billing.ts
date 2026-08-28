@@ -45,9 +45,12 @@ type ContratoRow = {
   valor_impressao_nf: number;
   valor_carta_correcao: number;
   valor_outro_documento: number;
+  itens_inclusos: number;
+  valor_item_adicional: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
+  tarifa_conferencia: number;
   valor_cancelamento: number;
   valor_cancelamento_minimo: number;
   valor_retirada: number;
@@ -82,9 +85,12 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     valor_impressao_nf: contrato.valor_impressao_nf,
     valor_carta_correcao: contrato.valor_carta_correcao,
     valor_outro_documento: contrato.valor_outro_documento,
+    itens_inclusos: contrato.itens_inclusos,
+    valor_item_adicional: contrato.valor_item_adicional,
     taxa_frete_fixa: contrato.taxa_frete_fixa,
     taxa_frete_percentual: contrato.taxa_frete_percentual,
     tarifa_recebimento: contrato.tarifa_recebimento,
+    tarifa_conferencia: contrato.tarifa_conferencia,
     valor_logistica_reversa: (contrato as ContratoRow & { valor_logistica_reversa?: number }).valor_logistica_reversa ?? 0,
     valor_cancelamento: contrato.valor_cancelamento,
     valor_cancelamento_minimo: contrato.valor_cancelamento_minimo,
@@ -180,7 +186,7 @@ export async function registrarLancamentosExpedicao(
 
   const { data: pedidos } = await admin
     .from("pedidos_expedicao")
-    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens, payload_origem")
+    .select("id, depositante_id, codigo, canal, valor_total, quantidade_itens, quantidade_unidades, payload_origem")
     .in("id", pedidoIds);
 
   if (!pedidos?.length) return { total: 0, erros: ["Nenhum pedido encontrado."] };
@@ -321,6 +327,39 @@ export async function registrarLancamentosExpedicao(
           contrato_snapshot: snapshot,
         });
       }
+
+      // Item adicional no pedido — cobra por unidade além das inclusas na
+      // expedição base (planilha: "Expedição B2C incluída até N itens").
+      if (!isConsignado && Number(contrato.valor_item_adicional) > 0) {
+        const unidades = Number(pedido.quantidade_unidades) || 0;
+        const inclusos = Number(contrato.itens_inclusos) || 0;
+        const adicionais = Math.max(0, unidades - inclusos);
+
+        if (adicionais > 0) {
+          const valorUnit = Number(contrato.valor_item_adicional);
+          const totalAdicional = roundCurrency(adicionais * valorUnit);
+          lancamentos.push({
+            depositante_id: depositanteId,
+            fatura_id: faturaId,
+            mes_ano: mesAno,
+            tipo_servico: "ITEM_ADICIONAL",
+            origem: "AUTOMATICO",
+            referencia_tipo: "PEDIDO_EXPEDICAO",
+            referencia_id: pedido.id,
+            descricao: `Itens adicionais pedido ${pedido.codigo} (${adicionais} un)`,
+            quantidade: adicionais,
+            valor_unitario: valorUnit,
+            valor_total: totalAdicional,
+            memoria_calculo: {
+              unidades,
+              itens_inclusos: inclusos,
+              adicionais,
+              valor_unitario: valorUnit,
+            },
+            contrato_snapshot: snapshot,
+          });
+        }
+      }
     }
 
     const { count, erro } = await inserirLancamentos(admin, lancamentos);
@@ -353,7 +392,12 @@ export async function registrarLancamentoRecebimento(
   const contrato = await getContratoAtivo(admin, pedido.depositante_id);
   if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
   if (contrato.tipo_contrato === "consignado") return { ok: true };
-  if (Number(contrato.tarifa_recebimento) <= 0) return { ok: true };
+
+  const tarifaRecebimento = Number(contrato.tarifa_recebimento);
+  const tarifaConferencia = Number(contrato.tarifa_conferencia);
+  // Recebimento e conferência unitária são cobranças separadas (planilha):
+  // se nenhuma das duas tem tarifa, não há o que cobrar.
+  if (tarifaRecebimento <= 0 && tarifaConferencia <= 0) return { ok: true };
 
   const mesAno = getMesAno();
 
@@ -374,29 +418,52 @@ export async function registrarLancamentoRecebimento(
     0,
   );
 
-  const tarifa = Number(contrato.tarifa_recebimento);
-  const valorTotal = roundCurrency(totalUnidades * tarifa);
+  const snapshot = contratoSnapshot(contrato);
+  const lancamentos: LancamentoInsert[] = [];
 
-  const lancamento: LancamentoInsert = {
-    depositante_id: pedido.depositante_id,
-    fatura_id: faturaId as string,
-    mes_ano: mesAno,
-    tipo_servico: "RECEBIMENTO",
-    origem: "AUTOMATICO",
-    referencia_tipo: "PEDIDO_RECEBIMENTO",
-    referencia_id: pedido.id,
-    descricao: `Recebimento pedido ${pedido.codigo} (${totalUnidades} un)`,
-    quantidade: totalUnidades,
-    valor_unitario: tarifa,
-    valor_total: valorTotal,
-    memoria_calculo: {
-      total_unidades: totalUnidades,
-      tarifa_por_unidade: tarifa,
-    },
-    contrato_snapshot: contratoSnapshot(contrato),
-  };
+  if (tarifaRecebimento > 0) {
+    lancamentos.push({
+      depositante_id: pedido.depositante_id,
+      fatura_id: faturaId as string,
+      mes_ano: mesAno,
+      tipo_servico: "RECEBIMENTO",
+      origem: "AUTOMATICO",
+      referencia_tipo: "PEDIDO_RECEBIMENTO",
+      referencia_id: pedido.id,
+      descricao: `Recebimento pedido ${pedido.codigo} (${totalUnidades} un)`,
+      quantidade: totalUnidades,
+      valor_unitario: tarifaRecebimento,
+      valor_total: roundCurrency(totalUnidades * tarifaRecebimento),
+      memoria_calculo: {
+        total_unidades: totalUnidades,
+        tarifa_por_unidade: tarifaRecebimento,
+      },
+      contrato_snapshot: snapshot,
+    });
+  }
 
-  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (tarifaConferencia > 0 && totalUnidades > 0) {
+    lancamentos.push({
+      depositante_id: pedido.depositante_id,
+      fatura_id: faturaId as string,
+      mes_ano: mesAno,
+      tipo_servico: "CONFERENCIA",
+      origem: "AUTOMATICO",
+      referencia_tipo: "PEDIDO_RECEBIMENTO",
+      referencia_id: pedido.id,
+      descricao: `Conferência unitária pedido ${pedido.codigo} (${totalUnidades} un)`,
+      quantidade: totalUnidades,
+      valor_unitario: tarifaConferencia,
+      valor_total: roundCurrency(totalUnidades * tarifaConferencia),
+      memoria_calculo: {
+        total_unidades: totalUnidades,
+        tarifa_por_unidade: tarifaConferencia,
+      },
+      contrato_snapshot: snapshot,
+    });
+  }
+
+  const { erro: insertErro } = await inserirLancamentos(admin, lancamentos);
   if (insertErro) return { ok: false, erro: insertErro };
   await recalcularFatura(admin, faturaId as string);
 

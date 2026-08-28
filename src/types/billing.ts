@@ -11,6 +11,8 @@ export type TipoServico =
   | "REFRIGERADOR"
   | "CARTA_CORRECAO"
   | "OUTRO_DOCUMENTO"
+  | "ITEM_ADICIONAL"
+  | "CONFERENCIA"
   | "CANCELAMENTO"
   | "RETIRADA"
   | "DESCARTE"
@@ -41,9 +43,12 @@ export type ContratoCobranca = {
   valorPontoColeta: number;
   marketplacesPontoColeta: string[];
   valorImpressaoNf: number;
+  itensInclusos: number;
+  valorItemAdicional: number;
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaRecebimento: number;
+  tarifaConferencia: number;
   insumosDepositante: string[];
   valorCancelamento: number;
   valorCancelamentoMinimo: number;

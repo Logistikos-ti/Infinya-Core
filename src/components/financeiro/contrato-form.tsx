@@ -21,9 +21,12 @@ type ContratoEdit = {
   valor_impressao_nf: number;
   valor_carta_correcao: number;
   valor_outro_documento: number;
+  itens_inclusos: number;
+  valor_item_adicional: number;
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
+  tarifa_conferencia: number;
   valor_logistica_reversa: number;
   valor_cancelamento: number;
   valor_cancelamento_minimo: number;
@@ -274,6 +277,21 @@ export function ContratoForm({
                 <MoneyInput name="valor_outro_documento" defaultValue={String(currentEditItem?.valor_outro_documento ?? 0)} />
                 {state.errors?.valor_outro_documento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_outro_documento}</p>}
               </Field>
+              <Field label="Itens inclusos no pedido">
+                <input
+                  type="number"
+                  name="itens_inclusos"
+                  defaultValue={String(currentEditItem?.itens_inclusos ?? 3)}
+                  min="0"
+                  step="1"
+                  className={`${inputBase} ${FIN_MONO}`}
+                />
+                {state.errors?.itens_inclusos && <p className="mt-1 text-xs text-rose-600">{state.errors.itens_inclusos}</p>}
+              </Field>
+              <Field label="Item adicional/un">
+                <MoneyInput name="valor_item_adicional" defaultValue={String(currentEditItem?.valor_item_adicional ?? 0)} />
+                {state.errors?.valor_item_adicional && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_item_adicional}</p>}
+              </Field>
             </div>
           </Section>
 
@@ -373,6 +391,10 @@ export function ContratoForm({
               <Field label="Tarifa recebimento/un">
                 <MoneyInput name="tarifa_recebimento" defaultValue={String(currentEditItem?.tarifa_recebimento ?? 0)} />
                 {state.errors?.tarifa_recebimento && <p className="mt-1 text-xs text-rose-600">{state.errors.tarifa_recebimento}</p>}
+              </Field>
+              <Field label="Conferência unitária/un">
+                <MoneyInput name="tarifa_conferencia" defaultValue={String(currentEditItem?.tarifa_conferencia ?? 0)} />
+                {state.errors?.tarifa_conferencia && <p className="mt-1 text-xs text-rose-600">{state.errors.tarifa_conferencia}</p>}
               </Field>
               <Field label="Logística reversa/un">
                 <MoneyInput name="valor_logistica_reversa" defaultValue={String(currentEditItem?.valor_logistica_reversa ?? 0)} />

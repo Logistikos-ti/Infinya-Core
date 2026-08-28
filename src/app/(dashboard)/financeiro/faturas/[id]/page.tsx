@@ -27,6 +27,8 @@ const labelServico: Record<string, string> = {
   PONTO_COLETA: "Ponto de Coleta",
   IMPRESSAO_NF: "Impressão NF",
   GESTAO_FRETE: "Gestão de Frete",
+  ITEM_ADICIONAL: "Item Adicional",
+  CONFERENCIA: "Conferência Unitária",
   RECEBIMENTO: "Recebimento",
   ARMAZENAMENTO: "Armazenamento",
   INSUMO: "Insumos",
