@@ -167,6 +167,7 @@ export default async function FinanceiroPage() {
       responsavel: (c as { responsavel?: string | null }).responsavel ?? null,
       emailsCobranca: (c as { emails_cobranca?: string[] | null }).emails_cobranca ?? null,
       marketplacesPontoColeta: (c as { marketplaces_ponto_coleta?: string[] | null }).marketplaces_ponto_coleta ?? null,
+      insumosDepositante: (c as { insumos_depositante?: string[] | null }).insumos_depositante ?? null,
       ativo: c.ativo as boolean,
       vigenciaInicio: c.vigencia_inicio as string | null,
       vigenciaFim: c.vigencia_fim as string | null,

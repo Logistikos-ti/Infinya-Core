@@ -86,6 +86,41 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
   };
 }
 
+export type InsumoConsumoOption = { id: string; nome: string; unidade: string };
+
+export async function getInsumoConsumoOptions(
+  depositanteId: string,
+  pedidoId: string,
+): Promise<{ catalogoGalpao: InsumoConsumoOption[]; insumosDepositante: string[]; jaRespondido: boolean }> {
+  const admin = createSupabaseAdminClient();
+
+  const [{ data: catalogoRows }, { data: contratoRow }, { data: consumoRows }] = await Promise.all([
+    admin
+      .from("insumos_catalogo")
+      .select("id, nome, unidade")
+      .eq("ativo", true)
+      .order("ordem")
+      .order("nome"),
+    admin
+      .from("contratos_cobranca")
+      .select("insumos_depositante")
+      .eq("depositante_id", depositanteId)
+      .eq("ativo", true)
+      .maybeSingle(),
+    admin
+      .from("insumo_consumo_pedidos")
+      .select("id")
+      .eq("pedido_expedicao_id", pedidoId)
+      .limit(1),
+  ]);
+
+  return {
+    catalogoGalpao: (catalogoRows ?? []).map((i) => ({ id: i.id as string, nome: i.nome as string, unidade: i.unidade as string })),
+    insumosDepositante: (contratoRow?.insumos_depositante as string[] | null) ?? [],
+    jaRespondido: (consumoRows?.length ?? 0) > 0,
+  };
+}
+
 type LancamentoInsert = {
   depositante_id: string;
   fatura_id: string;
@@ -421,6 +456,87 @@ export async function registrarLancamentoDocumento(
 
   const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
   if (insertErro) return { ok: false, erro: insertErro };
+  await recalcularFatura(admin, faturaId as string);
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Cobrança: Consumo de insumo do galpão (registrado na conferência)
+// ---------------------------------------------------------------------------
+
+export async function registrarLancamentoInsumoConsumo(
+  consumoId: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: consumo } = await admin
+    .from("insumo_consumo_pedidos")
+    .select("id, pedido_expedicao_id, depositante_id, origem, insumo_catalogo_id, quantidade")
+    .eq("id", consumoId)
+    .single();
+
+  if (!consumo) return { ok: false, erro: "Registro de consumo não encontrado." };
+  if (consumo.origem !== "GALPAO" || !consumo.insumo_catalogo_id) return { ok: true };
+
+  const { data: insumo } = await admin
+    .from("insumos_catalogo")
+    .select("id, nome, unidade, preco_unitario")
+    .eq("id", consumo.insumo_catalogo_id)
+    .single();
+
+  if (!insumo) return { ok: false, erro: "Insumo não encontrado no catálogo." };
+
+  const contrato = await getContratoAtivo(admin, consumo.depositante_id);
+  if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
+  if (contrato.tipo_contrato === "consignado") return { ok: true };
+
+  const quantidade = Number(consumo.quantidade) || 0;
+  if (quantidade <= 0) return { ok: false, erro: "Quantidade inválida." };
+
+  const valorUnitario = Number(insumo.preco_unitario);
+  const valorTotal = roundCurrency(quantidade * valorUnitario);
+  const mesAno = getMesAno();
+
+  const { data: faturaId } = await admin.rpc("garantir_ou_criar_fatura", {
+    p_depositante_id: consumo.depositante_id,
+    p_mes_ano: mesAno,
+  });
+
+  if (!faturaId) return { ok: false, erro: "Falha ao criar fatura." };
+
+  const lancamento: LancamentoInsert = {
+    depositante_id: consumo.depositante_id,
+    fatura_id: faturaId as string,
+    mes_ano: mesAno,
+    tipo_servico: "INSUMO",
+    origem: "AUTOMATICO",
+    referencia_tipo: "INSUMO_CONSUMO",
+    referencia_id: consumo.id,
+    descricao: `${insumo.nome} (${quantidade} ${insumo.unidade})`,
+    quantidade,
+    valor_unitario: valorUnitario,
+    valor_total: valorTotal,
+    memoria_calculo: { insumo_id: insumo.id, quantidade, preco_unitario: valorUnitario },
+    contrato_snapshot: contratoSnapshot(contrato),
+  };
+
+  const { erro: insertErro, count } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
+
+  if (count > 0) {
+    const { data: lancamentoRow } = await admin
+      .from("lancamentos")
+      .select("id")
+      .eq("referencia_tipo", "INSUMO_CONSUMO")
+      .eq("referencia_id", consumo.id)
+      .single();
+
+    if (lancamentoRow) {
+      await admin.from("insumo_consumo_pedidos").update({ lancamento_id: lancamentoRow.id }).eq("id", consumo.id);
+    }
+  }
+
   await recalcularFatura(admin, faturaId as string);
 
   return { ok: true };

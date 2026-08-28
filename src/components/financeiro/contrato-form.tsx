@@ -32,6 +32,7 @@ type ContratoEdit = {
   responsavel: string | null;
   emails_cobranca: string[] | null;
   marketplaces_ponto_coleta: string[] | null;
+  insumos_depositante: string[] | null;
   vigencia_inicio: string | null;
   vigencia_fim: string | null;
   observacoes: string | null;
@@ -104,6 +105,17 @@ export function ContratoForm({
   }
   function removeEmailRow(id: number) {
     setEmailRows((rows) => (rows.length > 1 ? rows.filter((r) => r.id !== id) : rows));
+  }
+
+  const initialInsumos = currentEditItem?.insumos_depositante?.length ? currentEditItem.insumos_depositante : [""];
+  const nextInsumoId = useRef(initialInsumos.length);
+  const [insumoRows, setInsumoRows] = useState(() => initialInsumos.map((value, id) => ({ id, value })));
+
+  function addInsumoRow() {
+    setInsumoRows((rows) => [...rows, { id: nextInsumoId.current++, value: "" }]);
+  }
+  function removeInsumoRow(id: number) {
+    setInsumoRows((rows) => (rows.length > 1 ? rows.filter((r) => r.id !== id) : rows));
   }
 
   useEffect(() => {
@@ -259,6 +271,38 @@ export function ContratoForm({
                 {state.errors?.valor_outro_documento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_outro_documento}</p>}
               </Field>
             </div>
+
+            <Field label="Insumos que o depositante disponibiliza (não cobra)">
+              <div className="flex flex-col gap-2">
+                {insumoRows.map((row) => (
+                  <div key={row.id} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      name="insumos_depositante"
+                      defaultValue={row.value}
+                      placeholder="Ex: Caixa personalizada"
+                      className={`${inputBase} flex-1`}
+                    />
+                    {insumoRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeInsumoRow(row.id)}
+                        className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addInsumoRow}
+                  className="flex h-[34px] w-[34px] items-center justify-center self-start rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white transition hover:brightness-[1.06]"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </Field>
           </Section>
 
           <Section title="Ponto de coleta">

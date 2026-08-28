@@ -75,6 +75,11 @@ export async function saveContratoAction(
     .map((v) => String(v).trim().toLowerCase())
     .filter(Boolean);
 
+  const insumosDepositante = formData
+    .getAll("insumos_depositante")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+
   const payload = {
     ...rest,
     vigencia_inicio: vigencia_inicio || null,
@@ -83,6 +88,7 @@ export async function saveContratoAction(
     responsavel: responsavel || null,
     emails_cobranca: emailsList.length > 0 ? emailsList : null,
     marketplaces_ponto_coleta: marketplacesPontoColeta,
+    insumos_depositante: insumosDepositante,
   };
 
   if (id) {

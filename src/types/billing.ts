@@ -21,7 +21,8 @@ export type ReferenciaTipo =
   | "PEDIDO_RECEBIMENTO"
   | "ROMANEIO"
   | "SNAPSHOT_ARMAZENAMENTO"
-  | "DOCUMENTO_ARMAZENADO";
+  | "DOCUMENTO_ARMAZENADO"
+  | "INSUMO_CONSUMO";
 
 export type StatusFatura = "ABERTA" | "FECHADA" | "ENVIADA" | "PAGO";
 
@@ -39,6 +40,7 @@ export type ContratoCobranca = {
   taxaFreteFixa: number;
   taxaFretePercentual: number;
   tarifaRecebimento: number;
+  insumosDepositante: string[];
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;

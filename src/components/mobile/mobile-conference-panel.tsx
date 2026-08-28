@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Barcode, Camera, CameraOff, Focus, Truck, Volume2 } from "lucide-react";
 import { saveShippingConferenceAction } from "@/app/(dashboard)/expedicao/conferencia/actions";
 import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
+import { InsumoConsumoModal } from "@/components/shipping/insumo-consumo-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { Button } from "@/components/ui/button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
@@ -12,12 +13,18 @@ import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import { pickConferenceScanMatchIndex } from "@/lib/shipping-conference-scan";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
+import type { InsumoConsumoOption } from "@/lib/billing";
 
 type MobileConferencePanelProps = {
   order: ShippingConferenceOrder;
   operators: PickingOperatorOption[];
   currentUserId: string;
   feedback?: string;
+  insumoOptions: {
+    catalogoGalpao: InsumoConsumoOption[];
+    insumosDepositante: string[];
+    jaRespondido: boolean;
+  };
 };
 
 type ConferenceItemState = ShippingConferenceOrder["items"][number] & {
@@ -37,6 +44,7 @@ export function MobileConferencePanel({
   operators,
   currentUserId,
   feedback,
+  insumoOptions,
 }: MobileConferencePanelProps) {
   const router = useRouter();
   const [selectedOperatorId] = useState(
@@ -58,6 +66,8 @@ export function MobileConferencePanel({
   const [recentScannedItemId, setRecentScannedItemId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDanfeModalOpen, setIsDanfeModalOpen] = useState(false);
+  const [isInsumoModalOpen, setIsInsumoModalOpen] = useState(false);
+  const [insumoStepDone, setInsumoStepDone] = useState(insumoOptions.jaRespondido);
   const scanInputRef = useRef<HTMLInputElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const recentScanTimerRef = useRef<number | null>(null);
@@ -91,6 +101,12 @@ export function MobileConferencePanel({
     );
     return requested > 0 ? Math.min(100, Math.round((confirmed / requested) * 100)) : 0;
   }, [items]);
+
+  useEffect(() => {
+    if (completionPercent === 100 && !insumoStepDone) {
+      setIsInsumoModalOpen(true);
+    }
+  }, [completionPercent, insumoStepDone]);
 
   const pendingUnits = useMemo(
     () =>
@@ -852,10 +868,16 @@ export function MobileConferencePanel({
             <Button
               type="button"
               className="h-12 bg-emerald-500 font-bold text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400"
-              onClick={() => setIsDanfeModalOpen(true)}
+              onClick={() => {
+                if (!insumoStepDone) {
+                  setIsInsumoModalOpen(true);
+                  return;
+                }
+                setIsDanfeModalOpen(true);
+              }}
             >
               <Truck className="mr-2 h-5 w-5" />
-              Preparar para Romaneio
+              {insumoStepDone ? "Preparar para Romaneio" : "Responder sobre o insumo utilizado"}
             </Button>
           ) : (
             <Button
@@ -871,6 +893,21 @@ export function MobileConferencePanel({
           )}
         </div>
       </div>
+
+      <InsumoConsumoModal
+        isOpen={isInsumoModalOpen}
+        onClose={() => setIsInsumoModalOpen(false)}
+        onConfirmed={() => {
+          setInsumoStepDone(true);
+          setIsInsumoModalOpen(false);
+        }}
+        pedidoId={order.id}
+        depositanteId={order.depositanteId}
+        orderCode={order.code}
+        customerName={order.customer}
+        catalogoGalpao={insumoOptions.catalogoGalpao}
+        insumosDepositante={insumoOptions.insumosDepositante}
+      />
 
       <DanfeRomaneioModal
         isOpen={isDanfeModalOpen}

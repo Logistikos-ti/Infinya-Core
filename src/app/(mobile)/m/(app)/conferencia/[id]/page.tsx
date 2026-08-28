@@ -5,6 +5,7 @@ import { MobileConferencePanel } from "@/components/mobile/mobile-conference-pan
 import { requireModuleAccess } from "@/lib/auth";
 import { listPickingOperatorsFromDb } from "@/lib/shipping-picking";
 import { getShippingConferenceOrderFromDb } from "@/lib/shipping-conference";
+import { getInsumoConsumoOptions } from "@/lib/billing";
 
 type MobileConferenceDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -28,6 +29,8 @@ export default async function MobileConferenceDetailPage({
     notFound();
   }
 
+  const insumoOptions = await getInsumoConsumoOptions(order.depositanteId, order.id);
+
   return (
     <div className="space-y-4">
       <Link href="/m/conferencia" className="inline-flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -40,6 +43,7 @@ export default async function MobileConferenceDetailPage({
         operators={operators}
         currentUserId={user.id}
         feedback={feedback}
+        insumoOptions={insumoOptions}
       />
     </div>
   );

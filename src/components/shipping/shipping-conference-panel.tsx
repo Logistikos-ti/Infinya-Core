@@ -9,6 +9,7 @@ import { saveShippingConferenceAction, markShippingOrderAsDivergentAction } from
 import { ShippingConferenceDocumentsPanel } from "@/components/shipping/shipping-conference-documents-panel";
 import { ShippingFullDocumentsCard } from "@/components/shipping/shipping-full-documents-card";
 import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
+import { InsumoConsumoModal } from "@/components/shipping/insumo-consumo-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
@@ -16,6 +17,7 @@ import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { pickConferenceScanMatchIndex } from "@/lib/shipping-conference-scan";
 import type { ShippingConferenceOrder } from "@/lib/shipping-conference";
 import type { ShippingAttachment } from "@/lib/shipping";
+import type { InsumoConsumoOption } from "@/lib/billing";
 
 type ShippingConferencePanelProps = {
   order: ShippingConferenceOrder;
@@ -24,6 +26,11 @@ type ShippingConferencePanelProps = {
   currentUserName: string;
   feedback?: string;
   redirectBase?: string;
+  insumoOptions: {
+    catalogoGalpao: InsumoConsumoOption[];
+    insumosDepositante: string[];
+    jaRespondido: boolean;
+  };
   documents: {
     orderId: string;
     depositanteId: string;
@@ -49,6 +56,7 @@ export function ShippingConferencePanel({
   currentUserName,
   feedback,
   redirectBase = "/expedicao/conferencia",
+  insumoOptions,
   documents,
 }: ShippingConferencePanelProps) {
   const router = useRouter();
@@ -56,6 +64,8 @@ export function ShippingConferencePanel({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [isDanfeModalOpen, setIsDanfeModalOpen] = useState(false);
+  const [isInsumoModalOpen, setIsInsumoModalOpen] = useState(false);
+  const [insumoStepDone, setInsumoStepDone] = useState(insumoOptions.jaRespondido);
 
   const t = isDark
     ? {
@@ -397,7 +407,13 @@ export function ShippingConferencePanel({
   const itemsTotal = items.reduce((a, i) => a + i.requestedQuantity, 0);
   const scanned = items.reduce((a, i) => a + normalizeQuantity(i.confirmedQuantityValue), 0);
   const full = pendingUnits <= 0;
-  
+
+  useEffect(() => {
+    if (full && !insumoStepDone) {
+      setIsInsumoModalOpen(true);
+    }
+  }, [full, insumoStepDone]);
+
   const circ = 2 * Math.PI * 40;
   const pctNum = itemsTotal > 0 ? Math.round((scanned / itemsTotal) * 100) : 0;
   const ringOffset = itemsTotal > 0 ? circ * (1 - scanned / itemsTotal) : circ;
@@ -650,7 +666,17 @@ export function ShippingConferencePanel({
 
         </form>
 
-        {full && documents && documents.depositanteId && (
+        {full && !insumoStepDone && (
+          <button
+            type="button"
+            onClick={() => setIsInsumoModalOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/15"
+          >
+            Responder sobre o insumo utilizado para liberar os documentos
+          </button>
+        )}
+
+        {full && insumoStepDone && documents && documents.depositanteId && (
           <div className="w-full">
             {documents.isFull ? <ShippingFullDocumentsCard orderId={order.id} /> : null}
             <ShippingConferenceDocumentsPanel
@@ -669,14 +695,17 @@ export function ShippingConferencePanel({
           <button type="submit" form="shipping-conference-form" formAction={markShippingOrderAsDivergentAction} className="btn-divergence" style={{ flex: 1, height: 52, borderRadius: 12, border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
             ⚠ Reportar divergência
           </button>
-          <button 
+          <button
             type="button"
             onClick={() => {
-              if (full) {
-                setIsDanfeModalOpen(true);
+              if (!full) return;
+              if (!insumoStepDone) {
+                setIsInsumoModalOpen(true);
+                return;
               }
+              setIsDanfeModalOpen(true);
             }}
-            disabled={!full || isSubmitting} 
+            disabled={!full || isSubmitting}
             className={full ? "btn-shine" : ""}
             style={{ flex: 1.6, height: 52, border: "none", borderRadius: 12, background: finishBg, color: finishColor, fontFamily: "'Manrope', sans-serif", fontSize: 15, fontWeight: 800, cursor: finishCursor, boxShadow: finishShadow, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s ease" }}
           >
@@ -689,6 +718,21 @@ export function ShippingConferencePanel({
             )}
           </button>
         </div>
+
+        <InsumoConsumoModal
+          isOpen={isInsumoModalOpen}
+          onClose={() => setIsInsumoModalOpen(false)}
+          onConfirmed={() => {
+            setInsumoStepDone(true);
+            setIsInsumoModalOpen(false);
+          }}
+          pedidoId={order.id}
+          depositanteId={order.depositanteId}
+          orderCode={order.code}
+          customerName={order.customer}
+          catalogoGalpao={insumoOptions.catalogoGalpao}
+          insumosDepositante={insumoOptions.insumosDepositante}
+        />
 
         <DanfeRomaneioModal
           isOpen={isDanfeModalOpen}

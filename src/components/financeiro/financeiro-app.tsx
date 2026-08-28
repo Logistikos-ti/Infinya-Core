@@ -40,6 +40,7 @@ export type ContratoRow = {
   responsavel: string | null;
   emailsCobranca: string[] | null;
   marketplacesPontoColeta: string[] | null;
+  insumosDepositante: string[] | null;
   ativo: boolean;
   vigenciaInicio: string | null;
   vigenciaFim: string | null;
@@ -1050,6 +1051,10 @@ export function FinanceiroApp(props: Props) {
           <Kv label="Tipo" value={activeContrato.tipoContrato === "consignado" ? "Consignado" : "Padrão"} />
           <Kv label="Responsável" value={activeContrato.responsavel ?? "—"} />
           <Kv label="E-mails" value={activeContrato.emailsCobranca?.length ? activeContrato.emailsCobranca.join(", ") : "—"} />
+          <Kv
+            label="Insumos do depositante"
+            value={activeContrato.insumosDepositante?.length ? activeContrato.insumosDepositante.join(", ") : "—"}
+          />
           <Kv label="Vigência" value={`${formatDateBr(activeContrato.vigenciaInicio ?? "")} → ${formatDateBr(activeContrato.vigenciaFim ?? "")}`} mono />
           <DrawerSection title="Expedição">
             <MiniKv label="Taxa fulfillment" value={`${(activeContrato.taxaFulfillment * 100).toFixed(1)}%`} />
@@ -1148,6 +1153,7 @@ export function FinanceiroApp(props: Props) {
             responsavel: contratoBeingEdited.responsavel,
             emails_cobranca: contratoBeingEdited.emailsCobranca,
             marketplaces_ponto_coleta: contratoBeingEdited.marketplacesPontoColeta,
+            insumos_depositante: contratoBeingEdited.insumosDepositante,
             vigencia_inicio: contratoBeingEdited.vigenciaInicio,
             vigencia_fim: contratoBeingEdited.vigenciaFim,
             observacoes: contratoBeingEdited.observacoes,

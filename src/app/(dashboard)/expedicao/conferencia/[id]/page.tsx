@@ -5,6 +5,7 @@ import { getShippingOrderDetailFromDb } from "@/lib/shipping";
 import { listPickingOperatorsFromDb } from "@/lib/shipping-picking";
 import { getShippingConferenceOrderFromDb } from "@/lib/shipping-conference";
 import { canUploadOperationalDocuments } from "@/lib/permissions";
+import { getInsumoConsumoOptions } from "@/lib/billing";
 
 type ShippingConferenceDetailPageProps = {
   params: Promise<{
@@ -34,6 +35,8 @@ export default async function ShippingConferenceDetailPage({
     notFound();
   }
 
+  const insumoOptions = await getInsumoConsumoOptions(order.depositanteId, order.id);
+
   return (
     <ShippingConferencePanel
       order={order}
@@ -41,6 +44,7 @@ export default async function ShippingConferenceDetailPage({
       currentUserId={user.id}
       currentUserName={user.nome}
       feedback={feedback}
+      insumoOptions={insumoOptions}
       documents={{
         orderId: orderDetail.id,
         depositanteId: orderDetail.depositanteId,
