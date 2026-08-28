@@ -185,6 +185,7 @@ export default async function FinanceiroPage() {
       tarifaRecebimento: Number(c.tarifa_recebimento),
       valorLogisticaReversa: Number((c as { valor_logistica_reversa?: number }).valor_logistica_reversa ?? 0),
       valorCancelamento: Number((c as { valor_cancelamento?: number }).valor_cancelamento ?? 0),
+      valorCancelamentoMinimo: Number((c as { valor_cancelamento_minimo?: number }).valor_cancelamento_minimo ?? 0),
       valorSoftware: Number(c.valor_software),
       qtdRefrigeradores: Number(c.qtd_refrigeradores),
       valorUnitarioRefrigerador: Number(c.valor_unitario_refrigerador),

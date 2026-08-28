@@ -43,6 +43,7 @@ export type ContratoCobranca = {
   tarifaRecebimento: number;
   insumosDepositante: string[];
   valorCancelamento: number;
+  valorCancelamentoMinimo: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;

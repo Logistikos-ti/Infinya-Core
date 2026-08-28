@@ -19,6 +19,7 @@ const FIELDS = [
   "tarifa_recebimento",
   "valor_logistica_reversa",
   "valor_cancelamento",
+  "valor_cancelamento_minimo",
   "valor_software",
   "qtd_refrigeradores",
   "valor_unitario_refrigerador",

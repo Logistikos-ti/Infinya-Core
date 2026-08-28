@@ -49,6 +49,7 @@ type ContratoRow = {
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
   valor_cancelamento: number;
+  valor_cancelamento_minimo: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -84,6 +85,7 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     tarifa_recebimento: contrato.tarifa_recebimento,
     valor_logistica_reversa: (contrato as ContratoRow & { valor_logistica_reversa?: number }).valor_logistica_reversa ?? 0,
     valor_cancelamento: contrato.valor_cancelamento,
+    valor_cancelamento_minimo: contrato.valor_cancelamento_minimo,
     tipo_contrato: contrato.tipo_contrato,
   };
 }
@@ -763,9 +765,11 @@ export async function registrarLancamentoLogisticaReversa(
 // Cobrança: Cancelamento de pedido (fluxo de bipagem de devolução)
 // ---------------------------------------------------------------------------
 
-// Pedidos cancelados ainda nesses status não chegaram a ser separados —
-// nenhum trabalho operacional foi investido ainda, então não cobra.
-const STATUS_CANCELAMENTO_SEM_COBRANCA = ["NOVO", "EM_SEPARACAO"];
+// Só cobra cancelamento "após início do picking" (conforme planilha de
+// precificação): pedido que ainda estava em NOVO quando o cancelamento foi
+// aberto não teve trabalho operacional, então é isento. A partir de
+// EM_SEPARACAO (picking iniciado) em diante, cobra.
+const STATUS_CANCELAMENTO_SEM_COBRANCA = ["NOVO"];
 
 export async function registrarLancamentoCancelamento(
   cancelamentoId: string,
@@ -785,7 +789,7 @@ export async function registrarLancamentoCancelamento(
 
   const { data: pedido } = await admin
     .from("pedidos_expedicao")
-    .select("id, codigo")
+    .select("id, codigo, quantidade_unidades, quantidade_itens")
     .eq("id", cancelamento.pedido_expedicao_id)
     .single();
 
@@ -795,8 +799,17 @@ export async function registrarLancamentoCancelamento(
   if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
   if (contrato.tipo_contrato === "consignado") return { ok: true };
 
-  const valorCancelamento = Number(contrato.valor_cancelamento);
-  if (valorCancelamento <= 0) return { ok: true };
+  // Planilha: "R$ X por item, mínimo R$ Y". Cobra o maior entre
+  // (itens × valor por item) e o valor mínimo configurado. Se ambos forem
+  // zero, não há cobrança configurada.
+  const valorPorItem = Number(contrato.valor_cancelamento);
+  const valorMinimo = Number(contrato.valor_cancelamento_minimo);
+  if (valorPorItem <= 0 && valorMinimo <= 0) return { ok: true };
+
+  const itens = Number(pedido.quantidade_unidades) || Number(pedido.quantidade_itens) || 1;
+  const valorPorItens = roundCurrency(itens * valorPorItem);
+  const valorTotal = Math.max(valorPorItens, valorMinimo);
+  if (valorTotal <= 0) return { ok: true };
 
   const mesAno = getMesAno();
 
@@ -815,11 +828,18 @@ export async function registrarLancamentoCancelamento(
     origem: "AUTOMATICO",
     referencia_tipo: "PEDIDO_EXPEDICAO",
     referencia_id: pedido.id,
-    descricao: `Cancelamento pedido ${pedido.codigo}`,
-    quantidade: 1,
-    valor_unitario: valorCancelamento,
-    valor_total: valorCancelamento,
-    memoria_calculo: { status_pedido_na_abertura: cancelamento.status_pedido_na_abertura },
+    descricao: `Cancelamento pedido ${pedido.codigo} (${itens} ${itens === 1 ? "item" : "itens"})`,
+    quantidade: itens,
+    valor_unitario: valorPorItem,
+    valor_total: valorTotal,
+    memoria_calculo: {
+      status_pedido_na_abertura: cancelamento.status_pedido_na_abertura,
+      itens,
+      valor_por_item: valorPorItem,
+      valor_por_itens: valorPorItens,
+      valor_minimo: valorMinimo,
+      aplicou_minimo: valorMinimo > valorPorItens,
+    },
     contrato_snapshot: contratoSnapshot(contrato),
   };
 

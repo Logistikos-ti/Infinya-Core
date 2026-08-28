@@ -26,6 +26,7 @@ type ContratoEdit = {
   tarifa_recebimento: number;
   valor_logistica_reversa: number;
   valor_cancelamento: number;
+  valor_cancelamento_minimo: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -375,9 +376,13 @@ export function ContratoForm({
                 <MoneyInput name="valor_logistica_reversa" defaultValue={String(currentEditItem?.valor_logistica_reversa ?? 0)} />
                 {state.errors?.valor_logistica_reversa && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_logistica_reversa}</p>}
               </Field>
-              <Field label="Cancelamento de pedido">
+              <Field label="Cancelamento/item">
                 <MoneyInput name="valor_cancelamento" defaultValue={String(currentEditItem?.valor_cancelamento ?? 0)} />
                 {state.errors?.valor_cancelamento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_cancelamento}</p>}
+              </Field>
+              <Field label="Cancelamento (mínimo)">
+                <MoneyInput name="valor_cancelamento_minimo" defaultValue={String(currentEditItem?.valor_cancelamento_minimo ?? 0)} />
+                {state.errors?.valor_cancelamento_minimo && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_cancelamento_minimo}</p>}
               </Field>
             </div>
           </Section>

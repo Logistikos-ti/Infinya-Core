@@ -56,6 +56,7 @@ export type ContratoRow = {
   tarifaRecebimento: number;
   valorLogisticaReversa: number;
   valorCancelamento: number;
+  valorCancelamentoMinimo: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
@@ -1070,7 +1071,8 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Tarifa posição/mês" value={fmt(activeContrato.tarifaPosicao)} />
             <MiniKv label="Tarifa recebimento" value={fmt(activeContrato.tarifaRecebimento)} />
             <MiniKv label="Logística reversa" value={fmt(activeContrato.valorLogisticaReversa)} />
-            <MiniKv label="Cancelamento de pedido" value={fmt(activeContrato.valorCancelamento)} />
+            <MiniKv label="Cancelamento/item" value={fmt(activeContrato.valorCancelamento)} />
+            <MiniKv label="Cancelamento (mínimo)" value={fmt(activeContrato.valorCancelamentoMinimo)} />
           </DrawerSection>
           {activeContrato.observacoes && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
@@ -1150,6 +1152,7 @@ export function FinanceiroApp(props: Props) {
             tarifa_recebimento: contratoBeingEdited.tarifaRecebimento,
             valor_logistica_reversa: contratoBeingEdited.valorLogisticaReversa,
             valor_cancelamento: contratoBeingEdited.valorCancelamento,
+            valor_cancelamento_minimo: contratoBeingEdited.valorCancelamentoMinimo,
             valor_software: contratoBeingEdited.valorSoftware,
             qtd_refrigeradores: contratoBeingEdited.qtdRefrigeradores,
             valor_unitario_refrigerador: contratoBeingEdited.valorUnitarioRefrigerador,
