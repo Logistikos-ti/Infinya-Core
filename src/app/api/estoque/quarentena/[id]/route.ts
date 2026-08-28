@@ -36,7 +36,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const supabase = createSupabaseAdminClient();
   const { data: quarantine, error: quarantineError } = await supabase
     .from("estoque_quarentena")
-    .select("id, depositante_id, status, decisao_depositante, decisao_observacoes")
+    .select("id, depositante_id, status, decisao_depositante, decisao_observacoes, tipo")
     .eq("id", id)
     .maybeSingle();
 
@@ -79,10 +79,13 @@ export async function PATCH(request: Request, context: RouteContext) {
         observations: payload.observations,
       });
 
+      const isVencimento = String(quarantine.tipo ?? "").trim().toUpperCase() === "VENCIMENTO";
       return Response.json({
         message:
           decision === "DOAR"
-            ? "Doação/liberação autorizada. Aguardando confirmação do operador logístico."
+            ? isVencimento
+              ? "Retirada autorizada. Aguardando confirmação do operador logístico."
+              : "Doação/liberação autorizada. Aguardando confirmação do operador logístico."
             : "Descarte autorizado. Aguardando confirmação do operador logístico.",
       });
     }
@@ -114,7 +117,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return Response.json({
       message:
         quarantine.decisao_depositante === "DOAR"
-          ? "Doação/liberação confirmada pelo operador."
+          ? String(quarantine.tipo ?? "").trim().toUpperCase() === "VENCIMENTO"
+            ? "Retirada confirmada pelo operador."
+            : "Doação/liberação confirmada pelo operador."
           : "Descarte confirmado pelo operador.",
     });
   } catch (error) {

@@ -82,6 +82,22 @@ export async function POST(request: Request) {
       return Response.json({ message: "Produto movido para quarentena devido à avaria.", result: quarantineId });
     }
 
+    // Vencimento também vai para quarentena (sem exigir foto): o depositante
+    // decide na quarentena se vai retirar ou descartar o lote vencido, em vez
+    // de dar baixa direta. Mesmo padrão da avaria.
+    if (reason.toUpperCase().includes("VENCIMENTO")) {
+      const quarantineId = await createStockQuarantine({
+        stockId,
+        quantity,
+        reason,
+        userId: auth.user.id,
+        tipo: "VENCIMENTO",
+        fotoUrl,
+      });
+
+      return Response.json({ message: "Produto movido para quarentena por vencimento.", result: quarantineId });
+    }
+
     const result = await createManualStockExit({
       userId: auth.user.id,
       depositanteId,

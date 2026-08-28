@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { quarantineDonateLabel } from "@/lib/quarantine-labels";
 
 export function QuarantineViewClient({
   quarantine,
@@ -70,7 +71,7 @@ export function QuarantineViewClient({
           ? {
               ...current,
               depositanteDecision: decision,
-              depositanteDecisionLabel: decision === "DOAR" ? "Doar / liberar" : "Descartar",
+              depositanteDecisionLabel: decision === "DOAR" ? quarantineDonateLabel(current.tipo) : "Descartar",
               statusLabel: "Aguardando confirmação",
             }
           : current,
@@ -382,7 +383,7 @@ export function QuarantineViewClient({
                           }`}
                         >
                           {pendingAction === "DOAR" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
-                          Doar / liberar
+                          {quarantineDonateLabel(selectedItem.tipo)}
                         </button>
                         <button
                           type="button"

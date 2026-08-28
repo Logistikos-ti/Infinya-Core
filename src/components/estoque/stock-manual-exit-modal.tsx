@@ -13,6 +13,17 @@ type StockManualExitModalProps = {
   t: any;
 };
 
+// Mesmos motivos estruturados do coletor (mobile-manual-exit-panel.tsx), menos
+// "Avaria" -- essa exige foto do dano tirada na prateleira, então fica só no
+// coletor. "Vencimento" roteia para a quarentena na API (o depositante decide
+// retirar ou descartar); os demais são baixa direta.
+const REASONS: { value: "PERDA" | "VENCIMENTO" | "USO_INTERNO" | "OUTRO"; label: string }[] = [
+  { value: "PERDA", label: "Perda" },
+  { value: "VENCIMENTO", label: "Vencimento" },
+  { value: "USO_INTERNO", label: "Uso interno" },
+  { value: "OUTRO", label: "Outro" },
+];
+
 function quantityOf(value: unknown) {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   const raw = String(value ?? "").trim();
@@ -23,9 +34,14 @@ function quantityOf(value: unknown) {
 export function StockManualExitModal({ sku, allBalances, onClose, onSuccess, t }: StockManualExitModalProps) {
   const [stockId, setStockId] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState("");
+  const [reasonKey, setReasonKey] = useState<"" | (typeof REASONS)[number]["value"]>("");
+  const [reasonDetail, setReasonDetail] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reasonLabel = REASONS.find((item) => item.value === reasonKey)?.label ?? "";
+  const effectiveReason = reasonKey === "OUTRO" ? reasonDetail.trim() : reasonLabel;
+  const reasonComplete = Boolean(reasonKey) && (reasonKey !== "OUTRO" || reasonDetail.trim().length > 0);
 
   const balances = useMemo(() => {
     const productKey = sku.productId || sku.sku;
@@ -39,7 +55,7 @@ export function StockManualExitModal({ sku, allBalances, onClose, onSuccess, t }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const requested = Number(quantity);
-    if (!selectedBalance || !Number.isFinite(requested) || requested <= 0 || !reason.trim()) return;
+    if (!selectedBalance || !Number.isFinite(requested) || requested <= 0 || !reasonComplete) return;
     if (requested > available) {
       setError(`A quantidade deve ser de até ${available.toLocaleString("pt-BR")} un.`);
       return;
@@ -54,7 +70,7 @@ export function StockManualExitModal({ sku, allBalances, onClose, onSuccess, t }
         body: JSON.stringify({
           stockId: selectedBalance.id,
           quantity: requested,
-          reason: reason.trim(),
+          reason: effectiveReason,
           depositanteId: selectedBalance.depositanteId || sku.depositanteId,
         }),
       });
@@ -108,12 +124,28 @@ export function StockManualExitModal({ sku, allBalances, onClose, onSuccess, t }
               <input id="manual-exit-quantity" required type="number" min="1" max={available || 1} disabled={!stockId} value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="Ex.: 10" style={{ padding: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none" }} />
             </div>
           </div>
-          <div style={{ display: "grid", gap: 6 }}>
-            <label htmlFor="manual-exit-reason" style={{ color: t.textSub, fontSize: 13, fontWeight: 650 }}>Motivo da saída</label>
-            <textarea id="manual-exit-reason" required value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ex.: consumo interno, avaria, devolução ao fornecedor" rows={3} style={{ resize: "vertical", padding: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", fontFamily: "inherit" }} />
-          </div>
-          <p style={{ margin: 0, color: t.textSub, fontSize: 12.5, lineHeight: 1.5 }}>A confirmação reduz o saldo disponível e registra a movimentação com seu usuário, data e motivo.</p>
-          <button type="submit" disabled={isSubmitting || !stockId || !quantity || !reason.trim()} style={{ height: 48, border: 0, borderRadius: 9, background: "linear-gradient(92deg,#EF4444,#DC2626)", color: "#fff", fontWeight: 750, cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting || !stockId || !quantity || !reason.trim() ? .6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <FancySelectInput
+            label="Motivo da saída"
+            name="manualExitReason"
+            value={reasonKey}
+            onChange={(value) => { setReasonKey(value as typeof reasonKey); setError(""); }}
+            options={[
+              { value: "", label: "Selecione o motivo..." },
+              ...REASONS.map((item) => ({ value: item.value, label: item.label })),
+            ]}
+          />
+          {reasonKey === "OUTRO" ? (
+            <div style={{ display: "grid", gap: 6 }}>
+              <label htmlFor="manual-exit-reason-detail" style={{ color: t.textSub, fontSize: 13, fontWeight: 650 }}>Descreva o motivo</label>
+              <textarea id="manual-exit-reason-detail" required value={reasonDetail} onChange={(event) => setReasonDetail(event.target.value)} placeholder="Ex.: consumo interno, devolução ao fornecedor" rows={2} style={{ resize: "vertical", padding: 12, borderRadius: 8, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", fontFamily: "inherit" }} />
+            </div>
+          ) : null}
+          <p style={{ margin: 0, color: t.textSub, fontSize: 12.5, lineHeight: 1.5 }}>
+            {reasonKey === "VENCIMENTO"
+              ? "O lote vai para a quarentena com o motivo Vencimento — o depositante decide se retira ou descarta."
+              : "A confirmação reduz o saldo disponível e registra a movimentação com seu usuário, data e motivo."}
+          </p>
+          <button type="submit" disabled={isSubmitting || !stockId || !quantity || !reasonComplete} style={{ height: 48, border: 0, borderRadius: 9, background: "linear-gradient(92deg,#EF4444,#DC2626)", color: "#fff", fontWeight: 750, cursor: isSubmitting ? "not-allowed" : "pointer", opacity: isSubmitting || !stockId || !quantity || !reasonComplete ? .6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <><LogOut size={16} /> Confirmar saída manual</>}
           </button>
         </form>

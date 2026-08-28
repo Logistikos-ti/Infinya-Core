@@ -14,6 +14,7 @@ import {
 import { useTheme } from "next-themes";
 
 import type { StockQuarantineItem } from "@/lib/stock-quarantine";
+import { quarantineDonatedLabel } from "@/lib/quarantine-labels";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ function formatQuarantineType(tipo: string) {
   const normalizedType = tipo.trim().toUpperCase();
 
   if (normalizedType === "AVARIA") return "Avaria";
+  if (normalizedType === "VENCIMENTO") return "Vencimento";
   if (normalizedType === "RECEBIMENTO") return "Recebimento";
   if (normalizedType === "DEVOLUCAO" || normalizedType === "DEVOLUÇÃO") return "Devolução";
 
@@ -611,14 +613,16 @@ export function StockQuarantinePageClient({
                           <CheckCircle2 size={17} />
                         )}
                         {selectedItem.depositanteDecision === "DOAR"
-                          ? "Confirmar que foi doado / liberado"
+                          ? `Confirmar que foi ${quarantineDonatedLabel(selectedItem.tipo).toLowerCase()}`
                           : "Confirmar que foi descartado"}
                       </button>
                     ) : null}
                   </div>
                 ) : selectedItem.status === "EM_QUARENTENA" ? (
                   <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-                    Aguardando o depositante decidir entre doar/liberar ou descartar. O operador não pode definir este destino.
+                    {selectedItem.tipo === "VENCIMENTO"
+                      ? "Aguardando o depositante decidir entre retirar ou descartar. O operador não pode definir este destino."
+                      : "Aguardando o depositante decidir entre doar/liberar ou descartar. O operador não pode definir este destino."}
                   </p>
                 ) : (
                   <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-300">

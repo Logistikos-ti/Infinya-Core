@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
+import { quarantineDonateLabel, quarantineDonatedLabel } from "@/lib/quarantine-labels";
 import { formatDateTimePtBr } from "@/lib/utils";
 
 type Relation<T> = T | T[] | null;
@@ -446,11 +447,11 @@ function mapQuarantineRow(row: QuarantineRow): StockQuarantineItem {
       row.status === "EM_QUARENTENA" && decision
         ? "Aguardando confirmação"
         : row.status === "LIBERADO" && decision === "DOAR"
-          ? "Doado / liberado"
+          ? quarantineDonatedLabel(tipo)
           : formatStatus(row.status),
     depositanteDecision: decision,
     depositanteDecisionLabel:
-      decision === "DOAR" ? "Doar / liberar" : decision === "DESCARTAR" ? "Descartar" : "",
+      decision === "DOAR" ? quarantineDonateLabel(tipo) : decision === "DESCARTAR" ? "Descartar" : "",
     depositanteDecisionNotes: row.decisao_observacoes?.trim() || "",
     depositanteDecisionAt: row.decisao_em,
     depositanteDecisionAtLabel: row.decisao_em ? formatDateTimePtBr(row.decisao_em) : "",
@@ -470,6 +471,7 @@ function inferQuarantineType(type: string | null, reason: string | null) {
   const normalizedReason = normalizeSearch(reason ?? "");
 
   if (normalizedType === "AVARIA" || normalizedReason.includes("avaria")) return "AVARIA";
+  if (normalizedType === "VENCIMENTO" || normalizedReason.includes("vencimento")) return "VENCIMENTO";
   if (normalizedType === "RECEBIMENTO") return "RECEBIMENTO";
   return normalizedType || "OUTRO";
 }
