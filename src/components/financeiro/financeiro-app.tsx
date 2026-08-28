@@ -55,6 +55,7 @@ export type ContratoRow = {
   tarifaPosicao: number;
   tarifaRecebimento: number;
   valorLogisticaReversa: number;
+  valorCancelamento: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
@@ -171,6 +172,7 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   "Outro documento": "#A855F7",
   "Gestão de frete": "#6366F1",
   "Logística reversa": "#F43F5E",
+  Cancelamento: "#DC2626",
   Recebimento: "#0EA5E9",
   Armazenagem: "#10B981",
   Software: "#14B8A6",
@@ -1068,6 +1070,7 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Tarifa posição/mês" value={fmt(activeContrato.tarifaPosicao)} />
             <MiniKv label="Tarifa recebimento" value={fmt(activeContrato.tarifaRecebimento)} />
             <MiniKv label="Logística reversa" value={fmt(activeContrato.valorLogisticaReversa)} />
+            <MiniKv label="Cancelamento de pedido" value={fmt(activeContrato.valorCancelamento)} />
           </DrawerSection>
           {activeContrato.observacoes && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
@@ -1146,6 +1149,7 @@ export function FinanceiroApp(props: Props) {
             taxa_frete_percentual: contratoBeingEdited.taxaFretePercentual,
             tarifa_recebimento: contratoBeingEdited.tarifaRecebimento,
             valor_logistica_reversa: contratoBeingEdited.valorLogisticaReversa,
+            valor_cancelamento: contratoBeingEdited.valorCancelamento,
             valor_software: contratoBeingEdited.valorSoftware,
             qtd_refrigeradores: contratoBeingEdited.qtdRefrigeradores,
             valor_unitario_refrigerador: contratoBeingEdited.valorUnitarioRefrigerador,

@@ -18,6 +18,7 @@ const FIELDS = [
   "taxa_frete_percentual",
   "tarifa_recebimento",
   "valor_logistica_reversa",
+  "valor_cancelamento",
   "valor_software",
   "qtd_refrigeradores",
   "valor_unitario_refrigerador",

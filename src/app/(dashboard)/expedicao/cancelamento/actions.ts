@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
+import { registrarLancamentoCancelamento } from "@/lib/billing";
 import { requiresBipagemForCancellation } from "@/lib/shipping-cancellation-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -131,6 +132,8 @@ export async function openShippingOrderCancellation(input: {
     if (concludeError) {
       return { ok: false, message: concludeError.message };
     }
+
+    registrarLancamentoCancelamento(cancelamento.id).catch(() => {});
 
     revalidateShippingPaths(order.id);
     return { ok: true, cancelamentoId: cancelamento.id, requerBipagem: false, concluido: true };
@@ -264,6 +267,8 @@ export async function concludeShippingOrderCancellationAction(formData: FormData
     }
     redirect(`/expedicao/cancelamento/${cancelamentoId}?feedback=erro`);
   }
+
+  registrarLancamentoCancelamento(cancelamentoId).catch(() => {});
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/separacao");

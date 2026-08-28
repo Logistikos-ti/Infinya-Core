@@ -25,6 +25,7 @@ type ContratoEdit = {
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
   valor_logistica_reversa: number;
+  valor_cancelamento: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -373,6 +374,10 @@ export function ContratoForm({
               <Field label="Logística reversa/un">
                 <MoneyInput name="valor_logistica_reversa" defaultValue={String(currentEditItem?.valor_logistica_reversa ?? 0)} />
                 {state.errors?.valor_logistica_reversa && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_logistica_reversa}</p>}
+              </Field>
+              <Field label="Cancelamento de pedido">
+                <MoneyInput name="valor_cancelamento" defaultValue={String(currentEditItem?.valor_cancelamento ?? 0)} />
+                {state.errors?.valor_cancelamento && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_cancelamento}</p>}
               </Field>
             </div>
           </Section>

@@ -48,6 +48,7 @@ type ContratoRow = {
   taxa_frete_fixa: number;
   taxa_frete_percentual: number;
   tarifa_recebimento: number;
+  valor_cancelamento: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -82,6 +83,7 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     taxa_frete_percentual: contrato.taxa_frete_percentual,
     tarifa_recebimento: contrato.tarifa_recebimento,
     valor_logistica_reversa: (contrato as ContratoRow & { valor_logistica_reversa?: number }).valor_logistica_reversa ?? 0,
+    valor_cancelamento: contrato.valor_cancelamento,
     tipo_contrato: contrato.tipo_contrato,
   };
 }
@@ -746,6 +748,78 @@ export async function registrarLancamentoLogisticaReversa(
       total_unidades: quantidade,
       valor_unitario: valorUnitario,
     },
+    contrato_snapshot: contratoSnapshot(contrato),
+  };
+
+  const { erro: insertErro } = await inserirLancamentos(admin, [lancamento]);
+  if (insertErro) return { ok: false, erro: insertErro };
+
+  await recalcularFatura(admin, faturaId as string);
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Cobrança: Cancelamento de pedido (fluxo de bipagem de devolução)
+// ---------------------------------------------------------------------------
+
+// Pedidos cancelados ainda nesses status não chegaram a ser separados —
+// nenhum trabalho operacional foi investido ainda, então não cobra.
+const STATUS_CANCELAMENTO_SEM_COBRANCA = ["NOVO", "EM_SEPARACAO"];
+
+export async function registrarLancamentoCancelamento(
+  cancelamentoId: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const admin = createSupabaseAdminClient();
+
+  const { data: cancelamento } = await admin
+    .from("pedidos_expedicao_cancelamentos")
+    .select("id, pedido_expedicao_id, depositante_id, status_pedido_na_abertura")
+    .eq("id", cancelamentoId)
+    .single();
+
+  if (!cancelamento) return { ok: false, erro: "Cancelamento não encontrado." };
+  if (STATUS_CANCELAMENTO_SEM_COBRANCA.includes(cancelamento.status_pedido_na_abertura)) {
+    return { ok: true };
+  }
+
+  const { data: pedido } = await admin
+    .from("pedidos_expedicao")
+    .select("id, codigo")
+    .eq("id", cancelamento.pedido_expedicao_id)
+    .single();
+
+  if (!pedido) return { ok: false, erro: "Pedido não encontrado." };
+
+  const contrato = await getContratoAtivo(admin, cancelamento.depositante_id);
+  if (!contrato) return { ok: false, erro: "Sem contrato ativo." };
+  if (contrato.tipo_contrato === "consignado") return { ok: true };
+
+  const valorCancelamento = Number(contrato.valor_cancelamento);
+  if (valorCancelamento <= 0) return { ok: true };
+
+  const mesAno = getMesAno();
+
+  const { data: faturaId } = await admin.rpc("garantir_ou_criar_fatura", {
+    p_depositante_id: cancelamento.depositante_id,
+    p_mes_ano: mesAno,
+  });
+
+  if (!faturaId) return { ok: false, erro: "Falha ao criar fatura." };
+
+  const lancamento: LancamentoInsert = {
+    depositante_id: cancelamento.depositante_id,
+    fatura_id: faturaId as string,
+    mes_ano: mesAno,
+    tipo_servico: "CANCELAMENTO",
+    origem: "AUTOMATICO",
+    referencia_tipo: "PEDIDO_EXPEDICAO",
+    referencia_id: pedido.id,
+    descricao: `Cancelamento pedido ${pedido.codigo}`,
+    quantidade: 1,
+    valor_unitario: valorCancelamento,
+    valor_total: valorCancelamento,
+    memoria_calculo: { status_pedido_na_abertura: cancelamento.status_pedido_na_abertura },
     contrato_snapshot: contratoSnapshot(contrato),
   };
 

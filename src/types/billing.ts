@@ -11,6 +11,7 @@ export type TipoServico =
   | "REFRIGERADOR"
   | "CARTA_CORRECAO"
   | "OUTRO_DOCUMENTO"
+  | "CANCELAMENTO"
   | "DESCONTO"
   | "COBRANCA_EXTRA";
 
@@ -41,6 +42,7 @@ export type ContratoCobranca = {
   taxaFretePercentual: number;
   tarifaRecebimento: number;
   insumosDepositante: string[];
+  valorCancelamento: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
