@@ -32,6 +32,7 @@ type ContratoEdit = {
   valor_cancelamento_minimo: number;
   valor_retirada: number;
   valor_descarte: number;
+  valor_integracao_manutencao: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -471,6 +472,14 @@ export function ContratoForm({
               ) : (
                 <input type="hidden" name="valor_software" value="0" />
               )}
+
+              <div className="mt-1 max-w-[280px]">
+                <Field label="Manutenção de integração/mês">
+                  <MoneyInput name="valor_integracao_manutencao" defaultValue={String(currentEditItem?.valor_integracao_manutencao ?? 49.9)} />
+                  {state.errors?.valor_integracao_manutencao && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_integracao_manutencao}</p>}
+                </Field>
+                <p className="mt-1 text-[11px] text-slate-400 dark:text-zinc-500">Cobra por integração ativa (Bling, Mercado Livre) no fechamento mensal.</p>
+              </div>
             </div>
           </Section>
 

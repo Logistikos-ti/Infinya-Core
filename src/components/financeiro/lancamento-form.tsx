@@ -28,6 +28,7 @@ const TIPOS_SERVICO = [
   { value: "CANCELAMENTO", label: "Cancelamento" },
   { value: "RETIRADA", label: "Retirada" },
   { value: "DESCARTE", label: "Descarte" },
+  { value: "INTEGRACAO", label: "Integração" },
   { value: "SOFTWARE", label: "Software" },
   { value: "REFRIGERADOR", label: "Refrigerador" },
 ];

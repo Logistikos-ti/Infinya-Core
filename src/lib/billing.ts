@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import type { TipoServico, OrigemLancamento, ReferenciaTipo } from "@/types/billing";
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ type ContratoRow = {
   valor_cancelamento_minimo: number;
   valor_retirada: number;
   valor_descarte: number;
+  valor_integracao_manutencao: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -96,6 +98,7 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     valor_cancelamento_minimo: contrato.valor_cancelamento_minimo,
     valor_retirada: contrato.valor_retirada,
     valor_descarte: contrato.valor_descarte,
+    valor_integracao_manutencao: contrato.valor_integracao_manutencao,
     tipo_contrato: contrato.tipo_contrato,
   };
 }
@@ -739,6 +742,46 @@ export async function fecharFaturasMensais(
       }]);
       if (erroRefrig) {
         erros.push(`Depositante ${fatura.depositante_id}: refrigerador - ${erroRefrig}`);
+      }
+    }
+
+    // Manutenção de integrações — cobra por integração ativa e não-pausada.
+    const valorIntegracao = Number(contrato.valor_integracao_manutencao);
+    if (valorIntegracao > 0) {
+      const { data: depRow } = await admin
+        .from("depositantes")
+        .select("configuracoes, observacoes")
+        .eq("id", fatura.depositante_id)
+        .single();
+
+      const rawConfig = depRow?.configuracoes
+        ? JSON.stringify(depRow.configuracoes)
+        : (depRow?.observacoes as string | null) ?? null;
+      const config = parseDepositanteConfiguracoes(rawConfig);
+      const integracoesAtivas = [config.bling, config.mercadoLivre].filter(
+        (c) => c?.connected && !c?.paused,
+      ).length;
+
+      if (integracoesAtivas > 0) {
+        const totalIntegracao = roundCurrency(integracoesAtivas * valorIntegracao);
+        const { erro: erroIntegracao } = await inserirLancamentos(admin, [{
+          depositante_id: fatura.depositante_id,
+          fatura_id: fatura.id,
+          mes_ano: mes,
+          tipo_servico: "INTEGRACAO",
+          origem: "CRON",
+          referencia_tipo: "SNAPSHOT_ARMAZENAMENTO",
+          referencia_id: `integracao-${fatura.depositante_id}-${mes}`,
+          descricao: `Manutenção de integrações ${mes} (${integracoesAtivas}x)`,
+          quantidade: integracoesAtivas,
+          valor_unitario: valorIntegracao,
+          valor_total: totalIntegracao,
+          memoria_calculo: { integracoes_ativas: integracoesAtivas, valor_unitario: valorIntegracao },
+          contrato_snapshot: snapshot,
+        }]);
+        if (erroIntegracao) {
+          erros.push(`Depositante ${fatura.depositante_id}: integração - ${erroIntegracao}`);
+        }
       }
     }
 

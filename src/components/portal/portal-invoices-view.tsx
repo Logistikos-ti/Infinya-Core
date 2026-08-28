@@ -51,6 +51,7 @@ const labelServico: Record<string, string> = {
   CANCELAMENTO: "Cancelamento",
   RETIRADA: "Retirada",
   DESCARTE: "Descarte",
+  INTEGRACAO: "Integração",
   SOFTWARE: "Software",
   REFRIGERADOR: "Refrigerador",
   DESCONTO: "Desconto",

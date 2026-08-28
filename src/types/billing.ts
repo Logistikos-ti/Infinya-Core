@@ -16,6 +16,7 @@ export type TipoServico =
   | "CANCELAMENTO"
   | "RETIRADA"
   | "DESCARTE"
+  | "INTEGRACAO"
   | "DESCONTO"
   | "COBRANCA_EXTRA";
 
@@ -54,6 +55,7 @@ export type ContratoCobranca = {
   valorCancelamentoMinimo: number;
   valorRetirada: number;
   valorDescarte: number;
+  valorIntegracaoManutencao: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
