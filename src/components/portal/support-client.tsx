@@ -34,6 +34,7 @@ export function SupportClient({
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState(categories[0]);
+  const [prioridade, setPrioridade] = useState("Normal");
   const [feedback, setFeedback] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
@@ -96,7 +97,7 @@ export function SupportClient({
       const response = await fetch("/api/suporte/chamados", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, message, category }),
+        body: JSON.stringify({ subject, message, category, prioridade }),
       });
       const payload = await response.json();
       if (!response.ok)
@@ -222,6 +223,19 @@ export function SupportClient({
                   type="button"
                   onClick={() => setCategory(item)}
                   className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${category === item ? "border-violet-500 bg-violet-500/10 text-slate-900 dark:text-white" : "border-slate-200 text-slate-600 hover:border-violet-300 dark:border-white/10 dark:text-slate-300"}`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            <span className="mt-4 block text-xs text-slate-500">Prioridade</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {["Baixa", "Normal", "Alta", "Crítica"].map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setPrioridade(item)}
+                  className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${prioridade === item ? "border-violet-500 bg-violet-500/10 text-slate-900 dark:text-white" : "border-slate-200 text-slate-600 hover:border-violet-300 dark:border-white/10 dark:text-slate-300"}`}
                 >
                   {item}
                 </button>
