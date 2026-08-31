@@ -1151,14 +1151,8 @@ a {
   transition: opacity .18s, background-color .18s, box-shadow .18s;
 }
 .sb--collapsed .sb__badge { opacity: 0; }
-/* Badge no item selecionado: pill branco sólido com número roxo — contraste
-   alto pra não sumir sobre o gradiente (o branco translúcido ficava fraco). */
-.sb__item--active .sb__badge {
-  background: #FFFFFF;
-  border-color: rgba(255, 255, 255, 0.9);
-  color: #7C3AED;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.20);
-}
+/* O badge mantém o mesmo visual roxo quando o item está selecionado — sobre o
+   gradiente ativo ele já fica destacado, sem precisar de override branco. */
 
 /* ---------- Item ativo: pill de energia ---------- */
 .sb__item--active .sb__link {
