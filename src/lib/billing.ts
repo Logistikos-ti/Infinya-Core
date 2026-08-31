@@ -58,6 +58,8 @@ type ContratoRow = {
   valor_retirada: number;
   valor_descarte: number;
   valor_integracao_manutencao: number;
+  taxa_ad_valorem: number;
+  valor_declarado_estoque: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -101,6 +103,8 @@ function contratoSnapshot(contrato: ContratoRow): Record<string, unknown> {
     valor_retirada: contrato.valor_retirada,
     valor_descarte: contrato.valor_descarte,
     valor_integracao_manutencao: contrato.valor_integracao_manutencao,
+    taxa_ad_valorem: contrato.taxa_ad_valorem,
+    valor_declarado_estoque: contrato.valor_declarado_estoque,
     tipo_contrato: contrato.tipo_contrato,
   };
 }
@@ -804,6 +808,34 @@ export async function fecharFaturasMensais(
         }]);
         if (erroIntegracao) {
           erros.push(`Depositante ${fatura.depositante_id}: integração - ${erroIntegracao}`);
+        }
+      }
+    }
+
+    // Ad valorem / seguro operacional — percentual sobre o valor declarado
+    // do estoque (definido no contrato por depositante).
+    const taxaAdValorem = Number(contrato.taxa_ad_valorem);
+    const valorDeclarado = Number(contrato.valor_declarado_estoque);
+    if (taxaAdValorem > 0 && valorDeclarado > 0) {
+      const totalAdValorem = roundCurrency(valorDeclarado * taxaAdValorem);
+      if (totalAdValorem > 0) {
+        const { erro: erroAdValorem } = await inserirLancamentos(admin, [{
+          depositante_id: fatura.depositante_id,
+          fatura_id: fatura.id,
+          mes_ano: mes,
+          tipo_servico: "AD_VALOREM",
+          origem: "CRON",
+          referencia_tipo: "SNAPSHOT_ARMAZENAMENTO",
+          referencia_id: `advalorem-${fatura.depositante_id}-${mes}`,
+          descricao: `Ad valorem ${mes} (${(taxaAdValorem * 100).toFixed(2)}% s/ ${valorDeclarado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})`,
+          quantidade: 1,
+          valor_unitario: totalAdValorem,
+          valor_total: totalAdValorem,
+          memoria_calculo: { valor_declarado: valorDeclarado, taxa: taxaAdValorem },
+          contrato_snapshot: snapshot,
+        }]);
+        if (erroAdValorem) {
+          erros.push(`Depositante ${fatura.depositante_id}: ad valorem - ${erroAdValorem}`);
         }
       }
     }

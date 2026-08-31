@@ -53,6 +53,7 @@ const labelServico: Record<string, string> = {
   RETIRADA: "Retirada",
   DESCARTE: "Descarte",
   INTEGRACAO: "Integração",
+  AD_VALOREM: "Ad Valorem",
   SOFTWARE: "Software",
   REFRIGERADOR: "Refrigerador",
   DESCONTO: "Desconto",

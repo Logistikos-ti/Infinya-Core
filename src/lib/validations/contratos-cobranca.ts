@@ -20,6 +20,8 @@ export const contratoCobrancaFormSchema = z.object({
   tarifa_conferencia: z.coerce.number().min(0),
   valor_logistica_reversa: z.coerce.number().min(0),
   valor_integracao_manutencao: z.coerce.number().min(0),
+  taxa_ad_valorem: z.coerce.number().min(0).max(1),
+  valor_declarado_estoque: z.coerce.number().min(0),
   valor_cancelamento: z.coerce.number().min(0),
   valor_cancelamento_minimo: z.coerce.number().min(0),
   valor_retirada: z.coerce.number().min(0),

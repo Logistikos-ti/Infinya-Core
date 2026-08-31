@@ -64,6 +64,8 @@ export type ContratoRow = {
   valorRetirada: number;
   valorDescarte: number;
   valorIntegracaoManutencao: number;
+  taxaAdValorem: number;
+  valorDeclaradoEstoque: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
@@ -190,6 +192,7 @@ const TIPO_SERVICO_COLOR: Record<string, string> = {
   Armazenagem: "#10B981",
   Software: "#14B8A6",
   Integração: "#7C3AED",
+  "Ad valorem": "#0D9488",
   Refrigerador: "#F59E0B",
   Insumo: "#F97316",
   Desconto: "#EC4899",
@@ -1093,6 +1096,8 @@ export function FinanceiroApp(props: Props) {
             <MiniKv label="Retirada/un (vencidos)" value={fmt(activeContrato.valorRetirada)} />
             <MiniKv label="Descarte/un (vencidos)" value={fmt(activeContrato.valorDescarte)} />
             <MiniKv label="Integração/mês" value={fmt(activeContrato.valorIntegracaoManutencao)} />
+            <MiniKv label="Ad valorem" value={`${(activeContrato.taxaAdValorem * 100).toFixed(2)}%`} />
+            <MiniKv label="Valor declarado" value={fmt(activeContrato.valorDeclaradoEstoque)} />
           </DrawerSection>
           {activeContrato.observacoes && (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300">
@@ -1180,6 +1185,8 @@ export function FinanceiroApp(props: Props) {
             valor_retirada: contratoBeingEdited.valorRetirada,
             valor_descarte: contratoBeingEdited.valorDescarte,
             valor_integracao_manutencao: contratoBeingEdited.valorIntegracaoManutencao,
+            taxa_ad_valorem: contratoBeingEdited.taxaAdValorem,
+            valor_declarado_estoque: contratoBeingEdited.valorDeclaradoEstoque,
             valor_software: contratoBeingEdited.valorSoftware,
             qtd_refrigeradores: contratoBeingEdited.qtdRefrigeradores,
             valor_unitario_refrigerador: contratoBeingEdited.valorUnitarioRefrigerador,

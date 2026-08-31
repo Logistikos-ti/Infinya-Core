@@ -34,6 +34,8 @@ type ContratoEdit = {
   valor_retirada: number;
   valor_descarte: number;
   valor_integracao_manutencao: number;
+  taxa_ad_valorem: number;
+  valor_declarado_estoque: number;
   valor_software: number;
   qtd_refrigeradores: number;
   valor_unitario_refrigerador: number;
@@ -421,6 +423,14 @@ export function ContratoForm({
               <Field label="Descarte/un (vencidos)">
                 <MoneyInput name="valor_descarte" defaultValue={String(currentEditItem?.valor_descarte ?? 0)} />
                 {state.errors?.valor_descarte && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_descarte}</p>}
+              </Field>
+              <Field label="Ad valorem (% ao mês)">
+                <PercentInput name="taxa_ad_valorem" defaultValue={((currentEditItem?.taxa_ad_valorem ?? 0) * 100).toFixed(2)} step="0.05" />
+                {state.errors?.taxa_ad_valorem && <p className="mt-1 text-xs text-rose-600">{state.errors.taxa_ad_valorem}</p>}
+              </Field>
+              <Field label="Valor declarado do estoque">
+                <MoneyInput name="valor_declarado_estoque" defaultValue={String(currentEditItem?.valor_declarado_estoque ?? 0)} />
+                {state.errors?.valor_declarado_estoque && <p className="mt-1 text-xs text-rose-600">{state.errors.valor_declarado_estoque}</p>}
               </Field>
             </div>
           </Section>

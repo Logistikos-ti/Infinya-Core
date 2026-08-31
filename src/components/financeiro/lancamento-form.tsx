@@ -30,6 +30,7 @@ const TIPOS_SERVICO = [
   { value: "RETIRADA", label: "Retirada" },
   { value: "DESCARTE", label: "Descarte" },
   { value: "INTEGRACAO", label: "Integração" },
+  { value: "AD_VALOREM", label: "Ad valorem" },
   { value: "SOFTWARE", label: "Software" },
   { value: "REFRIGERADOR", label: "Refrigerador" },
 ];

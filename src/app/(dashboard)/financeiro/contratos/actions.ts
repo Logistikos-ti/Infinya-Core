@@ -23,6 +23,8 @@ const FIELDS = [
   "tarifa_conferencia",
   "valor_logistica_reversa",
   "valor_integracao_manutencao",
+  "taxa_ad_valorem",
+  "valor_declarado_estoque",
   "valor_cancelamento",
   "valor_cancelamento_minimo",
   "valor_retirada",

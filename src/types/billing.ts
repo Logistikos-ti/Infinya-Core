@@ -18,6 +18,7 @@ export type TipoServico =
   | "RETIRADA"
   | "DESCARTE"
   | "INTEGRACAO"
+  | "AD_VALOREM"
   | "DESCONTO"
   | "COBRANCA_EXTRA";
 
@@ -58,6 +59,8 @@ export type ContratoCobranca = {
   valorRetirada: number;
   valorDescarte: number;
   valorIntegracaoManutencao: number;
+  taxaAdValorem: number;
+  valorDeclaradoEstoque: number;
   valorSoftware: number;
   qtdRefrigeradores: number;
   valorUnitarioRefrigerador: number;
