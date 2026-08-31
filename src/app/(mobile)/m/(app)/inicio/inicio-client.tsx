@@ -16,6 +16,7 @@ type OperationsSnapshot = {
   picking: { count: number; activeWaves: number; awaitingWave: number };
   receiving: { count: number };
   conference: { count: number; divergentItems: number };
+  cancellation: { count: number };
 };
 
 type InicioClientProps = {
@@ -101,6 +102,14 @@ export function InicioClient({ user, snapshot, totalPendencias }: InicioClientPr
           icon="pick"
           color={mobileColors.blue}
           onClick={() => router.push("/m/separacao")}
+        />
+        <TaskCard
+          title="Fluxo de cancelamento"
+          sub="Bipar devolução ao estoque"
+          badge={snapshot.cancellation.count > 0 ? String(snapshot.cancellation.count) : undefined}
+          icon="scan"
+          color={mobileColors.red}
+          onClick={() => router.push("/m/cancelamento")}
         />
         <TaskCard
           title="Recebimento"

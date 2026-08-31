@@ -55,6 +55,8 @@ export type MobileOperationsSnapshot = {
     divergentItems: number;
   };
   romaneio: MobileQueueSnapshot;
+  /** Cancelamentos aguardando a bipagem de devolução ao estoque. */
+  cancellation: MobileQueueSnapshot;
 };
 
 export async function getMobileOperationsSnapshot(
@@ -102,11 +104,21 @@ export async function getMobileOperationsSnapshot(
         first: null,
       } satisfies MobileQueueSnapshot);
 
-  const [receiving, picking, conference, romaneio] = await Promise.all([
+  // Cancellation return-to-stock is an expedição exception flow, so it rides
+  // along with the shipping snapshots.
+  const cancellationPromise = includeShipping
+    ? getCancellationSnapshot(supabase, depositanteId)
+    : Promise.resolve({
+        count: 0,
+        first: null,
+      } satisfies MobileQueueSnapshot);
+
+  const [receiving, picking, conference, romaneio, cancellation] = await Promise.all([
     receivingPromise,
     pickingPromise,
     conferencePromise,
     romaneioPromise,
+    cancellationPromise,
   ]);
 
   return {
@@ -114,6 +126,7 @@ export async function getMobileOperationsSnapshot(
     picking,
     conference,
     romaneio,
+    cancellation,
   };
 }
 
@@ -331,6 +344,34 @@ async function getRomaneioSnapshot(
           depositante: extractCarrierName(payload),
         }
       : null,
+  };
+}
+
+async function getCancellationSnapshot(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  depositanteId?: string,
+): Promise<MobileQueueSnapshot> {
+  let query = supabase
+    .from("pedidos_expedicao_cancelamentos")
+    .select("id", { count: "exact" })
+    .eq("status", "EM_ANDAMENTO")
+    .order("aberto_em", { ascending: true });
+
+  if (depositanteId) {
+    query = query.eq("depositante_id", depositanteId);
+  }
+
+  const { data, count, error } = await query.limit(1);
+
+  if (error) {
+    throw new Error(`Não foi possível carregar o snapshot de cancelamento: ${error.message}`);
+  }
+
+  const first = ((data ?? []) as Array<{ id: string }>)[0];
+
+  return {
+    count: count ?? 0,
+    first: first ? { id: first.id, code: first.id } : null,
   };
 }
 

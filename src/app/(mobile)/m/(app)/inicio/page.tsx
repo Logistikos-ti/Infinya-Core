@@ -14,7 +14,8 @@ export default async function MobileHomePage() {
   const totalPendencias =
     snapshot.receiving.count +
     snapshot.picking.count +
-    snapshot.conference.count;
+    snapshot.conference.count +
+    snapshot.cancellation.count;
 
   return (
     <InicioClient 

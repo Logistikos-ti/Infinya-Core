@@ -22,7 +22,7 @@ export function CancelamentoListClient({ rows }: CancelamentoListClientProps) {
       title="Cancelamentos pendentes"
       subtitle="Aguardando bipagem de devolução"
       count={String(rows.length)}
-      onBack={() => router.push("/m/separacao")}
+      onBack={() => router.push("/m/inicio")}
       emptyLabel="Nenhum cancelamento aguardando bipagem no momento."
       items={rows.map((row) => ({
         icon: "clip",
