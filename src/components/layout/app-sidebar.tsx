@@ -220,7 +220,18 @@ export function AppSidebar({
                       <Icon className="sb__icon" />
                       <span className="sb__label">{item.label}</span>
                       {badgeCount > 0 && (
-                        <span className="sb__badge">
+                        <span
+                          className="sb__badge"
+                          style={
+                            active
+                              ? {
+                                  background: "rgba(255,255,255,0.24)",
+                                  borderColor: "rgba(255,255,255,0.4)",
+                                  color: "#FFFFFF",
+                                }
+                              : undefined
+                          }
+                        >
                           {badgeCount > 99 ? "99+" : badgeCount}
                         </span>
                       )}
