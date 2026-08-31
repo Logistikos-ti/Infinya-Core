@@ -9,9 +9,31 @@ type AppShellProps = {
 
 export async function AppShell({ children }: AppShellProps) {
   const user = await requireUserContext();
-  const openTicketsCount = user.papel === "DEPOSITANTE" ? 0 : await getOpenTicketsCount();
+  const isDepositante = user.papel === "DEPOSITANTE";
 
-  return <AppChrome user={user} openTicketsCount={openTicketsCount}>{children}</AppChrome>;
+  // Contadores da sidebar. Cada um falha silenciosamente para 0 (sem badge) —
+  // um número na sidebar nunca pode segurar nem derrubar o app inteiro.
+  const [suporte, recebimento, expedicao, quarentena] = isDepositante
+    ? [0, 0, 0, 0]
+    : await Promise.all([
+        getOpenTicketsCount(),
+        getStatusCount("pedidos_recebimento", "AGUARDANDO"),
+        getStatusCount("pedidos_expedicao", "NOVO"),
+        getStatusCount("estoque_quarentena", "EM_QUARENTENA"),
+      ]);
+
+  const navCounts: Record<string, number> = {
+    "/suporte": suporte,
+    "/recebimento": recebimento,
+    "/expedicao": expedicao,
+    "/estoque/quarentena": quarentena,
+  };
+
+  return (
+    <AppChrome user={user} navCounts={navCounts}>
+      {children}
+    </AppChrome>
+  );
 }
 
 // AppShell wraps every single authenticated page, so this query runs on
@@ -26,6 +48,24 @@ async function getOpenTicketsCount() {
       .from("suporte_chamados")
       .select("id", { count: "exact", head: true })
       .not("status", "eq", "Resolvido");
+
+    const { count } = await withTimeout(query, 3000);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Contagem simples por status para os badges da sidebar (recebimentos
+// agendados, pedidos novos na expedição, itens em quarentena). Mesmo padrão
+// fail-safe do getOpenTicketsCount: timeout curto e retorno 0 em qualquer erro.
+async function getStatusCount(table: string, status: string) {
+  try {
+    const admin = createSupabaseAdminClient();
+    const query = admin
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("status", status);
 
     const { count } = await withTimeout(query, 3000);
     return count ?? 0;

@@ -109,7 +109,7 @@ type AppSidebarProps = {
   sidebarWidth?: number;               // legado — ignorado, largura fixa
   setSidebarWidth?: (width: number) => void;  // legado
   navigationOverride?: ReadonlyArray<SidebarNavigationItem>;
-  openTicketsCount?: number;
+  navCounts?: Record<string, number>;
 };
 
 type FlyoutState = { label: string; top: number; left: number; active: boolean } | null;
@@ -120,7 +120,7 @@ export function AppSidebar({
   isCollapsed = false,
   setIsCollapsed,
   navigationOverride,
-  openTicketsCount,
+  navCounts,
 }: AppSidebarProps) {
   const [flyout, setFlyout] = useState<FlyoutState>(null);
   const [mounted, setMounted] = useState(false);
@@ -206,7 +206,7 @@ export function AppSidebar({
                 const active = hasQuery
                   ? currentPath === item.href
                   : currentPath === item.href || currentPath.startsWith(item.href + "/");
-                const ticketBadge = item.href === "/suporte" && (openTicketsCount ?? 0) > 0;
+                const badgeCount = navCounts?.[item.href] ?? 0;
 
                 return (
                   <li
@@ -219,16 +219,9 @@ export function AppSidebar({
                     <Link href={item.href} className="sb__link">
                       <Icon className="sb__icon" />
                       <span className="sb__label">{item.label}</span>
-                      {ticketBadge && (
-                        <span
-                          className="sb__badge"
-                          style={{
-                            background: "rgba(239,68,68,0.16)",
-                            borderColor: "rgba(239,68,68,0.35)",
-                            color: "#F87171",
-                          }}
-                        >
-                          {openTicketsCount}
+                      {badgeCount > 0 && (
+                        <span className="sb__badge">
+                          {badgeCount > 99 ? "99+" : badgeCount}
                         </span>
                       )}
                     </Link>

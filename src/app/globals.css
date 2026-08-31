@@ -1136,20 +1136,29 @@ a {
 .sb--collapsed .sb__label { opacity: 0; pointer-events: none; }
 
 .sb__badge {
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: 5px;
-  background: rgba(139, 92, 246, 0.10);
-  border: 1px solid rgba(139, 92, 246, 0.22);
-  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.30);
+  border: 1px solid rgba(167, 139, 250, 0.6);
+  color: #D8CCFF;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.35);
   flex-shrink: 0;
   opacity: 1;
-  transition: opacity .18s;
+  transition: opacity .18s, background-color .18s, box-shadow .18s;
 }
 .sb--collapsed .sb__badge { opacity: 0; }
+/* Badge no item selecionado: pill branco sólido com número roxo — contraste
+   alto pra não sumir sobre o gradiente (o branco translúcido ficava fraco). */
+.sb__item--active .sb__badge {
+  background: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.9);
+  color: #7C3AED;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.20);
+}
 
 /* ---------- Item ativo: pill de energia ---------- */
 .sb__item--active .sb__link {
