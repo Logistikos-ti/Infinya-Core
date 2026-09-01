@@ -28,14 +28,14 @@ export function NotificationBell() {
         "relative flex h-[32px] w-[32px] items-center justify-center rounded-full border p-0 transition-all duration-300 ease-in-out",
         isDark
           ? "border-[#1E293B] bg-[#0A1120] shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] hover:bg-[#131E32]"
-          : "border-slate-200 bg-slate-100 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] hover:bg-slate-200",
+          : "border-slate-200 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] hover:bg-slate-100",
       )}
     >
       <Bell className={cn("h-[16px] w-[16px]", isDark ? "text-slate-300" : "text-slate-500")} />
       <span
         className={cn(
           "absolute right-[3px] top-[3px] h-[7px] w-[7px] rounded-full bg-red-500 ring-2",
-          isDark ? "ring-[#0A1120]" : "ring-slate-100",
+          isDark ? "ring-[#0A1120]" : "ring-white",
         )}
       />
     </button>

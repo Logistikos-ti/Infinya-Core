@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Paperclip, RotateCcw, Search, Send, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Paperclip, RotateCcw, Search, Send, X } from "lucide-react";
 import type { SupportTicket } from "@/lib/support";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -23,6 +23,88 @@ const manropeStyle: React.CSSProperties = {
 
 type Ticket = SupportTicket;
 type Anexo = { url: string; nome: string; tipo: string };
+
+// Dropdown customizado — mesmo padrão do Infinoos Help (pílula, seta que
+// gira, painel com check na opção ativa), substitui o <select> nativo.
+function PillSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const current = options.find((o) => o.value === value);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`flex h-[42px] min-w-[170px] cursor-pointer items-center justify-between gap-2 rounded-full border px-4 text-[13.5px] font-semibold outline-none transition-colors ${tokenBorder} ${tokenCardBg} ${tokenText}`}
+        style={open ? { borderColor: "#5AA7FF", boxShadow: "0 0 0 3px rgba(90,167,255,.15)" } : undefined}
+      >
+        <span>{current ? current.label : "Selecione..."}</span>
+        <ChevronDown
+          size={15}
+          className={tokenTextSub}
+          style={{ transition: "transform .18s", transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className={`absolute left-0 right-0 z-20 mt-1.5 rounded-xl border py-1.5 ${tokenBorder} ${tokenCardBg}`}
+          style={{ boxShadow: "0 16px 36px rgba(3,7,18,.15)" }}
+        >
+          {options.map((o) => {
+            const active = o.value === value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${active ? "" : tokenText}`}
+                style={active ? { color: "#5AA7FF", background: "rgba(90,167,255,.1)" } : undefined}
+              >
+                <span>{o.label}</span>
+                {active && <Check size={14} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STATUS = ["Aberto", "Em análise", "Resolvido"] as const;
 const PRIORIDADES = ["Baixa", "Normal", "Alta", "Crítica"] as const;
@@ -166,11 +248,14 @@ export function SupportView() {
   return (
     <div className="flex h-full flex-col" style={manropeStyle}>
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span
-          className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
-        >
-          Suporte
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span
+            className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
+          >
+            Suporte
+          </span>
+          <span className={`${monoFont} text-[10px] tracking-[0.08em] ${tokenTextSub}`}>SISTEMA/02</span>
+        </div>
         <div className="flex-1" />
         <NotificationBell />
         <ThemeToggle />
@@ -191,7 +276,7 @@ export function SupportView() {
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className={`inline-flex shrink-0 items-center gap-1 rounded-[12px] border p-1 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`inline-flex shrink-0 items-center gap-1 rounded-full border p-1 ${tokenBorder} ${tokenCardBg}`}>
             {(
               [
                 { key: "depositantes", label: "Chamados de depositantes" },
@@ -208,7 +293,7 @@ export function SupportView() {
                   style={{
                     height: "34px",
                     padding: "0 16px",
-                    borderRadius: "9px",
+                    borderRadius: "999px",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
@@ -223,7 +308,7 @@ export function SupportView() {
           </div>
           {tab === "depositantes" ? (
             <>
-              <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-[11px] border px-3 ${tokenBorder} ${tokenCardBg}`}>
+              <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-full border px-4 ${tokenBorder} ${tokenCardBg}`}>
                 <Search className={`h-4 w-4 ${tokenTextSub}`} />
                 <input
                   type="text"
@@ -236,21 +321,14 @@ export function SupportView() {
                   className={`flex-1 bg-transparent text-sm outline-none placeholder:text-[#64748B] dark:placeholder:text-[#8695AD] ${tokenText}`}
                 />
               </div>
-              <select
+              <PillSelect
                 value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
+                onChange={(v) => {
+                  setStatusFilter(v);
                   setPage(1);
                 }}
-                className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-              >
-                <option value="all">Todos os status</option>
-                {STATUS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                options={[{ value: "all", label: "Todos os status" }, ...STATUS.map((s) => ({ value: s, label: s }))]}
+              />
             </>
           ) : null}
         </div>
