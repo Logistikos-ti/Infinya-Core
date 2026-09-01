@@ -1666,6 +1666,10 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
                     </div>
                   </div>
                 ))}
+                <div className="mt-1 flex justify-between border-t border-slate-200 pt-2.5 text-xs font-bold text-slate-900 dark:border-white/10 dark:text-zinc-100">
+                  <span>Total</span>
+                  <span className={FIN_MONO}>{fmt(byDep.reduce((a, d) => a + d.val, 0))}</span>
+                </div>
               </div>
             )}
           </SmallCard>
@@ -1689,7 +1693,7 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
 
           <SmallCard title="Insumos consumidos">
             <div className={`${FIN_HEADING} text-[22px] font-bold text-slate-900 dark:text-zinc-100`}>
-              {fmt(extrato.filter((e) => e.tipo === "Insumos").reduce((a, e) => a + e.valor, 0))}
+              {fmt(extrato.filter((e) => e.tipo === "Insumo").reduce((a, e) => a + e.valor, 0))}
             </div>
           </SmallCard>
         </div>
