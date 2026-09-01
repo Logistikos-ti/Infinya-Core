@@ -342,6 +342,7 @@ export default async function FinanceiroPage() {
       tipo: TIPO_SERVICO_LABEL[tipoServico] ?? "Outros",
       depId: l.depositante_id as string,
       depNome: depNome ?? "—",
+      descricao: (l.descricao as string | null) ?? "",
       codigo,
       data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
       dataIso: (l.created_at as string).slice(0, 10),

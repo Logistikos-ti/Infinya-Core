@@ -112,11 +112,20 @@ export type ExtratoRow = {
   tipo: string;
   depId: string;
   depNome: string;
+  descricao: string;
   codigo: string;
   data: string;
   dataIso: string;
   valor: number;
 };
+
+// Lançamentos de insumo trazem o nome do insumo na descrição (ex: "Envelope
+// de Segurança - 25x35 (1 un)") — mostrado no lugar do depositante no
+// extrato, já que o insumo específico é mais relevante ali do que repetir
+// quem é o depositante.
+function insumoNomeFromDescricao(descricao: string): string {
+  return descricao.replace(/\s*\([^)]*\)\s*$/, "").trim() || descricao;
+}
 
 type Tab = "visao" | "extrato" | "faturamento" | "pagar" | "contratos" | "insumos" | "nfse" | "boletos";
 
@@ -489,7 +498,7 @@ export function FinanceiroApp(props: Props) {
               >
                 {e.tipo}
               </span>,
-              <span key="d" className={COL_PRIMARY}>{e.depNome}</span>,
+              <span key="d" className={COL_PRIMARY}>{e.tipo === "Insumo" ? insumoNomeFromDescricao(e.descricao) : e.depNome}</span>,
               <span key="c" className={COL_MONO_MUTED}>{e.codigo}</span>,
               <span key="data" className={COL_MUTED_MONO}>{e.data}</span>,
               <span key="v" className={COL_VALUE}>{fmt(e.valor)}</span>,
@@ -1626,7 +1635,7 @@ function VisaoGeral({ props, monthSel }: { props: Props; monthSel: string }) {
                   >
                     {r.tipo}
                   </span>
-                  <span className="min-w-[100px] truncate font-bold text-slate-700 dark:text-zinc-300">{r.depNome}</span>
+                  <span className="min-w-[100px] truncate font-bold text-slate-700 dark:text-zinc-300">{r.tipo === "Insumo" ? insumoNomeFromDescricao(r.descricao) : r.depNome}</span>
                   <div className="flex-1" />
                   <span className={`${FIN_MONO} whitespace-nowrap text-slate-400 dark:text-zinc-500`}>{r.codigo}</span>
                   <span className="mr-4 whitespace-nowrap text-slate-400 dark:text-zinc-500">{r.data}</span>
