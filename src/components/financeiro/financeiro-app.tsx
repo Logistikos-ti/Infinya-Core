@@ -479,7 +479,7 @@ export function FinanceiroApp(props: Props) {
   function buildRows(): { head: string[]; rows: DisplayRow[]; showDepFilter: boolean; rightAlign?: number[] } {
     if (tab === "extrato") {
       return {
-        head: ["Tipo", "Depositante", "Código", "Data", "Valor", "Status"],
+        head: ["Tipo", "Depositante/Produto", "Código", "Data", "Valor", "Status"],
         showDepFilter: true,
         rightAlign: [4],
         rows: props.extrato.map((e) => {
