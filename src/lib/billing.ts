@@ -651,9 +651,10 @@ export async function registrarLancamentoInsumoConsumo(
 // Cron: Snapshot diário de armazenamento
 // ---------------------------------------------------------------------------
 
-export async function registrarSnapshotArmazenamento(): Promise<{ ok: boolean; count: number }> {
+export async function registrarSnapshotArmazenamento(): Promise<{ ok: boolean; count: number; erro?: string }> {
   const admin = createSupabaseAdminClient();
-  const { data } = await admin.rpc("snapshot_armazenamento_diario", { p_data: new Date().toISOString().slice(0, 10) });
+  const { data, error } = await admin.rpc("snapshot_armazenamento_diario", { p_data: new Date().toISOString().slice(0, 10) });
+  if (error) return { ok: false, count: 0, erro: error.message };
   return { ok: true, count: (data as number) ?? 0 };
 }
 

@@ -8,5 +8,5 @@ export async function GET(request: Request) {
   }
 
   const result = await registrarSnapshotArmazenamento();
-  return NextResponse.json(result);
+  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }
