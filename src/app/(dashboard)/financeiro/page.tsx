@@ -264,12 +264,32 @@ export default async function FinanceiroPage() {
     });
   }
 
+  const insumoConsumoIds = Array.from(
+    new Set(
+      lancamentos
+        .filter((l) => l.referencia_tipo === "INSUMO_CONSUMO" && l.referencia_id)
+        .map((l) => l.referencia_id as string),
+    ),
+  );
+  const pedidoIdByInsumoConsumoId = new Map<string, string>();
+  if (insumoConsumoIds.length > 0) {
+    const consumoRes = await fetchRowsInChunks(insumoConsumoIds, 200, (chunk) =>
+      admin.from("insumo_consumo_pedidos").select("id, pedido_expedicao_id").in("id", chunk),
+    );
+    consumoRes.forEach((c) => {
+      if (c.pedido_expedicao_id) {
+        pedidoIdByInsumoConsumoId.set(c.id as string, c.pedido_expedicao_id as string);
+      }
+    });
+  }
+
   const pedidoExpedicaoIds = Array.from(
     new Set([
       ...lancamentos
         .filter((l) => l.referencia_tipo === "PEDIDO_EXPEDICAO" && l.referencia_id)
         .map((l) => l.referencia_id as string),
       ...pedidoIdByDocumentoId.values(),
+      ...pedidoIdByInsumoConsumoId.values(),
     ]),
   );
   const pedidoInfoById = new Map<string, { numeroWms: number | null; codigo: string }>();
@@ -305,7 +325,9 @@ export default async function FinanceiroPage() {
         ? (l.referencia_id as string)
         : l.referencia_tipo === "DOCUMENTO_ARMAZENADO" && l.referencia_id
           ? pedidoIdByDocumentoId.get(l.referencia_id as string)
-          : undefined;
+          : l.referencia_tipo === "INSUMO_CONSUMO" && l.referencia_id
+            ? pedidoIdByInsumoConsumoId.get(l.referencia_id as string)
+            : undefined;
     const pedidoInfo = pedidoId ? pedidoInfoById.get(pedidoId) : undefined;
     const recebimentoCodigo =
       l.referencia_tipo === "PEDIDO_RECEBIMENTO" && l.referencia_id
