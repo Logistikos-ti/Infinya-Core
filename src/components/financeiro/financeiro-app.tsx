@@ -224,7 +224,7 @@ export function FinanceiroApp(props: Props) {
   const [search, setSearch] = useState("");
   const [depSel, setDepSel] = useState("all");
   const [statusSel, setStatusSel] = useState("all");
-  const [monthSel, setMonthSel] = useState("all");
+  const [monthSel, setMonthSel] = useState(() => new Date().toISOString().slice(0, 7));
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -428,6 +428,7 @@ export function FinanceiroApp(props: Props) {
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
+    set.add(new Date().toISOString().slice(0, 7));
     props.faturas.forEach((f) => set.add(f.mesAno));
     props.extrato.forEach((e) => set.add(e.data.slice(6, 10) + "-" + e.data.slice(3, 5)));
     return Array.from(set).sort().reverse();
