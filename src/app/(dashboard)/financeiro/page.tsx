@@ -84,7 +84,7 @@ async function fetchAllLancamentos(admin: ReturnType<typeof createSupabaseAdminC
     admin
       .from("lancamentos")
       .select(
-        "id, tipo_servico, valor_total, depositante_id, created_at, mes_ano, referencia_tipo, referencia_id, descricao, depositantes(nome)",
+        "id, tipo_servico, valor_total, depositante_id, created_at, mes_ano, referencia_tipo, referencia_id, descricao, fatura_id, depositantes(nome)",
       )
       .eq("estornado", false)
       .order("created_at", { ascending: false });
@@ -139,12 +139,15 @@ export default async function FinanceiroPage() {
 
   const faturas: FaturaRow[] = (faturasRes.data ?? []).map((f) => ({
     id: f.id as string,
+    codigo: (f as { codigo?: string | null }).codigo ?? "—",
     depId: (f.depositantes as { id?: string } | null)?.id ?? "",
     depNome: (f.depositantes as { nome?: string } | null)?.nome ?? "—",
     mesAno: f.mes_ano as string,
     status: f.status as string,
     valor: Number(f.total_a_pagar),
     vencimento: faturaVencimento(f.mes_ano as string),
+    boletoUrl: (f.boleto_url as string | null) ?? null,
+    boletoNome: (f.boleto_nome as string | null) ?? null,
   }));
 
   const faturasNfse: FaturaDocRow[] = (faturasRes.data ?? [])
@@ -347,6 +350,7 @@ export default async function FinanceiroPage() {
       data: new Date(l.created_at as string).toLocaleDateString("pt-BR"),
       dataIso: (l.created_at as string).slice(0, 10),
       valor: Number(l.valor_total),
+      faturaId: (l.fatura_id as string | null) ?? null,
     };
   });
 
