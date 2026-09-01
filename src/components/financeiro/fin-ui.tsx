@@ -32,15 +32,33 @@ const STATUS_CLASSES: Record<string, string> = {
   INATIVO: "text-slate-500 bg-slate-500/10 dark:text-zinc-400",
 };
 
+// Os status de fatura (ABERTA/FECHADA/ENVIADA/PAGO) vêm em CAIXA ALTA direto
+// do banco. Exibe em texto normal aqui; a cor continua batendo pela chave em
+// maiúsculas em STATUS_CLASSES, então isso não muda nenhuma cor.
+const STATUS_LABELS: Record<string, string> = {
+  PAGO: "Pago",
+  RECEBIDA: "Recebida",
+  ATIVO: "Ativo",
+  FATURADO: "Faturado",
+  PENDENTE: "Pendente",
+  ABERTA: "Aberta",
+  FECHADA: "Fechada",
+  ENVIADA: "Enviada",
+  VENCIDO: "Vencido",
+  VENCIDA: "Vencida",
+  INATIVO: "Inativo",
+};
+
 export function FinBadge({ status }: { status: string }) {
   const key = status.toUpperCase();
   const classes = STATUS_CLASSES[key] ?? "text-slate-500 bg-slate-500/10 dark:text-zinc-400";
+  const label = STATUS_LABELS[key] ?? status;
   return (
     <span
       className={`inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-2.5 py-[3px] text-[11.5px] font-bold ${classes}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
+      {label}
     </span>
   );
 }
