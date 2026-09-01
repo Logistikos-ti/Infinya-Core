@@ -12,6 +12,7 @@ import { canUploadOperationalDocuments } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateShippingDanfeScan } from "@/lib/shipping-danfe-validation";
 import { isOrderLockedForDecision } from "@/lib/shipping";
+import { CONFERENCE_EDITABLE_STATUSES } from "@/lib/shipping-conference-status";
 import { registrarLancamentosExpedicao, registrarLancamentoDocumento } from "@/lib/billing";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
@@ -80,6 +81,28 @@ export async function saveShippingConferenceAction(formData: FormData) {
 
   if (isOrderLockedForDecision(order.status)) {
     redirect(`${redirectBase}?feedback=cancelamento-em-andamento`);
+  }
+
+  // Order already advanced past conference (e.g. a duplicate/stale form
+  // submission after an earlier click already completed it) -- treat as a
+  // harmless no-op and send the operator to the same place a successful
+  // submission of this intent would, instead of silently re-running the
+  // whole finalization on an order that has moved on. See
+  // src/lib/shipping-conference-status.ts for the bug this closes.
+  if (!CONFERENCE_EDITABLE_STATUSES.has(order.status)) {
+    revalidatePath(`/expedicao/conferencia/${orderId}`);
+    revalidatePath(redirectBase);
+
+    if (intent === "complete" && completeRedirectTo) {
+      redirect(completeRedirectTo);
+    }
+    if (intent === "release-romaneio") {
+      redirect("/expedicao/conferidos?feedback=liberado-romaneio");
+    }
+    if (intent === "force-pronto-romaneio" || intent === "complete") {
+      redirect(`${redirectBase}?feedback=concluido`);
+    }
+    redirect(`${redirectBase}/${orderId}?feedback=salvo`);
   }
 
   const itemMap = new Map(
