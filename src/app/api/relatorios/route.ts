@@ -1,4 +1,5 @@
-﻿import { requireApiModuleAccess } from "@/lib/api-auth";
+﻿import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { requireApiModuleAccess } from "@/lib/api-auth";
 import type { AppUserContext } from "@/lib/auth";
 import { listDamageReport } from "@/lib/damage-report";
 import { listFiscalSummaryRows } from "@/lib/fiscal-documents";
@@ -393,7 +394,7 @@ async function exportFiscalSummaryReport(
   });
 }
 
-function exportRows<T extends Record<string, string>>(
+async function exportRows<T extends Record<string, string>>(
   rows: T[],
   format: string,
   options: {
@@ -423,10 +424,131 @@ function exportRows<T extends Record<string, string>>(
     });
   }
 
+  if (format === "pdf") {
+    return buildPdfReport(rows, options);
+  }
+
   return Response.json(
     { error: "Formato de exportaÃ§Ã£o invÃ¡lido. Use csv ou excel." },
     { status: 400 },
   );
+}
+
+// Renderizador de PDF genérico (pdf-lib) — serve qualquer relatório: título +
+// tabela (cabeçalho, linhas e paginação) em A4 paisagem. As colunas vêm das
+// chaves das linhas, então funciona igual para os 6 relatórios.
+async function buildPdfReport<T extends Record<string, string>>(
+  rows: T[],
+  options: { fileBaseName: string; worksheetName: string },
+) {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+  const headers = rows.length ? (Object.keys(rows[0]) as Array<keyof T>) : [];
+  const PAGE_W = 842;
+  const PAGE_H = 595; // A4 paisagem
+  const MARGIN = 28;
+  const usableW = PAGE_W - MARGIN * 2;
+  const colW = headers.length ? usableW / headers.length : usableW;
+  const ROW_H = 15;
+  const CELL = 6.5;
+  const HEAD = 7.5;
+  const ink = rgb(0.13, 0.16, 0.22);
+  const muted = rgb(0.42, 0.46, 0.52);
+  const lineColor = rgb(0.85, 0.87, 0.9);
+  const headerBg = rgb(0.9, 0.92, 0.95);
+
+  let page = pdf.addPage([PAGE_W, PAGE_H]);
+  let y = PAGE_H - MARGIN;
+
+  page.drawText(options.worksheetName, {
+    x: MARGIN,
+    y: y - 6,
+    size: 13,
+    font: bold,
+    color: rgb(0.06, 0.09, 0.16),
+  });
+  const gerado = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  page.drawText(`Infinoos WMS | gerado em ${gerado} | ${rows.length} registro(s)`, {
+    x: MARGIN,
+    y: y - 22,
+    size: 8,
+    font,
+    color: muted,
+  });
+  y -= 42;
+
+  // Sanitiza (Helvetica/WinAnsi cobre Latin-1 + reticências) e trunca à coluna.
+  const fit = (raw: string, w: number, size: number, f = font) => {
+    let t = (raw ?? "").replace(/[^ -ÿ–—…]/g, "");
+    if (f.widthOfTextAtSize(t, size) <= w - 6) return t;
+    while (t.length > 1 && f.widthOfTextAtSize(`${t}…`, size) > w - 6) t = t.slice(0, -1);
+    return `${t}…`;
+  };
+
+  const drawHead = () => {
+    page.drawRectangle({
+      x: MARGIN,
+      y: y - ROW_H + 3,
+      width: usableW,
+      height: ROW_H,
+      color: headerBg,
+    });
+    headers.forEach((h, i) => {
+      page.drawText(fit(String(h), colW, HEAD, bold), {
+        x: MARGIN + i * colW + 3,
+        y: y - ROW_H + 8,
+        size: HEAD,
+        font: bold,
+        color: ink,
+      });
+    });
+    y -= ROW_H;
+  };
+
+  if (!headers.length) {
+    page.drawText("Nenhum registro para os filtros atuais.", {
+      x: MARGIN,
+      y: y - 6,
+      size: 10,
+      font,
+      color: muted,
+    });
+  } else {
+    drawHead();
+    for (const row of rows) {
+      if (y < MARGIN + ROW_H) {
+        page = pdf.addPage([PAGE_W, PAGE_H]);
+        y = PAGE_H - MARGIN;
+        drawHead();
+      }
+      headers.forEach((h, i) => {
+        page.drawText(fit(String(row[h] ?? ""), colW, CELL), {
+          x: MARGIN + i * colW + 3,
+          y: y - ROW_H + 7,
+          size: CELL,
+          font,
+          color: rgb(0.25, 0.29, 0.35),
+        });
+      });
+      page.drawLine({
+        start: { x: MARGIN, y: y - ROW_H + 2 },
+        end: { x: MARGIN + usableW, y: y - ROW_H + 2 },
+        thickness: 0.3,
+        color: lineColor,
+      });
+      y -= ROW_H;
+    }
+  }
+
+  const bytes = await pdf.save();
+  return new Response(Buffer.from(bytes), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${options.fileBaseName}.pdf"`,
+    },
+  });
 }
 
 function buildCsv<T extends Record<string, string>>(rows: T[]) {
