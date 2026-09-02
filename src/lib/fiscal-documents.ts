@@ -68,6 +68,7 @@ export type FiscalDocumentDetail = {
   issuerDocument: string | null;
   recipientName: string;
   recipientDocument: string | null;
+  recipientAddress: string | null;
   issuedAt: string | null;
   issuedAtLabel: string;
   totalValue: number;
@@ -218,6 +219,147 @@ export async function listFiscalDocumentsWithDetails(
   };
 }
 
+// Fuso oficial da operação — usado para recortar "mês" pela data de registro.
+const SAO_PAULO_OFFSET = "-03:00";
+
+// Início do mês e do mês seguinte (ISO com offset de São Paulo) para o filtro
+// [createdFrom, createdTo) por `created_at`.
+function monthRange(month: string): { from: string; to: string } {
+  const [year, m] = month.split("-").map(Number);
+  const nextYear = m === 12 ? year + 1 : year;
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    from: `${year}-${pad(m)}-01T00:00:00${SAO_PAULO_OFFSET}`,
+    to: `${nextYear}-${pad(nextMonth)}-01T00:00:00${SAO_PAULO_OFFSET}`,
+  };
+}
+
+// Chave "YYYY-MM" de um timestamp, no fuso de São Paulo.
+function saoPauloMonthKey(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  return year && month ? `${year}-${month}` : null;
+}
+
+/**
+ * Lista os meses (YYYY-MM, fuso São Paulo) que possuem NF-e, do mais recente
+ * para o mais antigo. Consulta BARATA: lê só a coluna `created_at`, sem baixar
+ * nem parsear XML. Alimenta o seletor de mês da aba de NF-e.
+ */
+export async function listFiscalDocumentMonths(
+  user: AppUserContext,
+  options?: { depositanteId?: string },
+): Promise<string[]> {
+  const adminSupabase = createSupabaseAdminClient();
+  let query = adminSupabase
+    .from("documentos_armazenados")
+    .select("created_at, depositante_id")
+    .eq("tipo", "NF")
+    .order("created_at", { ascending: false })
+    .limit(20000);
+
+  const scopeDepositante =
+    options?.depositanteId ??
+    (user.papel === "DEPOSITANTE" ? user.depositanteId ?? undefined : undefined);
+  if (scopeDepositante) {
+    query = query.eq("depositante_id", scopeDepositante);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Não foi possível listar os meses de NF-e: ${error.message}`);
+  }
+
+  const months = new Set<string>();
+  for (const row of data ?? []) {
+    const key = saoPauloMonthKey((row as { created_at: string }).created_at);
+    if (key) months.add(key);
+  }
+  return [...months].sort().reverse();
+}
+
+/**
+ * Carrega os documentos fiscais de UM mês (recorte por `created_at`), já
+ * mapeados e com a lista COMPLETA de itens (para o drawer/DANFE). Como é um
+ * mês só, os totais (quantidade e valor) do mês são exatos — diferente de puxar
+ * "as N mais recentes" e filtrar no cliente. `limit` é só uma trava de
+ * segurança para meses gigantes.
+ */
+export async function listFiscalDocumentDetails(
+  user: AppUserContext,
+  options?: { depositanteId?: string; month?: string; limit?: number },
+): Promise<FiscalDocumentDetail[]> {
+  const range = options?.month ? monthRange(options.month) : undefined;
+  const parsedDocuments = await loadParsedFiscalDocuments(user, {
+    depositanteId: options?.depositanteId,
+    createdFrom: range?.from,
+    createdTo: range?.to,
+    limit: options?.limit ?? (range ? 2000 : 80),
+  });
+
+  return parsedDocuments.map(({ row, parsed }) => ({
+    ...mapFiscalDetail(row, parsed),
+    // O drawer não mostra mais a tabela de itens, então não enviamos a lista de
+    // itens no payload (só o itemCount, que vem de mapFiscalDetail) — reduz
+    // bastante o tamanho da resposta em meses com muitas notas.
+    itemsPreview: [],
+  }));
+}
+
+export type FiscalExportDocument = {
+  detail: FiscalDocumentDetail;
+  xml: string;
+  fileName: string;
+};
+
+/**
+ * Igual a listFiscalDocumentDetails, mas mantém o XML de cada nota — usado pela
+ * rota de exportação para poder empacotar os XMLs em ZIP.
+ */
+export async function loadFiscalDocumentsForExport(
+  user: AppUserContext,
+  options?: { depositanteId?: string; month?: string },
+): Promise<FiscalExportDocument[]> {
+  const range = options?.month ? monthRange(options.month) : undefined;
+  const { rows } = await fetchFiscalDocumentRows(user, {
+    depositanteId: options?.depositanteId,
+    createdFrom: range?.from,
+    createdTo: range?.to,
+    limit: range ? 2000 : 80,
+  });
+
+  const adminSupabase = createSupabaseAdminClient();
+  const settled = await Promise.all(
+    rows.map(async (row): Promise<FiscalExportDocument | null> => {
+      try {
+        const xml = await downloadXml(adminSupabase, row.caminho_storage, row.mime_type);
+        const parsed = parseNfeXml(xml);
+        return {
+          detail: { ...mapFiscalDetail(row, parsed), itemsPreview: [] },
+          xml,
+          fileName: row.nome_arquivo,
+        };
+      } catch (error) {
+        console.warn(
+          `[fiscal-documents] Export: falha ao ler XML do documento ${row.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+        return null;
+      }
+    }),
+  );
+
+  return settled.filter((item): item is FiscalExportDocument => item !== null);
+}
+
 export async function listFiscalSummaryRows(
   user: AppUserContext,
   filters?: FiscalSummaryFilters,
@@ -292,6 +434,8 @@ async function loadParsedFiscalDocuments(
   options?: {
     depositanteId?: string;
     limit?: number;
+    createdFrom?: string;
+    createdTo?: string;
   },
 ) {
   const { rows } = await fetchFiscalDocumentRows(user, options);
@@ -301,13 +445,27 @@ async function loadParsedFiscalDocuments(
 async function loadParsedFiscalDocumentsFromRows(rows: FiscalDocumentRow[]) {
   const adminSupabase = createSupabaseAdminClient();
 
-  return Promise.all(
+  // Um único XML corrompido/inválido não pode derrubar a listagem inteira:
+  // com Promise.all uma rejeição estoura a página toda. Cada nota é parseada
+  // de forma isolada e, se falhar, é apenas omitida (com um aviso no log) em
+  // vez de zerar a aba de NF-e para todos os documentos.
+  const settled = await Promise.all(
     rows.map(async (row) => {
-      const xml = await downloadXml(adminSupabase, row.caminho_storage, row.mime_type);
-      const parsed = parseNfeXml(xml);
-      return { row, parsed } satisfies ParsedFiscalDocument;
+      try {
+        const xml = await downloadXml(adminSupabase, row.caminho_storage, row.mime_type);
+        const parsed = parseNfeXml(xml);
+        return { row, parsed } satisfies ParsedFiscalDocument;
+      } catch (error) {
+        console.warn(
+          `[fiscal-documents] Falha ao ler o XML do documento ${row.id} (${row.nome_arquivo}):`,
+          error instanceof Error ? error.message : error,
+        );
+        return null;
+      }
     }),
   );
+
+  return settled.filter((item): item is ParsedFiscalDocument => item !== null);
 }
 
 async function fetchFiscalDocumentRows(
@@ -317,6 +475,8 @@ async function fetchFiscalDocumentRows(
     limit?: number;
     offset?: number;
     count?: boolean;
+    createdFrom?: string;
+    createdTo?: string;
   },
 ) {
   const adminSupabase = createSupabaseAdminClient();
@@ -331,6 +491,14 @@ async function fetchFiscalDocumentRows(
 
   if (options?.depositanteId) {
     query = query.eq("depositante_id", options.depositanteId);
+  }
+
+  // Recorte por mês (data de registro/created_at): [createdFrom, createdTo).
+  if (options?.createdFrom) {
+    query = query.gte("created_at", options.createdFrom);
+  }
+  if (options?.createdTo) {
+    query = query.lt("created_at", options.createdTo);
   }
 
   if (options?.limit) {
@@ -391,6 +559,16 @@ function mapFiscalDetail(row: FiscalDocumentRow, parsed: ParsedNfe): FiscalDocum
       ? `/recebimento/${row.pedido_recebimento_id}`
       : null;
 
+  // Direção pela PERSPECTIVA DO ARMAZÉM, não pelo tpNF do emitente. A NF de um
+  // fornecedor tem tpNF=1 (saída dele) mas, pra nós, é uma ENTRADA. Então quando
+  // a nota está vinculada a um pedido de recebimento ela é ENTRADA; a um pedido
+  // de expedição, SAÍDA. Sem vínculo, cai no que o XML diz (parsed.direction).
+  const flow: "ENTRADA" | "SAIDA" = row.pedido_recebimento_id
+    ? "ENTRADA"
+    : row.pedido_expedicao_id
+      ? "SAIDA"
+      : parsed.direction;
+
   return {
     id: row.id,
     fileName: row.nome_arquivo,
@@ -398,14 +576,15 @@ function mapFiscalDetail(row: FiscalDocumentRow, parsed: ParsedNfe): FiscalDocum
     createdAtLabel: formatDateTime(row.created_at),
     depositanteId: row.depositante_id,
     depositante: row.depositante?.nome ?? "-",
-    flow: parsed.direction,
-    flowLabel: parsed.direction === "ENTRADA" ? "Entrada" : "Saída",
+    flow,
+    flowLabel: flow === "ENTRADA" ? "Entrada" : "Saída",
     noteNumber: parsed.noteNumber,
     accessKey: parsed.accessKey,
     issuerName: parsed.supplierName,
     issuerDocument: parsed.supplierDocument,
     recipientName: parsed.recipientName,
     recipientDocument: parsed.recipientDocument,
+    recipientAddress: parsed.recipientAddress,
     issuedAt: parsed.issuedAt,
     issuedAtLabel: formatDateTime(parsed.issuedAt),
     totalValue: parsed.totalValue,

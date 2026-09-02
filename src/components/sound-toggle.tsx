@@ -5,7 +5,7 @@ import { Volume2, VolumeX } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
-export function SoundToggle() {
+export function SoundToggle({ forceLight = false }: { forceLight?: boolean } = {}) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [soundEnabled, setSoundEnabled] = React.useState(true);
@@ -33,6 +33,9 @@ export function SoundToggle() {
   }
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;
+  // O tema SEMPRE manda no dark (senão o botão fica branco no modo escuro).
+  // `forceLight` só troca o fundo do modo CLARO: branco (em vez de cinza claro)
+  // — usado no cabeçalho da aba NF-e.
   const isDark = currentTheme === "dark";
 
   const toggleSound = () => {
@@ -49,9 +52,11 @@ export function SoundToggle() {
       aria-label="Alternar som"
       className={cn(
         "relative w-[32px] h-[32px] flex items-center justify-center p-0 rounded-full cursor-pointer transition-all duration-300 ease-in-out border",
-        isDark 
-          ? "bg-[#0A1120] border-[#1E293B] shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] hover:bg-[#131E32]" 
-          : "bg-slate-100 border-slate-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] hover:bg-slate-200"
+        isDark
+          ? "bg-[#0A1120] border-[#1E293B] shadow-[inset_0_1px_3px_rgba(0,0,0,0.6)] hover:bg-[#131E32]"
+          : forceLight
+            ? "bg-white border-slate-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] hover:bg-slate-50"
+            : "bg-slate-100 border-slate-200 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] hover:bg-slate-200"
       )}
     >
       {soundEnabled ? (
