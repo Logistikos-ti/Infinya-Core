@@ -39,6 +39,10 @@ type Item = {
   icon: LucideIcon;
   module: AppModule;
   badge?: string;
+  // Item de acesso universal (ex.: Suporte/Ajuda): aparece independente dos
+  // módulos do usuário. Sem isso, um operador com módulos customizados sem
+  // "dashboard" perdia a aba Suporte.
+  alwaysVisible?: boolean;
 };
 
 type Grupo = {
@@ -89,7 +93,7 @@ const GRUPOS_COMPLETOS: Grupo[] = [
     label: "Sistema",
     itens: [
       { href: "/configuracoes", label: "Configurações", icon: SlidersHorizontal, module: "configuracoes" },
-      { href: "/suporte",       label: "Suporte",       icon: CircleHelp,        module: "dashboard" },
+      { href: "/suporte",       label: "Suporte",       icon: CircleHelp,        module: "dashboard", alwaysVisible: true },
     ],
   },
 ];
@@ -137,7 +141,7 @@ export function AppSidebar({
           label: "Cadastros",
           itens: [
             { href: "/configuracoes/produtos", label: "Produtos", icon: Tag,        module: "configuracoes" },
-            { href: "/suporte",                label: "Suporte",  icon: CircleHelp, module: "dashboard" },
+            { href: "/suporte",                label: "Suporte",  icon: CircleHelp, module: "dashboard", alwaysVisible: true },
           ],
         }]
       : isCatalogAndStockOperatorUser(user)
@@ -283,7 +287,7 @@ function filtrarPorPapel(user: AppUserContext): Grupo[] {
     ...g,
     itens: g.itens.filter(
       (item) =>
-        canAccessModule(user, item.module) &&
+        (item.alwaysVisible || canAccessModule(user, item.module)) &&
         (item.href !== "/configuracoes/produtos" || canAccessConfigSection(user, "produtos")),
     ),
   })).filter((g) => g.itens.length > 0);
@@ -315,7 +319,7 @@ function buildOperatorGrupos(user: AppUserContext): Grupo[] {
   }
 
   const sistema: Item[] = [
-    { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard" },
+    { href: "/suporte", label: "Suporte", icon: CircleHelp, module: "dashboard", alwaysVisible: true },
   ];
 
   return [
