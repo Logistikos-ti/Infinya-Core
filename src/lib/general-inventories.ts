@@ -345,6 +345,15 @@ export async function recordGeneralInventoryItem(input: {
   itemId: string;
   userId: string;
   quantidade: number;
+  /**
+   * false = rascunho (bipagem em andamento: trocando de item, ou a aba foi
+   * escondida no meio da contagem). Persiste quantidade_contada e mantém o
+   * claim fresco, mas NÃO toca status/divergencia/contado_por/contado_em --
+   * o item continua PENDENTE, então não escapa do gate de finalização nem
+   * é contado como "fechado" a partir de uma tally parcial. Default true
+   * (comportamento de sempre: fecha o item como CONTADO/DIVERGENTE).
+   */
+  final?: boolean;
 }) {
   if (!Number.isFinite(input.quantidade) || input.quantidade < 0) throw new Error("Informe uma quantidade válida.");
   const supabase = createSupabaseAdminClient();
@@ -355,21 +364,52 @@ export async function recordGeneralInventoryItem(input: {
   if (!item) throw new Error("Item do inventário não encontrado.");
   if (item.atribuidoA && item.atribuidoA !== input.userId) throw new Error("Este produto está atribuído a outro operador.");
 
-  const divergence = input.quantidade - item.quantidadeSistema;
+  const final = input.final ?? true;
+  const updatePayload: Record<string, unknown> = {
+    quantidade_contada: input.quantidade,
+    atribuido_a: input.userId,
+    atribuido_em: new Date().toISOString(),
+  };
+
+  if (final) {
+    const divergence = input.quantidade - item.quantidadeSistema;
+    updatePayload.divergencia = divergence;
+    updatePayload.status = divergence === 0 ? "CONTADO" : "DIVERGENTE";
+    updatePayload.contado_por = input.userId;
+    updatePayload.contado_em = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from("inventarios_gerais_itens")
-    .update({
-      quantidade_contada: input.quantidade,
-      divergencia: divergence,
-      status: divergence === 0 ? "CONTADO" : "DIVERGENTE",
-      contado_por: input.userId,
-      contado_em: new Date().toISOString(),
-      atribuido_a: input.userId,
-      atribuido_em: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", input.itemId)
     .eq("inventario_id", input.inventoryId);
   if (error) throw new Error(`Não foi possível salvar a contagem: ${error.message}`);
+  return getGeneralInventory(input.inventoryId);
+}
+
+/**
+ * Libera o claim de um item ainda PENDENTE, revertendo um "assumir"
+ * acidental (ex.: bipe do produto errado por embalagem parecida). Só quem
+ * detém o claim pode liberar, e só enquanto o item não foi fechado.
+ */
+export async function releaseGeneralInventoryItem(input: {
+  inventoryId: string;
+  itemId: string;
+  userId: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("inventarios_gerais_itens")
+    .update({ atribuido_a: null, atribuido_em: null })
+    .eq("id", input.itemId)
+    .eq("inventario_id", input.inventoryId)
+    .eq("atribuido_a", input.userId)
+    .eq("status", "PENDENTE")
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(`Não foi possível liberar o produto: ${error.message}`);
+  if (!data) throw new Error("Este produto não está mais atribuído a você ou já foi contado.");
   return getGeneralInventory(input.inventoryId);
 }
 

@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import {
   mobileColors,
   mobileGradient,
   hexAlpha,
   headingFont,
   MobileBackButton,
-  MobileScanOverlay,
-  MobileIcon,
   MobileButtonSpinner,
+  MobileIcon,
+  MobileScanConfirmPrompt,
+  MobileScanOverlay,
+  type ScanConfirmPromptState,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
+import { resolveCycleCountScan } from "@/lib/cycle-count-scan";
 
 type Props = {
   depositanteId: string;
@@ -29,14 +33,17 @@ type Props = {
   quantidadeSistema: number;
 };
 
+const FLASH_DURATION_MS = 1300;
+
 /**
- * The produto + endereço are already confirmed by the time the operator
- * lands here -- they bipped both on the previous screen
- * (inventario-scan-client.tsx), which is what resolved (or opened, for a
- * blind count) this exact estoqueId. This panel used to also ask for its
- * own address + product confirmation scan before the counted quantity;
- * that's gone now so bipping produto + endereço is two actions total for
- * the whole Inventário flow, not two per screen.
+ * O produto + endereço já foram confirmados antes de chegar aqui -- bipados
+ * na tela anterior (inventario-scan-client.tsx), que resolveu (ou abriu,
+ * para uma contagem cega) esse estoqueId exato. Aqui a câmera abre sozinha
+ * e o operador bipa unidade por unidade do MESMO produto (mesma
+ * câmera/configuração do recebimento: requirePresenceGap + confirmReads) até
+ * bater a quantidade esperada -- sem digitação manual. "Confirmar contagem"
+ * mantém a mesma lógica de sempre (cria a contagem, grava o item, conclui),
+ * só muda de onde `count` vem.
  */
 export function MobileCycleCountPanel({
   depositanteId,
@@ -44,6 +51,8 @@ export function MobileCycleCountPanel({
   estoqueId,
   produtoNome,
   produtoSku,
+  produtoBarcode,
+  produtoCodigoInterno,
   produtoImagemUrl,
   enderecoCodigo,
   enderecoArea,
@@ -51,27 +60,27 @@ export function MobileCycleCountPanel({
 }: Props) {
   const router = useRouter();
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
+  const [confirmPrompt, setConfirmPrompt] = useState<ScanConfirmPromptState>(null);
   const [count, setCount] = useState(0);
-  const [editingCount, setEditingCount] = useState(false);
-  const [countInputValue, setCountInputValue] = useState("0");
+  const [framePulse, setFramePulse] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [match, setMatch] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const overlayTimerRef = useRef<number | null>(null);
+  const framePulseTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const countInputRef = useRef<HTMLInputElement | null>(null);
+  const scanBusyRef = useRef(false);
+  const pendingSurplusNextCountRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+      if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
       void audioContextRef.current?.close();
     };
   }, []);
-
-  useEffect(() => {
-    if (editingCount) countInputRef.current?.focus();
-  }, [editingCount]);
 
   function playFeedback(feedbackType: "ok" | "err") {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -111,11 +120,102 @@ export function MobileCycleCountPanel({
     }
   }
 
-  function commitCountInput() {
-    const parsed = Number(countInputValue.replace(",", "."));
-    setCount(Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0);
-    setEditingCount(false);
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = window.setTimeout(() => setOverlay(null), FLASH_DURATION_MS);
+    if (next) playFeedback(next.type === "err" ? "err" : "ok");
   }
+
+  /** Confirma uma unidade intermediária: borda verde + beep, câmera continua. */
+  function pulseFrame() {
+    playFeedback("ok");
+    setFramePulse(true);
+    if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
+    framePulseTimerRef.current = window.setTimeout(() => setFramePulse(false), 420);
+  }
+
+  function applyScan(rawValue: string) {
+    const code = rawValue.trim();
+    if (!code || scanBusyRef.current || confirmPrompt || isSaving) return;
+
+    scanBusyRef.current = true;
+    try {
+      const decision = resolveCycleCountScan(code, {
+        product: { barcode: produtoBarcode, codigoInterno: produtoCodigoInterno, sku: produtoSku },
+        currentCount: count,
+        quantidadeSistema,
+      });
+
+      if (decision.kind === "not-found") {
+        flash({ type: "err", title: "Não encontrado", code, sub: "Este código não pertence a este produto." });
+        return;
+      }
+
+      if (decision.kind === "surplus-prompt") {
+        pendingSurplusNextCountRef.current = count + 1;
+        setConfirmPrompt({
+          title: "Confirmar unidade extra",
+          code: produtoSku,
+          sub: `Esse produto já tem as ${quantidadeSistema} unidades esperadas. Confirma mais 1 unidade (${count + 1} no total)?`,
+          confirmLabel: "Confirmar unidade extra",
+          dismissLabel: "Foi engano, não contar",
+        });
+        return;
+      }
+
+      // decision.kind === "increment"
+      setCount(decision.nextCount);
+      if (decision.complete) {
+        flash({ type: "ok", title: "Contagem completa", code: produtoSku, sub: `${decision.nextCount}/${quantidadeSistema} contado(s).` });
+      } else {
+        pulseFrame();
+      }
+    } finally {
+      scanBusyRef.current = false;
+    }
+  }
+
+  function confirmSurplus() {
+    const nextCount = pendingSurplusNextCountRef.current;
+    pendingSurplusNextCountRef.current = null;
+    setConfirmPrompt(null);
+    if (nextCount === null) return;
+    setCount(nextCount);
+    flash({ type: "ok", title: "Unidade extra registrada", code: produtoSku, sub: `${nextCount}/${quantidadeSistema} contado(s).` });
+  }
+
+  function dismissSurplusPrompt() {
+    pendingSurplusNextCountRef.current = null;
+    setConfirmPrompt(null);
+  }
+
+  const applyScanRef = useRef<(code: string) => void>(() => {});
+  useEffect(() => {
+    applyScanRef.current = applyScan;
+  });
+  const handleDetected = useCallback((code: string) => applyScanRef.current(code), []);
+
+  const {
+    videoRef,
+    cameraStarting,
+    cameraMessage,
+    startCamera,
+    stopCamera,
+    captureFallbackActive,
+    captureBusy,
+    captureFromPhoto,
+  } = useCameraBarcodeScanner({
+    onDetected: handleDetected,
+    requirePresenceGap: true,
+    confirmReads: 2,
+  });
+
+  useEffect(() => {
+    void startCamera();
+    return () => stopCamera(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleConfirm() {
     if (isSaving) return;
@@ -164,6 +264,7 @@ export function MobileCycleCountPanel({
       );
       overlayTimerRef.current = window.setTimeout(() => {
         setOverlay(null);
+        stopCamera(null);
         setConfirmed(true);
       }, 1300);
     } catch (err) {
@@ -173,196 +274,254 @@ export function MobileCycleCountPanel({
     }
   }
 
-  const phaseColor = mobileColors.amber;
-
-  return (
-    <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
-      <MobileScanOverlay overlay={overlay} />
-
-      <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
-        <MobileBackButton onClick={() => router.push(`/m/estoque/inventarios/${depositanteId}`)} />
-        <div className="flex min-w-0 flex-1 flex-col gap-px">
-          <span className="text-[16px] font-extrabold" style={headingFont}>
-            Inventário
-          </span>
-          <span className="text-[12px]" style={{ color: mobileColors.muted }}>
-            {depositanteNome}
+  if (confirmed) {
+    return (
+      <div className="relative flex flex-col" style={{ flex: 1, minHeight: 0 }}>
+        <div className="flex shrink-0 items-center gap-3 px-[18px] pb-3 pt-[18px]">
+          <MobileBackButton onClick={() => router.push(`/m/estoque/inventarios/${depositanteId}`)} />
+          <div className="flex min-w-0 flex-1 flex-col gap-px">
+            <span className="text-[16px] font-extrabold" style={headingFont}>
+              Inventário
+            </span>
+            <span className="text-[12px]" style={{ color: mobileColors.muted }}>
+              {depositanteNome}
+            </span>
+          </div>
+          <span
+            className="rounded-full px-[11px] py-[5px] text-[11.5px] font-extrabold"
+            style={{ background: hexAlpha(mobileColors.green, 0.16), color: mobileColors.green }}
+          >
+            Contado
           </span>
         </div>
-        <span
-          className="rounded-full px-[11px] py-[5px] text-[11.5px] font-extrabold"
-          style={{
-            background: hexAlpha(confirmed ? mobileColors.green : phaseColor, 0.16),
-            color: confirmed ? mobileColors.green : phaseColor,
-          }}
+
+        <div className="app-scroll flex flex-1 flex-col items-center justify-center gap-4 px-[18px] pb-[18px] text-center">
+          <div className="relative flex h-24 w-24 items-center justify-center">
+            <span
+              className="absolute inset-0 rounded-full"
+              style={{
+                border: `2px solid ${match ? mobileColors.green : mobileColors.amber}`,
+                animation: "mobileRingPulse 1.6s ease-out infinite",
+              }}
+            />
+            <span
+              className="flex h-20 w-20 items-center justify-center rounded-full"
+              style={{
+                background: hexAlpha(match ? mobileColors.green : mobileColors.amber, 0.16),
+                color: match ? mobileColors.green : mobileColors.amber,
+              }}
+            >
+              <MobileIcon name={match ? "check" : "clip"} size={40} strokeWidth={2.6} />
+            </span>
+          </div>
+          <span className="text-[21px] font-bold" style={headingFont}>
+            {match ? "Contagem confere!" : "Divergência registrada"}
+          </span>
+          <span className="max-w-[260px] text-[13.5px] leading-relaxed" style={{ color: mobileColors.muted }}>
+            {match
+              ? "A quantidade contada bate com o sistema. Item validado."
+              : "A contagem diverge do sistema. A divergência foi registrada para auditoria do supervisor."}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#000", display: "flex", flexDirection: "column" }}>
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.65) 100%)",
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "18px",
+          paddingTop: "calc(18px + env(safe-area-inset-top))",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+          <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Bipe o produto — {enderecoCodigo}
+          </span>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.15, ...headingFont }}>
+            {produtoNome}
+          </span>
+          <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, ...headingFont }}>
+            {produtoSku}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/m/estoque/inventarios/${depositanteId}`)}
+          style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 12, background: "rgba(255,255,255,0.14)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
-          {confirmed ? "Contado" : enderecoCodigo}
-        </span>
+          <MobileIcon name="x" size={18} strokeWidth={2.6} />
+        </button>
+      </div>
+
+      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div
+          style={{
+            width: 250,
+            height: 160,
+            borderRadius: 22,
+            border: `2.5px ${framePulse ? "solid" : "dashed"} ${framePulse ? mobileColors.green : hexAlpha("#ffffff", 0.7)}`,
+            boxShadow: framePulse ? `0 0 22px ${hexAlpha(mobileColors.green, 0.65)}` : "none",
+            transition: "border-color 0.12s ease, box-shadow 0.12s ease",
+          }}
+        />
       </div>
 
       <div
-        className="app-scroll flex flex-1 flex-col gap-4 overflow-y-auto px-[18px]"
-        style={{ paddingBottom: confirmed ? 18 : 158 }}
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 9,
+          padding: "0 24px 16px",
+          textAlign: "center",
+        }}
       >
-        {confirmed ? (
-          <div className="mt-8 flex flex-1 flex-col items-center justify-center gap-4 text-center">
-            <div className="relative flex h-24 w-24 items-center justify-center">
-              <span
-                className="absolute inset-0 rounded-full"
-                style={{
-                  border: `2px solid ${match ? mobileColors.green : mobileColors.amber}`,
-                  animation: "mobileRingPulse 1.6s ease-out infinite",
-                }}
-              />
-              <span
-                className="flex h-20 w-20 items-center justify-center rounded-full"
-                style={{
-                  background: hexAlpha(match ? mobileColors.green : mobileColors.amber, 0.16),
-                  color: match ? mobileColors.green : mobileColors.amber,
-                }}
-              >
-                <MobileIcon name={match ? "check" : "clip"} size={40} strokeWidth={2.6} />
-              </span>
-            </div>
-            <span className="text-[21px] font-bold" style={headingFont}>
-              {match ? "Contagem confere!" : "Divergência registrada"}
-            </span>
-            <span className="max-w-[260px] text-[13.5px] leading-relaxed" style={{ color: mobileColors.muted }}>
-              {match
-                ? "A quantidade contada bate com o sistema. Item validado."
-                : "A contagem diverge do sistema. A divergência foi registrada para auditoria do supervisor."}
-            </span>
+        {produtoImagemUrl ? (
+          <Image
+            src={produtoImagemUrl}
+            alt={produtoNome}
+            width={44}
+            height={44}
+            unoptimized
+            style={{ borderRadius: 12, objectFit: "contain", background: "#fff", marginBottom: 2 }}
+          />
+        ) : null}
+        <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, ...headingFont }}>
+          {count} de {quantidadeSistema} unidades
+        </span>
+        {quantidadeSistema > 0 && quantidadeSistema <= 12 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 7, maxWidth: 260 }}>
+            {Array.from({ length: quantidadeSistema }).map((_, index) => {
+              const collected = index < count;
+              return (
+                <span
+                  key={index}
+                  style={{
+                    width: 13,
+                    height: 13,
+                    borderRadius: "50%",
+                    background: collected ? mobileColors.green : "transparent",
+                    border: `2px solid ${collected ? mobileColors.green : "rgba(255,255,255,0.45)"}`,
+                    transition: "background 0.2s ease",
+                  }}
+                />
+              );
+            })}
           </div>
-        ) : (
-          <div
-            className="flex flex-col gap-3.5 rounded-[20px] p-[18px]"
-            style={{ border: `1px solid ${hexAlpha(phaseColor, 0.3)}`, background: hexAlpha("#94A3B8", 0.04) }}
-          >
-            <div className="flex items-center gap-[13px]">
-              <div
-                className="flex h-[54px] w-[54px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
-                style={{
-                  background: produtoImagemUrl
-                    ? "#fff"
-                    : `linear-gradient(140deg, ${phaseColor} 0%, ${hexAlpha(phaseColor, 0.55)} 100%)`,
-                  color: "rgba(255,255,255,0.92)",
-                }}
-              >
-                {produtoImagemUrl ? (
-                  <Image
-                    src={produtoImagemUrl}
-                    alt={produtoNome}
-                    width={54}
-                    height={54}
-                    unoptimized
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <MobileIcon name="box" size={24} />
-                )}
-              </div>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[16px] font-extrabold leading-tight">{produtoNome}</span>
-                <span className="text-[12.5px]" style={{ color: mobileColors.muted, ...headingFont }}>
-                  {produtoSku}
-                </span>
-              </div>
-            </div>
-
+        ) : quantidadeSistema > 0 ? (
+          <div style={{ width: 220, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.18)", overflow: "hidden" }}>
             <div
-              className="flex flex-col gap-3 rounded-[15px] p-4"
-              style={{ background: "rgba(5,7,13,0.5)", border: `1px dashed ${hexAlpha(mobileColors.green, 0.4)}` }}
-            >
-              <span className="text-center text-[12.5px] font-bold" style={{ color: mobileColors.muted }}>
-                Quantidade contada
-              </span>
-              <div className="flex items-center justify-center gap-[18px]">
-                <button
-                  type="button"
-                  onClick={() => setCount((current) => Math.max(0, current - 1))}
-                  className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
-                  style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
-                >
-                  &minus;
-                </button>
-                {editingCount ? (
-                  <input
-                    ref={countInputRef}
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={countInputValue}
-                    onChange={(event) => setCountInputValue(event.target.value)}
-                    onBlur={commitCountInput}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        commitCountInput();
-                      }
-                    }}
-                    className="w-[100px] rounded-xl border-0 bg-transparent text-center text-[38px] font-bold outline-none"
-                    style={{ color: mobileColors.text, ...headingFont }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCountInputValue(String(count));
-                      setEditingCount(true);
-                    }}
-                    className="min-w-[90px] text-center text-[46px] font-bold"
-                    style={{ color: mobileColors.text, ...headingFont }}
-                  >
-                    {count}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setCount((current) => current + 1)}
-                  className="flex h-[52px] w-[52px] items-center justify-center rounded-[14px] text-[26px] font-bold"
-                  style={{ border: `1px solid ${hexAlpha("#94A3B8", 0.2)}`, background: hexAlpha("#94A3B8", 0.08), color: mobileColors.text }}
-                >
-                  +
-                </button>
-              </div>
-              <span className="text-center text-[11.5px]" style={{ color: mobileColors.dim }}>
-                Sistema registra {quantidadeSistema} un neste endereço · toque no número para digitar
-              </span>
-            </div>
+              style={{
+                height: "100%",
+                borderRadius: 999,
+                background: mobileColors.green,
+                width: `${Math.min(100, Math.round((count / quantidadeSistema) * 100))}%`,
+                transition: "width 0.3s ease",
+              }}
+            />
           </div>
-        )}
-
+        ) : null}
+        {count < quantidadeSistema ? (
+          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12.5 }}>
+            Faltam {quantidadeSistema - count} {quantidadeSistema - count === 1 ? "unidade" : "unidades"}
+          </span>
+        ) : null}
+        {!cameraStarting && !captureFallbackActive ? (
+          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11.5 }}>{cameraMessage ?? "Posicione o código dentro da moldura"}</span>
+        ) : null}
+        {captureFallbackActive ? (
+          <button
+            type="button"
+            disabled={captureBusy}
+            onClick={captureFromPhoto}
+            style={{
+              height: 48,
+              padding: "0 22px",
+              borderRadius: 15,
+              border: "none",
+              background: mobileGradient,
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: 14.5,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              opacity: captureBusy ? 0.7 : 1,
+            }}
+          >
+            <MobileIcon name="scan" size={17} strokeWidth={2} />
+            {captureBusy ? "Lendo foto..." : "Tirar foto do código"}
+          </button>
+        ) : null}
         {error ? (
           <div
             className="rounded-2xl p-3 text-[12.5px]"
-            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.08), color: mobileColors.redLight }}
+            style={{ border: `1px solid ${hexAlpha(mobileColors.red, 0.3)}`, background: hexAlpha(mobileColors.red, 0.08), color: mobileColors.redLight, marginTop: 4 }}
           >
             {error}
           </div>
         ) : null}
       </div>
 
-      {!confirmed ? (
-        <div
-          className="left-1/2 flex w-full max-w-md -translate-x-1/2 flex-col gap-2.5 px-[18px] pt-3"
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          padding: "0 18px calc(18px + env(safe-area-inset-bottom))",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => void handleConfirm()}
+          disabled={isSaving}
           style={{
-            position: "fixed",
-            bottom: 0,
-            paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
-            background: "linear-gradient(180deg, rgba(10,17,32,0) 0%, #0A1120 22%)",
+            height: 58,
+            width: "100%",
+            border: "none",
+            borderRadius: 17,
+            background: mobileGradient,
+            color: "#fff",
+            fontSize: 15.5,
+            fontWeight: 800,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            cursor: isSaving ? "wait" : "pointer",
+            opacity: isSaving ? 0.75 : 1,
+            boxShadow: "0 10px 26px rgba(99,102,241,0.4)",
           }}
         >
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isSaving || editingCount}
-            className="flex h-[62px] items-center justify-center gap-2 rounded-[17px] text-[16.5px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
-          >
-            {isSaving ? <MobileButtonSpinner /> : "Confirmar contagem"}
-          </button>
-        </div>
-      ) : null}
+          {isSaving ? <MobileButtonSpinner /> : "Confirmar contagem"}
+        </button>
+      </div>
+
+      <MobileScanOverlay overlay={overlay} />
+      <MobileScanConfirmPrompt state={confirmPrompt} onConfirm={confirmSurplus} onDismiss={dismissSurplusPrompt} />
     </div>
   );
 }

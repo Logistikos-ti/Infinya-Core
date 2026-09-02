@@ -9,13 +9,16 @@ import {
   MobileFullScreenLoader,
   MobileIcon,
   MobilePrimaryButton,
+  MobileScanConfirmPrompt,
   MobileScanOverlay,
   hexAlpha,
   headingFont,
   mobileColors,
   mobileGradient,
+  type ScanConfirmPromptState,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
+import { resolveGeneralInventoryScan } from "@/lib/general-inventory-scan";
 
 type Item = {
   id: string;
@@ -56,7 +59,8 @@ type Detail = {
 
 type Summary = { divergentes: number; zerados: number; aumentos: number; reducoes: number; ajustesAplicados: number };
 
-type ScanPhase = "produto" | "endereco";
+/** Rascunho ainda não sincronizado com o servidor (ver persistCount). */
+type DraftEntry = { quantidade: number; final: boolean };
 
 const FLASH_DURATION_MS = 1300;
 
@@ -72,22 +76,23 @@ async function readResponse(response: Response) {
   return body;
 }
 
-function normalizeScan(value: string) {
-  return value.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "").toLocaleLowerCase("pt-BR");
-}
-
 const cardStyle = {
   border: `1px solid ${hexAlpha("#94A3B8", 0.16)}`,
   borderRadius: 18,
   background: hexAlpha("#94A3B8", 0.045),
 };
 
-export function GeneralInventoryClient({ depositanteId, depositanteNome }: { depositanteId: string; depositanteNome: string }) {
+export function GeneralInventoryClient({
+  depositanteId,
+  depositanteNome,
+  currentUserId,
+}: {
+  depositanteId: string;
+  depositanteNome: string;
+  currentUserId: string;
+}) {
   const router = useRouter();
-  const quantityRef = useRef<HTMLInputElement>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,26 +100,34 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   const [review, setReview] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
 
-  // Camera scan flow: "Bipar" opens the camera and walks the operator
-  // through produto -> endereço (same two-step pattern as the cyclic
-  // inventory), landing on the quantity card once both scans match.
+  // Bipagem contínua: a câmera fica aberta a sessão toda de contagem. Cada
+  // bipe roda resolveGeneralInventoryScan (lógica pura, testada em
+  // tests/unit/general-inventory-scan.test.ts) para decidir se troca de item
+  // ativo, incrementa a contagem local, ou pede confirmação de excedente.
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [activeCount, setActiveCount] = useState(0);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanPhase, setScanPhase] = useState<ScanPhase>("produto");
   const [overlay, setOverlay] = useState<ScanOverlayState>(null);
+  const [confirmPrompt, setConfirmPrompt] = useState<ScanConfirmPromptState>(null);
+  // Borda verde pulsante no quadro para unidades intermediárias, sem tirar o
+  // operador da câmera (igual ao recebimento).
+  const [framePulse, setFramePulse] = useState(false);
+  // Contagens já enviadas ao servidor mas ainda não confirmadas (falha de
+  // rede) ou registradas como rascunho (produto trocado/câmera fechada antes
+  // de completar). Bloqueia "Revisar e confirmar" até esvaziar.
+  const [drafts, setDrafts] = useState<Map<string, DraftEntry>>(new Map());
+
   const scanBusyRef = useRef(false);
   const overlayTimerRef = useRef<number | null>(null);
-  const closeTimerRef = useRef<number | null>(null);
+  const framePulseTimerRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const detailRef = useRef<Detail | null>(null);
-  const scanPhaseRef = useRef<ScanPhase>("produto");
-  const [scanItem, setScanItem] = useState<Item | null>(null);
+  const pendingSurplusRef = useRef<{ itemId: string; nextCount: number } | null>(null);
+  const flushDraftOnHideRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     detailRef.current = detail;
   }, [detail]);
-  useEffect(() => {
-    scanPhaseRef.current = scanPhase;
-  }, [scanPhase]);
 
   const load = async (url: string, init?: RequestInit) => {
     const body = await readResponse(await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } }));
@@ -141,8 +154,11 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     };
   }, [depositanteId]);
 
+  // Pausado enquanto a câmera está aberta: sem isso, o poll trocaria o
+  // contador exibido em tela por um valor desatualizado no meio de uma
+  // sessão de bipagem (a contagem ao vivo mora só no estado local).
   useEffect(() => {
-    if (!detail?.id || summary) return;
+    if (!detail?.id || summary || scannerOpen) return;
     const timer = window.setInterval(() => {
       fetch(`/api/estoque/inventarios-gerais?id=${detail.id}`)
         .then(readResponse)
@@ -150,7 +166,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
         .catch(() => undefined);
     }, 10000);
     return () => window.clearInterval(timer);
-  }, [detail?.id, summary]);
+  }, [detail?.id, summary, scannerOpen]);
 
   const filteredItems = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
@@ -161,32 +177,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
   const activeItem = detail?.itens.find((item) => item.id === activeItemId) ?? null;
   const progress = detail?.totalItens ? Math.round((detail.contados / detail.totalItens) * 100) : 0;
 
-  const chooseItem = async (item: Item) => {
-    setError(null);
-    if (item.status !== "PENDENTE") {
-      setActiveItemId(item.id);
-      setQuantity(String(item.quantidadeContada ?? ""));
-      return item;
-    }
-    setSaving(true);
-    try {
-      const body = await load(`/api/estoque/inventarios-gerais/${detail?.id}`, { method: "POST", body: JSON.stringify({ action: "assumir", itemId: item.id }) });
-      const next = body.result?.itens.find((entry) => entry.id === item.id);
-      setActiveItemId(item.id);
-      setQuantity(next?.quantidadeContada === null || next?.quantidadeContada === undefined ? "" : String(next.quantidadeContada));
-      return next ?? item;
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Este produto ja foi assumido por outro operador.");
-      return null;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /** For products that genuinely aren't on the shelf -- nothing to bipe,
-   * so there's no way through the scan flow. Skips straight to recording
-   * quantidade 0, without needing to "assumir" the item first (the PATCH
-   * action already claims it as part of recording the count). */
+  /** Marca um produto como fisicamente inexistente (0 unidades) sem precisar bipar. */
   const markAsZero = async (item: Item) => {
     if (!detail) return;
     if (!window.confirm(`Confirmar que "${item.nome}" não foi encontrado no estoque físico e marcar como 0 unidades?`)) {
@@ -195,7 +186,11 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     setError(null);
     setSaving(true);
     try {
-      await load(`/api/estoque/inventarios-gerais/${detail.id}/itens/${item.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: 0 }) });
+      await load(`/api/estoque/inventarios-gerais/${detail.id}/itens/${item.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: 0, final: true }) });
+      if (activeItemId === item.id) {
+        setActiveItemId(null);
+        setActiveCount(0);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível marcar como zerado.");
     } finally {
@@ -203,28 +198,57 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     }
   };
 
-  const saveCount = async () => {
-    if (!detail || !activeItem) return;
-    const value = Number(quantity);
-    if (!Number.isFinite(value) || value < 0) {
-      setError("Informe uma quantidade válida.");
-      return;
-    }
-    setSaving(true);
+  /** Reverte um "assumir" acidental (bipe do produto errado) para o próprio claim. */
+  const releaseItem = async (item: Item) => {
+    if (!detail) return;
     setError(null);
+    setSaving(true);
     try {
-      await load(`/api/estoque/inventarios-gerais/${detail.id}/itens/${activeItem.id}`, { method: "PATCH", body: JSON.stringify({ quantidade: value }) });
-      setActiveItemId(null);
-      setQuantity("");
+      await load(`/api/estoque/inventarios-gerais/${detail.id}`, { method: "POST", body: JSON.stringify({ action: "liberar", itemId: item.id }) });
+      if (activeItemId === item.id) {
+        setActiveItemId(null);
+        setActiveCount(0);
+      }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Não foi possivel salvar a contagem.");
+      setError(reason instanceof Error ? reason.message : "Não foi possível liberar o produto.");
     } finally {
       setSaving(false);
     }
   };
 
+  /**
+   * Persiste uma contagem. final=false grava só quantidade_contada (o item
+   * continua PENDENTE) -- usado para rascunhos ao trocar de produto ou
+   * esconder a aba, nunca fecha o item como divergente por engano. Em
+   * qualquer falha o item permanece em `drafts` para retentativa (ver
+   * retryDrafts e o banner de sincronização).
+   */
+  const persistCount = useCallback(async (itemId: string, quantidade: number, isFinal: boolean) => {
+    setDrafts((current) => new Map(current).set(itemId, { quantidade, final: isFinal }));
+    try {
+      await load(`/api/estoque/inventarios-gerais/${detailRef.current?.id}/itens/${itemId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ quantidade, final: isFinal }),
+      });
+      setDrafts((current) => {
+        if (!current.has(itemId)) return current;
+        const next = new Map(current);
+        next.delete(itemId);
+        return next;
+      });
+    } catch {
+      // permanece em `drafts` -- ver retryDrafts().
+    }
+  }, []);
+
+  async function retryDrafts() {
+    for (const [itemId, entry] of Array.from(drafts.entries())) {
+      await persistCount(itemId, entry.quantidade, entry.final);
+    }
+  }
+
   const confirm = async () => {
-    if (!detail || detail.pendentes > 0) return;
+    if (!detail || detail.pendentes > 0 || drafts.size > 0) return;
     setSaving(true);
     setError(null);
     try {
@@ -282,82 +306,163 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     if (next) playFeedback(next.type === "err" ? "err" : "ok");
   }
 
+  /** Confirma uma unidade intermediária: borda verde + beep, câmera não sai da tela. */
+  function pulseFrame() {
+    playFeedback("ok");
+    setFramePulse(true);
+    if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
+    framePulseTimerRef.current = window.setTimeout(() => setFramePulse(false), 420);
+  }
+
   function openScanner() {
     unlockAudio();
     setError(null);
-    setScanItem(null);
-    setScanPhase("produto");
     setScannerOpen(true);
   }
 
   function closeScanner() {
+    if (activeItem && activeCount > 0 && activeCount < activeItem.quantidadeSistema) {
+      void persistCount(activeItem.id, activeCount, false);
+    }
     stopCamera(null);
     setScannerOpen(false);
-    setScanItem(null);
+    setActiveItemId(null);
+    setActiveCount(0);
+    setConfirmPrompt(null);
+    pendingSurplusRef.current = null;
+  }
+
+  /**
+   * Explica ao operador que o produto realmente tem menos do que o
+   * esperado -- sem isso, bipagem pura não teria como expressar "contei e é
+   * isso mesmo, está divergente" (diferente do recebimento, que fecha essa
+   * decisão uma vez por pedido inteiro via "Concluir com divergência"; aqui
+   * cada produto pode precisar dessa decisão individualmente).
+   */
+  function finalizeActiveBelowThreshold() {
+    if (!activeItem || activeCount <= 0 || activeCount >= activeItem.quantidadeSistema) return;
+    const item = activeItem;
+    const count = activeCount;
+    void persistCount(item.id, count, true);
+    flash({ type: "ok", title: "Contagem registrada", code: item.sku, sub: `${count}/${item.quantidadeSistema} — divergência registrada.` });
+    setActiveItemId(null);
+    setActiveCount(0);
+  }
+
+  /** Reivindica o próximo item (se ainda PENDENTE), persiste o anterior como
+   * rascunho se ele não tiver sido finalizado, e troca o foco da câmera. */
+  async function switchActiveItem(nextItem: Item, seededCount: number): Promise<boolean> {
+    const previousId = activeItemId;
+    const previousCount = activeCount;
+    const previousItem = previousId ? detailRef.current?.itens.find((entry) => entry.id === previousId) ?? null : null;
+
+    if (nextItem.status === "PENDENTE" && nextItem.atribuidoA !== currentUserId) {
+      try {
+        await load(`/api/estoque/inventarios-gerais/${detailRef.current?.id}`, {
+          method: "POST",
+          body: JSON.stringify({ action: "assumir", itemId: nextItem.id }),
+        });
+      } catch (reason) {
+        flash({
+          type: "err",
+          title: "Não disponível",
+          code: nextItem.sku,
+          sub: reason instanceof Error ? reason.message : "Este produto já está com outro operador.",
+        });
+        return false;
+      }
+    }
+
+    if (previousId && previousId !== nextItem.id && previousItem && previousCount < previousItem.quantidadeSistema) {
+      void persistCount(previousId, previousCount, false);
+    }
+
+    setActiveItemId(nextItem.id);
+    setActiveCount(seededCount);
+    return true;
+  }
+
+  function applyCount(item: Item, nextCount: number, complete: boolean) {
+    setActiveCount(nextCount);
+    if (complete) {
+      flash({ type: "ok", title: "Produto completo", code: item.sku, sub: `${nextCount}/${item.quantidadeSistema} contado(s).` });
+      void persistCount(item.id, nextCount, true);
+    } else {
+      pulseFrame();
+    }
   }
 
   async function applyScan(rawValue: string) {
     const code = rawValue.trim();
-    if (!code || scanBusyRef.current) return;
+    if (!code || scanBusyRef.current || confirmPrompt) return;
     const currentDetail = detailRef.current;
     if (!currentDetail) return;
 
     scanBusyRef.current = true;
     try {
-      if (scanPhaseRef.current === "produto") {
-        const normalized = normalizeScan(code);
-        const item = currentDetail.itens.find((entry) =>
-          [entry.sku, entry.codigoExterno, entry.codigoInterno, entry.codigoExternoPack]
-            .filter(Boolean)
-            .some((value) => normalizeScan(String(value)) === normalized),
-        );
+      const decision = resolveGeneralInventoryScan(code, {
+        items: currentDetail.itens,
+        activeItemId,
+        activeCount,
+        currentUserId,
+      });
 
-        if (!item) {
-          flash({ type: "err", title: "Não encontrado", code, sub: "Produto não pertence a este inventário." });
-          return;
-        }
-
-        const claimed = await chooseItem(item);
-        if (!claimed) {
-          flash({ type: "err", title: "Não disponível", code: item.sku, sub: "Este produto já está com outro operador." });
-          return;
-        }
-
-        setScanItem(claimed);
-        flash({ type: "ok", title: "Produto OK", code: claimed.sku, sub: "Bipe agora o endereço" });
-        setScanPhase("endereco");
+      if (decision.kind === "not-found") {
+        flash({ type: "err", title: "Não encontrado", code, sub: "Produto não pertence a este inventário." });
         return;
       }
 
-      // scanPhase === "endereco"
-      const item = scanItem;
-      if (!item) {
-        setScanPhase("produto");
+      if (decision.kind === "claimed-by-other") {
+        flash({ type: "err", title: "Não disponível", code: decision.item.sku, sub: "Este produto já está com outro operador." });
         return;
       }
 
-      const normalized = normalizeScan(code);
-      const matches = item.enderecos.some((endereco) => normalizeScan(endereco) === normalized);
-
-      if (!matches) {
-        flash({
-          type: "err",
-          title: "Endereço incorreto",
-          code,
-          sub: item.enderecos.length ? `Este produto está em ${item.enderecos.join(", ")}.` : "Nenhum endereço de estoque encontrado para este produto.",
+      if (decision.kind === "surplus-prompt") {
+        if (decision.switchingItem) {
+          const switched = await switchActiveItem(decision.item, decision.seededCount);
+          if (!switched) return;
+        }
+        pendingSurplusRef.current = { itemId: decision.item.id, nextCount: decision.seededCount + 1 };
+        setConfirmPrompt({
+          title: "Confirmar unidade extra",
+          code: decision.item.sku,
+          sub: `Esse produto já tem as ${decision.item.quantidadeSistema} unidades esperadas. Confirma mais 1 unidade (${decision.seededCount + 1} no total)?`,
+          confirmLabel: "Confirmar unidade extra",
+          dismissLabel: "Foi engano, não contar",
         });
         return;
       }
 
-      flash({ type: "ok", title: "Endereço OK", code, sub: "Informe a quantidade contada" });
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = window.setTimeout(() => {
-        closeScanner();
-        window.setTimeout(() => quantityRef.current?.focus(), 60);
-      }, FLASH_DURATION_MS);
+      if (decision.kind === "switch-item") {
+        const switched = await switchActiveItem(decision.item, decision.item.quantidadeContada ?? 0);
+        if (!switched) return;
+        applyCount(decision.item, decision.nextCount, decision.complete);
+        return;
+      }
+
+      // decision.kind === "increment"
+      applyCount(decision.item, decision.nextCount, decision.complete);
     } finally {
       scanBusyRef.current = false;
     }
+  }
+
+  function confirmSurplus() {
+    const pending = pendingSurplusRef.current;
+    pendingSurplusRef.current = null;
+    setConfirmPrompt(null);
+    if (!pending) return;
+    const item = detailRef.current?.itens.find((entry) => entry.id === pending.itemId);
+    setActiveCount(pending.nextCount);
+    void persistCount(pending.itemId, pending.nextCount, true);
+    if (item) {
+      flash({ type: "ok", title: "Unidade extra registrada", code: item.sku, sub: `${pending.nextCount}/${item.quantidadeSistema} contado(s).` });
+    }
+  }
+
+  function dismissSurplusPrompt() {
+    pendingSurplusRef.current = null;
+    setConfirmPrompt(null);
   }
 
   const applyScanRef = useRef<(code: string) => void>(() => {});
@@ -386,10 +491,29 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scannerOpen]);
 
+  // Persiste o rascunho do item ativo se a aba/tela for escondida no meio de
+  // uma contagem -- cobre o operador guardando o celular, que não passa por
+  // closeScanner/switchActiveItem.
+  useEffect(() => {
+    flushDraftOnHideRef.current = () => {
+      if (activeItem && activeCount > 0 && activeCount < activeItem.quantidadeSistema) {
+        void persistCount(activeItem.id, activeCount, false);
+      }
+    };
+  });
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "hidden") flushDraftOnHideRef.current();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (overlayTimerRef.current) window.clearTimeout(overlayTimerRef.current);
-      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+      if (framePulseTimerRef.current) window.clearTimeout(framePulseTimerRef.current);
       void audioContextRef.current?.close();
     };
   }, []);
@@ -480,7 +604,14 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
         </div>
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Pesquisar produto..." style={{ height: 44, borderRadius: 14, border: `1px solid ${hexAlpha("#94A3B8", .16)}`, background: hexAlpha("#94A3B8", .06), color: mobileColors.text, padding: "0 14px", fontSize: 16 }} />
         {error ? <div style={{ borderRadius: 14, padding: 12, background: hexAlpha(mobileColors.red, .12), border: `1px solid ${hexAlpha(mobileColors.red, .3)}`, color: mobileColors.redLight, fontSize: 12.5 }}>{error}</div> : null}
-        {activeItem ? <div style={{ ...cardStyle, padding: 16, border: `1px solid ${mobileColors.cyan}` }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><div style={{ width: 58, height: 58, borderRadius: 15, overflow: "hidden", background: hexAlpha(mobileColors.blue, .14), display: "flex", alignItems: "center", justifyContent: "center" }}>{activeItem.imagemUrl ? <img src={activeItem.imagemUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : <MobileIcon name="box" size={25} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 800, ...headingFont }}>{activeItem.nome}</div><div style={{ color: mobileColors.muted, fontSize: 11.5 }}>{activeItem.sku} - sistema: {activeItem.quantidadeSistema}</div></div></div><div style={{ display: "flex", gap: 8, marginTop: 14 }}><input ref={quantityRef} inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Quantidade contada" style={{ flex: 1, height: 48, borderRadius: 14, border: `1px solid ${mobileColors.cyan}`, background: hexAlpha("#94A3B8", .07), color: mobileColors.text, padding: "0 14px", fontSize: 16, fontWeight: 800 }} /><button type="button" disabled={saving} onClick={() => void saveCount()} style={{ minWidth: 112, border: "none", borderRadius: 14, background: mobileGradient, color: "#fff", fontWeight: 800 }}>{saving ? <MobileButtonSpinner /> : "Salvar"}</button></div></div> : null}
+        {drafts.size > 0 ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, borderRadius: 14, padding: 12, background: hexAlpha(mobileColors.amber, .1), border: `1px solid ${hexAlpha(mobileColors.amber, .3)}`, color: mobileColors.amber, fontSize: 12.5 }}>
+            <span>{drafts.size} produto{drafts.size === 1 ? "" : "s"} com contagem não sincronizada.</span>
+            <button type="button" onClick={() => void retryDrafts()} style={{ flexShrink: 0, border: "none", background: "transparent", color: mobileColors.amber, fontWeight: 800, fontSize: 12.5, textDecoration: "underline" }}>
+              Tentar novamente
+            </button>
+          </div>
+        ) : null}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filteredItems.map((item) => (
             <div key={item.id} style={{ ...cardStyle, width: "100%", padding: 13, display: "flex", alignItems: "center", gap: 10, color: mobileColors.text, borderColor: item.id === activeItemId ? mobileColors.cyan : hexAlpha("#94A3B8", .16) }}>
@@ -491,14 +622,26 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
                 {item.atribuidoNome ? <div style={{ color: item.status === "PENDENTE" ? mobileColors.amber : mobileColors.green, fontSize: 10.5, marginTop: 2 }}>{item.status === "PENDENTE" ? `Com ${item.atribuidoNome}` : `Contado por ${item.contadoPor ?? item.atribuidoNome}`}</div> : null}
               </div>
               {item.status === "PENDENTE" ? (
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void markAsZero(item)}
-                  style={{ flexShrink: 0, padding: "6px 10px", borderRadius: 999, border: `1px solid ${hexAlpha(mobileColors.redLight, .35)}`, background: hexAlpha(mobileColors.red, .1), color: mobileColors.redLight, fontSize: 10.5, fontWeight: 800 }}
-                >
-                  Marcar zerado
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void markAsZero(item)}
+                    style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${hexAlpha(mobileColors.redLight, .35)}`, background: hexAlpha(mobileColors.red, .1), color: mobileColors.redLight, fontSize: 10.5, fontWeight: 800 }}
+                  >
+                    Marcar zerado
+                  </button>
+                  {item.atribuidoA === currentUserId ? (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => void releaseItem(item)}
+                      style={{ padding: "6px 10px", borderRadius: 999, border: `1px solid ${hexAlpha("#94A3B8", .3)}`, background: hexAlpha("#94A3B8", .1), color: mobileColors.muted, fontSize: 10.5, fontWeight: 800 }}
+                    >
+                      Liberar
+                    </button>
+                  ) : null}
+                </div>
               ) : (
                 <div style={{ flexShrink: 0, color: item.status === "DIVERGENTE" ? mobileColors.redLight : mobileColors.green, fontSize: 11, fontWeight: 800 }}>{item.divergencia === 0 ? "OK" : `${item.divergencia > 0 ? "+" : ""}${item.divergencia}`}</div>
               )}
@@ -507,7 +650,23 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
         </div>
       </div>
       <div style={{ flexShrink: 0, padding: "10px 18px 18px", borderTop: `1px solid ${hexAlpha("#94A3B8", .12)}` }}>
-        {!review ? <MobilePrimaryButton disabled={detail.pendentes > 0 || saving} onClick={() => setReview(true)}>{detail.pendentes > 0 ? `Faltam ${detail.pendentes} produtos` : "Revisar e confirmar inventário"}</MobilePrimaryButton> : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}><div style={{ ...cardStyle, padding: 12, fontSize: 12, color: mobileColors.muted }}>Ao confirmar: <strong style={{ color: mobileColors.text }}>{detail.divergentes} divergencias</strong>, <strong style={{ color: mobileColors.text }}>{detail.zerados} produtos zerados</strong>. Os saldos serão ajustados e auditados.</div><div style={{ display: "flex", gap: 8 }}><button type="button" onClick={() => setReview(false)} style={{ flex: 1, height: 52, borderRadius: 15, border: `1px solid ${hexAlpha("#94A3B8", .2)}`, background: "transparent", color: mobileColors.text, fontWeight: 800 }}>Voltar</button><MobilePrimaryButton disabled={saving} onClick={() => void confirm()} style={{ flex: 1 }}>{saving ? <MobileButtonSpinner /> : "Confirmar ajustes"}</MobilePrimaryButton></div></div>}
+        {!review ? (
+          <MobilePrimaryButton disabled={detail.pendentes > 0 || saving || drafts.size > 0} onClick={() => setReview(true)}>
+            {drafts.size > 0
+              ? `Sincronizando ${drafts.size} produto${drafts.size === 1 ? "" : "s"}...`
+              : detail.pendentes > 0
+                ? `Faltam ${detail.pendentes} produtos`
+                : "Revisar e confirmar inventário"}
+          </MobilePrimaryButton>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ ...cardStyle, padding: 12, fontSize: 12, color: mobileColors.muted }}>Ao confirmar: <strong style={{ color: mobileColors.text }}>{detail.divergentes} divergencias</strong>, <strong style={{ color: mobileColors.text }}>{detail.zerados} produtos zerados</strong>. Os saldos serão ajustados e auditados.</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => setReview(false)} style={{ flex: 1, height: 52, borderRadius: 15, border: `1px solid ${hexAlpha("#94A3B8", .2)}`, background: "transparent", color: mobileColors.text, fontWeight: 800 }}>Voltar</button>
+              <MobilePrimaryButton disabled={saving} onClick={() => void confirm()} style={{ flex: 1 }}>{saving ? <MobileButtonSpinner /> : "Confirmar ajustes"}</MobilePrimaryButton>
+            </div>
+          </div>
+        )}
       </div>
 
       {scannerOpen ? (
@@ -518,13 +677,13 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
           <div style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "18px", paddingTop: "calc(18px + env(safe-area-inset-top))" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
               <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 800, fontSize: 11.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {scanPhase === "produto" ? "Bipe o produto" : "Bipe o endereço"}
+                Bipe qualquer produto do inventário
               </span>
               <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.15, ...headingFont }}>
-                {scanPhase === "produto" ? "Inventário geral" : scanItem?.nome ?? ""}
+                {activeItem ? activeItem.nome : "Inventário geral"}
               </span>
               <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 12.5, ...headingFont }}>
-                {scanPhase === "produto" ? depositanteNome : scanItem?.sku ?? ""}
+                {activeItem ? activeItem.sku : depositanteNome}
               </span>
             </div>
             <button type="button" onClick={closeScanner} style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 12, background: "rgba(255,255,255,0.14)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -533,13 +692,87 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
           </div>
 
           <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 250, height: 160, borderRadius: 22, border: `2.5px dashed ${hexAlpha("#ffffff", 0.7)}` }} />
+            <div
+              style={{
+                width: 250,
+                height: 160,
+                borderRadius: 22,
+                border: `2.5px ${framePulse ? "solid" : "dashed"} ${framePulse ? mobileColors.green : hexAlpha("#ffffff", 0.7)}`,
+                boxShadow: framePulse ? `0 0 22px ${hexAlpha(mobileColors.green, 0.65)}` : "none",
+                transition: "border-color 0.12s ease, box-shadow 0.12s ease",
+              }}
+            />
           </div>
 
-          <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "0 24px calc(36px + env(safe-area-inset-bottom))", textAlign: "center" }}>
-            <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
-              {cameraStarting ? "Abrindo câmera..." : (cameraMessage ?? "Posicione o código dentro da moldura")}
-            </span>
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 9,
+              padding: "0 24px calc(36px + env(safe-area-inset-bottom))",
+              textAlign: "center",
+            }}
+          >
+            {activeItem ? (
+              <>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 800, ...headingFont }}>
+                  {activeCount} de {activeItem.quantidadeSistema} unidades
+                </span>
+                {activeItem.quantidadeSistema > 0 && activeItem.quantidadeSistema <= 12 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 7, maxWidth: 260 }}>
+                    {Array.from({ length: activeItem.quantidadeSistema }).map((_, index) => {
+                      const collected = index < activeCount;
+                      return (
+                        <span
+                          key={index}
+                          style={{
+                            width: 13,
+                            height: 13,
+                            borderRadius: "50%",
+                            background: collected ? mobileColors.green : "transparent",
+                            border: `2px solid ${collected ? mobileColors.green : "rgba(255,255,255,0.45)"}`,
+                            transition: "background 0.2s ease",
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : activeItem.quantidadeSistema > 0 ? (
+                  <div style={{ width: 220, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.18)", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: 999,
+                        background: mobileColors.green,
+                        width: `${Math.min(100, Math.round((activeCount / activeItem.quantidadeSistema) * 100))}%`,
+                        transition: "width 0.3s ease",
+                      }}
+                    />
+                  </div>
+                ) : null}
+                {activeCount < activeItem.quantidadeSistema ? (
+                  <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12.5 }}>
+                    Faltam {activeItem.quantidadeSistema - activeCount} {activeItem.quantidadeSistema - activeCount === 1 ? "unidade" : "unidades"}
+                  </span>
+                ) : null}
+                {activeCount > 0 && activeCount < activeItem.quantidadeSistema ? (
+                  <button
+                    type="button"
+                    onClick={finalizeActiveBelowThreshold}
+                    style={{ marginTop: 2, border: "none", background: "transparent", color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700, textDecoration: "underline" }}
+                  >
+                    Registrar como concluído com {activeCount} (produto tem menos)
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <span style={{ color: "rgba(255,255,255,0.78)", fontSize: 12.5 }}>
+                {cameraStarting ? "Abrindo câmera..." : (cameraMessage ?? "Posicione o código dentro da moldura")}
+              </span>
+            )}
             {captureFallbackActive ? (
               <button
                 type="button"
@@ -567,6 +800,7 @@ export function GeneralInventoryClient({ depositanteId, depositanteNome }: { dep
           </div>
 
           <MobileScanOverlay overlay={overlay} />
+          <MobileScanConfirmPrompt state={confirmPrompt} onConfirm={confirmSurplus} onDismiss={dismissSurplusPrompt} />
         </div>
       ) : null}
     </div>

@@ -15,5 +15,5 @@ export default async function MobileGeneralInventoryPage({ params }: { params: P
   const { data: depositante } = await supabase.from("depositantes").select("id, nome").eq("id", depositanteId).eq("ativo", true).maybeSingle();
   if (!depositante || !filterDepositanteOptionsByUser(user, [depositante]).length) notFound();
 
-  return <GeneralInventoryClient depositanteId={depositanteId} depositanteNome={depositante.nome} />;
+  return <GeneralInventoryClient depositanteId={depositanteId} depositanteNome={depositante.nome} currentUserId={user.id} />;
 }

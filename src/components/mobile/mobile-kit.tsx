@@ -232,6 +232,126 @@ export function MobileScanOverlay({ overlay }: { overlay: ScanOverlayState }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Scan confirm prompt — interactive amber panel over the still-open
+// camera, used when a bip would take a count past what the system
+// expects. Deliberately NOT a variant of ScanOverlayState: that type
+// is consumed passively (auto-dismiss, no buttons) by 18+ call sites,
+// so an interactive/non-dismissing mode belongs in its own component.
+// ─────────────────────────────────────────────────────────────
+export type ScanConfirmPromptState = {
+  title: string;
+  code: string;
+  sub: string;
+  confirmLabel: string;
+  dismissLabel: string;
+} | null;
+
+export function MobileScanConfirmPrompt({
+  state,
+  onConfirm,
+  onDismiss,
+}: {
+  state: ScanConfirmPromptState;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  if (!state) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 90,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        padding: "24px 20px calc(28px + env(safe-area-inset-bottom))",
+        background: "rgba(5,7,13,0.72)",
+        animation: "mobileScanFlash 0.18s ease",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 380,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          padding: 20,
+          borderRadius: 22,
+          border: `1px solid ${hexAlpha(mobileColors.amber, 0.4)}`,
+          background: "linear-gradient(180deg,#2A1B05,#1C1304)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              borderRadius: 13,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: hexAlpha(mobileColors.amber, 0.18),
+              color: mobileColors.amber,
+            }}
+          >
+            <MobileIcon name="clip" size={20} strokeWidth={2.4} />
+          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", ...headingFont }}>
+              {state.title}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.75)", ...headingFont }}>
+              {state.code}
+            </span>
+          </div>
+        </div>
+
+        <span style={{ fontSize: 13, lineHeight: 1.5, color: "rgba(255,255,255,0.8)" }}>{state.sub}</span>
+
+        <button
+          type="button"
+          onClick={onConfirm}
+          style={{
+            height: 52,
+            border: "none",
+            borderRadius: 15,
+            background: mobileColors.amber,
+            color: "#1C1304",
+            fontSize: 14.5,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          {state.confirmLabel}
+        </button>
+
+        <button
+          type="button"
+          onClick={onDismiss}
+          style={{
+            height: 42,
+            border: "none",
+            borderRadius: 13,
+            background: "transparent",
+            color: "rgba(255,255,255,0.7)",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          {state.dismissLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // ListShell — generic module index (used by picking/receiving/
 // inventory/enderecos lists)
 // ─────────────────────────────────────────────────────────────
