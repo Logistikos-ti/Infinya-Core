@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { FIN_HEADING, FIN_MONO } from "@/components/financeiro/fin-ui";
+import { FIN_HEADING, FIN_MONO, FinBadge } from "@/components/financeiro/fin-ui";
 
 type FaturaRow = {
   id: string;
@@ -27,20 +27,6 @@ function formatDateBr(isoDate: string) {
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  ABERTA: "Pendente",
-  FECHADA: "Pendente",
-  ENVIADA: "Pendente",
-  PAGO: "Pago",
-};
-
-const STATUS_CLASS: Record<string, string> = {
-  ABERTA: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  FECHADA: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  ENVIADA: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  PAGO: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-};
 
 export function PortalInvoicesView({ depositanteId }: { depositanteId: string }) {
   const [faturas, setFaturas] = useState<FaturaRow[] | null>(null);
@@ -109,11 +95,7 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
                 {formatDateBr(f.vencimento)}
               </td>
               <td className="px-3 py-3.5">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_CLASS[f.status] ?? "bg-slate-500/10 text-slate-600 dark:text-slate-300"}`}
-                >
-                  {STATUS_LABEL[f.status] ?? f.status}
-                </span>
+                <FinBadge status={f.status} />
               </td>
               <td className="px-5 py-3.5 text-right">
                 <a
