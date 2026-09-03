@@ -342,7 +342,13 @@ export function PortalChrome({
       </div>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex min-h-[68px] shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/80 bg-white/80 px-5 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#0c1424]/80 sm:flex-nowrap sm:px-7 sm:py-0">
+        <header
+          className={
+            currentView === "faturas"
+              ? "flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8"
+              : "flex min-h-[68px] shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/80 bg-white/80 px-5 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#0c1424]/80 sm:flex-nowrap sm:px-7 sm:py-0"
+          }
+        >
           {currentView === "faturas" ? (
             <span
               className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
