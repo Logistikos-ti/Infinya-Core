@@ -3,6 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimePtBr } from "@/lib/utils";
 
+// Reexportado de receiving-constants (arquivo client-safe, sem next/headers)
+// para quem já importava essa constante daqui (ex.: actions.ts, server-only).
+export { RECEIVING_DOCK_OPTIONS } from "@/lib/receiving-constants";
+
 /**
  * Three-letter tag used in receiving codes (RC-JOH-2607201). Derived from the
  * depositante's name rather than its `codigo` because most codigos are numeric
@@ -71,12 +75,21 @@ type RawOrderRow = {
   itens?: Array<{
     id: string;
     quantidade_prevista: number | string | null;
+    quantidade_recebida: number | string | null;
+    produto: ProductRelation;
   }> | null;
   documentos?: Array<{
     id: string;
     mime_type: string | null;
     nome_arquivo: string | null;
   }> | null;
+  tarefas?: Array<{ titulo: string; tipo: string }> | null;
+  // Podem não existir ainda se a migração 20260903120000 não rodou — por
+  // isso RECEIVING_RICH_SELECT tem fallback e esses campos são opcionais.
+  doca?: string | null;
+  transportadora?: string | null;
+  recebido_em?: string | null;
+  conferido_por?: RelationName;
 };
 
 type RawTaskRow = {
@@ -134,6 +147,14 @@ export type ReceivingOrderSummary = {
   xmlAttached: boolean;
   skuCount: number;
   volumeCount: number;
+  receivedCount: number;
+  createdAtIso: string;
+  dock: string;
+  carrier: string;
+  arrivedAt: string | null;
+  arrivedAtIso: string | null;
+  handledBy: string;
+  products: Array<{ sku: string; nome: string; qty: number }>;
 };
 
 type ReceivingOrderFilters = {
@@ -210,40 +231,62 @@ export type ReceivingOrderDetail = {
   }>;
 };
 
+// doca/transportadora/recebido_em/conferido_por vêm de uma migração recente
+// (20260903120000) — busca com esses campos primeiro e cai pro select antigo
+// se o ambiente ainda não rodou a migração (evita a lista inteira quebrar).
+const RECEIVING_BASE_SELECT =
+  "id, codigo, status, previsto_para, nota_fiscal_numero, fornecedor_nome, observacoes, referencia_externa, created_at, depositante_id, depositante:depositantes(nome), itens:pedidos_recebimento_itens(id, quantidade_prevista, quantidade_recebida, produto:produtos(sku, nome)), documentos:documentos_armazenados(id, mime_type, nome_arquivo), tarefas:recebimento_tarefas(titulo, tipo)";
+const RECEIVING_RICH_SELECT = `${RECEIVING_BASE_SELECT}, doca, transportadora, recebido_em, conferido_por:usuarios!conferido_por(nome)`;
+
 export async function listReceivingOrdersFromDb(
   filters?: ReceivingOrderFilters,
 ) {
   const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from("pedidos_recebimento")
-    .select(
-      "id, codigo, status, previsto_para, nota_fiscal_numero, fornecedor_nome, observacoes, referencia_externa, created_at, depositante_id, depositante:depositantes(nome), itens:pedidos_recebimento_itens(id, quantidade_prevista), documentos:documentos_armazenados(id, mime_type, nome_arquivo)",
-    )
-    .order("created_at", { ascending: false });
 
-  if (filters?.status) {
-    if (filters.status === "DIVERGENCIA") {
-      query = query.in("status", ["DIVERGENCIA", "QUARENTENA_CORRIGIDA"]);
-    } else {
-      query = query.eq("status", filters.status);
+  const buildQuery = (select: string) => {
+    let query = supabase
+      .from("pedidos_recebimento")
+      .select(select)
+      .order("created_at", { ascending: false });
+
+    if (filters?.status) {
+      if (filters.status === "DIVERGENCIA") {
+        query = query.in("status", ["DIVERGENCIA", "QUARENTENA_CORRIGIDA"]);
+      } else {
+        query = query.eq("status", filters.status);
+      }
+    }
+
+    if (filters?.depositanteId) {
+      query = query.eq("depositante_id", filters.depositanteId);
+    }
+
+    if (filters?.dateFrom) {
+      query = query.gte("previsto_para", filters.dateFrom);
+    }
+
+    if (filters?.dateTo) {
+      query = query.lte("previsto_para", filters.dateTo);
+    }
+
+    return query;
+  };
+
+  let { data, error } = await buildQuery(RECEIVING_RICH_SELECT);
+
+  // Qualquer erro na busca "rica" (coluna faltando, hint de relacionamento
+  // inválido antes da migração rodar, etc.) cai pro select base, que só usa
+  // colunas que sempre existiram — não vale a pena tentar reconhecer a
+  // mensagem exata do Postgres, isso já deixou a lista inteira vazia uma vez.
+  if (error) {
+    console.error("[receiving] busca rica falhou, caindo pro select base:", error.message);
+    ({ data, error } = await buildQuery(RECEIVING_BASE_SELECT));
+    if (error) {
+      console.error("[receiving] select base também falhou:", error.message);
     }
   }
 
-  if (filters?.depositanteId) {
-    query = query.eq("depositante_id", filters.depositanteId);
-  }
-
-  if (filters?.dateFrom) {
-    query = query.gte("previsto_para", filters.dateFrom);
-  }
-
-  if (filters?.dateTo) {
-    query = query.lte("previsto_para", filters.dateTo);
-  }
-
-  const { data } = await query;
-
-  return ((data ?? []) as RawOrderRow[]).map(mapOrderSummary);
+  return ((data ?? []) as unknown as RawOrderRow[]).map(mapOrderSummary);
 }
 
 export async function listReceivingTasksFromDb() {
@@ -444,12 +487,28 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
   const quantities = (item.itens ?? []).map((entry) =>
     Number(entry.quantidade_prevista ?? 0),
   );
+  const receivedCount = (item.itens ?? []).reduce(
+    (sum, entry) => sum + (Number(entry.quantidade_recebida ?? 0) || 0),
+    0,
+  );
+  const products = (item.itens ?? []).map((entry) => ({
+    sku: extractProductField(entry.produto, "sku") ?? "-",
+    nome: extractProductField(entry.produto, "nome") ?? "Produto sem descrição",
+    qty: Number(entry.quantidade_prevista ?? 0) || 0,
+  }));
+  // Doca: prefere a coluna real (atribuída pelo popup); pedidos antigos, sem
+  // valor na coluna, caem pro título da tarefa (convenção anterior).
+  const dock = item.doca?.trim() || extractDock(item.tarefas);
   const volumeNote = item.observacoes?.match(
     /Volumes previstos:\s*(\d+)/i,
   )?.[1];
   const hourNote = item.observacoes?.match(
     /Horário previsto:\s*([0-9]{1,2}:[0-9]{2})/i,
   )?.[1];
+  // Transportadora: prefere a coluna real; pedidos importados de XML antes da
+  // migração gravaram isso como texto solto em observações.
+  const carrierNote = item.observacoes?.match(/Transportadora:\s*(.+?)(?:\n|$)/i)?.[1]?.trim();
+  const carrier = item.transportadora?.trim() || carrierNote || "—";
 
   return {
     id: item.id,
@@ -464,14 +523,34 @@ function mapOrderSummary(item: RawOrderRow): ReceivingOrderSummary {
       ? `${item.previsto_para ? formatDate(item.previsto_para) : "Sem previsão"} · ${hourNote}`
       : undefined,
     etaRaw: item.previsto_para,
+    createdAtIso: item.created_at,
+    dock,
+    carrier,
+    arrivedAt: item.recebido_em ? formatDateTimeOrFallback(item.recebido_em, "—") : null,
+    arrivedAtIso: item.recebido_em ?? null,
+    handledBy: extractRelationName(item.conferido_por ?? null) ?? "—",
     status: item.status,
     noteNumber: item.nota_fiscal_numero ?? "-",
     xmlAttached: hasXmlDocument(item.documentos),
     skuCount: (item.itens ?? []).length,
+    receivedCount,
+    products,
     volumeCount: volumeNote
       ? Number(volumeNote)
       : quantities.reduce((sum, value) => sum + value, 0),
   };
+}
+
+// A doca não é uma coluna do pedido — só existe como texto dentro do título
+// da tarefa DOCA criada junto com o pedido ("Preparar DOCA-01 para RC-...").
+// O import de XML cria a mesma tarefa sem um código específico ("Preparar
+// doca para RC-..."), então "doca" sozinho (sem código) não conta como valor.
+function extractDock(tarefas: RawOrderRow["tarefas"]): string {
+  const tarefaDoca = (tarefas ?? []).find((t) => t.tipo === "DOCA");
+  const match = tarefaDoca?.titulo.match(/^Preparar\s+(.+?)\s+para\s+/i);
+  const value = match?.[1]?.trim();
+  if (!value || value.toLowerCase() === "doca") return "—";
+  return value;
 }
 
 function extractRelationName(value: RelationName) {

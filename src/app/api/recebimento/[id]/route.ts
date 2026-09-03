@@ -37,6 +37,7 @@ type RawConferenceOrder = {
   codigo: string;
   status: string;
   depositante_id: string;
+  recebido_em: string | null;
   itens: Array<{
     id: string;
     produto_id: string;
@@ -107,7 +108,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   let { data: orderData, error: orderError } = await adminSupabase
     .from("pedidos_recebimento")
     .select(
-      "id, codigo, status, depositante_id, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada, endereco_padrao_id))",
+      "id, codigo, status, depositante_id, recebido_em, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada, endereco_padrao_id))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -120,7 +121,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     ({ data: orderData, error: orderError } = await adminSupabase
       .from("pedidos_recebimento")
       .select(
-        "id, codigo, status, depositante_id, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada))",
+        "id, codigo, status, depositante_id, recebido_em, itens:pedidos_recebimento_itens(id, produto_id, quantidade_prevista, quantidade_recebida, lote, validade_em, produto:produtos(sku, nome, exige_lote, exige_validade, metodo_retirada))",
       )
       .eq("id", id)
       .maybeSingle());
@@ -272,12 +273,32 @@ export async function PATCH(request: Request, context: RouteContext) {
       : "RECEBIDO"
     : calculateOrderStatus(normalizedItems.map((item) => item.status));
 
-  const { error: statusUpdateError } = await adminSupabase
+  // "Chegada real" e "responsável" são gravados uma única vez, na primeira
+  // conferência salva pro pedido — não são reescritos em conferências
+  // seguintes, mesmo que outra pessoa continue depois.
+  const statusUpdatePayload: { status: string; recebido_em?: string; conferido_por?: string } = {
+    status: orderStatus,
+  };
+  if (!order.recebido_em) {
+    statusUpdatePayload.recebido_em = new Date().toISOString();
+    statusUpdatePayload.conferido_por = auth.user.id;
+  }
+
+  let { error: statusUpdateError } = await adminSupabase
     .from("pedidos_recebimento")
-    .update({
-      status: orderStatus,
-    })
+    .update(statusUpdatePayload)
     .eq("id", order.id);
+
+  // "conferido_por"/"doca"/"transportadora" podem não existir ainda num
+  // ambiente que não rodou a migração correspondente — não deixa isso
+  // derrubar a conferência (recebido_em, que já existia antes, continua
+  // sendo gravado normalmente).
+  if (statusUpdateError && statusUpdateError.message.includes("conferido_por")) {
+    ({ error: statusUpdateError } = await adminSupabase
+      .from("pedidos_recebimento")
+      .update({ status: orderStatus, recebido_em: statusUpdatePayload.recebido_em })
+      .eq("id", order.id));
+  }
 
   if (statusUpdateError) {
     return NextResponse.json(

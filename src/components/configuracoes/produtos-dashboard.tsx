@@ -8,6 +8,9 @@ import { TrendingUp, AlertTriangle, Tag, Package, LayoutGrid, List, Pencil, Tras
 import { useTheme } from "next-themes";
 import React from "react";
 import { deleteProdutoAction, toggleProdutoStatusAction, fetchProdutoDrawerDetails } from "@/app/(dashboard)/configuracoes/produtos/actions";
+import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const manrope = Manrope({ subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
@@ -272,7 +275,7 @@ export function ProdutosDashboard({
   }, [selectedProduto, enrichedProdutos, t.text, t.textSub]);
 
   return (
-    <div className={`${manrope.className} space-y-6 animate-in fade-in duration-500`}>
+    <div className={`${manrope.className} flex h-full flex-col animate-in fade-in duration-500`}>
       <style>{`
         @keyframes drawerIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
@@ -282,22 +285,22 @@ export function ProdutosDashboard({
         .card-anim { animation: cardIn 0.4s ease both; }
       `}</style>
 
+      {/* Cabeçalho (padrão rebranding: título + sino + tema) */}
+      <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
+        <span className={`${spaceGrotesk.className} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
+          Catálogo de produtos
+        </span>
+        <div className="flex-1" />
+        <NotificationBell />
+        <SoundToggle forceLight />
+        <ThemeToggle />
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pb-24 pt-1.5 sm:px-8 lg:pb-12">
+
       {/* Header and Toggles */}
       <div className="flex items-end justify-between gap-5 flex-wrap mb-6">
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            {backButtonSlot && (
-              <div className="mr-2">
-                {backButtonSlot}
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-[13px]" style={{ color: t.textSub }}>
-              <span>{backButtonSlot ? "Configurações" : "Estoque"}</span><span>›</span><span style={{ color: t.text, fontWeight: 600 }}>Produtos</span>
-            </div>
-          </div>
-          <h1 className={`${spaceGrotesk.className} text-[28px] font-bold m-0 leading-tight`}>
-            Catálogo de produtos
-          </h1>
           <p className="m-0 text-[14.5px]" style={{ color: t.textSub }}>
             SKUs cadastrados, níveis de estoque, curva ABC e status de disponibilidade.
           </p>
@@ -743,6 +746,7 @@ export function ProdutosDashboard({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

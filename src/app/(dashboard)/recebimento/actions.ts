@@ -2,7 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 import { registrarLancamentoRecebimento } from "@/lib/billing";
+import { RECEIVING_DOCK_OPTIONS } from "@/lib/receiving";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+// Atribui/edita a doca de um pedido já criado — usado pelo popup de seleção
+// da lista de Recebimento quando o pedido ainda não tem doca (coluna
+// pedidos_recebimento.doca, migração 20260903120000).
+export async function assignReceivingDock(orderId: string, doca: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: userRes } = await supabase.auth.getUser();
+
+  if (!userRes.user) {
+    return { error: "Não autenticado." };
+  }
+
+  const trimmed = doca.trim();
+
+  if (!RECEIVING_DOCK_OPTIONS.includes(trimmed as (typeof RECEIVING_DOCK_OPTIONS)[number])) {
+    return { error: "Selecione uma doca válida." };
+  }
+
+  const { error } = await supabase
+    .from("pedidos_recebimento")
+    .update({ doca: trimmed })
+    .eq("id", orderId);
+
+  if (error) {
+    return { error: `Não foi possível atribuir a doca: ${error.message}` };
+  }
+
+  revalidatePath("/recebimento");
+
+  return { success: true };
+}
 
 export async function releaseQuarantinedReceiving(orderId: string) {
   const supabase = await createSupabaseServerClient();

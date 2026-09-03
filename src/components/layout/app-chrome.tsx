@@ -223,6 +223,12 @@ export function AppChrome({ children, user, navCounts }: AppChromeProps) {
     currentPath === "/configuracoes/depositantes" ||
     currentPath === "/configuracoes/depositantes/novo" ||
     (currentPath.startsWith("/configuracoes/depositantes/") && currentPath.endsWith("/editar"));
+  const isProdutosFullBleed = currentPath === "/configuracoes/produtos";
+  const isRecebimentoFullBleed = currentPath === "/recebimento";
+  // Rota dinâmica /recebimento/[id] — a tela de conferência. Exclui
+  // explicitamente /recebimento/novo (página cheia própria, header antigo).
+  const isConferenciaFullBleed =
+    currentPath.startsWith("/recebimento/") && currentPath !== "/recebimento/novo";
   const isUsuariosFullBleed = currentPath === "/configuracoes/usuarios";
   const isEnderecosFullBleed = currentPath === "/configuracoes/enderecos";
   const isTransportadorasFullBleed = currentPath === "/configuracoes/transportadoras";
@@ -401,7 +407,7 @@ useEffect(() => {
 
       {/* Main Content Área */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <header className={`${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed || isUsuariosFullBleed || isEnderecosFullBleed || isTransportadorasFullBleed || isIntegracoesFullBleed || isAuditoriaFullBleed || isSuporteFullBleed || isRelatoriosFullBleed || isNfeFullBleed || isQuarentenaFullBleed ? "hidden" : ""} z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 ${currentPath.startsWith("/expedicao/conferencia") ? "pl-[22px] pr-4 sm:pr-8" : "px-4 sm:px-8"} lg:border-none lg:border-slate-200/80 dark:border-white/10`}>
+        <header className={`${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed || isProdutosFullBleed || isRecebimentoFullBleed || isConferenciaFullBleed || isUsuariosFullBleed || isEnderecosFullBleed || isTransportadorasFullBleed || isIntegracoesFullBleed || isAuditoriaFullBleed || isSuporteFullBleed || isRelatoriosFullBleed || isNfeFullBleed || isQuarentenaFullBleed ? "hidden" : ""} z-10 flex h-24 flex-shrink-0 items-center justify-between border-b border-white/10 ${currentPath.startsWith("/expedicao/conferencia") ? "pl-[22px] pr-4 sm:pr-8" : "px-4 sm:px-8"} lg:border-none lg:border-slate-200/80 dark:border-white/10`}>
           <div className="flex w-full max-w-3xl items-center gap-4">
             {currentPath === "/expedicao/separacao/lote" || currentPath.startsWith("/expedicao/conferencia") ? (
               <div className="flex items-center gap-4">
@@ -453,7 +459,7 @@ useEffect(() => {
           </div>
         </header>
 
-        <div className={`flex-1 overflow-y-auto z-10 scroll-smooth ${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed || isUsuariosFullBleed || isEnderecosFullBleed || isTransportadorasFullBleed || isIntegracoesFullBleed || isAuditoriaFullBleed || isSuporteFullBleed || isRelatoriosFullBleed || isNfeFullBleed || isQuarentenaFullBleed || currentPath.startsWith("/expedicao/conferencia") ? "" : "px-4 sm:px-8 pb-24 lg:pb-12"}`}>
+        <div className={`flex-1 overflow-y-auto z-10 scroll-smooth ${isPickingWave || isFinanceiro || isConfiguracoesRoot || isDepositantesFullBleed || isProdutosFullBleed || isRecebimentoFullBleed || isConferenciaFullBleed || isUsuariosFullBleed || isEnderecosFullBleed || isTransportadorasFullBleed || isIntegracoesFullBleed || isAuditoriaFullBleed || isSuporteFullBleed || isRelatoriosFullBleed || isNfeFullBleed || isQuarentenaFullBleed || currentPath.startsWith("/expedicao/conferencia") ? "" : "px-4 sm:px-8 pb-24 lg:pb-12"}`}>
           {showAdminMobileShortcuts ? (
             <section className="mb-4 lg:hidden">
               <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
