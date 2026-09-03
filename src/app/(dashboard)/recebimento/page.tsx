@@ -69,7 +69,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
 
   const canFilterByDepositante = canManageMultipleTenants(user);
   const supabase = await createSupabaseServerClient();
-  const [depositantesRes, allOrders] = await Promise.all([
+  const [depositantesRes, allOrders, docksRes] = await Promise.all([
     canFilterByDepositante
       ? supabase.from("depositantes").select("id, nome").order("nome")
       : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
@@ -78,9 +78,18 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
     listReceivingOrdersFromDb({
       depositanteId: effectiveDepositanteFilter || undefined,
     }),
+    // Docas = endereços cadastrados com área "Recebimento" (não existe
+    // cadastro próprio de docas — usa o mesmo cadastro de Endereços).
+    supabase
+      .from("enderecos")
+      .select("codigo")
+      .eq("area", "RECEBIMENTO")
+      .eq("ativo", true)
+      .order("codigo"),
   ]);
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantesRes.data ?? []);
+  const dockOptions = (docksRes.data ?? []).map((e) => e.codigo);
 
   const today = todaySpDateString();
   const kpis = {
@@ -127,6 +136,7 @@ export default async function RecebimentoPage({ searchParams }: RecebimentoPageP
       totalOrders={totalOrders}
       perPage={perPage}
       assignDockAction={assignReceivingDock}
+      dockOptions={dockOptions}
     />
   );
 }

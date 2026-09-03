@@ -3,10 +3,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimePtBr } from "@/lib/utils";
 
-// Reexportado de receiving-constants (arquivo client-safe, sem next/headers)
-// para quem já importava essa constante daqui (ex.: actions.ts, server-only).
-export { RECEIVING_DOCK_OPTIONS } from "@/lib/receiving-constants";
-
 /**
  * Three-letter tag used in receiving codes (RC-JOH-2607201). Derived from the
  * depositante's name rather than its `codigo` because most codigos are numeric

@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, MapPinPlus, Plus, Search, X } from "lucide-react";
-import { RECEIVING_DOCK_OPTIONS } from "@/lib/receiving-constants";
 import type { ReceivingOrderSummary } from "@/lib/receiving";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { NotificationBell } from "@/components/notification-bell";
@@ -87,6 +86,7 @@ export function ReceivingView({
   totalOrders,
   perPage,
   assignDockAction,
+  dockOptions,
 }: {
   orders: ReceivingOrderSummary[];
   depositanteOptions: { id: string; nome: string }[];
@@ -104,6 +104,7 @@ export function ReceivingView({
     orderId: string,
     doca: string,
   ) => Promise<{ error?: string; success?: boolean }>;
+  dockOptions: string[];
 }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -530,17 +531,24 @@ export function ReceivingView({
               </button>
             </div>
             <div className="flex flex-col gap-2 px-5 py-4">
-              {RECEIVING_DOCK_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  disabled={isAssigningDock}
-                  onClick={() => handleAssignDock(dockPopupFor, option)}
-                  className={`flex h-[42px] items-center justify-center gap-2 rounded-[11px] border text-[13.5px] font-bold transition hover:brightness-105 disabled:opacity-60 ${tokenBorder} ${tokenInputBg} ${tokenText} ${MONO}`}
-                >
-                  {isAssigningDock ? <MobileButtonSpinner size={18} /> : option}
-                </button>
-              ))}
+              {dockOptions.length === 0 ? (
+                <p className={`text-[12.5px] leading-[1.5] ${tokenTextSub}`}>
+                  Nenhuma doca cadastrada. Cadastre um endereço com área &quot;Recebimento&quot; em
+                  Configurações › Endereços.
+                </p>
+              ) : (
+                dockOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    disabled={isAssigningDock}
+                    onClick={() => handleAssignDock(dockPopupFor, option)}
+                    className={`flex h-[42px] items-center justify-center gap-2 rounded-[11px] border text-[13.5px] font-bold transition hover:brightness-105 disabled:opacity-60 ${tokenBorder} ${tokenInputBg} ${tokenText} ${MONO}`}
+                  >
+                    {isAssigningDock ? <MobileButtonSpinner size={18} /> : option}
+                  </button>
+                ))
+              )}
               {dockError ? <p className="text-[12px] font-semibold text-[#EF4444]">{dockError}</p> : null}
             </div>
           </div>

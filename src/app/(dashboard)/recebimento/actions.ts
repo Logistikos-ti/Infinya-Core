@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { registrarLancamentoRecebimento } from "@/lib/billing";
-import { RECEIVING_DOCK_OPTIONS } from "@/lib/receiving";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Atribui/edita a doca de um pedido já criado — usado pelo popup de seleção
@@ -18,7 +17,17 @@ export async function assignReceivingDock(orderId: string, doca: string) {
 
   const trimmed = doca.trim();
 
-  if (!RECEIVING_DOCK_OPTIONS.includes(trimmed as (typeof RECEIVING_DOCK_OPTIONS)[number])) {
+  // Docas = endereços cadastrados com área "Recebimento" (não existe cadastro
+  // próprio de docas — usa o mesmo cadastro de Endereços de Configurações).
+  const { data: enderecoValido } = await supabase
+    .from("enderecos")
+    .select("codigo")
+    .eq("codigo", trimmed)
+    .eq("area", "RECEBIMENTO")
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (!enderecoValido) {
     return { error: "Selecione uma doca válida." };
   }
 
