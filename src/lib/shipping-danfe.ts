@@ -215,7 +215,6 @@ function buildSimplifiedDanfePage(parsed: ParsedNfe, carrierName: string, volume
   const visibleItems = parsed.items.slice(0, 5);
   let itemY = 194;
   visibleItems.forEach((item, index) => {
-    if (index % 2 === 0) fillRect(operations, 14, itemY - 5, 260, 13, LIGHT);
     text(operations, 21, itemY, String(index + 1), 6.1, DARK, false);
     text(operations, 43, itemY, truncate(safeAscii(item.codigo ?? item.ean ?? "-"), 11), 6.1, DARK, false);
     text(operations, 89, itemY, truncate(safeAscii(item.descricao), 26), 6.1, DARK, false);
