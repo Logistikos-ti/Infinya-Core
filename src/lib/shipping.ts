@@ -1543,3 +1543,77 @@ function isShippingDocumentLinkMissing(error: { code?: string; message?: string 
   return error.code === "42703" || error.message?.includes("pedido_expedicao_id") === true;
 }
 
+export type PickingWaveSummary = {
+  id: string;
+  code: string;
+  status: string;
+  operatorName: string | null;
+  orderCount: number;
+  progressPct: number;
+  startedAt: string | null;
+};
+
+// Mesmo critério de "pedido avançou além da separação" usado em
+// listActivePickingWavesAction (expedicao/separacao/actions.ts) — duplicado
+// aqui de propósito: esta é uma leitura simples pro dashboard, sem o
+// side-effect de fechar ondas obsoletas que aquela action já faz sozinha
+// sempre que a tela de separação carrega.
+const PICKING_ADVANCED_STATUSES = [
+  "SEPARADO",
+  "EM_CONFERENCIA",
+  "CONFERIDO",
+  "PRONTO_ROMANEIO",
+  "EXPEDIDO",
+  "CANCELADO",
+];
+
+export async function listActivePickingWavesSummary(limit: number = 5): Promise<PickingWaveSummary[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("ondas_separacao")
+    .select(
+      `id, codigo, status, iniciado_em,
+       operador:usuarios!ondas_separacao_operador_id_fkey(nome),
+       pedidos:ondas_separacao_pedidos(pedido_expedicao_id)`,
+    )
+    .in("status", ["PENDENTE", "EM_SEPARACAO"])
+    .order("criado_em", { ascending: false })
+    .limit(limit);
+
+  if (error || !data?.length) return [];
+
+  const allOrderIds = Array.from(
+    new Set(
+      data.flatMap((wave) =>
+        ((wave.pedidos ?? []) as { pedido_expedicao_id: string }[]).map((p) => p.pedido_expedicao_id),
+      ),
+    ),
+  );
+
+  const statusById = new Map<string, string>();
+  if (allOrderIds.length) {
+    const { data: orderStatuses } = await supabase
+      .from("pedidos_expedicao")
+      .select("id, status")
+      .in("id", allOrderIds);
+    for (const order of orderStatuses ?? []) statusById.set(order.id, order.status);
+  }
+
+  return data.map((wave) => {
+    const orderIds = ((wave.pedidos ?? []) as { pedido_expedicao_id: string }[]).map(
+      (p) => p.pedido_expedicao_id,
+    );
+    const advanced = orderIds.filter((id) => PICKING_ADVANCED_STATUSES.includes(statusById.get(id) ?? "")).length;
+    const operador = Array.isArray(wave.operador) ? wave.operador[0] : wave.operador;
+    return {
+      id: wave.id as string,
+      code: wave.codigo as string,
+      status: wave.status as string,
+      operatorName: (operador as { nome?: string } | null)?.nome ?? null,
+      orderCount: orderIds.length,
+      progressPct: orderIds.length ? Math.round((advanced / orderIds.length) * 100) : 0,
+      startedAt: (wave.iniciado_em as string | null) ?? null,
+    };
+  });
+}
+
