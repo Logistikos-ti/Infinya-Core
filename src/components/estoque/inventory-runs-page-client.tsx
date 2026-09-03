@@ -110,10 +110,13 @@ export function InventoryRunsPageClient({
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  useEffect(() => {
-    router.push(depositanteId ? `/estoque/inventarios?depositante=${depositanteId}` : "/estoque/inventarios");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depositanteId]);
+  // Só navega quando o filtro realmente muda por ação do usuário -- um
+  // useEffect disparando no mount empurraria a navegação toda vez que este
+  // componente é montado em qualquer lugar (não só na tela real).
+  function handleDepositanteChange(value: string) {
+    setDepositanteId(value);
+    router.push(value ? `/estoque/inventarios?depositante=${value}` : "/estoque/inventarios");
+  }
 
   const now = useMemo(() => new Date(), []);
 
@@ -262,7 +265,7 @@ export function InventoryRunsPageClient({
             </div>
 
             {canSelectDepositante ? (
-              <SelectPill value={depositanteId} onChange={setDepositanteId} C={C}>
+              <SelectPill value={depositanteId} onChange={handleDepositanteChange} C={C}>
                 {depositanteOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.nome}
