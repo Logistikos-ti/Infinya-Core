@@ -83,7 +83,7 @@ export default async function ConfiguracoesProdutosPage({
     }
 
     if (tamanhoFiltro) {
-      nextQuery = nextQuery.eq("tamanho", tamanhoFiltro) as T;
+      nextQuery = nextQuery.ilike("tamanho", tamanhoFiltro) as T;
     }
 
     return nextQuery;
@@ -235,9 +235,12 @@ export default async function ConfiguracoesProdutosPage({
     ]),
   ) as string[];
 
-  const tamanhoOptions = Array.from(
-    new Set((tamanhoRows ?? []).map((row) => row.tamanho?.trim()).filter((value): value is string => Boolean(value))),
-  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const tamanhoByUpperCase = new Map<string, string>();
+  for (const row of tamanhoRows ?? []) {
+    const value = row.tamanho?.trim();
+    if (value) tamanhoByUpperCase.set(value.toUpperCase(), value.toUpperCase());
+  }
+  const tamanhoOptions = Array.from(tamanhoByUpperCase.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   return (
     <div className="space-y-6">
