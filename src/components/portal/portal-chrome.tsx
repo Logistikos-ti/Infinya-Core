@@ -417,7 +417,13 @@ export function PortalChrome({
           <ThemeToggle />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-5 lg:px-4">
+        <div
+          className={
+            currentView === "faturas"
+              ? "flex-1 overflow-y-auto px-4 pb-6 pt-5 sm:px-8"
+              : "flex-1 overflow-y-auto px-3 py-6 sm:px-5 lg:px-4"
+          }
+        >
           {children}
         </div>
 

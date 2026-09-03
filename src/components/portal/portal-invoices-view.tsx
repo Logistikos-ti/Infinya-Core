@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
+import { FIN_HEADING, FIN_MONO } from "@/components/financeiro/fin-ui";
 
 type FaturaRow = {
   id: string;
@@ -81,9 +82,9 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#101b30]">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className={`${FIN_HEADING} w-full min-w-[720px] text-left text-sm`}>
         <thead>
-          <tr className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <tr className={`${FIN_MONO} text-[10.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500`}>
             <th className="px-5 py-3">Fatura</th>
             <th className="px-3 py-3">Referência</th>
             <th className="px-3 py-3 text-right">Valor</th>
@@ -95,16 +96,16 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
           {faturas.map((f) => (
             <tr key={f.id}>
-              <td className="px-5 py-3.5 font-mono text-sm font-bold text-slate-900 dark:text-white">
+              <td className={`${FIN_MONO} px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-white`}>
                 {f.codigo}
               </td>
               <td className="px-3 py-3.5 text-slate-600 dark:text-slate-300">
                 {formatMesAnoCurto(f.mesAno)}
               </td>
-              <td className="px-3 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+              <td className={`${FIN_MONO} px-3 py-3.5 text-right font-bold text-slate-900 dark:text-white`}>
                 {formatCurrency(f.totalAPagar)}
               </td>
-              <td className="px-3 py-3.5 font-mono text-xs text-slate-400 dark:text-slate-500">
+              <td className={`${FIN_MONO} px-3 py-3.5 text-xs text-slate-400 dark:text-slate-500`}>
                 {formatDateBr(f.vencimento)}
               </td>
               <td className="px-3 py-3.5">
