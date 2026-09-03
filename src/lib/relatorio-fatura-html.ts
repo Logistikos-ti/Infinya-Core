@@ -94,7 +94,7 @@ export function renderRelatorioFaturaHtml(d: RelatorioFaturaData): string {
           )
           .join("")}
       </svg>
-      <div class="center"><div class="v">${fmtCurrency(d.totalLogistica)}</div><div class="l">Total Logística</div></div>`;
+      <div class="center"><div><div class="v">${fmtCurrency(d.totalLogistica)}</div><div class="l">Total Logística</div></div></div>`;
 
   const compLegend = arcs
     .map(
