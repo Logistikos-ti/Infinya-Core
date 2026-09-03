@@ -273,10 +273,9 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
       ) : null}
       {view === "faturas" ? (
         <>
-          <ViewHeader
-            title="Faturas"
-            description="Suas faturas e histórico de cobranças."
-          />
+          <p className="mb-4 text-sm text-slate-500 dark:text-zinc-400">
+            Suas faturas e histórico de cobranças.
+          </p>
           <PortalInvoicesView depositanteId={depositanteId} />
         </>
       ) : null}

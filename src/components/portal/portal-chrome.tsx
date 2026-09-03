@@ -23,6 +23,7 @@ import {
 import { FirstAccessPasswordDialog } from "@/components/layout/first-access-password-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
+import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import type { AppUserContext } from "@/lib/auth";
 import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
 
@@ -318,7 +319,7 @@ export function PortalChrome({
   return (
     <div
       style={style}
-      className="flex min-h-screen w-full overflow-hidden bg-[#f5f7fb] text-slate-900 dark:bg-[#0a1120] dark:text-slate-100"
+      className="flex min-h-screen w-full overflow-hidden bg-background text-slate-900 dark:text-slate-100"
     >
       {/* Wrapper com largura reservada — sidebar é position:fixed no CSS novo,
           então o flex-1 do main precisaria passar por baixo sem esse spacer. */}
@@ -342,16 +343,24 @@ export function PortalChrome({
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex min-h-[68px] shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/80 bg-white/80 px-5 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#0c1424]/80 sm:flex-nowrap sm:px-7 sm:py-0">
-          <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 dark:border-white/10 dark:bg-white/5 sm:max-w-[420px]">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
-            <input
-              aria-label="Buscar no portal"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={currentView === "produtos" ? "Filtrar produtos..." : "Buscar pedido, cliente, canal..."}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
+          {currentView === "faturas" ? (
+            <span
+              className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
+            >
+              Faturas
+            </span>
+          ) : (
+            <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 dark:border-white/10 dark:bg-white/5 sm:max-w-[420px]">
+              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+              <input
+                aria-label="Buscar no portal"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={currentView === "produtos" ? "Filtrar produtos..." : "Buscar pedido, cliente, canal..."}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+          )}
           <div className="hidden flex-1 sm:block" />
           {isMasterPreview ? (
             <div className="flex w-full min-w-[300px] items-center justify-end gap-2 sm:w-auto">
