@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/api-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+// Mesma regra de vencimento usada no financeiro do backoffice: dia 10 do mês
+// seguinte à competência.
+function faturaVencimento(mesAno: string): string {
+  const [year, month] = mesAno.split("-").map(Number);
+  const next = new Date(Date.UTC(year, month, 10));
+  return next.toISOString().slice(0, 10);
+}
+
+// Código curto pro portal (sem o sufixo do depositante, que só faz sentido
+// quando várias empresas aparecem juntas, como no financeiro do backoffice).
+function faturaCodigoCurto(mesAno: string): string {
+  return `FAT-${mesAno.replace("-", "").slice(2)}`;
+}
+
 export async function GET(request: Request) {
   const auth = await requireApiUser();
   if (auth.response) return auth.response;
@@ -20,45 +34,21 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdminClient();
 
-  const { data: faturas } = await admin
+  const { data: faturasRaw } = await admin
     .from("faturas")
-    .select("*")
+    .select("id, mes_ano, status, total_a_pagar")
     .eq("depositante_id", depositanteId)
     .order("mes_ano", { ascending: false })
     .limit(24);
 
-  const mesAtual = new Date().toISOString().slice(0, 7);
+  const faturas = (faturasRaw ?? []).map((f) => ({
+    id: f.id as string,
+    codigo: faturaCodigoCurto(f.mes_ano as string),
+    mesAno: f.mes_ano as string,
+    status: f.status as string,
+    totalAPagar: Number(f.total_a_pagar),
+    vencimento: faturaVencimento(f.mes_ano as string),
+  }));
 
-  const { data: lancamentosMesAtual } = await admin
-    .from("lancamentos")
-    .select("*")
-    .eq("depositante_id", depositanteId)
-    .eq("mes_ano", mesAtual)
-    .eq("estornado", false)
-    .order("created_at", { ascending: false });
-
-  const { data: resumoMesAtual } = await admin
-    .from("lancamentos")
-    .select("tipo_servico, valor_total")
-    .eq("depositante_id", depositanteId)
-    .eq("mes_ano", mesAtual)
-    .eq("estornado", false);
-
-  const totaisPorServico: Record<string, { qtd: number; total: number }> = {};
-  let totalMesAtual = 0;
-
-  for (const l of resumoMesAtual ?? []) {
-    const tipo = l.tipo_servico as string;
-    if (!totaisPorServico[tipo]) totaisPorServico[tipo] = { qtd: 0, total: 0 };
-    totaisPorServico[tipo].qtd++;
-    totaisPorServico[tipo].total += Number(l.valor_total);
-    totalMesAtual += Number(l.valor_total);
-  }
-
-  return NextResponse.json({
-    faturas: faturas ?? [],
-    lancamentosMesAtual: lancamentosMesAtual ?? [],
-    resumoMesAtual: totaisPorServico,
-    totalMesAtual,
-  });
+  return NextResponse.json({ faturas });
 }

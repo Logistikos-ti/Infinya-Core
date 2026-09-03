@@ -47,6 +47,7 @@ export type RelatorioRecebimentoItem = {
 
 export type RelatorioFaturaData = {
   faturaId: string;
+  depositanteId: string;
   codigo: string;
   cliente: string;
   razaoSocial: string;
@@ -467,6 +468,7 @@ export async function buildRelatorioFaturaData(faturaId: string): Promise<Relato
 
   return {
     faturaId: fatura.id as string,
+    depositanteId: dep?.id ?? "",
     codigo: (fatura as { codigo?: string | null }).codigo ?? fatura.id,
     cliente: dep?.nome ?? "—",
     razaoSocial: config.razaoSocial || dep?.nome || "—",

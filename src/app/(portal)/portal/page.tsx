@@ -275,7 +275,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         <>
           <ViewHeader
             title="Faturas"
-            description="Acompanhe suas faturas e os custos operacionais em tempo real."
+            description="Suas faturas e histórico de cobranças."
           />
           <PortalInvoicesView depositanteId={depositanteId} />
         </>
