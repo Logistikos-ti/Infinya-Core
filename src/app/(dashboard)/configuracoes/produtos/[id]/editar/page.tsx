@@ -26,7 +26,7 @@ async function fetchProductForEdit(
   id: string,
 ) {
   const fullSelect =
-    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
+    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, tamanho, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
   const result = await adminSupabase.from("produtos").select(fullSelect).eq("id", id).maybeSingle();
 
   // "endereco_padrao_id" may not exist yet in an environment that hasn't run
@@ -34,7 +34,7 @@ async function fetchProductForEdit(
   // breaking the whole edit page over one missing column.
   if (result.error && result.error.message.includes("endereco_padrao_id")) {
     const fallbackSelect =
-      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
+      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, fornecedor, descricao, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima, ponto_reposicao, custo_reposicao, categoria, tamanho, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
     return adminSupabase.from("produtos").select(fallbackSelect).eq("id", id).maybeSingle();
   }
 
@@ -91,6 +91,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     product.sku ?? "",
     product.nome ?? "",
     product.categoria ?? "",
+    product.tamanho ?? "",
     product.metodo_retirada ?? "",
     product.unidade_estocagem ?? "",
     String(product.quantidade_por_embalagem ?? ""),
@@ -118,6 +119,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
             eanGtin: product.codigo_externo ?? "",
             eanGtinPack: product.codigo_externo_pack ?? "",
             categoria: product.categoria ?? "",
+            tamanho: product.tamanho ?? "",
             fornecedor: product.fornecedor ?? "",
             descricao: product.descricao ?? "",
             pesoKg: product.peso_kg ?? null,

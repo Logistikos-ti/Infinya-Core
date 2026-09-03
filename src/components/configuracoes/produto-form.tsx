@@ -37,6 +37,7 @@ type ProdutoFormProps = {
     eanGtin?: string;
     eanGtinPack?: string;
     categoria?: string;
+    tamanho?: string;
     fornecedor?: string;
     tipoProduto?: "SIMPLES" | "KIT";
     enderecoPadraoId?: string | null;
@@ -111,7 +112,7 @@ export function ProdutoForm({
   const [codigoInterno, setCodigoInterno] = useState(defaultValues?.codigoInterno ?? "");
   
   const [categoria, setCategoria] = useState(defaultValues?.categoria ?? "Seco / Ambiente");
-  const [tamanho, setTamanho] = useState((defaultValues as any)?.tamanho ?? "");
+  const [tamanho, setTamanho] = useState(defaultValues?.tamanho ?? "");
   const [metodoRetirada, setMetodoRetirada] = useState<"FEFO" | "FIFO" | "LIFO">(defaultValues?.metodoRetirada ?? "FEFO");
   const [enderecoPadraoId, setEnderecoPadraoId] = useState(defaultValues?.enderecoPadraoId ?? "");
   const [unidadeEstocagem, setUnidadeEstocagem] = useState<"UNIDADE" | "CAIXA" | "PACK" | "PALLET">(defaultValues?.unidadeEstocagem ?? "UNIDADE");
@@ -386,18 +387,22 @@ export function ProdutoForm({
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-bold text-slate-500">Depositante <span className="text-rose-500">*</span></span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
-                    <select name="depositanteId" value={depositanteId} onChange={e => setDepositanteId(e.target.value)} 
-                      className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
-                      <option value="">Selecione...</option>
-                      {depositantes.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                    </select>
-                  </div>
-                </label>
-              </div>
+              {depositantes.length > 1 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-[13px] font-bold text-slate-500">Depositante <span className="text-rose-500">*</span></span>
+                    <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                      <select name="depositanteId" value={depositanteId} onChange={e => setDepositanteId(e.target.value)}
+                        className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
+                        <option value="">Selecione...</option>
+                        {depositantes.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                      </select>
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <input type="hidden" name="depositanteId" value={depositanteId} />
+              )}
 
               <div className="flex flex-col gap-2.5 mt-2">
                 <span className="text-[13px] font-bold text-slate-500">Categoria operacional <span className="text-rose-500">*</span></span>

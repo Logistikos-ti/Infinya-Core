@@ -28,7 +28,7 @@ async function fetchProductForEdit(
   id: string,
 ) {
   const fullSelect =
-    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
+    "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, tamanho, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo, endereco_padrao_id";
   const result = await supabase.from("produtos").select(fullSelect).eq("id", id).maybeSingle();
 
   // "endereco_padrao_id" may not exist yet in an environment that hasn't run
@@ -36,7 +36,7 @@ async function fetchProductForEdit(
   // breaking the whole edit page over one missing column.
   if (result.error && result.error.message.includes("endereco_padrao_id")) {
     const fallbackSelect =
-      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
+      "id, depositante_id, codigo_interno, codigo_externo, codigo_externo_pack, sku, nome, categoria, tamanho, metodo_retirada, unidade_estocagem, quantidade_por_embalagem, exige_lote, exige_validade, ativo";
     return supabase.from("produtos").select(fallbackSelect).eq("id", id).maybeSingle();
   }
 
@@ -93,6 +93,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
     product.sku ?? "",
     product.nome ?? "",
     product.categoria ?? "",
+    product.tamanho ?? "",
     product.metodo_retirada ?? "",
     product.unidade_estocagem ?? "",
     String(product.quantidade_por_embalagem ?? ""),
@@ -137,6 +138,7 @@ export default async function MobileEditarProdutoPage({ params, searchParams }: 
           eanGtin: product.codigo_externo ?? "",
           eanGtinPack: product.codigo_externo_pack ?? "",
           categoria: product.categoria ?? "",
+          tamanho: product.tamanho ?? "",
           tipoProduto: "SIMPLES",
           enderecoPadraoId: (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? null,
           metodoRetirada: product.metodo_retirada,
