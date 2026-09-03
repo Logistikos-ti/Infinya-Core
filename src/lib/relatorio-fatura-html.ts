@@ -69,7 +69,7 @@ export function renderRelatorioFaturaHtml(d: RelatorioFaturaData): string {
     <div class="fat-card-grid-bg"></div>
     <div class="fat-left">
       <div class="fat-eyebrow"><span class="dot"></span>Volume Transacionado · ${esc(d.periodoMesAno)}</div>
-      <h1 class="fat-headline">Faturamento <span class="ital">total</span> do cliente.</h1>
+      <div class="fat-headline">Faturamento <span class="ital">total</span> do cliente</div>
       <p class="fat-sub">Soma de todas as <strong>${totalNfs} notas fiscais</strong> processadas pela Infinoos WMS no período — operações de expedição + ponto de coleta consolidadas.</p>
       <div class="fat-meta">
         <div class="meta-item"><span class="l">Expedição</span><span class="v">${fmtCurrency(d.valorExpedicao)}</span><span class="x">${d.nfsExpedicaoCount} NFs</span></div>
@@ -85,8 +85,8 @@ export function renderRelatorioFaturaHtml(d: RelatorioFaturaData): string {
     : "";
 
   const donutSvg = `
-      <svg viewBox="0 0 200 200">
-        <circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--bg-3)" stroke-width="16"></circle>
+      <svg viewBox="0 0 200 200" style="width:100%;height:100%">
+        <circle cx="100" cy="100" r="${R}" fill="none" stroke="var(--bg-2)" stroke-width="16"></circle>
         ${arcs
           .map(
             (a) =>
@@ -222,9 +222,10 @@ button { font-family: inherit; cursor: pointer; }
 @keyframes pulseLime { 0%,100% { box-shadow: 0 0 0 0 rgba(15,157,109,.4); } 50% { box-shadow: 0 0 0 7px transparent; } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes barGrow { from { width: 0 !important; } }
+@keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
 nav.top { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 14px 40px; background: var(--nav-bg); backdrop-filter: blur(18px) saturate(1.4); border-bottom: 1px solid var(--border); }
 nav.top .brand { display: flex; align-items: center; gap: 18px; }
-nav.top .brand-glyph { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; background: #071120; flex-shrink: 0; }
+nav.top .brand-mark { height: 30px; width: auto; display: block; }
 nav.top .brand-wordmark { display: inline-flex; flex-direction: column; gap: 2px; line-height: 1; }
 nav.top .brand-wordmark .infinoos-label { font-family: var(--font-mono); font-size: 9.5px; font-weight: 500; letter-spacing: .34em; color: var(--ink-text); text-transform: uppercase; }
 nav.top .brand-wordmark .wms { font-family: var(--font-display); font-size: 22px; font-weight: 800; letter-spacing: -.01em; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
@@ -257,7 +258,8 @@ nav.top .nav-right { display: flex; align-items: center; gap: 10px; }
 .info-strip .cell .status-tag::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 0 16px 2px rgba(255,255,255,.6); animation: pulseLime 2s infinite; flex-shrink: 0; }
 .tabs { position: sticky; top: 63px; z-index: 50; padding: 16px 40px; margin-top: 48px; background: linear-gradient(180deg, rgba(var(--bg-rgb),.95), rgba(var(--bg-rgb),.6)); backdrop-filter: blur(14px); }
 .tabs-inner { max-width: 1400px; margin: 0 auto; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 5px; background: var(--bg-1); border: 1px solid var(--border-2); border-radius: 100px; width: max-content; box-shadow: var(--shadow); }
-.tab-btn { font-family: var(--font-display); font-size: 13.5px; font-weight: 500; padding: 10px 18px 10px 14px; background: transparent; border: none; border-radius: 100px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.tab-btn { font-family: var(--font-display); font-size: 13.5px; font-weight: 500; padding: 10px 18px 10px 14px; background: transparent; border: none; border-radius: 100px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; white-space: nowrap; transition: color .15s, background .2s; }
+.tab-btn:hover { color: var(--text); background: var(--bg-2); }
 .tab-btn .num { font-family: var(--font-mono); font-size: 10px; color: var(--text-dimmer); letter-spacing: .06em; }
 .tab-btn .count { font-family: var(--font-mono); background: var(--bg-2); color: var(--text-dim); font-size: 10.5px; padding: 3px 8px; border-radius: 100px; }
 .tab-btn.active { color: #fff; background: var(--grad); box-shadow: 0 6px 18px -6px rgba(109,125,255,.5); }
@@ -286,7 +288,7 @@ nav.top .nav-right { display: flex; align-items: center; gap: 10px; }
 .fat-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--orange); padding: 7px 14px; background: var(--orange-dim); border-radius: 100px; margin-bottom: 24px; }
 .fat-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); animation: pulse 2s infinite; }
 .fat-headline { font-size: clamp(26px, 3.6vw, 38px); font-weight: 700; letter-spacing: -.04em; line-height: 1.05; margin-bottom: 16px; color: var(--ink-text); }
-.fat-headline .ital { font-style: italic; font-weight: 300; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; padding-right: 0.16em; margin-right: -0.16em; }
+.fat-headline .ital { font-style: italic; font-weight: 300; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; display: inline-block; padding-left: 0.02em; padding-right: 0.14em; margin-right: -0.14em; }
 .fat-sub { font-size: 15px; line-height: 1.6; color: var(--text-dim); max-width: 56ch; margin-bottom: 30px; }
 .fat-sub strong { color: var(--ink-text); font-weight: 600; }
 .fat-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -302,10 +304,10 @@ nav.top .nav-right { display: flex; align-items: center; gap: 10px; }
 .fat-foot .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: pulseLime 2s infinite; }
 @media (max-width: 760px) { .fat-card { grid-template-columns: 1fr; } .fat-left { border-right: none; border-bottom: 1px solid var(--border); } .fat-meta { grid-template-columns: 1fr; } }
 .comp-chart { display: grid; grid-template-columns: auto 1fr; gap: 44px; background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r); padding: 32px 36px; margin-bottom: 44px; align-items: center; box-shadow: var(--shadow); }
-.comp-chart .donut { width: 220px; height: 220px; position: relative; flex-shrink: 0; }
+.comp-chart .donut { width: 260px; height: 260px; position: relative; flex-shrink: 0; }
 .comp-chart .donut .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
-.comp-chart .donut .center .v { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -.03em; line-height: 1.15; color: var(--ink-text); }
-.comp-chart .donut .center .l { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim); margin-top: 5px; }
+.comp-chart .donut .center .v { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; color: var(--ink-text); }
+.comp-chart .donut .center .l { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); margin-top: 5px; }
 .comp-chart .legend { display: flex; flex-direction: column; gap: 4px; }
 .comp-chart .legend .item { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .comp-chart .legend .item:last-child { border-bottom: none; }
@@ -323,8 +325,9 @@ nav.top .nav-right { display: flex; align-items: center; gap: 10px; }
 .service-row .name { font-size: 14.5px; font-weight: 500; }
 .service-row .name .detail { display: block; font-size: 12px; color: var(--text-dim); margin-top: 3px; }
 .service-row .name .detail em { font-style: normal; color: var(--orange); font-weight: 500; font-family: var(--font-mono); font-size: 11.5px; }
-.service-row .bar { height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden; }
-.service-row .bar-fill { height: 100%; background: var(--grad); border-radius: 3px; animation: barGrow 1.2s cubic-bezier(.22,1,.36,1) both; }
+.service-row .bar { height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden; position: relative; }
+.service-row .bar-fill { height: 100%; background: var(--grad); border-radius: 3px; position: relative; animation: barGrow 1.2s cubic-bezier(.22,1,.36,1) both; }
+.service-row .bar-fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent); animation: scan 3s infinite; }
 .service-row .val { font-family: var(--font-mono); font-size: 14px; text-align: right; font-weight: 500; }
 .fin-summary .total-block { background: var(--grad); color: #fff; border: none; border-radius: var(--r); padding: 32px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 24px -10px rgba(109,125,255,.5); }
 .calc-line { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.25); }
@@ -378,7 +381,7 @@ nav.top .nav-right { display: flex; align-items: center; gap: 10px; }
 .insumo-card .total { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-2); display: flex; justify-content: space-between; align-items: baseline; }
 .insumo-card .total .l { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--orange); }
 .insumo-card .total .v { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -.03em; color: var(--orange); }
-.back-top-wrap { margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.back-top-wrap { margin-top: 72px; display: flex; flex-direction: column; align-items: center; gap: 28px; }
 .back-top { position: relative; display: inline-flex; align-items: center; gap: 14px; font-family: var(--font-display); font-size: 13.5px; font-weight: 500; color: #fff; padding: 10px 22px 10px 10px; background: var(--ink); border: none; border-radius: 100px; cursor: pointer; outline: none; overflow: hidden; isolation: isolate; transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .3s; box-shadow: 0 16px 32px -16px rgba(11,15,34,.6); }
 .back-top::before { content: ""; position: absolute; inset: -1px; border-radius: 100px; background: var(--grad); opacity: 0; transition: opacity .3s; z-index: 0; }
 .back-top .arrow-up, .back-top .lbl-main, .back-top .lbl-meta { position: relative; z-index: 1; }
@@ -403,20 +406,23 @@ footer .slogan { margin-bottom: 10px; font-family: var(--font-display); font-siz
 
 <nav class="top">
   <div class="brand">
-    <div class="brand-glyph">
-      <svg viewBox="0 0 120 96" width="20" height="16">
-        <defs>
-          <linearGradient id="ggrad" x1="0" y1="0" x2="1" y2="0.6">
-            <stop offset="0" stop-color="#38bdf8"></stop><stop offset="0.5" stop-color="#4f6cf7"></stop><stop offset="1" stop-color="#a855f7"></stop>
-          </linearGradient>
-        </defs>
-        <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="url(#ggrad)" stroke-width="10.5"></path>
-        <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.8"></path>
+    <svg class="brand-mark" viewBox="0 0 120 96">
+      <defs>
+        <linearGradient id="ggrad" x1="0" y1="0" x2="1" y2="0.6">
+          <stop offset="0" stop-color="#38bdf8"></stop><stop offset="0.5" stop-color="#4f6cf7"></stop><stop offset="1" stop-color="#a855f7"></stop>
+        </linearGradient>
+        <filter id="gglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5"></feGaussianBlur></filter>
+      </defs>
+      <g filter="url(#gglow)" opacity="0.85">
+        <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="url(#ggrad)" stroke-width="12"></path>
         <path d="M44,33 L44,14 L60,4 L76,14 L76,33 Z" fill="url(#ggrad)"></path>
-        <path d="M44,14 L60,4 L76,14" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>
-        <path d="M53,33 L53,21 L67,21 L67,33" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round"></path>
-      </svg>
-    </div>
+      </g>
+      <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="url(#ggrad)" stroke-width="10.5"></path>
+      <path d="M20,62 C20,40 46,40 60,62 C74,84 100,84 100,62 C100,40 74,40 60,62 C46,84 20,84 20,62 Z" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.8"></path>
+      <path d="M44,33 L44,14 L60,4 L76,14 L76,33 Z" fill="url(#ggrad)"></path>
+      <path d="M44,14 L60,4 L76,14" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>
+      <path d="M53,33 L53,21 L67,21 L67,33" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.4" stroke-linejoin="round"></path>
+    </svg>
     <div class="brand-wordmark"><span class="infinoos-label">Infinoos</span><span class="wms">WMS</span></div>
     <div class="brand-divider"></div>
     <span class="brand-sub">Fechamento Financeiro</span>
@@ -429,7 +435,7 @@ footer .slogan { margin-bottom: 10px; font-family: var(--font-display); font-siz
 
 <header class="hero-header">
   <div class="eyebrow"><span class="dot"></span>Documento · Fechamento Mensal · ${esc(d.periodoRef)}</div>
-  <h1>Fechamento<br><span class="ital">Financeiro</span>.</h1>
+  <h1>Fechamento <span class="ital">Financeiro</span>&nbsp;.</h1>
   <p class="subline">Resumo consolidado das operações logísticas executadas em ${esc(d.periodo)} para ${esc(d.cliente)}.</p>
 
   <div class="info-strip">
@@ -526,9 +532,9 @@ ${
 
 <div class="back-top-wrap">
   <button class="back-top" id="backTop">
-    <span class="arrow-up">↑</span>
+    <span class="arrow-up"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></span>
     <span class="lbl-main">Voltar ao topo</span>
-    <span class="lbl-meta">TOP</span>
+    <span class="lbl-meta">↑ TOP</span>
   </button>
 </div>
 
