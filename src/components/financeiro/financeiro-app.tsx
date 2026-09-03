@@ -519,7 +519,31 @@ export function FinanceiroApp(props: Props) {
             <span key="m" className={COL_MUTED}>{formatMesAno(f.mesAno)}</span>,
             <span key="v" className={COL_MUTED_MONO}>{formatDateBr(f.vencimento)}</span>,
             <span key="val" className={COL_VALUE}>{fmt(f.valor)}</span>,
-            <FinBadge key="s" status={f.status} />,
+            <div key="s" className="flex items-center gap-1.5">
+              <FinBadge status={f.status} />
+              {f.boletoUrl && f.status !== "PAGO" && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const res = await fetch(`/api/financeiro/faturas/${f.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ status: "PAGO" }),
+                    });
+                    if (res.ok) {
+                      showToast("Fatura marcada como paga");
+                      router.refresh();
+                    } else {
+                      showToast("Erro ao marcar como paga");
+                    }
+                  }}
+                  title="Marcar como pago"
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white transition hover:brightness-110"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>,
             <span key="arrow" className={COL_ARROW}>›</span>,
           ],
         })),
