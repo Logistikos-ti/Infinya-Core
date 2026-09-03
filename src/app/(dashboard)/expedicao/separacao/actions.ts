@@ -464,7 +464,10 @@ export async function savePickingWaveProgressAction(formData: FormData) {
             },
           },
         })
-        .eq("id", orderId);
+        .eq("id", orderId)
+        // Optimistic-concurrency guard (WMS-1737) -- see the matching comment
+        // in savePickingWaveDraftAction above for the race this closes.
+        .eq("status", order.status);
     })
     .filter(Boolean);
 
@@ -633,7 +636,14 @@ export async function savePickingWaveDraftAction(
             },
           },
         })
-        .eq("id", order.id);
+        .eq("id", order.id)
+        // Optimistic-concurrency guard (WMS-1737): this action's status/payload
+        // read happens once at the top of a debounced batch autosave, but the
+        // write lands seconds later. If something else (e.g. a conference
+        // completion) already advanced this exact order's status in between,
+        // this WHERE clause makes the write match zero rows instead of
+        // clobbering that newer state back with a stale snapshot.
+        .eq("status", order.status);
     });
 
   if (orderUpdates.length) {
