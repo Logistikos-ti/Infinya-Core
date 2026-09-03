@@ -1115,12 +1115,12 @@ export function FinanceiroApp(props: Props) {
           badge={<FinBadge status={activeFatura.status} />}
           footer={
             <div className="flex items-start gap-2">
-              <Link
-                href={`/financeiro/faturas/${activeFatura.id}`}
+              <a
+                href={`/api/financeiro/faturas/${activeFatura.id}/relatorio`}
                 className={`${FIN_HEADING} flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold !text-white`}
               >
                 Ver fatura completa
-              </Link>
+              </a>
               <BoletoButton
                 faturaId={activeFatura.id}
                 initialUrl={activeFatura.boletoUrl}
