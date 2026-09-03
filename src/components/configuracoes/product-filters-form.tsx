@@ -14,11 +14,12 @@ type ProductFiltersFormProps = {
   depositante: string;
   status: string;
   metodo: string;
-  unidade: string;
   categoria: string;
+  tamanho: string;
   perPage: string;
   depositantes: FancySelectOption[];
   categorias: FancySelectOption[];
+  tamanhos: FancySelectOption[];
 };
 
 export function ProductFiltersForm({
@@ -26,18 +27,20 @@ export function ProductFiltersForm({
   depositante,
   status,
   metodo,
-  unidade,
   categoria,
+  tamanho,
   perPage,
   depositantes,
   categorias,
+  tamanhos,
 }: ProductFiltersFormProps) {
   const [depositanteValue, setDepositanteValue] = useState(depositante);
   const [statusValue, setStatusValue] = useState(status);
   const [metodoValue, setMetodoValue] = useState(metodo);
-  const [unidadeValue, setUnidadeValue] = useState(unidade);
   const [categoriaValue, setCategoriaValue] = useState(categoria);
+  const [tamanhoValue, setTamanhoValue] = useState(tamanho);
   const [perPageValue, setPerPageValue] = useState(perPage);
+  const isVestuario = categoriaValue === "Vestuário";
 
   return (
     <form
@@ -65,6 +68,7 @@ export function ProductFiltersForm({
           </div>
         </label>
 
+        {depositantes.length > 1 && (
         <FancySelectInput
           label="Depositante"
           name="depositante"
@@ -72,6 +76,7 @@ export function ProductFiltersForm({
           onChange={setDepositanteValue}
           options={[{ value: "", label: "Todos" }, ...depositantes]}
         />
+        )}
 
         <FancySelectInput
           label="Status"
@@ -101,26 +106,22 @@ export function ProductFiltersForm({
         />
 
         <FancySelectInput
-          label="Unidade"
-          name="unidade"
-          value={unidadeValue}
-          onChange={setUnidadeValue}
-          options={[
-            { value: "", label: "Todas" },
-            { value: "UNIDADE", label: "Unidade" },
-            { value: "CAIXA", label: "Caixa" },
-            { value: "PACK", label: "Pack" },
-            { value: "PALLET", label: "Pallet" },
-          ]}
-        />
-
-        <FancySelectInput
           label="Categoria"
           name="categoria"
           value={categoriaValue}
           onChange={setCategoriaValue}
           options={[{ value: "", label: "Todas" }, ...categorias]}
         />
+
+        {isVestuario && (
+          <FancySelectInput
+            label="Tamanho"
+            name="tamanho"
+            value={tamanhoValue}
+            onChange={setTamanhoValue}
+            options={[{ value: "", label: "Todos" }, ...tamanhos]}
+          />
+        )}
 
         <div className="flex items-end gap-2">
           <FancySelectInput

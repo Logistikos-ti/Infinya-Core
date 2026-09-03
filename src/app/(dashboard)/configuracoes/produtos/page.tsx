@@ -16,8 +16,8 @@ type ConfiguracoesProdutosPageProps = {
     depositante?: string;
     status?: string;
     metodo?: string;
-    unidade?: string;
     categoria?: string;
+    tamanho?: string;
     page?: string;
     perPage?: string;
   }>;
@@ -38,8 +38,8 @@ export default async function ConfiguracoesProdutosPage({
   const depositanteFiltro = params?.depositante?.trim() ?? "";
   const statusFiltro = params?.status?.trim() ?? "ativos";
   const metodoFiltro = params?.metodo?.trim() ?? "";
-  const unidadeFiltro = params?.unidade?.trim() ?? "";
   const categoriaFiltro = params?.categoria?.trim() ?? "";
+  const tamanhoFiltro = params?.tamanho?.trim() ?? "";
   const page = normalizePositiveNumber(params?.page, 1);
   const perPage = normalizePerPage(params?.perPage);
   const startIndex = (page - 1) * perPage;
@@ -78,12 +78,12 @@ export default async function ConfiguracoesProdutosPage({
       nextQuery = nextQuery.eq("metodo_retirada", metodoFiltro) as T;
     }
 
-    if (unidadeFiltro) {
-      nextQuery = nextQuery.eq("unidade_estocagem", unidadeFiltro) as T;
-    }
-
     if (categoriaFiltro) {
       nextQuery = nextQuery.eq("categoria", categoriaFiltro) as T;
+    }
+
+    if (tamanhoFiltro) {
+      nextQuery = nextQuery.eq("tamanho", tamanhoFiltro) as T;
     }
 
     return nextQuery;
@@ -147,9 +147,10 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery = productsQuery.eq("ativo", true).in("id", stockStatusIds);
   }
 
-  const [{ data: products, count }, { data: categoryRows }] = await Promise.all([
+  const [{ data: products, count }, { data: categoryRows }, { data: tamanhoRows }] = await Promise.all([
     emptyStockStatusFilter ? Promise.resolve({ data: [], count: 0 }) : productsQuery,
     adminSupabase.from("produtos").select("categoria").eq("ativo", true),
+    adminSupabase.from("produtos").select("tamanho").eq("ativo", true).eq("categoria", "Vestuário"),
   ]);
 
   // Calculate global KPIs for active products
@@ -190,8 +191,8 @@ export default async function ConfiguracoesProdutosPage({
     depositante: depositanteFiltroEfetivo,
     status: statusFiltro,
     metodo: metodoFiltro,
-    unidade: unidadeFiltro,
     categoria: categoriaFiltro,
+    tamanho: tamanhoFiltro,
     perPage: String(perPage),
   };
 
@@ -234,6 +235,10 @@ export default async function ConfiguracoesProdutosPage({
     ]),
   ) as string[];
 
+  const tamanhoOptions = Array.from(
+    new Set((tamanhoRows ?? []).map((row) => row.tamanho?.trim()).filter((value): value is string => Boolean(value))),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
   return (
     <div className="space-y-6">
       <ProdutosDashboard
@@ -260,8 +265,8 @@ export default async function ConfiguracoesProdutosPage({
             depositante={depositanteFiltroEfetivo}
             status={statusFiltro}
             metodo={metodoFiltro}
-            unidade={unidadeFiltro}
             categoria={categoriaFiltro}
+            tamanho={tamanhoFiltro}
             perPage={String(perPage)}
             depositantes={visibleDepositantes.map((depositante) => ({
               value: depositante.id,
@@ -270,6 +275,10 @@ export default async function ConfiguracoesProdutosPage({
             categorias={categoryOptions.map((categoria) => ({
               value: categoria,
               label: categoria,
+            }))}
+            tamanhos={tamanhoOptions.map((tamanho) => ({
+              value: tamanho,
+              label: tamanho,
             }))}
           />
         }
