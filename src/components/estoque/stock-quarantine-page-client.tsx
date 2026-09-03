@@ -1,22 +1,21 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Eye,
   LoaderCircle,
   PackageOpen,
-  ShieldAlert,
-  Trash2,
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import type { StockQuarantineItem } from "@/lib/stock-quarantine";
 import { quarantineDonatedLabel } from "@/lib/quarantine-labels";
-import { FancySelectInput } from "@/components/ui/fancy-select-input";
-import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type DepositanteOption = {
   id: string;
@@ -34,7 +33,10 @@ type StockQuarantinePageClientProps = {
   canConfirm: boolean;
 };
 
-type TableMode = "status" | "pending-addressing";
+// "status" usa o item.status (server-filtered); os demais são recortes
+// client-side sobre allItems, no mesmo espírito do "pending-addressing" que já
+// existia — nenhum deles depende de round-trip ao servidor.
+type TableMode = "status" | "pending-addressing" | "awaiting-decision" | "discarded-this-month";
 
 function formatQuarantineType(tipo: string) {
   const normalizedType = tipo.trim().toUpperCase();
@@ -42,10 +44,39 @@ function formatQuarantineType(tipo: string) {
   if (normalizedType === "AVARIA") return "Avaria";
   if (normalizedType === "VENCIMENTO") return "Vencimento";
   if (normalizedType === "RECEBIMENTO") return "Recebimento";
-  if (normalizedType === "DEVOLUCAO" || normalizedType === "DEVOLUÇÃO") return "Devolução";
 
   return "Outro";
 }
+
+// Cor do badge de Motivo na tabela (igual ao mock, que colore por tipo).
+function motivoColor(tipo: string, C: Tokens) {
+  const normalizedType = tipo.trim().toUpperCase();
+
+  if (normalizedType === "AVARIA") return C.rose;
+  if (normalizedType === "VENCIMENTO") return C.amber;
+  if (normalizedType === "RECEBIMENTO") return C.blue;
+
+  return C.violetInk;
+}
+
+// Código curto só de exibição (derivado do id real) — não é um novo campo de
+// negócio, é puramente uma facilidade visual pra referenciar o item.
+function shortCode(id: string) {
+  const clean = id.replace(/^(pending-addressing|missing-default-address):/, "").replace(/[^a-zA-Z0-9]/g, "");
+  return `QR-${clean.slice(0, 6).toUpperCase()}`;
+}
+
+function isSameMonth(iso: string | null | undefined, now: Date) {
+  if (!iso) return false;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+}
+
+// Fontes EXATAS do design Infinoos: corpo em Manrope, valores de KPI em Space
+// Grotesk, dados tabulares (código, qtd.) em JetBrains Mono.
+const SPACE = "font-[family-name:var(--font-space-grotesk)]";
+const MONO = "font-[family-name:var(--font-jetbrains-mono)]";
 
 export function StockQuarantinePageClient({
   depositantes,
@@ -53,17 +84,23 @@ export function StockQuarantinePageClient({
   allItems,
   initialDepositanteId,
   initialStatus,
-  initialQuery,
   canSelectDepositante,
   canConfirm,
 }: StockQuarantinePageClientProps) {
   const router = useRouter();
   const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const [, startTransition] = useTransition();
+  // Guarda de montagem: o layout raiz usa defaultTheme="dark", então o SSR
+  // sempre renderiza como se fosse escuro. Sem essa guarda, useTheme()
+  // devolve o tema real já na primeira renderização do cliente — se o
+  // usuário estiver no modo claro, o React troca os estilos logo após
+  // montar e o React acusa mismatch de hidratação. Assume escuro até montar
+  // (igual ao SSR) e só depois reflete o tema real.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted ? theme === "dark" : true;
+  const [isPending, startTransition] = useTransition();
   const [depositanteId, setDepositanteId] = useState(initialDepositanteId);
   const [status, setStatus] = useState(initialStatus);
-  const [query, setQuery] = useState(initialQuery);
   const [tableMode, setTableMode] = useState<TableMode>("status");
   const [selectedItem, setSelectedItem] = useState<StockQuarantineItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -73,82 +110,122 @@ export function StockQuarantinePageClient({
     message: string;
   } | null>(null);
 
-  const t = {
-    border: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
-    text: isDark ? "#F8FAFC" : "#0F172A",
-    textSub: isDark ? "#94A3B8" : "#64748B",
-    cardBg: isDark ? "#0F172A" : "#FFFFFF",
-    inputBg: isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF",
-    softBg: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9",
-    headBg: isDark ? "rgba(255,255,255,0.02)" : "#F8FAFC",
+  // Paleta Infinoos (mesmos tokens da NF-e) — clara/escura via useTheme, sem
+  // depender de classes dark: (mantém o padrão já em uso nesta tela).
+  const C = {
+    panel: isDark ? "#101B30" : "#FFFFFF",
+    panelSoft: isDark ? "#0D1526" : "#F6F8FC",
+    border: isDark ? "rgba(148,163,184,0.14)" : "rgba(15,23,42,0.10)",
+    borderSoft: isDark ? "rgba(148,163,184,0.09)" : "rgba(15,23,42,0.06)",
+    text: isDark ? "#F1F5F9" : "#0F172A",
+    muted: isDark ? "#8695AD" : "#64748B",
+    faint: isDark ? "#64748B" : "#94A3B8",
+    violet: "#8B5CF6",
+    violetInk: isDark ? "#C4B5FD" : "#7C3AED",
+    blue: isDark ? "#3B82F6" : "#2563EB",
+    emerald: isDark ? "#10B981" : "#059669",
+    amber: isDark ? "#F59E0B" : "#B45309",
+    rose: isDark ? "#F43F5E" : "#E11D48",
+    rowHover: isDark ? "rgba(148,163,184,0.05)" : "rgba(15,23,42,0.035)",
+    active: "rgba(139,92,246,0.10)",
+    scrim: isDark ? "rgba(4,8,18,0.62)" : "rgba(15,23,42,0.45)",
   };
 
   const depositanteOptions = useMemo(
-    () => [
-      { value: "", label: "Todos" },
-      ...depositantes.map((item) => ({ value: item.id, label: item.nome })),
-    ],
+    () => [{ id: "", nome: "Todos depositantes" }, ...depositantes],
     [depositantes],
   );
 
+  const now = useMemo(() => new Date(), []);
+
   const stats = useMemo(() => {
-    const count = (targetStatus: string) =>
-      allItems.filter((item) => item.status === targetStatus).length;
-    const pendingAddressing = allItems.filter((item) => item.isMissingDefaultAddress).length;
+    const emQuarentena = allItems.filter((item) => item.status === "EM_QUARENTENA");
+    const awaitingDecision = emQuarentena.filter(
+      (item) => !item.isSystemHold && !item.isMissingDefaultAddress && !item.depositanteDecision,
+    );
+    const discardedThisMonth = allItems.filter(
+      (item) => item.status === "DESCARTADO" && isSameMonth(item.resolvedAt ?? item.createdAt, now),
+    );
+    const pendingAddressing = allItems.filter((item) => item.isMissingDefaultAddress);
 
     return [
       {
-        label: "Em quarentena",
-        value: count("EM_QUARENTENA"),
-        icon: ShieldAlert,
-        color: "#F59E0B",
+        label: "Total em quarentena",
+        shortLabel: "Total",
+        value: emQuarentena.length,
+        // Número fica neutro (igual ao mock), mas o destaque de "ativo" usa
+        // azul em vez da cor do texto — senão, como este é o filtro padrão
+        // já ativo ao abrir a página, a borda/sombra saía quase preta no
+        // tema claro (cor do texto = quase preto).
+        color: C.text,
+        accent: C.blue,
         mode: "status" as TableMode,
-        status: "EM_QUARENTENA",
       },
       {
-        label: "Descartados",
-        value: count("DESCARTADO"),
-        icon: Trash2,
-        color: "#EF4444",
-        mode: "status" as TableMode,
-        status: "DESCARTADO",
+        label: "Aguardando decisão",
+        shortLabel: "Aguardando",
+        value: awaitingDecision.length,
+        color: C.amber,
+        accent: C.amber,
+        mode: "awaiting-decision" as TableMode,
       },
       {
-        label: "Produtos sem endereço padrão",
-        value: pendingAddressing,
-        icon: PackageOpen,
-        color: "#3B82F6",
+        label: "Descartados no mês",
+        shortLabel: "Descartados",
+        value: discardedThisMonth.length,
+        color: C.rose,
+        accent: C.rose,
+        mode: "discarded-this-month" as TableMode,
+      },
+      {
+        label: "Sem endereço padrão",
+        shortLabel: "Sem endereço",
+        value: pendingAddressing.length,
+        color: C.violetInk,
+        accent: C.violetInk,
         mode: "pending-addressing" as TableMode,
-        status: "EM_QUARENTENA",
       },
     ];
-  }, [allItems]);
+  }, [allItems, now, C.text, C.blue, C.amber, C.rose, C.violetInk]);
 
   const displayItems = useMemo(() => {
+    let base: StockQuarantineItem[];
     if (tableMode === "pending-addressing") {
-      return allItems.filter((item) => item.isMissingDefaultAddress);
+      base = allItems.filter((item) => item.isMissingDefaultAddress);
+    } else if (tableMode === "awaiting-decision") {
+      base = allItems.filter(
+        (item) =>
+          item.status === "EM_QUARENTENA" &&
+          !item.isSystemHold &&
+          !item.isMissingDefaultAddress &&
+          !item.depositanteDecision,
+      );
+    } else if (tableMode === "discarded-this-month") {
+      base = allItems.filter(
+        (item) => item.status === "DESCARTADO" && isSameMonth(item.resolvedAt ?? item.createdAt, now),
+      );
+    } else {
+      base = items;
     }
 
-    return items;
-  }, [allItems, items, tableMode]);
+    return base;
+  }, [allItems, items, tableMode, now]);
 
-  function handleStatClick(stat: { mode: TableMode; status: string }) {
-    setTableMode(stat.mode);
-    if (stat.status !== status) {
-      setStatus(stat.status);
-      updateRoute({ status: stat.status });
+  function handleStatClick(mode: TableMode) {
+    setTableMode(mode);
+    if (mode === "status" && status !== "EM_QUARENTENA") {
+      setStatus("EM_QUARENTENA");
+      updateRoute({ status: "EM_QUARENTENA" });
     }
   }
 
-  function updateRoute(next: { depositanteId?: string; status?: string; q?: string }) {
+  function updateRoute(next: { depositanteId?: string; status?: string }) {
     const params = new URLSearchParams();
     const nextDepositanteId = next.depositanteId ?? depositanteId;
     const nextStatus = next.status ?? status;
-    const nextQuery = next.q ?? query;
 
     if (nextDepositanteId) params.set("depositante", nextDepositanteId);
     if (nextStatus && nextStatus !== "EM_QUARENTENA") params.set("status", nextStatus);
-    if (nextQuery.trim()) params.set("q", nextQuery.trim());
 
     startTransition(() => {
       router.replace(`/estoque/quarentena${params.toString() ? `?${params.toString()}` : ""}`);
@@ -190,475 +267,262 @@ export function StockQuarantinePageClient({
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "28px 32px 40px",
-        background: "transparent",
-        color: t.text,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: 20,
-          flexWrap: "wrap",
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: t.textSub }}>
-            <span>WMS</span>
-            <span>›</span>
-            <span>Estoque</span>
-            <span>›</span>
-            <span style={{ color: t.text, fontWeight: 700 }}>Quarentena</span>
+    <div className="relative flex h-full flex-col" style={{ color: C.text, fontFamily: "var(--font-manrope), var(--font-sans), sans-serif" }}>
+      {isPending ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center" style={{ background: C.scrim, backdropFilter: "blur(2px)" }}>
+          <div className="flex items-center gap-3 rounded-2xl px-5 py-4" style={{ background: C.panel, border: `0.8px solid ${C.border}`, color: C.text }}>
+            <LoaderCircle size={20} className="animate-spin" style={{ color: C.violet }} />
+            <span className="text-sm font-semibold">Carregando quarentena…</span>
           </div>
-          <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800 }}>
-            Quarentena
-          </h1>
-          <p style={{ margin: 0, fontSize: 14.5, color: t.textSub }}>
-            Produtos retidos por divergência, avaria, falta de endereço ou pendência operacional.
-          </p>
         </div>
-        <div
-          style={{
-            minHeight: 44,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 999,
-            border: `1px solid ${t.border}`,
-            background: t.inputBg,
-            padding: "0 16px",
-            fontSize: 13,
-            fontWeight: 800,
-            color: "#D97706",
-          }}
-        >
-          <ShieldAlert size={16} />
-          Controle operacional de retenções
-        </div>
-      </div>
+      ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14, marginBottom: 18 }}>
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          const isActive = tableMode === stat.mode && status === stat.status;
-          return (
-            <button
-              key={stat.label}
-              type="button"
-              onClick={() => handleStatClick(stat)}
-              className="text-left transition hover:-translate-y-0.5 hover:shadow-lg"
-              style={{
-                border: `1px solid ${isActive ? stat.color : t.border}`,
-                borderRadius: 18,
-                background: t.cardBg,
-                padding: 18,
-                boxShadow: isActive ? `0 14px 34px ${stat.color}24` : "none",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: t.textSub }}>{stat.label}</p>
-                  <strong style={{ display: "block", marginTop: 8, fontFamily: "'Space Grotesk', sans-serif", fontSize: 28 }}>
-                    {stat.value.toLocaleString("pt-BR")}
-                  </strong>
-                </div>
-                <span
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 14,
-                    display: "grid",
-                    placeItems: "center",
-                    background: `${stat.color}1A`,
-                    color: stat.color,
-                  }}
-                >
-                  <Icon size={18} />
+      {/* Cabeçalho (padrão rebranding: título + sino + som + tema) */}
+      <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
+        <span className="rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100">
+          Quarentena
+        </span>
+        <div className="flex-1" />
+        <NotificationBell />
+        <SoundToggle forceLight />
+        <ThemeToggle />
+      </header>
+
+      {/* Conteúdo */}
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-24 pt-6 sm:px-8 lg:pb-12">
+        <p className="text-sm" style={{ color: C.muted }}>
+          Produtos retidos por avaria, vencimento ou falta de endereço padrão, aguardando decisão do
+          depositante ou confirmação operacional.
+        </p>
+
+        {/* Stat cards */}
+        <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {stats.map((stat) => {
+            return (
+              <button
+                key={stat.label}
+                type="button"
+                onClick={() => handleStatClick(stat.mode)}
+                className="flex flex-col gap-3 rounded-2xl p-5 text-left"
+                style={{
+                  background: C.panel,
+                  border: `0.8px solid ${C.border}`,
+                }}
+              >
+                <span className="flex h-[34px] items-center text-[13px] font-semibold" style={{ color: C.muted }}>
+                  {stat.label}
                 </span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                <span className={`${SPACE} text-[30px] font-bold`} style={{ color: stat.color }}>
+                  {stat.value.toLocaleString("pt-BR")}
+                </span>
+              </button>
+            );
+          })}
+        </section>
 
-      <section style={{ border: `1px solid ${t.border}`, borderRadius: 20, background: t.cardBg, overflow: "hidden" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: canSelectDepositante ? "minmax(160px, 220px) 1fr" : "1fr",
-            gap: 12,
-            padding: 18,
-            borderBottom: `1px solid ${t.border}`,
-          }}
-        >
+        {/* Filter bar: abas segmentadas (padrão do app) + depositante */}
+        <section className="flex flex-wrap items-center justify-center gap-2.5">
+          <div
+            className="flex flex-wrap items-center gap-1 rounded-xl p-1"
+            style={{ background: C.panel, border: `0.8px solid ${C.border}` }}
+          >
+            {stats.map((stat) => (
+              <QuarantineFilterTab
+                key={stat.mode}
+                active={tableMode === stat.mode}
+                count={stat.value}
+                onClick={() => handleStatClick(stat.mode)}
+                C={C}
+              >
+                {stat.shortLabel}
+              </QuarantineFilterTab>
+            ))}
+          </div>
+
           {canSelectDepositante ? (
-            <FancySelectInput
-              label="Depositante"
-              name="quarantine-filter-depositante"
+            <SelectPill
               value={depositanteId}
               onChange={(value) => {
                 setTableMode("status");
                 setDepositanteId(value);
                 updateRoute({ depositanteId: value });
               }}
-              options={depositanteOptions}
-            />
+              style={{ background: C.panel, color: C.text, border: `0.8px solid ${C.border}` }}
+            >
+              {depositanteOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.nome}
+                </option>
+              ))}
+            </SelectPill>
           ) : null}
-          <label style={{ display: "grid", gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: t.textSub }}>Buscar</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  setTableMode("status");
-                  updateRoute({ q: query });
-                }
-              }}
-              onBlur={() => {
-                setTableMode("status");
-                updateRoute({ q: query });
-              }}
-              placeholder="Produto, SKU, endereço ou motivo..."
-              className="h-[52px] rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition hover:border-cyan-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-cyan-900/40"
-            />
-          </label>
-        </div>
+        </section>
 
         {feedback ? (
           <div
-            className={cn(
-              "mx-5 mt-5 rounded-2xl border px-4 py-3 text-sm font-semibold",
+            className="rounded-2xl border px-4 py-3 text-sm font-semibold"
+            style={
               feedback.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200"
-                : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200",
-            )}
+                ? { background: `${C.emerald}14`, borderColor: `${C.emerald}55`, color: C.emerald }
+                : { background: `${C.rose}14`, borderColor: `${C.rose}55`, color: C.rose }
+            }
           >
             {feedback.message}
           </div>
         ) : null}
 
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
-            <thead style={{ background: t.headBg }}>
-              <tr>
-                {["Produto", "Tipo", "Depositante", "Endereço", "Qtd.", "Status", "Registro"].map((header) => (
-                  <th
-                    key={header}
-                    style={{
-                      padding: "13px 16px",
-                      textAlign: "left",
-                      fontSize: 11.5,
-                      textTransform: "uppercase",
-                      letterSpacing: ".08em",
-                      color: t.textSub,
-                    }}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayItems.map((item) => (
-                <tr
-                  key={item.id}
-                  onClick={() => setSelectedItem(item)}
-                  className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-white/5"
-                  style={{ borderTop: `1px solid ${t.border}` }}
-                >
-                  <td style={{ padding: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div
-                        style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 14,
-                          background: t.softBg,
-                          overflow: "hidden",
-                          display: "grid",
-                          placeItems: "center",
-                          color: "#8B5CF6",
-                        }}
+        {/* Table */}
+        <section className="overflow-hidden rounded-2xl" style={{ background: C.panel, border: `0.8px solid ${C.border}` }}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr style={{ borderBottom: `0.8px solid ${C.border}` }}>
+                  {["ID", "Produto", "Qtd.", "Depositante", "Endereço", "Motivo", "Registro", "Status", ""].map(
+                    (header, i) => (
+                      <th
+                        key={header || `sp-${i}`}
+                        className="whitespace-nowrap px-4 py-3 text-[10.5px] font-bold uppercase tracking-wider"
+                        style={{ color: C.muted }}
                       >
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.productName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <PackageOpen size={18} />
-                        )}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <strong
-                          style={{ display: "block", maxWidth: 340, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                          title={item.productName}
-                        >
-                          {item.productName}
-                        </strong>
-                        <span style={{ fontSize: 12, color: t.textSub }}>{item.sku}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: 16, fontSize: 13, fontWeight: 700 }}>
-                    {formatQuarantineType(item.tipo)}
-                  </td>
-                  <td style={{ padding: 16, fontSize: 13, color: t.textSub }}>{item.depositante}</td>
-                  <td style={{ padding: 16, fontSize: 13 }}>
-                    <strong>{item.endereco}</strong>
-                    <br />
-                    <span style={{ color: t.textSub }}>{item.area}</span>
-                  </td>
-                  <td style={{ padding: 16, fontWeight: 800 }}>{item.quantityLabel}</td>
-                  <td style={{ padding: 16 }}>
-                    <StatusPill status={item.status} label={item.statusLabel} />
-                  </td>
-                  <td style={{ padding: 16, fontSize: 12.5, color: t.textSub }}>
-                    <strong style={{ color: t.text }}>{item.createdBy}</strong>
-                    <br />
-                    {item.createdAtLabel}
-                  </td>
+                        {header}
+                      </th>
+                    ),
+                  )}
                 </tr>
-              ))}
-              {displayItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: 34, textAlign: "center", color: t.textSub }}>
-                    {tableMode === "pending-addressing"
-                      ? "Nenhum produto sem endereço padrão para recebimento."
-                      : "Nenhum item encontrado para os filtros atuais."}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {displayItems.length ? (
+                  displayItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className="cursor-pointer transition-colors"
+                      style={{ borderBottom: `0.8px solid ${C.borderSoft}` }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = C.rowHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <td className={`${MONO} whitespace-nowrap px-4 py-3 text-xs`} style={{ color: C.muted }}>
+                        {shortCode(item.id)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="grid h-[42px] w-[42px] shrink-0 place-items-center overflow-hidden rounded-[14px]"
+                            style={{ background: C.panelSoft, color: C.violetInk }}
+                          >
+                            {item.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.imageUrl} alt={item.productName} className="h-full w-full object-cover" />
+                            ) : (
+                              <PackageOpen size={18} />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p
+                              className="max-w-[240px] truncate text-[13.5px] font-bold"
+                              style={{ color: C.text }}
+                              title={item.productName}
+                            >
+                              {item.productName}
+                            </p>
+                            <p className={`${MONO} text-[11.5px]`} style={{ color: C.muted }}>
+                              {item.sku}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className={`${MONO} whitespace-nowrap px-4 py-3 text-[13px] font-bold`} style={{ color: C.text }}>
+                        {item.quantityLabel}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[12.5px]" style={{ color: C.muted }}>
+                        {item.depositante}
+                      </td>
+                      <td className={`${MONO} whitespace-nowrap px-4 py-3 text-xs font-bold`} style={{ color: C.text }}>
+                        {item.endereco}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <Badge color={motivoColor(item.tipo, C)} label={formatQuarantineType(item.tipo)} />
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-[13px]" style={{ color: C.muted }}>
+                        <p className="font-semibold" style={{ color: C.text }}>
+                          {item.createdBy}
+                        </p>
+                        <p className={`${MONO} text-[11.5px]`} style={{ color: C.muted }}>
+                          {item.createdAtLabel}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusPill status={item.status} label={item.statusLabel} C={C} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span style={{ color: C.faint }}>›</span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-12 text-center text-sm" style={{ color: C.muted }}>
+                      {tableMode === "pending-addressing"
+                        ? "Nenhum produto sem endereço padrão para recebimento."
+                        : "Nenhum item encontrado para os filtros atuais."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
       {selectedItem ? (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-slate-950/45 backdrop-blur-sm"
-          onClick={() => setSelectedItem(null)}
-        >
-          <aside
-            className="flex h-full w-full max-w-[420px] flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
-              <div className="min-w-0">
-                <p className="mb-1 text-xs font-extrabold uppercase tracking-[0.16em] text-amber-500">
-                  {selectedItem.isMissingDefaultAddress ? "Produto sem endereço padrão" : "Item em quarentena"}
-                </p>
-                <h2 className="line-clamp-2 font-['Space_Grotesk'] text-lg font-extrabold leading-tight text-slate-950 dark:text-white" title={selectedItem.productName}>
-                  {selectedItem.productName}
-                </h2>
-                <div className="mt-2">
-                  <StatusPill status={selectedItem.status} label={selectedItem.statusLabel} />
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedItem(null)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
-                aria-label="Fechar detalhe da quarentena"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4 pb-8">
-              <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-violet-500 shadow-sm dark:bg-slate-900">
-                  {selectedItem.imageUrl ? (
-                    <img src={selectedItem.imageUrl} alt={selectedItem.productName} className="h-full w-full object-cover" />
-                  ) : (
-                    <PackageOpen size={20} />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-base font-extrabold text-slate-950 dark:text-white" title={selectedItem.productName}>
-                    {selectedItem.productName}
-                  </p>
-                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">SKU {selectedItem.sku}</p>
-                  {selectedItem.internalCode ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Código interno {selectedItem.internalCode}</p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <InfoTile label="Depositante" value={selectedItem.depositante} />
-                <InfoTile label="Quantidade retida" value={`${selectedItem.quantityLabel} un`} />
-                <InfoTile label="Endereço" value={selectedItem.endereco} />
-                <InfoTile label="Área" value={selectedItem.area} />
-              </div>
-
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  {selectedItem.isMissingDefaultAddress ? "Pendência operacional" : "Motivo da quarentena"}
-                </p>
-                <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{selectedItem.reason}</p>
-                {selectedItem.resolutionHint ? (
-                  <div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-                    <strong>Dica:</strong> {selectedItem.resolutionHint}
-                  </div>
-                ) : null}
-              </section>
-
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Registro
-                </p>
-                <div className="grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                  <p>
-                    Criado por <strong className="text-slate-950 dark:text-white">{selectedItem.createdBy}</strong> em{" "}
-                    <strong className="text-slate-950 dark:text-white">{selectedItem.createdAtLabel}</strong>
-                  </p>
-                  {selectedItem.resolvedAtLabel ? (
-                    <p>
-                      Resolvido por <strong className="text-slate-950 dark:text-white">{selectedItem.resolvedBy || "Sistema"}</strong> em{" "}
-                      <strong className="text-slate-950 dark:text-white">{selectedItem.resolvedAtLabel}</strong>
-                    </p>
-                  ) : null}
-                  {selectedItem.resolutionNotes ? <p>Observação: {selectedItem.resolutionNotes}</p> : null}
-                </div>
-              </section>
-
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-                  Foto da avaria
-                </p>
-                {selectedItem.fotoUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPhoto(selectedItem.fotoUrl)}
-                    className="group relative block w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-left transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-lg dark:border-white/10 dark:bg-slate-900"
-                    aria-label="Ampliar foto da avaria"
-                  >
-                    <img
-                      src={selectedItem.fotoUrl}
-                      alt={`Foto da avaria de ${selectedItem.productName}`}
-                      className="h-52 w-full object-contain"
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-xl">
-                        <Eye size={16} />
-                        Ampliar foto
-                      </span>
-                    </span>
-                  </button>
-                ) : (
-                  <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 text-center text-sm font-semibold text-slate-500 dark:border-white/15 dark:bg-slate-900 dark:text-slate-400">
-                    Nenhuma foto de avaria registrada.
-                  </div>
-                )}
-              </section>
-
-              <section className="rounded-3xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="mb-4 text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Ações</p>
-                {selectedItem.isMissingDefaultAddress ? (
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/configuracoes/produtos/${selectedItem.productId}/editar`)}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 text-sm font-extrabold text-white transition hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600"
-                  >
-                    Editar Produto
-                  </button>
-                ) : selectedItem.status === "EM_QUARENTENA" && selectedItem.depositanteDecision ? (
-                  <div className="space-y-3">
-                    <div
-                      className={`rounded-2xl border p-4 ${
-                        selectedItem.depositanteDecision === "DOAR"
-                          ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-                          : "border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10"
-                      }`}
-                    >
-                      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-                        Decisão do depositante
-                      </p>
-                      <p className="mt-1 text-base font-extrabold text-slate-950 dark:text-white">
-                        {selectedItem.depositanteDecisionLabel}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
-                        {selectedItem.depositanteDecisionBy || "Depositante"}
-                        {selectedItem.depositanteDecisionAtLabel
-                          ? ` em ${selectedItem.depositanteDecisionAtLabel}`
-                          : ""}
-                      </p>
-                      {selectedItem.depositanteDecisionNotes ? (
-                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">
-                          {selectedItem.depositanteDecisionNotes}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    {canConfirm ? (
-                      <button
-                        type="button"
-                        disabled={isConfirming}
-                        onClick={() => confirmQuarantine(selectedItem)}
-                        className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 ${
-                          selectedItem.depositanteDecision === "DOAR"
-                            ? "bg-emerald-600 hover:bg-emerald-700"
-                            : "bg-rose-600 hover:bg-rose-700"
-                        }`}
-                      >
-                        {isConfirming ? (
-                          <LoaderCircle size={17} className="animate-spin" />
-                        ) : (
-                          <CheckCircle2 size={17} />
-                        )}
-                        {selectedItem.depositanteDecision === "DOAR"
-                          ? `Confirmar que foi ${quarantineDonatedLabel(selectedItem.tipo).toLowerCase()}`
-                          : "Confirmar que foi descartado"}
-                      </button>
-                    ) : null}
-                  </div>
-                ) : selectedItem.status === "EM_QUARENTENA" ? (
-                  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-                    {selectedItem.tipo === "VENCIMENTO"
-                      ? "Aguardando o depositante decidir entre retirar ou descartar. O operador não pode definir este destino."
-                      : "Aguardando o depositante decidir entre doar/liberar ou descartar. O operador não pode definir este destino."}
-                  </p>
-                ) : (
-                  <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 dark:bg-white/5 dark:text-slate-300">
-                    Sem ação pendente para este item.
-                  </p>
-                )}
-              </section>
-            </div>
-          </aside>
-        </div>
+        <QuarantineDrawer
+          item={selectedItem}
+          C={C}
+          canConfirm={canConfirm}
+          isConfirming={isConfirming}
+          onClose={() => setSelectedItem(null)}
+          onConfirm={confirmQuarantine}
+          onViewPhoto={setSelectedPhoto}
+          onEditProduct={(productId) => router.push(`/configuracoes/produtos/${productId}/editar`)}
+        />
       ) : null}
 
       {selectedPhoto ? (
         <div
-          className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/80 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[70] grid place-items-center p-4"
+          style={{ background: "rgba(4,8,18,0.8)", backdropFilter: "blur(4px)" }}
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-white shadow-2xl dark:bg-slate-950"
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl"
+            style={{ background: C.panel, border: `0.8px solid ${C.border}` }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+            <div className="flex items-center justify-between gap-4 px-5 py-4" style={{ borderBottom: `0.8px solid ${C.border}` }}>
               <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-rose-500">Evidência operacional</p>
-                <h2 className="mt-1 text-lg font-extrabold text-slate-950 dark:text-white">Foto da avaria</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em]" style={{ color: C.rose }}>
+                  Evidência operacional
+                </p>
+                <h2 className={`${SPACE} mt-1 text-lg font-bold`} style={{ color: C.text }}>
+                  Foto da avaria
+                </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedPhoto(null)}
-                className="grid h-10 w-10 place-items-center rounded-2xl border border-slate-200 text-slate-500 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+                className="grid h-10 w-10 place-items-center rounded-2xl transition hover:brightness-125"
+                style={{ border: `0.8px solid ${C.border}`, color: C.muted }}
                 aria-label="Fechar foto da avaria"
               >
                 <X size={18} />
               </button>
             </div>
-            <div className="grid min-h-0 flex-1 place-items-center overflow-auto bg-slate-100 p-4 dark:bg-slate-900">
+            <div className="grid min-h-0 flex-1 place-items-center overflow-auto p-4" style={{ background: C.panelSoft }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={selectedPhoto}
                 alt="Foto ampliada da avaria"
@@ -672,27 +536,332 @@ export function StockQuarantinePageClient({
   );
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+type Tokens = {
+  panel: string;
+  panelSoft: string;
+  border: string;
+  borderSoft: string;
+  text: string;
+  muted: string;
+  faint: string;
+  violet: string;
+  violetInk: string;
+  blue: string;
+  emerald: string;
+  amber: string;
+  rose: string;
+  rowHover: string;
+  active: string;
+  scrim: string;
+};
+
+function QuarantineDrawer({
+  item,
+  C,
+  canConfirm,
+  isConfirming,
+  onClose,
+  onConfirm,
+  onViewPhoto,
+  onEditProduct,
+}: {
+  item: StockQuarantineItem;
+  C: Tokens;
+  canConfirm: boolean;
+  isConfirming: boolean;
+  onClose: () => void;
+  onConfirm: (item: StockQuarantineItem) => void;
+  onViewPhoto: (url: string) => void;
+  onEditProduct: (productId: string) => void;
+}) {
+  // Registros de recebimento com divergência geram um `reason` detalhado
+  // (pedido, previsto x recebido, endereço); registros mais simples às vezes
+  // só repetem o próprio motivo (ex.: "Avaria") — nesse caso a caixa abaixo
+  // fica redundante com o campo "Motivo" da lista e não deve aparecer.
+  const hasDistinctReason = item.reason.trim().toLowerCase() !== formatQuarantineType(item.tipo).trim().toLowerCase();
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-      <p className="mb-1 text-xs font-bold text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="text-sm font-extrabold text-slate-950 dark:text-white">{value}</p>
+    <div className="fixed inset-0 z-40 flex justify-end" style={{ animation: "overlayFade .2s ease" }}>
+      <button
+        type="button"
+        aria-label="Fechar detalhe da quarentena"
+        onClick={onClose}
+        className="absolute inset-0"
+        style={{ background: C.scrim }}
+      />
+      <aside
+        className="relative flex h-full w-full max-w-[460px] flex-col overflow-y-auto"
+        style={{
+          background: C.panel,
+          borderLeft: `0.8px solid ${C.border}`,
+          boxShadow: "-24px 0 60px rgba(3,7,18,0.35)",
+          animation: "drawerIn .28s cubic-bezier(.22,1,.36,1)",
+        }}
+      >
+        <div className="sticky top-0 z-10 px-6 pb-4 pt-[22px]" style={{ background: C.panel, backdropFilter: "blur(8px)", borderBottom: `0.8px solid ${C.borderSoft}` }}>
+          <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: 10 }}>
+            <Badge color={motivoColor(item.tipo, C)} label={formatQuarantineType(item.tipo)} />
+            <StatusPill status={item.status} label={item.statusLabel} C={C} />
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-[30px] w-[30px] place-items-center rounded-lg transition hover:brightness-125"
+              style={{ color: C.muted, border: `0.8px solid ${C.borderSoft}` }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className={`${MONO} mb-1 text-[16px] font-bold`} style={{ color: C.muted }}>
+            {shortCode(item.id)}
+          </p>
+          <h3 className="text-[17px] font-bold leading-tight" style={{ color: C.text }} title={item.productName}>
+            {item.productName}
+          </h3>
+          <p className={`${MONO} mt-0.5 text-xs`} style={{ color: C.muted }}>
+            {item.sku}
+          </p>
+        </div>
+
+        <div className="space-y-5 px-6 py-5">
+          <div>
+            <FieldRow label="Motivo" value={formatQuarantineType(item.tipo)} C={C} />
+            <FieldRow label="Depositante" value={item.depositante} C={C} />
+            <FieldRow label="Quantidade retida" value={`${item.quantityLabel} un`} C={C} />
+            <FieldRow label="Endereço" value={item.endereco} C={C} mono />
+            <FieldRow label="Área" value={item.area} C={C} />
+            <FieldRow label="Data de entrada" value={item.createdAtLabel} C={C} mono />
+            <FieldRow label="Responsável" value={item.createdBy} C={C} />
+          </div>
+
+          {hasDistinctReason || item.resolutionHint ? (
+            <section className="rounded-2xl p-4" style={{ background: C.panelSoft, border: `0.8px solid ${C.borderSoft}` }}>
+              {hasDistinctReason ? (
+                <>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: C.faint }}>
+                    {item.isMissingDefaultAddress ? "Pendência operacional" : "Motivo da quarentena"}
+                  </p>
+                  <p className="text-sm leading-6" style={{ color: C.text }}>
+                    {item.reason}
+                  </p>
+                </>
+              ) : null}
+              {item.resolutionHint ? (
+                <div className={`rounded-xl p-3 text-sm ${hasDistinctReason ? "mt-3" : ""}`} style={{ background: `${C.amber}14`, color: C.amber }}>
+                  <strong>Dica:</strong> {item.resolutionHint}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {item.resolvedAtLabel || item.resolutionNotes ? (
+            <section className="rounded-2xl p-4" style={{ background: C.panelSoft, border: `0.8px solid ${C.borderSoft}` }}>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: C.faint }}>
+                Registro
+              </p>
+              <div className="grid gap-2 text-sm" style={{ color: C.muted }}>
+                {item.resolvedAtLabel ? (
+                  <p>
+                    Resolvido por <strong style={{ color: C.text }}>{item.resolvedBy || "Sistema"}</strong> em{" "}
+                    <strong style={{ color: C.text }}>{item.resolvedAtLabel}</strong>
+                  </p>
+                ) : null}
+                {item.resolutionNotes ? <p>Observação: {item.resolutionNotes}</p> : null}
+              </div>
+            </section>
+          ) : null}
+
+          {!item.isMissingDefaultAddress ? (
+            <section className="rounded-2xl p-4" style={{ background: C.panelSoft, border: `0.8px solid ${C.borderSoft}` }}>
+              <p className="mb-3 text-[10.5px] font-extrabold uppercase tracking-[0.12em]" style={{ color: C.violetInk }}>
+                Foto da avaria
+              </p>
+              {item.fotoUrl ? (
+                <button
+                  type="button"
+                  onClick={() => onViewPhoto(item.fotoUrl!)}
+                  className="group relative block w-full overflow-hidden rounded-2xl text-left transition hover:-translate-y-0.5"
+                  style={{ background: C.panel, border: `0.8px solid ${C.border}` }}
+                  aria-label="Ampliar foto da avaria"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.fotoUrl} alt={`Foto da avaria de ${item.productName}`} className="h-52 w-full object-contain" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-slate-950 shadow-xl">
+                      <Eye size={16} />
+                      Ampliar foto
+                    </span>
+                  </span>
+                </button>
+              ) : (
+                <div
+                  className="grid min-h-32 place-items-center rounded-2xl border border-dashed px-5 text-center text-sm font-semibold"
+                  style={{ borderColor: C.border, color: C.muted }}
+                >
+                  Nenhuma foto de avaria registrada.
+                </div>
+              )}
+            </section>
+          ) : null}
+        </div>
+
+        <div className="sticky bottom-0 mt-auto px-6 py-4" style={{ background: C.panel, backdropFilter: "blur(8px)", borderTop: `0.8px solid ${C.borderSoft}` }}>
+          {item.isMissingDefaultAddress ? (
+            <button
+              type="button"
+              onClick={() => onEditProduct(item.productId)}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] text-[13px] font-extrabold text-white transition hover:brightness-110"
+              style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" }}
+            >
+              Editar produto
+            </button>
+          ) : item.status === "EM_QUARENTENA" && item.depositanteDecision ? (
+            <div className="space-y-3">
+              <div
+                className="rounded-2xl p-4"
+                style={
+                  item.depositanteDecision === "DOAR"
+                    ? { background: `${C.emerald}14`, border: `0.8px solid ${C.emerald}55` }
+                    : { background: `${C.rose}14`, border: `0.8px solid ${C.rose}55` }
+                }
+              >
+                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted }}>
+                  Decisão do depositante
+                </p>
+                <p className="mt-1 text-base font-extrabold" style={{ color: C.text }}>
+                  {item.depositanteDecisionLabel}
+                </p>
+                <p className="mt-1 text-xs leading-5" style={{ color: C.muted }}>
+                  {item.depositanteDecisionBy || "Depositante"}
+                  {item.depositanteDecisionAtLabel ? ` em ${item.depositanteDecisionAtLabel}` : ""}
+                </p>
+                {item.depositanteDecisionNotes ? (
+                  <p className="mt-2 text-sm" style={{ color: C.text }}>
+                    {item.depositanteDecisionNotes}
+                  </p>
+                ) : null}
+              </div>
+
+              {canConfirm ? (
+                <button
+                  type="button"
+                  disabled={isConfirming}
+                  onClick={() => onConfirm(item)}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] text-[13px] font-extrabold text-white transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+                  style={{ background: item.depositanteDecision === "DOAR" ? C.emerald : C.rose }}
+                >
+                  {isConfirming ? <LoaderCircle size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}
+                  {item.depositanteDecision === "DOAR"
+                    ? `Confirmar que foi ${quarantineDonatedLabel(item.tipo).toLowerCase()}`
+                    : "Confirmar que foi descartado"}
+                </button>
+              ) : null}
+            </div>
+          ) : item.status === "EM_QUARENTENA" ? (
+            <p className="rounded-2xl px-4 py-3 text-sm font-semibold leading-6" style={{ background: `${C.amber}14`, color: C.amber }}>
+              {item.tipo === "VENCIMENTO"
+                ? "Aguardando o depositante decidir entre retirar ou descartar. O operador não pode definir este destino."
+                : "Aguardando o depositante decidir entre doar/liberar ou descartar. O operador não pode definir este destino."}
+            </p>
+          ) : (
+            <p className="rounded-2xl px-4 py-3 text-sm font-semibold" style={{ background: C.panelSoft, color: C.muted }}>
+              Sem ação pendente para este item.
+            </p>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }
 
-function StatusPill({ status, label }: { status: string; label: string }) {
-  const styles =
-    status === "LIBERADO"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:border-emerald-500/30"
-      : status === "DESCARTADO"
-        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-200 dark:border-rose-500/30"
-        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-500/30";
-
+function FieldRow({ label, value, C, mono }: { label: string; value: string; C: Tokens; mono?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-extrabold", styles)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+    <div className="flex items-center justify-between gap-3 py-[9px] text-[13.5px]" style={{ borderBottom: `0.8px solid ${C.borderSoft}` }}>
+      <span style={{ color: C.muted }}>{label}</span>
+      <span className={`break-words text-right font-semibold ${mono ? MONO : ""}`} style={{ color: C.text }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Badge({ color, label }: { color: string; label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+      style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
       {label}
     </span>
+  );
+}
+
+function StatusPill({ status, label, C }: { status: string; label: string; C: Tokens }) {
+  const color =
+    status === "LIBERADO" ? C.emerald : status === "DESCARTADO" ? C.rose : status === "SEM_ENDERECO_PADRAO" ? C.violetInk : C.amber;
+
+  return <Badge color={color} label={label} />;
+}
+
+// Aba do filtro padrão (mesmo estilo das abas Entrada/Saída da NF-e): pílula
+// com gradiente quando ativa, e um contador embutido ao lado do label.
+function QuarantineFilterTab({
+  active,
+  count,
+  onClick,
+  C,
+  children,
+}: {
+  active: boolean;
+  count: number;
+  onClick: () => void;
+  C: Tokens;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-[9px] px-3.5 py-[7px] text-[13px] font-bold transition"
+      style={{
+        background: active ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : "transparent",
+        color: active ? "#fff" : C.muted,
+      }}
+    >
+      {children}
+      <span
+        className={`${MONO} rounded-full px-1.5 py-px text-[11px] font-bold`}
+        style={{
+          background: active ? "rgba(255,255,255,0.22)" : C.panelSoft,
+          color: active ? "#fff" : C.faint,
+        }}
+      >
+        {count.toLocaleString("pt-BR")}
+      </span>
+    </button>
+  );
+}
+
+function SelectPill({
+  value,
+  onChange,
+  style,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  style: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-[42px] rounded-[11px] px-3 text-[13.5px] font-semibold outline-none"
+      style={style}
+    >
+      {children}
+    </select>
   );
 }
