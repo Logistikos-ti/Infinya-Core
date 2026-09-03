@@ -10,7 +10,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { CycleCountCompleteButton } from "@/components/estoque/cycle-count-complete-button";
+import { CycleCountStartButton } from "@/components/estoque/cycle-count-start-button";
 import { CycleCountItemForm } from "@/components/estoque/cycle-count-item-form";
+import { DesktopCycleCountScanClient } from "@/components/estoque/desktop-cycle-count-scan-client";
 import { ModulePageHeader } from "@/components/dashboard/module-page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { requireModuleAccess } from "@/lib/auth";
@@ -18,6 +20,7 @@ import { isAdminUser } from "@/lib/permissions";
 import {
   getCycleCountDetailFromDb,
   getStockCycleCountAvailability,
+  maskCycleCountDetailForBlindCount,
 } from "@/lib/stock-cycle-counts";
 
 type EstoqueInventarioDetalhePageProps = {
@@ -55,8 +58,52 @@ export default async function EstoqueInventarioDetalhePage({
     notFound();
   }
 
-  const detail = detailResult.data;
-  const showSystemQuantity = !detail.blindCount || detail.status === "CONCLUIDA" || isAdminUser(user);
+  if (detailResult.data.status === "PROGRAMADA") {
+    const scheduled = detailResult.data;
+    return (
+      <div className="space-y-6">
+        <div>
+          <Link
+            href="/estoque/inventarios"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para inventário
+          </Link>
+        </div>
+
+        <ModulePageHeader
+          title={scheduled.titulo}
+          description={`Contagem do depositante ${scheduled.depositante} programada para ${scheduled.programadoPara ? new Date(scheduled.programadoPara).toLocaleString("pt-BR") : "data a definir"}.`}
+          badge="Programada"
+        />
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
+          <div className="grid gap-3 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
+            <p>
+              <span className="font-medium text-slate-900 dark:text-white">Área:</span> {scheduled.area}
+            </p>
+            <p>
+              <span className="font-medium text-slate-900 dark:text-white">Responsável:</span>{" "}
+              {scheduled.responsavelNome ?? "Não atribuído"}
+            </p>
+          </div>
+          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+            O saldo do estoque é capturado no momento em que a contagem é iniciada, não na hora em
+            que foi programada — assim os itens refletem o estoque real do dia da contagem.
+          </p>
+          <div className="mt-5">
+            <CycleCountStartButton cycleCountId={scheduled.id} />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const showSystemQuantity =
+    !detailResult.data.blindCount || detailResult.data.status === "CONCLUIDA" || isAdminUser(user);
+  const detail = maskCycleCountDetailForBlindCount(detailResult.data, showSystemQuantity);
+  const pendingItems = detail.items.filter((item) => item.status === "PENDENTE");
 
   return (
     <div className="space-y-6">
@@ -116,6 +163,25 @@ export default async function EstoqueInventarioDetalhePage({
           }
         />
       </section>
+
+      {detail.status !== "CONCLUIDA" && pendingItems.length > 0 ? (
+        <DesktopCycleCountScanClient
+          cycleCountId={detail.id}
+          items={pendingItems.map((item) => ({
+            id: item.id,
+            sku: item.sku,
+            productName: item.productName,
+            codigoExterno: item.codigoExterno,
+            codigoInterno: item.codigoInterno,
+            codigoExternoPack: item.codigoExternoPack,
+            endereco: item.endereco,
+            area: item.area,
+            systemQuantityRaw: item.systemQuantityRaw,
+            countedQuantityRaw: item.countedQuantityRaw,
+            status: item.status,
+          }))}
+        />
+      ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70">
         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">Itens da contagem</h2>
@@ -199,11 +265,17 @@ export default async function EstoqueInventarioDetalhePage({
 
               {detail.status !== "CONCLUIDA" ? (
                 <div className="mt-4 space-y-4">
-                  <CycleCountItemForm
-                    itemId={item.id}
-                    defaultCountedQuantity={item.countedQuantity}
-                    defaultObservations={item.observations}
-                  />
+                  {item.status === "PENDENTE" ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Use a bipagem contínua no topo da página para contar este item com o coletor.
+                    </p>
+                  ) : (
+                    <CycleCountItemForm
+                      itemId={item.id}
+                      defaultCountedQuantity={item.countedQuantity}
+                      defaultObservations={item.observations}
+                    />
+                  )}
 
                   {item.status === "DIVERGENTE" ? (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">

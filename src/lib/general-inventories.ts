@@ -47,8 +47,11 @@ export type GeneralInventoryDetail = {
   depositante: string;
   dataOperacional: string;
   status: string;
-  iniciadoEm: string;
+  iniciadoEm: string | null;
   concluidoEm: string | null;
+  programadoPara: string | null;
+  responsavelId: string | null;
+  responsavelNome: string | null;
   totalItens: number;
   contados: number;
   pendentes: number;
@@ -75,6 +78,77 @@ function missingTable(error: { code?: string; message?: string } | null) {
         error.message?.includes("inventarios_gerais") ||
         error.message?.includes("inventários_gerais")),
   );
+}
+
+// Busca os produtos ativos do depositante e o saldo atual (somado por
+// produto, entre todos os endereços) e grava um item PENDENTE por produto.
+// Compartilhado por openGeneralInventory (varre na hora de abrir, hoje) e
+// startScheduledGeneralInventory (varre na hora de iniciar um inventário
+// programado, pra não guardar um retrato de estoque desatualizado).
+async function snapshotGeneralInventoryItems(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  inventoryId: string,
+  depositanteId: string,
+) {
+  const { data: products, error: productsError } = await supabase
+    .from("produtos")
+    .select("id, nome, sku, codigo_externo, codigo_interno, codigo_externo_pack, imagem_principal_url")
+    .eq("depositante_id", depositanteId)
+    .eq("ativo", true)
+    .order("nome");
+
+  if (productsError) {
+    throw new Error(`Não foi possível carregar os produtos: ${productsError.message}`);
+  }
+
+  if (!products?.length) {
+    throw new Error("Este depositante não possui produtos ativos para inventariar.");
+  }
+
+  const productIds = products.map((product) => product.id);
+  const { data: stockRows, error: stockError } = await supabase
+    .from("estoque")
+    .select("id, produto_id, endereco_id, quantidade")
+    .eq("depositante_id", depositanteId)
+    .in("produto_id", productIds);
+
+  if (stockError) {
+    throw new Error(`Não foi possível capturar os saldos atuais: ${stockError.message}`);
+  }
+
+  const byProduct = new Map<string, StockRow[]>();
+  for (const stock of (stockRows ?? []) as StockRow[]) {
+    const list = byProduct.get(stock.produto_id) ?? [];
+    list.push(stock);
+    byProduct.set(stock.produto_id, list);
+  }
+
+  const itemRows = (products as ProductRow[]).map((product) => {
+    const balances = byProduct.get(product.id) ?? [];
+    return {
+      inventario_id: inventoryId,
+      depositante_id: depositanteId,
+      produto_id: product.id,
+      nome_produto: product.nome,
+      sku: product.sku,
+      codigo_externo: product.codigo_externo,
+      codigo_interno: product.codigo_interno,
+      codigo_externo_pack: product.codigo_externo_pack,
+      imagem_url: product.imagem_principal_url,
+      quantidade_sistema: balances.reduce((sum, row) => sum + Number(row.quantidade ?? 0), 0),
+      estoque_snapshot: balances.map((row) => ({
+        id: row.id,
+        quantidade: Number(row.quantidade ?? 0),
+        endereco_id: row.endereco_id,
+      })),
+    };
+  });
+
+  const { error: itemError } = await supabase.from("inventarios_gerais_itens").insert(itemRows);
+  if (itemError) {
+    await supabase.from("inventarios_gerais").delete().eq("id", inventoryId);
+    throw new Error(`Não foi possível preparar a lista do inventário: ${itemError.message}`);
+  }
 }
 
 export async function openGeneralInventory(input: {
@@ -111,39 +185,6 @@ export async function openGeneralInventory(input: {
       .eq("status", "EM_CONTAGEM")
       .neq("data_operacional", today);
 
-    const { data: products, error: productsError } = await supabase
-      .from("produtos")
-      .select("id, nome, sku, codigo_externo, codigo_interno, codigo_externo_pack, imagem_principal_url")
-      .eq("depositante_id", input.depositanteId)
-      .eq("ativo", true)
-      .order("nome");
-
-    if (productsError) {
-      throw new Error(`Não foi possível carregar os produtos: ${productsError.message}`);
-    }
-
-    if (!products?.length) {
-      throw new Error("Este depositante não possui produtos ativos para inventariar.");
-    }
-
-    const productIds = products.map((product) => product.id);
-    const { data: stockRows, error: stockError } = await supabase
-      .from("estoque")
-      .select("id, produto_id, endereco_id, quantidade")
-      .eq("depositante_id", input.depositanteId)
-      .in("produto_id", productIds);
-
-    if (stockError) {
-      throw new Error(`Não foi possível capturar os saldos atuais: ${stockError.message}`);
-    }
-
-    const byProduct = new Map<string, StockRow[]>();
-    for (const stock of (stockRows ?? []) as StockRow[]) {
-      const list = byProduct.get(stock.produto_id) ?? [];
-      list.push(stock);
-      byProduct.set(stock.produto_id, list);
-    }
-
     const { data: header, error: headerError } = await supabase
       .from("inventarios_gerais")
       .insert({
@@ -171,32 +212,7 @@ export async function openGeneralInventory(input: {
 
     if (!inventoryId) inventoryId = header?.id as string | undefined;
     if (header && inventoryId === header.id) {
-      const itemRows = (products as ProductRow[]).map((product) => {
-      const balances = byProduct.get(product.id) ?? [];
-      return {
-        inventario_id: inventoryId,
-        depositante_id: input.depositanteId,
-        produto_id: product.id,
-        nome_produto: product.nome,
-        sku: product.sku,
-        codigo_externo: product.codigo_externo,
-        codigo_interno: product.codigo_interno,
-        codigo_externo_pack: product.codigo_externo_pack,
-        imagem_url: product.imagem_principal_url,
-        quantidade_sistema: balances.reduce((sum, row) => sum + Number(row.quantidade ?? 0), 0),
-        estoque_snapshot: balances.map((row) => ({
-          id: row.id,
-          quantidade: Number(row.quantidade ?? 0),
-          endereco_id: row.endereco_id,
-        })),
-      };
-      });
-
-    const { error: itemError } = await supabase.from("inventarios_gerais_itens").insert(itemRows);
-    if (itemError) {
-      await supabase.from("inventarios_gerais").delete().eq("id", inventoryId);
-      throw new Error(`Não foi possível preparar a lista do inventário: ${itemError.message}`);
-    }
+      await snapshotGeneralInventoryItems(supabase, header.id, input.depositanteId);
     }
   }
 
@@ -210,11 +226,130 @@ export async function openGeneralInventory(input: {
   return getGeneralInventory(inventoryId);
 }
 
+// Programa um inventário geral pra uma data futura, com responsável
+// pré-atribuído. Diferente de openGeneralInventory, NÃO faz snapshot de
+// produtos/saldo agora nem grava data_operacional -- isso só acontece em
+// startScheduledGeneralInventory, na hora de iniciar de verdade.
+export async function scheduleGeneralInventory(input: {
+  depositanteId: string;
+  userId: string;
+  programadoPara: string;
+  responsavelId?: string;
+}) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: header, error: headerError } = await supabase
+    .from("inventarios_gerais")
+    .insert({
+      depositante_id: input.depositanteId,
+      status: "PROGRAMADO",
+      criado_por: input.userId,
+      programado_para: input.programadoPara,
+      responsavel_id: input.responsavelId || null,
+    })
+    .select("id")
+    .single();
+
+  if (headerError || !header) {
+    throw new Error(`Não foi possível programar o inventário: ${headerError?.message ?? "erro desconhecido"}`);
+  }
+
+  return { id: header.id as string };
+}
+
+export async function startScheduledGeneralInventory(inventoryId: string) {
+  const supabase = createSupabaseAdminClient();
+  const today = operationalToday();
+
+  const { data: header, error: headerError } = await supabase
+    .from("inventarios_gerais")
+    .select("id, depositante_id, status")
+    .eq("id", inventoryId)
+    .maybeSingle();
+
+  if (headerError) {
+    throw new Error(`Não foi possível localizar o inventário programado: ${headerError.message}`);
+  }
+
+  if (!header) {
+    throw new Error("Inventário não encontrado.");
+  }
+
+  if (header.status !== "PROGRAMADO") {
+    throw new Error("Este inventário já foi iniciado.");
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("inventarios_gerais")
+    .select("id")
+    .eq("depositante_id", header.depositante_id)
+    .eq("data_operacional", today)
+    .eq("status", "EM_CONTAGEM")
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Não foi possível verificar contagens em andamento: ${existingError.message}`);
+  }
+
+  if (existing) {
+    throw new Error("Já existe um inventário geral em andamento hoje para este depositante. Conclua-o antes de iniciar este.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("inventarios_gerais")
+    .update({ status: "EM_CONTAGEM", data_operacional: today, iniciado_em: new Date().toISOString() })
+    .eq("id", inventoryId);
+
+  if (updateError) {
+    throw new Error(`Não foi possível iniciar o inventário: ${updateError.message}`);
+  }
+
+  await snapshotGeneralInventoryItems(supabase, inventoryId, header.depositante_id);
+
+  return { id: inventoryId };
+}
+
+export async function cancelGeneralInventory(inventoryId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("inventarios_gerais")
+    .update({ status: "CANCELADO" })
+    .eq("id", inventoryId)
+    .in("status", ["PROGRAMADO", "EM_CONTAGEM"]);
+
+  if (error) {
+    throw new Error(`Não foi possível cancelar o inventário: ${error.message}`);
+  }
+}
+
+export async function rescheduleGeneralInventory(
+  inventoryId: string,
+  input: { programadoPara: string; responsavelId?: string },
+) {
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("inventarios_gerais")
+    .update({
+      programado_para: input.programadoPara,
+      responsavel_id: input.responsavelId || null,
+    })
+    .eq("id", inventoryId)
+    .eq("status", "PROGRAMADO");
+
+  if (error) {
+    throw new Error(`Não foi possível reagendar o inventário: ${error.message}`);
+  }
+}
+
 export async function getGeneralInventory(id: string): Promise<GeneralInventoryDetail | null> {
   const supabase = createSupabaseAdminClient();
   const { data: header, error: headerError } = await supabase
     .from("inventarios_gerais")
-    .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, depositante:depositantes(nome)")
+    .select(
+      "id, depositante_id, data_operacional, status, iniciado_em, concluido_em, programado_para, responsavel_id, responsavel:usuarios!inventarios_gerais_responsavel_id_fkey(nome), depositante:depositantes(nome)",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -282,6 +417,7 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
   });
 
   const depositanteRelation = header.depositante as unknown as { nome?: string } | Array<{ nome?: string }> | null;
+  const responsavelRelation = header.responsavel as unknown as { nome?: string } | Array<{ nome?: string }> | null;
 
   return {
     id: header.id,
@@ -289,8 +425,11 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
     depositante: Array.isArray(depositanteRelation) ? depositanteRelation[0]?.nome ?? "Depositante" : depositanteRelation?.nome ?? "Depositante",
     dataOperacional: header.data_operacional,
     status: header.status,
-    iniciadoEm: formatDateTimePtBr(header.iniciado_em),
+    iniciadoEm: header.iniciado_em ? formatDateTimePtBr(header.iniciado_em) : null,
     concluidoEm: header.concluido_em ? formatDateTimePtBr(header.concluido_em) : null,
+    programadoPara: header.programado_para,
+    responsavelId: header.responsavel_id,
+    responsavelNome: Array.isArray(responsavelRelation) ? responsavelRelation[0]?.nome ?? null : responsavelRelation?.nome ?? null,
     totalItens: items.length,
     contados: items.filter((item) => item.status !== "PENDENTE").length,
     pendentes: items.filter((item) => item.status === "PENDENTE").length,
@@ -443,39 +582,69 @@ export async function getGeneralInventoryReport(id: string) {
   return { detail, csv: `\ufeff${csv}` };
 }
 
-export async function listCompletedGeneralInventoriesFromDb(limit = 50): Promise<import('./stock-cycle-counts').CycleCountSummary[]> {
+// Lista inventários gerais em qualquer status (PROGRAMADO/EM_CONTAGEM/
+// CONCLUIDO/CANCELADO), no mesmo formato de CycleCountSummary usado pela
+// contagem cíclica -- alimenta a lista unificada de inventários (ver
+// src/lib/inventory-runs.ts).
+export async function listGeneralInventoriesFromDb(options?: {
+  depositanteId?: string;
+  status?: string;
+  limit?: number;
+}): Promise<import("./stock-cycle-counts").CycleCountSummary[]> {
   const supabase = createSupabaseAdminClient();
-  const { data: headers, error } = await supabase
+
+  let query = supabase
     .from("inventarios_gerais")
-    .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, depositante:depositantes(nome)")
-    .eq("status", "CONCLUIDO")
-    .order("concluido_em", { ascending: false })
-    .limit(limit);
+    .select("id, depositante_id, data_operacional, status, iniciado_em, concluido_em, created_at")
+    .order("created_at", { ascending: false });
+
+  if (options?.status) {
+    query = query.eq("status", options.status);
+  }
+
+  if (options?.depositanteId) {
+    query = query.eq("depositante_id", options.depositanteId);
+  }
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data: headers, error } = await query;
 
   if (error) {
     if (missingTable(error)) return [];
-    throw new Error("Não foi possível carregar o histórico de inventários gerais: " + error.message);
+    throw new Error(`Não foi possível carregar os inventários gerais: ${error.message}`);
   }
 
-  const summaries = await Promise.all((headers || []).map(async (header) => {
-    const detail = await getGeneralInventory(header.id);
-    if (!detail) return null;
-    return {
-      id: detail.id,
-      type: "GERAL" as const,
-      titulo: `Inventário Geral (${detail.dataOperacional})`,
-      depositanteId: detail.depositanteId,
-      depositante: detail.depositante,
-      area: "Todas as áreas",
-      status: detail.status,
-      blindCount: false,
-      createdAt: detail.concluidoEm || detail.iniciadoEm,
-      countedItems: detail.contados,
-      totalItems: detail.totalItens,
-      divergentItems: detail.divergentes,
-      timestamp: header.concluido_em ? new Date(header.concluido_em).getTime() : new Date(header.iniciado_em).getTime(),
-    };
-  }));
+  const summaries = await Promise.all(
+    (headers || []).map(async (header) => {
+      const detail = await getGeneralInventory(header.id);
+      if (!detail) return null;
+      return {
+        id: detail.id,
+        type: "GERAL" as const,
+        titulo: `Inventário geral (${detail.dataOperacional ?? "a agendar"})`,
+        depositanteId: detail.depositanteId,
+        depositante: detail.depositante,
+        area: "Todas as áreas",
+        status: detail.status,
+        blindCount: false,
+        createdAt: detail.concluidoEm || detail.iniciadoEm || "-",
+        programadoPara: detail.programadoPara,
+        responsavelId: detail.responsavelId,
+        responsavelNome: detail.responsavelNome,
+        countedItems: detail.contados,
+        totalItems: detail.totalItens,
+        divergentItems: detail.divergentes,
+        timestamp: new Date(header.concluido_em || header.iniciado_em || header.created_at).getTime(),
+      } satisfies import("./stock-cycle-counts").CycleCountSummary;
+    }),
+  );
 
-  return summaries.filter(Boolean) as import('./stock-cycle-counts').CycleCountSummary[];
+  return summaries.filter(Boolean) as import("./stock-cycle-counts").CycleCountSummary[];
+}
+
+export async function listCompletedGeneralInventoriesFromDb(limit = 50) {
+  return listGeneralInventoriesFromDb({ status: "CONCLUIDO", limit });
 }

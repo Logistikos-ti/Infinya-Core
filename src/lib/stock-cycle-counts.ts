@@ -11,6 +11,9 @@ export type CycleCountSummary = {
   status: string;
   blindCount: boolean;
   createdAt: string;
+  programadoPara: string | null;
+  responsavelId: string | null;
+  responsavelNome: string | null;
   countedItems: number;
   totalItems: number;
   divergentItems: number;
@@ -35,6 +38,7 @@ export type PendingCycleCountAdjustment = {
 
 export type CycleCountDetail = {
   id: string;
+  type?: "CICLICO" | "GERAL";
   titulo: string;
   depositanteId: string;
   depositante: string;
@@ -45,6 +49,9 @@ export type CycleCountDetail = {
   createdAt: string;
   startedAt: string;
   completedAt: string;
+  programadoPara: string | null;
+  responsavelId: string | null;
+  responsavelNome: string | null;
   countedItems: number;
   totalItems: number;
   divergentItems: number;
@@ -54,14 +61,22 @@ export type CycleCountDetail = {
     protocol: string;
     sku: string;
     productName: string;
+    codigoExterno: string | null;
+    codigoInterno: string | null;
+    codigoExternoPack: string | null;
     endereco: string;
     area: string;
     lote: string;
     validade: string;
     systemQuantity: string;
+    /** Números crus (não formatados) para a lógica de bipagem contínua --
+     * null quando a contagem cega esconde o valor deste operador. */
+    systemQuantityRaw: number | null;
     countedQuantity: string;
+    countedQuantityRaw: number | null;
     secondCountedQuantity: string;
     divergence: string;
+    divergenceRaw: number | null;
     secondDivergence: string;
     status: string;
     adjustmentStatus: string;
@@ -97,12 +112,42 @@ type CreateCycleCountInput = {
   estoqueId?: string;
 };
 
+type ScheduleCycleCountInput = {
+  userId: string;
+  depositanteId: string;
+  area?: string;
+  titulo: string;
+  observacoes?: string;
+  blindCount?: boolean;
+  skuId?: string;
+  programadoPara: string;
+  responsavelId?: string;
+};
+
 type UpdateCycleCountItemInput = {
   userId: string;
   cycleCountItemId: string;
   countedQuantity: number;
   observacoes?: string;
+  /**
+   * Guarda otimista opcional: quando definido, o update só aplica se o
+   * status atual da linha ainda for esse valor. Usada pelo fluxo de
+   * bipagem em lote (vários operadores podem estar contando a mesma área
+   * ao mesmo tempo) -- omitido preserva o comportamento de sempre
+   * (reedição manual sem guarda, usada pelo formulário existente).
+   */
+  expectedStatus?: string;
+  /**
+   * false grava um rascunho (tally parcial da bipagem em lote): persiste
+   * quantidade_contada mas mantém status PENDENTE, sem calcular
+   * divergência nem disparar ajuste de estoque. Omitido (ou true) preserva
+   * o comportamento de sempre -- fecha o item como CONTADO/DIVERGENTE.
+   */
+  final?: boolean;
 };
+
+/** Guarda otimista de updateCycleCountItem falhou: outro operador já fechou este item. */
+export class CycleCountConflictError extends Error {}
 
 type RegisterSecondCountInput = {
   userId: string;
@@ -136,7 +181,10 @@ type DetailItemRow = {
     | { id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }
     | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
     | null;
-  produto: { sku?: string; nome?: string } | Array<{ sku?: string; nome?: string }> | null;
+  produto:
+    | { sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null }
+    | Array<{ sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null }>
+    | null;
   endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
 };
 
@@ -150,7 +198,7 @@ export async function listCycleCountsFromDb(
   let query = supabase
     .from("contagens_estoque")
     .select(
-      "id, titulo, depositante_id, area, status, contagem_cega, created_at, depositante:depositantes(nome)",
+      "id, titulo, depositante_id, area, status, contagem_cega, created_at, programado_para, responsavel_id, responsavel:usuarios!contagens_estoque_responsavel_id_fkey(nome), depositante:depositantes(nome)",
     )
     .order("created_at", { ascending: false });
 
@@ -180,6 +228,9 @@ export async function listCycleCountsFromDb(
     status: string;
     contagem_cega?: boolean | null;
     created_at: string;
+    programado_para: string | null;
+    responsavel_id: string | null;
+    responsavel: RelationName;
     depositante: RelationName;
   }>;
 
@@ -189,10 +240,17 @@ export async function listCycleCountsFromDb(
 
   const summaries = await Promise.all(
     filteredRows.map(async (row) => {
-      const stats = await getCycleCountItemStats(row.id);
+      // A programada ainda não tem itens gravados (a varredura de saldo só
+      // acontece ao iniciar) -- não faz sentido consultar estatísticas de
+      // item pra ela, e evita uma query desnecessária.
+      const stats =
+        row.status === "PROGRAMADA"
+          ? { countedItems: 0, totalItems: 0, divergentItems: 0 }
+          : await getCycleCountItemStats(row.id);
 
       return {
         id: row.id,
+        type: "CICLICO" as const,
         titulo: row.titulo,
         depositanteId: row.depositante_id,
         depositante: extractRelationName(row.depositante) ?? "Sem depositante",
@@ -200,6 +258,10 @@ export async function listCycleCountsFromDb(
         status: row.status,
         blindCount: Boolean(row.contagem_cega),
         createdAt: formatDateTimePtBr(row.created_at),
+        timestamp: new Date(row.created_at).getTime(),
+        programadoPara: row.programado_para,
+        responsavelId: row.responsavel_id,
+        responsavelNome: extractRelationName(row.responsavel),
         countedItems: stats.countedItems,
         totalItems: stats.totalItems,
         divergentItems: stats.divergentItems,
@@ -286,7 +348,7 @@ export async function getCycleCountDetailFromDb(
   const { data: header, error: headerError } = await supabase
     .from("contagens_estoque")
     .select(
-      "id, titulo, depositante_id, area, status, contagem_cega, observacoes, created_at, iniciado_em, concluido_em, depositante:depositantes(nome)",
+      "id, titulo, depositante_id, area, status, contagem_cega, observacoes, created_at, iniciado_em, concluido_em, programado_para, responsavel_id, responsavel:usuarios!contagens_estoque_responsavel_id_fkey(nome), depositante:depositantes(nome)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -306,7 +368,7 @@ export async function getCycleCountDetailFromDb(
   const { data: itemRows, error: itemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios!contagens_estoque_itens_ajuste_aprovado_por_fkey(nome), contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), segunda_contado_em, segunda_contado_por:usuarios!contagens_estoque_itens_segunda_contado_por_fkey(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome), endereco:enderecos(codigo, area)",
+      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios!contagens_estoque_itens_ajuste_aprovado_por_fkey(nome), contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), segunda_contado_em, segunda_contado_por:usuarios!contagens_estoque_itens_segunda_contado_por_fkey(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome, codigo_externo, codigo_interno, codigo_externo_pack), endereco:enderecos(codigo, area)",
     )
     .eq("contagem_id", id)
     .order("created_at", { ascending: true });
@@ -325,6 +387,9 @@ export async function getCycleCountDetailFromDb(
       protocol: buildTraceabilityProtocol(stockId, createdAt),
       sku: extractRelationField(item.produto, "sku") ?? "SKU",
       productName: extractRelationField(item.produto, "nome") ?? "Produto sem descriÃ§Ã£o",
+      codigoExterno: extractRelationField(item.produto, "codigo_externo"),
+      codigoInterno: extractRelationField(item.produto, "codigo_interno"),
+      codigoExternoPack: extractRelationField(item.produto, "codigo_externo_pack"),
       endereco: extractRelationField(item.endereco, "codigo") ?? "Sem endereÃ§o",
       area: extractRelationField(item.endereco, "area") ?? "Sem Ã¡rea",
       lote: extractRelationField(item.estoque, "lote") ?? "-",
@@ -332,15 +397,18 @@ export async function getCycleCountDetailFromDb(
         ? formatDate(extractRelationField(item.estoque, "validade_em")!)
         : "-",
       systemQuantity: Number(item.quantidade_sistema ?? 0).toLocaleString("pt-BR"),
+      systemQuantityRaw: Number(item.quantidade_sistema ?? 0),
       countedQuantity:
         item.quantidade_contada === null
           ? "-"
           : Number(item.quantidade_contada ?? 0).toLocaleString("pt-BR"),
+      countedQuantityRaw: item.quantidade_contada === null ? null : Number(item.quantidade_contada ?? 0),
       secondCountedQuantity:
         item.segunda_quantidade_contada === null || item.segunda_quantidade_contada === undefined
           ? "-"
           : Number(item.segunda_quantidade_contada ?? 0).toLocaleString("pt-BR"),
       divergence: Number(item.divergencia ?? 0).toLocaleString("pt-BR"),
+      divergenceRaw: item.quantidade_contada === null ? null : Number(item.divergencia ?? 0),
       secondDivergence:
         item.segunda_divergencia === null || item.segunda_divergencia === undefined
           ? "-"
@@ -373,6 +441,7 @@ export async function getCycleCountDetailFromDb(
     available: true,
     data: {
       id: header.id,
+      type: "CICLICO",
       titulo: header.titulo,
       depositanteId: header.depositante_id,
       depositante: extractRelationName(header.depositante) ?? "Sem depositante",
@@ -383,6 +452,9 @@ export async function getCycleCountDetailFromDb(
       createdAt: formatDateTimePtBr(header.created_at),
       startedAt: header.iniciado_em ? formatDateTimePtBr(header.iniciado_em) : "-",
       completedAt: header.concluido_em ? formatDateTimePtBr(header.concluido_em) : "-",
+      programadoPara: header.programado_para,
+      responsavelId: header.responsavel_id,
+      responsavelNome: extractRelationName(header.responsavel),
       countedItems,
       totalItems: items.length,
       divergentItems,
@@ -391,28 +463,44 @@ export async function getCycleCountDetailFromDb(
   };
 }
 
-export async function createCycleCount(input: CreateCycleCountInput) {
-  const supabase = createSupabaseAdminClient();
+/**
+ * Contagem cega: esconde o número de sistema do operador comum. `systemQuantity`
+ * já era zerado antes de chegar num Client Component, mas `divergence`/
+ * `secondDivergence` vazavam o mesmo dado indiretamente (o operador sabe o
+ * que ele mesmo digitou, então `contado - divergência` revela o esperado).
+ * Aplicar sempre antes de renderizar ou responder um GET -- nunca passar o
+ * valor cru pra um Client Component só porque ele "não vai ser exibido":
+ * o payload RSC serializado é inspecionável mesmo sem renderização.
+ */
+export function maskCycleCountDetailForBlindCount(
+  detail: CycleCountDetail,
+  canSeeSystemQuantity: boolean,
+): CycleCountDetail {
+  if (canSeeSystemQuantity) return detail;
 
-  const { data: countHeader, error: headerError } = await supabase
-    .from("contagens_estoque")
-    .insert({
-      depositante_id: input.depositanteId,
-      titulo: input.titulo,
-      area: input.area || null,
-      observacoes: input.observacoes?.trim() || null,
-      contagem_cega: Boolean(input.blindCount),
-      status: "ABERTA",
-      criado_por: input.userId,
-      iniciado_em: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
+  return {
+    ...detail,
+    items: detail.items.map((item) => ({
+      ...item,
+      systemQuantity: "-",
+      systemQuantityRaw: null,
+      divergence: "-",
+      divergenceRaw: null,
+      secondDivergence: "-",
+    })),
+  };
+}
 
-  if (headerError) {
-    throw new Error(`NÃ£o foi possÃ­vel abrir a contagem: ${headerError.message}`);
-  }
-
+// Varre o estoque do depositante (opcionalmente filtrado por área/SKU, ou
+// escopado a uma única posição via estoqueId) e grava um item PENDENTE por
+// saldo encontrado. Compartilhado por createCycleCount (varre na hora de
+// criar) e startScheduledCycleCount (varre na hora de iniciar, pra uma
+// contagem programada não carregar um retrato de estoque desatualizado).
+async function insertCycleCountItems(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  countId: string,
+  input: { depositanteId: string; area?: string; skuId?: string; estoqueId?: string },
+) {
   let stockQuery = supabase
     .from("estoque")
     .select("id, depositante_id, produto_id, endereco_id, quantidade, endereco:enderecos(area)")
@@ -456,7 +544,7 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     .from("contagens_estoque_itens")
     .insert(
       filteredRows.map((row) => ({
-        contagem_id: countHeader.id,
+        contagem_id: countId,
         depositante_id: row.depositante_id,
         estoque_id: row.id,
         produto_id: row.produto_id,
@@ -472,7 +560,136 @@ export async function createCycleCount(input: CreateCycleCountInput) {
     throw new Error(`NÃ£o foi possÃ­vel registrar os itens da contagem: ${itemInsertError.message}`);
   }
 
-  return { id: countHeader.id, itemIds: (insertedItems ?? []).map((item) => item.id as string) };
+  return (insertedItems ?? []).map((item) => item.id as string);
+}
+
+export async function createCycleCount(input: CreateCycleCountInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: countHeader, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .insert({
+      depositante_id: input.depositanteId,
+      titulo: input.titulo,
+      area: input.area || null,
+      observacoes: input.observacoes?.trim() || null,
+      contagem_cega: Boolean(input.blindCount),
+      status: "ABERTA",
+      criado_por: input.userId,
+      iniciado_em: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (headerError) {
+    throw new Error(`NÃ£o foi possÃ­vel abrir a contagem: ${headerError.message}`);
+  }
+
+  const itemIds = await insertCycleCountItems(supabase, countHeader.id, input);
+
+  return { id: countHeader.id, itemIds };
+}
+
+// Programa uma contagem cíclica pra uma data futura, com responsável
+// pré-atribuído. Diferente de createCycleCount, NÃO varre o estoque nem
+// grava itens agora -- isso só acontece em startScheduledCycleCount, na
+// hora de iniciar de verdade, pra não guardar um retrato de estoque velho.
+export async function scheduleCycleCount(input: ScheduleCycleCountInput) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: countHeader, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .insert({
+      depositante_id: input.depositanteId,
+      titulo: input.titulo,
+      area: input.area || null,
+      observacoes: input.observacoes?.trim() || null,
+      contagem_cega: Boolean(input.blindCount),
+      status: "PROGRAMADA",
+      criado_por: input.userId,
+      programado_para: input.programadoPara,
+      responsavel_id: input.responsavelId || null,
+    })
+    .select("id")
+    .single();
+
+  if (headerError) {
+    throw new Error(`NÃ£o foi possÃ­vel programar a contagem: ${headerError.message}`);
+  }
+
+  return { id: countHeader.id };
+}
+
+export async function startScheduledCycleCount(cycleCountId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: header, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .select("id, depositante_id, area, status")
+    .eq("id", cycleCountId)
+    .maybeSingle();
+
+  if (headerError) {
+    throw new Error(`NÃ£o foi possÃ­vel localizar a contagem programada: ${headerError.message}`);
+  }
+
+  if (!header) {
+    throw new Error("Contagem nÃ£o encontrada.");
+  }
+
+  if (header.status !== "PROGRAMADA") {
+    throw new Error("Esta contagem jÃ¡ foi iniciada.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("contagens_estoque")
+    .update({ status: "ABERTA", iniciado_em: new Date().toISOString() })
+    .eq("id", cycleCountId);
+
+  if (updateError) {
+    throw new Error(`NÃ£o foi possÃ­vel iniciar a contagem: ${updateError.message}`);
+  }
+
+  await insertCycleCountItems(supabase, cycleCountId, {
+    depositanteId: header.depositante_id,
+    area: header.area || undefined,
+  });
+
+  return { id: cycleCountId };
+}
+
+export async function cancelCycleCount(cycleCountId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("contagens_estoque")
+    .update({ status: "CANCELADA" })
+    .eq("id", cycleCountId)
+    .in("status", ["PROGRAMADA", "ABERTA"]);
+
+  if (error) {
+    throw new Error(`NÃ£o foi possÃ­vel cancelar a contagem: ${error.message}`);
+  }
+}
+
+export async function rescheduleCycleCount(
+  cycleCountId: string,
+  input: { programadoPara: string; responsavelId?: string },
+) {
+  const supabase = createSupabaseAdminClient();
+
+  const { error } = await supabase
+    .from("contagens_estoque")
+    .update({
+      programado_para: input.programadoPara,
+      responsavel_id: input.responsavelId || null,
+    })
+    .eq("id", cycleCountId)
+    .eq("status", "PROGRAMADA");
+
+  if (error) {
+    throw new Error(`NÃ£o foi possÃ­vel reagendar a contagem: ${error.message}`);
+  }
 }
 
 export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
@@ -493,11 +710,39 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
   }
 
   const systemQuantity = Number(currentItem.quantidade_sistema ?? 0);
+
+  if (input.final === false) {
+    let draftQuery = supabase
+      .from("contagens_estoque_itens")
+      .update({
+        quantidade_contada: input.countedQuantity,
+        contado_por: input.userId,
+        contado_em: new Date().toISOString(),
+      })
+      .eq("id", input.cycleCountItemId);
+
+    if (input.expectedStatus) {
+      draftQuery = draftQuery.eq("status", input.expectedStatus);
+    }
+
+    const { data: draftRows, error: draftError } = await draftQuery.select("id");
+
+    if (draftError) {
+      throw new Error(`NÃ£o foi possÃ­vel registrar o rascunho da contagem: ${draftError.message}`);
+    }
+
+    if (input.expectedStatus && (draftRows ?? []).length === 0) {
+      throw new CycleCountConflictError("Este item jÃ¡ foi contado por outro operador. Atualize a lista.");
+    }
+
+    return { status: "PENDENTE" as const, divergence: null, systemQuantity };
+  }
+
   const divergence = input.countedQuantity - systemQuantity;
   const status = divergence === 0 ? "CONTADO" : "DIVERGENTE";
   const adjustmentStatus = divergence === 0 ? "NAO_NECESSARIO" : "PENDENTE_APROVACAO";
 
-  const { error } = await supabase
+  let updateQuery = supabase
     .from("contagens_estoque_itens")
     .update({
       quantidade_contada: input.countedQuantity,
@@ -519,8 +764,18 @@ export async function updateCycleCountItem(input: UpdateCycleCountItemInput) {
     })
     .eq("id", input.cycleCountItemId);
 
+  if (input.expectedStatus) {
+    updateQuery = updateQuery.eq("status", input.expectedStatus);
+  }
+
+  const { data: updatedRows, error } = await updateQuery.select("id");
+
   if (error) {
     throw new Error(`NÃ£o foi possÃ­vel registrar a contagem do item: ${error.message}`);
+  }
+
+  if (input.expectedStatus && (updatedRows ?? []).length === 0) {
+    throw new CycleCountConflictError("Este item jÃ¡ foi contado por outro operador. Atualize a lista.");
   }
 
   if (divergence !== 0) {
