@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -156,6 +156,27 @@ export function AppSidebar({
     }))
     .filter((g) => g.itens.length > 0);
 
+  // Só UM item fica ativo por vez. Itens como "Estoque" (/estoque) e
+  // "Quarentena" (/estoque/quarentena) são irmãos na sidebar, mas o href de
+  // um é prefixo do outro — sem isso, os dois acendiam juntos. Entre todos
+  // os itens visíveis que combinam com a URL atual, vence o href mais
+  // específico (o mais longo); os demais ficam apagados.
+  const activeHref = useMemo(() => {
+    let best: string | null = null;
+    for (const g of gruposFinais) {
+      for (const item of g.itens) {
+        const hasQuery = item.href.includes("?");
+        const matches = hasQuery
+          ? currentPath === item.href
+          : currentPath === item.href || currentPath.startsWith(item.href + "/");
+        if (matches && (best === null || item.href.length > best.length)) {
+          best = item.href;
+        }
+      }
+    }
+    return best;
+  }, [gruposFinais, currentPath]);
+
   const handleFlyoutEnter = (e: React.MouseEvent<HTMLLIElement>, label: string, active: boolean) => {
     if (!isCollapsed) return;
     const r = e.currentTarget.getBoundingClientRect();
@@ -203,13 +224,7 @@ export function AppSidebar({
             <ul className="sb__list">
               {g.itens.map((item, i) => {
                 const Icon = item.icon;
-                // Se o href tem query (?), casa exatamente com a URL atual (portal usa
-                // ?view=X — não podemos ignorar a query, senão todos os itens do portal
-                // batem em /portal). Sem query, aceita prefixo normal.
-                const hasQuery = item.href.includes("?");
-                const active = hasQuery
-                  ? currentPath === item.href
-                  : currentPath === item.href || currentPath.startsWith(item.href + "/");
+                const active = item.href === activeHref;
                 const badgeCount = navCounts?.[item.href] ?? 0;
 
                 return (
