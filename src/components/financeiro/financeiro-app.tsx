@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search as SearchIcon, Download, X, CircleDollarSign, Clock, CheckCircle2, Receipt, Plus, Building2, Paperclip, Loader2 } from "lucide-react";
+import { Search as SearchIcon, Download, X, CircleDollarSign, Clock, CheckCircle2, Receipt, Plus, Building2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { LancamentoForm } from "@/components/financeiro/lancamento-form";
@@ -11,7 +11,8 @@ import { InsumoForm } from "@/components/financeiro/insumo-forms";
 import { ContratoForm } from "@/components/financeiro/contrato-form";
 import { ContaPagarForm } from "@/components/financeiro/conta-pagar-form";
 import { marcarContaPagarPagaAction } from "@/app/(dashboard)/financeiro/contas-a-pagar/actions";
-import { FIN_HEADING, FIN_MONO, FinBadge } from "@/components/financeiro/fin-ui";
+import { FIN_HEADING, FIN_MONO, FinBadge, Drawer, Kv, MiniKv, DrawerSection, insumoNomeFromDescricao } from "@/components/financeiro/fin-ui";
+import { FaturaDrawer } from "@/components/financeiro/fatura-drawer";
 import { formatCnpj } from "@/lib/transportadoras";
 
 // ---------------------------------------------------------------------------
@@ -123,67 +124,6 @@ export type ExtratoRow = {
   faturaId: string | null;
 };
 
-// Lançamentos de insumo trazem o nome do insumo na descrição (ex: "Envelope
-// de Segurança - 25x35 (1 un)") — mostrado no lugar do depositante no
-// extrato, já que o insumo específico é mais relevante ali do que repetir
-// quem é o depositante.
-function insumoNomeFromDescricao(descricao: string): string {
-  return descricao.replace(/\s*\([^)]*\)\s*$/, "").trim() || descricao;
-}
-
-// Quantidade + unidade consumida, extraída do final da descrição do
-// lançamento de insumo (ex: "Envelope de Segurança - 25x35 (3 un)" → 3 un) —
-// usado para somar quanto foi utilizado de cada insumo no bloco do drawer.
-function insumoQtdFromDescricao(descricao: string): { qtd: number; unidade: string } | null {
-  const m = descricao.match(/\(([\d.,]+)\s*([^)]*)\)\s*$/);
-  if (!m) return null;
-  const qtd = Number(m[1].replace(",", "."));
-  if (Number.isNaN(qtd)) return null;
-  return { qtd, unidade: m[2].trim() };
-}
-
-function formatQtd(qtd: number): string {
-  return qtd % 1 === 0 ? String(qtd) : qtd.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-}
-
-// Lançamentos de ponto de coleta trazem o canal entre parênteses no final da
-// descrição (ex: "Ponto de coleta PED-0042 (Mercado Livre Flex)") — usado
-// para agrupar o bloco do drawer da fatura por ponto de coleta.
-function canalFromDescricao(descricao: string): string | null {
-  const m = descricao.match(/\(([^)]*)\)\s*$/);
-  return m ? m[1].trim() || null : null;
-}
-
-// Título exibido no bloco do drawer da fatura, quando diferente do rótulo
-// padrão do tipo (usado nas outras telas, como o extrato) — escopo restrito
-// a esse drawer.
-const BREAKDOWN_BLOCK_TITLE: Record<string, string> = {
-  "Outro documento": "Outros documentos",
-};
-
-// Rótulo da contagem dentro de cada bloco do drawer da fatura — "Pedidos"
-// para os tipos cobrados por pedido/evento de expedição ou recebimento,
-// rótulo específico para os demais.
-const BREAKDOWN_COUNT_LABEL: Record<string, string> = {
-  Fulfillment: "Pedidos",
-  "Ponto de coleta": "Pedidos",
-  "Impressão NF": "Notas",
-  "Carta de correção": "Pedidos com",
-  "Outro documento": "Documentos",
-  "Gestão de frete": "Pedidos",
-  "Item adicional": "Pedidos",
-  "Conferência unitária": "Pedidos",
-  Urgência: "Pedidos",
-  "Logística reversa": "Pedidos",
-  Cancelamento: "Pedidos",
-  Retirada: "Itens",
-  Descarte: "Itens",
-  Recebimento: "Recebimentos",
-  Refrigerador: "Unidades",
-  Insumo: "Insumos",
-};
-const BREAKDOWN_COUNT_LABEL_DEFAULT = "Lançamentos";
-
 type Tab = "visao" | "extrato" | "faturamento" | "pagar" | "contratos" | "insumos" | "nfse" | "boletos";
 
 type Props = {
@@ -210,17 +150,6 @@ function formatMesAno(mesAno: string) {
   const [year, month] = mesAno.split("-");
   const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   return `${months[Number(month) - 1]} ${year}`;
-}
-
-// Só para a Competência no drawer da fatura — nome do mês por extenso ("Agosto
-// de 2026"), diferente da forma abreviada de formatMesAno usada nas tabelas.
-function formatMesAnoLongo(mesAno: string) {
-  const [year, month] = mesAno.split("-");
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-  ];
-  return `${months[Number(month) - 1]} de ${year}`;
 }
 
 function formatDateBr(iso: string) {
@@ -767,47 +696,6 @@ export function FinanceiroApp(props: Props) {
   // -------------------------------------------------------------------------
 
   const activeFatura = tab === "faturamento" ? props.faturas.find((f) => f.id === activeId) : null;
-  const faturaBreakdown = useMemo(() => {
-    if (!activeFatura) return [];
-    type SubGrupo = { nome: string; count: number; total: number; qtd: number; unidade: string };
-    const grupos = new Map<string, { tipo: string; total: number; count: number; subGrupos: Map<string, SubGrupo> }>();
-    for (const e of props.extrato) {
-      if (e.faturaId !== activeFatura.id) continue;
-      const g = grupos.get(e.tipo) ?? { tipo: e.tipo, total: 0, count: 0, subGrupos: new Map<string, SubGrupo>() };
-      g.total += e.valor;
-      g.count += 1;
-
-      const subNome =
-        e.tipo === "Ponto de coleta"
-          ? canalFromDescricao(e.descricao)
-          : e.tipo === "Insumo"
-            ? insumoNomeFromDescricao(e.descricao)
-            : null;
-      if (subNome) {
-        const sub = g.subGrupos.get(subNome) ?? { nome: subNome, count: 0, total: 0, qtd: 0, unidade: "" };
-        sub.count += 1;
-        sub.total += e.valor;
-        if (e.tipo === "Insumo") {
-          const qtdInfo = insumoQtdFromDescricao(e.descricao);
-          if (qtdInfo) {
-            sub.qtd += qtdInfo.qtd;
-            sub.unidade = qtdInfo.unidade;
-          }
-        }
-        g.subGrupos.set(subNome, sub);
-      }
-
-      grupos.set(e.tipo, g);
-    }
-    return Array.from(grupos.values())
-      .map((g) => ({
-        tipo: g.tipo,
-        total: g.total,
-        count: g.count,
-        subGrupos: Array.from(g.subGrupos.values()).sort((a, b) => b.total - a.total),
-      }))
-      .sort((a, b) => b.total - a.total);
-  }, [activeFatura, props.extrato]);
   const activePagar = tab === "pagar" ? props.contasPagar.find((c) => c.id === activeId) : null;
   const activeContrato = tab === "contratos" ? props.contratos.find((c) => c.id === activeId) : null;
   const activeInsumo = tab === "insumos" ? props.insumos.find((i) => i.id === activeId) : null;
@@ -1109,52 +997,7 @@ export function FinanceiroApp(props: Props) {
 
       {/* Drawer: Faturamento */}
       {activeFatura && (
-        <Drawer
-          onClose={() => setActiveId(null)}
-          title={<span className={FIN_MONO}>{activeFatura.codigo}</span>}
-          badge={<FinBadge status={activeFatura.status} />}
-          footer={
-            <div className="flex items-start gap-2">
-              <a
-                href={`/api/financeiro/faturas/${activeFatura.id}/relatorio`}
-                className={`${FIN_HEADING} flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold !text-white`}
-              >
-                Ver fatura completa
-              </a>
-              <BoletoButton
-                faturaId={activeFatura.id}
-                initialUrl={activeFatura.boletoUrl}
-                initialNome={activeFatura.boletoNome}
-              />
-            </div>
-          }
-        >
-          <Kv label="Depositante" value={activeFatura.depNome} />
-          <Kv label="Competência" value={formatMesAnoLongo(activeFatura.mesAno)} />
-          <Kv label="Vencimento" value={formatDateBr(activeFatura.vencimento)} />
-          <Kv label="Valor" value={fmt(activeFatura.valor)} />
-          {faturaBreakdown.map((g) => (
-            <DrawerSection key={g.tipo} title={BREAKDOWN_BLOCK_TITLE[g.tipo] ?? g.tipo}>
-              <MiniKv label="Valor total" value={fmt(g.total)} />
-              <MiniKv label={BREAKDOWN_COUNT_LABEL[g.tipo] ?? BREAKDOWN_COUNT_LABEL_DEFAULT} value={String(g.count)} />
-              {g.subGrupos.length > 0 && (
-                <div className="mt-1.5 flex flex-col gap-1 border-t border-slate-200 pt-1.5 dark:border-white/10">
-                  {g.subGrupos.map((s) => (
-                    <MiniKv
-                      key={s.nome}
-                      label={s.nome}
-                      value={
-                        g.tipo === "Insumo"
-                          ? `${formatQtd(s.qtd)}${s.unidade ? ` ${s.unidade}` : ""} · ${fmt(s.qtd > 0 ? s.total / s.qtd : s.total)}`
-                          : String(s.count)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </DrawerSection>
-          ))}
-        </Drawer>
+        <FaturaDrawer fatura={activeFatura} extrato={props.extrato} onClose={() => setActiveId(null)} />
       )}
 
       {/* Drawer: Contas a Pagar */}
@@ -1856,174 +1699,8 @@ function SmallCard({ title, children }: { title: string; children: React.ReactNo
 }
 
 // ---------------------------------------------------------------------------
-// Drawer + Modal primitives
+// Modal primitive
 // ---------------------------------------------------------------------------
-
-function Drawer({
-  onClose,
-  eyebrow,
-  title,
-  subtitle,
-  badge,
-  icon,
-  children,
-  footer,
-}: {
-  onClose: () => void;
-  eyebrow?: string;
-  title: React.ReactNode;
-  subtitle?: React.ReactNode;
-  badge?: React.ReactNode;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0C1526]">
-        <div className="border-b border-slate-200 px-6 py-5 dark:border-white/10">
-          <div className="mb-2.5 flex items-center gap-2">
-            {badge}
-            <div className="flex-1" />
-            <button
-              onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          {eyebrow && (
-            <div className={`${FIN_HEADING} mb-1 text-[11px] font-bold uppercase tracking-widest text-violet-500`}>{eyebrow}</div>
-          )}
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className={`${FIN_HEADING} text-lg font-bold text-slate-900 dark:text-zinc-100`}>{title}</div>
-              {subtitle && <div className="mt-1 text-sm text-slate-500 dark:text-zinc-400">{subtitle}</div>}
-            </div>
-            {icon}
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
-        {footer && <div className="border-t border-slate-200 px-6 py-4 dark:border-white/10">{footer}</div>}
-      </aside>
-    </div>
-  );
-}
-
-function Kv({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-2.5 text-sm dark:border-white/5">
-      <span className="shrink-0 text-slate-500 dark:text-zinc-400">{label}</span>
-      <span className={`min-w-0 flex-1 break-words text-right font-semibold text-slate-900 dark:text-zinc-100 ${mono ? `${FIN_MONO} text-xs` : ""}`}>
-        {value ?? "—"}
-      </span>
-    </div>
-  );
-}
-
-function MiniKv({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-2 text-[12.5px]">
-      <span className="min-w-0 flex-1 truncate text-slate-500 dark:text-zinc-400">{label}</span>
-      <span className={`${FIN_MONO} shrink-0 font-semibold text-slate-900 dark:text-zinc-100`}>{value}</span>
-    </div>
-  );
-}
-
-function DrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/5">
-      <div className="mb-2 text-[10px] font-extrabold uppercase tracking-widest text-violet-500">{title}</div>
-      <div className="flex flex-col gap-1.5">{children}</div>
-    </div>
-  );
-}
-
-// Botão compacto ao lado de "Ver fatura completa": vermelho sem boleto
-// anexado, verde quando já tem. Sobe o arquivo pela mesma rota que o
-// FaturaUpload da página completa da fatura (/api/financeiro/faturas/[id]/upload).
-function BoletoButton({
-  faturaId,
-  initialUrl,
-  initialNome,
-}: {
-  faturaId: string;
-  initialUrl: string | null;
-  initialNome: string | null;
-}) {
-  const [url, setUrl] = useState(initialUrl);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handleUpload(file: File) {
-    setError(null);
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.append("tipo", "boleto");
-      form.append("file", file);
-
-      const res = await fetch(`/api/financeiro/faturas/${faturaId}/upload`, {
-        method: "POST",
-        body: form,
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Erro no upload.");
-        return;
-      }
-
-      setUrl(json.url);
-    } catch {
-      setError("Falha na conexão.");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
-
-  if (url) {
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={initialNome ?? "Boleto anexado"}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white transition hover:brightness-105"
-      >
-        <Paperclip className="h-4 w-4" />
-      </a>
-    );
-  }
-
-  return (
-    <div className="relative shrink-0">
-      <label
-        title="Anexar boleto"
-        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white transition hover:brightness-105 ${uploading ? "opacity-70" : "cursor-pointer"}`}
-      >
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          className="hidden"
-          disabled={uploading}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleUpload(file);
-          }}
-        />
-      </label>
-      {error && (
-        <p className="absolute right-0 top-full mt-1 w-40 text-right text-[11px] text-red-500">{error}</p>
-      )}
-    </div>
-  );
-}
 
 function Modal({
   title,

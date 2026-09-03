@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { FIN_HEADING, FIN_MONO, FinBadge } from "@/components/financeiro/fin-ui";
+import { FaturaDrawer, type FaturaDrawerFatura, type FaturaDrawerExtratoRow } from "@/components/financeiro/fatura-drawer";
 
 type FaturaRow = {
   id: string;
@@ -31,6 +32,9 @@ function formatDateBr(isoDate: string) {
 export function PortalInvoicesView({ depositanteId }: { depositanteId: string }) {
   const [faturas, setFaturas] = useState<FaturaRow[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [drawerFaturaId, setDrawerFaturaId] = useState<string | null>(null);
+  const [drawerData, setDrawerData] = useState<{ fatura: FaturaDrawerFatura; extrato: FaturaDrawerExtratoRow[] } | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,6 +51,21 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  async function openDrawer(faturaId: string) {
+    setDrawerFaturaId(faturaId);
+    setDrawerData(null);
+    setDrawerLoading(true);
+    try {
+      const res = await fetch(`/api/portal/faturas/${faturaId}/detalhes`);
+      if (res.ok) {
+        const json = await res.json();
+        setDrawerData(json);
+      }
+    } finally {
+      setDrawerLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -98,17 +117,35 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
                 <FinBadge status={f.status} />
               </td>
               <td className="px-5 py-3.5 text-right">
-                <a
-                  href={`/api/financeiro/faturas/${f.id}/relatorio`}
-                  className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+                <button
+                  onClick={() => openDrawer(f.id)}
+                  title="Ver detalhes da fatura"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
                 >
-                  Ver fatura
-                </a>
+                  <Info className="h-4 w-4" />
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {drawerFaturaId && drawerData && (
+        <FaturaDrawer
+          fatura={drawerData.fatura}
+          extrato={drawerData.extrato}
+          onClose={() => setDrawerFaturaId(null)}
+          showBoletoButton={false}
+        />
+      )}
+      {drawerFaturaId && drawerLoading && !drawerData && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerFaturaId(null)} />
+          <div className="absolute inset-y-0 right-0 flex w-full max-w-[440px] items-center justify-center border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0C1526]">
+            <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

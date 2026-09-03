@@ -11,34 +11,7 @@ import {
 import { requireModuleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
-
-// Rótulo do selo na 1ª coluna do extrato — um por tipo_servico, não mais
-// agrupado por categoria ampla (senão fulfillment/ponto de coleta/impressão
-// NF ficavam todos indistinguíveis como "Expedição").
-const TIPO_SERVICO_LABEL: Record<string, string> = {
-  FULFILLMENT: "Fulfillment",
-  PONTO_COLETA: "Ponto de coleta",
-  IMPRESSAO_NF: "Impressão NF",
-  CARTA_CORRECAO: "Carta de correção",
-  OUTRO_DOCUMENTO: "Outro documento",
-  GESTAO_FRETE: "Gestão de frete",
-  ITEM_ADICIONAL: "Item adicional",
-  CONFERENCIA: "Conferência unitária",
-  URGENCIA: "Urgência",
-  LOGISTICA_REVERSA: "Logística reversa",
-  CANCELAMENTO: "Cancelamento",
-  RETIRADA: "Retirada",
-  DESCARTE: "Descarte",
-  RECEBIMENTO: "Recebimento",
-  ARMAZENAMENTO: "Armazenagem",
-  SOFTWARE: "Software",
-  INTEGRACAO: "Integração",
-  AD_VALOREM: "Ad valorem",
-  REFRIGERADOR: "Refrigerador",
-  INSUMO: "Insumo",
-  DESCONTO: "Desconto",
-  COBRANCA_EXTRA: "Cobrança extra",
-};
+import { TIPO_SERVICO_LABEL } from "@/lib/tipo-servico-label";
 
 // Prefixo do código curto exibido no extrato. Pedidos de expedição usam o
 // numero_wms real do pedido (PED-/PDC-); o resto não tem um pedido
