@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Activity, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardList, FileCode2,
+  Activity, ChevronsLeft, ChevronsRight, CircleHelp, ClipboardCheck, ClipboardList, FileCode2,
   Layers, LogOut, MapPin, PackageOpen, PieChart, Receipt, Route, Send,
   ShieldAlert, SlidersHorizontal, Tag,
 } from "lucide-react";
@@ -68,6 +68,7 @@ const GRUPOS_COMPLETOS: Grupo[] = [
     label: "Estoque",
     itens: [
       { href: "/estoque",            label: "Estoque",    icon: Layers,      module: "estoque" },
+      { href: "/estoque/inventarios", label: "Inventário", icon: ClipboardCheck, module: "estoque" },
       { href: "/estoque/quarentena", label: "Quarentena", icon: ShieldAlert, module: "estoque" },
       { href: "/configuracoes/produtos", label: "Produtos", icon: Tag, module: "configuracoes" },
     ],
@@ -322,6 +323,7 @@ function buildOperatorGrupos(user: AppUserContext): Grupo[] {
   if (canAccessModule(user, "estoque")) {
     estoque.push(
       { href: "/estoque",            label: "Estoque",    icon: Layers,      module: "estoque" },
+      { href: "/estoque/inventarios", label: "Inventário", icon: ClipboardCheck, module: "estoque" },
       { href: "/estoque/quarentena", label: "Quarentena", icon: ShieldAlert, module: "estoque" },
     );
   }
