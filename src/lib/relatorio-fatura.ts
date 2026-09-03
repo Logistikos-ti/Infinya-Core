@@ -53,6 +53,7 @@ export type RelatorioFaturaData = {
   cnpj: string;
   periodo: string;
   periodoRef: string;
+  periodoMesAno: string;
   emitido: string;
   status: string;
   kpis: {
@@ -79,13 +80,19 @@ export type RelatorioFaturaData = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+const MESES_LONGO = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 function formatMesAnoLongo(mesAno: string) {
   const [year, month] = mesAno.split("-");
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-  ];
-  return `${months[Number(month) - 1]} de ${year}`;
+  return `${MESES_LONGO[Number(month) - 1]} de ${year}`;
+}
+
+function formatMesAnoCurto(mesAno: string) {
+  const [year, month] = mesAno.split("-");
+  return `${MESES_LONGO[Number(month) - 1].toUpperCase()}/${year}`;
 }
 
 function insumoNomeFromDescricao(descricao: string): string {
@@ -210,9 +217,18 @@ type LancamentoRow = {
   contrato_snapshot: Record<string, unknown> | null;
 };
 
+// Tipos cobrados como agregado mensal (1 lançamento cujo `quantidade` já é a
+// contagem real — pallets, refrigeradores, integrações ativas) — o detalhe
+// deve somar `quantidade`, não contar lançamentos (que costuma dar sempre 1).
+const SERVICO_QTD_AGREGADA = new Set(["ARMAZENAMENTO", "REFRIGERADOR", "INTEGRACAO"]);
+// Tipos onde a quantidade não agrega informação nenhuma (cobrança mensal fixa).
+const SERVICO_SEM_DETALHE = new Set(["SOFTWARE"]);
+
 function buildServico(tipo: string, itens: LancamentoRow[]): RelatorioServico {
   const total = itens.reduce((s, l) => s + Number(l.valor_total), 0);
-  const count = itens.length;
+  const count = SERVICO_QTD_AGREGADA.has(tipo)
+    ? itens.reduce((s, l) => s + Number(l.quantidade), 0)
+    : itens.length;
   const plural = SERVICO_DETALHE_PLURAL[tipo] ?? "lançamentos";
   const unidade = SERVICO_UNIDADE[tipo];
 
@@ -241,7 +257,7 @@ function buildServico(tipo: string, itens: LancamentoRow[]): RelatorioServico {
   return {
     id: SERVICO_CODIGO[tipo] ?? tipo.slice(0, 3),
     nome: SERVICO_LABEL[tipo] ?? tipo,
-    detalhe: `${count} ${plural}`,
+    detalhe: SERVICO_SEM_DETALHE.has(tipo) ? "" : `${count} ${plural}`,
     unitario,
     valor: total,
   };
@@ -457,6 +473,7 @@ export async function buildRelatorioFaturaData(faturaId: string): Promise<Relato
     cnpj: dep?.cnpj ? formatCnpj(dep.cnpj) : "—",
     periodo: formatMesAnoLongo(fatura.mes_ano as string),
     periodoRef: (fatura.mes_ano as string).split("-").reverse().join("/"),
+    periodoMesAno: formatMesAnoCurto(fatura.mes_ano as string),
     emitido: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }),
     status: statusLabel[fatura.status as string] ?? (fatura.status as string),
     kpis: {
