@@ -135,7 +135,7 @@ export function PortalInvoicesView({ depositanteId }: { depositanteId: string })
           fatura={drawerData.fatura}
           extrato={drawerData.extrato}
           onClose={() => setDrawerFaturaId(null)}
-          showBoletoButton={false}
+          allowBoletoUpload={false}
         />
       )}
       {drawerFaturaId && drawerLoading && !drawerData && (

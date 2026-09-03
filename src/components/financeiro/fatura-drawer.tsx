@@ -102,14 +102,19 @@ const BREAKDOWN_COUNT_LABEL_DEFAULT = "Lançamentos";
 // Botão compacto ao lado de "Ver fatura completa": vermelho sem boleto
 // anexado, verde quando já tem. Sobe o arquivo pela mesma rota que o
 // FaturaUpload da página completa da fatura (/api/financeiro/faturas/[id]/upload).
+// No portal (allowUpload=false) vira só um link de download quando já existe
+// boleto anexado, e desaparece por completo quando ainda não existe — o
+// depositante nunca vê a interface de upload, que é exclusiva do admin/TI.
 function BoletoButton({
   faturaId,
   initialUrl,
   initialNome,
+  allowUpload = true,
 }: {
   faturaId: string;
   initialUrl: string | null;
   initialNome: string | null;
+  allowUpload?: boolean;
 }) {
   const [url, setUrl] = useState(initialUrl);
   const [uploading, setUploading] = useState(false);
@@ -158,6 +163,8 @@ function BoletoButton({
     );
   }
 
+  if (!allowUpload) return null;
+
   return (
     <div className="relative shrink-0">
       <label
@@ -188,12 +195,14 @@ export function FaturaDrawer({
   fatura,
   extrato,
   onClose,
-  showBoletoButton = true,
+  allowBoletoUpload = true,
 }: {
   fatura: FaturaDrawerFatura;
   extrato: FaturaDrawerExtratoRow[];
   onClose: () => void;
-  showBoletoButton?: boolean;
+  // Upload é uma ação exclusiva do admin/TI (o portal só pode baixar o
+  // boleto já anexado, nunca subir um novo).
+  allowBoletoUpload?: boolean;
 }) {
   const breakdown = useMemo(() => {
     type SubGrupo = { nome: string; count: number; total: number; qtd: number; unidade: string };
@@ -249,9 +258,12 @@ export function FaturaDrawer({
           >
             Ver fatura completa
           </a>
-          {showBoletoButton && (
-            <BoletoButton faturaId={fatura.id} initialUrl={fatura.boletoUrl} initialNome={fatura.boletoNome} />
-          )}
+          <BoletoButton
+            faturaId={fatura.id}
+            initialUrl={fatura.boletoUrl}
+            initialNome={fatura.boletoNome}
+            allowUpload={allowBoletoUpload}
+          />
         </div>
       }
     >

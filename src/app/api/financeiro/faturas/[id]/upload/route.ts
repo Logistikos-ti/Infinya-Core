@@ -33,7 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { data: fatura } = await admin
     .from("faturas")
-    .select("id, depositante_id, boleto_url, nf_url")
+    .select("id, depositante_id, boleto_url, nf_url, status")
     .eq("id", id)
     .single();
 
@@ -82,9 +82,19 @@ export async function POST(request: Request, context: RouteContext) {
 
   const publicUrl = urlData.publicUrl;
 
+  // Anexar o boleto já deixa a fatura pronta pra cobrança — promove
+  // Fechada -> Enviada (mesmo status usado pelo botão "Enviar por e-mail")
+  // sem disparar o e-mail automático; o depositante passa a ver o boleto
+  // assim que entrar no portal.
   const updatePayload =
     tipo === "boleto"
-      ? { boleto_url: publicUrl, boleto_nome: file.name }
+      ? {
+          boleto_url: publicUrl,
+          boleto_nome: file.name,
+          ...(fatura.status === "FECHADA"
+            ? { status: "ENVIADA", enviado_em: new Date().toISOString() }
+            : {}),
+        }
       : { nf_url: publicUrl, nf_nome: file.name };
 
   const { error: dbError } = await admin
