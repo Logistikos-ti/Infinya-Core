@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: RouteProps) {
     return NextResponse.json({ error: "Romaneio não encontrado." }, { status: 404 });
   }
 
-  const photoUrl = extractPhotoUrl(romaneio.notes, type);
+  const photoUrl = extractPhotoUrl(romaneio.conferenceInfoJson, type);
   if (!photoUrl) {
     return NextResponse.json({ error: "Nenhuma foto registrada para este romaneio." }, { status: 404 });
   }

@@ -1410,7 +1410,7 @@ function extractShippingService(payload: Record<string, unknown>) {
     : "Serviço não informado";
 }
 
-function extractTrackingCode(payload: Record<string, unknown>) {
+export function extractTrackingCode(payload: Record<string, unknown>) {
   const transporte = isRecord(payload.transporte) ? payload.transporte : null;
   const volumes = Array.isArray(transporte?.volumes) ? transporte.volumes : [];
   const firstVolume = volumes.find((item) => isRecord(item));

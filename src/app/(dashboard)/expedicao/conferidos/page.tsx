@@ -62,12 +62,16 @@ export default async function ShippingConferidosPage({ searchParams }: ShippingC
       {feedback ? (
         <div
           className={`rounded-3xl border px-5 py-4 text-sm font-bold shadow-sm ${
-            feedback === "liberado-romaneio"
+            feedback === "liberado-sem-transportadora"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              : feedback === "liberado-romaneio"
               ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
               : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
           }`}
         >
-          {feedback === "liberado-romaneio" ? (
+          {feedback === "liberado-sem-transportadora" ? (
+            "Pedido conferido e pronto para romaneio, mas a transportadora não pôde ser identificada automaticamente. Abra o pedido e informe a transportadora manualmente para vinculá-lo a uma carga."
+          ) : feedback === "liberado-romaneio" ? (
             romaneio ? (
               <>
                 Pedido adicionado ao romaneio{" "}

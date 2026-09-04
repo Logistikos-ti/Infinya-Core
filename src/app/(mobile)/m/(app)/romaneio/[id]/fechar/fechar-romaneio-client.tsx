@@ -24,7 +24,15 @@ import {
   completeRomaneioWithDoubleCheckAction,
   uploadRomaneioPhotoAction,
 } from "@/app/(dashboard)/romaneio/actions";
-import { mobileColors, mobileGradient, hexAlpha, headingFont, MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import {
+  mobileColors,
+  mobileGradient,
+  hexAlpha,
+  headingFont,
+  MobileButtonSpinner,
+  MobileScanOverlay,
+  type ScanOverlayState,
+} from "@/components/mobile/mobile-kit";
 import { DownloadRomaneioPdfButton } from "@/components/mobile/download-romaneio-pdf-button";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
@@ -59,11 +67,7 @@ export function FecharRomaneioClient({
   // confirmed. Reading/writing this ref instead of the state value keeps
   // every scan additive regardless of render timing.
   const scannedIdsRef = useRef<Set<string>>(new Set());
-  const [scanFeedback, setScanFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [framePulse, setFramePulse] = useState<"success" | "error" | null>(null);
+  const [overlay, setOverlay] = useState<ScanOverlayState>(null);
   const [showOrderListModal, setShowOrderListModal] = useState(false);
   // Manual entry: the DANFE simplificada's barcode encodes the 44-digit
   // chave de acesso as a single long, thin Code128 -- exactly the kind of
@@ -72,7 +76,7 @@ export function FecharRomaneioClient({
   // it, so typing them in is a reliable fallback, not just an emergency one.
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualCode, setManualCode] = useState("");
-  const pulseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const overlayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const barcodeBufferRef = useRef<string>("");
   const barcodeLastKeyTimeRef = useRef<number>(0);
@@ -119,8 +123,11 @@ export function FecharRomaneioClient({
   const isDoubleCheckComplete = totalOrders > 0 && scannedCount >= totalOrders;
   const carrierBrand = getCarrierBrand(romaneio.carrierName);
 
-  // Sound effects
+  // Sound + haptic effects
   function playBeep(success: boolean) {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(success ? 60 : [70, 60, 70]);
+    }
     if (typeof window === "undefined" || !window.AudioContext) return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -150,6 +157,15 @@ export function FecharRomaneioClient({
     }
   }
 
+  // Full-screen scan flash, auto-dismissed -- mirrors the pattern used by
+  // mobile-receiving-panel.tsx / general-inventory-client.tsx so the same
+  // MobileScanOverlay component reads consistently across the app.
+  function flash(next: ScanOverlayState) {
+    setOverlay(next);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => setOverlay(null), 1300);
+  }
+
   // Handle barcode/DANFE scan in double check
   const handleDoubleCheckScan = useCallback((rawCode: string) => {
     const code = (rawCode || "").trim();
@@ -157,83 +173,92 @@ export function FecharRomaneioClient({
 
     // Normalize for matching
     const clean = code.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!clean) return;
 
-    // Find match in romaneio orders
-    const matched = romaneio.orders.find((order) => {
-      const targets = [
-        order.id,
-        order.code,
-        order.externalNumber,
-        order.invoiceNumber,
-        (order as any).invoiceNumber,
-        (order as any).danfe_simplificada,
-        (order as any).numero_nota,
-        (order as any).chave_nfe,
-        (order as any).chave_acesso,
-        (order as any).tracking_code,
-        (order as any).payload_origem?.danfe_simplificada,
-        (order as any).payload_origem?.chave_nfe,
-        (order as any).payload_origem?.chave_acesso,
-        (order as any).payload_origem?.numero_nota,
-        (order as any).payload_origem?.nota_fiscal?.numero,
-        (order as any).payload_origem?.nota_fiscal?.chave,
-        (order as any).payload_origem?.codigo_rastreamento,
-      ]
+    // Regra padrão: igualdade EXATA contra os identificadores fixos --
+    // chave de acesso (44 dígitos), código de rastreio, código WMS e
+    // número do pedido. Um código de barras codifica um desses valores
+    // inteiro, nunca um fragmento -- por isso nada de substring aqui, e
+    // order.id (UUID) não entra: nunca fez sentido de negócio comparar um
+    // UUID interno contra um código bipado.
+    const exactMatches = romaneio.orders.filter((order) => {
+      const exactTargets = [order.code, order.externalNumber, order.invoiceKey, order.trackingCode]
         .filter(Boolean)
         .map((t) => String(t).toLowerCase().replace(/[^a-z0-9]/g, ""));
-
-      return targets.some((t) => t === clean || t.includes(clean) || clean.includes(t));
+      return exactTargets.some((t) => t === clean);
     });
 
-    if (matched) {
-      if (scannedIdsRef.current.has(matched.id)) {
-        playBeep(true);
-        setFramePulse("success");
-        setScanFeedback({
-          type: "success",
-          message: `Volume ${matched.externalNumber || matched.code} já conferido anteriormente.`,
-        });
-      } else {
-        playBeep(true);
-        setFramePulse("success");
-        // Read/write scannedIdsRef synchronously (not the scannedIds state
-        // captured in this callback's closure) so two scans landing before
-        // React re-renders still both count -- see the comment on
-        // scannedIdsRef's declaration.
-        const nextSet = new Set(scannedIdsRef.current);
-        nextSet.add(matched.id);
-        scannedIdsRef.current = nextSet;
-        setScannedIds(nextSet);
+    // Fallback restrito: só para o número curto da NF digitado à mão (ex.:
+    // placeholder "Ex: 66459" da entrada manual). Compara só contra os
+    // campos de número de nota, numa ÚNICA direção -- o campo mais
+    // longo/com prefixo/zero-padded TERMINA com o código digitado, nunca o
+    // contrário -- e só quando o código digitado tem tamanho plausível pra
+    // um número de NF (4+ dígitos evita colisão de um "12" batendo no
+    // final de qualquer coisa).
+    const MIN_INVOICE_SUFFIX_LENGTH = 4;
+    const invoiceSuffixMatches =
+      exactMatches.length > 0 || clean.length < MIN_INVOICE_SUFFIX_LENGTH
+        ? []
+        : romaneio.orders.filter((order) => {
+            const invoiceTargets = [order.invoiceNumberDigits, order.invoiceNumber]
+              .filter(Boolean)
+              .map((t) => String(t).toLowerCase().replace(/[^a-z0-9]/g, ""));
+            return invoiceTargets.some((t) => t.endsWith(clean));
+          });
 
-        const isLastOne = nextSet.size >= totalOrders;
-        setScanFeedback({
-          type: "success",
-          message: isLastOne
-            ? `✔ Todos os ${totalOrders} volumes conferidos!`
-            : `✔ Volume ${matched.externalNumber || matched.code} conferido com sucesso!`,
-        });
+    const candidates = exactMatches.length > 0 ? exactMatches : invoiceSuffixMatches;
 
-        if (isLastOne) {
-          // Auto advance to driver step after 1.2s
-          if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
-          autoAdvanceTimerRef.current = setTimeout(() => {
-            setStep("motorista");
-          }, 1200);
-        }
-      }
-    } else {
+    if (candidates.length > 1) {
       playBeep(false);
-      setFramePulse("error");
-      setScanFeedback({
-        type: "error",
-        message: `❌ Código não pertence a esta carga (${romaneio.carrierName})!`,
+      flash({
+        type: "warn",
+        title: "Código ambíguo",
+        code,
+        sub: "Bate com mais de um pedido desta carga -- confira manualmente na lista.",
       });
+      return;
     }
 
-    if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
-    pulseTimerRef.current = setTimeout(() => {
-      setFramePulse(null);
-    }, 600);
+    const matched = candidates[0];
+
+    if (matched) {
+      const label = matched.externalNumber || matched.code;
+
+      if (scannedIdsRef.current.has(matched.id)) {
+        playBeep(true);
+        flash({ type: "ok", title: "Já conferido", code: label, sub: "Este volume já tinha sido bipado antes." });
+        return;
+      }
+
+      playBeep(true);
+      // Read/write scannedIdsRef synchronously (not the scannedIds state
+      // captured in this callback's closure) so two scans landing before
+      // React re-renders still both count -- see the comment on
+      // scannedIdsRef's declaration.
+      const nextSet = new Set(scannedIdsRef.current);
+      nextSet.add(matched.id);
+      scannedIdsRef.current = nextSet;
+      setScannedIds(nextSet);
+
+      const isLastOne = nextSet.size >= totalOrders;
+      flash(
+        isLastOne
+          ? { type: "ok", title: "Tudo conferido!", code: `${totalOrders}/${totalOrders}`, sub: `Todos os ${totalOrders} volumes foram conferidos.` }
+          : { type: "ok", title: "Volume conferido", code: label, sub: `${nextSet.size} de ${totalOrders} pedidos conferidos.` },
+      );
+
+      if (isLastOne) {
+        // Auto advance to driver step after 1.2s
+        if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+        autoAdvanceTimerRef.current = setTimeout(() => {
+          setStep("motorista");
+        }, 1200);
+      }
+      return;
+    }
+
+    playBeep(false);
+    flash({ type: "err", title: "Não pertence a esta carga", code, sub: `Este código não está vinculado à carga de ${romaneio.carrierName}.` });
   }, [romaneio.orders, romaneio.carrierName, totalOrders]);
 
   // Camera barcode scanner with automatic detection
@@ -241,12 +266,13 @@ export function FecharRomaneioClient({
     videoRef,
     cameraSupported,
     cameraStarting,
+    cameraMessage,
     startCamera,
     stopCamera,
   } = useCameraBarcodeScanner({
     onDetected: handleDoubleCheckScan,
     requirePresenceGap: true,
-    confirmReads: 1,
+    confirmReads: 2,
     presenceGapMs: 400,
   });
 
@@ -261,7 +287,7 @@ export function FecharRomaneioClient({
     return () => {
       stopCamera();
       if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
-      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     };
   }, [step, startCamera, stopCamera]);
 
@@ -466,7 +492,7 @@ export function FecharRomaneioClient({
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.85) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 26%, rgba(0,0,0,0) 68%, rgba(0,0,0,0.65) 100%)",
             pointerEvents: "none",
           }}
         />
@@ -490,9 +516,7 @@ export function FecharRomaneioClient({
               width: 38,
               height: 38,
               borderRadius: 12,
-              background: "rgba(0,0,0,0.55)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.14)",
               color: "#fff",
               display: "flex",
               alignItems: "center",
@@ -534,9 +558,7 @@ export function FecharRomaneioClient({
               height: 38,
               padding: "0 12px",
               borderRadius: 12,
-              background: "rgba(0,0,0,0.55)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: "rgba(255,255,255,0.14)",
               color: "#fff",
               display: "flex",
               alignItems: "center",
@@ -571,37 +593,14 @@ export function FecharRomaneioClient({
               width: 320,
               height: 130,
               borderRadius: 20,
-              border: `3px ${framePulse ? "solid" : "dashed"} ${
-                framePulse === "success"
-                  ? mobileColors.green
-                  : framePulse === "error"
-                  ? mobileColors.red
-                  : "rgba(255,255,255,0.85)"
-              }`,
-              boxShadow:
-                framePulse === "success"
-                  ? `0 0 28px ${hexAlpha(mobileColors.green, 0.75)}`
-                  : framePulse === "error"
-                  ? `0 0 28px ${hexAlpha(mobileColors.red, 0.75)}`
-                  : "0 0 20px rgba(0,0,0,0.4)",
-              transition: "all 0.15s ease",
+              border: `3px dashed ${hexAlpha("#ffffff", 0.85)}`,
+              boxShadow: "0 0 20px rgba(0,0,0,0.4)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               position: "relative",
             }}
-          >
-            {cameraStarting && (
-              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600 }}>
-                Iniciando câmera...
-              </span>
-            )}
-            {!cameraSupported && (
-              <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, textAlign: "center", padding: 12 }}>
-                Câmera indisponível neste navegador.
-              </span>
-            )}
-          </div>
+          />
 
           <span
             style={{
@@ -609,9 +608,15 @@ export function FecharRomaneioClient({
               fontSize: 13,
               fontWeight: 600,
               textShadow: "0 2px 8px rgba(0,0,0,0.8)",
+              textAlign: "center",
+              maxWidth: 300,
             }}
           >
-            Aponte para a DANFE / Etiqueta do pacote
+            {!cameraSupported
+              ? "Câmera indisponível neste navegador."
+              : cameraStarting
+              ? "Iniciando câmera..."
+              : cameraMessage ?? "Aponte para a DANFE / Etiqueta do pacote"}
           </span>
 
           {/* DANFE simplificada's barcode is long and thin -- hard to frame
@@ -626,9 +631,7 @@ export function FecharRomaneioClient({
               gap: 6,
               padding: "8px 14px",
               borderRadius: 12,
-              background: "rgba(0,0,0,0.55)",
-              backdropFilter: "blur(12px)",
-              border: "1px solid rgba(255,255,255,0.18)",
+              background: "rgba(255,255,255,0.14)",
               color: "#fff",
               fontSize: 12,
               fontWeight: 700,
@@ -652,32 +655,6 @@ export function FecharRomaneioClient({
             textAlign: "center",
           }}
         >
-          {/* Scan Feedback Banner */}
-          {scanFeedback && (
-            <div
-              style={{
-                width: "100%",
-                maxWidth: 360,
-                padding: "10px 14px",
-                borderRadius: 16,
-                fontSize: 12.5,
-                fontWeight: 700,
-                backgroundColor:
-                  scanFeedback.type === "success"
-                    ? "rgba(16, 185, 129, 0.25)"
-                    : "rgba(239, 68, 68, 0.25)",
-                border: `1px solid ${
-                  scanFeedback.type === "success" ? mobileColors.green : mobileColors.red
-                }`,
-                color: scanFeedback.type === "success" ? "#6EE7B7" : "#FCA5A5",
-                backdropFilter: "blur(12px)",
-                animation: "fade-in 0.2s ease",
-              }}
-            >
-              {scanFeedback.message}
-            </div>
-          )}
-
           {/* Progress Section: Bolinhas (<= 10) OU Barrinha (> 10) */}
           <div
             style={{
@@ -808,6 +785,8 @@ export function FecharRomaneioClient({
             </button>
           )}
         </div>
+
+        <MobileScanOverlay overlay={overlay} />
 
         {/* Modal: Digitar código da DANFE manualmente */}
         {showManualEntry && (

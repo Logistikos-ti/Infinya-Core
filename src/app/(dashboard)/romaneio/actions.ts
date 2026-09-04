@@ -7,7 +7,6 @@ import { requireModuleAccess } from "@/lib/auth";
 import {
   cancelRomaneioRecord,
   createRomaneioRecordFromOrders,
-  releaseRomaneioRecord,
   updateRomaneioRecordDetails,
 } from "@/lib/romaneio-records";
 
@@ -31,6 +30,11 @@ export async function createRomaneioRecordAction(formData: FormData) {
     orderIds,
     transportadoraId: getString(formData, "transportadoraId") || null,
     transportadoraNome: getString(formData, "transportadoraNome") || null,
+    motoristaNome: getString(formData, "motoristaNome") || null,
+    veiculoPlaca: getString(formData, "veiculoPlaca") || null,
+    doca: getString(formData, "doca") || null,
+    coletaPrevista: getString(formData, "coletaPrevista") || null,
+    observacoes: getString(formData, "observacoes") || null,
   });
 
   const isMobile = getString(formData, "isMobile") === "true";
@@ -57,6 +61,8 @@ export async function updateRomaneioRecordAction(formData: FormData) {
     motoristaDocumento: getString(formData, "motoristaDocumento") || null,
     veiculoModelo: getString(formData, "veiculoModelo") || null,
     veiculoPlaca: getString(formData, "veiculoPlaca") || null,
+    doca: getString(formData, "doca") || null,
+    coletaPrevista: getString(formData, "coletaPrevista") || null,
     observacoes: getString(formData, "observacoes") || null,
   });
 
@@ -64,23 +70,6 @@ export async function updateRomaneioRecordAction(formData: FormData) {
   revalidatePath(`/romaneio/${romaneioId}`);
   revalidatePath("/m/romaneio");
   redirect(`/romaneio/${romaneioId}?feedback=salvo`);
-}
-
-export async function releaseRomaneioRecordAction(formData: FormData) {
-  const user = await requireModuleAccess("romaneio");
-  const romaneioId = getString(formData, "romaneioId");
-
-  if (!romaneioId) {
-    redirect("/romaneio?feedback=erro");
-  }
-
-  await releaseRomaneioRecord({ user, romaneioId });
-  revalidatePath("/romaneio");
-  revalidatePath(`/romaneio/${romaneioId}`);
-  revalidatePath("/expedicao");
-  revalidatePath("/m/expedicao");
-  revalidatePath("/m/romaneio");
-  redirect(`/romaneio/${romaneioId}?feedback=liberado`);
 }
 
 export async function cancelRomaneioRecordAction(formData: FormData) {

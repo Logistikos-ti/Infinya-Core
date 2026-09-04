@@ -9,7 +9,7 @@ import type { TipoServico, OrigemLancamento, ReferenciaTipo } from "@/types/bill
 // configurada no contrato.
 // ---------------------------------------------------------------------------
 const TRANSPORTADORAS_ISENTAS = [
-  "mercado livre", "meli", "shopee", "amazon", "magalu", "magazine luiza",
+  "mercado livre", "mercado envios", "meli", "shopee", "amazon", "magalu", "magazine luiza",
   "shein", "tiktok", "kwai", "olist",
   "correios", "mandae", "mandaê",
 ];

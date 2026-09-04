@@ -152,7 +152,7 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
   const chunks = chunkArray(orders, ORDERS_PER_PAGE);
   const totalPages = Math.max(1, chunks.length);
   const emittedAt = formatDateTime(new Date().toISOString());
-  const photos = parseConferenciaPhotos(record.notes);
+  const photos = parseConferenciaPhotos(record.conferenceInfoJson);
   const finalizedAt = record.releasedAt ?? record.canceledAt;
   const finalizedLabel = finalizedAt ? `${record.statusLabel} ${formatDateTime(finalizedAt)}` : undefined;
 

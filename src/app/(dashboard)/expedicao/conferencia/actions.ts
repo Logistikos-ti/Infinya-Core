@@ -16,7 +16,7 @@ import { CONFERENCE_EDITABLE_STATUSES } from "@/lib/shipping-conference-status";
 import { registrarLancamentosExpedicao, registrarLancamentoDocumento } from "@/lib/billing";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
-import { autoAssignOrderToRomaneio } from "@/lib/romaneio-records";
+import { autoAssignOrderToRomaneio, CarrierNotIdentifiedError } from "@/lib/romaneio-records";
 
 type KitProgressEntry = {
   componentProductId: string;
@@ -296,6 +296,7 @@ export async function saveShippingConferenceAction(formData: FormData) {
   }
 
   let assignedRomaneioCodigo = "";
+  let assignmentBlockedByCarrier = false;
   if (isReleaseToRomaneio) {
     try {
       const assigned = await autoAssignOrderToRomaneio({ user, orderId });
@@ -303,7 +304,11 @@ export async function saveShippingConferenceAction(formData: FormData) {
         assignedRomaneioCodigo = assigned.codigo;
       }
     } catch (error) {
-      console.error("Auto assign to romaneio failed:", error);
+      if (error instanceof CarrierNotIdentifiedError) {
+        assignmentBlockedByCarrier = true;
+      } else {
+        console.error("Auto assign to romaneio failed:", error);
+      }
     }
   }
 
@@ -324,6 +329,9 @@ export async function saveShippingConferenceAction(formData: FormData) {
   if (isReleaseToRomaneio) {
     if (assignedRomaneioCodigo) {
       redirect(`/expedicao/conferidos?feedback=liberado-romaneio&romaneio=${assignedRomaneioCodigo}`);
+    }
+    if (assignmentBlockedByCarrier) {
+      redirect("/expedicao/conferidos?feedback=liberado-sem-transportadora");
     }
     redirect("/expedicao/conferidos?feedback=liberado-romaneio");
   }

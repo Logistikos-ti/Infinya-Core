@@ -1,16 +1,16 @@
 import { RomaneioDashboard } from "@/components/romaneio/romaneio-dashboard";
 import { requireModuleAccess } from "@/lib/auth";
 import {
+  getOrderWeightsByOrderId,
   isRomaneioRecordsSchemaMissing,
   listRomaneioRecordsFromDb,
+  listTransportadoraOptionsFromDb,
 } from "@/lib/romaneio-records";
 
 type RomaneioPageProps = {
   searchParams?: Promise<{
     status?: string;
     depositante?: string;
-    transportadora?: string;
-    q?: string;
     dataInicial?: string;
     dataFinal?: string;
     feedback?: string;
@@ -21,8 +21,6 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
   const user = await requireModuleAccess("romaneio");
   const params = searchParams ? await searchParams : undefined;
   const statusFilter = params?.status?.trim() ?? "";
-  const carrierFilter = params?.transportadora?.trim() ?? "";
-  const searchTerm = params?.q?.trim() ?? "";
   const dateFrom = params?.dataInicial?.trim() ?? "";
   const dateTo = params?.dataFinal?.trim() ?? "";
   const depositanteFilter =
@@ -35,7 +33,6 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
     records = await listRomaneioRecordsFromDb(user, {
       status: statusFilter || undefined,
       depositanteId: depositanteFilter || undefined,
-      carrier: carrierFilter || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
     });
@@ -50,9 +47,16 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
     }
   }
 
-  const filteredRecords = searchTerm
-    ? records.filter((record) => matchesRomaneioSearch(record, searchTerm))
-    : records;
+  const transportadoraOptions = await listTransportadoraOptionsFromDb();
+
+  // Peso (kg) não vem pronto no pedido -- só nos produtos do catálogo --
+  // então é calculado aqui (join com pedidos_expedicao_itens/produtos) e
+  // repassado por PEDIDO (não já somado por romaneio): o drawer precisa do
+  // peso individual de cada pedido, então o dashboard soma por romaneio
+  // quando precisar do total, a partir desta mesma fonte.
+  const allOrderIds = records.flatMap((record) => record.orders.map((order) => order.id));
+  const weightsByOrderId = await getOrderWeightsByOrderId(allOrderIds);
+  const orderWeights = Object.fromEntries(weightsByOrderId);
 
   return (
     <>
@@ -61,48 +65,7 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
           A estrutura persistente do romaneio ainda não existe neste banco. Rode a nova migration do Supabase.
         </div>
       ) : null}
-      <RomaneioDashboard records={filteredRecords} />
+      <RomaneioDashboard records={records} transportadoraOptions={transportadoraOptions} orderWeights={orderWeights} />
     </>
   );
-}
-
-function matchesRomaneioSearch(
-  record: Awaited<ReturnType<typeof listRomaneioRecordsFromDb>>[number],
-  term: string,
-) {
-  const normalizedTerm = normalizeSearchText(term);
-  if (!normalizedTerm) return true;
-
-  const orderFields = record.orders.flatMap((order) => [
-    order.code,
-    order.externalNumber,
-    order.customer,
-    order.destination,
-    order.invoiceNumber,
-    order.depositante,
-    order.statusLabel,
-  ]);
-
-  return [
-    record.code,
-    record.statusLabel,
-    record.carrierName,
-    record.transportadoraCnpj,
-    record.driverName,
-    record.driverDocument,
-    record.vehicleModel,
-    record.vehiclePlate,
-    record.notes,
-    ...record.depositantes,
-    ...record.destinations,
-    ...orderFields,
-  ].some((value) => normalizeSearchText(value).includes(normalizedTerm));
-}
-
-function normalizeSearchText(value: unknown) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-    .trim();
 }

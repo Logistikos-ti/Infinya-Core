@@ -55,7 +55,8 @@ import { ShippingFullDocumentsCard } from "@/components/shipping/shipping-full-d
 import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
 import { ShippingReturnInvoiceModal } from "@/components/shipping/shipping-return-invoice-modal";
 import { createPortal, useFormStatus } from "react-dom";
-import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
+import { SALES_CHANNEL_OPTIONS, isMarketplaceChannel } from "@/lib/sales-channels";
+import { resolveMarketplaceCarrierName } from "@/lib/marketplace-carrier-networks";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = { status: "idle" };
@@ -301,7 +302,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [newOrderItems, setNewOrderItems] = useState<Array<{ id: string; quantity: number }>>([]);
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productPickerQuery, setProductPickerQuery] = useState("");
-  const [newOrderCarrier, setNewOrderCarrier] = useState("Mercado Livre");
+  const [newOrderCarrier, setNewOrderCarrier] = useState("Outro");
   const [manualOrderResult, submitManualOrder, isSubmittingManualOrder] = useActionState(
     createOperationalManualShippingOrderAction,
     initialManualShippingOrderSubmissionState,
@@ -309,6 +310,13 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const [manualOrderErrorDismissed, setManualOrderErrorDismissed] = useState(false);
   const [manualOrderSuccessVisible, setManualOrderSuccessVisible] = useState(false);
   const [newOrderOtherCarrier, setNewOrderOtherCarrier] = useState("");
+  const carrierChipOptions = ["Correios", "Ponto de Coleta", ...(isMarketplaceChannel(newOrderChannel) ? ["Coleta Marketplace"] : []), "Outro"];
+  const resolvedCarrierName =
+    newOrderCarrier === "Outro"
+      ? newOrderOtherCarrier || "Outro"
+      : newOrderCarrier === "Coleta Marketplace"
+        ? resolveMarketplaceCarrierName(newOrderChannel)
+        : newOrderCarrier;
   const [newOrderInvoiceFile, setNewOrderInvoiceFile] = useState<File | null>(null);
   const [newOrderLabelFile, setNewOrderLabelFile] = useState<File | null>(null);
   const [newOrderPreview, setNewOrderPreview] = useState<{ kind: "invoice" | "label"; src: string; file?: File } | null>(null);
@@ -2051,7 +2059,7 @@ export function ExpedicaoClient({ data }: { data: any }) {
                       const initials: Record<string, string> = { MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
                       const channelColors: Record<string, string> = { MERCADO_LIVRE: "#2D3277", SHOPEE: "#EE4D2D", AMAZON: "#FF9900", MAGALU: "#F59E0B", SHEIN: "#111827", TIKTOK: "#111827", KWAI: "#FF6B35", SITE_PROPRIO: "#8B5CF6" };
                       const channelColor = channelColors[option.value] ?? "#8B5CF6";
-                      return <button type="button" key={option.value} onClick={() => setNewOrderChannel(option.value)} style={{ height: 36, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 10, border: `1.5px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontSize: 12.5, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}><span style={{ width: 19, height: 19, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 9.5, fontWeight: 800, background: `${channelColor}20`, color: channelColor }}>{initials[option.value]}</span>{option.label}</button>;
+                      return <button type="button" key={option.value} onClick={() => { setNewOrderChannel(option.value); if (newOrderCarrier === "Coleta Marketplace" && !option.marketplace) setNewOrderCarrier("Outro"); }} style={{ height: 36, padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 10, border: `1.5px solid ${active ? "#8B5CF6" : t.border}`, background: active ? "rgba(139,92,246,0.1)" : t.cardBg, color: active ? t.text : t.textSub, fontSize: 12.5, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}><span style={{ width: 19, height: 19, display: "grid", placeItems: "center", borderRadius: 6, fontSize: 9.5, fontWeight: 800, background: `${channelColor}20`, color: channelColor }}>{initials[option.value]}</span>{option.label}</button>;
                     })}
                   </div>
                 </section>
@@ -2148,13 +2156,15 @@ export function ExpedicaoClient({ data }: { data: any }) {
                 </section>
 
                 <section>
-                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Frete / transportadora</h3>
-                  <input type="hidden" name="shippingService" value={newOrderCarrier} />
-                  {newOrderCarrier === "Outro" ? <input name="carrierName" required value={newOrderOtherCarrier} onChange={(event) => setNewOrderOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /> : <input type="hidden" name="carrierName" value={newOrderCarrier} />}
+                  <h3 style={{ margin: "0 0 12px", color: t.text, fontSize: 14, fontWeight: 800 }}>Transportadora física</h3>
+                  <p style={{ margin: "0 0 10px", color: t.textSub, fontSize: 11.5 }}>Quem vai buscar/entregar o pacote -- não é o canal de venda (selecionado acima).</p>
+                  <input type="hidden" name="shippingService" value={resolvedCarrierName} />
+                  {newOrderCarrier === "Outro" ? <input name="carrierName" required value={newOrderOtherCarrier} onChange={(event) => setNewOrderOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 11, border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13.5 }} /> : <input type="hidden" name="carrierName" value={resolvedCarrierName} />}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {["Correios", "Mercado Livre", "Shopee", "Amazon", "Magalu", "Shein", "TikTok Shop", "Kwai", "Outro"].map((carrier) => <button type="button" key={carrier} onClick={() => { setNewOrderCarrier(carrier); if (carrier !== "Outro") setNewOrderOtherCarrier(""); }} style={{ height: 38, padding: "0 15px", borderRadius: 10, border: `1.5px solid ${newOrderCarrier === carrier ? "#8B5CF6" : t.border}`, background: newOrderCarrier === carrier ? "rgba(139,92,246,.1)" : t.cardBg, color: newOrderCarrier === carrier ? t.text : t.textSub, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}>{carrier}</button>)}
+                    {carrierChipOptions.map((carrier) => <button type="button" key={carrier} onClick={() => { setNewOrderCarrier(carrier); if (carrier !== "Outro") setNewOrderOtherCarrier(""); }} style={{ height: 38, padding: "0 15px", borderRadius: 10, border: `1.5px solid ${newOrderCarrier === carrier ? "#8B5CF6" : t.border}`, background: newOrderCarrier === carrier ? "rgba(139,92,246,.1)" : t.cardBg, color: newOrderCarrier === carrier ? t.text : t.textSub, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .16s ease" }}>{carrier}</button>)}
                   </div>
                   {newOrderCarrier === "Outro" && <div style={{ marginTop: 8, color: t.textSub, fontSize: 11.5 }}>Informe a transportadora responsável pelo envio.</div>}
+                  {newOrderCarrier === "Coleta Marketplace" && <div style={{ marginTop: 8, color: t.textSub, fontSize: 11.5 }}>Vai gravar como <strong>{resolvedCarrierName}</strong>.</div>}
                 </section>
 
                 <section>

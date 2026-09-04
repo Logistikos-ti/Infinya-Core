@@ -36,7 +36,7 @@ export default async function FotoRomaneioPage({ params, searchParams }: FotoRom
     notFound();
   }
 
-  const hasPhoto = parseHasPhoto(romaneio.notes, type);
+  const hasPhoto = parseHasPhoto(romaneio.conferenceInfoJson, type);
   if (!hasPhoto) {
     notFound();
   }

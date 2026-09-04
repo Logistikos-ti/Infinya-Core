@@ -1,8 +1,9 @@
 import type { AppUserContext } from "@/lib/auth";
 import { registrarLancamentosExpedicao } from "@/lib/billing";
-import { formatShippingStatusLabel, isOrderLockedForDecision } from "@/lib/shipping";
+import { extractCarrierName, extractTrackingCode, formatShippingStatusLabel, isOrderLockedForDecision } from "@/lib/shipping";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { fetchRowsInChunks } from "@/lib/supabase/chunked-fetch";
 
 type RelationName = { nome?: string } | { nome?: string }[] | null;
 
@@ -37,7 +38,10 @@ type RawRomaneioRow = {
   motorista_documento: string | null;
   veiculo_modelo: string | null;
   veiculo_placa: string | null;
+  doca: string | null;
+  coleta_prevista: string | null;
   observacoes: string | null;
+  conferencia_dupla_checagem: Record<string, unknown> | null;
   criado_por: string | null;
   liberado_por: string | null;
   cancelado_por: string | null;
@@ -65,6 +69,17 @@ export type RomaneioRecordOrder = {
   destination: string;
   carrierName: string;
   invoiceNumber: string;
+  /** Chave de acesso completa da NF-e (44 dígitos), sem a transformação
+   * lossy de extractInvoiceNumber -- "" quando não disponível. Usado pra
+   * comparação exata no bipe de fechamento do romaneio (mobile), não pra
+   * exibição. */
+  invoiceKey: string;
+  /** Número da nota sem o prefixo "NF ", pra comparação exata -- "" quando
+   * não disponível. */
+  invoiceNumberDigits: string;
+  /** Código de rastreio real (transporte.volumes[0].codigoRastreamento) --
+   * "" quando não disponível. */
+  trackingCode: string;
   status: string;
   statusLabel: string;
   unitsRaw: number;
@@ -106,7 +121,19 @@ export type RomaneioRecordListItem = {
   driverDocument: string | null;
   vehicleModel: string | null;
   vehiclePlate: string | null;
+  dock: string | null;
+  /** Previsão de coleta informada pelo operador na criação -- texto livre,
+   * independente de createdAt (esse é o timestamp real de auditoria,
+   * não editável). */
+  expectedPickup: string | null;
   notes: string | null;
+  /** JSON (string) do payload de dupla checagem do fechamento mobile
+   * (fotos + conferido_por/em) -- SEMPRE de conferencia_dupla_checagem
+   * quando presente; cai pra `notes` só pra romaneios fechados antes desta
+   * coluna existir (o payload antigo foi gravado ali por engano, ver
+   * migration 20260903202320). `notes` propriamente dito nunca mais é
+   * tocado pelo fechamento -- fica livre pra texto humano. */
+  conferenceInfoJson: string | null;
   createdAt: string;
   updatedAt: string;
   releasedAt: string | null;
@@ -289,6 +316,11 @@ export async function createRomaneioRecordFromOrders(params: {
   orderIds: string[];
   transportadoraId?: string | null;
   transportadoraNome?: string | null;
+  motoristaNome?: string | null;
+  veiculoPlaca?: string | null;
+  doca?: string | null;
+  coletaPrevista?: string | null;
+  observacoes?: string | null;
 }) {
   const orderIds = [...new Set(params.orderIds.map((item) => item.trim()).filter(Boolean))];
   if (!orderIds.length) {
@@ -330,6 +362,11 @@ export async function createRomaneioRecordFromOrders(params: {
       transportadora_id: matchedTransportadora?.id ?? null,
       transportadora_nome: matchedTransportadora?.nome ?? carrierName,
       transportadora_cnpj: matchedTransportadora?.cnpj ?? null,
+      motorista_nome: normalizeNullableText(params.motoristaNome),
+      veiculo_placa: normalizeNullableText(params.veiculoPlaca),
+      doca: normalizeNullableText(params.doca),
+      coleta_prevista: normalizeNullableText(params.coletaPrevista),
+      observacoes: normalizeNullableText(params.observacoes),
       criado_por: validUserId,
     })
     .select("*")
@@ -364,6 +401,8 @@ export async function updateRomaneioRecordDetails(params: {
   motoristaDocumento?: string | null;
   veiculoModelo?: string | null;
   veiculoPlaca?: string | null;
+  doca?: string | null;
+  coletaPrevista?: string | null;
   observacoes?: string | null;
 }) {
   const admin = createSupabaseAdminClient();
@@ -383,6 +422,8 @@ export async function updateRomaneioRecordDetails(params: {
     motorista_documento: normalizeNullableText(params.motoristaDocumento),
     veiculo_modelo: normalizeNullableText(params.veiculoModelo),
     veiculo_placa: normalizeNullableText(params.veiculoPlaca),
+    doca: normalizeNullableText(params.doca),
+    coleta_prevista: normalizeNullableText(params.coletaPrevista),
     observacoes: normalizeNullableText(params.observacoes),
   };
 
@@ -390,40 +431,6 @@ export async function updateRomaneioRecordDetails(params: {
 
   if (error) {
     throw new Error(`Não foi possível atualizar o romaneio: ${error.message}`);
-  }
-}
-
-export async function releaseRomaneioRecord(params: { user: AppUserContext; romaneioId: string }) {
-  const admin = createSupabaseAdminClient();
-  const links = await listRomaneioLinksByRecordIds([params.romaneioId]);
-  const orderIds = links.map((item) => item.pedido_expedicao_id);
-  const validUserId = await resolveValidUserId(admin, params.user.id);
-
-  const { error: updateRecordError } = await admin
-    .from("romaneios_carga")
-    .update({
-      status: "LIBERADO",
-      liberado_por: validUserId,
-      liberado_em: new Date().toISOString(),
-      cancelado_por: null,
-      cancelado_em: null,
-    })
-    .eq("id", params.romaneioId);
-
-  if (updateRecordError) {
-    throw new Error(`Não foi possível liberar o romaneio: ${updateRecordError.message}`);
-  }
-
-  if (orderIds.length) {
-    const { error: updateOrdersError } = await admin
-      .from("pedidos_expedicao")
-      .update({ status: "EXPEDIDO" })
-      .in("id", orderIds);
-
-    if (updateOrdersError) {
-      throw new Error(`Romaneio liberado, mas os pedidos não foram atualizados: ${updateOrdersError.message}`);
-    }
-
   }
 }
 
@@ -477,7 +484,7 @@ export async function listTransportadoraOptionsFromDb() {
   }));
 }
 
-async function listAvailableShippingOrdersForRomaneio(user: AppUserContext, filters?: RomaneioRecordFilters) {
+export async function listAvailableShippingOrdersForRomaneio(user: AppUserContext, filters?: RomaneioRecordFilters) {
   const admin = createSupabaseAdminClient();
   let query = admin
     .from("pedidos_expedicao")
@@ -560,11 +567,13 @@ async function listRomaneioLinksByRecordIds(recordIds: string[]) {
   }
 
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
-    .from("romaneios_carga_pedidos")
-    .select("romaneio_id, pedido_expedicao_id, sequencia")
-    .in("romaneio_id", ids)
-    .order("sequencia", { ascending: true });
+  const { rows, error } = await fetchRowsInChunks<RawRomaneioLinkRow>(ids, 200, (chunk) =>
+    admin
+      .from("romaneios_carga_pedidos")
+      .select("romaneio_id, pedido_expedicao_id, sequencia")
+      .in("romaneio_id", chunk)
+      .order("sequencia", { ascending: true }),
+  );
 
   if (error) {
     if (isRomaneioRecordsSchemaMissing(error)) {
@@ -574,7 +583,49 @@ async function listRomaneioLinksByRecordIds(recordIds: string[]) {
     throw new Error(`Não foi possível carregar os vínculos do romaneio: ${error.message}`);
   }
 
-  return (data ?? []) as RawRomaneioLinkRow[];
+  return rows;
+}
+
+type RawOrderItemWeightRow = {
+  pedido_expedicao_id: string;
+  quantidade: number | string | null;
+  produto: { peso_kg: number | string | null } | Array<{ peso_kg: number | string | null }> | null;
+};
+
+/**
+ * Peso total (kg) de cada pedido, somando quantidade * produtos.peso_kg dos
+ * itens vinculados. Não há peso em pedidos_expedicao -- só nos produtos do
+ * catálogo (peso_kg é peso por unidade, não por embalagem) -- por isso
+ * precisa desse join com pedidos_expedicao_itens em vez de vir pronto do
+ * pedido. Itens de produtos sem peso cadastrado (peso_kg null) contam 0,
+ * não travam a soma do resto.
+ */
+export async function getOrderWeightsByOrderId(orderIds: string[]): Promise<Map<string, number>> {
+  const ids = [...new Set(orderIds.filter(Boolean))];
+  const weights = new Map<string, number>();
+  if (!ids.length) return weights;
+
+  const admin = createSupabaseAdminClient();
+  const { rows, error } = await fetchRowsInChunks<RawOrderItemWeightRow>(ids, 200, (chunk) =>
+    admin
+      .from("pedidos_expedicao_itens")
+      .select("pedido_expedicao_id, quantidade, produto:produtos(peso_kg)")
+      .in("pedido_expedicao_id", chunk),
+  );
+
+  if (error) {
+    throw new Error(`Não foi possível calcular o peso dos pedidos: ${error.message}`);
+  }
+
+  for (const row of rows) {
+    const produto = Array.isArray(row.produto) ? row.produto[0] : row.produto;
+    const pesoKg = Number(produto?.peso_kg ?? 0);
+    const quantidade = Number(row.quantidade ?? 0);
+    if (!pesoKg || !quantidade) continue;
+    weights.set(row.pedido_expedicao_id, (weights.get(row.pedido_expedicao_id) ?? 0) + pesoKg * quantidade);
+  }
+
+  return weights;
 }
 
 async function listShippingOrdersByIds(orderIds: string[]) {
@@ -584,18 +635,20 @@ async function listShippingOrdersByIds(orderIds: string[]) {
   }
 
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
-    .from("pedidos_expedicao")
-    .select(
-      "id, codigo, numero_wms, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
-    )
-    .in("id", ids);
+  const { rows, error } = await fetchRowsInChunks<RawShippingOrderRow>(ids, 200, (chunk) =>
+    admin
+      .from("pedidos_expedicao")
+      .select(
+        "id, codigo, numero_wms, status, numero_pedido, numero_loja, valor_total, quantidade_itens, quantidade_unidades, data_pedido, previsao_envio_em, cliente_nome, cliente_cidade, cliente_uf, payload_origem, depositante_id, depositante:depositantes(nome)",
+      )
+      .in("id", chunk),
+  );
 
   if (error) {
     throw new Error(`Não foi possível carregar os pedidos do romaneio: ${error.message}`);
   }
 
-  return ((data ?? []) as RawShippingOrderRow[]).map(mapRomaneioOrderSummary);
+  return rows.map(mapRomaneioOrderSummary);
 }
 
 function mapRomaneioRecordListItem(row: RawRomaneioRow, orders: RomaneioRecordOrder[]) {
@@ -614,7 +667,10 @@ function mapRomaneioRecordListItem(row: RawRomaneioRow, orders: RomaneioRecordOr
     driverDocument: row.motorista_documento,
     vehicleModel: row.veiculo_modelo,
     vehiclePlate: row.veiculo_placa,
+    dock: row.doca,
+    expectedPickup: row.coleta_prevista,
     notes: row.observacoes,
+    conferenceInfoJson: row.conferencia_dupla_checagem ? JSON.stringify(row.conferencia_dupla_checagem) : row.observacoes,
     createdAt: row.criado_em,
     updatedAt: row.atualizado_em,
     releasedAt: row.liberado_em,
@@ -635,41 +691,75 @@ function mapRomaneioRecordListItem(row: RawRomaneioRow, orders: RomaneioRecordOr
 }
 
 export function extractInvoiceNumber(payload: Record<string, unknown> | null | undefined, fallback?: string): string {
+  const digits = extractInvoiceNumberDigits(payload);
+  return digits ? `NF ${digits}` : fallback || "Sem NF";
+}
+
+/** Mesma cascata de campos que extractInvoiceNumber, mas devolvendo só os
+ * dígitos (sem o prefixo "NF ") e "" (não um texto de fallback legível)
+ * quando nada é encontrado -- pra comparação EXATA no bipe de fechamento
+ * de romaneio, não pra exibição. */
+function extractInvoiceNumberDigits(payload: Record<string, unknown> | null | undefined): string {
   if (!payload || typeof payload !== "object") {
-    return fallback || "Sem NF";
+    return "";
   }
 
   // 1. Direct notaFiscal object
   const notaFiscal = payload.notaFiscal || payload.nota_fiscal || payload.nfe;
   if (notaFiscal && typeof notaFiscal === "object") {
     const nfObj = notaFiscal as Record<string, unknown>;
-    if (nfObj.numero) return `NF ${String(nfObj.numero).trim()}`;
+    if (nfObj.numero) return String(nfObj.numero).trim();
     if (nfObj.chave && typeof nfObj.chave === "string" && nfObj.chave.length === 44) {
       const numFromKey = parseInt(nfObj.chave.substring(25, 34), 10);
-      if (!isNaN(numFromKey) && numFromKey > 0) return `NF ${numFromKey}`;
+      if (!isNaN(numFromKey) && numFromKey > 0) return String(numFromKey);
     }
   }
 
   // 2. Direct string fields
-  if (payload.numero_nota) return `NF ${String(payload.numero_nota).trim()}`;
-  if (payload.numero_nf) return `NF ${String(payload.numero_nf).trim()}`;
-  if (payload.nota_fiscal && typeof payload.nota_fiscal === "string") return `NF ${payload.nota_fiscal.trim()}`;
+  if (payload.numero_nota) return String(payload.numero_nota).trim();
+  if (payload.numero_nf) return String(payload.numero_nf).trim();
+  if (payload.nota_fiscal && typeof payload.nota_fiscal === "string") return payload.nota_fiscal.trim();
 
   // 3. From danfe_simplificada / danfe
   const danfe = payload.danfe_simplificada || payload.danfe || payload.chave_nfe || payload.chave_acesso;
   if (typeof danfe === "string" && danfe.trim().length === 44) {
     const numFromKey = parseInt(danfe.trim().substring(25, 34), 10);
-    if (!isNaN(numFromKey) && numFromKey > 0) return `NF ${numFromKey}`;
+    if (!isNaN(numFromKey) && numFromKey > 0) return String(numFromKey);
   }
 
   // 4. In fiscal / nfe sub-objects
   if (payload.fiscal && typeof payload.fiscal === "object") {
     const fisc = payload.fiscal as Record<string, unknown>;
-    if (fisc.numero) return `NF ${String(fisc.numero).trim()}`;
-    if (fisc.numero_nota) return `NF ${String(fisc.numero_nota).trim()}`;
+    if (fisc.numero) return String(fisc.numero).trim();
+    if (fisc.numero_nota) return String(fisc.numero_nota).trim();
   }
 
-  return fallback || "Sem NF";
+  return "";
+}
+
+/** Chave de acesso completa da NF-e (44 dígitos), quando disponível -- sem
+ * a transformação lossy de extractInvoiceNumberDigits (que devolve só os
+ * dígitos 25-34 embutidos na chave). Cobre os mesmos 2 pontos onde a chave
+ * aparece no payload. */
+function extractInvoiceKey(payload: Record<string, unknown> | null | undefined): string {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const notaFiscal = payload.notaFiscal || payload.nota_fiscal || payload.nfe;
+  if (notaFiscal && typeof notaFiscal === "object") {
+    const chave = (notaFiscal as Record<string, unknown>).chave;
+    if (typeof chave === "string" && chave.trim().length === 44) {
+      return chave.trim();
+    }
+  }
+
+  const danfe = payload.danfe_simplificada || payload.danfe || payload.chave_nfe || payload.chave_acesso;
+  if (typeof danfe === "string" && danfe.trim().length === 44) {
+    return danfe.trim();
+  }
+
+  return "";
 }
 
 function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
@@ -680,6 +770,7 @@ function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
     "Destino não informado";
   const unitsRaw = Number(item.quantidade_unidades ?? 0);
   const totalRaw = Number(item.valor_total ?? 0);
+  const rawTrackingCode = extractTrackingCode(payload);
 
   return {
     id: item.id,
@@ -691,6 +782,12 @@ function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
     destination,
     carrierName: extractCarrierName(payload),
     invoiceNumber: extractInvoiceNumber(payload),
+    invoiceKey: extractInvoiceKey(payload),
+    invoiceNumberDigits: extractInvoiceNumberDigits(payload),
+    // extractTrackingCode() usa "Rastreio não informado" como placeholder de
+    // EXIBIÇÃO -- aqui o campo é só pra comparação de bipe, então normaliza
+    // pra "" (evita esse texto entrar como um "target" de match).
+    trackingCode: rawTrackingCode === "Rastreio não informado" ? "" : rawTrackingCode,
     status: item.status,
     statusLabel: formatShippingStatusLabel(item.status),
     unitsRaw,
@@ -752,25 +849,6 @@ function matchesRecordFilters(item: RomaneioRecordListItem, filters?: RomaneioRe
   }
 
   return true;
-}
-
-function extractCarrierName(payload: Record<string, unknown>) {
-  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
-  const transportador = transporte && isRecord(transporte.contato) ? transporte.contato : null;
-  const comercial = isRecord(payload.comercial) ? payload.comercial : null;
-
-  return (
-    readString(transportador?.nome) ??
-    readString(transporte?.transportadoraNome) ??
-    readString(transporte?.nome) ??
-    readString(payload.transportadora) ??
-    readString(payload.carrier) ??
-    (comercial?.canalVenda && typeof comercial.canalVenda === "string" ? comercial.canalVenda : null) ??
-    (payload.mercadoLivre ? "Mercado Livre" : null) ??
-    (payload.shopee ? "Shopee" : null) ??
-    (payload.mandae ? "Mandaê" : null) ??
-    "Transportadora não informada"
-  );
 }
 
 function extractPlatformOrderNumber(
@@ -960,6 +1038,19 @@ export async function listSavedDriversFromDb(transportadoraNome?: string | null)
   return drivers;
 }
 
+/** Lançado quando o pedido não tem transportadora identificável -- evita
+ * repetir o antigo catch-all "Transportadora Padrão", que foi a causa do
+ * pior caso de contaminação de dados (225 pedidos de canais diferentes
+ * misturados num romaneio só, ver investigação de 2026-09-04). */
+export class CarrierNotIdentifiedError extends Error {
+  constructor(orderCode: string) {
+    super(
+      `Não foi possível identificar a transportadora do pedido ${orderCode}. Abra o pedido no desktop (Expedição) e informe a transportadora manualmente antes de bipar a DANFE.`,
+    );
+    this.name = "CarrierNotIdentifiedError";
+  }
+}
+
 export async function validateAndAssignOrderDanfeToRomaneio({
   user,
   orderId,
@@ -991,19 +1082,26 @@ export async function validateAndAssignOrderDanfeToRomaneio({
 
   // Determine carrier name
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
-  let carrierName = extractCarrierName(payload);
+  const carrierName = extractCarrierName(payload);
   if (!carrierName || carrierName === "Transportadora não informada") {
-    // Check marketplace hints in payload
-    if (payload.mercadoLivre) carrierName = "Mercado Livre";
-    else if (payload.shopee) carrierName = "Shopee";
-    else if (payload.mandae) carrierName = "Mandaê";
-    else carrierName = "Transportadora Padrão";
+    // Não inventa mais um catch-all ("Transportadora Padrão") -- isso foi
+    // o que gerou o pior caso de contaminação (225 pedidos misturados).
+    // Bloqueia o auto-vínculo e pede resolução manual no desktop, ANTES de
+    // qualquer escrita no pedido (nada muda de estado aqui).
+    throw new CarrierNotIdentifiedError(order.codigo);
   }
+
+  // Match exato (case-insensitive), NUNCA substring/ILIKE -- é justamente
+  // o .ilike em texto livre que hoje mistura carriers com nomes parecidos.
+  const transportadoras = await listTransportadoraOptionsFromDb();
+  const normalizedCarrierName = carrierName.trim().toLocaleLowerCase("pt-BR");
+  const matchedTransportadora =
+    transportadoras.find((item) => item.nome.trim().toLocaleLowerCase("pt-BR") === normalizedCarrierName) ?? null;
 
   // Update order status to PRONTO_ROMANEIO and save danfe key if provided
   const updatedPayload = {
     ...payload,
-    transportadora: carrierName,
+    transportadora: matchedTransportadora?.nome ?? carrierName,
     ...(danfe ? { danfe_simplificada: danfe } : {}),
     danfe_conferida_em: new Date().toISOString(),
     danfe_conferida_por: user.nome || user.email,
@@ -1020,14 +1118,22 @@ export async function validateAndAssignOrderDanfeToRomaneio({
 
   registrarLancamentosExpedicao([orderId]).catch(() => {});
 
-  // 3. Find an ABERTO romaneio for this carrier
-  const { data: romaneios } = await admin
+  // 3. Find an ABERTO romaneio for this carrier -- por transportadora_id
+  // quando cadastrada (nunca por .ilike substring em texto livre: dois
+  // carriers com nomes parecidos não podem mais ser fundidos na mesma
+  // carga só por causa de um match parcial).
+  let romaneioQuery = admin
     .from("romaneios_carga")
     .select("id, codigo")
     .eq("status", "ABERTO")
-    .ilike("transportadora_nome", carrierName)
     .order("criado_em", { ascending: false })
     .limit(1);
+
+  romaneioQuery = matchedTransportadora
+    ? romaneioQuery.eq("transportadora_id", matchedTransportadora.id)
+    : romaneioQuery.eq("transportadora_nome", carrierName);
+
+  const { data: romaneios } = await romaneioQuery;
 
   let romaneioId: string;
   let romaneioCodigo: string;
@@ -1042,7 +1148,9 @@ export async function validateAndAssignOrderDanfeToRomaneio({
       .insert({
         codigo,
         status: "ABERTO",
-        transportadora_nome: carrierName,
+        transportadora_id: matchedTransportadora?.id ?? null,
+        transportadora_nome: matchedTransportadora?.nome ?? carrierName,
+        transportadora_cnpj: matchedTransportadora?.cnpj ?? null,
         criado_por: validUserId,
       })
       .select("id, codigo")
@@ -1152,7 +1260,11 @@ export async function completeRomaneioWithDoubleCheck({
     );
   }
 
-  // 2. Build metadata
+  // 2. Build metadata -- grava em conferencia_dupla_checagem (coluna
+  // própria, jsonb), NUNCA em observacoes: essa é a mesma coluna que o
+  // desktop usa pra texto livre (criação e edição), e escrever ali
+  // sobrescrevia sem merge qualquer observação humana já digitada (bug
+  // real, corrigido na migration 20260903202320).
   const obsPayload = {
     foto_operador_url: photos.operadorUrl ?? null,
     foto_motorista_url: photos.motoristaUrl ?? null,
@@ -1171,7 +1283,7 @@ export async function completeRomaneioWithDoubleCheck({
       motorista_documento: driverData.documento.trim(),
       veiculo_modelo: driverData.veiculoModelo.trim(),
       veiculo_placa: driverData.veiculoPlaca.trim().toUpperCase(),
-      observacoes: JSON.stringify(obsPayload),
+      conferencia_dupla_checagem: obsPayload,
       liberado_por: validUserId,
       liberado_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),

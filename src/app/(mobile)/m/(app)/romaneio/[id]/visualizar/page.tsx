@@ -51,7 +51,7 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
     redirect(`/m/romaneio/${id}/fechar`);
   }
 
-  const conferencia = parseConferenciaInfo(romaneio.notes);
+  const conferencia = parseConferenciaInfo(romaneio.conferenceInfoJson);
   const brand = getCarrierBrand(romaneio.carrierName);
   const statusColor = romaneio.status === "CANCELADO" ? mobileColors.red : mobileColors.green;
   const finalizedAt = romaneio.releasedAt ?? romaneio.canceledAt;

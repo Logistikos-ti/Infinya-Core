@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Check, ChevronLeft, ChevronDown, LoaderCircle, Minus, Plus, Upload, X, Box } from "lucide-react";
 import { createManualShippingOrderAction } from "@/app/(dashboard)/expedicao/actions";
-import { SALES_CHANNEL_OPTIONS } from "@/lib/sales-channels";
+import { SALES_CHANNEL_OPTIONS, isMarketplaceChannel } from "@/lib/sales-channels";
+import { resolveMarketplaceCarrierName } from "@/lib/marketplace-carrier-networks";
 
 type PortalProduct = {
   id: string;
@@ -38,8 +39,15 @@ export function PortalNewOrderDrawer({
 }) {
   const [channel, setChannel] = useState("MERCADO_LIVRE");
   const [channelOpen, setChannelOpen] = useState(false);
-  const [carrier, setCarrier] = useState("Mercado Livre");
+  const [carrier, setCarrier] = useState("Outro");
   const [otherCarrier, setOtherCarrier] = useState("");
+  const carrierChipOptions = ["Correios", "Ponto de Coleta", ...(isMarketplaceChannel(channel) ? ["Coleta Marketplace"] : []), "Outro"];
+  const resolvedCarrierName =
+    carrier === "Outro"
+      ? otherCarrier || "Outro"
+      : carrier === "Coleta Marketplace"
+        ? resolveMarketplaceCarrierName(channel)
+        : carrier;
   const [selected, setSelected] = useState<SelectedProduct[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -89,7 +97,7 @@ export function PortalNewOrderDrawer({
             <input type="hidden" name="dataPedido" value={new Date().toISOString().slice(0, 10)} />
             <input type="hidden" name="quantidadeItens" value={selected.length} />
             <input type="hidden" name="quantidadeUnidades" value={totalUnits} />
-            <input type="hidden" name="shippingService" value={carrier} />
+            <input type="hidden" name="shippingService" value={resolvedCarrierName} />
             {selected.map((product) => <span key={product.id}><input type="hidden" name="productId[]" value={product.id} /><input type="hidden" name="itemQuantity[]" value={product.quantity} /></span>)}
 
             <section>
@@ -103,7 +111,7 @@ export function PortalNewOrderDrawer({
                   {SALES_CHANNEL_OPTIONS.filter((option) => ["VENDA_DIRETA", "MERCADO_LIVRE", "SHOPEE", "AMAZON", "MAGALU", "SHEIN", "TIKTOK", "KWAI", "SITE_PROPRIO"].includes(option.value)).map((option) => {
                     const initials: Record<string, string> = { VENDA_DIRETA: "VD", MERCADO_LIVRE: "ML", SHOPEE: "SH", AMAZON: "AM", MAGALU: "MG", SHEIN: "SE", TIKTOK: "TK", KWAI: "KW", SITE_PROPRIO: "SP" };
                     const active = option.value === channel;
-                    return <button type="button" role="option" aria-selected={active} key={option.value} onClick={() => { setChannel(option.value); setChannelOpen(false); }} className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition hover:bg-cyan-50 dark:hover:bg-cyan-400/10 ${active ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300" : "text-slate-700 dark:text-slate-200"}`}><span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-md bg-violet-100 text-[9px] font-extrabold text-violet-700 dark:bg-violet-400/15 dark:text-violet-200">{initials[option.value]}</span>{option.label}</span>{active ? <Check className="h-4 w-4" /> : null}</button>;
+                    return <button type="button" role="option" aria-selected={active} key={option.value} onClick={() => { setChannel(option.value); setChannelOpen(false); if (carrier === "Coleta Marketplace" && !option.marketplace) setCarrier("Outro"); }} className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-semibold transition hover:bg-cyan-50 dark:hover:bg-cyan-400/10 ${active ? "bg-cyan-50 text-cyan-700 dark:bg-cyan-400/10 dark:text-cyan-300" : "text-slate-700 dark:text-slate-200"}`}><span className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded-md bg-violet-100 text-[9px] font-extrabold text-violet-700 dark:bg-violet-400/15 dark:text-violet-200">{initials[option.value]}</span>{option.label}</span>{active ? <Check className="h-4 w-4" /> : null}</button>;
                   })}
                 </div> : null}
               </div>
@@ -139,9 +147,11 @@ export function PortalNewOrderDrawer({
             </section>
 
             <section>
-              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Frete / transportadora</h3>
-              {carrier === "Outro" ? <input required name="carrierName" value={otherCarrier} onChange={(event) => setOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" className="mb-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" /> : <input type="hidden" name="carrierName" value={carrier} />}
-              <div className="flex flex-wrap gap-2">{["Correios", "Mercado Livre", "Shopee", "Amazon", "Magalu", "Shein", "TikTok Shop", "Kwai", "Outro"].map((value) => <button type="button" key={value} onClick={() => setCarrier(value)} className={`rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:-translate-y-px ${carrier === value ? "border-cyan-400 bg-cyan-50 text-slate-900 dark:bg-cyan-400/10 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10"}`}>{value}</button>)}</div>
+              <h3 className="mb-3 text-sm font-extrabold text-slate-950 dark:text-white">Transportadora física</h3>
+              <p className="mb-3 text-xs font-medium text-slate-500 dark:text-slate-400">Quem vai buscar/entregar o pacote -- não é o canal de venda (selecionado acima).</p>
+              {carrier === "Outro" ? <input required name="carrierName" value={otherCarrier} onChange={(event) => setOtherCarrier(event.target.value)} placeholder="Digite o nome da transportadora" className="mb-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white" /> : <input type="hidden" name="carrierName" value={resolvedCarrierName} />}
+              <div className="flex flex-wrap gap-2">{carrierChipOptions.map((value) => <button type="button" key={value} onClick={() => setCarrier(value)} className={`rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:-translate-y-px ${carrier === value ? "border-cyan-400 bg-cyan-50 text-slate-900 dark:bg-cyan-400/10 dark:text-white" : "border-slate-200 text-slate-500 dark:border-white/10"}`}>{value}</button>)}</div>
+              {carrier === "Coleta Marketplace" && <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">Vai gravar como <strong>{resolvedCarrierName}</strong>.</p>}
             </section>
 
             <section>
