@@ -1,24 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Manrope, Space_Grotesk } from "next/font/google";
+import { Shield } from "lucide-react";
 import { useTheme } from "next-themes";
+import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { InventoryKpis } from "./inventory-kpis";
 import { InventoryToolbar } from "./inventory-toolbar";
-import { InventoryTableSku } from "./inventory-table-sku";
-import { InventoryTableLot } from "./inventory-table-lot";
+import { InventoryGrid, type GroupedProduct } from "./inventory-grid";
 import { InventoryAlerts } from "./inventory-alerts";
 import { InventoryDetailDrawer } from "./inventory-detail-drawer";
-import { InitialStockModal } from "./initial-stock-modal";
+import { ExportStockModal } from "./export-stock-modal";
+
+const manrope = Manrope({ subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
 const INVENTORY_VIEW_STATE_KEY = "infinoos-wms:inventory-view";
 
 type InventoryViewState = {
-  isBySku?: boolean;
   q?: string;
   owner?: string;
   cat?: string;
-  statusFilter?: string;
+  faixaSel?: string;
 };
 
 function readInventoryViewState(): InventoryViewState {
@@ -33,27 +39,103 @@ function readInventoryViewState(): InventoryViewState {
   }
 }
 
+export function faixaStatus(qtd: number, min: number): "critico" | "baixo" | "ideal" {
+  if (qtd < min / 2) return "critico";
+  if (qtd < min) return "baixo";
+  return "ideal";
+}
+
+function groupBalancesByProduct(balances: any[]): GroupedProduct[] {
+  const byProduct = new Map<string, any[]>();
+  for (const b of balances) {
+    const key = b.productId || b.sku;
+    const list = byProduct.get(key) ?? [];
+    list.push(b);
+    byProduct.set(key, list);
+  }
+
+  return Array.from(byProduct.entries()).map(([productId, rows]) => {
+    const first = rows[0];
+    let qtd = 0;
+    let reservado = 0;
+
+    const enderecosMap = new Map<string, number>();
+    const lotesMap = new Map<string, { lote: string; qtd: number; validade: string }>();
+    let anyBloqueado = false;
+
+    for (const r of rows) {
+      qtd += r.rawQuantidade || 0;
+      reservado += r.rawReserved || 0;
+      if (r.status === "Bloqueado") anyBloqueado = true;
+
+      if (r.endereco && r.endereco !== "Sem endereço") {
+        enderecosMap.set(r.endereco, (enderecosMap.get(r.endereco) || 0) + (r.rawQuantidade || 0));
+      }
+
+      const loteKey = `${r.lote || "__sem_lote__"}::${r.validade || ""}`;
+      const existing = lotesMap.get(loteKey);
+      if (existing) {
+        existing.qtd += r.rawQuantidade || 0;
+      } else {
+        lotesMap.set(loteKey, { lote: r.lote && r.lote !== "-" ? r.lote : "Sem lote", qtd: r.rawQuantidade || 0, validade: r.validade || "-" });
+      }
+    }
+
+    const min = first.minQuantity || 0;
+    const max = first.maxQuantity || 0;
+    const enderecos = Array.from(enderecosMap.entries())
+      .map(([code, qty]) => ({ code, qty }))
+      .sort((a, b) => b.qty - a.qty);
+    const lotes = Array.from(lotesMap.values()).sort((a, b) => b.qtd - a.qtd);
+
+    return {
+      productId,
+      sku: first.sku,
+      productName: first.productName,
+      categoria: first.categoria || "Geral",
+      tamanho: first.tamanho || null,
+      depositanteId: first.depositanteId,
+      depositante: first.depositante,
+      ean: first.ean || "—",
+      metodoRetirada: first.withdrawalMethod,
+      ativo: first.ativo ?? true,
+      imageUrl: first.imageUrl || null,
+      qtd,
+      reservado,
+      disponivel: qtd - reservado,
+      min,
+      max,
+      pesoKg: first.pesoKg ?? null,
+      alturaCm: first.alturaCm ?? null,
+      larguraCm: first.larguraCm ?? null,
+      comprimentoCm: first.comprimentoCm ?? null,
+      bloqueado: anyBloqueado,
+      enderecos,
+      lotes,
+      faixa: faixaStatus(qtd, min),
+    } satisfies GroupedProduct;
+  });
+}
+
 export function InventoryClient({ data }: { data: any }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [viewStateLoaded, setViewStateLoaded] = useState(false);
 
-  const [isBySku, setIsBySku] = useState(true);
-  const [selectedSku, setSelectedSku] = useState<any>(null);
-  const [showInitial, setShowInitial] = useState(false);
-  
+  const [selectedSku, setSelectedSku] = useState<GroupedProduct | null>(null);
+  const [showExport, setShowExport] = useState(false);
+
   const [q, setQ] = useState("");
   const [owner, setOwner] = useState("");
   const [cat, setCat] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  const [faixaSel, setFaixaSel] = useState("all");
 
   useEffect(() => {
     const savedViewState = readInventoryViewState();
-    setIsBySku(savedViewState.isBySku ?? true);
     setQ(savedViewState.q ?? "");
     setOwner(savedViewState.owner ?? "");
     setCat(savedViewState.cat ?? "");
-    setStatusFilter(savedViewState.statusFilter ?? "todos");
+    setFaixaSel(savedViewState.faixaSel ?? "all");
     setViewStateLoaded(true);
   }, []);
 
@@ -62,195 +144,144 @@ export function InventoryClient({ data }: { data: any }) {
       return;
     }
 
-    window.sessionStorage.setItem(
-      INVENTORY_VIEW_STATE_KEY,
-      JSON.stringify({ isBySku, q, owner, cat, statusFilter }),
-    );
-  }, [isBySku, q, owner, cat, statusFilter, viewStateLoaded]);
+    window.sessionStorage.setItem(INVENTORY_VIEW_STATE_KEY, JSON.stringify({ q, owner, cat, faixaSel }));
+  }, [q, owner, cat, faixaSel, viewStateLoaded]);
 
-  // Base themes to match the exact HTML visual prototype
-  const t = {
-    appBg: isDark ? "#0B1120" : "#F8FAFC",
-    border: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
-    text: isDark ? "#F8FAFC" : "#0F172A",
-    textSub: isDark ? "#94A3B8" : "#64748B",
-    cardBg: isDark ? "#0F172A" : "#FFFFFF",
-    inputBg: isDark ? "rgba(255,255,255,0.03)" : "#FFFFFF",
-    headBg: isDark ? "rgba(255,255,255,0.02)" : "#F8FAFC",
-    rowHover: isDark ? "rgba(255,255,255,0.03)" : "#F1F5F9",
-    barTrack: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0",
-    drawerBg: isDark ? "rgba(15,23,42,0.98)" : "#FFFFFF",
-    softBg: isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9",
-    textFaint: isDark ? "#475569" : "#CBD5E1",
-  };
-
-  const countComSaldo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0).length;
-  const countBloqueado = (data.stockBalances || []).filter((b: any) => b.status === "Bloqueado").length;
-  const countEstoqueBaixo = (data.stockBalances || []).filter((b: any) => b.rawQuantidade > 0 && b.rawQuantidade <= (b.minQuantity || 0)).length;
-  const countAVencer = (data.stockBalances || []).filter((b: any) => {
-    if (b.validade === "-") return false;
-    const [day, month, year] = b.validade.split("/");
-    const expiryDate = new Date(`${year}-${month}-${day}T00:00:00`);
-    const diffTime = expiryDate.getTime() - new Date().getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30;
-  }).length;
-
-  const filteredBalances = (data.stockBalances || []).filter((b: any) => {
-    if (owner && b.depositanteId !== owner) return false;
-    if (cat && b.area !== cat) return false;
-    if (q) {
-      const search = q.toLowerCase();
-      if (!b.sku?.toLowerCase().includes(search) && !b.productName?.toLowerCase().includes(search)) {
-        return false;
+  const t = isDark
+    ? {
+        appBg: "#0A1120",
+        cardBg: "#101B30",
+        headBg: "#0E1728",
+        inputBg: "#101B30",
+        border: "rgba(148,163,184,0.14)",
+        rowHover: "rgba(148,163,184,0.05)",
+        barTrack: "rgba(148,163,184,0.16)",
+        text: "#F1F5F9",
+        textSub: "#8695AD",
+        textFaint: "#475569",
+        drawerBg: "#0C1526",
+        hoverBorder: "rgba(139,92,246,0.4)",
+        softBg: "rgba(255,255,255,0.05)",
       }
-    }
-    if (statusFilter === "com_saldo" && b.rawQuantidade <= 0) return false;
-    if (statusFilter === "estoque_baixo" && (b.rawQuantidade <= 0 || b.rawQuantidade > (b.minQuantity || 0))) return false;
-    if (statusFilter === "bloqueado" && b.status !== "Bloqueado") return false;
-    if (statusFilter === "a_vencer") {
-      if (b.validade === "-") return false;
-      const [day, month, year] = b.validade.split("/");
-      const expiryDate = new Date(`${year}-${month}-${day}T00:00:00`);
-      const diffTime = expiryDate.getTime() - new Date().getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays > 30) return false;
-    }
-    return true;
-  });
+    : {
+        appBg: "#F5F7FB",
+        cardBg: "#FFFFFF",
+        headBg: "#F8FAFC",
+        inputBg: "#F8FAFC",
+        border: "rgba(100,116,139,0.16)",
+        rowHover: "rgba(100,116,139,0.04)",
+        barTrack: "rgba(100,116,139,0.14)",
+        text: "#0F172A",
+        textSub: "#64748B",
+        textFaint: "#CBD5E1",
+        drawerBg: "#FFFFFF",
+        hoverBorder: "rgba(139,92,246,0.4)",
+        softBg: "#F1F5F9",
+      };
+
+  // owner/área/busca são filtrados a nível de linha (como já era), a faixa é
+  // calculada por produto (agregado), então é aplicada depois do agrupamento.
+  const rowFilteredBalances = useMemo(() => {
+    return (data.stockBalances || []).filter((b: any) => {
+      if (owner && b.depositanteId !== owner) return false;
+      if (cat && b.area !== cat) return false;
+      if (q) {
+        const search = q.toLowerCase();
+        if (!b.sku?.toLowerCase().includes(search) && !b.productName?.toLowerCase().includes(search)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [data.stockBalances, owner, cat, q]);
+
+  const groupedProducts = useMemo(() => groupBalancesByProduct(rowFilteredBalances), [rowFilteredBalances]);
+
+  const faixaCounts = useMemo(() => {
+    const all = groupBalancesByProduct(data.stockBalances || []);
+    return {
+      all: all.length,
+      ideal: all.filter((p) => p.faixa === "ideal").length,
+      baixo: all.filter((p) => p.faixa === "baixo").length,
+      critico: all.filter((p) => p.faixa === "critico").length,
+    };
+  }, [data.stockBalances]);
+
+  const visibleProducts = useMemo(() => {
+    if (faixaSel === "all") return groupedProducts;
+    return groupedProducts.filter((p) => p.faixa === faixaSel);
+  }, [groupedProducts, faixaSel]);
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "28px 32px 40px 32px", display: "flex", flexDirection: "column" }}>
-      {/* title row */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: t.textSub }}>
-            <span>WMS</span>
-            <span>›</span>
-            <span style={{ color: t.text, fontWeight: 600 }}>Estoque</span>
-          </div>
-          <h1 style={{ margin: 0, fontFamily: "'Space Grotesk', sans-serif", fontSize: "28px", fontWeight: 700 }}>Posição de estoque</h1>
-          <p style={{ margin: 0, fontSize: "14.5px", color: t.textSub }}>Saldo por SKU e lote, reservas, disponibilidade e validade.</p>
-        </div>
-        
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <div style={{ display: "flex", padding: "4px", gap: "4px", borderRadius: "12px", border: `1px solid ${t.border}`, background: t.inputBg }}>
-            <button 
-              onClick={() => setIsBySku(true)}
-              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: isBySku ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent", color: isBySku ? "#fff" : t.textSub, transition: "all 0.2s ease" }}
-            >
-              ☰ Por SKU
-            </button>
-            <button 
-              onClick={() => setIsBySku(false)}
-              style={{ height: "36px", padding: "0 16px", border: "none", borderRadius: "9px", fontFamily: "'Manrope', sans-serif", fontSize: "13.5px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "7px", background: !isBySku ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent", color: !isBySku ? "#fff" : t.textSub, transition: "all 0.2s ease" }}
-            >
-              ⬚ Por Lote
-            </button>
-          </div>
-          
-          <button 
-            onClick={() => setShowInitial(true)}
-            style={{ height: "44px", padding: "0 18px", borderRadius: "11px", border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontFamily: "'Manrope', sans-serif", fontSize: "14px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", transition: "all 0.2s ease" }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#3B82F6")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}
-          >
-            <span style={{ color: "#3B82F6", display: "flex" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            </span>
-            Estoque inicial
-          </button>
+    <div className={`${manrope.className} flex h-full flex-col animate-in fade-in duration-500`}>
+      <style>{`
+        @keyframes drawerIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cardIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes modalIn { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .drawer-anim { animation: drawerIn 0.32s cubic-bezier(.3,1,.4,1); }
+        .overlay-anim { animation: overlayFade 0.25s ease; }
+        .card-anim { animation: cardIn 0.4s ease both; }
+        .modal-anim { animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+      `}</style>
 
-          {data.isAdmin ? (
-            <>
-            <Link
-              href="/estoque/inventarios/pendencias"
-              style={{
-                height: "44px",
-                padding: "0 18px",
-                borderRadius: "11px",
-                border: data.pendingAdjustmentsCount > 0 ? "1px solid #F59E0B" : `1px solid ${t.border}`,
-                background: data.pendingAdjustmentsCount > 0 ? "rgba(245,158,11,0.1)" : t.inputBg,
-                color: data.pendingAdjustmentsCount > 0 ? "#B45309" : t.text,
-                fontFamily: "'Manrope', sans-serif",
-                fontSize: "14px",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                textDecoration: "none",
-              }}
+      {/* Cabeçalho (padrão rebranding: título + sino + tema) */}
+      <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
+        <span className={`${spaceGrotesk.className} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
+          Estoque
+        </span>
+        <div className="flex-1" />
+        <NotificationBell />
+        <SoundToggle forceLight />
+        <ThemeToggle />
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-24 pt-1.5 sm:px-8 lg:pb-12" style={{ scrollbarGutter: "stable" }}>
+        {/* subtitle + actions */}
+        <div className="flex items-end justify-between gap-5 flex-wrap">
+          <p className="m-0 text-[14.5px]" style={{ color: t.textSub }}>
+            Posição de estoque em tempo real — todos os depositantes.
+          </p>
+          <div className="flex gap-2.5 items-center flex-wrap">
+            {data.isAdmin && (
+              <Link
+                href="/estoque/conciliacao-pedidos"
+                className="flex h-[42px] items-center gap-2 px-[18px] rounded-[11px] border text-[14px] font-bold no-underline"
+                style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
+              >
+                <Shield className="h-4 w-4" strokeWidth={1.7} /> Conciliação
+              </Link>
+            )}
+            <button
+              onClick={() => setShowExport(true)}
+              className="flex h-[42px] items-center px-[18px] rounded-[11px] border text-[14px] font-bold cursor-pointer"
+              style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
             >
-              Pendências de ajuste
-              {data.pendingAdjustmentsCount > 0 ? (
-                <span
-                  style={{
-                    minWidth: 20,
-                    height: 20,
-                    borderRadius: 999,
-                    background: "#F59E0B",
-                    color: "#fff",
-                    fontSize: "11.5px",
-                    fontWeight: 800,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "0 6px",
-                  }}
-                >
-                  {data.pendingAdjustmentsCount}
-                </span>
-              ) : null}
-            </Link>
-            <Link
-              href="/estoque/conciliacao-pedidos"
-              style={{
-                height: "44px",
-                padding: "0 18px",
-                borderRadius: "11px",
-                border: "1px solid #8B5CF6",
-                background: "rgba(139,92,246,0.10)",
-                color: "#7C3AED",
-                fontFamily: "'Manrope', sans-serif",
-                fontSize: "14px",
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                textDecoration: "none",
-              }}
-            >
-              Conciliação de pedidos
-            </Link>
-            </>
-          ) : null}
+              Exportar
+            </button>
+          </div>
         </div>
+
+        <InventoryKpis t={t} stats={data.stockStatsCards} />
+
+        <InventoryToolbar
+          t={t}
+          data={data}
+          q={q}
+          setQ={setQ}
+          owner={owner}
+          setOwner={setOwner}
+          cat={cat}
+          setCat={setCat}
+          faixaSel={faixaSel}
+          setFaixaSel={setFaixaSel}
+          faixaCounts={faixaCounts}
+        />
+
+        <InventoryGrid t={t} products={visibleProducts} onSelectProduct={setSelectedSku} />
+
+        <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
       </div>
-
-      <InventoryKpis t={t} stats={data.stockStatsCards} />
-      <InventoryToolbar 
-        t={t} 
-        data={data} 
-        q={q} 
-        setQ={setQ} 
-        owner={owner} 
-        setOwner={setOwner} 
-        cat={cat} 
-        setCat={setCat} 
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        countComSaldo={countComSaldo}
-        countEstoqueBaixo={countEstoqueBaixo}
-        countAVencer={countAVencer}
-        countBloqueado={countBloqueado}
-      />
-
-      {isBySku ? (
-        <InventoryTableSku t={t} balances={filteredBalances} onSelectSku={setSelectedSku} />
-      ) : (
-        <InventoryTableLot t={t} balances={filteredBalances} />
-      )}
-
-      <InventoryAlerts t={t} alerts={data.stockExpiryAlerts} />
 
       {selectedSku && (
         <InventoryDetailDrawer
@@ -258,19 +289,11 @@ export function InventoryClient({ data }: { data: any }) {
           sku={selectedSku}
           allBalances={data.stockBalances}
           allAddresses={data.enderecosInventario}
-          movements={data.stockMovements}
           onClose={() => setSelectedSku(null)}
         />
       )}
 
-      {showInitial && (
-        <InitialStockModal 
-          t={t} 
-          onClose={() => setShowInitial(false)} 
-          produtos={data.produtosInventario || []} 
-          enderecos={data.enderecosInventario || []} 
-        />
-      )}
+      {showExport && <ExportStockModal t={t} onClose={() => setShowExport(false)} />}
     </div>
   );
 }

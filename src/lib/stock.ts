@@ -4,26 +4,25 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
-type ProductRelation =
-  | {
-      sku?: string;
-      nome?: string;
-      codigo_interno?: string;
-      metodo_retirada?: string;
-      imagem_principal_url?: string | null;
-      qtd_minima?: number | null;
-      qtd_maxima?: number | null;
-    }
-  | Array<{
-      sku?: string;
-      nome?: string;
-      codigo_interno?: string;
-      metodo_retirada?: string;
-      imagem_principal_url?: string | null;
-      qtd_minima?: number | null;
-      qtd_maxima?: number | null;
-    }>
-  | null;
+type ProductRelationFields = {
+  sku?: string;
+  nome?: string;
+  codigo_interno?: string;
+  metodo_retirada?: string;
+  imagem_principal_url?: string | null;
+  qtd_minima?: number | null;
+  qtd_maxima?: number | null;
+  categoria?: string | null;
+  codigo_externo?: string | null;
+  tamanho?: string | null;
+  ativo?: boolean;
+  peso_kg?: number | null;
+  altura_cm?: number | null;
+  largura_cm?: number | null;
+  comprimento_cm?: number | null;
+};
+
+type ProductRelation = ProductRelationFields | Array<ProductRelationFields> | null;
 
 type DepositanteRelation = { nome?: string } | Array<{ nome?: string }> | null;
 type EnderecoRelation = { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
@@ -134,6 +133,14 @@ export type StockBalance = {
   imageUrl?: string | null;
   minQuantity?: number | null;
   maxQuantity?: number | null;
+  categoria?: string | null;
+  ean?: string | null;
+  tamanho?: string | null;
+  ativo?: boolean;
+  pesoKg?: number | null;
+  alturaCm?: number | null;
+  larguraCm?: number | null;
+  comprimentoCm?: number | null;
 };
 
 export type StockMovement = {
@@ -250,7 +257,7 @@ export async function listStockBalancesFromDb(filters?: StockFilters) {
   let query = supabase
     .from("estoque")
     .select(
-      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima, qtd_maxima), endereco:enderecos(codigo, area)",
+      "id, depositante_id, produto_id, quantidade, quantidade_reservada, bloqueado, bloqueio_motivo, bloqueado_em, lote, validade_em, created_at, depositante:depositantes(nome), produto:produtos(sku, nome, codigo_interno, metodo_retirada, imagem_principal_url, qtd_minima, qtd_maxima, categoria, codigo_externo, tamanho, ativo, peso_kg, altura_cm, largura_cm, comprimento_cm), endereco:enderecos(codigo, area)",
     )
     .order("created_at", { ascending: false });
 
@@ -561,41 +568,42 @@ export async function listStockStatsFromDb(
   user: AppUserContext,
   filters?: StockFilters,
   sourceBalances?: StockBalance[],
-  sourceExpiryAlerts?: StockExpiryAlert[],
 ) {
   const balances = sourceBalances ?? (await listStockBalancesFromDb(filters));
-  const expiryAlerts = sourceExpiryAlerts ?? (await listStockExpiryAlertsFromDb(filters, 30, balances));
 
   let totalFisico = 0;
   let totalReservado = 0;
-  
+
+  const porProduto = new Map<string, { qtd: number; min: number }>();
+
   for (const b of balances) {
     totalFisico += b.rawQuantidade;
     totalReservado += b.rawReserved;
+
+    const entry = porProduto.get(b.productId) ?? { qtd: 0, min: b.minQuantity ?? 0 };
+    entry.qtd += b.rawQuantidade;
+    porProduto.set(b.productId, entry);
   }
-  
+
   const totalDisponivel = totalFisico - totalReservado;
+  const emRuptura = Array.from(porProduto.values()).filter((p) => p.qtd < p.min / 2).length;
 
   return [
     {
-      label: "Saldo total",
+      label: "Em estoque",
       value: totalFisico.toLocaleString("pt-BR"),
-      help: "Saldo total físico",
     },
     {
       label: "Reservado",
       value: totalReservado.toLocaleString("pt-BR"),
-      help: "Saldo reservado",
     },
     {
-      label: "A vencer",
-      value: `${expiryAlerts.length} lotes`,
-      help: "ver",
+      label: "Disponível",
+      value: totalDisponivel.toLocaleString("pt-BR"),
     },
     {
-      label: "Acuracidade",
-      value: "99,2%",
-      help: "▲ 0,3%",
+      label: "Em ruptura",
+      value: String(emRuptura),
     },
   ] as const;
 }
@@ -638,6 +646,14 @@ function mapStockBalance(item: RawStockRow | RawStockDetailRow): StockBalance {
     imageUrl: extractProductField(item.produto, "imagem_principal_url") as string | null,
     minQuantity: Number(extractProductField(item.produto, "qtd_minima") ?? 0) || null,
     maxQuantity: Number(extractProductField(item.produto, "qtd_maxima") ?? 0) || null,
+    categoria: (extractProductField(item.produto, "categoria") as string | null) || null,
+    ean: (extractProductField(item.produto, "codigo_externo") as string | null) || null,
+    tamanho: (extractProductField(item.produto, "tamanho") as string | null) || null,
+    ativo: (extractProductField(item.produto, "ativo") as boolean | null) ?? true,
+    pesoKg: Number(extractProductField(item.produto, "peso_kg") ?? 0) || null,
+    alturaCm: Number(extractProductField(item.produto, "altura_cm") ?? 0) || null,
+    larguraCm: Number(extractProductField(item.produto, "largura_cm") ?? 0) || null,
+    comprimentoCm: Number(extractProductField(item.produto, "comprimento_cm") ?? 0) || null,
   };
 }
 
@@ -738,10 +754,7 @@ function sortBalancesByWithdrawalMethod(balances: StockBalance[]) {
   });
 }
 
-function extractProductField(
-  value: ProductRelation,
-  field: "sku" | "nome" | "codigo_interno" | "metodo_retirada" | "imagem_principal_url" | "qtd_minima" | "qtd_maxima",
-): any {
+function extractProductField(value: ProductRelation, field: keyof ProductRelationFields): any {
   if (Array.isArray(value)) {
     return value[0]?.[field] !== undefined ? value[0][field] : null;
   }

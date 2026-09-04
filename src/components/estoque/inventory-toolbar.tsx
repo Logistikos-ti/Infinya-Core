@@ -2,7 +2,21 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { FancySelectInput } from "@/components/ui/fancy-select-input";
+
+function formatAreaLabel(area: string) {
+  return area
+    .toLowerCase()
+    .split(" ")
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
+const FAIXA_PILLS = [
+  { key: "all", label: "Todos" },
+  { key: "ideal", label: "Dentro da faixa" },
+  { key: "baixo", label: "Abaixo do mínimo" },
+  { key: "critico", label: "Ruptura crítica" },
+];
 
 export function InventoryToolbar({
   t,
@@ -13,12 +27,9 @@ export function InventoryToolbar({
   setOwner,
   cat,
   setCat,
-  statusFilter,
-  setStatusFilter,
-  countComSaldo,
-  countEstoqueBaixo,
-  countAVencer,
-  countBloqueado,
+  faixaSel,
+  setFaixaSel,
+  faixaCounts,
 }: {
   t: any;
   data: any;
@@ -28,153 +39,107 @@ export function InventoryToolbar({
   setOwner: (v: string) => void;
   cat: string;
   setCat: (v: string) => void;
-  statusFilter: string;
-  setStatusFilter: (v: string) => void;
-  countComSaldo: number;
-  countEstoqueBaixo: number;
-  countAVencer: number;
-  countBloqueado: number;
+  faixaSel: string;
+  setFaixaSel: (v: string) => void;
+  faixaCounts: { all: number; ideal: number; baixo: number; critico: number };
 }) {
-  const hasActiveFilter = q || owner || cat;
-
-  const depositanteOptions = [
-    { value: "", label: "Todos" },
-    ...(data.depositanteOptions || []).map((o: any) => ({
-      value: o.id,
-      label: o.nome,
-    })),
-  ];
-
-  const areaOptions = [
-    { value: "", label: "Todas" },
-    ...(data.enderecosInventario || []).map((o: any) => ({
-      value: o.area,
-      label: o.area,
-    })),
-  ];
-
-  const statusOptions = [
-    { id: "todos", label: "Todos os status" },
-    ...(countComSaldo > 0 ? [{ id: "com_saldo", label: "Com saldo", count: countComSaldo, color: "#3B82F6", bg: "rgba(59,130,246,0.14)" }] : []),
-    { id: "estoque_baixo", label: "Estoque baixo", count: countEstoqueBaixo, color: "#8B5CF6", bg: "rgba(139,92,246,0.14)" },
-    ...(countAVencer > 0 ? [{ id: "a_vencer", label: "A vencer", count: countAVencer, color: "#F59E0B", bg: "rgba(245,158,11,0.14)" }] : []),
-    ...(countBloqueado > 0 ? [{ id: "bloqueado", label: "Bloqueado", count: countBloqueado, color: "#EF4444", bg: "rgba(239,68,68,0.14)" }] : []),
-  ];
+  const hasActiveFilters = Boolean(q || owner || cat);
+  const depositanteOptions = data.depositanteOptions || [];
+  const areaOptions = Array.from(new Set((data.enderecosInventario || []).map((e: any) => e.area).filter(Boolean))) as string[];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-        
-        <label className="space-y-1.5 flex-1 min-w-[220px]">
-          <span className="text-[12px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Busca rápida
-          </span>
-          <div className="flex h-[52px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 dark:bg-slate-950/50 px-3 transition-colors focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 dark:border-slate-800">
-            <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Filtrar nesta lista..."
-              className="w-full border-0 bg-transparent text-[14px] font-medium outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-600"
-            />
-          </div>
-        </label>
-
-        <div className="flex-1 min-w-[200px]">
-          <FancySelectInput
-            label="Depositante"
-            name="owner"
-            value={owner}
-            onChange={setOwner}
-            options={depositanteOptions}
-          />
+    <div className="flex flex-col gap-3">
+      {/* faixa pills — pílula com contador em chip próprio (padrão Infinoos Help) */}
+      <div className="flex items-center justify-center gap-2.5 flex-wrap">
+        <div className="inline-flex flex-wrap items-center gap-1 rounded-full border p-1" style={{ borderColor: t.border, background: t.cardBg }}>
+          {FAIXA_PILLS.map((p) => {
+            const isActive = faixaSel === p.key;
+            const count = (faixaCounts as any)[p.key] ?? 0;
+            return (
+              <button
+                key={p.key}
+                onClick={() => setFaixaSel(p.key)}
+                className="flex items-center gap-2 whitespace-nowrap rounded-full border-none py-1.5 pl-3.5 pr-2.5 text-[12.5px] font-semibold cursor-pointer transition"
+                style={isActive ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" } : { background: "transparent", color: t.textSub }}
+              >
+                <span>{p.label}</span>
+                <span
+                  className="grid h-[19px] min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-bold leading-none"
+                  style={isActive ? { background: "rgba(255,255,255,0.24)", color: "#fff" } : { background: t.inputBg, color: t.textSub }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
-
-        <div className="flex-1 min-w-[180px]">
-          <FancySelectInput
-            label="Área"
-            name="area"
-            value={cat}
-            onChange={setCat}
-            options={areaOptions}
-          />
-        </div>
-
-        {hasActiveFilter && (
-          <div className="flex items-end gap-2">
-            <button
-              onClick={() => {
-                setQ("");
-                setOwner("");
-                setCat("");
-              }}
-              style={{
-                height: "52px",
-                padding: "0 16px",
-                borderRadius: "16px",
-                border: `1px solid ${t.border}`,
-                background: "transparent",
-                color: t.textSub,
-                fontFamily: "'Manrope', sans-serif",
-                fontSize: "14px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = t.text)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = t.textSub)}
-            >
-              <X size={16} /> Limpar
-            </button>
-          </div>
-        )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-        {statusOptions.map((opt) => {
-          const isActive = statusFilter === opt.id;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => setStatusFilter(opt.id)}
-              style={{
-                height: "36px",
-                padding: "0 15px",
-                borderRadius: "9px",
-                fontFamily: "'Manrope', sans-serif",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-                border: isActive ? "none" : `1px solid ${t.border}`,
-                background: isActive ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
-                color: isActive ? "#fff" : t.textSub,
-                transition: "all 0.18s ease",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {opt.label}
-              {"count" in opt && opt.count !== undefined && (
-                <span
-                  style={{
-                    padding: "1px 8px",
-                    borderRadius: "999px",
-                    fontSize: "11px",
-                    background: isActive ? "rgba(255,255,255,0.2)" : opt.bg,
-                    color: isActive ? "#fff" : opt.color,
-                  }}
-                >
-                  {opt.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      {/* filter row */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 h-[42px] flex-1 min-w-[200px] px-4 rounded-[11px] border" style={{ borderColor: t.border, background: t.cardBg }}>
+          <Search className="h-4 w-4 shrink-0" style={{ color: t.textSub }} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar SKU, produto..."
+            className="flex-1 border-none outline-none bg-transparent text-[14px]"
+            style={{ color: t.text }}
+          />
+        </div>
+        {depositanteOptions.length > 1 && (
+          <select
+            value={owner}
+            onChange={(e) => setOwner(e.target.value)}
+            className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
+            style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
+          >
+            <option value="">Todos depositantes</option>
+            {depositanteOptions.map((d: any) => (
+              <option key={d.id} value={d.id}>
+                {d.nome}
+              </option>
+            ))}
+          </select>
+        )}
+        {areaOptions.length > 0 && (
+          <select
+            value={cat}
+            onChange={(e) => setCat(e.target.value)}
+            className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
+            style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
+          >
+            <option value="">Todas áreas</option>
+            {areaOptions.map((a) => (
+              <option key={a} value={a}>
+                {formatAreaLabel(a)}
+              </option>
+            ))}
+          </select>
+        )}
+        {hasActiveFilters && (
+          <button
+            onClick={() => {
+              setQ("");
+              setOwner("");
+              setCat("");
+            }}
+            aria-label="Limpar filtros"
+            title="Limpar filtros"
+            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] border cursor-pointer transition-colors"
+            style={{ borderColor: t.border, background: t.cardBg, color: t.textSub }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#EF4444";
+              e.currentTarget.style.color = "#EF4444";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = t.border;
+              e.currentTarget.style.color = t.textSub;
+            }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
