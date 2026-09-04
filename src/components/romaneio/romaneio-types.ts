@@ -42,4 +42,9 @@ export type RomaneioUI = {
   depColor: string;
 
   stops: RomaneioStop[];
+
+  /** JSON (string) do payload de dupla checagem (fotos + conferido_por/em)
+   * -- mesmo campo que a API /api/romaneio/[id]/foto lê pra servir a foto/
+   * assinatura do operador/motorista. Vem de RomaneioRecordListItem.conferenceInfoJson. */
+  conferenceInfoJson: string | null;
 };

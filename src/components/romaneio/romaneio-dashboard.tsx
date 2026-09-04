@@ -89,6 +89,7 @@ const mapRecordToUI = (r: RomaneioRecordListItem, orderWeights: Record<string, n
     statusDot: ss.statusDot,
     depColor: r.status === "LIBERADO" ? "#8695AD" : "#8B5CF6",
     stops,
+    conferenceInfoJson: r.conferenceInfoJson,
   };
 };
 
