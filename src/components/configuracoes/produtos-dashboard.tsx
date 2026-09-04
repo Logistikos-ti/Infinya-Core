@@ -319,26 +319,6 @@ export function ProdutosDashboard({
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[12.5px] font-semibold" style={{ color: t.textSub }}>
-                Mostrar:
-              </span>
-              <div className="flex p-1 gap-0.5 rounded-[11px] border" style={{ borderColor: t.border, background: t.cardBg }}>
-                {perPageOptions.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => navigate({ perPage: String(n) })}
-                    className="h-[34px] px-4 rounded-lg border-none text-[13px] font-bold cursor-pointer transition-all duration-200"
-                    style={{
-                      background: currentPerPage === n ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : "transparent",
-                      color: currentPerPage === n ? "#fff" : t.textSub,
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
             {formSlot}
           </div>
         </div>
@@ -425,6 +405,18 @@ export function ProdutosDashboard({
               ))}
             </select>
           )}
+          <select
+            value={String(currentPerPage)}
+            onChange={(e) => navigate({ perPage: e.target.value })}
+            className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
+            style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
+          >
+            {perPageOptions.map((n) => (
+              <option key={n} value={n}>
+                {n} por página
+              </option>
+            ))}
+          </select>
           {currentCategoria === "Vestuário" && (
             <select
               value={currentTamanho}
