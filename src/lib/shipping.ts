@@ -192,6 +192,7 @@ export type ShippingOrderSummary = {
   createdAtIso: string | null;
   updatedAtIso: string | null;
   dispatchedAtIso: string | null;
+  dataPedidoIso: string | null;
   createdAt: string;
   orderDate: string;
   ageLabel: string;
@@ -1104,6 +1105,7 @@ async function mapShippingOrderSummary(item: RawShippingOrderRow): Promise<Shipp
     createdAtIso: ageMeta.createdAtIso,
     updatedAtIso: item.updated_at,
     dispatchedAtIso,
+    dataPedidoIso: item.data_pedido ?? null,
     createdAt: ageMeta.createdAtLabel,
     orderDate: formatDateTimeInSaoPaulo(item.data_pedido, "Hoje"),
     ageLabel: ageMeta.ageLabel,

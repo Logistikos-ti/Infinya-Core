@@ -76,6 +76,21 @@ function isFromCurrentMonthInSaoPaulo(value: string | null | undefined) {
   return formatter.format(date) === currentMonth;
 }
 
+function isFromCurrentYearInSaoPaulo(value: string | null | undefined) {
+  if (!value) return false;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  });
+
+  const currentYear = formatter.format(new Date());
+  return formatter.format(date) === currentYear;
+}
+
 function xmlPreviewValue(xml: string, tag: string) {
   if (typeof DOMParser !== "undefined") {
     const document = new DOMParser().parseFromString(xml, "application/xml");
@@ -380,9 +395,21 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return !query || [produto.nome, produto.sku, produto.codigo_interno, produto.codigo_externo].filter(Boolean).some((value) => String(value).toLowerCase().includes(query));
   });
 
+  // Mesma definicao de "conferencia" usada em matchesOperationalFilter/stagesDefs:
+  // SEPARADO (aguardando conferencia) + EM_CONFERENCIA (em andamento).
+  const emConferenciaAtual = ordersForOperationalQueue.filter(
+    (order: any) => order.status === "EM_CONFERENCIA" || order.status === "SEPARADO",
+  ).length;
+
+  // Total de pedidos no ano corrente, pela data real do pedido (data_pedido),
+  // nao pela data de sincronizacao com o WMS.
+  const totalPedidosNoAno = data.orders.filter((order: any) =>
+    isFromCurrentYearInSaoPaulo(order.dataPedidoIso || order.createdAtIso),
+  ).length;
+
   const kpis = [
-    { label: "A expedir hoje", value: data.stats[0]?.value || 0, delta: data.stats[0]?.delta || "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
-    { label: "Em conferência", value: data.stats[2]?.value || 0, delta: data.stats[2]?.delta || "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
+    { label: "Total de pedidos no ano", value: totalPedidosNoAno, delta: "", iconEl: <Box size={20} />, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6", deltaColor: "" },
+    { label: "Em conferência", value: emConferenciaAtual, delta: "", iconEl: <CheckCircle2 size={20} />, iconBg: "rgba(139,92,246,0.15)", iconColor: "#8B5CF6", deltaColor: "" },
     { label: "Aguardando separação", value: data.stats[1]?.value || 0, delta: data.stats[1]?.delta || "", iconEl: <Clock size={20} />, iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", deltaColor: "" },
     {
       label: "Expedidos este mês",
