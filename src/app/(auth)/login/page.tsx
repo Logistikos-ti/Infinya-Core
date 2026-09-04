@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { LoginForm, ThemeToggle } from "@/components/auth/login-form";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getPreferredWebRoute } from "@/lib/permissions";
+import { getBrand } from "@/lib/brand";
 import Image from "next/image";
 import { Manrope, Space_Grotesk } from "next/font/google";
 
@@ -14,6 +15,8 @@ export default async function LoginPage() {
   if (user) {
     redirect(getPreferredWebRoute(user));
   }
+
+  const brand = getBrand();
 
   return (
     <>
@@ -119,8 +122,8 @@ export default async function LoginPage() {
 
           {/* topo: lockup */}
           <div className="relative flex flex-col gap-0.5">
-            <span className="font-space text-[13px] font-semibold tracking-[0.42em] text-[#4B5578] dark:text-[#94A3B8] transition-colors duration-300">INFINOOS</span>
-            <span className="font-space text-[24px] font-bold leading-none bg-gradient-to-r from-[#60A5FA] to-[#A78BFA] bg-clip-text text-transparent">WMS</span>
+            <span className="font-space text-[13px] font-semibold tracking-[0.42em] text-[#4B5578] dark:text-[#94A3B8] transition-colors duration-300">{brand.eyebrow}</span>
+            <span className="font-space text-[24px] font-bold leading-none bg-gradient-to-r from-[#60A5FA] to-[#A78BFA] bg-clip-text text-transparent">{brand.shortName}</span>
           </div>
 
           {/* centro: ícone flutuante + headline */}
@@ -129,8 +132,8 @@ export default async function LoginPage() {
               <div className="absolute inset-0 rounded-[36px] border border-violet-500/35" style={{ animation: "pulseRing 2.8s ease-out infinite" }} />
               <div className="absolute inset-0 rounded-[36px] shadow-[0_24px_64px_rgba(99,102,241,0.45),0_0_48px_rgba(139,92,246,0.35)]" style={{ animation: "floatGlow 5s ease-in-out infinite" }}>
                 <Image
-                  src="/branding/login-icon.png"
-                  alt="Infinoos Logo Icon"
+                  src={brand.logoSrc ?? "/branding/login-icon.png"}
+                  alt={`${brand.name} Logo Icon`}
                   fill
                   className="object-cover rounded-[36px]"
                 />
@@ -168,7 +171,7 @@ export default async function LoginPage() {
           <LoginForm />
 
           <p className="m-0 mt-8 flex-shrink-0 text-[12px] text-slate-400 dark:text-slate-500 font-medium transition-colors">
-            Infinoos WMS © 2026 · v2.4 · <span className="cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Status do sistema</span>
+            {brand.productName} © 2026 · v2.4 · <span className="cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Status do sistema</span>
           </p>
         </div>
       </main>

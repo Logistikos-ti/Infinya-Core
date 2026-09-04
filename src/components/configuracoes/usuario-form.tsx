@@ -6,7 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { saveUsuarioAction } from "@/app/(dashboard)/configuracoes/usuarios/actions";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
-import { ChevronDown } from "lucide-react";
+import { PillSelect } from "@/components/ui/pill-select";
 import {
   APP_MODULES,
   CONFIG_SECTIONS,
@@ -24,7 +24,7 @@ const tokenText = "text-[#0F172A] dark:text-[#F1F5F9]";
 const tokenTextSub = "text-[#64748B] dark:text-[#8695AD]";
 const monoFont = "font-[family-name:var(--font-space-grotesk)]";
 const cardClass = `rounded-2xl border ${tokenBorder} ${tokenCardBg} p-6`;
-const inputClass = `h-[46px] w-full rounded-[11px] border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
+const inputClass = `h-[46px] w-full rounded-full border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
 
 const roleAccent: Record<AppRole, string> = {
   ADMIN: "#EF4444",
@@ -174,17 +174,17 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
             type="button"
             onClick={onClose}
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </button>
         ) : (
           <Link
             href="/configuracoes/usuarios"
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </Link>
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
@@ -203,14 +203,14 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            className={`flex h-11 shrink-0 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
           >
             Cancelar
           </button>
         ) : (
           <Link
             href="/configuracoes/usuarios"
-            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`flex h-11 shrink-0 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
             <span className={tokenText}>Cancelar</span>
           </Link>
@@ -218,11 +218,28 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
         <button
           type="submit"
           disabled={isPending}
-          className="flex h-11 shrink-0 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff" }}
+          className="usuario-save-btn flex h-11 shrink-0 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={{ color: "#fff" }}
         >
           {isPending ? <MobileButtonSpinner /> : isEdit ? "Salvar alterações" : "Salvar usuário"}
         </button>
+        <style jsx>{`
+          .usuario-save-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+            transition:
+              background-position 0.6s ease,
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+          }
+          .usuario-save-btn:hover:not(:disabled) {
+            background-position: 100% 50%;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+          }
+        `}</style>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
@@ -294,7 +311,7 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
                     style={{
                       height: "40px",
                       padding: "0 16px",
-                      borderRadius: "10px",
+                      borderRadius: "999px",
                       fontSize: "13px",
                       fontWeight: 700,
                       cursor: "pointer",
@@ -321,33 +338,12 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
                 active={depositanteId === ""}
                 onClick={() => setDepositanteId("")}
               />
-              <div className="relative">
-                <select
-                  value={depositanteId}
-                  onChange={(event) => setDepositanteId(event.target.value)}
-                  className={`h-10 cursor-pointer appearance-none rounded-[10px] border pl-4 pr-9 text-[13px] font-bold outline-none transition ${
-                    depositanteId
-                      ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.12)] text-[#8B5CF6]"
-                      : `${tokenBorder} ${tokenInputBg} ${tokenTextSub}`
-                  }`}
-                  style={{ borderWidth: "1.5px", borderStyle: "solid" }}
-                >
-                  <option value="">Escolher depositante...</option>
-                  {depositantes.map((depositante) => (
-                    <option key={depositante.id} value={depositante.id}>
-                      {depositante.nome}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    color: depositanteId ? "#8B5CF6" : "#64748B",
-                  }}
-                />
-              </div>
+              <PillSelect
+                value={depositanteId}
+                onChange={setDepositanteId}
+                placeholder="Escolher depositante..."
+                options={depositantes.map((depositante) => ({ value: depositante.id, label: depositante.nome }))}
+              />
             </div>
           </section>
 
@@ -379,7 +375,7 @@ export function UsuarioForm({ defaultValues, depositantes, onClose }: UsuarioFor
                       style={{
                         height: "40px",
                         padding: "0 16px",
-                        borderRadius: "10px",
+                        borderRadius: "999px",
                         fontSize: "13px",
                         fontWeight: 700,
                         cursor: "pointer",
@@ -484,7 +480,7 @@ function FormField({
       <span className={`text-[12.5px] font-bold ${tokenTextSub}`}>{label}</span>
       {readOnlyDisplay !== undefined ? (
         <div
-          className={`flex items-center rounded-[11px] border px-[15px] text-sm ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+          className={`flex items-center rounded-full border px-[15px] text-sm ${tokenBorder} ${tokenInputBg} ${tokenText}`}
           style={{ height: "46px" }}
         >
           {readOnlyDisplay}
@@ -520,7 +516,7 @@ function ChipOption({
       style={{
         height: "40px",
         padding: "0 16px",
-        borderRadius: "10px",
+        borderRadius: "999px",
         fontSize: "13px",
         fontWeight: 700,
         cursor: "pointer",

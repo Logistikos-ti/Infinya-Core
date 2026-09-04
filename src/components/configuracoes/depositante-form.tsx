@@ -16,7 +16,7 @@ const tokenText = "text-[#0F172A] dark:text-[#F1F5F9]";
 const tokenTextSub = "text-[#64748B] dark:text-[#8695AD]";
 const monoFont = "font-[family-name:var(--font-space-grotesk)]";
 const cardClass = `rounded-2xl border ${tokenBorder} ${tokenCardBg} p-6`;
-const inputClass = `h-[46px] w-full rounded-[11px] border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
+const inputClass = `h-[46px] w-full rounded-full border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
 
 type DepositanteFormProps = {
   defaultValues?: {
@@ -94,17 +94,17 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
             type="button"
             onClick={onClose}
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </button>
         ) : (
           <Link
             href="/configuracoes/depositantes"
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </Link>
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
@@ -123,14 +123,14 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            className={`flex h-11 shrink-0 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
           >
             Cancelar
           </button>
         ) : (
           <Link
             href="/configuracoes/depositantes"
-            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`flex h-11 shrink-0 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
             <span className={tokenText}>Cancelar</span>
           </Link>
@@ -138,12 +138,32 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
         <button
           type="submit"
           disabled={isPending}
-          className="flex h-11 shrink-0 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+          className="depositante-save-btn flex h-11 shrink-0 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
         >
           {isPending ? <MobileButtonSpinner /> : isEdit ? "Salvar alterações" : "Salvar depositante"}
         </button>
       </header>
+
+      {/* Mesmo efeito de hover do botão "Quero ver funcionando" da
+          apresentação: gradiente desliza, o botão sobe com uma pequena
+          mola e ganha um brilho embaixo. */}
+      <style jsx>{`
+        .depositante-save-btn {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+          background-size: 220% 100%;
+          background-position: 0% 50%;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+          transition:
+            background-position 0.6s ease,
+            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.3s ease;
+        }
+        .depositante-save-btn:hover:not(:disabled) {
+          background-position: 100% 50%;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+        }
+      `}</style>
 
       <div className="flex-1 overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
         <div className="mx-auto flex w-full max-w-[860px] flex-col gap-[18px]">
@@ -161,7 +181,7 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
             <div className="mt-[18px] flex flex-col gap-5 sm:flex-row sm:gap-[22px]">
               <div className="flex shrink-0 flex-col items-center gap-2.5">
                 <label
-                  className={`flex h-[110px] w-[110px] cursor-pointer flex-col items-center justify-center gap-[7px] overflow-hidden rounded-[18px] border-[1.5px] ${
+                  className={`flex h-[110px] w-[110px] cursor-pointer flex-col items-center justify-center gap-[7px] overflow-hidden rounded-full border-[1.5px] ${
                     hasCurrentLogo ? `border-solid ${tokenBorder}` : "border-dashed border-[rgba(148,163,184,0.14)]"
                   } ${tokenInputBg}`}
                 >
@@ -349,9 +369,9 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
                             : current.filter((_, itemIndex) => itemIndex !== index),
                         )
                       }
-                      className={`flex h-[46px] w-10 shrink-0 items-center justify-center rounded-[10px] border ${tokenBorder} ${tokenTextSub}`}
+                      className={`group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className={`h-3.5 w-3.5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenTextSub}`} />
                     </button>
                   </div>
                 </div>
@@ -390,9 +410,9 @@ export function DepositanteForm({ defaultValues, onClose }: DepositanteFormProps
                           : current.filter((_, itemIndex) => itemIndex !== index),
                       )
                     }
-                    className={`flex h-[46px] w-10 shrink-0 items-center justify-center rounded-[10px] border ${tokenBorder} ${tokenTextSub}`}
+                    className={`group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className={`h-3.5 w-3.5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenTextSub}`} />
                   </button>
                 </div>
               ))}

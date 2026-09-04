@@ -4,7 +4,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import { Toaster } from "@/components/ui/sonner";
 import { FeedbackToast } from "@/components/ui/feedback-toast";
+import { getBrand } from "@/lib/brand";
 import "./globals.css";
+
+const brand = getBrand();
 
 const inter = Inter({
   variable: "--font-sans",
@@ -32,13 +35,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Infinoos WMS",
-  description: "WMS proprietário da Infinoos para operações logísticas multi-tenant.",
+  title: brand.productName,
+  description: brand.description ?? "WMS proprietário da Infinoos para operações logísticas multi-tenant.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WMS",
+    title: brand.shortName,
   },
   icons: {
     // O apple-touch-icon precisa ser quadrado e opaco: o iOS aplica o próprio

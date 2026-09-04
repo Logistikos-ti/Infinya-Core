@@ -10,6 +10,7 @@ import {
   ShieldAlert, SlidersHorizontal, Tag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getBrand } from "@/lib/brand";
 import type { AppUserContext } from "@/lib/auth";
 import {
   canAccessConfigSection, canAccessModule, getRoleLabel,
@@ -115,6 +116,7 @@ type AppSidebarProps = {
   setSidebarWidth?: (width: number) => void;  // legado
   navigationOverride?: ReadonlyArray<SidebarNavigationItem>;
   navCounts?: Record<string, number>;
+  fotoUrl?: string | null;
 };
 
 type FlyoutState = { label: string; top: number; left: number; active: boolean } | null;
@@ -126,6 +128,7 @@ export function AppSidebar({
   setIsCollapsed,
   navigationOverride,
   navCounts,
+  fotoUrl,
 }: AppSidebarProps) {
   const [flyout, setFlyout] = useState<FlyoutState>(null);
   const [mounted, setMounted] = useState(false);
@@ -157,9 +160,9 @@ export function AppSidebar({
     }))
     .filter((g) => g.itens.length > 0);
 
-  // Só UM item fica ativo por vez. Itens como "Estoque" (/estoque) e
-  // "Quarentena" (/estoque/quarentena) são irmãos na sidebar, mas o href de
-  // um é prefixo do outro — sem isso, os dois acendiam juntos. Entre todos
+  // Só UM item fica ativo por vez. Itens como "Configurações" (/configuracoes)
+  // e "Produtos" (/configuracoes/produtos) são irmãos na sidebar, mas o href
+  // de um é prefixo do outro — sem isso, os dois acendiam juntos. Entre todos
   // os itens visíveis que combinam com a URL atual, vence o href mais
   // específico (o mais longo); os demais ficam apagados.
   const activeHref = useMemo(() => {
@@ -187,6 +190,8 @@ export function AppSidebar({
 
   const nomeUsuario = user.nome ?? user.email ?? "";
   const funcao = getRoleLabel(user.papel);
+  const brand = getBrand();
+  const brandLogo = brand.logoSrc ?? "/branding/icone-infinoos-wms.svg";
 
   return (
     <aside className={`sb ${isCollapsed ? "sb--collapsed" : ""}`}>
@@ -196,11 +201,11 @@ export function AppSidebar({
       {/* Header */}
       <div className="sb__header">
         <div className="sb__logo">
-          <Image src="/branding/icone-infinoos-wms.svg" alt="Infinoos WMS" width={40} height={40} priority />
+          <Image src={brandLogo} alt={brand.productName} width={40} height={40} priority />
         </div>
         <div className="sb__brand">
-          <span className="sb__eyebrow">INFINOOS</span>
-          <span className="sb__title">WMS</span>
+          <span className="sb__eyebrow">{brand.eyebrow}</span>
+          <span className="sb__title">{brand.shortName}</span>
         </div>
         <button
           type="button"
@@ -210,7 +215,7 @@ export function AppSidebar({
           title={isCollapsed ? "Expandir" : "Recolher"}
         >
           {isCollapsed ? (
-            <Image src="/branding/icone-infinoos-wms.svg" alt="Infinoos" width={40} height={40} />
+            <Image src={brandLogo} alt={brand.name} width={40} height={40} />
           ) : (
             <ChevronsLeft size={17} />
           )}
@@ -266,7 +271,20 @@ export function AppSidebar({
 
       {/* Footer — igual ao HR */}
       <div className="sb__footer">
-        <div className="sb__avatar">{initials(nomeUsuario)}</div>
+        <div className="sb__avatar">
+          {fotoUrl ? (
+            <Image
+              src={fotoUrl}
+              alt={nomeUsuario}
+              width={38}
+              height={38}
+              unoptimized
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            initials(nomeUsuario)
+          )}
+        </div>
         <div className="sb__user">
           <div className="sb__user-name">{nomeCurto(nomeUsuario)}</div>
           <span className="sb__user-role">{funcao}</span>

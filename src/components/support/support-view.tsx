@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Paperclip, RotateCcw, Search, Send, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Paperclip, RotateCcw, Search, Send, X } from "lucide-react";
 import type { SupportTicket } from "@/lib/support";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { HelpEmbed } from "@/components/support/help-embed";
 import { useSupportUnreadCounts } from "@/components/support/use-support-notifications";
+import { PillSelect } from "@/components/ui/pill-select";
 
 const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
 const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
@@ -24,87 +26,8 @@ const manropeStyle: React.CSSProperties = {
 type Ticket = SupportTicket;
 type Anexo = { url: string; nome: string; tipo: string };
 
-// Dropdown customizado — mesmo padrão do Infinoos Help (pílula, seta que
-// gira, painel com check na opção ativa), substitui o <select> nativo.
-function PillSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onClickOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const current = options.find((o) => o.value === value);
-
-  return (
-    <div className="relative" ref={wrapRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={`flex h-[42px] min-w-[170px] cursor-pointer items-center justify-between gap-2 rounded-full border px-4 text-[13.5px] font-semibold outline-none transition-colors ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-        style={open ? { borderColor: "#5AA7FF", boxShadow: "0 0 0 3px rgba(90,167,255,.15)" } : undefined}
-      >
-        <span>{current ? current.label : "Selecione..."}</span>
-        <ChevronDown
-          size={15}
-          className={tokenTextSub}
-          style={{ transition: "transform .18s", transform: open ? "rotate(180deg)" : "none", flexShrink: 0 }}
-        />
-      </button>
-
-      {open && (
-        <div
-          role="listbox"
-          className={`absolute left-0 right-0 z-20 mt-1.5 rounded-xl border py-1.5 ${tokenBorder} ${tokenCardBg}`}
-          style={{ boxShadow: "0 16px 36px rgba(3,7,18,.15)" }}
-        >
-          {options.map((o) => {
-            const active = o.value === value;
-            return (
-              <button
-                key={o.value}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13.5px] transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${active ? "" : tokenText}`}
-                style={active ? { color: "#5AA7FF", background: "rgba(90,167,255,.1)" } : undefined}
-              >
-                <span>{o.label}</span>
-                {active && <Check size={14} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+// PillSelect (dropdown no padrão do Infinoos Help) vem de
+// @/components/ui/pill-select — compartilhado com outras telas do WMS.
 
 const STATUS = ["Aberto", "Em análise", "Resolvido"] as const;
 const PRIORIDADES = ["Baixa", "Normal", "Alta", "Crítica"] as const;
@@ -258,6 +181,7 @@ export function SupportView() {
         </div>
         <div className="flex-1" />
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -378,7 +302,7 @@ export function SupportView() {
                       type="button"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage <= 1}
-                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
@@ -389,7 +313,7 @@ export function SupportView() {
                       type="button"
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
-                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>

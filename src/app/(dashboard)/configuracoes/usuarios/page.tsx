@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { requireRoleAccess } from "@/lib/auth";
 import {
@@ -14,8 +15,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
 import { UsuarioRowActions } from "@/components/configuracoes/usuario-row-actions";
 import { NovoUsuarioTrigger } from "@/components/configuracoes/novo-usuario-trigger";
+import { getEmployeePhotosByEmail } from "@/lib/rh-employees";
 
 const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
 const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
@@ -93,10 +96,15 @@ export default async function ConfiguracoesUsuariosPage({
     nome: d.nome as string,
   }));
 
+  const employeePhotos = await getEmployeePhotosByEmail(
+    Array.from(authPermissionsById.values()).map((permissions) => permissions.contactEmail),
+  );
+
   const rows = (usuariosBase ?? []).map((item, index) => {
     const [color, colorFaded] = avatarPalette[index % avatarPalette.length];
     const permissions = authPermissionsById.get(item.id as string);
     const depositanteLabel = getDepositanteLabel(item.depositante) ?? "Todos os depositantes";
+    const contactEmail = permissions?.contactEmail ?? null;
 
     return {
       id: item.id as string,
@@ -109,6 +117,7 @@ export default async function ConfiguracoesUsuariosPage({
       depositanteLabel,
       initials: getInitials(item.nome as string),
       avatarBg: `linear-gradient(135deg, ${color}, ${colorFaded})`,
+      fotoUrl: contactEmail ? (employeePhotos.get(contactEmail.toLowerCase()) ?? null) : null,
       modulePermissions: permissions?.modulePermissions ?? null,
       configSections: permissions?.configSections ?? null,
       portalProfile: permissions?.portalProfile ?? "GESTOR",
@@ -122,9 +131,9 @@ export default async function ConfiguracoesUsuariosPage({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>
@@ -139,6 +148,7 @@ export default async function ConfiguracoesUsuariosPage({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -197,24 +207,36 @@ export default async function ConfiguracoesUsuariosPage({
                       className="flex items-center"
                       style={{ flex: "2.2 1 0%", gap: "13px", minWidth: "220px" }}
                     >
-                      <span
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          flexShrink: 0,
-                          borderRadius: "11px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 800,
-                          fontSize: "13.5px",
-                          color: "#FFFFFF",
-                          background: row.avatarBg,
-                          fontFamily: "var(--font-space-grotesk), sans-serif",
-                        }}
-                      >
-                        {row.initials}
-                      </span>
+                      {row.fotoUrl ? (
+                        <Image
+                          src={row.fotoUrl}
+                          alt={row.nome}
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="shrink-0 rounded-full border border-slate-200 object-cover dark:border-white/10"
+                          style={{ width: "40px", height: "40px" }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            flexShrink: 0,
+                            borderRadius: "999px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 800,
+                            fontSize: "13.5px",
+                            color: "#FFFFFF",
+                            background: row.avatarBg,
+                            fontFamily: "var(--font-space-grotesk), sans-serif",
+                          }}
+                        >
+                          {row.initials}
+                        </span>
+                      )}
                       <div className="flex flex-col" style={{ minWidth: 0, gap: "2px" }}>
                         <span
                           className={tokenText}

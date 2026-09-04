@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { PencilLine, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import {
   deleteUsuarioAction,
@@ -68,10 +68,11 @@ export function UsuarioRowActions({
       style={{ gap: "10px", fontFamily: "var(--font-manrope), Manrope, sans-serif" }}
     >
       <span
-        className="inline-flex items-center"
+        className="inline-flex items-center justify-center"
         style={{
+          height: "28px",
           gap: "7px",
-          padding: "4px 11px",
+          padding: "0 11px",
           borderRadius: "999px",
           fontSize: "12px",
           fontWeight: 700,
@@ -99,8 +100,8 @@ export function UsuarioRowActions({
           disabled={isCurrentUser && ativo}
           style={{
             position: "relative",
-            width: "46px",
-            height: "26px",
+            width: "50px",
+            height: "28px",
             flexShrink: 0,
             borderRadius: "999px",
             border: "none",
@@ -116,12 +117,12 @@ export function UsuarioRowActions({
               position: "absolute",
               top: "3px",
               left: "3px",
-              width: "20px",
-              height: "20px",
+              width: "22px",
+              height: "22px",
               borderRadius: "50%",
               background: "#FFFFFF",
               boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-              transform: ativo ? "translateX(20px)" : "translateX(0)",
+              transform: ativo ? "translateX(22px)" : "translateX(0)",
               transition: "transform 0.25s cubic-bezier(0.4, 1.3, 0.5, 1)",
             }}
           />
@@ -132,20 +133,20 @@ export function UsuarioRowActions({
         type="button"
         title="Editar"
         onClick={() => setEditOpen(true)}
-        className={`group/edit inline-flex border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+        className={`group/edit inline-flex border transition hover:scale-[1.08] hover:border-[rgba(90,167,255,0.4)] hover:bg-[rgba(90,167,255,0.12)] dark:hover:border-[rgba(90,167,255,0.4)] dark:hover:bg-[rgba(90,167,255,0.12)] ${tokenBorder} ${tokenInputBg}`}
         style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "9px",
+          width: "28px",
+          height: "28px",
+          borderRadius: "999px",
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
           padding: 0,
         }}
       >
-        <PencilLine
-          className={`${tokenText} transition-colors group-hover/edit:text-[#8B5CF6]`}
-          style={{ width: "15px", height: "15px" }}
+        <Pencil
+          className={`${tokenText} transition-colors group-hover/edit:text-[#5AA7FF] dark:group-hover/edit:text-[#5AA7FF]`}
+          style={{ width: "13px", height: "13px" }}
         />
       </button>
 
@@ -154,19 +155,21 @@ export function UsuarioRowActions({
         title="Excluir"
         onClick={() => setConfirmOpen(true)}
         disabled={isCurrentUser}
-        className="inline-flex border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] transition-colors hover:bg-[rgba(239,68,68,0.16)] disabled:opacity-50"
+        className={`group/delete inline-flex border transition hover:scale-[1.08] hover:border-[rgba(251,113,133,0.45)] hover:bg-[rgba(251,113,133,0.12)] dark:hover:border-[rgba(251,113,133,0.45)] dark:hover:bg-[rgba(251,113,133,0.12)] disabled:opacity-50 ${tokenBorder} ${tokenInputBg}`}
         style={{
-          width: "36px",
-          height: "36px",
-          borderRadius: "9px",
-          color: "#EF4444",
+          width: "28px",
+          height: "28px",
+          borderRadius: "999px",
           cursor: isCurrentUser ? "not-allowed" : "pointer",
           alignItems: "center",
           justifyContent: "center",
           padding: 0,
         }}
       >
-        <Trash2 style={{ width: "15px", height: "15px" }} />
+        <Trash2
+          className={`${tokenText} transition-colors group-hover/delete:text-[#FB7185] dark:group-hover/delete:text-[#FB7185]`}
+          style={{ width: "13px", height: "13px" }}
+        />
       </button>
 
       {editOpen ? (
@@ -192,7 +195,7 @@ export function UsuarioRowActions({
             className={`relative flex w-[420px] max-w-[94vw] flex-col gap-4 rounded-[18px] border ${tokenBorder} ${tokenCardBg} p-[26px] shadow-[0_26px_64px_rgba(0,0,0,0.45)]`}
           >
             <div className="flex items-center gap-3.5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[13px] bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
                 <Trash2 className="h-[22px] w-[22px]" />
               </span>
               <div className="flex flex-col gap-[3px]">
@@ -203,7 +206,7 @@ export function UsuarioRowActions({
               </div>
             </div>
             <div
-              className={`rounded-xl border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}
+              className={`rounded-full border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}
             >
               {nome}
             </div>
@@ -213,7 +216,7 @@ export function UsuarioRowActions({
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setConfirmOpen(false)}
-                className={`h-12 flex-1 rounded-[11px] border text-sm font-bold transition-colors hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`h-12 flex-1 rounded-full border text-sm font-bold transition-colors hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
@@ -222,7 +225,7 @@ export function UsuarioRowActions({
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
                 style={{ background: "#EF4444", color: "#fff" }}
-                className="h-12 flex-1 rounded-[11px] text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
+                className="h-12 flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {isDeleting ? "Excluindo..." : "Excluir"}
               </button>

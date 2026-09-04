@@ -4,6 +4,7 @@ import { MobileInstallCard } from "@/components/pwa/mobile-install-card";
 import { getCurrentUserContext } from "@/lib/auth";
 import { getDefaultMobileRoute } from "@/lib/mobile";
 import { mobileColors, headingFont, MobileIcon } from "@/components/mobile/mobile-kit-tokens";
+import { getBrand } from "@/lib/brand";
 
 export default async function MobileLoginPage() {
   const user = await getCurrentUserContext();
@@ -11,6 +12,8 @@ export default async function MobileLoginPage() {
   if (user && user.ativo) {
     redirect(getDefaultMobileRoute(user));
   }
+
+  const brand = getBrand();
 
   return (
     <main
@@ -33,7 +36,7 @@ export default async function MobileLoginPage() {
           className="text-xs font-semibold"
           style={{ letterSpacing: "0.42em", color: mobileColors.dim, ...headingFont }}
         >
-          INFINOOS
+          {brand.eyebrow}
         </span>
         <span
           className="text-[30px] font-bold leading-none text-transparent"
@@ -44,7 +47,7 @@ export default async function MobileLoginPage() {
             ...headingFont,
           }}
         >
-          WMS · Coletor
+          {brand.shortName} · Coletor
         </span>
       </div>
 
@@ -55,7 +58,7 @@ export default async function MobileLoginPage() {
       </div>
 
       <p className="m-0 text-center text-[11px]" style={{ color: mobileColors.dim }}>
-        Infinoos WMS Mobile © 2026
+        {brand.productName} Mobile © 2026
       </p>
     </main>
   );

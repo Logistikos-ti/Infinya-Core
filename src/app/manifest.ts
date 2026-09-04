@@ -1,11 +1,15 @@
 import type { MetadataRoute } from "next";
+import { getBrand } from "@/lib/brand";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const brand = getBrand();
+
   return {
     id: "/",
-    name: "Infinoos WMS",
-    short_name: "WMS",
+    name: brand.productName,
+    short_name: brand.shortName,
     description:
+      brand.description ??
       "Webapp operacional da Infinoos para recebimento, separação e conferência logística.",
     // A raiz decide entre /login (desktop) e /m/login (mobile) pelo user-agent
     // do primeiro request. Um manifest só pode ter um start_url, então usamos

@@ -15,7 +15,9 @@ type ProductImportPanelProps = {
 
 export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
   const router = useRouter();
-  const [depositanteId, setDepositanteId] = useState("");
+  const [depositanteId, setDepositanteId] = useState(
+    depositantes.length === 1 ? depositantes[0].id : "",
+  );
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        {depositantes.length > 1 && (
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-slate-700">Depositante</span>
           <select
@@ -133,6 +136,7 @@ export function ProductImportPanel({ depositantes }: ProductImportPanelProps) {
             ))}
           </select>
         </label>
+        )}
 
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-slate-700">Planilha</span>

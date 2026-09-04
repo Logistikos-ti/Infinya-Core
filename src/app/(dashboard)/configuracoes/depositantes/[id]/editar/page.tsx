@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { DepositanteForm } from "@/components/configuracoes/depositante-form";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { isOwnOperationMode } from "@/lib/brand";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -13,6 +14,9 @@ type EditarDepositantePageProps = {
 export default async function EditarDepositantePage({
   params,
 }: EditarDepositantePageProps) {
+  if (isOwnOperationMode()) {
+    redirect("/configuracoes");
+  }
   await requireConfigSectionAccess("depositantes");
   const { id } = await params;
   const supabase = await createSupabaseServerClient();

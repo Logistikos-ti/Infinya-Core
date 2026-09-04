@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getBrand } from "@/lib/brand";
 
 type InfinyaBrandProps = {
   className?: string;
@@ -16,6 +17,7 @@ type InfinyaBrandProps = {
 };
 
 export function BrandGlyph({ className }: { className?: string }) {
+  const brand = getBrand();
   return (
     <div
       className={cn(
@@ -25,8 +27,8 @@ export function BrandGlyph({ className }: { className?: string }) {
     >
       <div className="hidden dark:block absolute inset-0 bg-[radial-gradient(circle_at_26%_18%,rgba(110,231,255,0.16),transparent_30%),radial-gradient(circle_at_84%_82%,rgba(217,70,239,0.14),transparent_28%),linear-gradient(180deg,rgba(5,11,25,0.98)_0%,rgba(8,17,34,0.98)_100%)]" />
       <Image
-        src="/branding/infinoos-icon-wms.svg"
-        alt="Infinoos WMS"
+        src={brand.logoSrc ?? "/branding/infinoos-icon-wms.svg"}
+        alt={brand.productName}
         fill
         sizes="72px"
         className="relative z-10 object-contain p-[0.22rem]"
@@ -45,11 +47,12 @@ function BrandLockup({
   className?: string;
   isYMS?: boolean;
 }) {
+  const brand = getBrand();
   return (
     <div className={cn("relative min-w-0", className)}>
       <Image
         src={isYMS ? "/branding/infinoos-lockup-yms.png" : "/branding/infinoos-lockup-wms-house.png"}
-        alt={isYMS ? "Infinoos YMS" : "Infinoos WMS"}
+        alt={isYMS ? `${brand.name} YMS` : brand.productName}
         width={compact ? 184 : 286}
         height={compact ? 58 : 90}
         priority

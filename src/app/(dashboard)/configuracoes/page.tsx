@@ -10,11 +10,13 @@ import {
   type ConfigSection,
 } from "@/lib/permissions";
 import { isTransportadorasSchemaMissing } from "@/lib/transportadoras";
+import { isOwnOperationMode } from "@/lib/brand";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
 import { TarefasPanel } from "./tarefas-panel";
 
 const surfaceClass = "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0b1424]";
@@ -173,12 +175,14 @@ export default async function ConfiguracoesPage() {
       ? []
       : (transportadorasResult.data ?? []);
   const activeCarriers = transportadoras.filter((item) => item.ativo).length;
-  const visibleConfigModules = isFullConfigUser
-    ? configModules.filter((module) => module.href !== "/configuracoes/produtos")
-    : configModules.filter((module) =>
-        module.href !== "/configuracoes/produtos" &&
-        allowedSections.includes(module.href.split("/").pop() as ConfigSection),
-      );
+  const visibleConfigModules = (
+    isFullConfigUser
+      ? configModules.filter((module) => module.href !== "/configuracoes/produtos")
+      : configModules.filter((module) =>
+          module.href !== "/configuracoes/produtos" &&
+          allowedSections.includes(module.href.split("/").pop() as ConfigSection),
+        )
+  ).filter((module) => !(isOwnOperationMode() && module.href === "/configuracoes/depositantes"));
 
   const statCards = [
     { label: "Depositantes ativos", value: activeDepositantes, icon: Users, iconBg: "rgba(59,130,246,0.15)", iconColor: "#3B82F6" },
@@ -190,13 +194,19 @@ export default async function ConfiguracoesPage() {
   return (
     <div className="flex h-full flex-col font-[family-name:var(--font-manrope)]">
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span
-          className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
-        >
-          Configurações
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span
+            className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
+          >
+            Configurações
+          </span>
+          <span className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] tracking-[0.08em] text-[#64748B] dark:text-[#8695AD]">
+            SISTEMA/01
+          </span>
+        </div>
         <div className="flex-1" />
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -251,11 +261,11 @@ export default async function ConfiguracoesPage() {
                         width={36}
                         height={36}
                         unoptimized
-                        className="h-9 w-9 shrink-0 rounded-[9px] border border-slate-200 bg-white object-contain dark:border-white/10"
+                        className="h-9 w-9 shrink-0 rounded-full border border-slate-200 bg-white object-contain dark:border-white/10"
                       />
                     ) : (
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] text-xs font-bold text-white"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                         style={{ background: item.avatarGradient }}
                       >
                         {item.initials}

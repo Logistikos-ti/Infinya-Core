@@ -1,12 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { requireConfigSectionAccess } from "@/lib/auth";
+import { isOwnOperationMode } from "@/lib/brand";
 import { parseDepositanteConfiguracoes } from "@/lib/depositantes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
 import { DepositanteRowActions } from "@/components/configuracoes/depositante-row-actions";
 import { NovoDepositanteTrigger } from "@/components/configuracoes/novo-depositante-trigger";
 
@@ -39,6 +42,9 @@ type ConfiguracoesDepositantesPageProps = {
 export default async function ConfiguracoesDepositantesPage({
   searchParams,
 }: ConfiguracoesDepositantesPageProps) {
+  if (isOwnOperationMode()) {
+    redirect("/configuracoes");
+  }
   await requireConfigSectionAccess("depositantes");
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
@@ -100,9 +106,9 @@ export default async function ConfiguracoesDepositantesPage({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>Depositantes</h1>
@@ -115,6 +121,7 @@ export default async function ConfiguracoesDepositantesPage({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -208,7 +215,7 @@ export default async function ConfiguracoesDepositantesPage({
                           width: "40px",
                           height: "40px",
                           flexShrink: 0,
-                          borderRadius: "11px",
+                          borderRadius: "999px",
                           overflow: "hidden",
                         }}
                       >
@@ -227,7 +234,7 @@ export default async function ConfiguracoesDepositantesPage({
                           width: "40px",
                           height: "40px",
                           flexShrink: 0,
-                          borderRadius: "11px",
+                          borderRadius: "999px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
