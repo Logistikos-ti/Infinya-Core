@@ -1,10 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
-import { ProductFiltersForm } from "@/components/configuracoes/product-filters-form";
-import { ProductImportPanel } from "@/components/configuracoes/product-import-panel";
 import { requireConfigSectionAccess } from "@/lib/auth";
-import { isAdminUser, isProductCatalogOnlyUser } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { filterDepositanteOptionsByUser } from "@/lib/tenant-scope";
 import { ProdutosDashboard } from "@/components/configuracoes/produtos-dashboard";
@@ -30,13 +26,11 @@ export default async function ConfiguracoesProdutosPage({
 }: ConfiguracoesProdutosPageProps) {
   noStore();
   const currentUser = await requireConfigSectionAccess("produtos");
-  const compactMode = isProductCatalogOnlyUser(currentUser);
-  const showAdvancedPanels = isAdminUser(currentUser);
   const params = searchParams ? await searchParams : undefined;
   const feedback = params?.feedback ?? null;
   const searchTerm = params?.q?.trim() ?? "";
   const depositanteFiltro = params?.depositante?.trim() ?? "";
-  const statusFiltro = params?.status?.trim() ?? "ativos";
+  const statusFiltro = params?.status?.trim() ?? "todos";
   const metodoFiltro = params?.metodo?.trim() ?? "";
   const categoriaFiltro = params?.categoria?.trim() ?? "";
   const tamanhoFiltro = params?.tamanho?.trim() ?? "";
@@ -131,7 +125,7 @@ export default async function ConfiguracoesProdutosPage({
   let productsQuery = adminSupabase
     .from("produtos")
     .select(
-      "id, codigo_interno, codigo_externo, sku, nome, categoria, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima",
+      "id, codigo_interno, codigo_externo, sku, nome, categoria, tamanho, metodo_retirada, unidade_estocagem, exige_lote, exige_validade, ativo, created_at, depositante_id, depositante:depositantes(nome), imagem_principal_url, peso_kg, altura_cm, largura_cm, comprimento_cm, qtd_minima, qtd_maxima",
       { count: "exact" },
     )
     .order("nome")
@@ -179,6 +173,12 @@ export default async function ConfiguracoesProdutosPage({
     else if (min > 0 && s < min) globalBaixos++;
   });
 
+  const { count: globalTotal } = await adminSupabase
+    .from("produtos")
+    .select("id", { count: "exact", head: true });
+  const globalAtivos = (allActiveProducts || []).length;
+  const globalInativos = (globalTotal ?? 0) - globalAtivos;
+
   const totalProducts = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalProducts / perPage));
   const currentPage = Math.min(page, totalPages);
@@ -197,15 +197,19 @@ export default async function ConfiguracoesProdutosPage({
   };
 
   const productIds = paginatedProducts.map(p => p.id);
-  let stockData: { produto_id: string; quantidade: number }[] = [];
-  
+  // O Supabase tipa esse embed como array pela heurística padrão do typegen,
+  // mas como endereco_id é FK única por linha de estoque, em runtime ele
+  // sempre vem como objeto único (confirmado direto no banco).
+  let stockData: { produto_id: string; quantidade: number; endereco_id: string | null; enderecos: { codigo: string } | null }[] = [];
+
   if (productIds.length > 0) {
     const { data: stockRecords } = await adminSupabase
       .from("estoque")
-      .select("produto_id, quantidade")
-      .in("produto_id", productIds);
-      
-    stockData = stockRecords ?? [];
+      .select("produto_id, quantidade, endereco_id, enderecos(codigo)")
+      .in("produto_id", productIds)
+      .gt("quantidade", 0);
+
+    stockData = (stockRecords ?? []) as unknown as typeof stockData;
   }
 
   const stockByProduct = stockData.reduce((acc, curr) => {
@@ -214,13 +218,29 @@ export default async function ConfiguracoesProdutosPage({
     return acc;
   }, {} as Record<string, number>);
 
-  const mappedProducts = paginatedProducts.map((p) => ({
-    ...p,
-    depositante_nome: ((p.depositante as { nome?: string } | null) ?? null)?.nome ?? null,
-    estoque: stockByProduct[p.id] ?? 0,
-    estoque_minimo: Number(p.qtd_minima) || 0,
-    estoque_maximo: Number(p.qtd_maxima) || 0,
-  }));
+  const addressesByProduct = stockData.reduce((acc, curr) => {
+    if (!curr.endereco_id) return acc;
+    const code = curr.enderecos?.codigo ?? "—";
+    const list = acc[curr.produto_id] ?? (acc[curr.produto_id] = []);
+    const existing = list.find((l) => l.code === code);
+    const qty = Number(curr.quantidade) || 0;
+    if (existing) existing.qty += qty;
+    else list.push({ code, qty });
+    return acc;
+  }, {} as Record<string, { code: string; qty: number }[]>);
+
+  const mappedProducts = paginatedProducts.map((p) => {
+    const addresses = (addressesByProduct[p.id] ?? []).sort((a, b) => b.qty - a.qty);
+    return {
+      ...p,
+      depositante_nome: ((p.depositante as { nome?: string } | null) ?? null)?.nome ?? null,
+      estoque: stockByProduct[p.id] ?? 0,
+      estoque_minimo: Number(p.qtd_minima) || 0,
+      estoque_maximo: Number(p.qtd_maxima) || 0,
+      endereco_primario: addresses[0]?.code ?? null,
+      endereco_count: addresses.length,
+    };
+  });
 
   const categoryOptions = Array.from(
     new Set([
@@ -245,45 +265,25 @@ export default async function ConfiguracoesProdutosPage({
   return (
     <div className="space-y-6">
       <ProdutosDashboard
-        backButtonSlot={
-          <Link href={compactMode ? "/m/inicio" : "/configuracoes"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
-            <span className="mr-1.5 text-slate-500 font-normal">‹</span> Configurações
-          </Link>
-        }
         produtos={mappedProducts}
         totalProducts={totalProducts}
+        globalTotal={globalTotal ?? 0}
+        globalAtivos={globalAtivos}
+        globalInativos={globalInativos}
         globalBaixos={globalBaixos}
         globalRupturas={globalRupturas}
         categoryOptions={categoryOptions}
+        tamanhoOptions={tamanhoOptions}
+        depositantes={visibleDepositantes.map((depositante) => ({
+          id: depositante.id,
+          nome: depositante.nome,
+        }))}
         formSlot={
           <Link href="/configuracoes/produtos/novo">
-            <button className="h-11 px-5 border-none rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] flex items-center gap-2 transition-transform hover:-translate-y-[1px]">
-              <Plus className="h-4 w-4" /> Novo produto
+            <button className="h-[42px] px-5 border-none rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white text-[14px] font-extrabold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-[1px]">
+              + Novo produto
             </button>
           </Link>
-        }
-        filtersSlot={
-          <ProductFiltersForm
-            searchTerm={searchTerm}
-            depositante={depositanteFiltroEfetivo}
-            status={statusFiltro}
-            metodo={metodoFiltro}
-            categoria={categoriaFiltro}
-            tamanho={tamanhoFiltro}
-            perPage={String(perPage)}
-            depositantes={visibleDepositantes.map((depositante) => ({
-              value: depositante.id,
-              label: depositante.nome,
-            }))}
-            categorias={categoryOptions.map((categoria) => ({
-              value: categoria,
-              label: categoria,
-            }))}
-            tamanhos={tamanhoOptions.map((tamanho) => ({
-              value: tamanho,
-              label: tamanho,
-            }))}
-          />
         }
         paginationSlot={
           <div className="flex flex-col gap-3 rounded-2xl bg-transparent px-4 py-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:justify-between">
@@ -341,32 +341,6 @@ export default async function ConfiguracoesProdutosPage({
               </PageLink>
             </div>
           </div>
-        }
-        importSlot={
-          showAdvancedPanels ? (
-            <>
-              <ProductImportPanel depositantes={visibleDepositantes} />
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
-                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                  Padrão de importação
-                </h2>
-                <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    O sistema usa o <strong>código interno</strong> como chave principal do upsert
-                    por depositante.
-                  </div>
-                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    Quando a planilha não traz SKU separado, o sistema usa o próprio código interno
-                    como SKU operacional.
-                  </div>
-                  <div className="rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    EAN/GTIN é salvo no campo externo do produto. Pack e quantidade por embalagem
-                    podem ser refinados manualmente após a importação.
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : null
         }
       />
     </div>

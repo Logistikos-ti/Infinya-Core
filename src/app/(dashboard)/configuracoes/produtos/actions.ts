@@ -13,8 +13,7 @@ import {
   sanitizeFileName,
 } from "@/lib/storage";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
-import { formatDatePtBr, formatDateTimePtBr } from "@/lib/utils";
+import { formatDatePtBr } from "@/lib/utils";
 import { produtoFormSchema } from "@/lib/validations/produtos";
 
 export type ProdutoActionState = {
@@ -848,28 +847,38 @@ async function ensureProdutoImagesBucketExists(
 
 export async function fetchProdutoDrawerDetails(produtoId: string) {
   const adminSupabase = createSupabaseAdminClient();
-  
-  // 1. Fetch locs
+
   const { data: stockRecords } = await adminSupabase
     .from("estoque")
-    .select("quantidade, lote, validade_em, enderecos(codigo)")
+    .select("quantidade, lote, validade_em, endereco_id")
     .eq("produto_id", produtoId)
     .gt("quantidade", 0);
 
-  // Two rows can share the same endereço when they're different lotes (ex.:
-  // validades diferentes recebidas em datas distintas) — mostramos o
-  // lote/validade de cada uma para deixar claro que não é duplicata.
-  const locs = (stockRecords || []).map((s: any) => {
-    const lotePart = s.lote ? `Lote ${s.lote}` : null;
-    const validadePart = s.validade_em ? `Val. ${formatDatePtBr(s.validade_em)}` : null;
-    const sub = [lotePart, validadePart].filter(Boolean).join(" · ") || undefined;
+  const enderecoIds = new Set<string>();
+  const lotesByKey = new Map<string, { lote: string; qtd: number; validade: string | null }>();
 
-    return {
-      code: s.enderecos?.codigo || "Sem endereço",
-      qty: `${s.quantidade} un`,
-      sub,
-    };
-  });
+  for (const s of (stockRecords || []) as any[]) {
+    if (s.endereco_id) enderecoIds.add(s.endereco_id);
+
+    const lote = s.lote || null;
+    const key = `${lote ?? "__sem_lote__"}::${s.validade_em ?? ""}`;
+    const existing = lotesByKey.get(key);
+    const qtd = Number(s.quantidade) || 0;
+
+    if (existing) {
+      existing.qtd += qtd;
+    } else {
+      lotesByKey.set(key, { lote: lote ?? "", qtd, validade: s.validade_em ?? null });
+    }
+  }
+
+  const lotes = Array.from(lotesByKey.values())
+    .sort((a, b) => b.qtd - a.qtd)
+    .map((l) => ({
+      lote: l.lote || "Sem lote",
+      qtd: l.qtd,
+      validade: l.validade ? formatDatePtBr(l.validade) : "—",
+    }));
 
   const { data: produto } = await adminSupabase
     .from("produtos")
@@ -877,51 +886,9 @@ export async function fetchProdutoDrawerDetails(produtoId: string) {
     .eq("id", produtoId)
     .single();
 
-  // 2. Fetch moves
-  const { data: moveRecords } = await adminSupabase
-    .from("movimentacoes_estoque")
-    .select("tipo, quantidade, created_at, observacoes")
-    .eq("produto_id", produtoId)
-    .order("created_at", { ascending: false })
-    .limit(25);
-
-  const moves = (moveRecords || [])
-    .filter(
-      (movement) =>
-        !isHiddenLegacyDamageEntry({
-          createdAt: movement.created_at,
-          description: movement.observacoes,
-        }),
-    )
-    .slice(0, 5)
-    .map((m: any) => {
-      let title = "";
-      let dot = "";
-      let halo = "";
-
-      if (m.tipo === "ENTRADA" || m.tipo === "RECEBIMENTO") {
-        title = "Entrada de estoque";
-        dot = "#10B981"; // green
-        halo = "rgba(16,185,129,0.2)";
-      } else if (m.tipo === "SAIDA" || m.tipo === "EXPEDICAO" || m.tipo === "SEPARACAO") {
-        title = "Saída de estoque";
-        dot = "#EF4444"; // red
-        halo = "rgba(239,68,68,0.2)";
-      } else {
-        title = "Movimentação interna";
-        dot = "#3B82F6"; // blue
-        halo = "rgba(59,130,246,0.2)";
-      }
-
-      const dateStr = formatDateTimePtBr(m.created_at, "Data não informada");
-      const sub = `${dateStr}${m.observacoes ? ` • ${m.observacoes}` : ""}`;
-
-      return { title, sub, dot, halo };
-    });
-
-  return { 
-    locs, 
-    moves,
-    produto 
+  return {
+    lotes,
+    enderecoCount: enderecoIds.size,
+    produto,
   };
 }
