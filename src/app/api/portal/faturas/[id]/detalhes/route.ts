@@ -45,13 +45,24 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
-  const { data: lancamentos } = await admin
-    .from("lancamentos")
-    .select("tipo_servico, valor_total, descricao")
-    .eq("fatura_id", id)
-    .eq("estornado", false);
+  // PostgREST cap a 1000 linhas por request — faturas com muito volume
+  // perdiam lançamentos em silêncio sem paginar via range().
+  const pageSize = 1000;
+  const lancamentos: { tipo_servico: string; valor_total: number; descricao: string | null }[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data } = await admin
+      .from("lancamentos")
+      .select("tipo_servico, valor_total, descricao")
+      .eq("fatura_id", id)
+      .eq("estornado", false)
+      .order("id")
+      .range(offset, offset + pageSize - 1);
+    if (!data?.length) break;
+    lancamentos.push(...data);
+    if (data.length < pageSize) break;
+  }
 
-  const extrato = (lancamentos ?? []).map((l) => ({
+  const extrato = lancamentos.map((l) => ({
     tipo: TIPO_SERVICO_LABEL[l.tipo_servico as string] ?? "Outros",
     descricao: (l.descricao as string | null) ?? "",
     valor: Number(l.valor_total),

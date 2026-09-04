@@ -282,6 +282,33 @@ async function fetchRowsInChunks<T>(
   return rows;
 }
 
+// PostgREST caps every request at 1000 rows regardless of the requested
+// limit — uma fatura com muito volume (ex: >1000 lançamentos no mês)
+// perdia lançamentos em silêncio (sempre os "de trás" na ordem física da
+// tabela, tipicamente os de INSUMO por terem sido lançados por último),
+// fazendo o relatório baixável mostrar menos itens do que o drawer do
+// financeiro, que já pagina corretamente. Pagina via range() do mesmo jeito.
+async function fetchAllLancamentosDaFatura(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  faturaId: string,
+): Promise<LancamentoRow[]> {
+  const pageSize = 1000;
+  const all: LancamentoRow[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin
+      .from("lancamentos")
+      .select("id, tipo_servico, valor_total, valor_unitario, quantidade, descricao, referencia_tipo, referencia_id, contrato_snapshot")
+      .eq("fatura_id", faturaId)
+      .eq("estornado", false)
+      .order("id")
+      .range(offset, offset + pageSize - 1);
+    if (error || !data?.length) break;
+    all.push(...(data as LancamentoRow[]));
+    if (data.length < pageSize) break;
+  }
+  return all;
+}
+
 // ---------------------------------------------------------------------------
 // Construção dos dados do relatório
 // ---------------------------------------------------------------------------
@@ -308,13 +335,7 @@ export async function buildRelatorioFaturaData(faturaId: string): Promise<Relato
   const rawConfig = dep?.configuracoes ? JSON.stringify(dep.configuracoes) : (dep?.observacoes ?? null);
   const config = parseDepositanteConfiguracoes(rawConfig);
 
-  const { data: lancamentosData } = await admin
-    .from("lancamentos")
-    .select("id, tipo_servico, valor_total, valor_unitario, quantidade, descricao, referencia_tipo, referencia_id, contrato_snapshot")
-    .eq("fatura_id", faturaId)
-    .eq("estornado", false);
-
-  const lancamentos = (lancamentosData ?? []) as LancamentoRow[];
+  const lancamentos = await fetchAllLancamentosDaFatura(admin, faturaId);
 
   const agrupado = new Map<string, LancamentoRow[]>();
   for (const l of lancamentos) {
