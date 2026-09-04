@@ -49,21 +49,34 @@ export function InventoryDetailDrawer({ t, sku, allBalances = [], allAddresses =
     if (type.includes("ENTRADA")) return "Entrada de estoque";
     if (type.includes("SAIDA")) return "Saída de estoque";
     if (type.includes("RESERVA")) return "Reserva de estoque";
+    if (type.includes("AJUSTE_NEGATIVO")) return "Ajuste negativo";
+    if (type.includes("AJUSTE_POSITIVO")) return "Ajuste positivo";
     if (type.includes("AJUSTE") || type.includes("INVENTARIO")) return "Ajuste de inventário";
     return type;
   };
 
+  // A quantidade em movimentacoes_estoque e sempre uma magnitude positiva --
+  // o sinal (+/-) so pode vir do tipo. AJUSTE_NEGATIVO/AJUSTE_POSITIVO
+  // precisam de checagem explicita antes de qualquer fallback generico,
+  // senao os dois caiam no mesmo "default" verde/+ (foi exatamente esse o
+  // bug: uma retirada manual, tipo AJUSTE_NEGATIVO, aparecia como se fosse
+  // uma entrada porque "AJUSTE_NEGATIVO" nao contem "ENTRADA"/"SAIDA"/"RESERVA").
   const getColors = (type: string) => {
-    if (type.includes("ENTRADA")) return { dot: "#10B981", halo: "rgba(16,185,129,0.2)", qtyColor: "#10B981", sign: "+" };
-    if (type.includes("SAIDA")) return { dot: "#EF4444", halo: "rgba(239,68,68,0.2)", qtyColor: "#EF4444", sign: "-" };
+    if (type.includes("SAIDA") || type.includes("AJUSTE_NEGATIVO") || type.includes("BLOQUEIO")) {
+      return { dot: "#EF4444", halo: "rgba(239,68,68,0.2)", qtyColor: "#EF4444", sign: "-" };
+    }
     if (type.includes("RESERVA")) return { dot: "#F59E0B", halo: "rgba(245,158,11,0.2)", qtyColor: "#F59E0B", sign: "-" };
-    return { dot: t.textSub, halo: "transparent", qtyColor: "#10B981", sign: "+" };
+    if (type.includes("TRANSFERENCIA")) return { dot: "#3B82F6", halo: "rgba(59,130,246,0.2)", qtyColor: "#3B82F6", sign: "" };
+    if (type.includes("AJUSTE_POSITIVO")) return { dot: "#8B5CF6", halo: "rgba(139,92,246,0.2)", qtyColor: "#8B5CF6", sign: "+" };
+    return { dot: "#10B981", halo: "rgba(16,185,129,0.2)", qtyColor: "#10B981", sign: "+" };
   };
 
   const movementLabel = (type: string) => {
     if (type.includes("ENTRADA")) return "Entrada de estoque";
     if (type.includes("SAIDA")) return "Sa\u00edda de estoque";
     if (type.includes("RESERVA")) return "Reserva de estoque";
+    if (type.includes("AJUSTE_NEGATIVO")) return "Ajuste negativo";
+    if (type.includes("AJUSTE_POSITIVO")) return "Ajuste positivo";
     if (type.includes("AJUSTE") || type.includes("INVENTARIO")) return "Ajuste de invent\u00e1rio";
     if (type.includes("TRANSFERENCIA")) return "Movimenta\u00e7\u00e3o interna";
     return type;
