@@ -109,7 +109,7 @@ export function RomaneioPrintModal({ romaneio: r, onClose }: RomaneioPrintModalP
 
             <div className="flex justify-end gap-6 text-[13px] font-bold mb-[34px]">
               <span>Total: {r.orders} pedido(s)</span>
-              <span>{r.volumes} un.</span>
+              <span>{r.volumes} vol.</span>
               <span>{r.weight}</span>
             </div>
 

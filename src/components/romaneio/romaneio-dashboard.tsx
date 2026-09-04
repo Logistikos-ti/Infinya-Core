@@ -68,7 +68,8 @@ const mapRecordToUI = (r: RomaneioRecordListItem, orderWeights: Record<string, n
     carrier: r.carrierName,
     route: r.destinations.join(" · ") || "N/A",
     orders: r.orderCount,
-    volumes: r.totalUnitsRaw,
+    itemCount: r.orders.reduce((sum, o) => sum + o.itemCount, 0),
+    volumes: r.orders.reduce((sum, o) => sum + o.volumeCount, 0),
     weight: r.totalValue,
     weightKg,
     driver: r.driverName || "Não definido",
@@ -343,11 +344,11 @@ export function RomaneioDashboard({ records = [], transportadoraOptions, orderWe
                     <input type="checkbox" checked={allPageSelected} onChange={toggleAllOnPage} className="h-4 w-4 cursor-pointer" />
                   </th>
                 ) : null}
-                {["ID", "Transportadora", "Pedidos", "Volume/Peso", "Emissão", "Status", ""].map((label, i) => (
+                {["ID", "Transportadora", "Pedidos", "Itens/Volumes", "Emissão", "Status", ""].map((label, i) => (
                   <th
                     key={i}
                     className="py-[10px] px-4 font-bold text-[10.5px] tracking-[0.1em] uppercase whitespace-nowrap"
-                    style={{ color: "var(--romaneio-text-sub)", textAlign: label === "Pedidos" || label === "Volume/Peso" ? "center" : "left" }}
+                    style={{ color: "var(--romaneio-text-sub)", textAlign: label === "Pedidos" || label === "Itens/Volumes" ? "center" : "left" }}
                   >
                     {label}
                   </th>
@@ -394,10 +395,10 @@ export function RomaneioDashboard({ records = [], transportadoraOptions, orderWe
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="font-bold" style={{ fontFamily: ROMANEIO_MONO, color: "var(--romaneio-text)" }}>
-                          {r.volumes} vol.
+                          {r.itemCount} {r.itemCount === 1 ? "item" : "itens"}
                         </div>
                         <div className="text-[10.5px]" style={{ color: "var(--romaneio-text-sub)", marginTop: 1 }}>
-                          {r.weightKg.toFixed(1)} kg
+                          {r.volumes} vol.
                         </div>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">

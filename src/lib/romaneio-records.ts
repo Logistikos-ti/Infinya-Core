@@ -80,6 +80,13 @@ export type RomaneioRecordOrder = {
   /** Código de rastreio real (transporte.volumes[0].codigoRastreamento) --
    * "" quando não disponível. */
   trackingCode: string;
+  /** Quantidade de volumes (embalagens/pacotes físicos) declarada na NF-e
+   * (transp.vol/qVol somado, gravado em transporte.volumes[].quantidade na
+   * importação do XML) -- não confundir com `unitsRaw` (unidades de
+   * produto). Pedidos sem XML/NF ainda não têm essa informação real; conta
+   * como 1 volume (mesmo default usado em full-actions.ts/shipping-danfe.ts
+   * pra "pelo menos 1 pacote sai fisicamente"). */
+  volumeCount: number;
   status: string;
   statusLabel: string;
   unitsRaw: number;
@@ -762,6 +769,29 @@ function extractInvoiceKey(payload: Record<string, unknown> | null | undefined):
   return "";
 }
 
+/** Soma qVol/quantidade de todas as entradas em transporte.volumes (ou
+ * payload.volumes, mesmo fallback de local que shipping.ts já usa pra peso)
+ * -- é a contagem real de embalagens físicas da NF-e, gravada na
+ * importação do XML (nfe-import.ts:160). Pedidos sem essa informação
+ * (nunca teve XML anexado) contam como 1 volume, não 0 -- todo pedido sai
+ * fisicamente em pelo menos 1 pacote. */
+function extractVolumeCount(payload: Record<string, unknown>): number {
+  const transporte = isRecord(payload.transporte) ? payload.transporte : null;
+  const volumes = Array.isArray(transporte?.volumes)
+    ? transporte.volumes
+    : Array.isArray(payload.volumes)
+      ? payload.volumes
+      : [];
+
+  const sum = volumes.reduce((total: number, volume) => {
+    if (!isRecord(volume)) return total;
+    const quantidade = Number(volume.quantidade ?? volume.qVol ?? 0);
+    return Number.isFinite(quantidade) && quantidade > 0 ? total + quantidade : total;
+  }, 0);
+
+  return sum > 0 ? sum : 1;
+}
+
 function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
   const payload = isRecord(item.payload_origem) ? item.payload_origem : {};
   const customer = item.cliente_nome?.trim() || "Cliente não informado";
@@ -788,6 +818,7 @@ function mapRomaneioOrderSummary(item: RawShippingOrderRow) {
     // EXIBIÇÃO -- aqui o campo é só pra comparação de bipe, então normaliza
     // pra "" (evita esse texto entrar como um "target" de match).
     trackingCode: rawTrackingCode === "Rastreio não informado" ? "" : rawTrackingCode,
+    volumeCount: extractVolumeCount(payload),
     status: item.status,
     statusLabel: formatShippingStatusLabel(item.status),
     unitsRaw,

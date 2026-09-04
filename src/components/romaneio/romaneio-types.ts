@@ -19,7 +19,8 @@ export type RomaneioUI = {
   carrier: string;
   route: string;
   orders: number;
-  volumes: number;
+  itemCount: number; // soma de quantidade_itens dos pedidos do romaneio
+  volumes: number; // soma de volumeCount (embalagens da NF) dos pedidos -- não confundir com unidades de produto
   weight: string; // valor total formatado, ex. 'R$ 412,00'
   weightKg: number; // peso real (produtos.peso_kg * quantidade), somado dos pedidos
   driver: string;
