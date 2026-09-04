@@ -14,6 +14,9 @@ export type CycleCountSummary = {
   programadoPara: string | null;
   responsavelId: string | null;
   responsavelNome: string | null;
+  /** Escopo de SKU único, só relevante pra Cíclico ainda Programado (área
+   * sozinha ou "todos os produtos" não usam este campo). */
+  produtoId?: string | null;
   countedItems: number;
   totalItems: number;
   divergentItems: number;
@@ -198,7 +201,7 @@ export async function listCycleCountsFromDb(
   let query = supabase
     .from("contagens_estoque")
     .select(
-      "id, titulo, depositante_id, area, status, contagem_cega, created_at, programado_para, responsavel_id, responsavel:usuarios!contagens_estoque_responsavel_id_fkey(nome), depositante:depositantes(nome)",
+      "id, titulo, depositante_id, area, status, contagem_cega, created_at, programado_para, responsavel_id, produto_id, responsavel:usuarios!contagens_estoque_responsavel_id_fkey(nome), depositante:depositantes(nome)",
     )
     .order("created_at", { ascending: false });
 
@@ -230,6 +233,7 @@ export async function listCycleCountsFromDb(
     created_at: string;
     programado_para: string | null;
     responsavel_id: string | null;
+    produto_id: string | null;
     responsavel: RelationName;
     depositante: RelationName;
   }>;
@@ -241,11 +245,11 @@ export async function listCycleCountsFromDb(
   const summaries = await Promise.all(
     filteredRows.map(async (row) => {
       // A programada ainda não tem itens gravados (a varredura de saldo só
-      // acontece ao iniciar) -- não faz sentido consultar estatísticas de
-      // item pra ela, e evita uma query desnecessária.
+      // acontece ao iniciar) -- não faz sentido consultar estatísticas reais
+      // de item pra ela, mas estima quantos SKUs serão varridos.
       const stats =
         row.status === "PROGRAMADA"
-          ? { countedItems: 0, totalItems: 0, divergentItems: 0 }
+          ? { countedItems: 0, totalItems: await countScheduledCyclePreviewItems(supabase, row.depositante_id, row.produto_id), divergentItems: 0 }
           : await getCycleCountItemStats(row.id);
 
       return {
@@ -262,6 +266,7 @@ export async function listCycleCountsFromDb(
         programadoPara: row.programado_para,
         responsavelId: row.responsavel_id,
         responsavelNome: extractRelationName(row.responsavel),
+        produtoId: row.produto_id,
         countedItems: stats.countedItems,
         totalItems: stats.totalItems,
         divergentItems: stats.divergentItems,
@@ -609,6 +614,7 @@ export async function scheduleCycleCount(input: ScheduleCycleCountInput) {
       criado_por: input.userId,
       programado_para: input.programadoPara,
       responsavel_id: input.responsavelId || null,
+      produto_id: input.skuId || null,
     })
     .select("id")
     .single();
@@ -625,7 +631,7 @@ export async function startScheduledCycleCount(cycleCountId: string) {
 
   const { data: header, error: headerError } = await supabase
     .from("contagens_estoque")
-    .select("id, depositante_id, area, status")
+    .select("id, depositante_id, area, produto_id, status")
     .eq("id", cycleCountId)
     .maybeSingle();
 
@@ -653,6 +659,7 @@ export async function startScheduledCycleCount(cycleCountId: string) {
   await insertCycleCountItems(supabase, cycleCountId, {
     depositanteId: header.depositante_id,
     area: header.area || undefined,
+    skuId: header.produto_id || undefined,
   });
 
   return { id: cycleCountId };
@@ -984,6 +991,21 @@ export async function completeCycleCount(cycleCountId: string) {
   if (error) {
     throw new Error(`NÃ£o foi possÃ­vel concluir a contagem: ${error.message}`);
   }
+}
+
+// Contagem programada ainda não tem itens gravados de verdade (a varredura
+// só acontece ao iniciar) -- pra não mostrar "—" na coluna Itens da lista,
+// estima quantos SKUs seriam varridos: 1 se escopada a um produto único, ou
+// o catálogo ativo do depositante inteiro. Mesma aproximação usada na prévia
+// do drawer (não considera filtro de área nem exige saldo > 0).
+async function countScheduledCyclePreviewItems(supabase: ReturnType<typeof createSupabaseAdminClient>, depositanteId: string, produtoId: string | null) {
+  if (produtoId) return 1;
+  const { count } = await supabase
+    .from("produtos")
+    .select("id", { count: "exact", head: true })
+    .eq("depositante_id", depositanteId)
+    .eq("ativo", true);
+  return count ?? 0;
 }
 
 async function getCycleCountItemStats(cycleCountId: string) {

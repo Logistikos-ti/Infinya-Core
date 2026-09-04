@@ -6,14 +6,6 @@ import { listInventoryRuns } from "@/lib/inventory-runs";
 import { listPickingOperatorsFromDb } from "@/lib/shipping-picking";
 import { InventoryRunsPageClient } from "@/components/estoque/inventory-runs-page-client";
 
-const AREA_OPTIONS = [
-  { value: "RECEBIMENTO", label: "Recebimento" },
-  { value: "PULMAO", label: "Armazenagem" },
-  { value: "PICKING", label: "Picking" },
-  { value: "BLOQUEADO", label: "Bloqueado" },
-  { value: "EXPEDICAO", label: "Expedição" },
-];
-
 type InventoriosSearchParams = {
   depositante?: string;
 };
@@ -52,10 +44,10 @@ export default async function EstoqueInventariosPage({
     <InventoryRunsPageClient
       depositantes={depositanteOptions}
       responsaveis={responsaveis.map((item) => ({ id: item.id, nome: item.name }))}
-      areas={AREA_OPTIONS}
       runs={runs}
       initialDepositanteId={effectiveDepositanteId}
       canSelectDepositante={canManageMultipleTenants(user)}
+      currentUserId={user.id}
     />
   );
 }

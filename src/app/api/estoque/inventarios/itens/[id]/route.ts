@@ -1,5 +1,6 @@
 import { requireApiModuleAccess } from "@/lib/api-auth";
 import {
+  CycleCountConflictError,
   registerSecondCycleCount,
   updateCycleCountItem,
 } from "@/lib/stock-cycle-counts";
@@ -23,6 +24,8 @@ export async function PATCH(request: Request, context: RouteContext) {
         action?: string;
         countedQuantity?: string | number;
         observacoes?: string;
+        expectedStatus?: string;
+        final?: boolean;
       }
     | null;
 
@@ -75,13 +78,21 @@ export async function PATCH(request: Request, context: RouteContext) {
       cycleCountItemId: id,
       countedQuantity,
       observacoes: String(payload?.observacoes ?? "").trim(),
+      expectedStatus: payload?.expectedStatus,
+      final: payload?.final,
     });
 
     return Response.json({
-      message: "Contagem do item registrada e saldo atualizado automaticamente.",
+      message:
+        payload?.final === false
+          ? "Rascunho da contagem registrado."
+          : "Contagem do item registrada e saldo atualizado automaticamente.",
       result,
     });
   } catch (error) {
+    if (error instanceof CycleCountConflictError) {
+      return Response.json({ error: error.message }, { status: 409 });
+    }
     return Response.json(
       { error: error instanceof Error ? error.message : "Falha ao registrar a contagem." },
       { status: 400 },

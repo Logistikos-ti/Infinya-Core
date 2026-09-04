@@ -80,6 +80,15 @@ function missingTable(error: { code?: string; message?: string } | null) {
   );
 }
 
+async function countActiveProdutos(supabase: ReturnType<typeof createSupabaseAdminClient>, depositanteId: string) {
+  const { count } = await supabase
+    .from("produtos")
+    .select("id", { count: "exact", head: true })
+    .eq("depositante_id", depositanteId)
+    .eq("ativo", true);
+  return count ?? 0;
+}
+
 // Busca os produtos ativos do depositante e o saldo atual (somado por
 // produto, entre todos os endereços) e grava um item PENDENTE por produto.
 // Compartilhado por openGeneralInventory (varre na hora de abrir, hoje) e
@@ -621,6 +630,13 @@ export async function listGeneralInventoriesFromDb(options?: {
     (headers || []).map(async (header) => {
       const detail = await getGeneralInventory(header.id);
       if (!detail) return null;
+      // Programado ainda não tem itens gravados (o snapshot só acontece ao
+      // iniciar) -- estima quantos SKUs serão varridos pra não mostrar "—"
+      // na coluna Itens da lista. Mesma aproximação da prévia do drawer.
+      const totalItems =
+        detail.status === "PROGRAMADO"
+          ? await countActiveProdutos(supabase, detail.depositanteId)
+          : detail.totalItens;
       return {
         id: detail.id,
         type: "GERAL" as const,
@@ -635,7 +651,7 @@ export async function listGeneralInventoriesFromDb(options?: {
         responsavelId: detail.responsavelId,
         responsavelNome: detail.responsavelNome,
         countedItems: detail.contados,
-        totalItems: detail.totalItens,
+        totalItems,
         divergentItems: detail.divergentes,
         timestamp: new Date(header.concluido_em || header.iniciado_em || header.created_at).getTime(),
       } satisfies import("./stock-cycle-counts").CycleCountSummary;
