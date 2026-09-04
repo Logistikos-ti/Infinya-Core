@@ -94,6 +94,8 @@ export function InventoryCountingView({
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
+  const [confirmZero, setConfirmZero] = useState<{ itemId: string; nome: string } | null>(null);
+  const [isMarkingZero, setIsMarkingZero] = useState(false);
 
   const toastTimerRef = useRef<number | null>(null);
   const stateRef = useRef({ cycleItems, generalItems, activeItemId, activeCount, pendingDisambiguation });
@@ -301,8 +303,8 @@ export function InventoryCountingView({
     setActiveCount(nextCount);
     playFeedbackTone("success");
     showToast(`Unidade extra registrada (${nextCount} no total).`, "success");
-    if (isGeneral) void persistGeneral(itemId, nextCount, false);
-    else void persistCycle(itemId, nextCount, false);
+    if (isGeneral) void persistGeneral(itemId, nextCount, true);
+    else void persistCycle(itemId, nextCount, true);
     focusInput();
   }
 
@@ -479,6 +481,26 @@ export function InventoryCountingView({
       showToast("Falha de comunicação ao reiniciar.", "error");
     } finally {
       setIsRestarting(false);
+    }
+  }
+
+  // Produto não encontrado fisicamente -- não há código pra bipar, então
+  // precisa de uma confirmação manual pra sair de PENDENTE (sem isso o
+  // inventário geral nunca finaliza, já que o RPC exige zero pendentes).
+  async function doMarkZero() {
+    if (!confirmZero) return;
+    setIsMarkingZero(true);
+    try {
+      if (isGeneral) await persistGeneral(confirmZero.itemId, 0, true);
+      else await persistCycle(confirmZero.itemId, 0, true);
+      if (stateRef.current.activeItemId === confirmZero.itemId) {
+        setActiveItemId(null);
+        setActiveCount(0);
+      }
+      showToast("Produto marcado como zerado.", "success");
+    } finally {
+      setIsMarkingZero(false);
+      setConfirmZero(null);
     }
   }
 
@@ -749,7 +771,16 @@ export function InventoryCountingView({
                         <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-[#10B981] text-[12px] font-extrabold text-white">
                           ✓
                         </span>
-                      ) : null}
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmZero({ itemId: item.id, nome: item.nome })}
+                          title="Marcar este item como zerado (não encontrado no estoque físico)"
+                          className={`flex h-[22px] flex-shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-2.5 text-[10.5px] font-bold transition hover:[filter:brightness(1.08)] ${tokenBorder} ${tokenTextSub}`}
+                        >
+                          Zerado
+                        </button>
+                      )}
                     </div>
                     <div className={`h-1.5 overflow-hidden rounded ${tokenInputBg}`}>
                       <div
@@ -879,6 +910,51 @@ export function InventoryCountingView({
                 style={{ background: "linear-gradient(92deg,#F59E0B,#EF4444)", border: 0 }}
               >
                 {isRestarting ? <MobileButtonSpinner size={18} /> : "Reiniciar contagem"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmZero ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-5">
+          <div className="absolute inset-0 backdrop-blur-[5px]" style={{ background: "rgba(3,7,20,.55)" }} onClick={() => setConfirmZero(null)} />
+          <div
+            className={`relative flex w-[440px] max-w-[96vw] flex-col rounded-2xl border shadow-[0_30px_60px_rgba(0,0,0,0.35)] ${tokenCardBg}`}
+            style={{ borderColor: "rgba(139,92,246,.35)" }}
+          >
+            <div className={`flex gap-3.5 border-b px-6 pb-3.5 pt-[22px] ${tokenBorder}`}>
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(139,92,246,.14)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 12h8" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className={`m-0 text-[17px] font-bold ${tokenText}`} style={groteskStyle}>
+                  Marcar como zerado?
+                </h3>
+                <p className={`mt-1.5 text-[13px] leading-[1.5] ${tokenTextSub}`}>
+                  Confirma que <b className={tokenText}>{confirmZero.nome}</b> não foi encontrado no estoque físico e será contado como 0 unidades?
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center gap-2.5 px-6 pb-[22px] pt-[18px]">
+              <button
+                type="button"
+                onClick={() => setConfirmZero(null)}
+                className={`flex h-[42px] items-center justify-center rounded-[10px] border px-5 text-[13.5px] font-bold transition hover:[filter:brightness(1.06)] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={doMarkZero}
+                disabled={isMarkingZero}
+                className="flex h-[42px] items-center justify-center gap-2 rounded-[10px] px-[22px] text-[13.5px] font-extrabold text-white transition enabled:hover:[filter:brightness(1.06)] disabled:opacity-40"
+                style={{ background: "linear-gradient(92deg,#8B5CF6,#3B82F6)", border: 0 }}
+              >
+                {isMarkingZero ? <MobileButtonSpinner size={18} /> : "Confirmar zerado"}
               </button>
             </div>
           </div>
