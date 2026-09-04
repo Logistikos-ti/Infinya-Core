@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Users } from "lucide-react";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import {
   MobileBackButton,
@@ -41,6 +42,14 @@ type Item = {
   enderecos: string[];
 };
 
+type Participant = {
+  userId: string;
+  nome: string;
+  iniciadoEm: string;
+  ativo: boolean;
+  itensContados: number;
+};
+
 type Detail = {
   id: string;
   depositante: string;
@@ -56,6 +65,7 @@ type Detail = {
   aumentos: number;
   reducoes: number;
   itens: Item[];
+  participantes: Participant[];
 };
 
 type Summary = { divergentes: number; zerados: number; aumentos: number; reducoes: number; ajustesAplicados: number };
@@ -602,6 +612,17 @@ export function GeneralInventoryClient({
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "end" }}><div><div style={{ fontSize: 12, color: mobileColors.muted }}>Progresso da contagem</div><div style={{ fontSize: 27, fontWeight: 800, ...headingFont }}>{detail.contados}/{detail.totalItens}</div></div><div style={{ fontSize: 19, fontWeight: 800, color: mobileColors.violetLight }}>{progress}%</div></div>
           <div style={{ height: 8, borderRadius: 999, background: hexAlpha("#94A3B8", 0.13), overflow: "hidden", marginTop: 10 }}><div style={{ width: `${progress}%`, height: "100%", borderRadius: 999, background: mobileGradient, transition: "width .25s ease" }} /></div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 12 }}><span style={{ padding: "5px 9px", borderRadius: 999, background: hexAlpha(mobileColors.amber, .13), color: mobileColors.amber, fontSize: 11, fontWeight: 700 }}>{detail.pendentes} pendentes</span><span style={{ padding: "5px 9px", borderRadius: 999, background: hexAlpha(mobileColors.red, .13), color: mobileColors.redLight, fontSize: 11, fontWeight: 700 }}>{detail.divergentes} divergencias</span><span style={{ padding: "5px 9px", borderRadius: 999, background: hexAlpha(mobileColors.blue, .13), color: mobileColors.blueLight, fontSize: 11, fontWeight: 700 }}>Sem pausa</span></div>
+          {detail.participantes.length > 0 ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${hexAlpha("#94A3B8", .12)}` }}>
+              <Users size={13} strokeWidth={2} color={mobileColors.muted} />
+              <span style={{ fontSize: 11, color: mobileColors.muted }}>
+                {detail.participantes.length === 1 ? "Contando sozinho:" : `Contando junto (${detail.participantes.length}):`}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: mobileColors.text }}>
+                {detail.participantes.map((p) => p.nome).join(", ")}
+              </span>
+            </div>
+          ) : null}
         </div>
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Pesquisar produto..." style={{ height: 44, borderRadius: 14, border: `1px solid ${hexAlpha("#94A3B8", .16)}`, background: hexAlpha("#94A3B8", .06), color: mobileColors.text, padding: "0 14px", fontSize: 16 }} />
         {error ? <div style={{ borderRadius: 14, padding: 12, background: hexAlpha(mobileColors.red, .12), border: `1px solid ${hexAlpha(mobileColors.red, .3)}`, color: mobileColors.redLight, fontSize: 12.5 }}>{error}</div> : null}

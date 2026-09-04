@@ -44,6 +44,16 @@ export type GeneralInventoryItem = {
   enderecos: string[];
 };
 
+export type GeneralInventoryParticipant = {
+  userId: string;
+  nome: string;
+  iniciadoEm: string;
+  /** Ainda contando nesta sessão -- inventarios_gerais_participantes.finalizado_em
+   * é gravado quando a pessoa sai da tela (ver joinGeneralInventory/leaveGeneralInventory). */
+  ativo: boolean;
+  itensContados: number;
+};
+
 export type GeneralInventoryDetail = {
   id: string;
   depositanteId: string;
@@ -63,6 +73,10 @@ export type GeneralInventoryDetail = {
   aumentos: number;
   reducoes: number;
   itens: GeneralInventoryItem[];
+  /** Quem já entrou nesta contagem (mesmo inventário, compartilhado por
+   * depositante+dia -- ver openGeneralInventory) -- pra deixar visível que
+   * mais de uma pessoa pode contar junto ao mesmo tempo. */
+  participantes: GeneralInventoryParticipant[];
 };
 
 function operationalToday() {
@@ -451,6 +465,28 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
     : { data: [] };
   const packQtyByProdutoId = new Map((produtos ?? []).map((p) => [p.id, p.quantidade_por_embalagem as number | null]));
 
+  const { data: participantRows } = await supabase
+    .from("inventarios_gerais_participantes")
+    .select("usuario_id, iniciado_em, finalizado_em, usuario:usuarios(nome)")
+    .eq("inventario_id", id)
+    .order("iniciado_em");
+  const contagemPorUsuario = new Map<string, number>();
+  for (const row of rows ?? []) {
+    if (!row.contado_por) continue;
+    contagemPorUsuario.set(row.contado_por, (contagemPorUsuario.get(row.contado_por) ?? 0) + 1);
+  }
+  const participantes: GeneralInventoryParticipant[] = (participantRows ?? []).map((row) => {
+    const usuarioRelation = row.usuario as unknown as { nome?: string } | Array<{ nome?: string }> | null;
+    const nome = Array.isArray(usuarioRelation) ? usuarioRelation[0]?.nome : usuarioRelation?.nome;
+    return {
+      userId: row.usuario_id,
+      nome: nome ?? "Operador",
+      iniciadoEm: row.iniciado_em,
+      ativo: !row.finalizado_em,
+      itensContados: contagemPorUsuario.get(row.usuario_id) ?? 0,
+    };
+  });
+
   const items = (rows ?? []).map((row) => {
     const snapshot = Array.isArray(row.estoque_snapshot) ? row.estoque_snapshot : [];
     const enderecoCodes = Array.from(
@@ -505,6 +541,7 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
     aumentos: items.filter((item) => item.status === "DIVERGENTE" && item.divergencia > 0).length,
     reducoes: items.filter((item) => item.status === "DIVERGENTE" && item.divergencia < 0).length,
     itens: items,
+    participantes,
   };
 }
 
