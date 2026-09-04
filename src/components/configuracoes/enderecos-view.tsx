@@ -6,19 +6,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AlignJustify,
-  BarChart3,
-  Box,
   Package,
   ChevronLeft,
   ChevronRight,
   Map as MapIcon,
   Lock,
-  PackageOpen,
   Pencil,
   Check,
   Printer,
   Search,
-  ShieldAlert,
   Trash2,
   Unlock,
   X,
@@ -26,6 +22,8 @@ import {
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 import { NovoEnderecoTrigger } from "./novo-endereco-trigger";
 import { EnderecoForm, AddressBarcodePreview, addressBarcodeSvgMarkup } from "./endereco-form";
 import {
@@ -310,9 +308,9 @@ export function EnderecosView({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>Endereços</h1>
@@ -325,6 +323,7 @@ export function EnderecosView({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -337,19 +336,19 @@ export function EnderecosView({
             <button
               type="button"
               onClick={() => setExportModalOpen(true)}
-              className="flex h-[42px] items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
+              className="flex h-[42px] items-center gap-2 rounded-full border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
             >
               Exportar
             </button>
             <button
               type="button"
               onClick={openPrintModal}
-              className="flex h-[42px] items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
+              className="flex h-[42px] items-center gap-2 rounded-full border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
             >
               <Printer className="h-[15px] w-[15px]" />
               Imprimir
             </button>
-            <div className={`inline-flex items-center gap-1 rounded-[12px] border p-1 ${tokenBorder} ${tokenCardBg}`}>
+            <div className={`inline-flex items-center gap-1 rounded-full border p-1 ${tokenBorder} ${tokenCardBg}`}>
               <ViewToggleButton
                 icon={<AlignJustify className="h-[15px] w-[15px]" />}
                 label="Tabela"
@@ -368,20 +367,10 @@ export function EnderecosView({
         </div>
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <KpiCard
-            label="Total"
-            value={String(kpis.total)}
-            secondary="posições"
-            icon={Box}
-            iconBg="rgba(59,130,246,0.15)"
-            iconColor="#3B82F6"
-          />
+          <KpiCard label="Total" value={String(kpis.total)} secondary="posições" />
           <KpiCard
             label="Ocupação"
             value={`${kpis.ocupacaoMedia}%`}
-            icon={BarChart3}
-            iconBg="rgba(139,92,246,0.15)"
-            iconColor="#8B5CF6"
             inlineBar={{ pct: kpis.ocupacaoMedia }}
           />
           <KpiCard
@@ -389,23 +378,17 @@ export function EnderecosView({
             value={String(kpis.vazios)}
             secondary="vazias"
             valueColor="#10B981"
-            icon={PackageOpen}
-            iconBg="rgba(16,185,129,0.15)"
-            iconColor="#10B981"
           />
           <KpiCard
             label="Bloqueados"
             value={String(kpis.bloqueados)}
             secondary="avaria / quarentena"
             valueColor={kpis.bloqueados > 0 ? "#EF4444" : undefined}
-            icon={ShieldAlert}
-            iconBg={kpis.bloqueados > 0 ? "rgba(239,68,68,0.15)" : "rgba(148,163,184,0.15)"}
-            iconColor={kpis.bloqueados > 0 ? "#EF4444" : "#64748B"}
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-[11px] border px-3 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-full border px-3 ${tokenBorder} ${tokenCardBg}`}>
             <Search className={`h-4 w-4 ${tokenTextSub}`} />
             <input
               type="text"
@@ -418,7 +401,7 @@ export function EnderecosView({
               className={`flex-1 bg-transparent text-sm outline-none placeholder:text-[#64748B] dark:placeholder:text-[#8695AD] ${tokenText}`}
             />
           </div>
-          <div className={`flex flex-wrap items-center gap-1 rounded-[12px] border p-1 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`flex flex-wrap items-center gap-1 rounded-full border p-1 ${tokenBorder} ${tokenCardBg}`}>
             {areaChips.map((chip) => {
               const active = areaFilter === chip.key;
               return (
@@ -437,7 +420,7 @@ export function EnderecosView({
                   style={{
                     height: "34px",
                     padding: "0 14px",
-                    borderRadius: "9px",
+                    borderRadius: "999px",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
@@ -454,7 +437,7 @@ export function EnderecosView({
                         width: "7px",
                         height: "7px",
                         borderRadius: "50%",
-                        background: chip.color,
+                        background: active ? "#FFFFFF" : chip.color,
                       }}
                     />
                   ) : null}
@@ -463,20 +446,20 @@ export function EnderecosView({
               );
             })}
           </div>
-          <select
+          <PillSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(v) => {
+              setStatusFilter(v);
               setPage(1);
             }}
-            className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="ALL">Todos os status</option>
-            <option value="ATIVO">Ativo</option>
-            <option value="VAZIO">Vazio</option>
-            <option value="CHEIO">Cheio</option>
-            <option value="BLOQUEADO">Bloqueado</option>
-          </select>
+            options={[
+              { value: "ALL", label: "Todos os status" },
+              { value: "ATIVO", label: "Ativo" },
+              { value: "VAZIO", label: "Vazio" },
+              { value: "CHEIO", label: "Cheio" },
+              { value: "BLOQUEADO", label: "Bloqueado" },
+            ]}
+          />
         </div>
 
         {view === "map" ? (
@@ -528,7 +511,7 @@ export function EnderecosView({
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -539,7 +522,7 @@ export function EnderecosView({
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -589,7 +572,7 @@ export function EnderecosView({
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -650,7 +633,7 @@ export function EnderecosView({
                         key={f}
                         type="button"
                         onClick={() => setExportFormat(f)}
-                        className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                        className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                           selected
                             ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.1)] text-[#8B5CF6]"
                             : `${tokenBorder} ${tokenInputBg} ${tokenTextSub} hover:border-violet-300`
@@ -668,18 +651,34 @@ export function EnderecosView({
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-11 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`flex h-11 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={doExport}
-                className="flex h-11 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px"
-                style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+                className="enderecos-export-btn flex h-11 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold text-white"
               >
                 Exportar
               </button>
+              <style jsx>{`
+                .enderecos-export-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .enderecos-export-btn:hover {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -711,7 +710,7 @@ export function EnderecosView({
               <button
                 type="button"
                 onClick={() => setPrintModalOpen(false)}
-                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -757,7 +756,7 @@ export function EnderecosView({
                         const v = Math.max(1, Number(e.target.value) || 1);
                         setPrintSelection((prev) => ({ ...prev, [row.id]: v }));
                       }}
-                      className={`h-9 w-[64px] shrink-0 rounded-[9px] border px-2.5 text-center text-[13px] font-semibold outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                      className={`h-9 w-[64px] shrink-0 rounded-full border px-2.5 text-center text-[13px] font-semibold outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                     />
                   </div>
                 );
@@ -768,7 +767,7 @@ export function EnderecosView({
               <button
                 type="button"
                 onClick={() => setPrintModalOpen(false)}
-                className={`flex h-11 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`flex h-11 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
@@ -776,7 +775,7 @@ export function EnderecosView({
                 type="button"
                 onClick={() => printSelected("thermal")}
                 disabled={printSelectedCount === 0}
-                className={`flex h-11 items-center gap-2 rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`flex h-11 items-center gap-2 rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 <Printer className="h-4 w-4" />
                 Térmica (10x15)
@@ -785,12 +784,28 @@ export function EnderecosView({
                 type="button"
                 onClick={() => printSelected("a4")}
                 disabled={printSelectedCount === 0}
-                className="flex h-11 items-center gap-2 rounded-[11px] px-[20px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+                className="enderecos-print-a4-btn flex h-11 items-center gap-2 rounded-full px-[20px] text-sm font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
               >
                 <Printer className="h-4 w-4" />
                 Folha A4
               </button>
+              <style jsx>{`
+                .enderecos-print-a4-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .enderecos-print-a4-btn:hover:not(:disabled) {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -839,7 +854,7 @@ export function EnderecosView({
             className={`relative flex w-[420px] max-w-[94vw] flex-col gap-4 rounded-[18px] border ${tokenBorder} ${tokenCardBg} p-[26px] shadow-[0_26px_64px_rgba(0,0,0,0.45)]`}
           >
             <div className="flex items-center gap-3.5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[13px] bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
                 <Trash2 className="h-[22px] w-[22px]" />
               </span>
               <div className="flex flex-col gap-[3px]">
@@ -847,7 +862,7 @@ export function EnderecosView({
                 <span className={`text-[13px] leading-[1.4] ${tokenTextSub}`}>Esta ação não pode ser desfeita.</span>
               </div>
             </div>
-            <div className={`rounded-xl border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}>
+            <div className={`rounded-full border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}>
               {confirmDelete.codigo}
             </div>
             {deleteError ? <p className="text-[13px] text-[#EF4444]">{deleteError}</p> : null}
@@ -856,7 +871,7 @@ export function EnderecosView({
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setConfirmDelete(null)}
-                className={`h-12 flex-1 rounded-[11px] border text-sm font-bold transition-colors hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`h-12 flex-1 rounded-full border text-sm font-bold transition-colors hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
@@ -865,7 +880,7 @@ export function EnderecosView({
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
                 style={{ background: "#EF4444", color: "#fff" }}
-                className="h-12 flex-1 rounded-[11px] text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
+                className="h-12 flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {isDeleting ? "Excluindo..." : "Excluir"}
               </button>
@@ -1004,7 +1019,7 @@ function EnderecoDrawer({
               type="button"
               title="Imprimir etiqueta"
               onClick={printEtiqueta}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] hover:text-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6]`}
             >
               <Printer className="h-[15px] w-[15px]" />
             </button>
@@ -1012,7 +1027,7 @@ function EnderecoDrawer({
               type="button"
               title="Excluir"
               onClick={onDelete}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-[rgba(239,68,68,0.35)] text-[#EF4444] transition hover:bg-[rgba(239,68,68,0.08)]"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[rgba(239,68,68,0.35)] text-[#EF4444] transition hover:bg-[rgba(239,68,68,0.08)]"
             >
               <Trash2 className="h-[15px] w-[15px]" />
             </button>
@@ -1020,7 +1035,7 @@ function EnderecoDrawer({
               type="button"
               title="Fechar"
               onClick={onClose}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -1127,7 +1142,7 @@ function EnderecoDrawer({
                   <button
                     type="button"
                     onClick={() => setShowAllMov(true)}
-                    className={`mt-2.5 w-full rounded-[10px] border py-2 text-[12.5px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
+                    className={`mt-2.5 w-full rounded-full border py-2 text-[12.5px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
                   >
                     Ver mais ({movimentacoes.length})
                   </button>
@@ -1144,7 +1159,7 @@ function EnderecoDrawer({
             type="button"
             onClick={onToggleBlock}
             disabled={isToggling}
-            className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-bold transition-all hover:-translate-y-px hover:brightness-[1.06] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:brightness-100"
+            className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-full text-[13px] font-bold transition-all hover:-translate-y-px hover:brightness-[1.06] disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:brightness-100"
             style={
               row.ativo
                 ? { background: "#F59E0B", color: "#422006" }
@@ -1157,12 +1172,25 @@ function EnderecoDrawer({
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-extrabold text-white transition-all hover:-translate-y-px hover:brightness-[1.06]"
-            style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+            className="endereco-drawer-edit-btn flex h-10 flex-1 items-center justify-center gap-[7px] rounded-full text-[13px] font-extrabold text-white"
           >
             <Pencil className="h-4 w-4" />
             Editar
           </button>
+          <style jsx>{`
+            .endereco-drawer-edit-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .endereco-drawer-edit-btn:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+            }
+          `}</style>
         </div>
       </aside>
 
@@ -1271,7 +1299,7 @@ function MovimentacoesModal({
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+            className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -1290,7 +1318,7 @@ function MovimentacoesModal({
                   style={{
                     height: "34px",
                     padding: "0 14px",
-                    borderRadius: "9px",
+                    borderRadius: "999px",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
@@ -1311,7 +1339,7 @@ function MovimentacoesModal({
                 value={fromStr}
                 max={toStr || undefined}
                 onChange={(e) => setFromStr(e.target.value)}
-                className={`h-[38px] rounded-[9px] border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`h-[38px] rounded-full border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               />
               <span className={`text-[13px] ${tokenTextSub}`}>até</span>
               <input
@@ -1319,7 +1347,7 @@ function MovimentacoesModal({
                 value={toStr}
                 min={fromStr || undefined}
                 onChange={(e) => setToStr(e.target.value)}
-                className={`h-[38px] rounded-[9px] border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`h-[38px] rounded-full border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               />
             </div>
           ) : null}
@@ -1352,7 +1380,7 @@ function MovimentacoesModal({
 function ProductThumb({ imagemUrl, nome }: { imagemUrl: string | null; nome: string }) {
   if (imagemUrl) {
     return (
-      <span className="h-11 w-11 shrink-0 overflow-hidden rounded-[10px]">
+      <span className="h-11 w-11 shrink-0 overflow-hidden rounded-full">
         <Image
           src={imagemUrl}
           alt={nome}
@@ -1366,7 +1394,7 @@ function ProductThumb({ imagemUrl, nome }: { imagemUrl: string | null; nome: str
   }
   return (
     <span
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border ${tokenBorder} ${tokenCardBg} ${tokenTextSub}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenCardBg} ${tokenTextSub}`}
     >
       <Package className="h-5 w-5" />
     </span>
@@ -1392,7 +1420,7 @@ function ProductPhotoModal({
         <button
           type="button"
           onClick={onClose}
-          className={`absolute right-3 top-3 z-10 flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenCardBg} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+          className={`absolute right-3 top-3 z-10 flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenCardBg} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
         >
           <X className="h-4 w-4" />
         </button>
@@ -1500,17 +1528,20 @@ function ViewToggleButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 transition"
+      className={
+        active
+          ? "inline-flex items-center gap-1.5 transition"
+          : "inline-flex items-center gap-1.5 text-[#64748B] transition hover:bg-slate-50 dark:text-zinc-400 dark:hover:bg-white/5"
+      }
       style={{
         height: "34px",
         padding: "0 16px",
-        borderRadius: "9px",
+        borderRadius: "999px",
         fontSize: "13px",
         fontWeight: 700,
         cursor: "pointer",
         border: "none",
-        background: active ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
-        color: active ? "#fff" : "#64748B",
+        ...(active ? { background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff" } : {}),
       }}
     >
       {icon}
@@ -1876,31 +1907,17 @@ function KpiCard({
   value,
   secondary,
   valueColor,
-  icon: Icon,
-  iconBg,
-  iconColor,
   inlineBar,
 }: {
   label: string;
   value: string;
   secondary?: string;
   valueColor?: string;
-  icon: React.ComponentType<{ size?: number }>;
-  iconBg: string;
-  iconColor: string;
   inlineBar?: { pct: number };
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#101B30]">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
-        <span
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px]"
-          style={{ background: iconBg, color: iconColor }}
-        >
-          <Icon size={20} />
-        </span>
-      </div>
+      <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <span

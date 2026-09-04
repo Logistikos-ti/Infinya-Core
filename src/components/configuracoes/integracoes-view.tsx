@@ -19,6 +19,8 @@ import {
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import {
   disconnectBlingIntegrationAction,
@@ -103,7 +105,7 @@ function LogoBadge({
   return (
     <span
       className={`flex shrink-0 items-center justify-center overflow-hidden border ${tokenBorder}`}
-      style={{ width: size, height: size, borderRadius: radius }}
+      style={{ width: size, height: size, borderRadius: 9999 }}
     >
       <Image src={url} alt={alt} width={size} height={size} className="h-full w-full object-cover" />
     </span>
@@ -264,9 +266,9 @@ export function IntegracoesView({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>Integrações</h1>
@@ -279,6 +281,7 @@ export function IntegracoesView({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -291,7 +294,7 @@ export function IntegracoesView({
             type="button"
             onClick={() => setApiModalOpen(true)}
             title="Informações de API"
-            className={`flex h-[42px] w-[42px] items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
+            className={`flex h-[42px] w-[42px] items-center justify-center rounded-full border transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
           >
             <Info className="h-4 w-4" />
           </button>
@@ -311,18 +314,14 @@ export function IntegracoesView({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <select
+          <PillSelect
             value={depSel}
-            onChange={(e) => setDepSel(e.target.value)}
-            className={`h-[42px] min-w-[240px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="all">Todos os depositantes</option>
-            {depositantes.map((dep) => (
-              <option key={dep.id} value={dep.id}>
-                {dep.nome}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setDepSel(v)}
+            options={[
+              { value: "all", label: "Todos os depositantes" },
+              ...depositantes.map((dep) => ({ value: dep.id, label: dep.nome })),
+            ]}
+          />
         </div>
 
         <div
@@ -354,7 +353,7 @@ export function IntegracoesView({
           <div className={`flex flex-wrap items-center gap-3 border-b px-5 py-4 ${tokenBorder}`}>
             <span className={`${FIN_HEADING} text-[16px] font-bold ${tokenText}`}>Logs recentes</span>
             <div className="flex-1" />
-            <div className={`flex items-center gap-1 rounded-[10px] border p-1 ${tokenBorder} ${tokenInputBg}`}>
+            <div className={`flex items-center gap-1 rounded-full border p-1 ${tokenBorder} ${tokenInputBg}`}>
               {(
                 [
                   { key: "all", label: "Todas" },
@@ -371,16 +370,20 @@ export function IntegracoesView({
                       setLogFilter(opt.key);
                       resetLogPage();
                     }}
+                    className={
+                      active
+                        ? "transition"
+                        : "text-[#64748B] transition hover:bg-white dark:text-zinc-400 dark:hover:bg-white/5"
+                    }
                     style={{
                       height: "30px",
                       padding: "0 12px",
-                      borderRadius: "7px",
+                      borderRadius: "999px",
                       fontSize: "12.5px",
                       fontWeight: 700,
                       cursor: "pointer",
                       border: "none",
-                      background: active ? "linear-gradient(92deg, #3B82F6, #8B5CF6)" : "transparent",
-                      color: active ? "#fff" : "#64748B",
+                      ...(active ? { background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#fff" } : {}),
                     }}
                   >
                     {opt.label}
@@ -388,22 +391,22 @@ export function IntegracoesView({
                 );
               })}
             </div>
-            <select
+            <PillSelect
               value={logPeriod}
-              onChange={(e) => {
-                setLogPeriod(e.target.value as LogPeriod);
+              onChange={(v) => {
+                setLogPeriod(v as LogPeriod);
                 resetLogPage();
               }}
-              className={`h-[36px] cursor-pointer rounded-[9px] border px-2.5 text-[12.5px] font-semibold outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-            >
-              <option value="all">Todo o período</option>
-              <option value="today">Hoje</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="month">Este mês</option>
-              <option value="lastmonth">Mês passado</option>
-              <option value="custom">Período personalizado</option>
-            </select>
+              options={[
+                { value: "all", label: "Todo o período" },
+                { value: "today", label: "Hoje" },
+                { value: "7d", label: "Últimos 7 dias" },
+                { value: "30d", label: "Últimos 30 dias" },
+                { value: "month", label: "Este mês" },
+                { value: "lastmonth", label: "Mês passado" },
+                { value: "custom", label: "Período personalizado" },
+              ]}
+            />
             {logPeriod === "custom" ? (
               <div className="flex items-center gap-2">
                 <input
@@ -414,7 +417,7 @@ export function IntegracoesView({
                     setLogFrom(e.target.value);
                     resetLogPage();
                   }}
-                  className={`h-[36px] rounded-[9px] border px-2.5 text-[12.5px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                  className={`h-[36px] rounded-full border px-2.5 text-[12.5px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                 />
                 <span className={`text-[12.5px] ${tokenTextSub}`}>até</span>
                 <input
@@ -425,7 +428,7 @@ export function IntegracoesView({
                     setLogTo(e.target.value);
                     resetLogPage();
                   }}
-                  className={`h-[36px] rounded-[9px] border px-2.5 text-[12.5px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                  className={`h-[36px] rounded-full border px-2.5 text-[12.5px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                 />
               </div>
             ) : null}
@@ -496,7 +499,7 @@ export function IntegracoesView({
                   type="button"
                   onClick={() => setLogPage((p) => Math.max(1, p - 1))}
                   disabled={logCurrentPage <= 1}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -507,7 +510,7 @@ export function IntegracoesView({
                   type="button"
                   onClick={() => setLogPage((p) => Math.min(logTotalPages, p + 1))}
                   disabled={logCurrentPage >= logTotalPages}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -645,7 +648,7 @@ function ProviderOverviewDrawer({
             type="button"
             title="Fechar"
             onClick={onClose}
-            className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+            className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -661,7 +664,7 @@ function ProviderOverviewDrawer({
                   key={card.id}
                   type="button"
                   onClick={() => onSelect(card)}
-                  className="group -mx-3 flex items-center gap-3 rounded-[11px] border border-transparent px-3 py-[11px] text-left transition-all hover:border-[rgba(139,92,246,0.28)] hover:bg-[rgba(139,92,246,0.06)] hover:shadow-[0_2px_10px_rgba(139,92,246,0.08)]"
+                  className="group -mx-3 flex items-center gap-3 rounded-full border border-transparent px-3 py-[11px] text-left transition-all hover:border-[rgba(139,92,246,0.28)] hover:bg-[rgba(139,92,246,0.06)] hover:shadow-[0_2px_10px_rgba(139,92,246,0.08)]"
                 >
                   <div className="min-w-0 flex-1">
                     <div className={`truncate text-[13.5px] font-bold ${tokenText}`}>{card.depositanteNome}</div>
@@ -677,7 +680,7 @@ function ProviderOverviewDrawer({
                     {st.label}
                   </span>
                   <ChevronRight
-                    className={`h-4 w-4 shrink-0 transition-all group-hover:translate-x-0.5 group-hover:text-[#8B5CF6] ${tokenTextSub}`}
+                    className={`h-4 w-4 shrink-0 transition-all group-hover:translate-x-0.5 group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenTextSub}`}
                   />
                 </button>
               );
@@ -713,7 +716,7 @@ function IntegracaoDrawer({ card, onClose }: { card: IntegracaoCard; onClose: ()
               type="button"
               title="Fechar"
               onClick={onClose}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -828,13 +831,32 @@ function IntegracaoDrawer({ card, onClose }: { card: IntegracaoCard; onClose: ()
 
 function GradientLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a
-      href={href}
-      className="flex h-10 items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-extrabold transition-transform hover:-translate-y-px"
-      style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)", color: "#FFFFFF" }}
-    >
-      {children}
-    </a>
+    <>
+      <a
+        href={href}
+        className="integracao-connect-btn flex h-10 items-center justify-center gap-[7px] rounded-full text-[13px] font-extrabold"
+        style={{ color: "#FFFFFF" }}
+      >
+        {children}
+      </a>
+      <style jsx>{`
+        .integracao-connect-btn {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+          background-size: 220% 100%;
+          background-position: 0% 50%;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+          transition:
+            background-position 0.6s ease,
+            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.3s ease;
+        }
+        .integracao-connect-btn:hover {
+          background-position: 100% 50%;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -845,7 +867,7 @@ function PauseButton({ card }: { card: IntegracaoCard }) {
         type="button"
         disabled
         title="Conecte a integração antes de pausar"
-        className={`flex h-10 cursor-not-allowed items-center justify-center gap-[7px] rounded-[10px] border text-[13px] font-bold opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
+        className={`flex h-10 cursor-not-allowed items-center justify-center gap-[7px] rounded-full border text-[13px] font-bold opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
       >
         <Pause className="h-4 w-4" />
         Pausar
@@ -867,7 +889,7 @@ function PauseSubmit({ paused }: { paused: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="flex h-10 w-full items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-bold transition-all hover:brightness-[1.06] disabled:opacity-70"
+      className="flex h-10 w-full items-center justify-center gap-[7px] rounded-full text-[13px] font-bold transition-all hover:brightness-[1.06] disabled:opacity-70"
       style={paused ? { background: "rgba(16,185,129,0.16)", color: "#10B981" } : { background: "#F59E0B", color: "#422006" }}
     >
       {pending ? (
@@ -922,28 +944,46 @@ function ActionSubmit({
   const { pending } = useFormStatus();
 
   const base =
-    "flex h-10 w-full items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-bold transition-all disabled:opacity-70";
+    "flex h-10 w-full items-center justify-center gap-[7px] rounded-full text-[13px] font-bold transition-all disabled:opacity-70";
   const variantClass =
     variant === "solid"
-      ? "text-white hover:-translate-y-px"
+      ? "integracao-action-solid-btn text-white"
       : variant === "danger"
         ? "border border-[rgba(239,68,68,0.35)] text-[#EF4444] hover:bg-[rgba(239,68,68,0.08)]"
-        : `border ${tokenBorder} ${tokenInputBg} ${tokenText} hover:border-[#8B5CF6]`;
+        : `border ${tokenBorder} ${tokenInputBg} ${tokenText} hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`;
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={`${base} ${variantClass}`}
-      style={variant === "solid" ? { background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" } : undefined}
-    >
-      {pending ? <MobileButtonSpinner size={18} /> : (
-        <>
-          {icon}
-          {children}
-        </>
-      )}
-    </button>
+    <>
+      <button
+        type="submit"
+        disabled={pending}
+        className={`${base} ${variantClass}`}
+      >
+        {pending ? <MobileButtonSpinner size={18} /> : (
+          <>
+            {icon}
+            {children}
+          </>
+        )}
+      </button>
+      <style jsx>{`
+        .integracao-action-solid-btn {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+          background-size: 220% 100%;
+          background-position: 0% 50%;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+          transition:
+            background-position 0.6s ease,
+            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.3s ease;
+        }
+        .integracao-action-solid-btn:hover:not(:disabled) {
+          background-position: 100% 50%;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -1016,7 +1056,7 @@ function ApiInfoModal({
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+            className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
           >
             <X className="h-4 w-4" />
           </button>

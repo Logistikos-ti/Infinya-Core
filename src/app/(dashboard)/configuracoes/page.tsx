@@ -23,7 +23,7 @@ const surfaceClass = "rounded-2xl border border-slate-200 bg-white shadow-sm dar
 const panelClass = `${surfaceClass} p-6`;
 const subPanelClass = "rounded-[13px] border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5";
 const rowClass =
-  "flex items-center justify-between gap-3 rounded-xl border px-[18px] py-4 text-[13px] border-[rgba(100,116,139,0.16)] bg-[rgba(100,116,139,0.05)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(148,163,184,0.06)]";
+  "flex items-center justify-between gap-3 rounded-full border px-[18px] py-4 text-[13px] border-[rgba(100,116,139,0.16)] bg-[rgba(100,116,139,0.05)] dark:border-[rgba(148,163,184,0.14)] dark:bg-[rgba(148,163,184,0.06)]";
 
 const configModules = [
   {

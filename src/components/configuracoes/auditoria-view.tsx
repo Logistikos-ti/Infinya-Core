@@ -4,19 +4,17 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Search,
   ShieldCheck,
-  Users,
   X,
 } from "lucide-react";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 
 const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
 const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
@@ -161,9 +159,9 @@ export function AuditoriaView({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>Auditoria</h1>
@@ -176,6 +174,7 @@ export function AuditoriaView({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -187,35 +186,29 @@ export function AuditoriaView({
           <button
             type="button"
             onClick={() => setExportModalOpen(true)}
-            className="flex h-[42px] items-center rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
+            className="flex h-[42px] items-center rounded-full border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
           >
             Exportar logs
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <KpiCard label="Total de ações" value={kpis.total.toLocaleString("pt-BR")} icon={Activity} iconBg="rgba(59,130,246,0.15)" iconColor="#3B82F6" />
-          <KpiCard label="Ações hoje" value={kpis.hoje.toLocaleString("pt-BR")} valueColor="#3B82F6" icon={Clock} iconBg="rgba(59,130,246,0.15)" iconColor="#3B82F6" />
+          <KpiCard label="Total de ações" value={kpis.total.toLocaleString("pt-BR")} />
+          <KpiCard label="Ações hoje" value={kpis.hoje.toLocaleString("pt-BR")} valueColor="#3B82F6" />
           <KpiCard
             label="Ações com erro"
             value={kpis.erro.toLocaleString("pt-BR")}
             valueColor={kpis.erro > 0 ? "#EF4444" : undefined}
-            icon={AlertTriangle}
-            iconBg={kpis.erro > 0 ? "rgba(239,68,68,0.15)" : "rgba(148,163,184,0.15)"}
-            iconColor={kpis.erro > 0 ? "#EF4444" : "#64748B"}
           />
           <KpiCard
             label="Usuários ativos"
             value={kpis.usuariosAtivos.toLocaleString("pt-BR")}
             valueColor={kpis.usuariosAtivos > 0 ? "#10B981" : undefined}
-            icon={Users}
-            iconBg={kpis.usuariosAtivos > 0 ? "rgba(16,185,129,0.15)" : "rgba(148,163,184,0.15)"}
-            iconColor={kpis.usuariosAtivos > 0 ? "#10B981" : "#64748B"}
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-[11px] border px-3 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-full border px-3 ${tokenBorder} ${tokenCardBg}`}>
             <Search className={`h-4 w-4 ${tokenTextSub}`} />
             <input
               type="text"
@@ -225,43 +218,31 @@ export function AuditoriaView({
               className={`flex-1 bg-transparent text-sm outline-none placeholder:text-[#64748B] dark:placeholder:text-[#8695AD] ${tokenText}`}
             />
           </div>
-          <select
+          <PillSelect
             value={filters.usuario}
-            onChange={(e) => navigate({ usuario: e.target.value })}
-            className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="">Todos os usuários</option>
-            <option value="sistema">Sistema</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nome}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => navigate({ usuario: v })}
+            options={[
+              { value: "", label: "Todos os usuários" },
+              { value: "sistema", label: "Sistema" },
+              ...usuarios.map((u) => ({ value: u.id, label: u.nome })),
+            ]}
+          />
+          <PillSelect
             value={filters.modulo}
-            onChange={(e) => navigate({ modulo: e.target.value })}
-            className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="">Todos os módulos</option>
-            {modulos.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={(v) => navigate({ modulo: v })}
+            options={[
+              { value: "", label: "Todos os módulos" },
+              ...modulos.map((m) => ({ value: m.value, label: m.label })),
+            ]}
+          />
+          <PillSelect
             value={filters.depositante}
-            onChange={(e) => navigate({ depositante: e.target.value })}
-            className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="">Todos depositantes</option>
-            {depositantes.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nome}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => navigate({ depositante: v })}
+            options={[
+              { value: "", label: "Todos depositantes" },
+              ...depositantes.map((d) => ({ value: d.id, label: d.nome })),
+            ]}
+          />
           {hasFilters ? (
             <button
               type="button"
@@ -269,7 +250,7 @@ export function AuditoriaView({
                 setSearchInput("");
                 startTransition(() => router.push("/configuracoes/auditoria"));
               }}
-              className={`flex h-[42px] items-center rounded-[11px] border px-[18px] text-[13.5px] font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              className={`flex h-[42px] items-center rounded-full border px-[18px] text-[13.5px] font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
             >
               Limpar
             </button>
@@ -327,7 +308,7 @@ export function AuditoriaView({
                       type="button"
                       onClick={() => navigate({ page: Math.max(1, page - 1) })}
                       disabled={page <= 1}
-                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
@@ -338,7 +319,7 @@ export function AuditoriaView({
                       type="button"
                       onClick={() => navigate({ page: Math.min(totalPages, page + 1) })}
                       disabled={page >= totalPages}
-                      className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
@@ -376,7 +357,7 @@ export function AuditoriaView({
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -393,7 +374,7 @@ export function AuditoriaView({
                     value={exportDe}
                     max={exportAte || undefined}
                     onChange={(e) => setExportDe(e.target.value)}
-                    className={`h-11 flex-1 rounded-[10px] border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                    className={`h-11 flex-1 rounded-full border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                   />
                   <span className={`text-[13px] ${tokenTextSub}`}>até</span>
                   <input
@@ -401,7 +382,7 @@ export function AuditoriaView({
                     value={exportAte}
                     min={exportDe || undefined}
                     onChange={(e) => setExportAte(e.target.value)}
-                    className={`h-11 flex-1 rounded-[10px] border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                    className={`h-11 flex-1 rounded-full border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                   />
                 </div>
               </div>
@@ -425,7 +406,7 @@ export function AuditoriaView({
                         key={opt.key || "todos"}
                         type="button"
                         onClick={() => setExportResultado(opt.key)}
-                        className={`h-10 flex-1 rounded-[10px] border-2 text-[13px] font-bold transition ${
+                        className={`h-10 flex-1 rounded-full border-2 text-[13px] font-bold transition ${
                           selected
                             ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.1)] text-[#8B5CF6]"
                             : `${tokenBorder} ${tokenInputBg} ${tokenTextSub} hover:border-violet-300`
@@ -443,23 +424,40 @@ export function AuditoriaView({
               </p>
             </div>
 
-            <div className={`flex items-center justify-end gap-3 border-t px-6 py-4 ${tokenBorder}`}>
+            <div className={`flex items-center justify-center gap-3 border-t px-6 py-4 ${tokenBorder}`}>
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-11 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`flex h-11 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={runExport}
-                className="flex h-11 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px"
-                style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+                className="auditoria-export-btn flex h-11 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold"
+                style={{ color: "#fff" }}
               >
                 Exportar CSV
               </button>
             </div>
+            <style jsx>{`
+              .auditoria-export-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .auditoria-export-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
           </div>
         </div>
       ) : null}
@@ -561,7 +559,7 @@ function AuditoriaDrawer({ row, onClose }: { row: AuditoriaRow; onClose: () => v
               type="button"
               title="Fechar"
               onClick={onClose}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -593,7 +591,7 @@ function AuditoriaDrawer({ row, onClose }: { row: AuditoriaRow; onClose: () => v
                     ) : null}
                     <div className="flex items-center gap-3 text-[13px]">
                       <span
-                        className="min-w-0 flex-1 truncate rounded-[9px] px-3 py-2 font-semibold"
+                        className="min-w-0 flex-1 truncate rounded-full px-3 py-2 font-semibold"
                         title={formatVal(c.antes)}
                         style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#DC2626" }}
                       >
@@ -601,7 +599,7 @@ function AuditoriaDrawer({ row, onClose }: { row: AuditoriaRow; onClose: () => v
                       </span>
                       <span className={tokenTextSub}>→</span>
                       <span
-                        className="min-w-0 flex-1 truncate rounded-[9px] px-3 py-2 font-semibold"
+                        className="min-w-0 flex-1 truncate rounded-full px-3 py-2 font-semibold"
                         title={formatVal(c.depois)}
                         style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", color: "#059669" }}
                       >
@@ -703,28 +701,14 @@ function KpiCard({
   label,
   value,
   valueColor,
-  icon: Icon,
-  iconBg,
-  iconColor,
 }: {
   label: string;
   value: string;
   valueColor?: string;
-  icon: React.ComponentType<{ size?: number }>;
-  iconBg: string;
-  iconColor: string;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#101B30]">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
-        <span
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px]"
-          style={{ background: iconBg, color: iconColor }}
-        >
-          <Icon size={20} />
-        </span>
-      </div>
+      <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
       <span
         className={`${FIN_HEADING} text-[30px] font-bold`}
         style={valueColor ? { color: valueColor } : undefined}

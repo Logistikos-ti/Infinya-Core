@@ -4,20 +4,19 @@ import { useEffect, useMemo, useState, useActionState, useTransition } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Pencil,
   Printer,
-  ScrollText,
   Search,
   Trash2,
-  Truck,
   X,
 } from "lucide-react";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import {
   formatCnpj,
@@ -245,9 +244,9 @@ export function TransportadorasView({
         <Link
           href="/configuracoes"
           title="Voltar para Configurações"
-          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+          className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
         >
-          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+          <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
           <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold ${tokenText}`}>
@@ -262,6 +261,7 @@ export function TransportadorasView({
           </div>
         </div>
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -274,7 +274,7 @@ export function TransportadorasView({
             <button
               type="button"
               onClick={() => setExportModalOpen(true)}
-              className="flex h-[42px] items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
+              className="flex h-[42px] items-center gap-2 rounded-full border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
             >
               Exportar
             </button>
@@ -282,42 +282,43 @@ export function TransportadorasView({
               type="button"
               onClick={() => setFormState({ mode: "novo" })}
               disabled={schemaMissing}
-              className="inline-flex h-[42px] shrink-0 items-center gap-2 rounded-[11px] px-5 text-sm font-extrabold text-white transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-              style={{
-                background: "linear-gradient(92deg, #3B82F6, #8B5CF6)",
-                boxShadow: "0 8px 22px rgba(99,102,241,0.32)",
-              }}
+              className="novo-transportadora-btn inline-flex h-[42px] shrink-0 items-center gap-2 rounded-full px-5 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              style={{ color: "#fff" }}
             >
               + Nova transportadora
             </button>
+            <style jsx>{`
+              .novo-transportadora-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .novo-transportadora-btn:hover:not(:disabled) {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <KpiCard
-            label="Total"
-            value={String(kpis.total)}
-            secondary="transportadoras"
-            icon={Truck}
-            iconBg="rgba(59,130,246,0.15)"
-            iconColor="#3B82F6"
-          />
+          <KpiCard label="Total" value={String(kpis.total)} secondary="transportadoras" />
           <KpiCard
             label="Ativas"
             value={String(kpis.ativas)}
             secondary="operando"
             valueColor="#10B981"
-            icon={CheckCircle2}
-            iconBg="rgba(16,185,129,0.15)"
-            iconColor="#10B981"
           />
           <KpiCard
             label="Romaneios no mês"
             value={kpis.romaneiosNoMes.toLocaleString("pt-BR")}
             secondary="entregas"
-            icon={ScrollText}
-            iconBg="rgba(139,92,246,0.15)"
-            iconColor="#8B5CF6"
           />
         </div>
 
@@ -334,7 +335,7 @@ export function TransportadorasView({
 
         <div className="flex flex-wrap items-center gap-2.5">
           <div
-            className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-[11px] border px-3 ${tokenBorder} ${tokenCardBg}`}
+            className={`flex h-[42px] flex-1 min-w-[220px] items-center gap-2 rounded-full border px-3 ${tokenBorder} ${tokenCardBg}`}
           >
             <Search className={`h-4 w-4 ${tokenTextSub}`} />
             <input
@@ -348,7 +349,7 @@ export function TransportadorasView({
               className={`flex-1 bg-transparent text-sm outline-none placeholder:text-[#64748B] dark:placeholder:text-[#8695AD] ${tokenText}`}
             />
           </div>
-          <div className={`flex flex-wrap items-center gap-1 rounded-[12px] border p-1 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`flex flex-wrap items-center gap-1 rounded-full border p-1 ${tokenBorder} ${tokenCardBg}`}>
             {typeChips.map((chip) => {
               const active = typeFilter === chip.key;
               return (
@@ -367,7 +368,7 @@ export function TransportadorasView({
                   style={{
                     height: "34px",
                     padding: "0 14px",
-                    borderRadius: "9px",
+                    borderRadius: "999px",
                     fontSize: "13px",
                     fontWeight: 700,
                     cursor: "pointer",
@@ -384,7 +385,7 @@ export function TransportadorasView({
                         width: "7px",
                         height: "7px",
                         borderRadius: "50%",
-                        background: chip.color,
+                        background: active ? "#FFFFFF" : chip.color,
                       }}
                     />
                   ) : null}
@@ -393,18 +394,18 @@ export function TransportadorasView({
               );
             })}
           </div>
-          <select
+          <PillSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(v) => {
+              setStatusFilter(v);
               setPage(1);
             }}
-            className={`h-[42px] cursor-pointer rounded-[11px] border px-3 text-[13.5px] font-semibold outline-none ${tokenBorder} ${tokenCardBg} ${tokenText}`}
-          >
-            <option value="ALL">Todos os status</option>
-            <option value="ATIVA">Ativa</option>
-            <option value="INATIVA">Inativa</option>
-          </select>
+            options={[
+              { value: "ALL", label: "Todos os status" },
+              { value: "ATIVA", label: "Ativa" },
+              { value: "INATIVA", label: "Inativa" },
+            ]}
+          />
         </div>
 
         <div className={`overflow-hidden rounded-2xl border ${tokenBorder} ${tokenCardBg}`}>
@@ -449,7 +450,7 @@ export function TransportadorasView({
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -460,7 +461,7 @@ export function TransportadorasView({
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className={`flex h-8 w-8 items-center justify-center rounded-[9px] border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border ${tokenBorder} ${tokenInputBg} ${tokenText} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -516,7 +517,7 @@ export function TransportadorasView({
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+                className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -541,7 +542,7 @@ export function TransportadorasView({
                         key={opt.key}
                         type="button"
                         onClick={() => setExportStatus(opt.key)}
-                        className={`flex items-center gap-3 rounded-xl border-2 px-3.5 py-3 text-left transition ${
+                        className={`flex items-center gap-3 rounded-full border-2 px-3.5 py-3 text-left transition ${
                           selected
                             ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.08)]"
                             : `${tokenBorder} ${tokenInputBg} hover:border-violet-300`
@@ -574,7 +575,7 @@ export function TransportadorasView({
                         key={f}
                         type="button"
                         onClick={() => setExportFormat(f)}
-                        className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                        className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                           selected
                             ? "border-[#8B5CF6] bg-[rgba(139,92,246,0.1)] text-[#8B5CF6]"
                             : `${tokenBorder} ${tokenInputBg} ${tokenTextSub} hover:border-violet-300`
@@ -592,18 +593,35 @@ export function TransportadorasView({
               <button
                 type="button"
                 onClick={() => setExportModalOpen(false)}
-                className={`flex h-11 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`flex h-11 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={doExport}
-                className="flex h-11 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px"
-                style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+                className="export-transportadoras-btn flex h-11 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold"
+                style={{ color: "#fff" }}
               >
                 Exportar
               </button>
+              <style jsx>{`
+                .export-transportadoras-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .export-transportadoras-btn:hover {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -619,7 +637,7 @@ export function TransportadorasView({
             className={`relative flex w-[420px] max-w-[94vw] flex-col gap-4 rounded-[18px] border ${tokenBorder} ${tokenCardBg} p-[26px] shadow-[0_26px_64px_rgba(0,0,0,0.45)]`}
           >
             <div className="flex items-center gap-3.5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[13px] bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
                 <Trash2 className="h-[22px] w-[22px]" />
               </span>
               <div className="flex flex-col gap-[3px]">
@@ -632,7 +650,7 @@ export function TransportadorasView({
               </div>
             </div>
             <div
-              className={`rounded-xl border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}
+              className={`rounded-full border ${tokenBorder} bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold ${tokenText}`}
             >
               {confirmDelete.nome}
             </div>
@@ -642,7 +660,7 @@ export function TransportadorasView({
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setConfirmDelete(null)}
-                className={`h-12 flex-1 rounded-[11px] border text-sm font-bold transition-colors hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                className={`h-12 flex-1 rounded-full border text-sm font-bold transition-colors hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] disabled:opacity-50 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
               >
                 Cancelar
               </button>
@@ -651,7 +669,7 @@ export function TransportadorasView({
                 disabled={isDeleting}
                 onClick={handleConfirmDelete}
                 style={{ background: "#EF4444", color: "#fff" }}
-                className="h-12 flex-1 rounded-[11px] text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
+                className="h-12 flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 {isDeleting ? "Excluindo..." : "Excluir"}
               </button>
@@ -704,7 +722,7 @@ function TransportadoraDrawer({
               type="button"
               title="Imprimir ficha"
               onClick={onPrint}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] hover:text-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6]`}
             >
               <Printer className="h-[15px] w-[15px]" />
             </button>
@@ -712,7 +730,7 @@ function TransportadoraDrawer({
               type="button"
               title="Excluir"
               onClick={onDelete}
-              className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-[rgba(239,68,68,0.35)] text-[#EF4444] transition hover:bg-[rgba(239,68,68,0.08)]"
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[rgba(239,68,68,0.35)] text-[#EF4444] transition hover:bg-[rgba(239,68,68,0.08)]"
             >
               <Trash2 className="h-[15px] w-[15px]" />
             </button>
@@ -720,7 +738,7 @@ function TransportadoraDrawer({
               type="button"
               title="Fechar"
               onClick={onClose}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border ${tokenBorder} ${tokenTextSub} transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6]`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -751,12 +769,29 @@ function TransportadoraDrawer({
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[10px] text-[13px] font-extrabold text-white transition-all hover:-translate-y-px hover:brightness-[1.06]"
-            style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+            className="transportadora-edit-btn flex h-10 flex-1 items-center justify-center gap-[7px] rounded-full text-[13px] font-extrabold"
+            style={{ color: "#fff" }}
           >
             <Pencil className="h-4 w-4" />
             Editar
           </button>
+          <style jsx>{`
+            .transportadora-edit-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .transportadora-edit-btn:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
         </div>
       </aside>
     </div>
@@ -845,20 +880,19 @@ function TransportadoraFormModal({
           <p className="px-6 pb-1 text-[12.5px] font-semibold text-[#EF4444]">{state.message}</p>
         ) : null}
 
-        <div className="flex items-center gap-2.5 px-6 pb-[22px] pt-1">
-          <div className="flex-1" />
+        <div className="flex items-center justify-center gap-2.5 px-6 pb-[22px] pt-1">
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-10 items-center rounded-[9px] border px-4 text-[13px] font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            className={`flex h-10 items-center rounded-full border px-4 text-[13px] font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="flex h-10 min-w-[132px] items-center justify-center rounded-[9px] px-[18px] text-[13px] font-extrabold text-white transition-transform hover:-translate-y-px disabled:hover:translate-y-0"
-            style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+            className="transportadora-save-btn flex h-10 min-w-[132px] items-center justify-center rounded-full px-[18px] text-[13px] font-extrabold disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            style={{ color: "#fff" }}
           >
             {isPending ? (
               <MobileButtonSpinner size={20} />
@@ -868,6 +902,23 @@ function TransportadoraFormModal({
               "Cadastrar"
             )}
           </button>
+          <style jsx>{`
+            .transportadora-save-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .transportadora-save-btn:hover:not(:disabled) {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
         </div>
       </form>
     </div>
@@ -902,7 +953,7 @@ function FormField({
         defaultValue={defaultValue}
         placeholder={placeholder}
         maxLength={maxLength}
-        className={`h-[42px] rounded-[9px] border px-3 text-[13.5px] font-medium outline-none transition focus:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText} ${uppercase ? "uppercase" : ""}`}
+        className={`h-[42px] rounded-full border px-3 text-[13.5px] font-medium outline-none transition focus:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText} ${uppercase ? "uppercase" : ""}`}
       />
       {error ? <span className="text-[11.5px] font-semibold text-[#EF4444]">{error}</span> : null}
     </label>
@@ -928,7 +979,7 @@ function FormSelect({
       <select
         name={name}
         defaultValue={defaultValue}
-        className={`h-[42px] cursor-pointer rounded-[9px] border px-3 text-[13.5px] font-medium outline-none transition focus:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+        className={`h-[42px] cursor-pointer rounded-full border px-3 text-[13.5px] font-medium outline-none transition focus:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -1036,29 +1087,15 @@ function KpiCard({
   value,
   secondary,
   valueColor,
-  icon: Icon,
-  iconBg,
-  iconColor,
 }: {
   label: string;
   value: string;
   secondary?: string;
   valueColor?: string;
-  icon: React.ComponentType<{ size?: number }>;
-  iconBg: string;
-  iconColor: string;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#101B30]">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
-        <span
-          className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px]"
-          style={{ background: iconBg, color: iconColor }}
-        >
-          <Icon size={20} />
-        </span>
-      </div>
+      <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{label}</span>
       <div className="flex items-baseline gap-2">
         <span
           className={`${FIN_HEADING} text-[30px] font-bold`}

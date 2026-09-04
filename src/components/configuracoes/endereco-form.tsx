@@ -14,7 +14,7 @@ const tokenText = "text-[#0F172A] dark:text-[#F1F5F9]";
 const tokenTextSub = "text-[#64748B] dark:text-[#8695AD]";
 const monoFont = "font-[family-name:var(--font-space-grotesk)]";
 const cardClass = `rounded-2xl border ${tokenBorder} ${tokenCardBg} p-6`;
-const inputClass = `h-[46px] w-full rounded-[11px] border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
+const inputClass = `h-[46px] w-full rounded-full border px-[15px] text-sm outline-none transition ${tokenBorder} ${tokenInputBg} ${tokenText}`;
 
 type EnderecoFormProps = {
   defaultValues?: {
@@ -147,17 +147,17 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
             type="button"
             onClick={onClose}
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </button>
         ) : (
           <Link
             href="/configuracoes/enderecos"
             title="Voltar"
-            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] border transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
+            className={`group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg}`}
           >
-            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] ${tokenText}`} />
+            <ChevronLeft className={`h-5 w-5 transition-colors group-hover:text-[#8B5CF6] dark:group-hover:text-[#8B5CF6] ${tokenText}`} />
           </Link>
         )}
         <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
@@ -176,7 +176,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
           <button
             type="button"
             onClick={onDelete}
-            className="flex h-11 shrink-0 items-center gap-2 rounded-[11px] border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] px-4 text-sm font-bold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.16)]"
+            className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.08)] px-4 text-sm font-bold text-[#EF4444] transition-colors hover:bg-[rgba(239,68,68,0.16)]"
           >
             <Trash2 className="h-4 w-4" />
             Excluir
@@ -186,7 +186,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-11 shrink-0 items-center rounded-[11px] border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            className={`flex h-11 shrink-0 items-center rounded-full border px-[18px] text-sm font-bold transition hover:border-[#8B5CF6] dark:hover:border-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
           >
             Cancelar
           </button>
@@ -194,11 +194,28 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
         <button
           type="submit"
           disabled={isPending}
-          className="flex h-11 shrink-0 items-center gap-2 rounded-[11px] px-[22px] text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-          style={{ background: "linear-gradient(92deg, #3B82F6, #8B5CF6)" }}
+          className="endereco-save-btn flex h-11 shrink-0 items-center gap-2 rounded-full px-[22px] text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          style={{ color: "#fff" }}
         >
           {isPending ? <MobileButtonSpinner /> : isEdit ? "Salvar alterações" : "Salvar endereço"}
         </button>
+        <style jsx>{`
+          .endereco-save-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+            transition:
+              background-position 0.6s ease,
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+          }
+          .endereco-save-btn:hover:not(:disabled) {
+            background-position: 100% 50%;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+          }
+        `}</style>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
@@ -247,7 +264,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
                 <button
                   type="button"
                   onClick={printEtiqueta}
-                  className={`inline-flex h-10 items-center gap-2 rounded-[11px] border px-4 text-[13px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                  className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[13px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                 >
                   <Printer className="h-[15px] w-[15px]" />
                   Imprimir etiqueta
@@ -345,7 +362,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
                             setComprimentoCm(preset.comprimento);
                             if (preset.altura) setAlturaCm(preset.altura);
                           }}
-                          className={`inline-flex h-9 items-center rounded-[10px] border px-3.5 text-[12.5px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
+                          className={`inline-flex h-9 items-center rounded-full border px-3.5 text-[12.5px] font-bold transition hover:border-[#8B5CF6] hover:text-[#8B5CF6] dark:hover:border-[#8B5CF6] dark:hover:text-[#8B5CF6] ${tokenBorder} ${tokenInputBg} ${tokenTextSub}`}
                         >
                           {preset.label}
                         </button>
@@ -405,7 +422,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
                 Posições inativas ficam bloqueadas para novos recebimentos e separações.
               </span>
             </span>
-            <span className="relative inline-flex h-[26px] w-[46px] shrink-0 items-center">
+            <span className="relative inline-flex h-[28px] w-[50px] shrink-0 items-center">
               <input
                 type="checkbox"
                 name="ativo"
@@ -413,7 +430,7 @@ export function EnderecoForm({ defaultValues, onClose, onDelete }: EnderecoFormP
                 className="peer sr-only"
               />
               <span className="absolute inset-0 rounded-full bg-[rgba(100,116,139,0.3)] transition-colors peer-checked:bg-[#10B981] dark:bg-[rgba(148,163,184,0.25)]" />
-              <span className="absolute left-[3px] h-5 w-5 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform peer-checked:translate-x-5" />
+              <span className="absolute left-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform peer-checked:translate-x-[22px]" />
             </span>
           </label>
 
@@ -492,7 +509,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
       style={{
         height: "40px",
         padding: "0 16px",
-        borderRadius: "10px",
+        borderRadius: "999px",
         fontSize: "13px",
         fontWeight: 700,
         cursor: "pointer",
