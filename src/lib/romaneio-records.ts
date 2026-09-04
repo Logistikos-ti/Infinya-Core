@@ -1287,6 +1287,18 @@ export async function completeRomaneioWithDoubleCheck({
   };
   scannedOrderIds: string[];
 }) {
+  // Foto do operador e foto/assinatura do motorista são obrigatórias pra
+  // finalizar -- decisão do usuário em 2026-09-04, depois de achar um
+  // romaneio real (ROM-20260904-7571) liberado sem nenhuma das duas.
+  // Checagem no cliente (botão desabilitado) já cobre o caminho normal;
+  // isso aqui é a trava real, já que o cliente pode ser contornado.
+  if (!photos.operadorUrl) {
+    throw new Error("A foto do operador é obrigatória para finalizar o romaneio.");
+  }
+  if (!photos.motoristaUrl) {
+    throw new Error("A foto ou assinatura do motorista é obrigatória para finalizar o romaneio.");
+  }
+
   const admin = createSupabaseAdminClient();
 
   // 1. Fetch romaneio and all linked orders

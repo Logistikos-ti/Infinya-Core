@@ -418,6 +418,14 @@ export function FecharRomaneioClient({
       setSubmitError("Informe a placa do veículo.");
       return;
     }
+    if (!operadorPhoto) {
+      setSubmitError("Tire a foto do operador.");
+      return;
+    }
+    if (!motoristaPhoto) {
+      setSubmitError("Tire a foto ou colha a assinatura do motorista.");
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -1410,7 +1418,7 @@ export function FecharRomaneioClient({
               className="rounded-2xl p-3 text-xs"
               style={{ border: `1px solid ${hexAlpha(mobileColors.amber, 0.25)}`, background: hexAlpha(mobileColors.amber, 0.1), color: mobileColors.amber }}
             >
-              Tire a foto do operador responsável e a foto do motorista / comprovante de carga para auditoria.
+              A foto do operador e a foto (ou assinatura) do motorista são obrigatórias para finalizar o romaneio.
             </div>
 
             {/* Foto Operador */}
@@ -1549,6 +1557,19 @@ export function FecharRomaneioClient({
               </div>
             )}
 
+            {(!operadorPhoto || !motoristaPhoto) && (
+              <div
+                className="rounded-xl p-3 text-xs font-medium"
+                style={{ border: `1px solid ${hexAlpha(mobileColors.amber, 0.3)}`, background: hexAlpha(mobileColors.amber, 0.08), color: mobileColors.amber }}
+              >
+                {!operadorPhoto && !motoristaPhoto
+                  ? "Falta a foto do operador e a foto (ou assinatura) do motorista."
+                  : !operadorPhoto
+                    ? "Falta a foto do operador."
+                    : "Falta a foto (ou assinatura) do motorista."}
+              </div>
+            )}
+
             {/* Navigation buttons */}
             <div className="flex gap-3 pt-2">
               <button
@@ -1564,7 +1585,7 @@ export function FecharRomaneioClient({
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !operadorPhoto || !motoristaPhoto}
                 className="flex h-12 flex-1 items-center justify-center gap-2.5 rounded-2xl px-3 text-center font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ background: mobileGradient, boxShadow: "0 10px 26px rgba(99,102,241,0.4)" }}
               >
