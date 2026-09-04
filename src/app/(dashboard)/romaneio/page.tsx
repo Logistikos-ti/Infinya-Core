@@ -26,28 +26,29 @@ export default async function RomaneioPage({ searchParams }: RomaneioPageProps) 
   const depositanteFilter =
     user.papel === "DEPOSITANTE" ? user.depositanteId ?? "" : params?.depositante?.trim() ?? "";
 
-  let schemaMissing = false;
-  let records = [] as Awaited<ReturnType<typeof listRomaneioRecordsFromDb>>;
-
-  try {
-    records = await listRomaneioRecordsFromDb(user, {
+  const [recordsResult, transportadoraOptions] = await Promise.all([
+    listRomaneioRecordsFromDb(user, {
       status: statusFilter || undefined,
       depositanteId: depositanteFilter || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      isRomaneioRecordsSchemaMissing({ message: error.message })
-    ) {
-      schemaMissing = true;
-    } else {
-      throw error;
-    }
-  }
-
-  const transportadoraOptions = await listTransportadoraOptionsFromDb();
+    })
+      .then((records) => ({ records, schemaMissing: false as const }))
+      .catch((error) => {
+        if (
+          error instanceof Error &&
+          isRomaneioRecordsSchemaMissing({ message: error.message })
+        ) {
+          return {
+            records: [] as Awaited<ReturnType<typeof listRomaneioRecordsFromDb>>,
+            schemaMissing: true as const,
+          };
+        }
+        throw error;
+      }),
+    listTransportadoraOptionsFromDb(),
+  ]);
+  const { records, schemaMissing } = recordsResult;
 
   // Peso (kg) não vem pronto no pedido -- só nos produtos do catálogo --
   // então é calculado aqui (join com pedidos_expedicao_itens/produtos) e

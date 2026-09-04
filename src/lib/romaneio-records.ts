@@ -305,10 +305,37 @@ export async function listRomaneioRecordsFromDb(user: AppUserContext, filters?: 
 }
 
 export async function getRomaneioRecordDetailFromDb(user: AppUserContext, id: string) {
-  const records = await listRomaneioRecordsFromDb(user);
-  const record = records.find((item) => item.id === id) ?? null;
+  const admin = createSupabaseAdminClient();
+  const { data: row, error } = await admin
+    .from("romaneios_carga")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-  if (!record) {
+  if (error) {
+    if (isRomaneioRecordsSchemaMissing(error)) {
+      return null;
+    }
+
+    throw new Error(`Não foi possível carregar o romaneio: ${error.message}`);
+  }
+
+  if (!row) {
+    return null;
+  }
+
+  const links = await listRomaneioLinksByRecordIds([row.id]);
+  const orderIds = [...new Set(links.map((item) => item.pedido_expedicao_id))];
+  const orders = await listShippingOrdersByIds(orderIds);
+  const orderMap = new Map(orders.map((item) => [item.id, item]));
+  const linkedOrders = links
+    .map((link) => orderMap.get(link.pedido_expedicao_id))
+    .filter((item): item is RomaneioRecordOrder => Boolean(item))
+    .sort(compareOrdersForRoute);
+
+  const record = mapRomaneioRecordListItem(row as RawRomaneioRow, linkedOrders);
+
+  if (!canUserSeeRecord(user, record)) {
     return null;
   }
 

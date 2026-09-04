@@ -1,10 +1,11 @@
 
 "use client";
 
-import React, { useActionState, useEffect, useRef, useState } from "react";
+import React, { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { 
   Loader2, 
   PackageSearch,
@@ -49,11 +50,14 @@ import {
   deleteShippingOrderAction,
   type ManualShippingOrderSubmissionState,
 } from "@/app/(dashboard)/expedicao/actions";
-import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
-import { ShippingAttachmentPreviewDialog } from "@/components/shipping/shipping-attachment-preview-dialog";
-import { ShippingFullDocumentsCard } from "@/components/shipping/shipping-full-documents-card";
-import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-attachment-upload-panel";
-import { ShippingReturnInvoiceModal } from "@/components/shipping/shipping-return-invoice-modal";
+// Drawers/dialogs abaixo só renderizam depois de uma ação do usuário (abrir
+// divergência, anexo, documentos etc.), então saem do bundle inicial da tela
+// mais acessada do app e só carregam quando realmente abertos.
+const ShippingDivergenceDrawer = dynamic(() => import("@/components/shipping/shipping-divergence-drawer").then((m) => m.ShippingDivergenceDrawer), { ssr: false });
+const ShippingAttachmentPreviewDialog = dynamic(() => import("@/components/shipping/shipping-attachment-preview-dialog").then((m) => m.ShippingAttachmentPreviewDialog), { ssr: false });
+const ShippingFullDocumentsCard = dynamic(() => import("@/components/shipping/shipping-full-documents-card").then((m) => m.ShippingFullDocumentsCard), { ssr: false });
+const ShippingAttachmentUploadPanel = dynamic(() => import("@/components/shipping/shipping-attachment-upload-panel").then((m) => m.ShippingAttachmentUploadPanel), { ssr: false });
+const ShippingReturnInvoiceModal = dynamic(() => import("@/components/shipping/shipping-return-invoice-modal").then((m) => m.ShippingReturnInvoiceModal), { ssr: false });
 import { createPortal, useFormStatus } from "react-dom";
 import { SALES_CHANNEL_OPTIONS, isMarketplaceChannel } from "@/lib/sales-channels";
 import { resolveMarketplaceCarrierName } from "@/lib/marketplace-carrier-networks";
@@ -342,13 +346,17 @@ export function ExpedicaoClient({ data }: { data: any }) {
   const isConference = activeTab === "conference";
   const isDivergence = activeTab === "divergence";
   const isPedidosFull = activeTab === "pedidos_full";
-  const ordersForOperationalQueue = isPedidosFull
-    ? data.orders
-    : data.orders.filter(
-        (order: any) =>
-          order.status !== "EXPEDIDO" ||
-          isFromCurrentMonthInSaoPaulo(order.dispatchedAtIso || order.updatedAtIso || order.createdAtIso),
-      );
+  const ordersForOperationalQueue = useMemo(
+    () =>
+      isPedidosFull
+        ? data.orders
+        : data.orders.filter(
+            (order: any) =>
+              order.status !== "EXPEDIDO" ||
+              isFromCurrentMonthInSaoPaulo(order.dispatchedAtIso || order.updatedAtIso || order.createdAtIso),
+          ),
+    [data.orders, isPedidosFull],
+  );
 
   const setOrders = () => setActiveTab("orders");
   const setDivergence = () => setActiveTab("divergence");
@@ -599,16 +607,21 @@ export function ExpedicaoClient({ data }: { data: any }) {
     return { color: "#64748B", bg: "rgba(148,163,184,0.15)", init };
   };
 
-  const filteredDataOrders = ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, activeFilter));
+  const filteredDataOrders = useMemo(
+    () => ordersForOperationalQueue.filter((order: any) => matchesOperationalFilter(order, activeFilter)),
+    [ordersForOperationalQueue, activeFilter],
+  );
 
-  const searchedOrders = filteredDataOrders.filter((o: any) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (o.displayNumber || o.code || "").toLowerCase().includes(q) || 
-           (o.customer || "").toLowerCase().includes(q) ||
-           (o.carrierName || o.channel || o.marketplace || "").toLowerCase().includes(q) ||
-           (o.nfe || "").toLowerCase().includes(q);
-  });
+  const searchedOrders = useMemo(() => {
+    return filteredDataOrders.filter((o: any) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (o.displayNumber || o.code || "").toLowerCase().includes(q) ||
+             (o.customer || "").toLowerCase().includes(q) ||
+             (o.carrierName || o.channel || o.marketplace || "").toLowerCase().includes(q) ||
+             (o.nfe || "").toLowerCase().includes(q);
+    });
+  }, [filteredDataOrders, searchQuery]);
 
   const sortValue = (order: any, key: OrderSortKey) => {
     const carrier = order.marketplace && order.marketplace !== "Não" && order.marketplace !== "Marketplace"
@@ -637,14 +650,16 @@ export function ExpedicaoClient({ data }: { data: any }) {
     }
   };
 
-  const sortedSearchedOrders = [...searchedOrders].sort((left, right) => {
-    const leftValue = sortValue(left, sort.key);
-    const rightValue = sortValue(right, sort.key);
-    const comparison = typeof leftValue === "number" && typeof rightValue === "number"
-      ? leftValue - rightValue
-      : String(leftValue).localeCompare(String(rightValue), "pt-BR", { sensitivity: "base", numeric: true });
-    return sort.direction === "asc" ? comparison : -comparison;
-  });
+  const sortedSearchedOrders = useMemo(() => {
+    return [...searchedOrders].sort((left, right) => {
+      const leftValue = sortValue(left, sort.key);
+      const rightValue = sortValue(right, sort.key);
+      const comparison = typeof leftValue === "number" && typeof rightValue === "number"
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue), "pt-BR", { sensitivity: "base", numeric: true });
+      return sort.direction === "asc" ? comparison : -comparison;
+    });
+  }, [searchedOrders, sort.key, sort.direction]);
 
   const changeSort = (key: OrderSortKey) => {
     setCurrentPage(1);

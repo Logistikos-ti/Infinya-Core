@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -34,12 +35,19 @@ import {
   MobileScanOverlay,
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
-import { DownloadRomaneioPdfButton } from "@/components/mobile/download-romaneio-pdf-button";
-import { SignaturePadOverlay } from "@/components/mobile/signature-pad";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import type { RomaneioRecordDetail, SavedDriver } from "@/lib/romaneio-records";
+
+const DownloadRomaneioPdfButton = dynamic(
+  () => import("@/components/mobile/download-romaneio-pdf-button").then((m) => m.DownloadRomaneioPdfButton),
+  { ssr: false },
+);
+const SignaturePadOverlay = dynamic(
+  () => import("@/components/mobile/signature-pad").then((m) => m.SignaturePadOverlay),
+  { ssr: false },
+);
 
 type FecharRomaneioClientProps = {
   romaneio: RomaneioRecordDetail;

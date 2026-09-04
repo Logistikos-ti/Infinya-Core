@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useFormStatus } from "react-dom";
 import { TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { createRomaneioRecordAction } from "@/app/(dashboard)/romaneio/actions";
 import type { RomaneioRecordListItem, RomaneioRecordOrder, RomaneioTransportadoraOption } from "@/lib/romaneio-records";
 import { ROMANEIO_GRADIENT, ROMANEIO_MONO } from "@/lib/romaneio-theme";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 // Mesmas 3 docas físicas usadas hoje no recebimento (RECEIVING_DOCK_OPTIONS
 // em receiving-constants.ts) -- mas mantida como constante própria aqui:
@@ -30,6 +32,22 @@ function FieldLabel({ label, children }: { label: string; children: React.ReactN
       {label}
       {children}
     </label>
+  );
+}
+
+function GerarRomaneioSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-label={pending ? "Gerando romaneio" : "Gerar romaneio"}
+      className="h-10 px-5 rounded-[9px] border-none text-sm font-extrabold"
+      style={{ background: ROMANEIO_GRADIENT, color: "#fff", cursor: pending ? "wait" : "pointer", opacity: pending ? 0.82 : 1 }}
+    >
+      {pending ? <MobileButtonSpinner size={22} color="#FFFFFF" /> : "Gerar romaneio"}
+    </button>
   );
 }
 
@@ -286,9 +304,7 @@ export function RomaneioCreateModal({ records, transportadoraOptions, orderWeigh
           >
             Cancelar
           </button>
-          <button type="submit" className="h-10 px-5 rounded-[9px] border-none text-sm font-extrabold" style={{ background: ROMANEIO_GRADIENT, color: "#fff" }}>
-            Gerar romaneio
-          </button>
+          <GerarRomaneioSubmitButton />
         </div>
       </form>
     </div>

@@ -74,6 +74,7 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
       .limit(1000),
     listShippingOrdersFromDb({
       depositanteId: effectiveDepositanteFilter || undefined,
+      lightweight: true,
     }),
     listShippingOrdersFromDb({
       status: statusFilter || undefined,
@@ -90,13 +91,24 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
   ]);
 
   const depositanteOptions = filterDepositanteOptionsByUser(user, depositantes ?? []);
-  const [shippingStats, shippingQueues] = await Promise.all([
+
+  const productOptions = (produtos ?? []).filter((produto) =>
+    depositanteOptions.some((depositante) => depositante.id === produto.depositante_id),
+  );
+  const productIds = productOptions.map((produto) => produto.id);
+
+  // Nenhuma dessas três depende das outras -- só de dados já resolvidos no
+  // Promise.all anterior -- então rodam juntas em vez de 3 idas sequenciais.
+  const [shippingStats, shippingQueues, { data: estoqueRows }] = await Promise.all([
     listShippingStatsFromDb(user, shippingOverviewOrders),
     listShippingQueuesFromDb(shippingOverviewOrders),
+    productIds.length
+      ? operationalSupabase.from("estoque").select("produto_id, quantidade, quantidade_reservada").in("produto_id", productIds)
+      : Promise.resolve({ data: [] as { produto_id: string; quantidade: number; quantidade_reservada: number }[] }),
   ]);
 
   const totalOrders = shippingOrders.length;
-  
+
   const baseQuery = {
     status: statusFilter,
     depositante: effectiveDepositanteFilter,
@@ -111,14 +123,6 @@ export default async function ExpedicaoPage({ searchParams }: ExpedicaoPageProps
     perPage: String(perPage),
   };
 
-  const productOptions = (produtos ?? []).filter((produto) =>
-    depositanteOptions.some((depositante) => depositante.id === produto.depositante_id),
-  );
-
-  const productIds = productOptions.map((produto) => produto.id);
-  const { data: estoqueRows } = productIds.length
-    ? await operationalSupabase.from("estoque").select("produto_id, quantidade, quantidade_reservada").in("produto_id", productIds)
-    : { data: [] };
   const stockByProduct = new Map<string, number>();
   for (const row of estoqueRows ?? []) {
     const disponivel = Math.max(Number(row.quantidade ?? 0) - Number(row.quantidade_reservada ?? 0), 0);

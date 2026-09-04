@@ -141,21 +141,20 @@ export default async function ConfiguracoesProdutosPage({
     productsQuery = productsQuery.eq("ativo", true).in("id", stockStatusIds);
   }
 
-  const [{ data: products, count }, { data: categoryRows }, { data: tamanhoRows }] = await Promise.all([
+  const [
+    { data: products, count },
+    { data: categoryRows },
+    { data: tamanhoRows },
+    { data: allActiveProducts },
+    { data: allStock },
+  ] = await Promise.all([
     emptyStockStatusFilter ? Promise.resolve({ data: [], count: 0 }) : productsQuery,
     adminSupabase.from("produtos").select("categoria").eq("ativo", true),
     adminSupabase.from("produtos").select("tamanho").eq("ativo", true).eq("categoria", "Vestuário"),
+    // Global KPIs for active products (independent of the paginated query above)
+    adminSupabase.from("produtos").select("id, qtd_minima").eq("ativo", true),
+    adminSupabase.from("estoque").select("produto_id, quantidade"),
   ]);
-
-  // Calculate global KPIs for active products
-  const { data: allActiveProducts } = await adminSupabase
-    .from("produtos")
-    .select("id, qtd_minima")
-    .eq("ativo", true);
-
-  const { data: allStock } = await adminSupabase
-    .from("estoque")
-    .select("produto_id, quantidade");
 
   const globalStockMap = (allStock || []).reduce((acc, curr) => {
     const qty = Number(curr.quantidade) || 0;

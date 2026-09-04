@@ -256,6 +256,13 @@ type ShippingOrderFilters = {
   invoice?: string;
   marketplace?: string;
   depositanteName?: string;
+  // Pula os joins de itens/documentos/remessa_full -- usado por
+  // listShippingStatsFromDb/listShippingQueuesFromDb, que só olham
+  // status/payload_origem/datas de cada pedido, nunca os itens ou
+  // documentos anexados. mapShippingOrderSummary já trata esses campos
+  // como opcionais (extractFullRelation/`item.itens ?? []`/`(item as
+  // any).documentos`), então reaproveitar o mesmo mapper é seguro.
+  lightweight?: boolean;
 };
 
 export type ShippingQueueSummary = {
@@ -365,11 +372,27 @@ export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   const supabase = createSupabaseAdminClient();
 
   function buildQuery() {
-    let query = supabase
-      .from("pedidos_expedicao")
-      .select(
-        "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
-      )
+    // O ternário precisa escolher entre duas chamadas .select(...) inteiras
+    // (não entre duas strings passadas pra um único .select()) -- o parser
+    // de tipos do supabase-js só resolve uma string LITERAL, não uma union
+    // de duas literais (vira ParserError em tempo de compilação).
+    const base = filters?.lightweight
+      ? // listShippingStatsFromDb/listShippingQueuesFromDb só usam status/
+        // payload_origem/datas -- pular os joins de itens/documentos/
+        // remessa_full evita levantar e mapear todo o histórico de itens/
+        // produtos/documentos só pra contar pedidos por status.
+        supabase
+          .from("pedidos_expedicao")
+          .select(
+            "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome)",
+          )
+      : supabase
+          .from("pedidos_expedicao")
+          .select(
+            "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+          );
+
+    let query = base
       .order("data_pedido", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
 
@@ -506,7 +529,7 @@ export async function listShippingStatsFromDb(
   user: AppUserContext,
   sourceOrders?: ShippingOrderSummary[],
 ) {
-  const orders = sourceOrders ?? (await listShippingOrdersFromDb());
+  const orders = sourceOrders ?? (await listShippingOrdersFromDb({ lightweight: true }));
   const aguardando = orders.filter((item) => item.status === "NOVO").length;
   const emSeparacao = orders.filter((item) =>
     ["EM_SEPARACAO", "SEPARADO", "EM_CONFERENCIA"].includes(item.status) ||
@@ -557,7 +580,7 @@ export async function listShippingStatsFromDb(
 }
 
 export async function listShippingQueuesFromDb(sourceOrders?: ShippingOrderSummary[]) {
-  const orders = sourceOrders ?? (await listShippingOrdersFromDb());
+  const orders = sourceOrders ?? (await listShippingOrdersFromDb({ lightweight: true }));
   const queueDefinitions = [
     {
       status: "NOVO",

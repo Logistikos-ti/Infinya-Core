@@ -40,7 +40,7 @@ export function ProductSearchInput({
       if (nextUrl !== currentUrl) {
         startTransition(() => router.replace(nextUrl));
       }
-    }, 50);
+    }, 300);
 
     return () => window.clearTimeout(timeout);
   }, [depositanteId, pathname, router, search, searchParams, searchParamsString]);

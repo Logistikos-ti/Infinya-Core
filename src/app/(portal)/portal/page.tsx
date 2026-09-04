@@ -102,7 +102,7 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
   const productsSearch = params?.search?.trim() ?? "";
   const ordersStatus = params?.status?.trim() ?? "";
   const ordersSearch = params?.q?.trim() ?? "";
-  const [orders, receiving, stock, quarantine] = await Promise.all([
+  const [orders, receiving, stock, quarantine, selectedOrderCandidate] = await Promise.all([
     view === "inicio" || view === "pedidos"
       ? listShippingOrdersFromDb({ depositanteId })
       : Promise.resolve([]),
@@ -115,31 +115,35 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     view === "inicio" || view === "quarentena"
       ? listStockQuarantineFromDb({ depositanteId }).then(items => items.filter(item => !item.isMissingDefaultAddress))
       : Promise.resolve([]),
+    params?.order
+      ? getShippingOrderDetailFromDb(params.order, user)
+      : Promise.resolve(null),
   ]);
   const fullShipments = view === "full" ? await listFullShipmentsFromDb(depositanteId) : [];
   const supportTickets =
     view === "suporte" ? await listSupportTicketsFromDb(depositanteId) : [];
-  const { data: receivingProductRows } =
+  const [{ data: receivingProductRows }, { data: receivingItemRows }] =
     view === "recebimento"
-      ? await adminSupabase
-          .from("produtos")
-          .select("id, nome, sku, unidade_estocagem, codigo_interno, codigo_externo")
-          .eq("depositante_id", depositanteId)
-          .eq("ativo", true)
-          .order("nome")
-      : { data: [] };
-  const { data: receivingItemRows } =
-    view === "recebimento" && receiving.length
-      ? await adminSupabase
-          .from("pedidos_recebimento_itens")
-          .select(
-            "id, pedido_recebimento_id, quantidade_prevista, quantidade_recebida, status, produto:produtos(sku, nome)",
-          )
-          .in(
-            "pedido_recebimento_id",
-            receiving.map((order) => order.id),
-          )
-      : { data: [] };
+      ? await Promise.all([
+          adminSupabase
+            .from("produtos")
+            .select("id, nome, sku, unidade_estocagem, codigo_interno, codigo_externo")
+            .eq("depositante_id", depositanteId)
+            .eq("ativo", true)
+            .order("nome"),
+          receiving.length
+            ? adminSupabase
+                .from("pedidos_recebimento_itens")
+                .select(
+                  "id, pedido_recebimento_id, quantidade_prevista, quantidade_recebida, status, produto:produtos(sku, nome)",
+                )
+                .in(
+                  "pedido_recebimento_id",
+                  receiving.map((order) => order.id),
+                )
+            : Promise.resolve({ data: [] }),
+        ])
+      : [{ data: [] }, { data: [] }];
   const receivingItemsByOrder = new Map<
     string,
     Array<{ id: string; sku: string; nome: string; expected: number; received: number; status: string }>
@@ -189,9 +193,6 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
     estoque_disponivel: stockByProduct.get(product.id) ?? 0,
   }));
   const integrationConfig = portalDepositanteConfig;
-  const selectedOrderCandidate = params?.order
-    ? await getShippingOrderDetailFromDb(params.order, user)
-    : null;
   const selectedOrder = selectedOrderCandidate?.depositanteId === depositanteId
     ? selectedOrderCandidate
     : null;
