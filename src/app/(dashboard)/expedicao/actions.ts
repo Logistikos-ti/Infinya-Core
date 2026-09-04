@@ -913,6 +913,8 @@ function getXmlImportFeedbackDetail(feedback: string) {
     "xml-entrada": "Envie uma NF-e de saída para criar um pedido de expedição.",
     "nf-duplicada": "Já existe um pedido com este número de nota fiscal para este depositante.",
     "xml-produtos-nao-mapeados": "Há item(ns) da NF-e sem produto correspondente no catálogo do depositante.",
+    "transportadora-nao-identificada":
+      "Esta XML não informa a transportadora, e o campo \"Transportadora física\" não foi preenchido. Selecione uma opção (ex.: Coleta Marketplace) ou digite o nome da transportadora antes de importar.",
     erro: "Não foi possível importar o pedido. Revise os dados e tente novamente.",
   };
 
@@ -979,6 +981,7 @@ async function createXmlShippingOrderSubmission(formData: FormData): Promise<Man
   if (parsedNfe.direction !== "SAIDA") fail("xml-entrada");
   const invoiceNumber = parsedNfe.noteNumber.trim();
   if (!invoiceNumber || invoiceNumber === "Sem numero") fail("nf-invalida");
+  if (!carrierName && !parsedNfe.carrierName) fail("transportadora-nao-identificada");
 
   const adminSupabase = createSupabaseAdminClient();
   const { data: existingOrders, error: existingOrdersError } = await adminSupabase
