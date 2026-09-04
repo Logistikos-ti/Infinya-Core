@@ -740,7 +740,7 @@ export function ShippingConferencePanel({
           orderId={order.id}
           orderCode={order.code}
           customerName={order.customer}
-          carrierHint={order.marketplace}
+          carrierHint={order.carrierName}
           isDesktop={true}
           redirectRomaneioUrl="/romaneio"
           redirectConferenceUrl="/expedicao/conferencia?feedback=romaneio_ok"
