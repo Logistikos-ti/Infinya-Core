@@ -358,7 +358,7 @@ function normalizePositiveNumber(value: string | undefined, fallback: number) {
 
 function normalizePerPage(value: string | undefined) {
   const parsed = Number.parseInt(value ?? "", 10);
-  return [12, 20, 50].includes(parsed) ? parsed : 12;
+  return [10, 12, 50, 60].includes(parsed) ? parsed : 10;
 }
 
 function buildQueryString(values: Record<string, string>) {
