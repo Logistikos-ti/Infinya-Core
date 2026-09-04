@@ -519,7 +519,7 @@ export function FinanceiroApp(props: Props) {
             <span key="m" className={COL_MUTED}>{formatMesAno(f.mesAno)}</span>,
             <span key="v" className={COL_MUTED_MONO}>{formatDateBr(f.vencimento)}</span>,
             <span key="val" className={COL_VALUE}>{fmt(f.valor)}</span>,
-            <div key="s" className="flex items-center gap-1.5">
+            <div key="s" className="flex w-full items-center justify-between gap-1.5">
               <FinBadge status={f.status} />
               {f.boletoUrl && f.status !== "PAGO" && (
                 <button

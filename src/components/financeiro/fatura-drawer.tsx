@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Paperclip, Loader2 } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import { FIN_HEADING, FIN_MONO, FinBadge, Drawer, Kv, MiniKv, DrawerSection, insumoNomeFromDescricao } from "@/components/financeiro/fin-ui";
+import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 // Drawer de fatura reaproveitado tal e qual entre a aba Financeiro (admin) e
 // a aba Faturas do portal do depositante — mesmo componente, mesmas
@@ -171,7 +172,7 @@ function BoletoButton({
         title="Anexar boleto"
         className={`flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white transition hover:brightness-105 ${uploading ? "opacity-70" : "cursor-pointer"}`}
       >
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+        {uploading ? <MobileButtonSpinner size={16} /> : <Paperclip className="h-4 w-4" />}
         <input
           ref={inputRef}
           type="file"
