@@ -1256,6 +1256,7 @@ export async function completeRomaneioWithDoubleCheck({
   photos: {
     operadorUrl?: string | null;
     motoristaUrl?: string | null;
+    motoristaCaptureType?: "foto" | "assinatura" | null;
   };
   scannedOrderIds: string[];
 }) {
@@ -1299,6 +1300,11 @@ export async function completeRomaneioWithDoubleCheck({
   const obsPayload = {
     foto_operador_url: photos.operadorUrl ?? null,
     foto_motorista_url: photos.motoristaUrl ?? null,
+    // Ausente em romaneios fechados antes desta coluna existir -- os
+    // leitores (visualizar/page.tsx, foto/page.tsx, romaneio-pdf.ts)
+    // tratam a ausência da chave como "foto", idêntico ao comportamento
+    // de sempre (só a assinatura na tela é um caminho novo).
+    foto_motorista_tipo: photos.motoristaUrl ? photos.motoristaCaptureType ?? "foto" : null,
     conferido_em: new Date().toISOString(),
     conferido_por: user.nome || user.email,
   };

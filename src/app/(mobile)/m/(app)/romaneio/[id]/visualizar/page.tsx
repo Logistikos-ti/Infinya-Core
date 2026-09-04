@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Eye, IdCard, PackageCheck, Truck, User } from "lucide-react";
+import { CheckCircle2, Eye, IdCard, PackageCheck, PenLine, Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { getCarrierBrand } from "@/lib/carrier-branding";
@@ -16,6 +16,10 @@ type VisualizarRomaneioPageProps = {
 type ConferenciaInfo = {
   fotoOperadorUrl: string | null;
   fotoMotoristaUrl: string | null;
+  /** "assinatura" quando o motorista assinou na tela em vez de ser
+   * fotografado -- ausente em romaneios fechados antes dessa opção
+   * existir, tratado como "foto" (comportamento de sempre). */
+  fotoMotoristaTipo: "foto" | "assinatura";
   conferidoEm: string | null;
   conferidoPor: string | null;
 };
@@ -28,6 +32,7 @@ function parseConferenciaInfo(notes: string | null): ConferenciaInfo | null {
     return {
       fotoOperadorUrl: typeof parsed.foto_operador_url === "string" ? parsed.foto_operador_url : null,
       fotoMotoristaUrl: typeof parsed.foto_motorista_url === "string" ? parsed.foto_motorista_url : null,
+      fotoMotoristaTipo: parsed.foto_motorista_tipo === "assinatura" ? "assinatura" : "foto",
       conferidoEm: typeof parsed.conferido_em === "string" ? parsed.conferido_em : null,
       conferidoPor: typeof parsed.conferido_por === "string" ? parsed.conferido_por : null,
     };
@@ -149,8 +154,15 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
               )}
               {conferencia.fotoMotoristaUrl && (
                 <PhotoCheck
-                  icon={<Truck className="h-3.5 w-3.5" />}
-                  label="Motorista / Carga"
+                  icon={
+                    conferencia.fotoMotoristaTipo === "assinatura" ? (
+                      <PenLine className="h-3.5 w-3.5" />
+                    ) : (
+                      <Truck className="h-3.5 w-3.5" />
+                    )
+                  }
+                  label={conferencia.fotoMotoristaTipo === "assinatura" ? "Assinatura do Motorista" : "Motorista / Carga"}
+                  hint={conferencia.fotoMotoristaTipo === "assinatura" ? "Toque para ver a assinatura" : "Toque para ver a foto"}
                   url={`/m/romaneio/${romaneio.id}/foto?type=motorista`}
                 />
               )}
@@ -228,7 +240,17 @@ export default async function VisualizarRomaneioPage({ params }: VisualizarRoman
 // way back" problem already fixed for the PDF export. A same-tab in-app
 // route sidesteps both. The checkmark still communicates "captured" at a
 // glance; the small Eye hint is what tells the operator it's tappable.
-function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url: string }) {
+function PhotoCheck({
+  icon,
+  label,
+  url,
+  hint = "Toque para ver a foto",
+}: {
+  icon: ReactNode;
+  label: string;
+  url: string;
+  hint?: string;
+}) {
   return (
     <Link
       href={url}
@@ -242,7 +264,7 @@ function PhotoCheck({ icon, label, url }: { icon: ReactNode; label: string; url:
         {label}
       </span>
       <span className="text-[9.5px] font-medium" style={{ color: hexAlpha(mobileColors.green, 0.75) }}>
-        Toque para ver a foto
+        {hint}
       </span>
     </Link>
   );

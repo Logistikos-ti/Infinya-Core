@@ -65,6 +65,7 @@ type InfoField = {
 type PhotoChecks = {
   hasOperatorPhoto: boolean;
   hasDriverPhoto: boolean;
+  driverIsSignature: boolean;
 };
 
 type PageOptions = {
@@ -187,15 +188,16 @@ function buildPersistedRomaneioPages(record: RomaneioRecordDetail) {
  * of the printed document on purpose), just whether each one was taken.
  */
 function parseConferenciaPhotos(notes: string | null): PhotoChecks {
-  if (!notes) return { hasOperatorPhoto: false, hasDriverPhoto: false };
+  if (!notes) return { hasOperatorPhoto: false, hasDriverPhoto: false, driverIsSignature: false };
   try {
     const parsed = JSON.parse(notes) as Record<string, unknown>;
     return {
       hasOperatorPhoto: typeof parsed.foto_operador_url === "string" && parsed.foto_operador_url.length > 0,
       hasDriverPhoto: typeof parsed.foto_motorista_url === "string" && parsed.foto_motorista_url.length > 0,
+      driverIsSignature: parsed.foto_motorista_tipo === "assinatura",
     };
   } catch {
-    return { hasOperatorPhoto: false, hasDriverPhoto: false };
+    return { hasOperatorPhoto: false, hasDriverPhoto: false, driverIsSignature: false };
   }
 }
 
@@ -535,17 +537,25 @@ function drawPhotoChecks(ops: string[], topY: number, photos: PhotoChecks) {
   const cardW = (CONTENT_W - gap) / 2;
   const y = topY - cardH;
 
-  const labels: string[] = [];
-  if (photos.hasOperatorPhoto) labels.push("Foto do operador");
-  if (photos.hasDriverPhoto) labels.push("Foto do motorista");
+  const items: { label: string; caption: string }[] = [];
+  if (photos.hasOperatorPhoto) {
+    items.push({ label: "Foto do operador", caption: "Confirmada no ato da coleta" });
+  }
+  if (photos.hasDriverPhoto) {
+    items.push(
+      photos.driverIsSignature
+        ? { label: "Assinatura do motorista", caption: "Assinada no ato da coleta" }
+        : { label: "Foto do motorista", caption: "Confirmada no ato da coleta" },
+    );
+  }
 
-  labels.forEach((label, index) => {
+  items.forEach((item, index) => {
     const x = MARGIN + index * (cardW + gap);
     fillStrokeRoundedRect(ops, x, y, cardW, cardH, 9, tint(GREEN, 0.08), tint(GREEN, 0.32), 0.85);
     fillCircle(ops, x + 25, y + cardH / 2, 11, tint(GREEN, 0.2));
     drawCheckIcon(ops, x + 19, y + cardH / 2 - 5, 12, GREEN_DEEP);
-    text(ops, x + 45, y + cardH / 2 + 2.5, label, 9.8, TEXT_DARK, true);
-    text(ops, x + 45, y + cardH / 2 - 10, "Confirmada no ato da coleta", 7.6, GREEN_DEEP, false);
+    text(ops, x + 45, y + cardH / 2 + 2.5, item.label, 9.8, TEXT_DARK, true);
+    text(ops, x + 45, y + cardH / 2 - 10, item.caption, 7.6, GREEN_DEEP, false);
   });
 
   return y;

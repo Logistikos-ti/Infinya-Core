@@ -154,7 +154,18 @@ export async function uploadRomaneioPhotoAction(params: {
     const base64Clean = matches ? matches[2] : params.base64Data;
     const buffer = Buffer.from(base64Clean, "base64");
 
-    const filePath = `romaneios/${params.romaneioId}/${params.type}-${Date.now()}.jpg`;
+    // Extension must track the real contentType -- the signature pad
+    // produces PNG (SignaturePadOverlay's toDataURL("image/png")) while
+    // camera captures stay JPEG. Content-Type in Storage was always
+    // correct; only the file extension used to be hardcoded to .jpg.
+    const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+      "image/webp": "webp",
+    };
+    const extension = EXTENSION_BY_CONTENT_TYPE[contentType] ?? "jpg";
+    const filePath = `romaneios/${params.romaneioId}/${params.type}-${Date.now()}.${extension}`;
 
     const { error: uploadError } = await admin.storage
       .from("wms-documentos")
@@ -186,6 +197,7 @@ export async function completeRomaneioWithDoubleCheckAction(params: {
   photos: {
     operadorUrl?: string | null;
     motoristaUrl?: string | null;
+    motoristaCaptureType?: "foto" | "assinatura" | null;
   };
   scannedOrderIds: string[];
 }) {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Truck, User } from "lucide-react";
+import { PenLine, Truck, User } from "lucide-react";
 import { requireModuleAccess } from "@/lib/auth";
 import { getRomaneioRecordDetailFromDb } from "@/lib/romaneio-records";
 import { mobileColors, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
@@ -36,14 +36,15 @@ export default async function FotoRomaneioPage({ params, searchParams }: FotoRom
     notFound();
   }
 
-  const hasPhoto = parseHasPhoto(romaneio.conferenceInfoJson, type);
+  const { hasPhoto, captureType } = parsePhotoMeta(romaneio.conferenceInfoJson, type);
   if (!hasPhoto) {
     notFound();
   }
 
   const imageSrc = `/api/romaneio/${id}/foto?type=${type}`;
-  const label = type === "operador" ? "Foto do operador" : "Foto do motorista / carga";
-  const Icon = type === "operador" ? User : Truck;
+  const isSignature = type === "motorista" && captureType === "assinatura";
+  const label = isSignature ? "Assinatura do motorista" : type === "operador" ? "Foto do operador" : "Foto do motorista / carga";
+  const Icon = isSignature ? PenLine : type === "operador" ? User : Truck;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -104,20 +105,23 @@ export default async function FotoRomaneioPage({ params, searchParams }: FotoRom
       </div>
 
       <div style={{ flexShrink: 0, padding: "0 18px 24px" }}>
-        <DownloadPhotoButton imageSrc={imageSrc} fileName={`romaneio-${romaneio.code}-${type}.jpg`} />
+        <DownloadPhotoButton imageSrc={imageSrc} fileName={`romaneio-${romaneio.code}-${type}.${isSignature ? "png" : "jpg"}`} />
       </div>
     </div>
   );
 }
 
-function parseHasPhoto(notes: string | null, type: "operador" | "motorista") {
-  if (!notes) return false;
+function parsePhotoMeta(notes: string | null, type: "operador" | "motorista") {
+  const empty = { hasPhoto: false, captureType: "foto" as const };
+  if (!notes) return empty;
   try {
     const parsed = JSON.parse(notes) as Record<string, unknown>;
     const key = type === "operador" ? "foto_operador_url" : "foto_motorista_url";
     const value = parsed[key];
-    return typeof value === "string" && value.length > 0;
+    const hasPhoto = typeof value === "string" && value.length > 0;
+    const captureType = parsed.foto_motorista_tipo === "assinatura" ? ("assinatura" as const) : ("foto" as const);
+    return { hasPhoto, captureType };
   } catch {
-    return false;
+    return empty;
   }
 }

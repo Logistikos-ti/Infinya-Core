@@ -15,6 +15,7 @@ import {
   Keyboard,
   List,
   PackageCheck,
+  PenLine,
   RotateCcw,
   Truck,
   User,
@@ -34,6 +35,7 @@ import {
   type ScanOverlayState,
 } from "@/components/mobile/mobile-kit";
 import { DownloadRomaneioPdfButton } from "@/components/mobile/download-romaneio-pdf-button";
+import { SignaturePadOverlay } from "@/components/mobile/signature-pad";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { useFacePhotoCapture } from "@/hooks/use-face-photo-capture";
 import { getCarrierBrand } from "@/lib/carrier-branding";
@@ -100,6 +102,11 @@ export function FecharRomaneioClient({
   // Photo state
   const [operadorPhoto, setOperadorPhoto] = useState<string | null>(null);
   const [motoristaPhoto, setMotoristaPhoto] = useState<string | null>(null);
+  // "foto" quando capturado pela câmera facial, "assinatura" quando pelo
+  // SignaturePadOverlay -- só existe pro card do motorista (o operador é
+  // sempre fotografado, sem alternativa).
+  const [motoristaCaptureType, setMotoristaCaptureType] = useState<"foto" | "assinatura" | null>(null);
+  const [signaturePadOpen, setSignaturePadOpen] = useState(false);
   const [faceCameraTarget, setFaceCameraTarget] = useState<"operador" | "motorista" | null>(null);
   const [faceCaptureFlash, setFaceCaptureFlash] = useState(false);
   // Mirrors faceCameraTarget synchronously so the capture callback always
@@ -354,6 +361,7 @@ export function FecharRomaneioClient({
       setOperadorPhoto(dataUrl);
     } else if (faceCameraTargetRef.current === "motorista") {
       setMotoristaPhoto(dataUrl);
+      setMotoristaCaptureType("foto");
     }
 
     // Brief success flash over the camera view before it closes, mirroring
@@ -367,6 +375,15 @@ export function FecharRomaneioClient({
   }, []);
 
   const faceCapture = useFacePhotoCapture({ onCaptured: handleFaceCaptured });
+
+  // Fired by SignaturePadOverlay's "Confirmar assinatura" -- only ever used
+  // for the motorista card (the operator is never asked to sign, only
+  // photographed).
+  const handleSignatureCaptured = useCallback((dataUrl: string) => {
+    setMotoristaPhoto(dataUrl);
+    setMotoristaCaptureType("assinatura");
+    setSignaturePadOpen(false);
+  }, []);
 
   useEffect(() => {
     if (faceCameraTarget) {
@@ -428,6 +445,7 @@ export function FecharRomaneioClient({
         photos: {
           operadorUrl: opUrl,
           motoristaUrl: motUrl,
+          motoristaCaptureType: motUrl ? motoristaCaptureType ?? "foto" : null,
         },
         scannedOrderIds: Array.from(scannedIds),
       });
@@ -1194,6 +1212,18 @@ export function FecharRomaneioClient({
         </div>
       ) : null}
 
+      {/* Signature overlay -- only reachable from the motorista card, for
+          drivers who refuse to be photographed. Same full-screen dark
+          shell as the face-capture camera above so switching between the
+          two capture modes doesn't feel like leaving the app. */}
+      {signaturePadOpen ? (
+        <SignaturePadOverlay
+          title="Assinatura do Motorista"
+          onCancel={() => setSignaturePadOpen(false)}
+          onConfirm={handleSignatureCaptured}
+        />
+      ) : null}
+
       {/* Header */}
       <div style={{ flexShrink: 0, padding: "18px 18px 14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
         <button
@@ -1426,8 +1456,12 @@ export function FecharRomaneioClient({
             <div className="rounded-[24px] p-4 space-y-3" style={cardStyle}>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-xs font-bold" style={{ color: mobileColors.text }}>
-                  <Truck className="h-4 w-4" style={{ color: mobileColors.amber }} />
-                  Foto do Motorista / Carga
+                  {motoristaCaptureType === "assinatura" ? (
+                    <PenLine className="h-4 w-4" style={{ color: mobileColors.amber }} />
+                  ) : (
+                    <Truck className="h-4 w-4" style={{ color: mobileColors.amber }} />
+                  )}
+                  {motoristaCaptureType === "assinatura" ? "Assinatura do Motorista" : "Foto do Motorista / Carga"}
                 </span>
                 {motoristaPhoto && (
                   <span
@@ -1446,28 +1480,53 @@ export function FecharRomaneioClient({
                 >
                   <CheckCircle2 className="h-8 w-8" style={{ color: mobileColors.green }} />
                   <span className="text-xs font-semibold" style={{ color: mobileColors.green }}>
-                    Foto capturada e protegida
+                    {motoristaCaptureType === "assinatura" ? "Assinatura capturada e protegida" : "Foto capturada e protegida"}
                   </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        motoristaCaptureType === "assinatura" ? setSignaturePadOpen(true) : openFaceCamera("motorista")
+                      }
+                      className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {motoristaCaptureType === "assinatura" ? "Assinar novamente" : "Tirar novamente"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        motoristaCaptureType === "assinatura" ? openFaceCamera("motorista") : setSignaturePadOpen(true)
+                      }
+                      className="text-[11px] font-semibold underline underline-offset-2"
+                      style={{ color: mobileColors.muted }}
+                    >
+                      {motoristaCaptureType === "assinatura" ? "Usar foto em vez disso" : "Assinar em vez disso"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
                   <button
                     type="button"
                     onClick={() => openFaceCamera("motorista")}
-                    className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold"
-                    style={{ background: hexAlpha("#94A3B8", 0.1), color: mobileColors.text }}
+                    className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed"
+                    style={{ borderColor: hexAlpha("#94A3B8", 0.25), background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    Tirar novamente
+                    <Camera className="h-8 w-8" style={{ color: mobileColors.amber }} />
+                    <span className="text-xs font-semibold">Tirar Foto do Motorista / Carga</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignaturePadOpen(true)}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[11.5px] font-semibold"
+                    style={{ background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
+                  >
+                    <PenLine className="h-3.5 w-3.5" style={{ color: mobileColors.amber }} />
+                    Motorista se recusa a foto? Assinar na tela
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => openFaceCamera("motorista")}
-                  className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed"
-                  style={{ borderColor: hexAlpha("#94A3B8", 0.25), background: hexAlpha("#94A3B8", 0.05), color: mobileColors.muted }}
-                >
-                  <Camera className="h-8 w-8" style={{ color: mobileColors.amber }} />
-                  <span className="text-xs font-semibold">Tirar Foto do Motorista / Carga</span>
-                </button>
               )}
             </div>
 

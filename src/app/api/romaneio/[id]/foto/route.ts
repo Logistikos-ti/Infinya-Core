@@ -64,16 +64,32 @@ export async function GET(request: Request, { params }: RouteProps) {
     return NextResponse.json({ error: "Não foi possível carregar a foto." }, { status: 500 });
   }
 
-  return respondWithImage(Buffer.from(await data.arrayBuffer()), "image/jpeg", type);
+  const bytes = Buffer.from(await data.arrayBuffer());
+  return respondWithImage(bytes, detectImageContentType(bytes), type);
+}
+
+// PNG signature: 89 50 4E 47. Anything else is assumed JPEG -- the only
+// two formats this flow ever produces (camera captures stay JPEG, the
+// signature pad's toDataURL("image/png") is the one PNG source). Sniffing
+// the real bytes here instead of hardcoding "image/jpeg" (the old bug):
+// serving a PNG signature with a false image/jpeg Content-Type broke the
+// <img> on the mobile viewer page, since X-Content-Type-Options: nosniff
+// below stops the browser from correcting a wrong declared type.
+function detectImageContentType(bytes: Buffer): string {
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  return "image/jpeg";
 }
 
 function respondWithImage(bytes: Buffer, contentType: string, type: "operador" | "motorista") {
+  const extension = contentType === "image/png" ? "png" : "jpg";
   return new NextResponse(new Uint8Array(bytes), {
     status: 200,
     headers: {
       "Content-Type": contentType,
       "Content-Length": String(bytes.byteLength),
-      "Content-Disposition": `inline; filename="romaneio-${type}.jpg"`,
+      "Content-Disposition": `inline; filename="romaneio-${type}.${extension}"`,
       "Cache-Control": "private, max-age=60",
       "X-Content-Type-Options": "nosniff",
     },
