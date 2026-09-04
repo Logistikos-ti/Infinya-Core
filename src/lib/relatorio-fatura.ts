@@ -216,6 +216,8 @@ type LancamentoRow = {
   referencia_tipo: string | null;
   referencia_id: string | null;
   contrato_snapshot: Record<string, unknown> | null;
+  memoria_calculo: Record<string, unknown> | null;
+  created_at: string;
 };
 
 // Tipos cobrados como agregado mensal (1 lançamento cujo `quantidade` já é a
@@ -297,7 +299,7 @@ async function fetchAllLancamentosDaFatura(
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await admin
       .from("lancamentos")
-      .select("id, tipo_servico, valor_total, valor_unitario, quantidade, descricao, referencia_tipo, referencia_id, contrato_snapshot")
+      .select("id, tipo_servico, valor_total, valor_unitario, quantidade, descricao, referencia_tipo, referencia_id, contrato_snapshot, memoria_calculo, created_at")
       .eq("fatura_id", faturaId)
       .eq("estornado", false)
       .order("id")
@@ -468,7 +470,7 @@ export async function buildRelatorioFaturaData(faturaId: string): Promise<Relato
   );
   const produtoNomeById = new Map(produtos.map((p) => [(p as { id: string }).id, (p as { nome: string }).nome]));
 
-  const recebimentos: RelatorioRecebimentoItem[] = itensRecebimento
+  const recebimentosReais: RelatorioRecebimentoItem[] = itensRecebimento
     .map((i) => {
       const item = i as { produto_id: string; quantidade_recebida: number; updated_at: string };
       return {
@@ -477,8 +479,46 @@ export async function buildRelatorioFaturaData(faturaId: string): Promise<Relato
         data: (item.updated_at ?? "").slice(0, 10),
       };
     })
-    .filter((r) => r.quantidade > 0)
-    .sort((a, b) => (a.data < b.data ? 1 : -1));
+    .filter((r) => r.quantidade > 0);
+
+  // Recebimentos cobrados "fora do app" (evento físico faturado sem um
+  // pedidos_recebimento real por trás — ver [[recebimentos-fora-app-backfill]])
+  // não têm pedidos_recebimento_itens pra buscar aqui, então a lista ficava
+  // vazia e a aba "Recebimentos" inteira sumia do relatório. Nesses casos o
+  // detalhe por SKU foi preservado em `memoria_calculo.itens` no próprio
+  // lançamento — usa isso como origem alternativa.
+  const idsComItensReais = new Set(itensRecebimento.map((i) => (i as { pedido_recebimento_id: string }).pedido_recebimento_id));
+  const lancamentosOrfaos = recebimentoLancamentos.filter(
+    (l) => l.referencia_id && !idsComItensReais.has(l.referencia_id),
+  );
+  const skusOrfaos = Array.from(
+    new Set(
+      lancamentosOrfaos.flatMap((l) => {
+        const itens = (l.memoria_calculo as { itens?: { sku?: string }[] } | null)?.itens ?? [];
+        return itens.map((it) => it.sku).filter((sku): sku is string => Boolean(sku));
+      }),
+    ),
+  );
+  const produtosPorSku = skusOrfaos.length
+    ? await fetchRowsInChunks(skusOrfaos, 200, (chunk) =>
+        admin.from("produtos").select("sku, nome").eq("depositante_id", dep?.id ?? "").in("sku", chunk),
+      )
+    : [];
+  const produtoNomePorSku = new Map(produtosPorSku.map((p) => [(p as { sku: string }).sku, (p as { nome: string }).nome]));
+
+  const recebimentosOrfaos: RelatorioRecebimentoItem[] = lancamentosOrfaos.flatMap((l) => {
+    const itens = (l.memoria_calculo as { itens?: { sku?: string; quantidade?: number }[] } | null)?.itens ?? [];
+    const data = l.created_at.slice(0, 10);
+    return itens
+      .filter((it) => it.sku && Number(it.quantidade) > 0)
+      .map((it) => ({
+        produto: produtoNomePorSku.get(it.sku as string) ?? (it.sku as string),
+        quantidade: Number(it.quantidade),
+        data,
+      }));
+  });
+
+  const recebimentos = [...recebimentosReais, ...recebimentosOrfaos].sort((a, b) => (a.data < b.data ? 1 : -1));
 
   const statusLabel: Record<string, string> = {
     ABERTA: "Aberta",
