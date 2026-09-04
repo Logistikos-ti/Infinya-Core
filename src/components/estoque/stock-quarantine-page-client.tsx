@@ -16,6 +16,7 @@ import { quarantineDonatedLabel } from "@/lib/quarantine-labels";
 import { NotificationBell } from "@/components/notification-bell";
 import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 type DepositanteOption = {
   id: string;
@@ -88,6 +89,7 @@ export function StockQuarantinePageClient({
   canConfirm,
 }: StockQuarantinePageClientProps) {
   const router = useRouter();
+  useRealtimeRefresh([{ table: "estoque_quarentena" }]);
   const { theme } = useTheme();
   // Guarda de montagem: o layout raiz usa defaultTheme="dark", então o SSR
   // sempre renderiza como se fosse escuro. Sem essa guarda, useTheme()

@@ -6,6 +6,7 @@ import { Check, Download, Eye, Truck } from "lucide-react";
 import { mobileColors, mobileGradient, hexAlpha, headingFont } from "@/components/mobile/mobile-kit-tokens";
 import { getCarrierBrand } from "@/lib/carrier-branding";
 import { formatDatePtBr, getSaoPauloDateStamp } from "@/lib/utils";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import type { RomaneioRecordListItem } from "@/lib/romaneio-records";
 
 type Tab = "abertos" | "finalizados";
@@ -99,6 +100,8 @@ export function RomaneioListClient({ records }: { records: RomaneioRecordListIte
     [records, currentMonthKey],
   );
   const activeRecords = tab === "abertos" ? openRecords : finalizedRecords;
+
+  useRealtimeRefresh([{ table: "romaneios_carga" }, { table: "romaneios_carga_pedidos" }]);
 
   return (
     <section className="space-y-3 mt-2">

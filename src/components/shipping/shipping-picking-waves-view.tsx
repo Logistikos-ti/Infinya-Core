@@ -9,6 +9,7 @@ import { Clock, CheckCircle2, X, Waves, ClipboardList, Box, CheckSquare, Square,
 import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import { createShippingWaveAction, startShippingWaveAction, deleteShippingWavesAction } from "@/app/(dashboard)/expedicao/separacao/actions";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 export function ShippingPickingWavesView({
   orders,
@@ -250,6 +251,8 @@ export function ShippingPickingWavesView({
     const ids = wave.orders.join(",");
     router.push(`/expedicao/separacao/lote?ids=${encodeURIComponent(ids)}&wave=${encodeURIComponent(wave.code)}`);
   };
+
+  useRealtimeRefresh([{ table: "ondas_separacao" }, { table: "ondas_separacao_pedidos" }]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", opacity: 0.95 }}>

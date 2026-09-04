@@ -11,6 +11,7 @@ import type { GeneralInventoryDetail } from "@/lib/general-inventories";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InventoryCountingView } from "@/components/estoque/inventory-counting-view";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 type Option = { id: string; nome: string };
 
@@ -85,6 +86,8 @@ export function InventoryRunsPageClient({
   currentUserId,
 }: InventoryRunsPageClientProps) {
   const router = useRouter();
+
+  useRealtimeRefresh([{ table: "contagens_estoque" }, { table: "inventarios_gerais" }]);
 
   const [depositanteId, setDepositanteId] = useState(initialDepositanteId);
   const [stage, setStage] = useState<InventoryRunStage>("PROGRAMADO");

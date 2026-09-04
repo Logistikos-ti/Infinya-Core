@@ -1,7 +1,8 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function useSupportUnreadCounts() {
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -27,6 +28,58 @@ export function useSupportUnreadCounts() {
     const interval = window.setInterval(load, 5000);
     return () => window.clearInterval(interval);
   }, [load]);
+
+  // Realtime: reage na hora a mudanças de chamados/comentários/leituras em
+  // vez de esperar o próximo poll -- o setInterval acima continua rodando
+  // como rede de segurança caso o websocket caia. Mesmo padrão de
+  // debounce/cleanup do useRealtimeRefresh compartilhado
+  // (src/hooks/use-realtime-refresh.ts), mas chamando `load()` (fetch
+  // client-side) em vez de router.refresh(), já que este hook não vive
+  // numa página Server Component.
+  const loadRef = useRef(load);
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleLoad = () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+      debounceTimer = setTimeout(() => {
+        void loadRef.current();
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel("support-notifications-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "suporte_chamados" },
+        scheduleLoad,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "suporte_comentarios" },
+        scheduleLoad,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "suporte_leituras" },
+        scheduleLoad,
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const markRead = useCallback((ticketId: string) => {
     setCounts((current) => ({ ...current, [ticketId]: 0 }));

@@ -12,6 +12,7 @@ import { DanfeRomaneioModal } from "@/components/mobile/danfe-romaneio-modal";
 import { InsumoConsumoModal } from "@/components/shipping/insumo-consumo-modal";
 import { InactivityWarningDialog } from "@/components/operations/inactivity-warning-dialog";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import type { PickingOperatorOption } from "@/lib/shipping-picking";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 import { pickConferenceScanMatchIndex } from "@/lib/shipping-conference-scan";
@@ -60,6 +61,8 @@ export function ShippingConferencePanel({
   documents,
 }: ShippingConferencePanelProps) {
   const router = useRouter();
+
+  useRealtimeRefresh([{ table: "pedidos_expedicao" }]);
 
   const { theme } = useTheme();
   const isDark = theme === "dark";

@@ -58,6 +58,7 @@ import { createPortal, useFormStatus } from "react-dom";
 import { SALES_CHANNEL_OPTIONS, isMarketplaceChannel } from "@/lib/sales-channels";
 import { resolveMarketplaceCarrierName } from "@/lib/marketplace-carrier-networks";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 const initialManualShippingOrderSubmissionState: ManualShippingOrderSubmissionState = { status: "idle" };
 
@@ -333,6 +334,8 @@ export function ExpedicaoClient({ data }: { data: any }) {
     const timeout = window.setTimeout(() => setManualOrderSuccessVisible(false), 5000);
     return () => window.clearTimeout(timeout);
   }, [manualOrderResult.status, router]);
+
+  useRealtimeRefresh([{ table: "pedidos_expedicao" }, { table: "pedidos_expedicao_itens" }]);
 
   const isOrders = activeTab === "orders";
   const isWaves = activeTab === "waves";

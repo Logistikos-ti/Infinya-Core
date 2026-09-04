@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Plus, Search } from "lucide-react";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 import { NotificationBell } from "@/components/notification-bell";
 import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -194,6 +195,8 @@ export function RomaneioDashboard({ records = [], transportadoraOptions, orderWe
       setExporting(false);
     }
   }
+
+  useRealtimeRefresh([{ table: "romaneios_carga" }, { table: "romaneios_carga_pedidos" }]);
 
   return (
     <div className="romaneio-theme flex h-full flex-col">

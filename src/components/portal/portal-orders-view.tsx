@@ -15,6 +15,7 @@ import { ShippingAttachmentUploadPanel } from "@/components/shipping/shipping-at
 import { ShippingDivergenceDrawer } from "@/components/shipping/shipping-divergence-drawer";
 import { requestPortalOrderCancellationAction } from "@/app/(portal)/portal/cancel-action";
 import { setShippingOrderPriorityAction } from "@/app/(dashboard)/expedicao/actions";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 const filters = [
   { label: "Todos", value: "" },
@@ -45,6 +46,7 @@ export function PortalOrdersView({ orders, products, depositanteId, depositanteN
   canCreateManualOrder?: boolean;
 }) {
   const router = useRouter();
+  useRealtimeRefresh([{ table: "pedidos_expedicao", filter: `depositante_id=eq.${depositanteId}` }]);
   const [viewMode, setViewMode] = useState<"orders" | "divergences">("orders");
   const [activeFilter, setActiveFilter] = useState("");
   const [page, setPage] = useState(1);
