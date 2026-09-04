@@ -28,6 +28,7 @@ type Item = {
   codigoExterno: string | null;
   codigoInterno: string | null;
   codigoExternoPack: string | null;
+  quantidadePorEmbalagem: number | null;
   imagemUrl: string | null;
   quantidadeSistema: number;
   quantidadeContada: number | null;

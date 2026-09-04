@@ -1,5 +1,6 @@
 import { ensureUserCanAccessDepositante, requireApiModuleAccess } from "@/lib/api-auth";
-import { getGeneralInventory, recordGeneralInventoryItem } from "@/lib/general-inventories";
+import { recordGeneralInventoryItem } from "@/lib/general-inventories";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type Context = { params: Promise<{ id: string; itemId: string }> };
 
@@ -12,9 +13,18 @@ export async function PATCH(request: Request, context: Context) {
   if (!Number.isFinite(quantidade) || quantidade < 0) return Response.json({ error: "Informe uma quantidade válida." }, { status: 400 });
 
   try {
-    const before = await getGeneralInventory(id);
+    // Checagem de escopo enxuta (só depositante_id) em vez de recarregar o
+    // inventário inteiro só pra ler um campo -- ver comentário equivalente
+    // em recordGeneralInventoryItem.
+    const supabase = createSupabaseAdminClient();
+    const { data: before, error: beforeError } = await supabase
+      .from("inventarios_gerais")
+      .select("depositante_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (beforeError) return Response.json({ error: `Não foi possível validar o inventário: ${beforeError.message}` }, { status: 500 });
     if (!before) return Response.json({ error: "Inventário geral não encontrado." }, { status: 404 });
-    const scopeError = ensureUserCanAccessDepositante(auth.user, before.depositanteId);
+    const scopeError = ensureUserCanAccessDepositante(auth.user, before.depositante_id);
     if (scopeError) return scopeError;
     const result = await recordGeneralInventoryItem({
       inventoryId: id,

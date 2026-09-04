@@ -67,6 +67,7 @@ export type CycleCountDetail = {
     codigoExterno: string | null;
     codigoInterno: string | null;
     codigoExternoPack: string | null;
+    quantidadePorEmbalagem: number | null;
     endereco: string;
     area: string;
     lote: string;
@@ -185,8 +186,8 @@ type DetailItemRow = {
     | Array<{ id?: string; lote?: string | null; validade_em?: string | null; created_at?: string }>
     | null;
   produto:
-    | { sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null }
-    | Array<{ sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null }>
+    | { sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null; quantidade_por_embalagem?: number | null }
+    | Array<{ sku?: string; nome?: string; codigo_externo?: string | null; codigo_interno?: string | null; codigo_externo_pack?: string | null; quantidade_por_embalagem?: number | null }>
     | null;
   endereco: { codigo?: string; area?: string } | Array<{ codigo?: string; area?: string }> | null;
 };
@@ -373,7 +374,7 @@ export async function getCycleCountDetailFromDb(
   const { data: itemRows, error: itemError } = await supabase
     .from("contagens_estoque_itens")
     .select(
-      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios!contagens_estoque_itens_ajuste_aprovado_por_fkey(nome), contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), segunda_contado_em, segunda_contado_por:usuarios!contagens_estoque_itens_segunda_contado_por_fkey(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome, codigo_externo, codigo_interno, codigo_externo_pack), endereco:enderecos(codigo, area)",
+      "id, quantidade_sistema, quantidade_contada, segunda_quantidade_contada, divergencia, segunda_divergencia, status, observacoes, segunda_observacoes, ajuste_status, ajuste_observacoes, ajuste_aprovado_em, ajuste_aplicado_em, ajuste_aprovado_por:usuarios!contagens_estoque_itens_ajuste_aprovado_por_fkey(nome), contado_em, contado_por:usuarios!contagens_estoque_itens_contado_por_fkey(nome), segunda_contado_em, segunda_contado_por:usuarios!contagens_estoque_itens_segunda_contado_por_fkey(nome), estoque:estoque(id, lote, validade_em, created_at), produto:produtos(sku, nome, codigo_externo, codigo_interno, codigo_externo_pack, quantidade_por_embalagem), endereco:enderecos(codigo, area)",
     )
     .eq("contagem_id", id)
     .order("created_at", { ascending: true });
@@ -395,6 +396,7 @@ export async function getCycleCountDetailFromDb(
       codigoExterno: extractRelationField(item.produto, "codigo_externo"),
       codigoInterno: extractRelationField(item.produto, "codigo_interno"),
       codigoExternoPack: extractRelationField(item.produto, "codigo_externo_pack"),
+      quantidadePorEmbalagem: extractRelationNumberField(item.produto, "quantidade_por_embalagem"),
       endereco: extractRelationField(item.endereco, "codigo") ?? "Sem endereço",
       area: extractRelationField(item.endereco, "area") ?? "Sem área",
       lote: extractRelationField(item.estoque, "lote") ?? "-",
@@ -663,6 +665,125 @@ export async function startScheduledCycleCount(cycleCountId: string) {
   });
 
   return { id: cycleCountId };
+}
+
+/**
+ * Reinicia uma contagem cíclica ABERTA do zero: todos os itens voltam a
+ * PENDENTE (contagens, divergências e observações apagadas). Se algum item
+ * já tinha fechado com divergência e já aplicou um ajuste real no estoque
+ * (ajuste_status APLICADO/APLICADO_AUTO), esse ajuste é estornado primeiro
+ * -- devolve a posição pro valor que o sistema esperava quando a contagem
+ * começou, com uma movimentação de estorno registrada, mantendo o estoque
+ * coerente com "essa contagem nunca aconteceu".
+ */
+export async function restartCycleCount(cycleCountId: string, userId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: header, error: headerError } = await supabase
+    .from("contagens_estoque")
+    .select("id, status")
+    .eq("id", cycleCountId)
+    .maybeSingle();
+
+  if (headerError) {
+    throw new Error(`Não foi possível localizar a contagem: ${headerError.message}`);
+  }
+
+  if (!header) {
+    throw new Error("Contagem não encontrada.");
+  }
+
+  if (header.status !== "ABERTA") {
+    throw new Error("Só é possível reiniciar uma contagem em andamento.");
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from("contagens_estoque_itens")
+    .select("id, estoque_id, produto_id, endereco_id, depositante_id, quantidade_sistema, ajuste_status")
+    .eq("contagem_id", cycleCountId);
+
+  if (itemsError) {
+    throw new Error(`Não foi possível carregar os itens da contagem: ${itemsError.message}`);
+  }
+
+  const itemsWithAppliedAdjustment = (items ?? []).filter(
+    (item) => item.ajuste_status === "APLICADO" || item.ajuste_status === "APLICADO_AUTO",
+  );
+
+  for (const item of itemsWithAppliedAdjustment) {
+    const { data: stockRow, error: stockError } = await supabase
+      .from("estoque")
+      .select("quantidade")
+      .eq("id", item.estoque_id)
+      .maybeSingle();
+
+    if (stockError) {
+      throw new Error(`Não foi possível ler o saldo atual do estoque: ${stockError.message}`);
+    }
+
+    // Posição pode ter sido removida (ex.: transferência posterior) -- nada
+    // pra estornar nesse caso.
+    if (!stockRow) continue;
+
+    const currentQuantity = Number(stockRow.quantidade ?? 0);
+    const baselineQuantity = Number(item.quantidade_sistema ?? 0);
+    const restoreDifference = baselineQuantity - currentQuantity;
+
+    if (restoreDifference === 0) continue;
+
+    const { error: stockUpdateError } = await supabase
+      .from("estoque")
+      .update({ quantidade: baselineQuantity })
+      .eq("id", item.estoque_id);
+
+    if (stockUpdateError) {
+      throw new Error(`Não foi possível reverter o saldo do estoque: ${stockUpdateError.message}`);
+    }
+
+    const { error: movementError } = await supabase.from("movimentacoes_estoque").insert({
+      depositante_id: item.depositante_id,
+      estoque_id: item.estoque_id,
+      produto_id: item.produto_id,
+      endereco_origem_id: item.endereco_id,
+      endereco_destino_id: item.endereco_id,
+      tipo: restoreDifference > 0 ? "AJUSTE_POSITIVO" : "AJUSTE_NEGATIVO",
+      quantidade: Math.abs(restoreDifference),
+      referencia_tipo: "CONTAGEM_CICLICA",
+      referencia_id: cycleCountId,
+      observacoes: "Estorno automático: ajuste de inventário revertido por reinício da contagem.",
+      criado_por: userId,
+    });
+
+    if (movementError) {
+      throw new Error(`Não foi possível registrar o estorno do ajuste: ${movementError.message}`);
+    }
+  }
+
+  const { error: resetError } = await supabase
+    .from("contagens_estoque_itens")
+    .update({
+      quantidade_contada: null,
+      segunda_quantidade_contada: null,
+      divergencia: 0,
+      segunda_divergencia: 0,
+      status: "PENDENTE",
+      observacoes: null,
+      segunda_observacoes: null,
+      contado_por: null,
+      contado_em: null,
+      segunda_contado_por: null,
+      segunda_contado_em: null,
+      ajuste_status: "NAO_NECESSARIO",
+      ajuste_observacoes: null,
+      ajuste_aprovado_por: null,
+      ajuste_aprovado_em: null,
+      ajuste_aplicado_em: null,
+    })
+    .eq("contagem_id", cycleCountId);
+
+  if (resetError) {
+    throw new Error(`Não foi possível reiniciar os itens da contagem: ${resetError.message}`);
+  }
 }
 
 export async function cancelCycleCount(cycleCountId: string) {
@@ -1069,6 +1190,14 @@ function extractRelationField<T extends string>(
   }
 
   return null;
+}
+
+function extractRelationNumberField<T extends string>(
+  value: Partial<Record<T, number | null | undefined>> | Array<Partial<Record<T, number | null | undefined>>> | null,
+  field: T,
+) {
+  const raw = Array.isArray(value) ? value[0]?.[field] : value?.[field];
+  return typeof raw === "number" ? raw : null;
 }
 
 function formatDate(value: string) {

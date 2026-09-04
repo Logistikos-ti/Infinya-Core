@@ -15,6 +15,8 @@ export type CycleCountDesktopScanItem = {
   codigoExterno: string | null;
   codigoInterno: string | null;
   codigoExternoPack: string | null;
+  /** Unidades por embalagem -- usado quando o bipe casa com codigoExternoPack. */
+  quantidadePorEmbalagem: number | null;
   enderecoCodigo: string;
   /** null = contagem cega para este operador -- limite não revelado ao cliente. */
   quantidadeSistema: number | null;
@@ -50,6 +52,18 @@ function matchesProductCode(item: CycleCountDesktopScanItem, normalized: string)
     .some((value) => normalizeScan(value) === normalized);
 }
 
+/**
+ * Bipe do código de PACK (ex.: Dêvi) conta como a quantidade de unidades da
+ * embalagem de uma vez, não como 1 -- mesmo critério do painel de conferência
+ * de recebimento (shipping-conference-panel.tsx).
+ */
+function getScanIncrement(item: CycleCountDesktopScanItem, normalized: string): number {
+  if (item.codigoExternoPack && normalizeScan(item.codigoExternoPack) === normalized) {
+    return Math.max(item.quantidadePorEmbalagem ?? 1, 1);
+  }
+  return 1;
+}
+
 function matchesAddressCode(item: CycleCountDesktopScanItem, normalized: string): boolean {
   return normalizeScan(item.enderecoCodigo) === normalized;
 }
@@ -67,16 +81,17 @@ function resolveThresholdDecision(
   item: CycleCountDesktopScanItem,
   currentCount: number,
   isSwitchingItem: boolean,
+  increment: number,
 ): CycleCountDesktopScanDecision {
   if (item.quantidadeSistema === null) {
-    return { kind: isSwitchingItem ? "switch-item" : "increment", item, nextCount: currentCount + 1, complete: false };
+    return { kind: isSwitchingItem ? "switch-item" : "increment", item, nextCount: currentCount + increment, complete: false };
   }
 
   if (currentCount >= item.quantidadeSistema) {
     return { kind: "surplus-prompt", item, switchingItem: isSwitchingItem, seededCount: currentCount };
   }
 
-  const nextCount = currentCount + 1;
+  const nextCount = currentCount + increment;
   return {
     kind: isSwitchingItem ? "switch-item" : "increment",
     item,
@@ -97,7 +112,7 @@ export function resolveCycleCountDesktopScan(
     if (!match) return { kind: "disambiguation-no-match" };
     const isSwitchingItem = match.id !== state.activeItemId;
     const currentCount = isSwitchingItem ? match.quantidadeContada ?? 0 : state.activeCount;
-    return resolveThresholdDecision(match, currentCount, isSwitchingItem);
+    return resolveThresholdDecision(match, currentCount, isSwitchingItem, getScanIncrement(match, normalized));
   }
 
   const candidates = state.items.filter((item) => isCountable(item) && matchesProductCode(item, normalized));
@@ -110,7 +125,7 @@ export function resolveCycleCountDesktopScan(
   // pergunta a cada unidade a mais do mesmo item.
   const activeMatch = candidates.find((item) => item.id === state.activeItemId);
   if (activeMatch) {
-    return resolveThresholdDecision(activeMatch, state.activeCount, false);
+    return resolveThresholdDecision(activeMatch, state.activeCount, false, getScanIncrement(activeMatch, normalized));
   }
 
   if (candidates.length > 1) {
@@ -118,5 +133,5 @@ export function resolveCycleCountDesktopScan(
   }
 
   const match = candidates[0];
-  return resolveThresholdDecision(match, match.quantidadeContada ?? 0, true);
+  return resolveThresholdDecision(match, match.quantidadeContada ?? 0, true, getScanIncrement(match, normalized));
 }

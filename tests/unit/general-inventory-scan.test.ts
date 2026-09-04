@@ -13,6 +13,7 @@ function item(overrides: Partial<GeneralInventoryScanItem> = {}): GeneralInvento
     codigoExterno: "7891234567890",
     codigoInterno: "INT-1",
     codigoExternoPack: null,
+    quantidadePorEmbalagem: null,
     quantidadeSistema: 5,
     quantidadeContada: null,
     atribuidoA: null,
@@ -82,6 +83,27 @@ test("trocar para um item com quantidadeSistema=0 -> surplus-prompt imediato (n�
   const state = { items: [target], activeItemId: "outro", activeCount: 0, currentUserId: USER };
   const decision = resolveGeneralInventoryScan("SKU-1", state);
   assert.deepEqual(decision, { kind: "surplus-prompt", item: target, switchingItem: true, seededCount: 0 });
+});
+
+test("bipe do código de pack conta como a quantidade da embalagem, não como 1", () => {
+  const target = item({ id: "novo", codigoExternoPack: "PACK-12", quantidadePorEmbalagem: 12, quantidadeSistema: 100 });
+  const state = { items: [target], activeItemId: null, activeCount: 0, currentUserId: USER };
+  const decision = resolveGeneralInventoryScan("PACK-12", state);
+  assert.deepEqual(decision, { kind: "switch-item", item: target, nextCount: 12, complete: false });
+});
+
+test("bipe do código de pack no item ativo soma a quantidade da embalagem ao total já contado", () => {
+  const active = item({ id: "ativo", codigoExternoPack: "PACK-12", quantidadePorEmbalagem: 12, quantidadeSistema: 100 });
+  const state = { items: [active], activeItemId: "ativo", activeCount: 24, currentUserId: USER };
+  const decision = resolveGeneralInventoryScan("PACK-12", state);
+  assert.deepEqual(decision, { kind: "increment", item: active, nextCount: 36, complete: false });
+});
+
+test("bipe do código regular do mesmo produto continua contando como 1, mesmo com pack cadastrado", () => {
+  const target = item({ id: "novo", codigoExternoPack: "PACK-12", quantidadePorEmbalagem: 12, quantidadeSistema: 100 });
+  const state = { items: [target], activeItemId: null, activeCount: 0, currentUserId: USER };
+  const decision = resolveGeneralInventoryScan("SKU-1", state);
+  assert.deepEqual(decision, { kind: "switch-item", item: target, nextCount: 1, complete: false });
 });
 
 test("reivindicado por mim mesmo não bloqueia (claimed-by-other só dispara para outro usuário)", () => {

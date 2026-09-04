@@ -26,6 +26,9 @@ export type GeneralInventoryItem = {
   codigoExterno: string | null;
   codigoInterno: string | null;
   codigoExternoPack: string | null;
+  /** Unidades por embalagem -- buscado ao vivo em produtos (não é
+   * snapshotado; tamanho de pack não muda no meio de uma contagem). */
+  quantidadePorEmbalagem: number | null;
   imagemUrl: string | null;
   quantidadeSistema: number;
   quantidadeContada: number | null;
@@ -318,6 +321,54 @@ export async function startScheduledGeneralInventory(inventoryId: string) {
   return { id: inventoryId };
 }
 
+/**
+ * Reinicia um inventário geral EM_CONTAGEM do zero: todos os itens voltam a
+ * PENDENTE (contagem, divergência e atribuição apagadas). Diferente da
+ * contagem cíclica, o inventário geral nunca toca o estoque real durante a
+ * contagem -- o ajuste só acontece na finalização (finalize_general_inventory)
+ * -- então reiniciar aqui é só um reset de metadados, sem estorno nenhum.
+ */
+export async function restartGeneralInventory(inventoryId: string) {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: header, error: headerError } = await supabase
+    .from("inventarios_gerais")
+    .select("id, status")
+    .eq("id", inventoryId)
+    .maybeSingle();
+
+  if (headerError) {
+    throw new Error(`Não foi possível localizar o inventário: ${headerError.message}`);
+  }
+
+  if (!header) {
+    throw new Error("Inventário não encontrado.");
+  }
+
+  if (header.status !== "EM_CONTAGEM") {
+    throw new Error("Só é possível reiniciar um inventário em andamento.");
+  }
+
+  const { error } = await supabase
+    .from("inventarios_gerais_itens")
+    .update({
+      quantidade_contada: null,
+      divergencia: 0,
+      status: "PENDENTE",
+      atribuido_a: null,
+      atribuido_em: null,
+      contado_por: null,
+      contado_em: null,
+    })
+    .eq("inventario_id", inventoryId);
+
+  if (error) {
+    throw new Error(`Não foi possível reiniciar os itens do inventário: ${error.message}`);
+  }
+
+  return getGeneralInventory(inventoryId);
+}
+
 export async function cancelGeneralInventory(inventoryId: string) {
   const supabase = createSupabaseAdminClient();
 
@@ -394,6 +445,12 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
     : { data: [] };
   const enderecoCodesById = new Map((enderecos ?? []).map((endereco) => [endereco.id, endereco.codigo]));
 
+  const produtoIds = Array.from(new Set((rows ?? []).map((row) => row.produto_id).filter(Boolean)));
+  const { data: produtos } = produtoIds.length
+    ? await supabase.from("produtos").select("id, quantidade_por_embalagem").in("id", produtoIds)
+    : { data: [] };
+  const packQtyByProdutoId = new Map((produtos ?? []).map((p) => [p.id, p.quantidade_por_embalagem as number | null]));
+
   const items = (rows ?? []).map((row) => {
     const snapshot = Array.isArray(row.estoque_snapshot) ? row.estoque_snapshot : [];
     const enderecoCodes = Array.from(
@@ -412,6 +469,7 @@ export async function getGeneralInventory(id: string): Promise<GeneralInventoryD
       codigoExterno: row.codigo_externo,
       codigoInterno: row.codigo_interno,
       codigoExternoPack: row.codigo_externo_pack,
+      quantidadePorEmbalagem: packQtyByProdutoId.get(row.produto_id) ?? null,
       imagemUrl: row.imagem_url,
       quantidadeSistema: Number(row.quantidade_sistema ?? 0),
       quantidadeContada: row.quantidade_contada === null ? null : Number(row.quantidade_contada ?? 0),
@@ -505,12 +563,29 @@ export async function recordGeneralInventoryItem(input: {
 }) {
   if (!Number.isFinite(input.quantidade) || input.quantidade < 0) throw new Error("Informe uma quantidade válida.");
   const supabase = createSupabaseAdminClient();
-  const detail = await getGeneralInventory(input.inventoryId);
-  if (!detail || detail.dataOperacional !== operationalToday()) throw new Error("Este inventário só pode ser operado no dia em que foi iniciado.");
-  if (detail.status !== "EM_CONTAGEM") throw new Error("Este inventário já foi encerrado.");
-  const item = detail.itens.find((entry) => entry.id === input.itemId);
-  if (!item) throw new Error("Item do inventário não encontrado.");
-  if (item.atribuidoA && item.atribuidoA !== input.userId) throw new Error("Este produto está atribuído a outro operador.");
+
+  // Validação enxuta (1 linha do cabeçalho + 1 linha do item) em vez de
+  // recarregar o inventário inteiro (todos os itens + endereços + usuários)
+  // só pra checar status/atribuição -- isso era o principal motivo do atraso
+  // percebido pelo operador entre o bipe e a tela atualizar.
+  const { data: header, error: headerError } = await supabase
+    .from("inventarios_gerais")
+    .select("id, status, data_operacional")
+    .eq("id", input.inventoryId)
+    .maybeSingle();
+  if (headerError) throw new Error(`Não foi possível validar o inventário: ${headerError.message}`);
+  if (!header || header.data_operacional !== operationalToday()) throw new Error("Este inventário só pode ser operado no dia em que foi iniciado.");
+  if (header.status !== "EM_CONTAGEM") throw new Error("Este inventário já foi encerrado.");
+
+  const { data: itemRow, error: itemRowError } = await supabase
+    .from("inventarios_gerais_itens")
+    .select("id, atribuido_a, quantidade_sistema")
+    .eq("id", input.itemId)
+    .eq("inventario_id", input.inventoryId)
+    .maybeSingle();
+  if (itemRowError) throw new Error(`Não foi possível validar o item: ${itemRowError.message}`);
+  if (!itemRow) throw new Error("Item do inventário não encontrado.");
+  if (itemRow.atribuido_a && itemRow.atribuido_a !== input.userId) throw new Error("Este produto está atribuído a outro operador.");
 
   const final = input.final ?? true;
   const updatePayload: Record<string, unknown> = {
@@ -520,7 +595,7 @@ export async function recordGeneralInventoryItem(input: {
   };
 
   if (final) {
-    const divergence = input.quantidade - item.quantidadeSistema;
+    const divergence = input.quantidade - Number(itemRow.quantidade_sistema ?? 0);
     updatePayload.divergencia = divergence;
     updatePayload.status = divergence === 0 ? "CONTADO" : "DIVERGENTE";
     updatePayload.contado_por = input.userId;

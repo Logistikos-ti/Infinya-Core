@@ -18,6 +18,7 @@ export type DesktopCycleCountScanSourceItem = {
   codigoExterno: string | null;
   codigoInterno: string | null;
   codigoExternoPack: string | null;
+  quantidadePorEmbalagem: number | null;
   endereco: string;
   area: string;
   systemQuantityRaw: number | null;
@@ -46,6 +47,7 @@ function toScanItem(item: DesktopCycleCountScanSourceItem): CycleCountDesktopSca
     codigoExterno: item.codigoExterno,
     codigoInterno: item.codigoInterno,
     codigoExternoPack: item.codigoExternoPack,
+    quantidadePorEmbalagem: item.quantidadePorEmbalagem,
     enderecoCodigo: item.endereco,
     quantidadeSistema: item.systemQuantityRaw,
     quantidadeContada: item.countedQuantityRaw,

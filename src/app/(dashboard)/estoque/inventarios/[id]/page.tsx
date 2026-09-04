@@ -174,6 +174,7 @@ export default async function EstoqueInventarioDetalhePage({
             codigoExterno: item.codigoExterno,
             codigoInterno: item.codigoInterno,
             codigoExternoPack: item.codigoExternoPack,
+            quantidadePorEmbalagem: item.quantidadePorEmbalagem,
             endereco: item.endereco,
             area: item.area,
             systemQuantityRaw: item.systemQuantityRaw,

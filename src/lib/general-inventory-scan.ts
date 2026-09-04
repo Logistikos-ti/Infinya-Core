@@ -11,6 +11,8 @@ export type GeneralInventoryScanItem = {
   codigoExterno: string | null;
   codigoInterno: string | null;
   codigoExternoPack: string | null;
+  /** Unidades por embalagem -- usado quando o bipe casa com codigoExternoPack. */
+  quantidadePorEmbalagem: number | null;
   quantidadeSistema: number;
   quantidadeContada: number | null;
   atribuidoA: string | null;
@@ -68,10 +70,23 @@ export function findGeneralInventoryScanItem<T extends GeneralInventoryScanItem>
  * resumed from a previous partial session that already hit the limit), the
  * switch itself surfaces the surplus prompt instead of silently counting.
  */
+/**
+ * Bipe do código de PACK (ex.: Dêvi) conta como a quantidade de unidades da
+ * embalagem de uma vez, não como 1 -- mesmo critério do painel de conferência
+ * de recebimento (shipping-conference-panel.tsx).
+ */
+function getScanIncrement(item: GeneralInventoryScanItem, normalized: string): number {
+  if (item.codigoExternoPack && normalizeScan(item.codigoExternoPack) === normalized) {
+    return Math.max(item.quantidadePorEmbalagem ?? 1, 1);
+  }
+  return 1;
+}
+
 export function resolveGeneralInventoryScan<T extends GeneralInventoryScanItem>(
   rawCode: string,
   state: GeneralInventoryScanState<T>,
 ): GeneralInventoryScanDecision<T> {
+  const normalized = normalizeScan(rawCode);
   const item = findGeneralInventoryScanItem(state.items, rawCode);
   if (!item) {
     return { kind: "not-found" };
@@ -88,7 +103,7 @@ export function resolveGeneralInventoryScan<T extends GeneralInventoryScanItem>(
     return { kind: "surplus-prompt", item, switchingItem: isSwitchingItem, seededCount: currentCount };
   }
 
-  const nextCount = currentCount + 1;
+  const nextCount = currentCount + getScanIncrement(item, normalized);
   return {
     kind: isSwitchingItem ? "switch-item" : "increment",
     item,

@@ -43,6 +43,7 @@ function toCycleScanItem(item: CycleCountDetail["items"][number]): CycleScanItem
     codigoExterno: item.codigoExterno,
     codigoInterno: item.codigoInterno,
     codigoExternoPack: item.codigoExternoPack,
+    quantidadePorEmbalagem: item.quantidadePorEmbalagem,
     enderecoCodigo: item.endereco,
     quantidadeSistema: item.systemQuantityRaw,
     quantidadeContada: item.countedQuantityRaw,
@@ -91,6 +92,8 @@ export function InventoryCountingView({
   const [isFinishing, setIsFinishing] = useState(false);
   const [confirmDivergence, setConfirmDivergence] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   const toastTimerRef = useRef<number | null>(null);
   const stateRef = useRef({ cycleItems, generalItems, activeItemId, activeCount, pendingDisambiguation });
@@ -438,6 +441,47 @@ export function InventoryCountingView({
     setConfirmDivergence(true);
   }
 
+  async function doRestart() {
+    setIsRestarting(true);
+    try {
+      const response = await fetch(`/api/estoque/inventarios/${run.id}/reiniciar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: isGeneral ? "GERAL" : "CICLICO" }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        showToast(payload.error ?? "Não foi possível reiniciar a contagem.", "error");
+        return;
+      }
+
+      setActiveItemId(null);
+      setActiveCount(0);
+      setPendingDisambiguation(null);
+      setBips([]);
+      setConfirmRestart(false);
+
+      // Recarrega os itens do zero em vez de reconstruir o reset em memória --
+      // garante que a tela reflita exatamente o que o servidor gravou.
+      const detailUrl = isGeneral ? `/api/estoque/inventarios-gerais/${run.id}` : `/api/estoque/inventarios/${run.id}`;
+      const detailResponse = await fetch(detailUrl, { cache: "no-store" });
+      const detailPayload = (await detailResponse.json().catch(() => ({}))) as { result?: unknown };
+      if (detailResponse.ok && detailPayload.result) {
+        if (isGeneral) {
+          setGeneralItems((detailPayload.result as GeneralInventoryDetail).itens);
+        } else {
+          setCycleItems((detailPayload.result as CycleCountDetail).items.map(toCycleScanItem));
+        }
+      }
+
+      showToast("Contagem reiniciada.", "success");
+    } catch {
+      showToast("Falha de comunicação ao reiniciar.", "error");
+    } finally {
+      setIsRestarting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center" style={manropeStyle}>
@@ -482,6 +526,13 @@ export function InventoryCountingView({
           <span className="h-2 w-2 rounded-full bg-[#F59E0B]" style={{ animation: "pulseDot 1.4s ease-in-out infinite" }} />
           <span className={`text-[13.5px] font-bold ${tokenText}`}>Em contagem</span>
         </div>
+        <button
+          type="button"
+          onClick={() => setConfirmRestart(true)}
+          className={`flex h-[42px] items-center justify-center rounded-[11px] border px-[18px] text-[13.5px] font-bold transition hover:[filter:brightness(1.06)] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+        >
+          Reiniciar
+        </button>
         <button
           type="button"
           onClick={onEncerrar}
@@ -777,6 +828,57 @@ export function InventoryCountingView({
                 style={{ background: "linear-gradient(92deg,#F59E0B,#EF4444)", border: 0 }}
               >
                 {isFinishing ? <MobileButtonSpinner size={18} /> : "Encerrar com divergência"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmRestart ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-5">
+          <div className="absolute inset-0 backdrop-blur-[5px]" style={{ background: "rgba(3,7,20,.55)" }} onClick={() => setConfirmRestart(false)} />
+          <div
+            className={`relative flex w-[460px] max-w-[96vw] flex-col rounded-2xl border shadow-[0_30px_60px_rgba(0,0,0,0.35)] ${tokenCardBg}`}
+            style={{ borderColor: "rgba(245,158,11,.35)" }}
+          >
+            <div className={`flex gap-3.5 border-b px-6 pb-3.5 pt-[22px] ${tokenBorder}`}>
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(245,158,11,.14)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 1 3 6.7" />
+                  <path d="M3 16v-4h4" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 text-[10px] font-bold tracking-[0.28em] text-[#F59E0B]" style={groteskStyle}>
+                  ATENÇÃO
+                </div>
+                <h3 className={`m-0 text-[19px] font-bold ${tokenText}`} style={groteskStyle}>
+                  Reiniciar esta contagem?
+                </h3>
+                <p className={`mt-1.5 text-[13px] leading-[1.5] ${tokenTextSub}`}>
+                  Todos os itens voltam a PENDENTE — contagens e divergências já registradas serão apagadas.
+                  {isGeneral
+                    ? " Nenhum ajuste de estoque foi aplicado ainda, então nada precisa ser estornado."
+                    : " Se algum item já fechou com divergência e ajustou o estoque de verdade, esse ajuste será estornado automaticamente."}
+                </p>
+              </div>
+            </div>
+            <div className={`flex justify-center gap-2.5 px-6 pb-[22px] pt-[18px]`}>
+              <button
+                type="button"
+                onClick={() => setConfirmRestart(false)}
+                className={`flex h-[42px] items-center justify-center rounded-[10px] border px-5 text-[13.5px] font-bold transition hover:[filter:brightness(1.06)] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={doRestart}
+                disabled={isRestarting}
+                className="flex h-[42px] items-center justify-center gap-2 rounded-[10px] px-[22px] text-[13.5px] font-extrabold text-white transition enabled:hover:[filter:brightness(1.06)] disabled:opacity-40"
+                style={{ background: "linear-gradient(92deg,#F59E0B,#EF4444)", border: 0 }}
+              >
+                {isRestarting ? <MobileButtonSpinner size={18} /> : "Reiniciar contagem"}
               </button>
             </div>
           </div>
