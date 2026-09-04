@@ -195,22 +195,24 @@ export function FecharRomaneioClient({
       return exactTargets.some((t) => t === clean);
     });
 
-    // Fallback restrito: só para o número curto da NF digitado à mão (ex.:
-    // placeholder "Ex: 66459" da entrada manual). Compara só contra os
-    // campos de número de nota, numa ÚNICA direção -- o campo mais
-    // longo/com prefixo/zero-padded TERMINA com o código digitado, nunca o
-    // contrário -- e só quando o código digitado tem tamanho plausível pra
-    // um número de NF (4+ dígitos evita colisão de um "12" batendo no
-    // final de qualquer coisa).
-    const MIN_INVOICE_SUFFIX_LENGTH = 4;
+    // Número da NF -- é o alvo PRINCIPAL de bipagem por câmera, não um
+    // fallback secundário: o código de barras real da DANFE simplificada
+    // (buildSimplifiedDanfePage em shipping-danfe.ts, rotulado ali como
+    // "CODIGO DE CONFERENCIA - BIPAR PARA LIBERAR ROMANEIO") NUNCA
+    // codifica a chave de 44 dígitos -- codifica o número da NF com
+    // zero-padding fixo de 6 dígitos (ex.: NF 66887 -> "066887"). Comparar
+    // por igualdade numérica (dígitos sem zero à esquerda dos dois lados)
+    // em vez de endsWith resolve o padding em qualquer direção -- bipar
+    // "066887" bate contra invoiceNumberDigits "66887" e vice-versa, e o
+    // mesmo caminho também cobre quem digita o número curto à mão (ex.:
+    // placeholder "Ex: 66459" da entrada manual).
+    const cleanDigits = /^\d+$/.test(clean) ? clean.replace(/^0+(?=\d)/, "") : "";
     const invoiceSuffixMatches =
-      exactMatches.length > 0 || clean.length < MIN_INVOICE_SUFFIX_LENGTH
+      exactMatches.length > 0 || !cleanDigits
         ? []
         : romaneio.orders.filter((order) => {
-            const invoiceTargets = [order.invoiceNumberDigits, order.invoiceNumber]
-              .filter(Boolean)
-              .map((t) => String(t).toLowerCase().replace(/[^a-z0-9]/g, ""));
-            return invoiceTargets.some((t) => t.endsWith(clean));
+            const targetDigits = (order.invoiceNumberDigits || "").replace(/^0+(?=\d)/, "");
+            return targetDigits.length > 0 && targetDigits === cleanDigits;
           });
 
     const candidates = exactMatches.length > 0 ? exactMatches : invoiceSuffixMatches;
