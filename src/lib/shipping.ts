@@ -362,42 +362,68 @@ export type ShippingOrderDetail = {
 
 export async function listShippingOrdersFromDb(filters?: ShippingOrderFilters) {
   const supabase = createSupabaseAdminClient();
-  let query = supabase
-    .from("pedidos_expedicao")
-    .select(
-      "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
-    )
-    .order("data_pedido", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true });
 
-  if (filters?.status) {
-    query = query.eq("status", filters.status);
-  }
+  function buildQuery() {
+    let query = supabase
+      .from("pedidos_expedicao")
+      .select(
+        "id, codigo, numero_wms, origem, status, numero_pedido, numero_loja, canal, valor_total, quantidade_itens, quantidade_unidades, created_at, updated_at, data_pedido, previsao_envio_em, sincronizado_em, cliente_nome, cliente_cidade, cliente_uf, observacoes, payload_origem, tipo_operacao, depositante_id, depositante:depositantes(nome), remessa_full:remessas_full!pedidos_expedicao_remessa_full_id_fkey(id, codigo, status, marketplace, modalidade_envio, transportadora_nome, coleta_prevista_em), itens:pedidos_expedicao_itens(id, referencia_externa, codigo_produto, sku, nome, unidade, quantidade, quantidade_separada, payload_origem, produto:produtos(peso_kg)), documentos:documentos_armazenados(tipo, nome_arquivo, mime_type, caminho_storage)",
+      )
+      .order("data_pedido", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
 
-  if (filters?.depositanteId) {
-    query = query.eq("depositante_id", filters.depositanteId);
-  }
-
-  if (filters?.dateFrom) {
-    query = query.gte("data_pedido", `${filters.dateFrom}T00:00:00`);
-  }
-
-  if (filters?.dateTo) {
-    query = query.lte("data_pedido", `${filters.dateTo}T23:59:59`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    if (isShippingSchemaMissing(error)) {
-      return [] as ShippingOrderSummary[];
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
     }
 
-    throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
+    if (filters?.depositanteId) {
+      query = query.eq("depositante_id", filters.depositanteId);
+    }
+
+    if (filters?.dateFrom) {
+      query = query.gte("data_pedido", `${filters.dateFrom}T00:00:00`);
+    }
+
+    if (filters?.dateTo) {
+      query = query.lte("data_pedido", `${filters.dateTo}T23:59:59`);
+    }
+
+    return query;
+  }
+
+  // O PostgREST desse projeto tem um teto de 1000 linhas por resposta
+  // (db-max-rows), que nao muda so pedindo .limit() maior no client. Sem
+  // paginar por .range(), a ordenacao crescente por data_pedido faz esse
+  // teto derrubar sempre os pedidos mais RECENTES assim que a tabela passa
+  // de 1000 linhas -- foi assim que pedidos novos sumiram da tela inteira
+  // de expedicao (achado investigando o contador "Aguardando" zerado com a
+  // sidebar mostrando 6: os 6 pedidos NOVO mais recentes estavam sendo
+  // cortados). Pagina em blocos de 1000 ate a pagina vir incompleta.
+  const PAGE_SIZE = 1000;
+  const rawRows: RawShippingOrderRow[] = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data: page, error } = await buildQuery().range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) {
+      if (isShippingSchemaMissing(error)) {
+        return [] as ShippingOrderSummary[];
+      }
+
+      throw new Error(`Não foi possível listar os pedidos de expedição: ${error.message}`);
+    }
+
+    if (page?.length) {
+      rawRows.push(...(page as RawShippingOrderRow[]));
+    }
+
+    if (!page || page.length < PAGE_SIZE) {
+      break;
+    }
   }
 
   const orders = await Promise.all(
-    ((data ?? []) as RawShippingOrderRow[])
+    rawRows
       .filter((item) => !isBlingWebhookSummaryOrder(item.observacoes))
       .map(mapShippingOrderSummary),
   );
