@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Boxes,
   CalendarDays,
-  Download,
   FileText,
   Layers,
   PackageX,
@@ -23,6 +21,9 @@ import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { MobileButtonSpinner, MobileInfinityLoader } from "@/components/mobile/mobile-kit-tokens";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 
 const tokenBorder = "border-[rgba(100,116,139,0.16)] dark:border-[rgba(148,163,184,0.14)]";
 const tokenInputBg = "bg-[#F8FAFC] dark:bg-[#0E1728]";
@@ -381,7 +382,7 @@ function ReportCard({ report, onOpen }: { report: ReportData; onOpen: (id: strin
     >
       <div className="flex items-center gap-3">
         <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px]"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{ background: `${report.color}1a`, color: report.color }}
         >
           <Icon className="h-[18px] w-[18px]" />
@@ -443,30 +444,48 @@ function ReportCard({ report, onOpen }: { report: ReportData; onOpen: (id: strin
       </div>
 
       <div className="mt-1 flex gap-2" onClick={(e) => e.stopPropagation()}>
-        <Link
-          href={report.exportCsvHref}
+        <button
+          type="button"
+          onClick={() => window.location.assign(report.exportCsvHref)}
           onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8B5CF6")}
           onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
-          className={`flex h-[34px] flex-1 items-center justify-center rounded-[9px] border text-[12px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+          className={`flex h-[34px] flex-1 items-center justify-center rounded-full border text-[12px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
         >
           CSV
-        </Link>
-        <Link
-          href={report.exportPdfHref}
+        </button>
+        <button
+          type="button"
+          onClick={() => window.location.assign(report.exportPdfHref)}
           onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8B5CF6")}
           onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
-          className={`flex h-[34px] flex-1 items-center justify-center rounded-[9px] border text-[12px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+          className={`flex h-[34px] flex-1 items-center justify-center rounded-full border text-[12px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
         >
           PDF
-        </Link>
+        </button>
         <button
           type="button"
           onClick={() => onOpen(report.id)}
-          className="flex h-[34px] flex-1 items-center justify-center rounded-[9px] text-[12px] font-extrabold text-white transition hover:brightness-105"
-          style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" }}
+          className="report-card-open-btn flex h-[34px] flex-1 items-center justify-center rounded-full text-[12px] font-extrabold text-white"
         >
           Abrir
         </button>
+        <style jsx>{`
+          .report-card-open-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
+            transition:
+              background-position 0.6s ease,
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+          }
+          .report-card-open-btn:hover {
+            background-position: 100% 50%;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(99, 140, 255, 0.4);
+          }
+        `}</style>
       </div>
     </div>
   );
@@ -518,7 +537,7 @@ function DateRangeField({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className={`flex h-[42px] w-full items-center justify-between rounded-[11px] border px-3 text-[13px] outline-none transition hover:brightness-105 ${tokenBorder} ${tokenInputBg}`}
+          className={`flex h-[42px] w-full items-center justify-between rounded-full border px-3 text-[13px] outline-none transition hover:brightness-105 ${tokenBorder} ${tokenInputBg}`}
         >
           <span className={from || to ? tokenText : tokenTextSub}>{summary}</span>
           <CalendarDays className={`h-4 w-4 ${tokenTextSub}`} />
@@ -528,24 +547,8 @@ function DateRangeField({
             className={`absolute left-0 top-[calc(100%+6px)] z-[70] w-full rounded-[12px] border p-3 shadow-[0_16px_40px_rgba(0,0,0,0.28)] ${tokenBorder} bg-white dark:bg-[#0C1526]`}
           >
             <div className="flex flex-col gap-2.5">
-              <label className="flex flex-col gap-1">
-                <span className={`text-[11px] font-semibold ${tokenTextSub}`}>Início</span>
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className={`h-[38px] w-full rounded-[10px] border px-2.5 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={`text-[11px] font-semibold ${tokenTextSub}`}>Fim</span>
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className={`h-[38px] w-full rounded-[10px] border px-2.5 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-                />
-              </label>
+              <DatePickerInput label="Início" name={`${fromName}_picker`} value={from} onChange={setFrom} compact />
+              <DatePickerInput label="Fim" name={`${toName}_picker`} value={to} onChange={setTo} compact />
               <div className="mt-1 flex gap-2">
                 <button
                   type="button"
@@ -553,18 +556,34 @@ function DateRangeField({
                     setFrom("");
                     setTo("");
                   }}
-                  className={`flex h-[34px] flex-1 items-center justify-center rounded-[9px] border text-[12px] font-semibold transition hover:brightness-105 ${tokenBorder} ${tokenText}`}
+                  className={`flex h-[34px] flex-1 items-center justify-center rounded-full border text-[12px] font-semibold transition hover:brightness-105 ${tokenBorder} ${tokenText}`}
                 >
                   Limpar
                 </button>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="flex h-[34px] flex-1 items-center justify-center rounded-[9px] text-[12px] font-bold transition hover:brightness-105"
-                  style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#FFFFFF" }}
+                  className="date-range-apply-btn flex h-[34px] flex-1 items-center justify-center rounded-full text-[12px] font-bold text-white"
                 >
                   Aplicar
                 </button>
+                <style jsx>{`
+                  .date-range-apply-btn {
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                    background-size: 220% 100%;
+                    background-position: 0% 50%;
+                    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.28);
+                    transition:
+                      background-position 0.6s ease,
+                      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      box-shadow 0.3s ease;
+                  }
+                  .date-range-apply-btn:hover {
+                    background-position: 100% 50%;
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 24px rgba(99, 140, 255, 0.4);
+                  }
+                `}</style>
               </div>
             </div>
           </div>
@@ -675,7 +694,7 @@ function StockSaldoPopup({
           <button
             type="button"
             onClick={onClose}
-            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444]`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444] dark:hover:border-[#EF4444] dark:hover:text-[#EF4444]`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -708,15 +727,7 @@ function StockSaldoPopup({
             </button>
           ))}
           {mode === "dia" ? (
-            <label className="flex items-center gap-1.5">
-              <CalendarDays className={`h-3.5 w-3.5 ${tokenTextSub}`} />
-              <input
-                type="date"
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
-                className={`rounded-lg border px-2 py-1 text-[12px] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-              />
-            </label>
+            <DatePickerInput label="Dia" name="saldo_dia_picker" value={day} onChange={setDay} compact hideLabel />
           ) : null}
           <span className={`ml-auto text-[11px] font-semibold ${tokenTextSub}`}>
             {mode === "dia" && !day
@@ -843,6 +854,15 @@ function ReportDrawer({
       report.filters.map((f) => [f.name, f.type === "daterange" ? "" : f.value ?? ""]),
     ),
   );
+  // Os <select> dos filtros viraram PillSelect (sem <select> nativo por baixo) --
+  // o form continua sendo lido via FormData (submit e openStockPopup/exportStock
+  // acima), então cada valor precisa de um <input type="hidden"> espelhando esse
+  // estado controlado.
+  const [selectFilterValues, setSelectFilterValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      report.filters.filter((f) => f.type === "select").map((f) => [f.name, f.value ?? ""]),
+    ),
+  );
   const openStockPopup = () => {
     if (formRef.current) {
       const fd = new FormData(formRef.current);
@@ -923,7 +943,7 @@ function ReportDrawer({
         <div className={`border-b px-6 pb-4 pt-[22px] ${tokenBorder}`}>
           <div className="mb-2.5 flex items-center gap-2">
             <span
-              className="flex h-9 w-9 items-center justify-center rounded-[9px]"
+              className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{ background: `${report.color}1a`, color: report.color }}
             >
               <Icon className="h-[17px] w-[17px]" />
@@ -939,7 +959,7 @@ function ReportDrawer({
               type="button"
               title="Fechar"
               onClick={onClose}
-              className={`flex h-[30px] w-[30px] items-center justify-center rounded-lg border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444]`}
+              className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444] dark:hover:border-[#EF4444] dark:hover:text-[#EF4444]`}
             >
               <X className="h-4 w-4" />
             </button>
@@ -1065,45 +1085,35 @@ function ReportDrawer({
                 <label key={f.name} className="flex flex-col gap-1">
                   <span className={`text-[11px] font-semibold ${tokenTextSub}`}>{f.label}</span>
                   {f.type === "select" ? (
-                    <select
-                      name={f.name}
-                      defaultValue={f.value}
-                      disabled={f.disabled}
-                      className={`h-[42px] w-full rounded-[11px] border px-3 text-[13px] outline-none disabled:opacity-60 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-                    >
-                      {f.options.map((o) => (
-                        <option key={o.value || "todos"} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <input type="hidden" name={f.name} value={selectFilterValues[f.name] ?? f.value} />
+                      <PillSelect
+                        value={selectFilterValues[f.name] ?? f.value}
+                        onChange={(v) => setSelectFilterValues((prev) => ({ ...prev, [f.name]: v }))}
+                        options={f.options}
+                        disabled={f.disabled}
+                        className="w-full"
+                      />
+                    </>
                   ) : (
                     <input
                       type={f.type === "date" ? "date" : "text"}
                       name={f.name}
                       defaultValue={f.value}
                       placeholder={f.type === "text" ? f.placeholder : undefined}
-                      className={`h-[42px] w-full rounded-[11px] border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+                      className={`h-[42px] w-full rounded-full border px-3 text-[13px] outline-none ${tokenBorder} ${tokenInputBg} ${tokenText}`}
                     />
                   )}
                 </label>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex justify-center gap-2">
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex h-[40px] items-center justify-center gap-2 rounded-[11px] px-4 text-[13px] font-bold text-white transition hover:brightness-105 disabled:opacity-70"
-                style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)" }}
+                className="rel-apply-filters-btn flex h-[40px] items-center justify-center gap-2 rounded-full px-4 text-[13px] font-bold text-white disabled:opacity-70"
               >
-                {isPending ? (
-                  <MobileButtonSpinner size={22} />
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Aplicar filtros
-                  </>
-                )}
+                {isPending ? <MobileButtonSpinner size={22} /> : "Aplicar filtros"}
               </button>
               <button
                 type="button"
@@ -1113,10 +1123,27 @@ function ReportDrawer({
                     router.push(report.clearHref, { scroll: false });
                   });
                 }}
-                className={`flex h-[40px] min-w-[92px] items-center justify-center rounded-[11px] border px-4 text-[13px] font-semibold transition hover:brightness-105 disabled:opacity-70 ${tokenBorder} ${tokenText}`}
+                className={`flex h-[40px] min-w-[92px] items-center justify-center rounded-full border px-4 text-[13px] font-semibold transition hover:brightness-105 disabled:opacity-70 ${tokenBorder} ${tokenText}`}
               >
                 {isClearing ? <MobileButtonSpinner size={22} /> : "Limpar"}
               </button>
+              <style jsx>{`
+                .rel-apply-filters-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .rel-apply-filters-btn:hover:not(:disabled) {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </form>
 
@@ -1127,7 +1154,7 @@ function ReportDrawer({
             <button
               type="button"
               onClick={() => setShowRecords(true)}
-              className={`mt-6 flex w-full items-center justify-center gap-2 rounded-[11px] border py-2.5 text-[12.5px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full border py-2.5 text-[12.5px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
             >
               Ver registros ({report.table.rows.length})
             </button>
@@ -1144,7 +1171,7 @@ function ReportDrawer({
             <button
               type="button"
               onClick={openStockPopup}
-              className={`flex h-[40px] flex-1 items-center justify-center rounded-[10px] border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              className={`flex h-[40px] flex-1 items-center justify-center rounded-full border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
             >
               Ver saldo
             </button>
@@ -1153,36 +1180,53 @@ function ReportDrawer({
             <button
               type="button"
               onClick={() => exportStock("csv")}
-              className={`flex h-[40px] flex-1 items-center justify-center rounded-[10px] border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+              className={`flex h-[40px] flex-1 items-center justify-center rounded-full border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
             >
               Exportar CSV
             </button>
           ) : (
-            <Link
-              href={report.exportCsvHref}
-              className={`flex h-[40px] flex-1 items-center justify-center rounded-[10px] border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
+            <button
+              type="button"
+              onClick={() => window.location.assign(report.exportCsvHref)}
+              className={`flex h-[40px] flex-1 items-center justify-center rounded-full border text-[13px] font-bold transition hover:brightness-105 ${tokenBorder} ${tokenInputBg} ${tokenText}`}
             >
               Exportar CSV
-            </Link>
+            </button>
           )}
           {isStock ? (
             <button
               type="button"
               onClick={() => exportStock("pdf")}
-              className="flex h-[40px] flex-1 items-center justify-center rounded-[10px] text-[13px] font-extrabold transition hover:brightness-105"
-              style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#FFFFFF" }}
+              className="rel-gerar-pdf-btn flex h-[40px] flex-1 items-center justify-center rounded-full text-[13px] font-extrabold text-white"
             >
               Gerar PDF
             </button>
           ) : (
-            <Link
-              href={report.exportPdfHref}
-              className="flex h-[40px] flex-1 items-center justify-center rounded-[10px] text-[13px] font-extrabold transition hover:brightness-105"
-              style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#FFFFFF" }}
+            <button
+              type="button"
+              onClick={() => window.location.assign(report.exportPdfHref)}
+              className="rel-gerar-pdf-btn flex h-[40px] flex-1 items-center justify-center rounded-full text-[13px] font-extrabold text-white"
             >
               Gerar PDF
-            </Link>
+            </button>
           )}
+          <style jsx>{`
+            .rel-gerar-pdf-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .rel-gerar-pdf-btn:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
         </div>
       </aside>
 
@@ -1210,7 +1254,7 @@ function ReportDrawer({
               <button
                 type="button"
                 onClick={() => setShowRecords(false)}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444]`}
+                className={`flex h-8 w-8 items-center justify-center rounded-full border transition ${tokenBorder} ${tokenTextSub} hover:border-[#EF4444] hover:text-[#EF4444] dark:hover:border-[#EF4444] dark:hover:text-[#EF4444]`}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1247,19 +1291,9 @@ function ReportDrawer({
                 ))}
                 {rangeKey === "custom" ? (
                   <div className="flex items-center gap-1.5">
-                    <input
-                      type="date"
-                      value={customFrom}
-                      onChange={(e) => setCustomFrom(e.target.value)}
-                      className={`rounded-lg border px-2 py-1 text-[12px] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-                    />
+                    <DatePickerInput label="De" name="registros_de_picker" value={customFrom} onChange={setCustomFrom} compact hideLabel />
                     <span className={tokenTextSub}>—</span>
-                    <input
-                      type="date"
-                      value={customTo}
-                      onChange={(e) => setCustomTo(e.target.value)}
-                      className={`rounded-lg border px-2 py-1 text-[12px] ${tokenBorder} ${tokenInputBg} ${tokenText}`}
-                    />
+                    <DatePickerInput label="Até" name="registros_ate_picker" value={customTo} onChange={setCustomTo} compact hideLabel />
                   </div>
                 ) : null}
                 <span className={`ml-auto text-[11px] font-semibold ${tokenTextSub}`}>
@@ -1383,13 +1417,19 @@ export function RelatoriosView({
       <style>{`@keyframes relDrawerIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}`}</style>
 
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span
-          className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
-        >
-          Relatórios
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span
+            className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
+          >
+            Relatórios
+          </span>
+          <span className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] tracking-[0.08em] text-[#64748B] dark:text-[#8695AD]">
+            FISCAL & ANÁLISE/02
+          </span>
+        </div>
         <div className="flex-1" />
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -1401,7 +1441,7 @@ export function RelatoriosView({
         {/* Busca + categorias */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div
-            className={`flex h-[42px] min-w-[200px] flex-1 items-center gap-2.5 rounded-[11px] border px-4 ${tokenBorder} ${tokenCardBg}`}
+            className={`flex h-[42px] min-w-[200px] flex-1 items-center gap-2.5 rounded-full border px-4 ${tokenBorder} ${tokenCardBg}`}
           >
             <Search className={`h-[15px] w-[15px] ${tokenTextSub}`} />
             <input
@@ -1411,7 +1451,7 @@ export function RelatoriosView({
               className={`flex-1 border-none bg-transparent text-[14px] outline-none ${tokenText}`}
             />
           </div>
-          <div className={`flex gap-0.5 rounded-xl border p-1 ${tokenBorder} ${tokenCardBg}`}>
+          <div className={`flex gap-0.5 rounded-full border p-1 ${tokenBorder} ${tokenCardBg}`}>
             {categories.map((c) => {
               const activeCat = cat === c;
               return (
@@ -1419,8 +1459,8 @@ export function RelatoriosView({
                   key={c}
                   type="button"
                   onClick={() => setCat(c)}
-                  className={`h-[34px] whitespace-nowrap rounded-[9px] px-3.5 text-[12.5px] font-bold transition ${
-                    activeCat ? "text-white" : tokenTextSub
+                  className={`h-[34px] whitespace-nowrap rounded-full px-3.5 text-[12.5px] font-bold transition ${
+                    activeCat ? "text-white" : `${tokenTextSub} hover:bg-slate-50 dark:hover:bg-white/5`
                   }`}
                   style={
                     activeCat

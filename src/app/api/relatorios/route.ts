@@ -373,7 +373,7 @@ async function exportFiscalSummaryReport(
 
   const rows: FiscalExportRow[] = summary.map((item) => ({
     Depositante: item.depositante,
-    Fluxo: flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "SaÃ­da" : "Todos",
+    Fluxo: flow === "ENTRADA" ? "Entrada" : flow === "SAIDA" ? "Saída" : "Todos",
     Emitente: issuerTerm || "Todos",
     Destinatario: recipientTerm || "Todos",
     NFEntrada: String(item.entradaDocuments),
@@ -425,11 +425,23 @@ async function exportRows<T extends Record<string, string>>(
   }
 
   if (format === "pdf") {
-    return buildPdfReport(rows, options);
+    try {
+      return await buildPdfReport(rows, options);
+    } catch (error) {
+      return Response.json(
+        {
+          error:
+            error instanceof Error
+              ? `Não foi possível gerar o PDF: ${error.message}`
+              : "Não foi possível gerar o PDF.",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   return Response.json(
-    { error: "Formato de exportaÃ§Ã£o invÃ¡lido. Use csv ou excel." },
+    { error: "Formato de exportação inválido. Use csv ou excel." },
     { status: 400 },
   );
 }
@@ -480,8 +492,13 @@ async function buildPdfReport<T extends Record<string, string>>(
   y -= 42;
 
   // Sanitiza (Helvetica/WinAnsi cobre Latin-1 + reticências) e trunca à coluna.
+  // O range " -ÿ" (U+0020-U+00FF) inclui os controles C1 (U+0080-U+009F), que
+  // a tabela WinAnsi do pdf-lib NÃO mapeia -- um nome com acento maiúsculo
+  // corrompido (mojibake UTF-8→Latin-1) cai exatamente nesse buraco e faz
+  // font.widthOfTextAtSize()/drawText() lançar "WinAnsi cannot encode...",
+  // derrubando a geração inteira do PDF sem esse filtro extra.
   const fit = (raw: string, w: number, size: number, f = font) => {
-    let t = (raw ?? "").replace(/[^ -ÿ–—…]/g, "");
+    let t = (raw ?? "").replace(/[\u0080-\u009F]/g, "").replace(/[^ -ÿ–—…]/g, "");
     if (f.widthOfTextAtSize(t, size) <= w - 6) return t;
     while (t.length > 1 && f.widthOfTextAtSize(`${t}…`, size) > w - 6) t = t.slice(0, -1);
     return `${t}…`;
@@ -635,7 +652,7 @@ function formatÁreaLabel(value: string) {
     case "BLOQUEADO":
       return "Bloqueado";
     case "EXPEDICAO":
-      return "ExpediÃ§Ã£o";
+      return "Expedição";
     default:
       return value;
   }

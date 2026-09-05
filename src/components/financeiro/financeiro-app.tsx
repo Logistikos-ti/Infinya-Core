@@ -767,9 +767,14 @@ export function FinanceiroApp(props: Props) {
     <div className="flex h-full flex-col font-[family-name:var(--font-manrope)]">
       {/* Header */}
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
-          Financeiro
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
+            Financeiro
+          </span>
+          <span className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] tracking-[0.08em] text-[#64748B] dark:text-[#8695AD]">
+            FISCAL & ANÁLISE/03
+          </span>
+        </div>
         <div className="flex-1" />
         <PillSelect
           value={monthSel}
@@ -1004,7 +1009,7 @@ export function FinanceiroApp(props: Props) {
                             }
                           }}
                           className={`border-t border-slate-500/[0.16] transition dark:border-slate-400/[0.14] ${
-                            tab === "extrato" ? "" : "cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5"
+                            tab === "extrato" ? "" : "cursor-pointer hover:bg-[rgba(139,92,246,0.08)]"
                           } ${activeId === r.id ? "bg-violet-50/60 dark:bg-violet-500/10" : ""}`}
                         >
                           {r.cols.map((c, i) => (

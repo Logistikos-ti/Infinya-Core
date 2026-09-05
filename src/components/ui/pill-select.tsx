@@ -20,6 +20,7 @@ export function PillSelect({
   placeholder = "Selecione...",
   className = "",
   style,
+  disabled = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -27,6 +28,7 @@ export function PillSelect({
   placeholder?: string;
   className?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -53,10 +55,11 @@ export function PillSelect({
     <div className="relative" ref={wrapRef}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex h-[42px] min-w-[170px] cursor-pointer items-center justify-between gap-2 rounded-full border px-4 text-[13.5px] font-semibold outline-none transition-colors ${tokenBorder} ${tokenCardBg} ${tokenText} ${className}`}
+        className={`flex h-[42px] min-w-[170px] items-center justify-between gap-2 rounded-full border px-4 text-[13.5px] font-semibold outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${disabled ? "" : "cursor-pointer"} ${tokenBorder} ${tokenCardBg} ${tokenText} ${className}`}
         style={{
           ...style,
           ...(open ? { borderColor: "#5AA7FF", boxShadow: "0 0 0 3px rgba(90,167,255,.15)" } : {}),
