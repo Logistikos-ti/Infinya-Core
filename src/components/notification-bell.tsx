@@ -28,6 +28,36 @@ const TYPE_ICON: Record<AppNotification["tipo"], React.ReactNode> = {
   EXPEDICAO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
 };
 
+// Mesma chave do SoundToggle (src/components/sound-toggle.tsx) -- ausente
+// no localStorage = som ligado por padrão (mesmo default do toggle).
+function isSoundEnabled() {
+  if (typeof window === "undefined") return true;
+  const saved = window.localStorage.getItem("wms-sound-enabled");
+  return saved === null ? true : saved === "true";
+}
+
+// Sintetizado via Web Audio API (mesmo approach de playBeep em
+// fechar-romaneio-client.tsx) -- sem depender de um arquivo de áudio.
+function playNotificationChime() {
+  if (!isSoundEnabled()) return;
+  if (typeof window === "undefined" || !window.AudioContext) return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(740, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1046, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.22, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.24);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.24);
+  } catch {
+    // AudioContext not supported
+  }
+}
+
 export function NotificationBell() {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -39,10 +69,22 @@ export function NotificationBell() {
   const { notifications, unreadCount, markRead, markAllRead } = useAppNotifications();
   const { notifications: supportNotifications, unreadCount: supportUnreadCount, markRead: markSupportRead } =
     useSupportUnreadCounts();
+  const totalUnread = unreadCount + supportUnreadCount;
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Toca só quando o total de não-lidas AUMENTA -- previousUnreadRef começa
+  // null, então a primeira carga (que já pode vir com não-lidas de antes)
+  // nunca soa; só notificações genuinamente novas depois disso tocam.
+  const previousUnreadRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (previousUnreadRef.current !== null && totalUnread > previousUnreadRef.current) {
+      playNotificationChime();
+    }
+    previousUnreadRef.current = totalUnread;
+  }, [totalUnread]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -108,8 +150,6 @@ export function NotificationBell() {
       },
     })),
   ].sort((a, b) => new Date(b.createdAtIso).getTime() - new Date(a.createdAtIso).getTime());
-
-  const totalUnread = unreadCount + supportUnreadCount;
 
   return (
     <div ref={containerRef} className="relative">
