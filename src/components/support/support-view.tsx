@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Paperclip, RotateCcw, Search, Send, X } from "lucide-react";
 import type { SupportTicket } from "@/lib/support";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
@@ -69,6 +70,8 @@ export function SupportView() {
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<string | null>(null);
   const { counts, markRead } = useSupportUnreadCounts();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const pageSize = 10;
 
   const load = useCallback(async () => {
@@ -86,6 +89,19 @@ export function SupportView() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Abre direto o chamado quando vem do sino de notificações
+  // (NotificationBell navega pra /suporte?chamado=<databaseId>).
+  useEffect(() => {
+    const chamadoParam = searchParams.get("chamado");
+    if (!chamadoParam || tickets.length === 0) return;
+    const target = tickets.find((t) => t.databaseId === chamadoParam);
+    if (target) {
+      setDetailId(target.databaseId);
+      markRead(target.databaseId);
+      router.replace("/suporte");
+    }
+  }, [searchParams, tickets, markRead, router]);
 
   const detail = useMemo(
     () => tickets.find((t) => t.databaseId === detailId) ?? null,

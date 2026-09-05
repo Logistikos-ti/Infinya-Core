@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createNotification } from "@/lib/notifications";
 import { formatDatePtBr, formatDateTimePtBr, getSaoPauloDateStamp } from "@/lib/utils";
 
 export type CycleCountSummary = {
@@ -1098,19 +1099,35 @@ export async function approveCycleCountAdjustment(input: {
   return { alreadyApplied: false, movementType };
 }
 
-export async function completeCycleCount(cycleCountId: string) {
+export async function completeCycleCount(cycleCountId: string, userId?: string | null) {
   const supabase = createSupabaseAdminClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("contagens_estoque")
     .update({
       status: "CONCLUIDA",
       concluido_em: new Date().toISOString(),
     })
-    .eq("id", cycleCountId);
+    .eq("id", cycleCountId)
+    .select("depositante_id")
+    .single();
 
   if (error) {
     throw new Error(`Não foi possível concluir a contagem: ${error.message}`);
+  }
+
+  const { divergentItems } = await getCycleCountItemStats(cycleCountId);
+  if (divergentItems > 0) {
+    await createNotification({
+      tipo: "INVENTARIO_DIVERGENTE",
+      titulo: "Contagem cíclica com divergências",
+      mensagem: `A contagem cíclica foi concluída com ${divergentItems} divergência(s).`,
+      link: `/estoque/inventarios/${cycleCountId}`,
+      depositanteId: data.depositante_id,
+      referenciaTipo: "contagem_ciclica",
+      referenciaId: cycleCountId,
+      criadoPor: userId ?? null,
+    });
   }
 }
 

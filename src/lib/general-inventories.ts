@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createNotification } from "@/lib/notifications";
 import { formatDateTimePtBr } from "@/lib/utils";
 
 type ProductRow = {
@@ -680,7 +681,29 @@ export async function finalizeGeneralInventory(input: { inventoryId: string; use
     p_user_id: input.userId,
   });
   if (error) throw new Error(error.message);
-  return data as { divergentes: number; zerados: number; aumentos: number; reducoes: number; ajustesAplicados: number };
+  const result = data as { divergentes: number; zerados: number; aumentos: number; reducoes: number; ajustesAplicados: number };
+
+  if (result.divergentes > 0) {
+    const { data: header } = await supabase
+      .from("inventarios_gerais")
+      .select("depositante_id, data_operacional")
+      .eq("id", input.inventoryId)
+      .maybeSingle();
+    if (header) {
+      await createNotification({
+        tipo: "INVENTARIO_DIVERGENTE",
+        titulo: "Inventário geral com divergências",
+        mensagem: `O inventário geral de ${header.data_operacional} foi concluído com ${result.divergentes} divergência(s).`,
+        link: `/estoque/inventarios/geral/detalhe/${input.inventoryId}`,
+        depositanteId: header.depositante_id,
+        referenciaTipo: "inventario_geral",
+        referenciaId: input.inventoryId,
+        criadoPor: input.userId,
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function getGeneralInventoryReport(id: string) {

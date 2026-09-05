@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      await completeCycleCount(cycleCountId);
+      await completeCycleCount(cycleCountId, auth.user.id);
       return Response.json({ message: "Contagem concluída com sucesso." });
     } catch (error) {
       return Response.json(

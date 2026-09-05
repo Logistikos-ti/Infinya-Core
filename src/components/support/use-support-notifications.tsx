@@ -4,8 +4,19 @@ import { MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+export type SupportTicketNotification = {
+  ticketId: string;
+  ticketNumber: string;
+  title: string;
+  preview: string;
+  author: string;
+  createdAt: string;
+};
+
 export function useSupportUnreadCounts() {
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<SupportTicketNotification[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -17,7 +28,11 @@ export function useSupportUnreadCounts() {
         },
       );
       const payload = await response.json();
-      if (response.ok) setCounts(payload.unreadByTicket ?? {});
+      if (response.ok) {
+        setCounts(payload.unreadByTicket ?? {});
+        setUnreadCount(payload.unreadCount ?? 0);
+        setNotifications(Array.isArray(payload.notifications) ? payload.notifications : []);
+      }
     } catch {
       // Notifications are supplementary and should never block the support screen.
     }
@@ -54,8 +69,12 @@ export function useSupportUnreadCounts() {
       }, 500);
     };
 
+    // Sufixo aleatório -- evita a colisão "cannot add postgres_changes
+    // callbacks... after subscribe()" quando o Strict Mode (dev) ou uma
+    // remontagem rápida cria um novo canal antes do anterior terminar de se
+    // desinscrever (mesmo fix aplicado em use-app-notifications.ts).
     const channel = supabase
-      .channel("support-notifications-realtime")
+      .channel(`support-notifications-realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "suporte_chamados" },
@@ -83,10 +102,12 @@ export function useSupportUnreadCounts() {
 
   const markRead = useCallback((ticketId: string) => {
     setCounts((current) => ({ ...current, [ticketId]: 0 }));
+    setNotifications((current) => current.filter((item) => item.ticketId !== ticketId));
+    setUnreadCount((current) => Math.max(0, current - 1));
     void fetch(`/api/suporte/chamados/${ticketId}/leitura`, { method: "POST" });
   }, []);
 
-  return { counts, markRead };
+  return { counts, unreadCount, notifications, markRead };
 }
 
 export function UnreadMessageBadge({ count }: { count?: number }) {

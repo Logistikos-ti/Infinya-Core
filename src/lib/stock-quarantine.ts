@@ -3,6 +3,7 @@ import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { isHiddenLegacyDamageEntry } from "@/lib/stock-visibility";
 import { quarantineDonateLabel, quarantineDonatedLabel } from "@/lib/quarantine-labels";
 import { formatDateTimePtBr } from "@/lib/utils";
+import { createNotification } from "@/lib/notifications";
 
 type Relation<T> = T | T[] | null;
 
@@ -346,7 +347,35 @@ export async function createStockQuarantine({
     throw new Error(error.message || "Nao foi possivel criar a quarentena.");
   }
 
-  return String(data);
+  const newId = String(data);
+
+  const { data: newRow } = await supabase
+    .from("estoque_quarentena")
+    .select("depositante_id, quantidade, motivo, produto:produtos(nome)")
+    .eq("id", newId)
+    .maybeSingle();
+
+  if (newRow) {
+    const product = firstRelation(
+      newRow.produto as Relation<{ nome?: string | null }>,
+    );
+    const quantidade = Number(newRow.quantidade ?? 0);
+    const produtoNome = product?.nome?.trim() || "produto sem descrição";
+    const motivo = newRow.motivo?.trim() || reason;
+
+    await createNotification({
+      tipo: "QUARENTENA_CRIADA",
+      titulo: "Produto em quarentena",
+      mensagem: `${quantidade} unidade(s) de ${produtoNome} foram colocadas em quarentena: ${motivo}`,
+      link: "/estoque/quarentena",
+      depositanteId: newRow.depositante_id,
+      referenciaTipo: "quarentena",
+      referenciaId: newId,
+      criadoPor: userId,
+    });
+  }
+
+  return newId;
 }
 
 export async function resolveStockQuarantine({

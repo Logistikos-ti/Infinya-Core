@@ -1,5 +1,6 @@
 import type { AppUserContext } from "@/lib/auth";
 import { registrarLancamentosExpedicao } from "@/lib/billing";
+import { createNotification } from "@/lib/notifications";
 import { extractCarrierName, extractTrackingCode, formatShippingStatusLabel, isOrderLockedForDecision } from "@/lib/shipping";
 import { formatWmsOrderNumber } from "@/lib/shipping-order-number";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -1378,6 +1379,31 @@ export async function completeRomaneioWithDoubleCheck({
       updated_at: new Date().toISOString(),
     })
     .in("id", allOrderIds);
+
+  // 5. Notifica os depositantes dos pedidos que o romaneio foi liberado --
+  // best-effort, createNotification nunca lança, então isso nunca derruba
+  // a finalização do romaneio.
+  const { data: orderDepositanteRows } = await admin
+    .from("pedidos_expedicao")
+    .select("depositante_id")
+    .in("id", allOrderIds);
+  const depositanteIds = Array.from(
+    new Set((orderDepositanteRows ?? []).map((row) => row.depositante_id)),
+  );
+  await Promise.all(
+    depositanteIds.map((depositanteId) =>
+      createNotification({
+        tipo: "ROMANEIO_LIBERADO",
+        titulo: "Romaneio liberado",
+        mensagem: `Romaneio ${romaneio.codigo} foi liberado para coleta.`,
+        link: `/romaneio/${romaneioId}`,
+        depositanteId,
+        referenciaTipo: "romaneio",
+        referenciaId: romaneioId,
+        criadoPor: user.id,
+      }),
+    ),
+  );
 
   // Cobrança agora acontece na conferência, não no romaneio
 
