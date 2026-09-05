@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  Ban,
   Bell,
+  CircleAlert,
   CircleHelp,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   MessageCircle,
   Package,
   PackageCheck,
+  PackageSearch,
+  PackageX,
   Receipt,
   Search,
   ShieldAlert,
+  TriangleAlert,
   Truck,
   PlugZap,
 } from "lucide-react";
@@ -26,6 +32,7 @@ import { FancySelectInput } from "@/components/ui/fancy-select-input";
 import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import type { AppUserContext } from "@/lib/auth";
 import { isPortalIntegrationEnabled } from "@/lib/portal-integration-access";
+import type { AppNotification } from "@/lib/notifications";
 
 type PortalNotification = {
   ticketId: string;
@@ -38,6 +45,90 @@ type PortalNotification = {
   createdAt?: string;
   unreadCount: number;
 };
+
+// Item unificado do sino do portal -- mistura chamados de suporte (sistema
+// próprio de não-lidos) com as notificações genéricas de `notificacoes`
+// (mesmo tipo que alimenta o sino do dashboard staff em notification-bell.tsx).
+type PortalFeedItem = {
+  key: string;
+  icon: ReactNode;
+  badgeCount?: number;
+  eyebrow?: string;
+  title: string;
+  subtitle: string;
+  createdAtIso?: string;
+  lida: boolean;
+  onOpen: () => void;
+};
+
+// Mesmo mapeamento de ícones do sino staff (notification-bell.tsx) --
+// mantém a leitura visual consistente entre dashboard e portal.
+const NOTIFICATION_TYPE_ICON: Record<AppNotification["tipo"], ReactNode> = {
+  ROMANEIO_LIBERADO: <Truck className="h-4 w-4" />,
+  QUARENTENA_CRIADA: <PackageX className="h-4 w-4" />,
+  INVENTARIO_DIVERGENTE: <ClipboardList className="h-4 w-4" />,
+  RECEBIMENTO_CONCLUIDO: <PackageCheck className="h-4 w-4" />,
+  RECEBIMENTO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
+  EXPEDICAO_CANCELAMENTO_ABERTO: <Ban className="h-4 w-4" />,
+  EXPEDICAO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
+  FATURA_GERADA: <Receipt className="h-4 w-4" />,
+  FATURA_VENCIDA: <CircleAlert className="h-4 w-4" />,
+  ESTOQUE_BAIXO: <PackageSearch className="h-4 w-4" />,
+};
+
+// `link` de AppNotification sempre aponta pra uma rota do dashboard staff
+// (ex.: /expedicao/conferencia/123) -- nunca existe no portal. Remapeia pelo
+// referenciaTipo/referenciaId pra rota real do portal (ver basePortalNavigation).
+function resolvePortalNotificationLink(referenciaTipo: string | null, referenciaId: string | null): string {
+  switch (referenciaTipo) {
+    case "quarentena":
+      return "/portal?view=quarentena";
+    case "recebimento":
+      return "/portal?view=recebimento";
+    case "fatura":
+      return "/portal?view=faturas";
+    case "pedido_expedicao":
+      return referenciaId ? `/portal?view=pedidos&order=${referenciaId}` : "/portal?view=pedidos";
+    case "produto":
+    case "inventario_geral":
+    case "contagem_ciclica":
+      return "/portal?view=produtos";
+    case "romaneio":
+    default:
+      return "/portal?view=pedidos";
+  }
+}
+
+// Mesma chave do SoundToggle (src/components/sound-toggle.tsx) -- ausente
+// no localStorage = som ligado por padrão (mesmo default do toggle). O
+// portal não tem o SoundToggle no cabeçalho, mas respeita a mesma preferência
+// caso o usuário já tenha desligado em algum outro lugar do software.
+function isSoundEnabled() {
+  if (typeof window === "undefined") return true;
+  const saved = window.localStorage.getItem("wms-sound-enabled");
+  return saved === null ? true : saved === "true";
+}
+
+// Sintetizado via Web Audio API (mesmo approach de notification-bell.tsx).
+function playNotificationChime() {
+  if (!isSoundEnabled()) return;
+  if (typeof window === "undefined" || !window.AudioContext) return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(740, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1046, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.22, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.24);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.24);
+  } catch {
+    // AudioContext not supported
+  }
+}
 
 const basePortalNavigation: ReadonlyArray<SidebarNavigationItem> = [
   {
@@ -129,13 +220,13 @@ export function PortalChrome({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notifications, setNotifications] = useState<PortalNotification[]>([]);
+  const [genericNotifications, setGenericNotifications] = useState<AppNotification[]>([]);
   const portalNavigation = getPortalNavigation(user);
   const isMasterPreview = user.papel === "ADMIN" || user.papel === "TI";
   const selectedDepositanteId = searchParams.get("depositanteId") ?? "";
-  const unreadNotifications = notifications.reduce(
-    (sum, notification) => sum + Number(notification.unreadCount || 0),
-    0,
-  );
+  const unreadNotifications =
+    notifications.reduce((sum, notification) => sum + Number(notification.unreadCount || 0), 0) +
+    genericNotifications.filter((item) => !item.lida).length;
 
   useEffect(() => {
     if (!isMasterPreview) return;
@@ -231,6 +322,47 @@ export function PortalChrome({
   }, [isMasterPreview, selectedDepositanteId]);
 
   useEffect(() => {
+    let active = true;
+
+    const loadGenericNotifications = async () => {
+      try {
+        const params = new URLSearchParams({ refresh: String(Date.now()) });
+        if (isMasterPreview && selectedDepositanteId) {
+          params.set("depositanteId", selectedDepositanteId);
+        }
+        const response = await fetch(`/api/notificacoes?${params.toString()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const payload = await response.json();
+        if (active && response.ok) {
+          setGenericNotifications(Array.isArray(payload.notifications) ? payload.notifications : []);
+        }
+      } catch {
+        // O sino é complementar e não deve bloquear o portal.
+      }
+    };
+
+    void loadGenericNotifications();
+    const interval = window.setInterval(loadGenericNotifications, 15000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [isMasterPreview, selectedDepositanteId]);
+
+  // Toca só quando o total de não-lidas AUMENTA (mesma lógica de
+  // notification-bell.tsx) -- previousUnreadRef começa null, então a
+  // primeira carga (que pode já vir com não-lidas de antes) nunca soa.
+  const previousUnreadRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (previousUnreadRef.current !== null && unreadNotifications > previousUnreadRef.current) {
+      playNotificationChime();
+    }
+    previousUnreadRef.current = unreadNotifications;
+  }, [unreadNotifications]);
+
+  useEffect(() => {
     setNotificationsOpen(false);
   }, [currentView, selectedDepositanteId]);
 
@@ -303,7 +435,7 @@ export function PortalChrome({
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  async function openNotification(notification: PortalNotification) {
+  function openNotification(notification: PortalNotification) {
     setNotificationsOpen(false);
     setNotifications((current) =>
       current.filter((item) => item.ticketId !== notification.ticketId),
@@ -315,6 +447,40 @@ export function PortalChrome({
       withPortalContext(`/portal?view=suporte&chamado=${notification.ticketId}`),
     );
   }
+
+  function openGenericNotification(notification: AppNotification) {
+    setNotificationsOpen(false);
+    setGenericNotifications((current) =>
+      current.map((item) => (item.id === notification.id ? { ...item, lida: true } : item)),
+    );
+    void fetch(`/api/notificacoes/${notification.id}/leitura`, { method: "POST" });
+    router.push(
+      withPortalContext(resolvePortalNotificationLink(notification.referenciaTipo, notification.referenciaId)),
+    );
+  }
+
+  const notificationFeed: PortalFeedItem[] = [
+    ...notifications.map((notification): PortalFeedItem => ({
+      key: `s-${notification.ticketId}`,
+      icon: <MessageCircle className="h-4 w-4" />,
+      badgeCount: notification.unreadCount,
+      eyebrow: notification.ticketNumber,
+      title: notification.title,
+      subtitle: `${notification.author}: ${notification.preview}`,
+      createdAtIso: notification.createdAt,
+      lida: false,
+      onOpen: () => openNotification(notification),
+    })),
+    ...genericNotifications.map((notification): PortalFeedItem => ({
+      key: `n-${notification.id}`,
+      icon: NOTIFICATION_TYPE_ICON[notification.tipo] ?? <Bell className="h-4 w-4" />,
+      title: notification.titulo,
+      subtitle: notification.mensagem,
+      createdAtIso: notification.criadoEmIso,
+      lida: notification.lida,
+      onOpen: () => openGenericNotification(notification),
+    })),
+  ].sort((a, b) => new Date(b.createdAtIso ?? 0).getTime() - new Date(a.createdAtIso ?? 0).getTime());
 
   return (
     <div
@@ -407,10 +573,9 @@ export function PortalChrome({
           </button>
           {notificationsOpen ? (
             <PortalNotificationPanel
-              notifications={notifications}
+              feed={notificationFeed}
               isLoading={notificationsLoading}
               unreadCount={unreadNotifications}
-              onOpenNotification={openNotification}
               onOpenSupport={() => navigate("/portal?view=suporte")}
             />
           ) : null}
@@ -457,16 +622,14 @@ export function PortalChrome({
   );
 }
 function PortalNotificationPanel({
-  notifications,
+  feed,
   isLoading,
   unreadCount,
-  onOpenNotification,
   onOpenSupport,
 }: {
-  notifications: PortalNotification[];
+  feed: PortalFeedItem[];
   isLoading: boolean;
   unreadCount: number;
-  onOpenNotification: (notification: PortalNotification) => void;
   onOpenSupport: () => void;
 }) {
   return (
@@ -477,7 +640,7 @@ function PortalNotificationPanel({
             Notificações
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Mensagens novas dos chamados
+            Chamados, pedidos, estoque e faturas
           </p>
         </div>
         <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-200">
@@ -485,11 +648,11 @@ function PortalNotificationPanel({
         </span>
       </div>
       <div className="max-h-[420px] overflow-y-auto p-2">
-        {isLoading && notifications.length === 0 ? (
+        {isLoading && feed.length === 0 ? (
           <div className="flex min-h-[150px] items-center justify-center">
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-300 border-t-violet-500" />
           </div>
-        ) : notifications.length === 0 ? (
+        ) : feed.length === 0 ? (
           <div className="px-5 py-8 text-center">
             <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500">
               <Bell className="h-5 w-5" />
@@ -498,53 +661,61 @@ function PortalNotificationPanel({
               Tudo em dia
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              Novas respostas da equipe Infinoos aparecerão aqui.
+              Novidades sobre seus pedidos, chamados e estoque aparecerão aqui.
             </p>
           </div>
         ) : (
-          notifications.map((notification) => (
+          feed.map((item) => (
             <button
-              key={notification.ticketId}
+              key={item.key}
               type="button"
-              onClick={() => onOpenNotification(notification)}
-              className="group flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-cyan-50 dark:hover:bg-white/5"
+              onClick={item.onOpen}
+              className={`group flex w-full gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-cyan-50 dark:hover:bg-white/5 ${
+                !item.lida ? "bg-cyan-50/50 dark:bg-white/[0.04]" : ""
+              }`}
             >
               <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:bg-violet-400/10 dark:text-violet-200">
-                <MessageCircle className="h-4 w-4" />
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-extrabold text-white">
-                  {notification.unreadCount > 9
-                    ? "9+"
-                    : notification.unreadCount}
-                </span>
+                {item.icon}
+                {item.badgeCount ? (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-extrabold text-white">
+                    {item.badgeCount > 9 ? "9+" : item.badgeCount}
+                  </span>
+                ) : !item.lida ? (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#0e1728]" />
+                ) : null}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="truncate text-xs font-extrabold text-cyan-700 dark:text-cyan-200">
-                    {notification.ticketNumber}
-                  </span>
-                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                  {item.eyebrow ? (
+                    <>
+                      <span className="truncate text-xs font-extrabold text-cyan-700 dark:text-cyan-200">
+                        {item.eyebrow}
+                      </span>
+                      <span className="h-1 w-1 rounded-full bg-slate-300" />
+                    </>
+                  ) : null}
                   <span className="text-[11px] font-semibold text-slate-400">
-                    {formatNotificationAge(notification.createdAt)}
+                    {formatNotificationAge(item.createdAtIso)}
                   </span>
                 </span>
                 <span className="mt-1 block truncate text-sm font-bold text-slate-950 dark:text-white">
-                  {notification.title}
+                  {item.title}
                 </span>
                 <span className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                  {notification.author}: {notification.preview}
+                  {item.subtitle}
                 </span>
               </span>
             </button>
           ))
         )}
       </div>
-      {notifications.length > 0 ? (
+      {feed.length > 0 ? (
         <button
           type="button"
           onClick={onOpenSupport}
           className="flex w-full items-center justify-center border-t border-slate-100 px-4 py-3 text-xs font-extrabold text-violet-600 transition hover:bg-violet-50 dark:border-white/10 dark:text-violet-200 dark:hover:bg-white/5"
         >
-          Ver todos os chamados
+          Ver chamados de suporte
         </button>
       ) : null}
     </div>

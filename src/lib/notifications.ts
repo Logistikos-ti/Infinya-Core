@@ -25,6 +25,11 @@ export type AppNotification = {
   titulo: string;
   mensagem: string;
   link: string | null;
+  // Usados pra remapear o link certo fora do dashboard interno (ex.: o
+  // sino do portal do depositante -- `link` acima sempre aponta pra uma
+  // rota do dashboard staff, nunca pro portal).
+  referenciaTipo: string | null;
+  referenciaId: string | null;
   criadoEm: string;
   criadoEmIso: string;
   lida: boolean;
@@ -68,16 +73,23 @@ export async function createNotification(input: {
 export async function listNotificationsForUser(
   user: AppUserContext,
   limit = 30,
+  // ADMIN/TI "master preview" do portal de um depositante específico --
+  // mesmo padrão de /api/suporte/notificacoes (route.ts:15-27): só um
+  // usuário interno pode passar isso, nunca um DEPOSITANTE vendo o de
+  // outro (isScopedDepositanteUser já barra e usa o próprio abaixo).
+  overrideDepositanteId?: string | null,
 ): Promise<{ notifications: AppNotification[]; unreadCount: number }> {
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("notificacoes")
-    .select("id, tipo, titulo, mensagem, link, criado_em")
+    .select("id, tipo, titulo, mensagem, link, referencia_tipo, referencia_id, criado_em")
     .order("criado_em", { ascending: false })
     .limit(limit);
 
   if (isScopedDepositanteUser(user) && user.depositanteId) {
     query = query.eq("depositante_id", user.depositanteId);
+  } else if (overrideDepositanteId) {
+    query = query.eq("depositante_id", overrideDepositanteId);
   }
 
   const { data: rows, error } = await query;
@@ -102,6 +114,8 @@ export async function listNotificationsForUser(
     titulo: row.titulo,
     mensagem: row.mensagem,
     link: row.link,
+    referenciaTipo: row.referencia_tipo,
+    referenciaId: row.referencia_id,
     criadoEm: formatDateTimePtBr(row.criado_em),
     criadoEmIso: row.criado_em,
     lida: readIds.has(row.id),
