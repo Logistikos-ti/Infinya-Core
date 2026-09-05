@@ -8,6 +8,7 @@ import {
 } from "@/app/(dashboard)/financeiro/contratos/actions";
 import { FIN_HEADING, FIN_MONO } from "@/components/financeiro/fin-ui";
 import { PillSelect } from "@/components/ui/pill-select";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type Depositante = { id: string; nome: string };
@@ -56,6 +57,17 @@ const initialState: ContratoActionState = { success: false, message: null };
 const inputBase =
   "w-full rounded-full border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
 
+// Checkbox circular custom (appearance-none derruba o desenho nativo, então
+// o check precisa ser desenhado à mão como background-image condicional).
+const checkboxCircleClass =
+  "h-4 w-4 shrink-0 appearance-none rounded-full border-2 border-slate-300 bg-center bg-no-repeat transition-colors checked:border-violet-500 checked:bg-violet-500 dark:border-slate-600";
+const checkIconStyle = (checked: boolean): React.CSSProperties => ({
+  backgroundImage: checked
+    ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E\")"
+    : undefined,
+  backgroundSize: "10px 10px",
+});
+
 const PONTO_COLETA_MARKETPLACES = [
   { key: "MERCADO_LIVRE", label: "Mercado Livre", keywords: ["mercado livre", "meli", "ml"] },
   { key: "SHOPEE", label: "Shopee", keywords: ["shopee"] },
@@ -91,6 +103,8 @@ export function ContratoForm({
   const [usaFrete, setUsaFrete] = useState(
     currentEditItem ? currentEditItem.taxa_frete_fixa > 0 || currentEditItem.taxa_frete_percentual > 0 : true,
   );
+  const [vigenciaInicio, setVigenciaInicio] = useState(currentEditItem?.vigencia_inicio ?? "");
+  const [vigenciaFim, setVigenciaFim] = useState(currentEditItem?.vigencia_fim ?? "");
 
   const [pontoColeta, setPontoColeta] = useState<Set<string>>(() => {
     const existing = currentEditItem?.marketplaces_ponto_coleta;
@@ -361,7 +375,8 @@ export function ContratoForm({
                     type="checkbox"
                     checked={pontoColeta.has(m.key)}
                     onChange={() => togglePontoColeta(m.key)}
-                    className="h-4 w-4 rounded-full accent-violet-500"
+                    className={checkboxCircleClass}
+                    style={checkIconStyle(pontoColeta.has(m.key))}
                   />
                   <span className="text-[12.5px] font-semibold text-slate-700 dark:text-zinc-300">{m.label}</span>
                 </label>
@@ -379,7 +394,8 @@ export function ContratoForm({
                   type="checkbox"
                   checked={usaFrete}
                   onChange={(e) => setUsaFrete(e.target.checked)}
-                  className="h-4 w-4 accent-violet-500"
+                  className={checkboxCircleClass}
+                  style={checkIconStyle(usaFrete)}
                 />
                 <span className="text-[13px] font-bold text-slate-900 dark:text-zinc-100">Cobra frete?</span>
               </label>
@@ -455,7 +471,8 @@ export function ContratoForm({
                   type="checkbox"
                   checked={usaRefri}
                   onChange={(e) => setUsaRefri(e.target.checked)}
-                  className="h-4 w-4 rounded-full accent-violet-500"
+                  className={checkboxCircleClass}
+                  style={checkIconStyle(usaRefri)}
                 />
                 <span className="text-[13px] font-bold text-slate-900 dark:text-zinc-100">Usa refrigerador?</span>
               </label>
@@ -487,7 +504,8 @@ export function ContratoForm({
                   type="checkbox"
                   checked={usaSoftware}
                   onChange={(e) => setUsaSoftware(e.target.checked)}
-                  className="h-4 w-4 rounded-full accent-violet-500"
+                  className={checkboxCircleClass}
+                  style={checkIconStyle(usaSoftware)}
                 />
                 <span className="text-[13px] font-bold text-slate-900 dark:text-zinc-100">Software</span>
               </label>
@@ -513,19 +531,29 @@ export function ContratoForm({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Início de vigência">
-              <input
-                type="date"
+              <DatePickerInput
+                label="Início de vigência"
                 name="vigencia_inicio"
-                defaultValue={currentEditItem?.vigencia_inicio ?? ""}
-                className={`${inputBase} ${FIN_MONO}`}
+                value={vigenciaInicio}
+                onChange={setVigenciaInicio}
+                compact
+                hideLabel
+                todayButtonClassName="contrato-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
               />
             </Field>
             <Field label="Fim de vigência">
-              <input
-                type="date"
+              <DatePickerInput
+                label="Fim de vigência"
                 name="vigencia_fim"
-                defaultValue={currentEditItem?.vigencia_fim ?? ""}
-                className={`${inputBase} ${FIN_MONO}`}
+                value={vigenciaFim}
+                onChange={setVigenciaFim}
+                compact
+                hideLabel
+                todayButtonClassName="contrato-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
               />
             </Field>
           </div>
@@ -566,6 +594,22 @@ export function ContratoForm({
               transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
             }
             .contrato-save-btn:hover:not(:disabled) {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
+          {/* Global (não-jsx): o botão "Hoje" é renderizado dentro do DatePickerInput
+              (outro componente), então o escopo do <style jsx> acima não alcança ele. */}
+          <style>{`
+            .contrato-hoje-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            }
+            .contrato-hoje-btn:hover {
               background-position: 100% 50%;
               transform: translateY(-3px);
               box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);

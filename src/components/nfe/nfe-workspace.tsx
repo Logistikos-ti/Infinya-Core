@@ -11,10 +11,13 @@ import {
   X,
 } from "lucide-react";
 import type { FiscalDocumentDetail } from "@/lib/fiscal-documents";
+import { FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { NotificationBell } from "@/components/notification-bell";
 import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { PillSelect } from "@/components/ui/pill-select";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 
 type DepositanteOption = { id: string; nome: string };
 
@@ -71,6 +74,8 @@ const MONO = "font-[family-name:var(--font-jetbrains-mono)]";
 const NFE_THEME_CSS = `
 .nfe-theme{--nfe-panel:#ffffff;--nfe-panel-soft:#f6f8fc;--nfe-border:rgba(15,23,42,.10);--nfe-border-soft:rgba(15,23,42,.06);--nfe-text:#0f172a;--nfe-muted:#64748b;--nfe-faint:#94a3b8;--nfe-violet:#8b5cf6;--nfe-violet-ink:#7c3aed;--nfe-blue:#2563eb;--nfe-emerald:#059669;--nfe-amber:#b45309;--nfe-rose:#e11d48;--nfe-row-hover:rgba(15,23,42,.035);--nfe-active:rgba(139,92,246,.10);--nfe-scrim:rgba(15,23,42,.45);--nfe-drawer:linear-gradient(180deg,#ffffff,#f6f8fc);--nfe-drawer-head:rgba(255,255,255,.92);--nfe-drawer-foot:rgba(246,248,252,.95);}
 .dark .nfe-theme{--nfe-panel:#101b30;--nfe-panel-soft:#0d1526;--nfe-border:rgba(148,163,184,.14);--nfe-border-soft:rgba(148,163,184,.09);--nfe-text:#f1f5f9;--nfe-muted:#94a3b8;--nfe-faint:#64748b;--nfe-violet:#8b5cf6;--nfe-violet-ink:#c4b5fd;--nfe-blue:#3b82f6;--nfe-emerald:#10b981;--nfe-amber:#f59e0b;--nfe-rose:#f43f5e;--nfe-row-hover:rgba(148,163,184,.05);--nfe-active:rgba(139,92,246,.08);--nfe-scrim:rgba(4,8,18,.62);--nfe-drawer:linear-gradient(180deg,#101b30,#0b1226);--nfe-drawer-head:rgba(16,27,48,.9);--nfe-drawer-foot:rgba(11,18,38,.92);}
+.nfe-hoje-btn{background:linear-gradient(135deg,#3b82f6 0%,#8b5cf6 50%,#3b82f6 100%);background-size:220% 100%;background-position:0% 50%;box-shadow:0 8px 22px rgba(99,102,241,.32);transition:background-position .6s ease,transform .3s cubic-bezier(0.34,1.56,0.64,1),box-shadow .3s ease;}
+.nfe-hoje-btn:hover{background-position:100% 50%;transform:translateY(-3px);box-shadow:0 12px 30px rgba(99,140,255,.45);}
 `;
 
 export function NfeWorkspace({
@@ -233,11 +238,16 @@ export function NfeWorkspace({
 
       {/* Cabeçalho (padrão rebranding: título + sino + tema) */}
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span
-          className="rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100"
-        >
-          NF-e
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span
+            className={`${FIN_HEADING} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}
+          >
+            NF-e
+          </span>
+          <span className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] tracking-[0.08em] text-[#64748B] dark:text-[#8695AD]">
+            FISCAL & ANÁLISE/01
+          </span>
+        </div>
         <div className="flex-1" />
         <NotificationBell />
         <SoundToggle forceLight />
@@ -252,26 +262,20 @@ export function NfeWorkspace({
             Notas fiscais eletrônicas de entrada e saída.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <PillSelect
               value={selectedMonth}
-              onChange={(e) => handleMonthChange(e.target.value)}
-              className="h-11 rounded-[11px] px-3.5 text-[13.5px] font-bold outline-none"
-              style={{ background: C.panel, color: C.text, border: `0.8px solid ${C.border}` }}
-            >
-              {(availableMonths.includes(selectedMonth)
+              onChange={handleMonthChange}
+              options={(availableMonths.includes(selectedMonth)
                 ? availableMonths
                 : [selectedMonth, ...availableMonths]
-              ).map((m) => (
-                <option key={m} value={m}>
-                  {monthLabel(m)}
-                </option>
-              ))}
-            </select>
+              ).map((m) => ({ value: m, label: monthLabel(m) }))}
+              style={{ height: "44px", minWidth: "200px" }}
+            />
             <button
               type="button"
               onClick={openExportModal}
               disabled={!documents.length}
-              className="inline-flex h-11 items-center gap-2 rounded-[11px] px-4 text-[13.5px] font-bold transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-11 items-center gap-2 rounded-full px-4 text-[13.5px] font-bold transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-40"
               style={{ background: C.panel, color: C.text, border: `0.8px solid ${C.border}` }}
             >
               Exportar lista
@@ -301,7 +305,7 @@ export function NfeWorkspace({
         {/* Filter bar — linha flex transparente (sem painel externo), igual ao HTML */}
         <section className="flex flex-wrap items-center gap-2.5">
           <div
-            className="flex items-center gap-0.5 rounded-xl p-1"
+            className="flex items-center gap-0.5 rounded-full p-1"
             style={{ background: C.panel, border: `0.8px solid ${C.border}` }}
           >
             <FlowTab active={flow === "TODAS"} onClick={() => resetPage(setFlow)("TODAS")}>
@@ -316,7 +320,7 @@ export function NfeWorkspace({
           </div>
 
           <div
-            className="flex h-[42px] min-w-[240px] flex-1 items-center gap-2.5 rounded-[11px] px-4"
+            className="flex h-[42px] min-w-[240px] flex-1 items-center gap-2.5 rounded-full px-4"
             style={{ background: C.panel, border: `0.8px solid ${C.border}` }}
           >
             <Search className="h-4 w-4" style={{ color: C.faint }} />
@@ -330,25 +334,25 @@ export function NfeWorkspace({
           </div>
 
           {canFilterDepositante ? (
-            <SelectPill value={depositante} onChange={resetPage(setDepositante)}>
-              <option value="">Todos depositantes</option>
-              {depositanteOptions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nome}
-                </option>
-              ))}
-            </SelectPill>
+            <PillSelect
+              value={depositante}
+              onChange={resetPage(setDepositante)}
+              options={[
+                { value: "", label: "Todos depositantes" },
+                ...depositanteOptions.map((d) => ({ value: d.id, label: d.nome })),
+              ]}
+            />
           ) : null}
-          <SelectPill value={status} onChange={(v) => resetPage(setStatus)(v as "" | StatusKey)}>
-            <option value="">Todos os status</option>
-            {(["AUTORIZADA", "PENDENTE", "CANCELADA", "DENEGADA"] as StatusKey[])
-              .filter((k) => statusPresent.has(k) || k !== "DENEGADA")
-              .map((k) => (
-                <option key={k} value={k}>
-                  {STATUS_LABEL[k]}
-                </option>
-              ))}
-          </SelectPill>
+          <PillSelect
+            value={status}
+            onChange={(v) => resetPage(setStatus)(v as "" | StatusKey)}
+            options={[
+              { value: "", label: "Todos os status" },
+              ...(["AUTORIZADA", "PENDENTE", "CANCELADA", "DENEGADA"] as StatusKey[])
+                .filter((k) => statusPresent.has(k) || k !== "DENEGADA")
+                .map((k) => ({ value: k, label: STATUS_LABEL[k] })),
+            ]}
+          />
         </section>
 
         {/* Table */}
@@ -506,7 +510,7 @@ export function NfeWorkspace({
               <button
                 type="button"
                 onClick={() => setExportOpen(false)}
-                className="grid h-8 w-8 place-items-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/10"
+                className="grid h-8 w-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
                 style={{ color: C.muted }}
               >
                 <X className="h-5 w-5" />
@@ -516,42 +520,73 @@ export function NfeWorkspace({
             <div className="mt-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <ExportField label="Tipo">
-                  <ExportSelect value={expTipo} onChange={(v) => setExpTipo(v as FlowFilter)}>
-                    <option value="TODAS">Todas</option>
-                    <option value="ENTRADA">Entrada</option>
-                    <option value="SAIDA">Saída</option>
-                  </ExportSelect>
+                  <PillSelect
+                    value={expTipo}
+                    onChange={(v) => setExpTipo(v as FlowFilter)}
+                    options={[
+                      { value: "TODAS", label: "Todas" },
+                      { value: "ENTRADA", label: "Entrada" },
+                      { value: "SAIDA", label: "Saída" },
+                    ]}
+                    className="w-full"
+                  />
                 </ExportField>
                 <ExportField label="Status">
-                  <ExportSelect value={expStatus} onChange={(v) => setExpStatus(v as "" | StatusKey)}>
-                    <option value="">Todos</option>
-                    <option value="AUTORIZADA">Autorizada</option>
-                    <option value="PENDENTE">Pendente</option>
-                    <option value="CANCELADA">Cancelada</option>
-                    <option value="DENEGADA">Denegada</option>
-                  </ExportSelect>
+                  <PillSelect
+                    value={expStatus}
+                    onChange={(v) => setExpStatus(v as "" | StatusKey)}
+                    options={[
+                      { value: "", label: "Todos" },
+                      { value: "AUTORIZADA", label: "Autorizada" },
+                      { value: "PENDENTE", label: "Pendente" },
+                      { value: "CANCELADA", label: "Cancelada" },
+                      { value: "DENEGADA", label: "Denegada" },
+                    ]}
+                    className="w-full"
+                  />
                 </ExportField>
               </div>
 
               {canFilterDepositante ? (
                 <ExportField label="Depositante">
-                  <ExportSelect value={expDepositante} onChange={setExpDepositante}>
-                    <option value="">Todos depositantes</option>
-                    {depositanteOptions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nome}
-                      </option>
-                    ))}
-                  </ExportSelect>
+                  <PillSelect
+                    value={expDepositante}
+                    onChange={setExpDepositante}
+                    options={[
+                      { value: "", label: "Todos depositantes" },
+                      ...depositanteOptions.map((d) => ({ value: d.id, label: d.nome })),
+                    ]}
+                    className="w-full"
+                  />
                 </ExportField>
               ) : null}
 
               <div className="grid grid-cols-2 gap-3">
                 <ExportField label="Data inicial">
-                  <ExportInput type="date" value={expDataIni} onChange={setExpDataIni} />
+                  <DatePickerInput
+                    label="Data inicial"
+                    name="exp_data_ini_picker"
+                    value={expDataIni}
+                    onChange={setExpDataIni}
+                    compact
+                    hideLabel
+                    todayButtonClassName="nfe-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                    clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                    navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                  />
                 </ExportField>
                 <ExportField label="Data final">
-                  <ExportInput type="date" value={expDataFim} onChange={setExpDataFim} />
+                  <DatePickerInput
+                    label="Data final"
+                    name="exp_data_fim_picker"
+                    value={expDataFim}
+                    onChange={setExpDataFim}
+                    compact
+                    hideLabel
+                    todayButtonClassName="nfe-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                    clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                    navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                  />
                 </ExportField>
               </div>
 
@@ -569,31 +604,38 @@ export function NfeWorkspace({
               </div>
 
               <label
-                className="flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3"
+                className="flex cursor-pointer flex-col gap-0.5 rounded-xl px-4 py-3"
                 style={{ background: C.panelSoft, border: `0.8px solid ${C.borderSoft}` }}
               >
-                <input
-                  type="checkbox"
-                  checked={expIncluirZip}
-                  onChange={(e) => setExpIncluirZip(e.target.checked)}
-                  className="mt-0.5 accent-violet-500"
-                />
-                <span>
+                <span className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={expIncluirZip}
+                    onChange={(e) => setExpIncluirZip(e.target.checked)}
+                    className="h-4 w-4 shrink-0 appearance-none rounded-full border-2 bg-center bg-no-repeat transition-colors checked:border-violet-500 checked:bg-violet-500"
+                    style={{
+                      borderColor: C.borderSoft,
+                      backgroundImage: expIncluirZip
+                        ? "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E\")"
+                        : undefined,
+                      backgroundSize: "10px 10px",
+                    }}
+                  />
                   <span className="text-sm font-semibold" style={{ color: C.text }}>
                     Incluir XMLs em ZIP
                   </span>
-                  <span className="mt-0.5 block text-xs" style={{ color: C.muted }}>
-                    Adiciona os arquivos XML de cada NF-e ao pacote.
-                  </span>
+                </span>
+                <span className="block pl-7 text-xs" style={{ color: C.muted }}>
+                  Adiciona os arquivos XML de cada NF-e ao pacote.
                 </span>
               </label>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex justify-center gap-3">
               <button
                 type="button"
                 onClick={() => setExportOpen(false)}
-                className="inline-flex h-11 items-center rounded-[11px] px-5 text-[13.5px] font-bold transition hover:brightness-125"
+                className="inline-flex h-11 items-center rounded-full px-5 text-[13.5px] font-bold transition hover:brightness-125"
                 style={{ background: C.panelSoft, color: C.text, border: `0.8px solid ${C.border}` }}
               >
                 Cancelar
@@ -601,11 +643,27 @@ export function NfeWorkspace({
               <button
                 type="button"
                 onClick={runExport}
-                className="inline-flex h-11 items-center rounded-[11px] px-5 text-[13.5px] font-extrabold transition hover:brightness-110"
-                style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" }}
+                className="nfe-exportar-btn inline-flex h-11 items-center rounded-full px-5 text-[13.5px] font-extrabold text-white"
               >
                 Exportar
               </button>
+              <style jsx>{`
+                .nfe-exportar-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .nfe-exportar-btn:hover {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </div>
         </div>
@@ -625,47 +683,6 @@ function ExportField({ label, children }: { label: string; children: React.React
   );
 }
 
-function ExportSelect({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 w-full rounded-[11px] px-3 text-sm font-semibold outline-none"
-      style={{ background: C.panelSoft, color: C.text, border: `0.8px solid ${C.borderSoft}` }}
-    >
-      {children}
-    </select>
-  );
-}
-
-function ExportInput({
-  type,
-  value,
-  onChange,
-}: {
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 w-full rounded-[11px] px-3 text-sm outline-none"
-      style={{ background: C.panelSoft, color: C.text, border: `0.8px solid ${C.borderSoft}` }}
-    />
-  );
-}
-
 function FormatPill({
   active,
   onClick,
@@ -679,7 +696,7 @@ function FormatPill({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-11 items-center justify-center rounded-[11px] text-[13px] font-bold transition"
+      className="flex h-11 items-center justify-center rounded-full text-[13px] font-bold transition"
       style={{
         background: active ? soft(C.violet, 12) : C.panelSoft,
         color: active ? C.violetSoft : C.muted,
@@ -732,7 +749,7 @@ function DetailDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="grid h-8 w-8 place-items-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/10"
+              className="grid h-8 w-8 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
               style={{ color: C.muted }}
             >
               <X className="h-5 w-5" />
@@ -784,7 +801,7 @@ function DetailDrawer({
             href={doc.downloadHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-[13px] font-bold transition hover:brightness-125"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-[13px] font-bold transition hover:brightness-125"
             style={{ background: C.panel, color: C.text, border: `0.8px solid ${C.border}` }}
           >
             Download XML
@@ -792,11 +809,27 @@ function DetailDrawer({
           <button
             type="button"
             onClick={onDanfe}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-[13px] font-extrabold transition hover:brightness-110"
-            style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" }}
+            className="nfe-visualizar-danfe-btn inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-[13px] font-extrabold text-white"
           >
             Visualizar DANFE
           </button>
+          <style jsx>{`
+            .nfe-visualizar-danfe-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .nfe-visualizar-danfe-btn:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
         </div>
       </aside>
     </div>
@@ -833,8 +866,7 @@ function DanfeModal({ doc, onClose }: { doc: FiscalDocumentDetail; onClose: () =
               href={src}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-bold transition hover:brightness-110"
-              style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" }}
+              className="nfe-danfe-abrir-btn inline-flex h-9 items-center gap-2 rounded-full px-3 text-xs font-bold text-white"
             >
               <Printer className="h-4 w-4" />
               Abrir / Imprimir
@@ -842,11 +874,28 @@ function DanfeModal({ doc, onClose }: { doc: FiscalDocumentDetail; onClose: () =
             <button
               type="button"
               onClick={onClose}
-              className="grid h-9 w-9 place-items-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/10"
+              className="grid h-9 w-9 place-items-center rounded-full transition hover:bg-black/5 dark:hover:bg-white/10"
               style={{ color: C.muted }}
             >
               <X className="h-5 w-5" />
             </button>
+            <style jsx>{`
+              .nfe-danfe-abrir-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .nfe-danfe-abrir-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
           </div>
         </div>
         <iframe title="DANFE" src={src} className="w-full flex-1" style={{ minHeight: "60vh", border: "0", background: "#525659" }} />
@@ -887,36 +936,18 @@ function FlowTab({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-[7px] rounded-[9px] px-3.5 py-[7px] text-[13px] font-bold transition"
-      style={{
-        background: active ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : "transparent",
-        color: active ? "#fff" : C.muted,
-      }}
+      className={`inline-flex items-center gap-[7px] rounded-full px-3.5 py-[7px] text-[13px] font-bold transition ${
+        active ? "" : "hover:bg-black/5 dark:hover:bg-white/10"
+      }`}
+      style={
+        active
+          ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" }
+          : { color: C.muted }
+      }
     >
       {dot ? <span className="h-2 w-2 rounded-full" style={{ background: active ? "#fff" : dot }} /> : null}
       {children}
     </button>
-  );
-}
-
-function SelectPill({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-[42px] rounded-[11px] px-3 text-[13.5px] font-semibold outline-none"
-      style={{ background: C.panel, color: C.text, border: `0.8px solid ${C.border}` }}
-    >
-      {children}
-    </select>
   );
 }
 
@@ -987,7 +1018,7 @@ function PagerButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-lg transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-30"
+      className="grid h-8 w-8 place-items-center rounded-full transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-30"
       style={{ background: C.panelSoft, color: C.text, border: `0.8px solid ${C.borderSoft}` }}
     >
       {children}
@@ -1037,11 +1068,14 @@ function formatDate(iso: string | null) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short" }).format(date);
 }
 
-// Rótulo "Set 2026" a partir de "YYYY-MM" (meses vêm prontos do servidor).
-const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+// Rótulo "Setembro de 2026" a partir de "YYYY-MM" (meses vêm prontos do servidor).
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 function monthLabel(ym: string): string {
   const [year, month] = ym.split("-");
-  return `${MONTH_ABBR[Number(month) - 1] ?? "—"} ${year}`;
+  return `${MONTH_NAMES[Number(month) - 1] ?? "—"} de ${year}`;
 }
 
 // O XML da NF-e traz CNPJ/CPF só com dígitos. Aplica a pontuação oficial:
