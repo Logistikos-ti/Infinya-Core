@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, ClipboardList, MessageCircle, PackageX, Truck } from "lucide-react";
+import { Bell, CheckCheck, ClipboardList, Maximize2, MessageCircle, Minimize2, PackageX, Truck, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAppNotifications, type AppNotification } from "@/hooks/use-app-notifications";
@@ -28,6 +28,7 @@ export function NotificationBell() {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
@@ -44,11 +45,17 @@ export function NotificationBell() {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
+        setExpanded(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
+
+  function closePanel() {
+    setOpen(false);
+    setExpanded(false);
+  }
 
   if (!mounted) {
     return <div className="h-[32px] w-[32px]" />;
@@ -67,7 +74,7 @@ export function NotificationBell() {
       lida: item.lida,
       onOpen: () => {
         markRead(item.id);
-        setOpen(false);
+        closePanel();
         if (item.link) router.push(item.link);
       },
     })),
@@ -80,7 +87,7 @@ export function NotificationBell() {
       lida: false,
       onOpen: () => {
         markSupportRead(item.ticketId);
-        setOpen(false);
+        closePanel();
         router.push(`/suporte?chamado=${item.ticketId}`);
       },
     })),
@@ -92,7 +99,10 @@ export function NotificationBell() {
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          setOpen((current) => !current);
+          setExpanded(false);
+        }}
         title="Notificações"
         aria-label="Notificações"
         className={cn(
@@ -118,35 +128,66 @@ export function NotificationBell() {
       {open && (
         <div
           className={cn(
-            "absolute right-0 top-[38px] z-50 w-[340px] max-w-[90vw] overflow-hidden rounded-xl border shadow-xl",
+            "z-50 flex flex-col overflow-hidden shadow-xl",
             isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white",
+            expanded
+              ? "fixed inset-0 rounded-none border-0"
+              : "absolute right-0 top-[38px] w-[340px] max-w-[90vw] rounded-xl border",
           )}
         >
           <div
             className={cn(
-              "flex items-center justify-between px-4 py-3 text-sm font-bold",
+              "flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-sm font-bold",
               isDark ? "border-b border-[#1E293B] text-slate-100" : "border-b border-slate-100 text-slate-800",
             )}
           >
-            Notificações
-            {totalUnread > 0 && (
+            <span>Notificações</span>
+            <div className="flex items-center gap-3">
+              {totalUnread > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    markAllRead();
+                  }}
+                  className={cn(
+                    "flex items-center gap-1 text-[11px] font-semibold",
+                    isDark ? "text-violet-300 hover:text-violet-200" : "text-violet-600 hover:text-violet-700",
+                  )}
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Marcar tudo como lido
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  markAllRead();
-                }}
+                onClick={() => setExpanded((current) => !current)}
+                title={expanded ? "Recolher" : "Expandir"}
+                aria-label={expanded ? "Recolher painel de notificações" : "Expandir painel de notificações"}
                 className={cn(
-                  "flex items-center gap-1 text-[11px] font-semibold",
-                  isDark ? "text-violet-300 hover:text-violet-200" : "text-violet-600 hover:text-violet-700",
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+                  isDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
                 )}
               >
-                <CheckCheck className="h-3.5 w-3.5" />
-                Marcar tudo como lido
+                {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               </button>
-            )}
+              {expanded && (
+                <button
+                  type="button"
+                  onClick={closePanel}
+                  title="Fechar"
+                  aria-label="Fechar painel de notificações"
+                  className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
+                    isDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+                  )}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="max-h-[380px] overflow-y-auto">
+          <div className={cn("overflow-y-auto", expanded ? "flex-1" : "max-h-[380px]")}>
             {feed.length === 0 ? (
               <div className={cn("px-4 py-8 text-center text-xs", isDark ? "text-slate-500" : "text-slate-400")}>
                 Nenhuma notificação por aqui.
@@ -159,6 +200,7 @@ export function NotificationBell() {
                   onClick={item.onOpen}
                   className={cn(
                     "flex w-full items-start gap-2.5 px-4 py-3 text-left text-xs transition-colors",
+                    expanded && "mx-auto max-w-[720px] px-5 py-4 text-sm",
                     isDark ? "hover:bg-white/5" : "hover:bg-slate-50",
                     !item.lida && (isDark ? "bg-violet-500/[0.06]" : "bg-violet-50/60"),
                   )}
