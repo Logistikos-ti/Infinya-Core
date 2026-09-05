@@ -75,11 +75,6 @@ export function NotificationBell() {
 
   const currentTheme = theme === "system" ? resolvedTheme : theme;
   const isDark = currentTheme === "dark";
-  // Expandido sempre usa o fundo escuro fixo da sidebar (--sidebar-surface-bg,
-  // não muda com o tema) -- as cores de texto/hover internas do painel
-  // precisam seguir ESSE fundo, não o tema do app, senão ficam ilegíveis
-  // quando o app está no tema claro mas o painel está forçado escuro.
-  const panelIsDark = expanded || isDark;
 
   const feed: FeedItem[] = [
     ...notifications.map((item): FeedItem => ({
@@ -142,32 +137,27 @@ export function NotificationBell() {
         )}
       </button>
 
+      {open && expanded && (
+        // Fundo escurecido só no modo expandido -- o popup grande fica
+        // centralizado por cima, mais parecido com um modal do que com um
+        // dropdown ancorado no sino.
+        <div className="fixed inset-0 z-40 bg-black/50" onClick={closePanel} />
+      )}
+
       {open && (
         <div
           className={cn(
-            "z-50 flex flex-col overflow-hidden shadow-xl",
+            "z-50 flex flex-col overflow-hidden shadow-xl rounded-xl border",
+            isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white",
             expanded
-              ? [
-                  // Expandido encosta direto na sidebar (left = largura
-                  // dela) -- usa o MESMO fundo dela (--sidebar-surface-bg,
-                  // sempre escuro nos dois temas de propósito) em vez de
-                  // bg-background (que muda com o tema), senão sobra uma
-                  // emenda de cor visível bem na hora que mais devia parecer
-                  // uma coisa só.
-                  "bg-[var(--sidebar-surface-bg)]",
-                  // Para no começo do conteúdo, sem cobrir a sidebar fixa --
-                  // --sidebar-width é a mesma CSS var que o app-chrome.tsx usa
-                  // pra reservar o espaço dela (herdada do wrapper root, já
-                  // que este painel sempre renderiza dentro do <main>).
-                  "fixed inset-y-0 right-0 left-0 lg:left-[calc(var(--sidebar-width)+28px)] rounded-none border-0",
-                ]
-              : [panelIsDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white", "absolute right-0 top-[38px] w-[340px] max-w-[90vw] rounded-xl border"],
+              ? "fixed left-1/2 top-1/2 h-[75vh] max-h-[720px] w-[640px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2"
+              : "absolute right-0 top-[38px] w-[340px] max-w-[90vw]",
           )}
         >
           <div
             className={cn(
               "flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-sm font-bold",
-              panelIsDark ? "border-b border-[#1E293B] text-slate-100" : "border-b border-slate-100 text-slate-800",
+              isDark ? "border-b border-[#1E293B] text-slate-100" : "border-b border-slate-100 text-slate-800",
             )}
           >
             <span>Notificações</span>
@@ -180,7 +170,7 @@ export function NotificationBell() {
                   }}
                   className={cn(
                     "flex items-center gap-1 text-[11px] font-semibold",
-                    panelIsDark ? "text-violet-300 hover:text-violet-200" : "text-violet-600 hover:text-violet-700",
+                    isDark ? "text-violet-300 hover:text-violet-200" : "text-violet-600 hover:text-violet-700",
                   )}
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
@@ -194,7 +184,7 @@ export function NotificationBell() {
                 aria-label={expanded ? "Recolher painel de notificações" : "Expandir painel de notificações"}
                 className={cn(
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
-                  panelIsDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+                  isDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
                 )}
               >
                 {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
@@ -207,7 +197,7 @@ export function NotificationBell() {
                   aria-label="Fechar painel de notificações"
                   className={cn(
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
-                    panelIsDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+                    isDark ? "text-slate-400 hover:bg-white/10 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
                   )}
                 >
                   <X className="h-3.5 w-3.5" />
@@ -218,7 +208,7 @@ export function NotificationBell() {
 
           <div className={cn("overflow-y-auto", expanded ? "flex-1" : "max-h-[380px]")}>
             {feed.length === 0 ? (
-              <div className={cn("px-4 py-8 text-center text-xs", panelIsDark ? "text-slate-500" : "text-slate-400")}>
+              <div className={cn("px-4 py-8 text-center text-xs", isDark ? "text-slate-500" : "text-slate-400")}>
                 Nenhuma notificação por aqui.
               </div>
             ) : (
@@ -229,24 +219,24 @@ export function NotificationBell() {
                   onClick={item.onOpen}
                   className={cn(
                     "flex w-full items-start gap-2.5 px-4 py-3 text-left text-xs transition-colors",
-                    expanded && "mx-auto max-w-[720px] px-5 py-4 text-sm",
-                    panelIsDark ? "hover:bg-white/5" : "hover:bg-slate-50",
-                    !item.lida && (panelIsDark ? "bg-violet-500/[0.06]" : "bg-violet-50/60"),
+                    expanded && "px-5 py-4 text-sm",
+                    isDark ? "hover:bg-white/5" : "hover:bg-slate-50",
+                    !item.lida && (isDark ? "bg-violet-500/[0.06]" : "bg-violet-50/60"),
                   )}
                 >
                   <span
                     className={cn(
                       "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                      panelIsDark ? "bg-violet-500/15 text-violet-300" : "bg-violet-100 text-violet-600",
+                      isDark ? "bg-violet-500/15 text-violet-300" : "bg-violet-100 text-violet-600",
                     )}
                   >
                     {item.icon}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={cn("block truncate font-semibold", panelIsDark ? "text-slate-100" : "text-slate-800")}>
+                    <span className={cn("block truncate font-semibold", isDark ? "text-slate-100" : "text-slate-800")}>
                       {item.title}
                     </span>
-                    <span className={cn("mt-0.5 block line-clamp-2", panelIsDark ? "text-slate-400" : "text-slate-500")}>
+                    <span className={cn("mt-0.5 block line-clamp-2", isDark ? "text-slate-400" : "text-slate-500")}>
                       {item.preview}
                     </span>
                   </span>
