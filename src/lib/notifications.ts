@@ -31,6 +31,19 @@ const OPERADOR_NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
   "EXPEDICAO_CANCELAMENTO_ABERTO",
 ];
 
+// Colaborador (perfil do portal sem acesso a Faturas nem decisão de
+// Quarentena -- ver usuario-form.tsx) não vê fatura gerada/vencida, criação
+// de quarentena (ele não decide) nem as divergências de inventário/recebimento
+// (mais operacional interno). Gestor continua vendo todos os 10 tipos, sem
+// filtro. Decisão do usuário em 2026-09-05.
+const COLABORADOR_NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
+  "ROMANEIO_LIBERADO",
+  "RECEBIMENTO_CONCLUIDO",
+  "EXPEDICAO_CANCELAMENTO_ABERTO",
+  "EXPEDICAO_DIVERGENTE",
+  "ESTOQUE_BAIXO",
+];
+
 export type AppNotification = {
   id: string;
   tipo: NotificationType;
@@ -106,6 +119,8 @@ export async function listNotificationsForUser(
 
   if (user.papel === "OPERADOR") {
     query = query.in("tipo", OPERADOR_NOTIFICATION_TYPES);
+  } else if (user.papel === "DEPOSITANTE" && user.portalProfile === "COLABORADOR") {
+    query = query.in("tipo", COLABORADOR_NOTIFICATION_TYPES);
   }
 
   const { data: rows, error } = await query;
