@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, ClipboardList, Maximize2, MessageCircle, Minimize2, PackageX, Truck, X } from "lucide-react";
+import { Ban, Bell, CheckCheck, ClipboardList, Maximize2, MessageCircle, Minimize2, PackageCheck, PackageX, TriangleAlert, Truck, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAppNotifications, type AppNotification } from "@/hooks/use-app-notifications";
@@ -22,6 +22,10 @@ const TYPE_ICON: Record<AppNotification["tipo"], React.ReactNode> = {
   ROMANEIO_LIBERADO: <Truck className="h-4 w-4" />,
   QUARENTENA_CRIADA: <PackageX className="h-4 w-4" />,
   INVENTARIO_DIVERGENTE: <ClipboardList className="h-4 w-4" />,
+  RECEBIMENTO_CONCLUIDO: <PackageCheck className="h-4 w-4" />,
+  RECEBIMENTO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
+  EXPEDICAO_CANCELAMENTO_ABERTO: <Ban className="h-4 w-4" />,
+  EXPEDICAO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
 };
 
 export function NotificationBell() {

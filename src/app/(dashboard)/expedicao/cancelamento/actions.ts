@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRoleAccess } from "@/lib/auth";
 import { registrarLancamentoCancelamento } from "@/lib/billing";
+import { createNotification } from "@/lib/notifications";
 import { requiresBipagemForCancellation } from "@/lib/shipping-cancellation-status";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -50,7 +51,7 @@ export async function openShippingOrderCancellation(input: {
 
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, status, depositante_id")
+    .select("id, status, depositante_id, numero_pedido")
     .eq("id", input.orderId)
     .maybeSingle();
 
@@ -122,6 +123,20 @@ export async function openShippingOrderCancellation(input: {
   }
 
   revalidateShippingPaths(order.id);
+
+  const motivo = input.motivo?.trim();
+  await createNotification({
+    tipo: "EXPEDICAO_CANCELAMENTO_ABERTO",
+    titulo: "Cancelamento de pedido solicitado",
+    mensagem: motivo
+      ? `Cancelamento solicitado para o pedido ${order.numero_pedido ?? order.id}: ${motivo}`
+      : `Cancelamento solicitado para o pedido ${order.numero_pedido ?? order.id}.`,
+    link: `/expedicao/cancelamento/${cancelamento.id}`,
+    depositanteId: order.depositante_id,
+    referenciaTipo: "pedido_expedicao",
+    referenciaId: order.id,
+    criadoPor: user.id,
+  });
 
   if (!requerBipagem) {
     const { error: concludeError } = await adminSupabase.rpc(

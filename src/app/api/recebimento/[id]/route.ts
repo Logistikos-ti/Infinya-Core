@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiModuleAccess } from "@/lib/api-auth";
 import { registrarLancamentoRecebimento } from "@/lib/billing";
+import { createNotification } from "@/lib/notifications";
 import { getReceivingOrderDetailFromDb } from "@/lib/receiving";
 import { PENDING_ADDRESSING_BLOCK_REASON } from "@/lib/stock-blocking";
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
@@ -346,6 +347,17 @@ export async function PATCH(request: Request, context: RouteContext) {
       .eq("pedido_recebimento_id", order.id)
       .neq("tipo", "TRATATIVA_DIVERGENCIA")
       .in("status", ["PENDENTE", "EM_ANDAMENTO"]);
+
+    await createNotification({
+      tipo: "RECEBIMENTO_DIVERGENTE",
+      titulo: "Recebimento com divergência",
+      mensagem: `Recebimento ${order.codigo} foi finalizado com divergência entre previsto e recebido.`,
+      link: `/recebimento/${order.id}`,
+      depositanteId: order.depositante_id,
+      referenciaTipo: "recebimento",
+      referenciaId: order.id,
+      criadoPor: auth.user.id,
+    });
   }
 
   // Tracks whether any item fell back to the shared staging address (no
@@ -513,6 +525,17 @@ export async function PATCH(request: Request, context: RouteContext) {
     // short once the response below is sent and the serverless function
     // freezes, silently dropping the billing insert.
     await registrarLancamentoRecebimento(order.id).catch(() => {});
+
+    await createNotification({
+      tipo: "RECEBIMENTO_CONCLUIDO",
+      titulo: "Recebimento concluído",
+      mensagem: `Recebimento ${order.codigo} foi concluído e ${finalizedLocationMessage}.`,
+      link: `/recebimento/${order.id}`,
+      depositanteId: order.depositante_id,
+      referenciaTipo: "recebimento",
+      referenciaId: order.id,
+      criadoPor: auth.user.id,
+    });
   }
 
   const responseMessage = parsed.data.finalizar

@@ -7,7 +7,14 @@ import { formatDateTimePtBr } from "@/lib/utils";
 // NÃO passam por aqui: suporte_chamados/comentarios já tem seu próprio
 // sistema de não-lidos (ver src/components/support/use-support-notifications.tsx),
 // o sino só passa a também consultar aquele em paralelo.
-export type NotificationType = "ROMANEIO_LIBERADO" | "QUARENTENA_CRIADA" | "INVENTARIO_DIVERGENTE";
+export type NotificationType =
+  | "ROMANEIO_LIBERADO"
+  | "QUARENTENA_CRIADA"
+  | "INVENTARIO_DIVERGENTE"
+  | "RECEBIMENTO_CONCLUIDO"
+  | "RECEBIMENTO_DIVERGENTE"
+  | "EXPEDICAO_CANCELAMENTO_ABERTO"
+  | "EXPEDICAO_DIVERGENTE";
 
 export type AppNotification = {
   id: string;

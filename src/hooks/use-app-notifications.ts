@@ -5,7 +5,14 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export type AppNotification = {
   id: string;
-  tipo: "ROMANEIO_LIBERADO" | "QUARENTENA_CRIADA" | "INVENTARIO_DIVERGENTE";
+  tipo:
+    | "ROMANEIO_LIBERADO"
+    | "QUARENTENA_CRIADA"
+    | "INVENTARIO_DIVERGENTE"
+    | "RECEBIMENTO_CONCLUIDO"
+    | "RECEBIMENTO_DIVERGENTE"
+    | "EXPEDICAO_CANCELAMENTO_ABERTO"
+    | "EXPEDICAO_DIVERGENTE";
   titulo: string;
   mensagem: string;
   link: string | null;

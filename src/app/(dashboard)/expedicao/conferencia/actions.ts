@@ -17,6 +17,7 @@ import { registrarLancamentosExpedicao, registrarLancamentoDocumento } from "@/l
 import { ensureUserCanAccessDepositante } from "@/lib/tenant-scope";
 import { allowedDocumentMimeTypes, maxDocumentFileSizeBytes } from "@/lib/storage";
 import { autoAssignOrderToRomaneio, CarrierNotIdentifiedError } from "@/lib/romaneio-records";
+import { createNotification } from "@/lib/notifications";
 
 type KitProgressEntry = {
   componentProductId: string;
@@ -362,7 +363,7 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
 
   const { data: order, error: orderError } = await adminSupabase
     .from("pedidos_expedicao")
-    .select("id, payload_origem")
+    .select("id, payload_origem, depositante_id")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -393,8 +394,12 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
   const payload = isRecord(order.payload_origem) ? order.payload_origem : {};
   const currentConference = isRecord(payload.conferencia) ? payload.conferencia : {};
   const now = new Date().toISOString();
+  const motivo =
+    wrongProductScans > 0
+      ? `Divergência: ${wrongProductScans} produto(s) incorreto(s) bipado(s).`
+      : "Divergência reportada durante a conferência.";
 
-  await adminSupabase
+  const { error: updateError } = await adminSupabase
     .from("pedidos_expedicao")
     .update({
       status: "EM_DIVERGENCIA",
@@ -408,16 +413,26 @@ export async function markShippingOrderAsDivergentAction(formData: FormData) {
         },
         divergencia: {
           registradoPorNome: operatorName,
-          motivo:
-            wrongProductScans > 0
-              ? `Divergência: ${wrongProductScans} produto(s) incorreto(s) bipado(s).`
-              : "Divergência reportada durante a conferência.",
+          motivo,
           tipo: "Conferência",
           registradoEm: now,
         },
       },
     })
     .eq("id", orderId);
+
+  if (!updateError) {
+    await createNotification({
+      tipo: "EXPEDICAO_DIVERGENTE",
+      titulo: "Pedido marcado com divergência",
+      mensagem: motivo,
+      link: `/expedicao/conferencia/${orderId}`,
+      depositanteId: order.depositante_id,
+      referenciaTipo: "pedido_expedicao",
+      referenciaId: orderId,
+      criadoPor: user.id,
+    });
+  }
 
   revalidatePath("/expedicao");
   revalidatePath("/expedicao/conferencia");
