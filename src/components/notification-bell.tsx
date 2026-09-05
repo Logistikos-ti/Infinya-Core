@@ -150,7 +150,7 @@ export function NotificationBell() {
             "z-50 flex flex-col overflow-hidden shadow-xl rounded-xl border",
             isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white",
             expanded
-              ? "fixed left-1/2 top-1/2 h-[75vh] max-h-[720px] w-[640px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2"
+              ? "fixed left-1/2 top-1/2 h-[85vh] max-h-[860px] w-[800px] max-w-[94vw] -translate-x-1/2 -translate-y-1/2"
               : "absolute right-0 top-[38px] w-[340px] max-w-[90vw]",
           )}
         >
