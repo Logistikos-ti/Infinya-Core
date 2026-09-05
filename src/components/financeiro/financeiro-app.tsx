@@ -3,9 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search as SearchIcon, Download, X, CircleDollarSign, Clock, CheckCircle2, Receipt, Plus, Building2 } from "lucide-react";
+import { Search as SearchIcon, Download, X, CheckCircle2, Plus, Building2 } from "lucide-react";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 import { LancamentoForm } from "@/components/financeiro/lancamento-form";
 import { InsumoForm } from "@/components/financeiro/insumo-forms";
 import { ContratoForm } from "@/components/financeiro/contrato-form";
@@ -150,6 +153,17 @@ function formatMesAno(mesAno: string) {
   const [year, month] = mesAno.split("-");
   const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   return `${months[Number(month) - 1]} ${year}`;
+}
+
+// Só para o menu suspenso de mês no cabeçalho -- nome do mês por extenso
+// ("Setembro de 2026"), diferente da forma abreviada usada nas tabelas.
+function formatMesAnoLongo(mesAno: string) {
+  const [year, month] = mesAno.split("-");
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  ];
+  return `${months[Number(month) - 1]} de ${year}`;
 }
 
 function formatDateBr(iso: string) {
@@ -757,22 +771,17 @@ export function FinanceiroApp(props: Props) {
           Financeiro
         </span>
         <div className="flex-1" />
-        <select
+        <PillSelect
           value={monthSel}
-          onChange={(e) => {
-            setMonthSel(e.target.value);
+          onChange={(v) => {
+            setMonthSel(v);
             setPage(1);
           }}
-          className="h-[42px] rounded-xl border border-slate-200 bg-white px-3.5 text-[13.5px] font-bold text-slate-700 outline-none dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-200"
-        >
-          <option value="all">Todos os meses</option>
-          {monthOptions.map((m) => (
-            <option key={m} value={m}>
-              {formatMesAno(m)}
-            </option>
-          ))}
-        </select>
+          options={[{ value: "all", label: "Todos os meses" }, ...monthOptions.map((m) => ({ value: m, label: formatMesAnoLongo(m) }))]}
+          style={{ height: "34px", minWidth: "200px" }}
+        />
         <NotificationBell />
+        <SoundToggle forceLight />
         <ThemeToggle />
       </header>
 
@@ -796,7 +805,7 @@ export function FinanceiroApp(props: Props) {
                           : "exportContrato",
                   )
                 }
-                className="flex h-[42px] items-center rounded-[11px] border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
+                className="flex h-[42px] items-center rounded-full border border-slate-200 bg-white px-[18px] text-[13.5px] font-bold text-slate-900 transition hover:brightness-[1.06] dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-100"
               >
                 Exportar
               </button>
@@ -804,11 +813,44 @@ export function FinanceiroApp(props: Props) {
             {showNovoBtn && (
               <button
                 onClick={() => setModal(tab === "insumos" ? "novoInsumo" : tab === "pagar" ? "novoPagar" : "novoLanc")}
-                className="flex h-[42px] items-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition hover:brightness-105"
+                className="financeiro-novo-btn flex h-[42px] items-center rounded-full px-5 text-sm font-extrabold text-white"
               >
                 {novoLabel}
               </button>
             )}
+            <style jsx>{`
+              .financeiro-novo-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .financeiro-novo-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
+            {/* Global (não-jsx): o botão "Hoje" é renderizado dentro do DatePickerInput
+                (outro componente), então o escopo do <style jsx> acima não alcança ele. */}
+            <style>{`
+              .financeiro-hoje-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+              }
+              .financeiro-hoje-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
           </div>
         </div>
 
@@ -819,15 +861,7 @@ export function FinanceiroApp(props: Props) {
               key={k.label}
               className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#101B30]"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{k.label}</span>
-                <span
-                  className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px]"
-                  style={{ background: k.iconBg, color: k.iconColor }}
-                >
-                  <k.icon size={20} />
-                </span>
-              </div>
+              <span className="text-[13px] font-semibold text-slate-500 dark:text-zinc-400">{k.label}</span>
               <div className={`${FIN_HEADING} text-[30px] font-bold text-slate-900 dark:text-zinc-100`}>{k.value}</div>
             </div>
           ))}
@@ -835,12 +869,12 @@ export function FinanceiroApp(props: Props) {
 
         {/* Tab pills */}
         <div className="mb-3 flex flex-shrink-0 justify-center">
-          <div className="flex flex-wrap gap-0.5 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-[#101B30]">
+          <div className="flex flex-wrap gap-0.5 overflow-x-auto rounded-full border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-[#101B30]">
             {VISIBLE_TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => selectTab(t)}
-                className={`whitespace-nowrap rounded-lg px-4 py-[9px] text-[13px] font-bold transition-all ${
+                className={`whitespace-nowrap rounded-full px-4 py-[9px] text-[13px] font-bold transition-all ${
                   tab === t
                     ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white"
                     : "text-slate-500 hover:bg-slate-50 dark:text-zinc-400 dark:hover:bg-white/5"
@@ -855,7 +889,7 @@ export function FinanceiroApp(props: Props) {
         {/* Search + filters (hidden on visão geral) */}
         {tab !== "visao" && (
           <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2.5">
-            <div className="flex h-[42px] flex-1 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 dark:border-white/10 dark:bg-[#101B30]">
+            <div className="flex h-[42px] flex-1 items-center gap-2.5 rounded-full border border-slate-200 bg-white px-4 dark:border-white/10 dark:bg-[#101B30]">
               <SearchIcon className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
               <input
                 value={search}
@@ -868,59 +902,58 @@ export function FinanceiroApp(props: Props) {
               />
             </div>
             {showDepFilter && (
-              <select
+              <PillSelect
                 value={depSel}
-                onChange={(e) => {
-                  setDepSel(e.target.value);
+                onChange={(v) => {
+                  setDepSel(v);
                   setPage(1);
                 }}
-                className="h-[42px] rounded-xl border border-slate-200 bg-white px-3 text-[13.5px] font-semibold text-slate-700 outline-none dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-200"
-              >
-                <option value="all">Todos depositantes</option>
-                {props.depositantes.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nome}
-                  </option>
-                ))}
-              </select>
+                options={[{ value: "all", label: "Todos depositantes" }, ...props.depositantes.map((d) => ({ value: d.id, label: d.nome }))]}
+              />
             )}
             {statusOptions.length > 0 && (
-              <select
+              <PillSelect
                 value={statusSel}
-                onChange={(e) => {
-                  setStatusSel(e.target.value);
+                onChange={(v) => {
+                  setStatusSel(v);
                   setPage(1);
                 }}
-                className="h-[42px] rounded-xl border border-slate-200 bg-white px-3 text-[13.5px] font-semibold text-slate-700 outline-none dark:border-white/10 dark:bg-[#101B30] dark:text-zinc-200"
-              >
-                <option value="all">{tab === "extrato" ? "Todos os tipos" : "Todos os status"}</option>
-                {statusOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "all", label: tab === "extrato" ? "Todos os tipos" : "Todos os status" },
+                  ...statusOptions.map((s) => ({ value: s, label: s })),
+                ]}
+              />
             )}
             {tab === "extrato" && (
-              <div className="flex h-[42px] items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 dark:border-white/10 dark:bg-[#101B30]">
-                <input
-                  type="date"
+              <div className="flex items-center gap-2">
+                <DatePickerInput
+                  label="De"
+                  name="extrato_data_de"
                   value={dateFrom}
-                  onChange={(e) => {
-                    setDateFrom(e.target.value);
+                  onChange={(v) => {
+                    setDateFrom(v);
                     setPage(1);
                   }}
-                  className={`${FIN_MONO} bg-transparent text-[13px] font-semibold text-slate-700 outline-none dark:text-zinc-200`}
+                  compact
+                  hideLabel
+                  todayButtonClassName="financeiro-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                  clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                  navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
                 />
                 <span className="text-slate-400 dark:text-zinc-500">–</span>
-                <input
-                  type="date"
+                <DatePickerInput
+                  label="Até"
+                  name="extrato_data_ate"
                   value={dateTo}
-                  onChange={(e) => {
-                    setDateTo(e.target.value);
+                  onChange={(v) => {
+                    setDateTo(v);
                     setPage(1);
                   }}
-                  className={`${FIN_MONO} bg-transparent text-[13px] font-semibold text-slate-700 outline-none dark:text-zinc-200`}
+                  compact
+                  hideLabel
+                  todayButtonClassName="financeiro-hoje-btn inline-flex h-10 items-center justify-center rounded-full px-3 text-sm font-bold text-white"
+                  clearButtonClassName="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                  navButtonClassName="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
                 />
               </div>
             )}
@@ -999,7 +1032,7 @@ export function FinanceiroApp(props: Props) {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                  className="h-[30px] w-[30px] rounded-full border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
                 >
                   ‹
                 </button>
@@ -1009,7 +1042,7 @@ export function FinanceiroApp(props: Props) {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="h-[30px] w-[30px] rounded-lg border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                  className="h-[30px] w-[30px] rounded-full border border-slate-200 text-slate-400 transition hover:border-violet-300 hover:bg-violet-500/5 hover:text-violet-600 disabled:pointer-events-none disabled:opacity-40 dark:border-white/10 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
                 >
                   ›
                 </button>
@@ -1048,7 +1081,7 @@ export function FinanceiroApp(props: Props) {
                 showToast("Marcado como pago");
                 router.refresh();
               }}
-              className="mt-4 h-10 w-full rounded-xl bg-emerald-500 text-sm font-bold text-white"
+              className="mt-4 h-10 w-full rounded-full bg-emerald-500 text-sm font-bold text-white"
             >
               Marcar como pago
             </button>
@@ -1075,16 +1108,35 @@ export function FinanceiroApp(props: Props) {
             </div>
           }
           footer={
-            <button
-              onClick={() => {
-                setEditContratoId(activeContrato.id);
-                setModal("editContrato");
-                setActiveId(null);
-              }}
-              className={`${FIN_HEADING} h-10 w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold text-white transition hover:brightness-105`}
-            >
-              Editar
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setEditContratoId(activeContrato.id);
+                  setModal("editContrato");
+                  setActiveId(null);
+                }}
+                className={`${FIN_HEADING} financeiro-contrato-edit-btn h-10 w-full rounded-full text-sm font-bold text-white`}
+              >
+                Editar
+              </button>
+              <style jsx>{`
+                .financeiro-contrato-edit-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition:
+                    background-position 0.6s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.3s ease;
+                }
+                .financeiro-contrato-edit-btn:hover {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
+            </>
           }
         >
           <Kv label="CNPJ" value={activeContrato.cnpj ? formatCnpj(activeContrato.cnpj) : "—"} mono />
@@ -1151,10 +1203,26 @@ export function FinanceiroApp(props: Props) {
           <Link
             href={activeDoc.docUrl}
             target="_blank"
-            className={`${FIN_HEADING} mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold text-white`}
+            className={`${FIN_HEADING} financeiro-baixar-doc-btn mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-white`}
           >
             <Download className="h-4 w-4" /> Baixar {tab === "nfse" ? "NFS-e" : "boleto"}
           </Link>
+          <style jsx>{`
+            .financeiro-baixar-doc-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .financeiro-baixar-doc-btn:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 10px 26px rgba(99, 140, 255, 0.4);
+            }
+          `}</style>
         </Drawer>
       )}
 
@@ -1249,18 +1317,12 @@ export function FinanceiroApp(props: Props) {
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
                 Depositante
               </span>
-              <select
+              <PillSelect
                 value={exportDep}
-                onChange={(e) => setExportDep(e.target.value)}
-                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-              >
-                <option value="">Selecione…</option>
-                {props.contratos.map((c) => (
-                  <option key={c.depId} value={c.depId}>
-                    {c.depNome}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setExportDep(v)}
+                placeholder="Selecione…"
+                options={props.contratos.map((c) => ({ value: c.depId, label: c.depNome }))}
+              />
             </label>
             <div>
               <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-slate-500 dark:text-zinc-400">
@@ -1272,7 +1334,7 @@ export function FinanceiroApp(props: Props) {
                     key={f}
                     type="button"
                     onClick={() => setExportFormato(f)}
-                    className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                    className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                       exportFormato === f
                         ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300"
                         : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-500/5 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200 dark:hover:border-violet-500/40"
@@ -1287,10 +1349,26 @@ export function FinanceiroApp(props: Props) {
           <div className="mt-5">
             <button
               onClick={handleExportContratoSubmit}
-              className="h-10 w-full rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-[13px] font-extrabold text-white transition hover:brightness-[1.06]"
+              className="financeiro-export-contrato-btn h-10 w-full rounded-full text-[13px] font-extrabold text-white"
             >
               Exportar
             </button>
+            <style jsx>{`
+              .financeiro-export-contrato-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .financeiro-export-contrato-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 10px 26px rgba(99, 140, 255, 0.4);
+              }
+            `}</style>
           </div>
         </Modal>
       )}
@@ -1331,28 +1409,24 @@ export function FinanceiroApp(props: Props) {
                 {scopeRadio("todos", "Todos os insumos", "Exporta o catálogo completo.")}
                 {scopeRadio("categoria", "Filtrar por categoria", "Escolha uma categoria específica.")}
                 {exportInsumosEscopo === "categoria" && (
-                  <select
-                    value={exportInsumosCategoria}
-                    onChange={(e) => setExportInsumosCategoria(e.target.value)}
-                    className="ml-8 h-11 w-[calc(100%-2rem)] rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-                  >
-                    {["Embalagem", "Etiqueta", "Proteção", "Higiene", "Outros"].map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  <div className="ml-8 w-[calc(100%-2rem)]">
+                    <PillSelect
+                      value={exportInsumosCategoria}
+                      onChange={(v) => setExportInsumosCategoria(v)}
+                      options={["Embalagem", "Etiqueta", "Proteção", "Higiene", "Outros"].map((c) => ({ value: c, label: c }))}
+                    />
+                  </div>
                 )}
                 {scopeRadio("fornecedor", "Filtrar por fornecedor", "Escolha um fornecedor específico.")}
                 {exportInsumosEscopo === "fornecedor" && (
-                  <select
-                    value={exportInsumosFornecedor}
-                    onChange={(e) => setExportInsumosFornecedor(e.target.value)}
-                    className="ml-8 h-11 w-[calc(100%-2rem)] rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-                  >
-                    <option value="">Selecione…</option>
-                    {insumosFornecedores.map((f) => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
+                  <div className="ml-8 w-[calc(100%-2rem)]">
+                    <PillSelect
+                      value={exportInsumosFornecedor}
+                      onChange={(v) => setExportInsumosFornecedor(v)}
+                      placeholder="Selecione…"
+                      options={insumosFornecedores.map((f) => ({ value: f, label: f }))}
+                    />
+                  </div>
                 )}
                 <div className="mt-1.5">
                   <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-slate-500 dark:text-zinc-400">
@@ -1364,7 +1438,7 @@ export function FinanceiroApp(props: Props) {
                         key={f}
                         type="button"
                         onClick={() => setExportInsumosFormato(f)}
-                        className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                        className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                           exportInsumosFormato === f
                             ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300"
                             : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-500/5 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200 dark:hover:border-violet-500/40"
@@ -1379,10 +1453,26 @@ export function FinanceiroApp(props: Props) {
               <div className="mt-5">
                 <button
                   onClick={handleExportInsumosSubmit}
-                  className="h-10 w-full rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-[13px] font-extrabold text-white transition hover:brightness-[1.06]"
+                  className="financeiro-export-insumos-btn h-10 w-full rounded-full text-[13px] font-extrabold text-white"
                 >
                   Exportar
                 </button>
+                <style jsx>{`
+                  .financeiro-export-insumos-btn {
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                    background-size: 220% 100%;
+                    background-position: 0% 50%;
+                    transition:
+                      background-position 0.6s ease,
+                      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      box-shadow 0.3s ease;
+                  }
+                  .financeiro-export-insumos-btn:hover {
+                    background-position: 100% 50%;
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 26px rgba(99, 140, 255, 0.4);
+                  }
+                `}</style>
               </div>
             </Modal>
           );
@@ -1398,18 +1488,12 @@ export function FinanceiroApp(props: Props) {
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
                 Depositante
               </span>
-              <select
+              <PillSelect
                 value={exportFatDep}
-                onChange={(e) => setExportFatDep(e.target.value)}
-                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-              >
-                <option value="">Selecione…</option>
-                {faturamentoDepositantes.map((d) => (
-                  <option key={d.depId} value={d.depId}>
-                    {d.depNome}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setExportFatDep(v)}
+                placeholder="Selecione…"
+                options={faturamentoDepositantes.map((d) => ({ value: d.depId, label: d.depNome }))}
+              />
             </label>
             <div>
               <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-slate-500 dark:text-zinc-400">
@@ -1421,7 +1505,7 @@ export function FinanceiroApp(props: Props) {
                     key={f}
                     type="button"
                     onClick={() => setExportFatFormato(f)}
-                    className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                    className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                       exportFatFormato === f
                         ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300"
                         : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-500/5 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200 dark:hover:border-violet-500/40"
@@ -1436,10 +1520,26 @@ export function FinanceiroApp(props: Props) {
           <div className="mt-5">
             <button
               onClick={handleExportFaturamentoSubmit}
-              className="h-10 w-full rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-[13px] font-extrabold text-white transition hover:brightness-[1.06]"
+              className="financeiro-export-fat-btn h-10 w-full rounded-full text-[13px] font-extrabold text-white"
             >
               Exportar
             </button>
+            <style jsx>{`
+              .financeiro-export-fat-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .financeiro-export-fat-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 10px 26px rgba(99, 140, 255, 0.4);
+              }
+            `}</style>
           </div>
         </Modal>
       )}
@@ -1454,35 +1554,21 @@ export function FinanceiroApp(props: Props) {
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
                 Depositante
               </span>
-              <select
+              <PillSelect
                 value={depSel}
-                onChange={(e) => setDepSel(e.target.value)}
-                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-              >
-                <option value="all">Todos depositantes</option>
-                {props.depositantes.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nome}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setDepSel(v)}
+                options={[{ value: "all", label: "Todos depositantes" }, ...props.depositantes.map((d) => ({ value: d.id, label: d.nome }))]}
+              />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.05em] text-slate-500 dark:text-zinc-400">
                 Tipo
               </span>
-              <select
+              <PillSelect
                 value={statusSel}
-                onChange={(e) => setStatusSel(e.target.value)}
-                className="h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200"
-              >
-                <option value="all">Todos os tipos</option>
-                {TIPO_SERVICO_LABELS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setStatusSel(v)}
+                options={[{ value: "all", label: "Todos os tipos" }, ...TIPO_SERVICO_LABELS.map((t) => ({ value: t, label: t }))]}
+              />
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
@@ -1493,7 +1579,7 @@ export function FinanceiroApp(props: Props) {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className={`${FIN_MONO} h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
+                  className={`${FIN_MONO} h-11 w-full rounded-full border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
                 />
               </label>
               <label className="block">
@@ -1504,7 +1590,7 @@ export function FinanceiroApp(props: Props) {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className={`${FIN_MONO} h-11 w-full rounded-[9px] border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
+                  className={`${FIN_MONO} h-11 w-full rounded-full border border-slate-200 bg-white px-3 text-[13.5px] font-medium text-slate-700 outline-none dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200`}
                 />
               </label>
             </div>
@@ -1518,7 +1604,7 @@ export function FinanceiroApp(props: Props) {
                     key={f}
                     type="button"
                     onClick={() => setExportExtratoFormato(f)}
-                    className={`h-10 flex-1 rounded-[10px] border-2 text-[13.5px] font-bold uppercase transition ${
+                    className={`h-10 flex-1 rounded-full border-2 text-[13.5px] font-bold uppercase transition ${
                       exportExtratoFormato === f
                         ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-300"
                         : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-500/5 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-200 dark:hover:border-violet-500/40"
@@ -1533,10 +1619,26 @@ export function FinanceiroApp(props: Props) {
           <div className="mt-5">
             <button
               onClick={handleExportExtratoSubmit}
-              className="h-10 w-full rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-[13px] font-extrabold text-white transition hover:brightness-[1.06]"
+              className="financeiro-export-extrato-btn h-10 w-full rounded-full text-[13px] font-extrabold text-white"
             >
               Exportar
             </button>
+            <style jsx>{`
+              .financeiro-export-extrato-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                transition:
+                  background-position 0.6s ease,
+                  transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s ease;
+              }
+              .financeiro-export-extrato-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 10px 26px rgba(99, 140, 255, 0.4);
+              }
+            `}</style>
           </div>
         </Modal>
       )}
@@ -1567,30 +1669,18 @@ function kpiCards(props: Props, monthSel: string) {
     {
       label: monthSel === "all" ? "Faturamento total" : "Faturamento no mês",
       value: fmt(totalFaturamento),
-      icon: CircleDollarSign,
-      iconBg: "rgba(59,130,246,0.15)",
-      iconColor: "#3B82F6",
     },
     {
       label: "A receber",
       value: fmt(aReceber),
-      icon: Clock,
-      iconBg: "rgba(245,158,11,0.15)",
-      iconColor: "#F59E0B",
     },
     {
       label: "Recebido",
       value: fmt(recebido),
-      icon: CheckCircle2,
-      iconBg: "rgba(16,185,129,0.15)",
-      iconColor: "#10B981",
     },
     {
       label: "Faturas fechadas",
       value: String(fechadas),
-      icon: Receipt,
-      iconBg: "rgba(139,92,246,0.15)",
-      iconColor: "#8B5CF6",
     },
   ];
 }
@@ -1754,7 +1844,7 @@ function Modal({
           </div>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500 dark:hover:border-red-300 dark:hover:text-red-500"
           >
             <X className="h-4 w-4" />
           </button>

@@ -38,7 +38,7 @@ const TIPOS_SERVICO = [
 const initialState: LancamentoActionState = { success: false, message: null };
 
 const inputBase =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
+  "w-full rounded-full border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -148,7 +148,7 @@ export function LancamentoForm({
           <button
             type="button"
             onClick={onCancel}
-            className="h-10 rounded-lg border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
+            className="h-10 rounded-full border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
           >
             Cancelar
           </button>
@@ -156,10 +156,27 @@ export function LancamentoForm({
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-[22px] text-[13px] font-extrabold text-white transition hover:brightness-105 disabled:opacity-60"
+          className="lancamento-submit-btn inline-flex h-10 items-center justify-center gap-2 rounded-full px-[22px] text-[13px] font-extrabold text-white disabled:opacity-60"
         >
           {isPending ? <MobileButtonSpinner size={20} /> : "Cadastrar"}
         </button>
+        <style jsx>{`
+          .lancamento-submit-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+            transition:
+              background-position 0.6s ease,
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+          }
+          .lancamento-submit-btn:hover:not(:disabled) {
+            background-position: 100% 50%;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+          }
+        `}</style>
       </div>
     </form>
   );

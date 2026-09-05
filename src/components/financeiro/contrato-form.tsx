@@ -7,6 +7,7 @@ import {
   type ContratoActionState,
 } from "@/app/(dashboard)/financeiro/contratos/actions";
 import { FIN_HEADING, FIN_MONO } from "@/components/financeiro/fin-ui";
+import { PillSelect } from "@/components/ui/pill-select";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
 
 type Depositante = { id: string; nome: string };
@@ -53,7 +54,7 @@ type ContratoEdit = {
 const initialState: ContratoActionState = { success: false, message: null };
 
 const inputBase =
-  "w-full rounded-lg border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
+  "w-full rounded-full border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100";
 
 const PONTO_COLETA_MARKETPLACES = [
   { key: "MERCADO_LIVRE", label: "Mercado Livre", keywords: ["mercado livre", "meli", "ml"] },
@@ -82,6 +83,8 @@ export function ContratoForm({
   onClose: () => void;
 }) {
   const [state, action, isPending] = useActionState(saveContratoAction, initialState);
+  const [depositanteId, setDepositanteId] = useState(defaultDepositanteId ?? "");
+  const [tipoContrato, setTipoContrato] = useState(currentEditItem?.tipo_contrato ?? "padrao");
   const [ativo, setAtivo] = useState(currentEditItem?.ativo ?? true);
   const [usaRefri, setUsaRefri] = useState((currentEditItem?.qtd_refrigeradores ?? 0) > 0);
   const [usaSoftware, setUsaSoftware] = useState((currentEditItem?.valor_software ?? 0) > 0);
@@ -172,7 +175,7 @@ export function ContratoForm({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500 dark:hover:border-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-500"
           >
             <X className="h-4 w-4" />
           </button>
@@ -196,20 +199,30 @@ export function ContratoForm({
                   </p>
                 </>
               ) : (
-                <select name="depositante_id" required defaultValue={defaultDepositanteId ?? ""} className={inputBase}>
-                  <option value="" disabled>Selecione…</option>
-                  {depositantes.map((d) => (
-                    <option key={d.id} value={d.id}>{d.nome}</option>
-                  ))}
-                </select>
+                <>
+                  <input type="hidden" name="depositante_id" value={depositanteId} required />
+                  <PillSelect
+                    value={depositanteId}
+                    onChange={setDepositanteId}
+                    placeholder="Selecione…"
+                    options={depositantes.map((d) => ({ value: d.id, label: d.nome }))}
+                    className="w-full"
+                  />
+                </>
               )}
               {state.errors?.depositante_id && <p className="mt-1 text-xs text-rose-600">{state.errors.depositante_id}</p>}
             </Field>
             <Field label="Tipo de contrato">
-              <select name="tipo_contrato" defaultValue={currentEditItem?.tipo_contrato ?? "padrao"} className={inputBase}>
-                <option value="padrao">Padrão</option>
-                <option value="consignado">Consignado</option>
-              </select>
+              <input type="hidden" name="tipo_contrato" value={tipoContrato} />
+              <PillSelect
+                value={tipoContrato}
+                onChange={setTipoContrato}
+                options={[
+                  { value: "padrao", label: "Padrão" },
+                  { value: "consignado", label: "Consignado" },
+                ]}
+                className="w-full"
+              />
             </Field>
           </div>
 
@@ -238,7 +251,7 @@ export function ContratoForm({
                     <button
                       type="button"
                       onClick={() => removeEmailRow(row.id)}
-                      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+                      className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500 dark:hover:border-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-500"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -248,7 +261,7 @@ export function ContratoForm({
               <button
                 type="button"
                 onClick={addEmailRow}
-                className="flex h-[34px] w-[34px] items-center justify-center self-start rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white transition hover:brightness-[1.06]"
+                className="flex h-[34px] w-[34px] items-center justify-center self-start rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white transition hover:brightness-[1.06]"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -319,7 +332,7 @@ export function ContratoForm({
                       <button
                         type="button"
                         onClick={() => removeInsumoRow(row.id)}
-                        className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+                        className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500 dark:hover:border-red-300 dark:hover:bg-red-500/10 dark:hover:text-red-500"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -329,7 +342,7 @@ export function ContratoForm({
                 <button
                   type="button"
                   onClick={addInsumoRow}
-                  className="flex h-[34px] w-[34px] items-center justify-center self-start rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 text-white transition hover:brightness-[1.06]"
+                  className="flex h-[34px] w-[34px] items-center justify-center self-start rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white transition hover:brightness-[1.06]"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -342,13 +355,13 @@ export function ContratoForm({
               {PONTO_COLETA_MARKETPLACES.map((m) => (
                 <label
                   key={m.key}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#0E1728]"
+                  className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-[#0E1728]"
                 >
                   <input
                     type="checkbox"
                     checked={pontoColeta.has(m.key)}
                     onChange={() => togglePontoColeta(m.key)}
-                    className="h-4 w-4 accent-violet-500"
+                    className="h-4 w-4 rounded-full accent-violet-500"
                   />
                   <span className="text-[12.5px] font-semibold text-slate-700 dark:text-zinc-300">{m.label}</span>
                 </label>
@@ -442,7 +455,7 @@ export function ContratoForm({
                   type="checkbox"
                   checked={usaRefri}
                   onChange={(e) => setUsaRefri(e.target.checked)}
-                  className="h-4 w-4 accent-violet-500"
+                  className="h-4 w-4 rounded-full accent-violet-500"
                 />
                 <span className="text-[13px] font-bold text-slate-900 dark:text-zinc-100">Usa refrigerador?</span>
               </label>
@@ -474,7 +487,7 @@ export function ContratoForm({
                   type="checkbox"
                   checked={usaSoftware}
                   onChange={(e) => setUsaSoftware(e.target.checked)}
-                  className="h-4 w-4 accent-violet-500"
+                  className="h-4 w-4 rounded-full accent-violet-500"
                 />
                 <span className="text-[13px] font-bold text-slate-900 dark:text-zinc-100">Software</span>
               </label>
@@ -523,27 +536,41 @@ export function ContratoForm({
               rows={3}
               defaultValue={currentEditItem?.observacoes ?? ""}
               placeholder="Notas adicionais sobre o contrato…"
-              className={`${inputBase} resize-y`}
+              className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-[11px] py-[9px] text-[13px] font-medium text-slate-900 outline-none focus:border-violet-400 dark:border-white/10 dark:bg-[#0E1728] dark:text-zinc-100"
             />
           </Field>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2.5 border-t border-slate-200 px-6 pb-[18px] pt-[14px] dark:border-white/10">
+        <div className="flex items-center justify-center gap-2.5 border-t border-slate-200 px-6 pb-[18px] pt-[14px] dark:border-white/10">
           <button
             type="button"
             onClick={onClose}
-            className="h-10 rounded-lg border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
+            className="h-10 rounded-full border border-slate-200 px-[18px] text-[13px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 px-[22px] text-[13px] font-extrabold text-white transition hover:brightness-[1.06] disabled:opacity-60"
+            className="contrato-save-btn inline-flex h-10 items-center justify-center gap-2 rounded-full px-[22px] text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {isPending ? <MobileButtonSpinner size={20} /> : currentEditItem ? "Salvar contrato" : "Criar contrato"}
           </button>
+          <style jsx>{`
+            .contrato-save-btn {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            }
+            .contrato-save-btn:hover:not(:disabled) {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
         </div>
       </form>
     </div>

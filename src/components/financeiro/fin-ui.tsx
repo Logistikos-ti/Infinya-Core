@@ -91,12 +91,28 @@ export function FinKpiCard({
 
 export function FinPrimaryLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex h-10 items-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-5 text-sm font-extrabold text-white shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition hover:brightness-105"
-    >
-      {children}
-    </Link>
+    <>
+      <Link href={href} className="fin-primary-link inline-flex h-10 items-center rounded-full px-5 text-sm font-extrabold text-white">
+        {children}
+      </Link>
+      <style>{`
+        .fin-primary-link {
+          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+          background-size: 220% 100%;
+          background-position: 0% 50%;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+          transition:
+            background-position 0.6s ease,
+            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+            box-shadow 0.3s ease;
+        }
+        .fin-primary-link:hover {
+          background-position: 100% 50%;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -135,7 +151,7 @@ export function Drawer({
             <div className="flex-1" />
             <button
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:scale-[1.08] hover:border-red-300 hover:bg-red-500/10 hover:text-red-500 dark:border-white/10 dark:text-zinc-500"
             >
               <X className="h-4 w-4" />
             </button>

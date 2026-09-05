@@ -96,13 +96,14 @@ export function FaturaUpload({ faturaId, tipo, label, currentUrl, currentNome }:
             type="button"
             onClick={handleRemove}
             disabled={removing}
-            className="rounded-lg border border-red-200 p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-900/20"
+            title="Remover"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-red-200 text-red-400 transition hover:scale-[1.08] hover:border-[rgba(251,113,133,0.45)] hover:bg-[rgba(251,113,133,0.12)] hover:text-red-600 disabled:opacity-50 dark:border-red-800 dark:hover:border-[rgba(251,113,133,0.45)] dark:hover:bg-[rgba(251,113,133,0.12)]"
           >
-            {removing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            {removing ? <Loader2 className="h-[13px] w-[13px] animate-spin" /> : <Trash2 className="h-[13px] w-[13px]" />}
           </button>
         </div>
       ) : (
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 transition hover:border-slate-400 hover:bg-slate-50 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/50">
+        <label className="flex cursor-pointer items-center gap-2 rounded-full border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 transition hover:border-slate-400 hover:bg-slate-50 dark:border-zinc-600 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/50">
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

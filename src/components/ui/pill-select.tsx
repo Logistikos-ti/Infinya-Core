@@ -19,12 +19,14 @@ export function PillSelect({
   options,
   placeholder = "Selecione...",
   className = "",
+  style,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: PillSelectOption[];
   placeholder?: string;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,10 @@ export function PillSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex h-[42px] min-w-[170px] cursor-pointer items-center justify-between gap-2 rounded-full border px-4 text-[13.5px] font-semibold outline-none transition-colors ${tokenBorder} ${tokenCardBg} ${tokenText} ${className}`}
-        style={open ? { borderColor: "#5AA7FF", boxShadow: "0 0 0 3px rgba(90,167,255,.15)" } : undefined}
+        style={{
+          ...style,
+          ...(open ? { borderColor: "#5AA7FF", boxShadow: "0 0 0 3px rgba(90,167,255,.15)" } : {}),
+        }}
       >
         <span className="truncate">{current ? current.label : placeholder}</span>
         <ChevronDown

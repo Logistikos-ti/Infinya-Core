@@ -3,9 +3,12 @@ import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { FaturaUpload } from "@/components/financeiro/fatura-upload";
 import { FaturaEnviar } from "@/components/financeiro/fatura-enviar";
-import { FinScope, FinBadge, FIN_HEADING } from "@/components/financeiro/fin-ui";
+import { FinBadge, FIN_HEADING } from "@/components/financeiro/fin-ui";
 import { requireModuleAccess } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -81,131 +84,139 @@ export default async function FaturaDetailPage({ params }: RouteParams) {
   }
 
   return (
-    <FinScope>
-      <Link
-        href="/financeiro"
-        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-      >
-        <ArrowLeft className="h-4 w-4" /> Voltar ao financeiro
-      </Link>
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className={`${FIN_HEADING} text-2xl font-bold text-slate-900 dark:text-zinc-100`}>
+    <div className="flex h-full flex-col font-[family-name:var(--font-manrope)]">
+      <header className="flex h-[68px] shrink-0 items-center gap-3.5 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
+        <Link
+          href="/financeiro"
+          title="Voltar para Financeiro"
+          className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white transition hover:border-[#8B5CF6] dark:border-white/10 dark:bg-[#101B30] dark:hover:border-[#8B5CF6]"
+        >
+          <ArrowLeft className="h-5 w-5 text-slate-900 transition-colors group-hover:text-[#8B5CF6] dark:text-zinc-100 dark:group-hover:text-[#8B5CF6]" />
+        </Link>
+        <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+          <h1 className={`${FIN_HEADING} truncate text-[18px] font-bold text-slate-900 dark:text-zinc-100`}>
             Fatura · {dep?.nome ?? "—"}
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">{formatMesAno(fatura.mes_ano)}</p>
         </div>
-        <FinBadge status={fatura.status} />
-      </div>
+        <NotificationBell />
+        <SoundToggle forceLight />
+        <ThemeToggle />
+      </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Total Serviços</p>
-          <p className={`${FIN_HEADING} text-xl font-bold text-slate-900 dark:text-zinc-100`}>
-            {formatCurrency(Number(fatura.total_servicos))}
+      <div className="flex-1 space-y-6 overflow-y-auto px-4 pb-24 pt-7 sm:px-8 lg:pb-12">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-slate-500 dark:text-zinc-400">{formatMesAno(fatura.mes_ano)}</p>
+          <FinBadge status={fatura.status} />
+        </div>
+
+        <section className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
+            <p className="text-xs text-slate-400 dark:text-zinc-500">Total Serviços</p>
+            <p className={`${FIN_HEADING} text-xl font-bold text-slate-900 dark:text-zinc-100`}>
+              {formatCurrency(Number(fatura.total_servicos))}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
+            <p className="text-xs text-slate-400 dark:text-zinc-500">Descontos</p>
+            <p className={`${FIN_HEADING} text-xl font-bold text-red-500`}>
+              - {formatCurrency(Number(fatura.total_descontos))}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">Total a Pagar</p>
+            <p className={`${FIN_HEADING} text-xl font-bold text-emerald-600 dark:text-emerald-400`}>
+              {formatCurrency(Number(fatura.total_a_pagar))}
+            </p>
+          </div>
+        </section>
+
+        {fatura.fechado_em && (
+          <p className="text-xs text-slate-400 dark:text-zinc-500">
+            Fechado em {formatDateTime(fatura.fechado_em)}
           </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#101B30]">
-          <p className="text-xs text-slate-400 dark:text-zinc-500">Descontos</p>
-          <p className={`${FIN_HEADING} text-xl font-bold text-red-500`}>
-            - {formatCurrency(Number(fatura.total_descontos))}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-          <p className="text-xs text-emerald-600 dark:text-emerald-400">Total a Pagar</p>
-          <p className={`${FIN_HEADING} text-xl font-bold text-emerald-600 dark:text-emerald-400`}>
-            {formatCurrency(Number(fatura.total_a_pagar))}
-          </p>
-        </div>
-      </section>
+        )}
 
-      {fatura.fechado_em && (
-        <p className="text-xs text-slate-400 dark:text-zinc-500">
-          Fechado em {formatDateTime(fatura.fechado_em)}
-        </p>
-      )}
+        <section className="grid gap-4 sm:grid-cols-2">
+          <FaturaUpload
+            faturaId={fatura.id}
+            tipo="boleto"
+            label="Boleto"
+            currentUrl={fatura.boleto_url}
+            currentNome={fatura.boleto_nome}
+          />
+          <FaturaUpload
+            faturaId={fatura.id}
+            tipo="nf"
+            label="Nota Fiscal"
+            currentUrl={fatura.nf_url}
+            currentNome={fatura.nf_nome}
+          />
+        </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        <FaturaUpload
-          faturaId={fatura.id}
-          tipo="boleto"
-          label="Boleto"
-          currentUrl={fatura.boleto_url}
-          currentNome={fatura.boleto_nome}
-        />
-        <FaturaUpload
-          faturaId={fatura.id}
-          tipo="nf"
-          label="Nota Fiscal"
-          currentUrl={fatura.nf_url}
-          currentNome={fatura.nf_nome}
-        />
-      </section>
+        {fatura.status !== "ABERTA" && (
+          <FaturaEnviar faturaId={fatura.id} status={fatura.status} />
+        )}
 
-      {fatura.status !== "ABERTA" && (
-        <FaturaEnviar faturaId={fatura.id} status={fatura.status} />
-      )}
+        <div className="space-y-4">
+          <h2 className={`${FIN_HEADING} text-lg font-bold text-slate-900 dark:text-zinc-100`}>
+            Lançamentos ({items.length})
+          </h2>
 
-      <div className="space-y-4">
-        <h2 className={`${FIN_HEADING} text-lg font-bold text-slate-900 dark:text-zinc-100`}>
-          Lançamentos ({items.length})
-        </h2>
-
-        {Object.entries(agrupado)
-          .sort(([, a], [, b]) => b.total - a.total)
-          .map(([tipo, grupo]) => (
-            <div
-              key={tipo}
-              className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101B30]"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 dark:border-white/10">
-                <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
-                  {labelServico[tipo] ?? tipo}
-                  <span className="ml-2 text-xs font-normal text-slate-400 dark:text-zinc-500">
-                    ({grupo.items.length})
+          {Object.entries(agrupado)
+            .sort(([, a], [, b]) => b.total - a.total)
+            .map(([tipo, grupo]) => (
+              <div
+                key={tipo}
+                className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#101B30]"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 dark:border-white/10">
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                    {labelServico[tipo] ?? tipo}
+                    <span className="ml-2 text-xs font-normal text-slate-400 dark:text-zinc-500">
+                      ({grupo.items.length})
+                    </span>
+                  </h3>
+                  <span className="font-mono text-sm font-bold text-slate-900 dark:text-zinc-100">
+                    {formatCurrency(grupo.total)}
                   </span>
-                </h3>
-                <span className="font-mono text-sm font-bold text-slate-900 dark:text-zinc-100">
-                  {formatCurrency(grupo.total)}
-                </span>
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-slate-50 dark:bg-[#0E1728]">
-                    <tr className="text-slate-400 dark:text-zinc-500">
-                      <th className="px-5 py-2 font-medium">Descrição</th>
-                      <th className="px-3 py-2 text-right font-medium">Qtd</th>
-                      <th className="px-3 py-2 text-right font-medium">Unitário</th>
-                      <th className="px-5 py-2 text-right font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grupo.items.map((l) => (
-                      <tr
-                        key={l.id}
-                        className="border-t border-slate-50 dark:border-white/5"
-                      >
-                        <td className="px-5 py-2 text-slate-700 dark:text-zinc-300">
-                          {l.descricao}
-                        </td>
-                        <td className="px-3 py-2 text-right text-slate-500 dark:text-zinc-400">
-                          {Number(l.quantidade)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono text-slate-500 dark:text-zinc-400">
-                          {formatCurrency(Number(l.valor_unitario))}
-                        </td>
-                        <td className="px-5 py-2 text-right font-mono font-bold text-slate-900 dark:text-zinc-100">
-                          {formatCurrency(Number(l.valor_total))}
-                        </td>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 bg-slate-50 dark:bg-[#0E1728]">
+                      <tr className="text-slate-400 dark:text-zinc-500">
+                        <th className="px-5 py-2 font-medium">Descrição</th>
+                        <th className="px-3 py-2 text-right font-medium">Qtd</th>
+                        <th className="px-3 py-2 text-right font-medium">Unitário</th>
+                        <th className="px-5 py-2 text-right font-medium">Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {grupo.items.map((l) => (
+                        <tr
+                          key={l.id}
+                          className="border-t border-slate-50 dark:border-white/5"
+                        >
+                          <td className="px-5 py-2 text-slate-700 dark:text-zinc-300">
+                            {l.descricao}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-500 dark:text-zinc-400">
+                            {Number(l.quantidade)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono text-slate-500 dark:text-zinc-400">
+                            {formatCurrency(Number(l.valor_unitario))}
+                          </td>
+                          <td className="px-5 py-2 text-right font-mono font-bold text-slate-900 dark:text-zinc-100">
+                            {formatCurrency(Number(l.valor_total))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+        </div>
       </div>
-    </FinScope>
+    </div>
   );
 }

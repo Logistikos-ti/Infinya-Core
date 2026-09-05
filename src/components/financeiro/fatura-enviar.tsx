@@ -74,17 +74,34 @@ export function FaturaEnviar({
           value={emailExtra}
           onChange={(e) => setEmailExtra(e.target.value)}
           placeholder="E-mails extras (opcional)"
-          className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          className="h-10 flex-1 rounded-full border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
         />
         <button
           type="button"
           onClick={handleSend}
           disabled={sending}
-          className="inline-flex h-10 items-center gap-2 rounded-lg bg-cyan-600 px-4 text-sm font-medium text-white transition hover:bg-cyan-700 disabled:opacity-50 dark:bg-cyan-700 dark:hover:bg-cyan-600"
+          className="fatura-enviar-btn inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium text-white disabled:opacity-50"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Enviar
         </button>
+        <style jsx>{`
+          .fatura-enviar-btn {
+            background: linear-gradient(135deg, #0891b2 0%, #22d3ee 50%, #0891b2 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 8px 22px rgba(8, 145, 178, 0.32);
+            transition:
+              background-position 0.6s ease,
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+          }
+          .fatura-enviar-btn:hover:not(:disabled) {
+            background-position: 100% 50%;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(34, 211, 238, 0.45);
+          }
+        `}</style>
       </div>
       <p className="mt-2 text-[11px] text-slate-400 dark:text-zinc-500">
         Envia automaticamente para os usuários do depositante.

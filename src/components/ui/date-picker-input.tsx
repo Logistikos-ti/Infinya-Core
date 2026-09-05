@@ -24,6 +24,9 @@ type DatePickerInputProps = {
   hideLabel?: boolean;
   onChange?: (value: string) => void;
   compact?: boolean;
+  todayButtonClassName?: string;
+  clearButtonClassName?: string;
+  navButtonClassName?: string;
 };
 
 export function DatePickerInput({
@@ -34,6 +37,9 @@ export function DatePickerInput({
   hideLabel = false,
   onChange,
   compact = false,
+  todayButtonClassName,
+  clearButtonClassName,
+  navButtonClassName,
 }: DatePickerInputProps) {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value);
@@ -117,7 +123,10 @@ export function DatePickerInput({
               <button
                 type="button"
                 onClick={() => setViewDate((current) => subMonths(current, 1))}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                className={
+                  navButtonClassName ??
+                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                }
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -129,7 +138,10 @@ export function DatePickerInput({
               <button
                 type="button"
                 onClick={() => setViewDate((current) => addMonths(current, 1))}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                className={
+                  navButtonClassName ??
+                  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900"
+                }
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -186,7 +198,10 @@ export function DatePickerInput({
                   onChange?.("");
                   setOpen(false);
                 }}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                className={
+                  clearButtonClassName ??
+                  "inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+                }
               >
                 Limpar
               </button>
@@ -199,7 +214,10 @@ export function DatePickerInput({
                   setViewDate(new Date());
                   setOpen(false);
                 }}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+                className={
+                  todayButtonClassName ??
+                  "inline-flex h-10 items-center justify-center rounded-xl border border-slate-950 bg-slate-950 px-3 text-sm font-medium text-white transition hover:bg-slate-800 dark:border-zinc-700 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
+                }
               >
                 Hoje
               </button>

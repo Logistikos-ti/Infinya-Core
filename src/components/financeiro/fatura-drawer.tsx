@@ -157,7 +157,7 @@ function BoletoButton({
         target="_blank"
         rel="noopener noreferrer"
         title={initialNome ?? "Boleto anexado"}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white transition hover:brightness-105"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white transition hover:brightness-105"
       >
         <Paperclip className="h-4 w-4" />
       </a>
@@ -170,7 +170,7 @@ function BoletoButton({
     <div className="relative shrink-0">
       <label
         title="Anexar boleto"
-        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white transition hover:brightness-105 ${uploading ? "opacity-70" : "cursor-pointer"}`}
+        className={`flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white transition hover:brightness-105 ${uploading ? "opacity-70" : "cursor-pointer"}`}
       >
         {uploading ? <MobileButtonSpinner size={16} /> : <Paperclip className="h-4 w-4" />}
         <input
@@ -255,10 +255,27 @@ export function FaturaDrawer({
         <div className="flex items-start gap-2">
           <a
             href={`/api/financeiro/faturas/${fatura.id}/relatorio`}
-            className={`${FIN_HEADING} flex h-10 flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-sm font-bold !text-white`}
+            className={`${FIN_HEADING} fatura-drawer-ver-completa flex h-10 flex-1 items-center justify-center rounded-full text-sm font-bold !text-white`}
           >
             Ver fatura completa
           </a>
+          <style jsx>{`
+            .fatura-drawer-ver-completa {
+              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+              background-size: 220% 100%;
+              background-position: 0% 50%;
+              box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+              transition:
+                background-position 0.6s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+            }
+            .fatura-drawer-ver-completa:hover {
+              background-position: 100% 50%;
+              transform: translateY(-3px);
+              box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+            }
+          `}</style>
           <BoletoButton
             faturaId={fatura.id}
             initialUrl={fatura.boletoUrl}
