@@ -314,7 +314,11 @@ export function ProdutosDashboard({
               {(["tabela", "galeria"] as const).map((v) => (
                 <button
                   key={v}
-                  onClick={() => setView(v)}
+                  onClick={() => {
+                    setView(v);
+                    const nextPerPageOptions = v === "galeria" ? [12, 60] : [10, 50];
+                    navigate({ perPage: String(nextPerPageOptions[0]) });
+                  }}
                   className={`h-[34px] px-4 rounded-full border-none text-[13px] font-bold cursor-pointer transition-all duration-200 ${
                     view === v ? "" : "hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
