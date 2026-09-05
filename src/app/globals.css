@@ -109,6 +109,16 @@ a {
   --sidebar-accent-foreground: #08111f;
   --sidebar-border: #d8e2f2;
   --sidebar-ring: #00cfff;
+
+  /* Vidro escuro com profundidade da sidebar (.sb, abaixo) -- sempre esse
+     mesmo valor nos dois temas de propósito ("sempre tech"), por isso
+     definido só uma vez aqui em :root em vez de dentro de .dark também.
+     Reaproveitado fora da sidebar (ex.: painel de notificações expandido)
+     quando algo precisa encostar nela sem criar uma emenda de cor. */
+  --sidebar-surface-bg:
+    radial-gradient(140% 90% at 20% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(120% 80% at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    linear-gradient(165deg, #101B33 0%, #0B1226 48%, #070C1A 100%);
 }
 
 .dark {
@@ -888,11 +898,9 @@ a {
   transition: width .3s cubic-bezier(.22, 1, .36, 1);
   isolation: isolate;
 
-  /* vidro escuro com profundidade — sempre tech, nos dois temas */
-  background:
-    radial-gradient(140% 90% at 20% 0%, rgba(59, 130, 246, 0.10) 0%, transparent 55%),
-    radial-gradient(120% 80% at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
-    linear-gradient(165deg, #101B33 0%, #0B1226 48%, #070C1A 100%);
+  /* vidro escuro com profundidade — sempre tech, nos dois temas (valor em
+     --sidebar-surface-bg, definido em :root acima) */
+  background: var(--sidebar-surface-bg);
   box-shadow:
     0 20px 50px rgba(3, 7, 18, 0.55),
     0 0 0 1px rgba(148, 163, 184, 0.08),
@@ -1489,4 +1497,3 @@ a {
 }
 .sb__menu-item:hover { background: rgba(139, 92, 246, 0.14); }
 .sb__menu-item--danger { color: #F87171; }
-
