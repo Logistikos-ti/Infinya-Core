@@ -30,24 +30,20 @@ export default async function NovoProdutoPage() {
   const visibleDepositantes = filterDepositanteOptionsByUser(currentUser, depositantes ?? []);
 
   return (
-    <div className="space-y-6">
-      {/* Header and Back button are now inside ProdutoForm */}
-
-      <ProdutoForm
-        depositantes={visibleDepositantes}
-        enderecos={enderecos ?? []}
-        productKitEnabled={false}
-        commercialKitEnabled
-        productOptions={(productOptions ?? []).map((item) => ({
-          id: item.id,
-          depositanteId: item.depositante_id,
-          nome: item.nome,
-          sku: item.sku,
-          codigoInterno: item.codigo_interno,
-          codigoExterno: item.codigo_externo,
-        }))}
-        compactMode={compactMode}
-      />
-    </div>
+    <ProdutoForm
+      depositantes={visibleDepositantes}
+      enderecos={enderecos ?? []}
+      productKitEnabled={false}
+      commercialKitEnabled
+      productOptions={(productOptions ?? []).map((item) => ({
+        id: item.id,
+        depositanteId: item.depositante_id,
+        nome: item.nome,
+        sku: item.sku,
+        codigoInterno: item.codigo_interno,
+        codigoExterno: item.codigo_externo,
+      }))}
+      compactMode={compactMode}
+    />
   );
 }

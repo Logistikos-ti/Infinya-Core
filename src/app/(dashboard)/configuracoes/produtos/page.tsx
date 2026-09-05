@@ -278,11 +278,27 @@ export default async function ConfiguracoesProdutosPage({
           nome: depositante.nome,
         }))}
         formSlot={
-          <Link href="/configuracoes/produtos/novo">
-            <button className="h-[42px] px-5 border-none rounded-[11px] bg-gradient-to-r from-blue-500 to-violet-500 text-white text-[14px] font-extrabold cursor-pointer shadow-[0_8px_22px_rgba(99,102,241,0.32)] transition-transform hover:-translate-y-[1px]">
-              + Novo produto
-            </button>
-          </Link>
+          <>
+            <Link href="/configuracoes/produtos/novo">
+              <button className="produtos-novo-btn h-[42px] px-5 border-none rounded-full text-white text-[14px] font-extrabold cursor-pointer">
+                + Novo produto
+              </button>
+            </Link>
+            <style>{`
+              .produtos-novo-btn {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                background-size: 220% 100%;
+                background-position: 0% 50%;
+                box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+              }
+              .produtos-novo-btn:hover {
+                background-position: 100% 50%;
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+              }
+            `}</style>
+          </>
         }
         paginationSlot={
           <div className="flex flex-col gap-3 rounded-2xl bg-transparent px-4 py-2 text-sm text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:justify-between">

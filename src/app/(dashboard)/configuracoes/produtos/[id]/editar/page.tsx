@@ -102,69 +102,65 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
   ].join("|");
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-6 w-full">
-        <ProdutoForm
-          key={formKey}
-          depositantes={visibleDepositantes}
-          enderecos={enderecos ?? []}
-          productKitEnabled={false}
-          compactMode={compactMode}
-          defaultValues={{
-            id: product.id,
-            depositanteId: product.depositante_id,
-            codigoInterno: product.codigo_interno,
-            sku: product.sku ?? "",
-            nome: product.nome,
-            eanGtin: product.codigo_externo ?? "",
-            eanGtinPack: product.codigo_externo_pack ?? "",
-            categoria: product.categoria ?? "",
-            tamanho: product.tamanho ?? "",
-            fornecedor: product.fornecedor ?? "",
-            descricao: product.descricao ?? "",
-            pesoKg: product.peso_kg ?? null,
-            alturaCm: product.altura_cm ?? null,
-            larguraCm: product.largura_cm ?? null,
-            comprimentoCm: product.comprimento_cm ?? null,
-            qtdMinima: product.qtd_minima ?? null,
-            qtdMaxima: product.qtd_maxima ?? null,
-            pontoReposicao: product.ponto_reposicao ?? null,
-            custoReposicao: product.custo_reposicao ?? null,
-            tipoProduto: "SIMPLES",
-            enderecoPadraoId: (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? null,
-            metodoRetirada: product.metodo_retirada,
-            unidadeEstocagem: product.unidade_estocagem,
-            quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
-            imagemPrincipalUrl: productImageMeta?.imagem_principal_url ?? null,
-            imagemPrincipalStoragePath: productImageMeta?.imagem_principal_storage_path ?? null,
-            exigeLote: product.exige_lote,
-            exigeValidade: product.exige_validade,
-            ativo: product.ativo,
-            commercialKitRules: ((commercialRules ?? []) as Array<{
-              id: string;
-              texto_gatilho: string;
-              quantidade_operacional: number | string;
-            }>).map(
-              (rule) =>
-                ({
-                  id: rule.id,
-                  matchText: rule.texto_gatilho,
-                  operationalQuantity: Number(rule.quantidade_operacional ?? 0),
-                }) satisfies ProductCommercialKitRuleOption,
-            ),
-          }}
-          productOptions={(componentOptions ?? []).map((item) => ({
-            id: item.id,
-            depositanteId: item.depositante_id,
-            nome: item.nome,
-            sku: item.sku,
-            codigoInterno: item.codigo_interno,
-            codigoExterno: item.codigo_externo,
-          }))}
-          commercialKitEnabled
-          returnPath={returnPath}
-        />
-      </section>
-    </div>
+    <ProdutoForm
+      key={formKey}
+      depositantes={visibleDepositantes}
+      enderecos={enderecos ?? []}
+      productKitEnabled={false}
+      compactMode={compactMode}
+      defaultValues={{
+        id: product.id,
+        depositanteId: product.depositante_id,
+        codigoInterno: product.codigo_interno,
+        sku: product.sku ?? "",
+        nome: product.nome,
+        eanGtin: product.codigo_externo ?? "",
+        eanGtinPack: product.codigo_externo_pack ?? "",
+        categoria: product.categoria ?? "",
+        tamanho: product.tamanho ?? "",
+        fornecedor: product.fornecedor ?? "",
+        descricao: product.descricao ?? "",
+        pesoKg: product.peso_kg ?? null,
+        alturaCm: product.altura_cm ?? null,
+        larguraCm: product.largura_cm ?? null,
+        comprimentoCm: product.comprimento_cm ?? null,
+        qtdMinima: product.qtd_minima ?? null,
+        qtdMaxima: product.qtd_maxima ?? null,
+        pontoReposicao: product.ponto_reposicao ?? null,
+        custoReposicao: product.custo_reposicao ?? null,
+        tipoProduto: "SIMPLES",
+        enderecoPadraoId: (product as { endereco_padrao_id?: string | null }).endereco_padrao_id ?? null,
+        metodoRetirada: product.metodo_retirada,
+        unidadeEstocagem: product.unidade_estocagem,
+        quantidadePorEmbalagem: product.quantidade_por_embalagem ?? null,
+        imagemPrincipalUrl: productImageMeta?.imagem_principal_url ?? null,
+        imagemPrincipalStoragePath: productImageMeta?.imagem_principal_storage_path ?? null,
+        exigeLote: product.exige_lote,
+        exigeValidade: product.exige_validade,
+        ativo: product.ativo,
+        commercialKitRules: ((commercialRules ?? []) as Array<{
+          id: string;
+          texto_gatilho: string;
+          quantidade_operacional: number | string;
+        }>).map(
+          (rule) =>
+            ({
+              id: rule.id,
+              matchText: rule.texto_gatilho,
+              operationalQuantity: Number(rule.quantidade_operacional ?? 0),
+            }) satisfies ProductCommercialKitRuleOption,
+        ),
+      }}
+      productOptions={(componentOptions ?? []).map((item) => ({
+        id: item.id,
+        depositanteId: item.depositante_id,
+        nome: item.nome,
+        sku: item.sku,
+        codigoInterno: item.codigo_interno,
+        codigoExterno: item.codigo_externo,
+      }))}
+      commercialKitEnabled
+      returnPath={returnPath}
+    />
   );
 }

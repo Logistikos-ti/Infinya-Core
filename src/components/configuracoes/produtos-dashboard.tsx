@@ -11,6 +11,7 @@ import { fetchProdutoDrawerDetails } from "@/app/(dashboard)/configuracoes/produ
 import { NotificationBell } from "@/components/notification-bell";
 import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PillSelect } from "@/components/ui/pill-select";
 
 const manrope = Manrope({ subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
@@ -94,7 +95,7 @@ export function ProdutosDashboard({
         headBg: "#0E1728",
         inputBg: "#101B30",
         border: "rgba(148,163,184,0.14)",
-        rowHover: "rgba(148,163,184,0.05)",
+        rowHover: "rgba(139,92,246,0.08)",
         barTrack: "rgba(148,163,184,0.16)",
         text: "#F1F5F9",
         textSub: "#8695AD",
@@ -106,7 +107,7 @@ export function ProdutosDashboard({
         headBg: "#F8FAFC",
         inputBg: "#F8FAFC",
         border: "rgba(100,116,139,0.16)",
-        rowHover: "rgba(100,116,139,0.04)",
+        rowHover: "rgba(139,92,246,0.08)",
         barTrack: "rgba(100,116,139,0.14)",
         text: "#0F172A",
         textSub: "#64748B",
@@ -203,8 +204,8 @@ export function ProdutosDashboard({
   const currentCategoria = searchParams.get("categoria") || "";
   const currentDepositante = searchParams.get("depositante") || "";
   const currentTamanho = searchParams.get("tamanho") || "";
-  const currentPerPage = Number.parseInt(searchParams.get("perPage") || "10", 10);
   const perPageOptions = view === "galeria" ? [12, 60] : [10, 50];
+  const currentPerPage = Number.parseInt(searchParams.get("perPage") || String(perPageOptions[0]), 10);
 
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   useEffect(() => {
@@ -285,9 +286,14 @@ export function ProdutosDashboard({
 
       {/* Cabeçalho (padrão rebranding: título + sino + tema) */}
       <header className="flex h-[68px] flex-shrink-0 items-center gap-4 border-b border-slate-200 px-4 dark:border-white/10 sm:px-8">
-        <span className={`${spaceGrotesk.className} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
-          Produtos
-        </span>
+        <div className="flex items-baseline gap-2.5">
+          <span className={`${spaceGrotesk.className} rounded-lg bg-blue-50 py-1.5 pl-0 pr-3.5 text-[28px] font-bold text-slate-900 dark:bg-transparent dark:text-zinc-100`}>
+            Produtos
+          </span>
+          <span className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] tracking-[0.08em] text-[#64748B] dark:text-[#8695AD]">
+            ESTOQUE/04
+          </span>
+        </div>
         <div className="flex-1" />
         <NotificationBell />
         <SoundToggle forceLight />
@@ -304,16 +310,19 @@ export function ProdutosDashboard({
             Catálogo de SKUs de todos os depositantes.
           </p>
           <div className="flex gap-2.5 items-center">
-            <div className="flex p-1 gap-0.5 rounded-[11px] border" style={{ borderColor: t.border, background: t.cardBg }}>
+            <div className="flex p-1 gap-0.5 rounded-full border" style={{ borderColor: t.border, background: t.cardBg }}>
               {(["tabela", "galeria"] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className="h-[34px] px-4 rounded-lg border-none text-[13px] font-bold cursor-pointer transition-all duration-200"
-                  style={{
-                    background: view === v ? "linear-gradient(92deg,#3B82F6,#8B5CF6)" : "transparent",
-                    color: view === v ? "#fff" : t.textSub,
-                  }}
+                  className={`h-[34px] px-4 rounded-full border-none text-[13px] font-bold cursor-pointer transition-all duration-200 ${
+                    view === v ? "" : "hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                  style={
+                    view === v
+                      ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" }
+                      : { color: t.textSub }
+                  }
                 >
                   {v === "tabela" ? "Tabela" : "Galeria"}
                 </button>
@@ -349,8 +358,10 @@ export function ProdutosDashboard({
                 <button
                   key={p.key}
                   onClick={() => navigate({ status: p.key })}
-                  className="flex items-center gap-2 whitespace-nowrap rounded-full border-none py-1.5 pl-3.5 pr-2.5 text-[12.5px] font-semibold cursor-pointer transition"
-                  style={isActive ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" } : { background: "transparent", color: t.textSub }}
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-full border-none py-1.5 pl-3.5 pr-2.5 text-[12.5px] font-semibold cursor-pointer transition ${
+                    isActive ? "" : "hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                  style={isActive ? { background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff" } : { color: t.textSub }}
                 >
                   <span>{p.label}</span>
                   <span
@@ -367,7 +378,7 @@ export function ProdutosDashboard({
 
         {/* filter row */}
         <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center gap-2.5 h-[42px] flex-1 min-w-[200px] px-4 rounded-[11px] border" style={{ borderColor: t.border, background: t.cardBg }}>
+          <div className="flex items-center gap-2.5 h-[42px] flex-1 min-w-[200px] px-4 rounded-full border" style={{ borderColor: t.border, background: t.cardBg }}>
             <Search className="h-4 w-4 shrink-0" style={{ color: t.textSub }} />
             <input
               value={searchInput}
@@ -377,67 +388,45 @@ export function ProdutosDashboard({
               style={{ color: t.text }}
             />
           </div>
-          <select
+          <PillSelect
             value={currentCategoria}
-            onChange={(e) => navigate({ categoria: e.target.value, tamanho: "" })}
-            className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
-            style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
-          >
-            <option value="">Todas categorias</option>
-            {categoryOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => navigate({ categoria: v, tamanho: "" })}
+            options={[
+              { value: "", label: "Todas categorias" },
+              ...categoryOptions.map((c) => ({ value: c, label: c })),
+            ]}
+          />
           {depositantes.length > 1 && (
-            <select
+            <PillSelect
               value={currentDepositante}
-              onChange={(e) => navigate({ depositante: e.target.value })}
-              className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
-              style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
-            >
-              <option value="">Todos depositantes</option>
-              {depositantes.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nome}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => navigate({ depositante: v })}
+              options={[
+                { value: "", label: "Todos depositantes" },
+                ...depositantes.map((d) => ({ value: d.id, label: d.nome })),
+              ]}
+            />
           )}
-          <select
+          <PillSelect
             value={String(currentPerPage)}
-            onChange={(e) => navigate({ perPage: e.target.value })}
-            className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
-            style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
-          >
-            {perPageOptions.map((n) => (
-              <option key={n} value={n}>
-                {n} por página
-              </option>
-            ))}
-          </select>
+            onChange={(v) => navigate({ perPage: v })}
+            options={perPageOptions.map((n) => ({ value: String(n), label: `${n} por página` }))}
+          />
           {currentCategoria === "Vestuário" && (
-            <select
+            <PillSelect
               value={currentTamanho}
-              onChange={(e) => navigate({ tamanho: e.target.value })}
-              className="h-[42px] px-3 rounded-[11px] border text-[13.5px] font-semibold cursor-pointer"
-              style={{ borderColor: t.border, background: t.cardBg, color: t.text }}
-            >
-              <option value="">Todos tamanhos</option>
-              {tamanhoOptions.map((tm) => (
-                <option key={tm} value={tm}>
-                  {tm}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => navigate({ tamanho: v })}
+              options={[
+                { value: "", label: "Todos tamanhos" },
+                ...tamanhoOptions.map((tm) => ({ value: tm, label: tm })),
+              ]}
+            />
           )}
           {hasActiveFilters && (
             <button
               onClick={clearAllFilters}
               aria-label="Limpar filtros"
               title="Limpar filtros"
-              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] border cursor-pointer transition-colors"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border cursor-pointer transition-colors"
               style={{ borderColor: t.border, background: t.cardBg, color: t.textSub }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = "#EF4444";
@@ -694,14 +683,14 @@ export function ProdutosDashboard({
               </div>
               <button
                 onClick={() => setSelectedProduto(null)}
-                className="w-[30px] h-[30px] rounded-lg border flex items-center justify-center shrink-0 text-lg"
-                style={{ borderColor: t.border, color: t.textSub, background: "transparent" }}
+                className="w-[30px] h-[30px] rounded-full border flex items-center justify-center shrink-0 text-lg transition-colors hover:bg-black/5 dark:hover:bg-white/10"
+                style={{ borderColor: t.border, color: t.textSub }}
               >
                 ×
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
               <div className="mb-4">
                 <div className="flex justify-between text-xs mb-1.5" style={{ color: t.textSub }}>
                   <span>Estoque atual</span>
@@ -764,11 +753,25 @@ export function ProdutosDashboard({
                   pathname + (searchParams.toString() ? "?" + searchParams.toString() : ""),
                 )}`}
                 prefetch={false}
-                className="flex items-center justify-center h-11 rounded-[10px] border-none text-[14px] font-extrabold"
-                style={{ background: "linear-gradient(92deg,#3B82F6,#8B5CF6)", color: "#fff", textDecoration: "none" }}
+                className="produtos-editar-btn flex items-center justify-center h-11 rounded-full border-none text-[14px] font-extrabold"
+                style={{ color: "#fff", textDecoration: "none" }}
               >
                 Editar produto
               </Link>
+              <style>{`
+                .produtos-editar-btn {
+                  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+                  background-size: 220% 100%;
+                  background-position: 0% 50%;
+                  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+                  transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+                }
+                .produtos-editar-btn:hover {
+                  background-position: 100% 50%;
+                  transform: translateY(-3px);
+                  box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+                }
+              `}</style>
             </div>
           </div>
         </div>

@@ -223,7 +223,7 @@ export function AppChrome({ children, user, navCounts }: AppChromeProps) {
     currentPath === "/configuracoes/depositantes" ||
     currentPath === "/configuracoes/depositantes/novo" ||
     (currentPath.startsWith("/configuracoes/depositantes/") && currentPath.endsWith("/editar"));
-  const isProdutosFullBleed = currentPath === "/configuracoes/produtos";
+  const isProdutosFullBleed = currentPath.startsWith("/configuracoes/produtos");
   const isRecebimentoFullBleed = currentPath === "/recebimento";
   // Rota dinâmica /recebimento/[id] — a tela de conferência. Exclui
   // explicitamente /recebimento/novo (página cheia própria, header antigo).

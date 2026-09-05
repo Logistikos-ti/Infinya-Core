@@ -3,17 +3,20 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import {
-  Barcode, Camera, CameraOff, Check, Plus, Trash2, Upload,
+  Barcode, Camera, CameraOff, Check, ChevronLeft, Plus, Trash2, Upload,
   Box, Calendar, Package, Tag, Archive, ShieldCheck, Layers, DollarSign
 } from "lucide-react";
 import { saveProdutoAction, deleteProdutoAction } from "@/app/(dashboard)/configuracoes/produtos/actions";
-import { Button } from "@/components/ui/button";
+import { PillSelect } from "@/components/ui/pill-select";
 import type { ProductCommercialKitRuleOption } from "@/lib/commercial-kit-rules";
 import type { ProductKitComponentDraft, ProductKitComponentOption } from "@/lib/product-kits";
 import { cn } from "@/lib/utils";
 import { useCameraBarcodeScanner } from "@/hooks/use-camera-barcode-scanner";
 import { Space_Grotesk } from "next/font/google";
 import { MobileButtonSpinner } from "@/components/mobile/mobile-kit-tokens";
+import { NotificationBell } from "@/components/notification-bell";
+import { SoundToggle } from "@/components/sound-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
@@ -122,7 +125,8 @@ export function ProdutoForm({
   const [exigeValidade, setExigeValidade] = useState(defaultValues?.exigeValidade ?? false);
   const [ativo, setAtivo] = useState(defaultValues?.ativo ?? true);
   const [activeStep, setActiveStep] = useState('ident');
-  
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
   const eanInputRef = useRef<HTMLInputElement | null>(null);
 
   const [tipoProduto, setTipoProduto] = useState<"SIMPLES" | "KIT">(defaultValues?.tipoProduto ?? "SIMPLES");
@@ -245,74 +249,65 @@ export function ProdutoForm({
         </div>
       ))}
 
-      {state.message && (
-        <div className={cn("mb-6 rounded-xl p-4 text-sm font-medium", state.success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
-          {state.message}
-        </div>
-      )}
-
-      {/* Header section */}
-      <div className="flex flex-col gap-6 mb-8 mt-2">
-        <div className="flex items-center gap-3">
-          <a href={returnPath || "/configuracoes/produtos"} className="inline-flex items-center justify-center h-[40px] px-4 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[14px] font-bold text-slate-900 dark:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm">
-            <span className="mr-1.5 text-slate-500 font-normal">‹</span> Produtos
-          </a>
-          <div className="flex items-center gap-2 text-[14px] ml-1">
-            <span className="text-slate-500">Produtos</span>
-            <span className="text-slate-300 text-[12px]">›</span>
-            <span className="text-slate-900 dark:text-slate-100 font-medium">{defaultValues?.id ? "Editar" : "Novo"}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <h1 className={cn(spaceGrotesk.className, "m-0 text-[32px] font-bold text-[#111827] dark:text-white leading-tight")}>
+      <header className="flex h-[68px] shrink-0 items-center gap-3.5 border-b border-slate-200 px-4 dark:border-slate-800 sm:px-8">
+        <a
+          href={returnPath || "/configuracoes/produtos"}
+          title="Voltar"
+          className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white transition hover:border-[#8B5CF6] dark:border-slate-700 dark:bg-slate-900 dark:hover:border-[#8B5CF6]"
+        >
+          <ChevronLeft className="h-5 w-5 text-slate-900 transition-colors group-hover:text-[#8B5CF6] dark:text-white dark:group-hover:text-[#8B5CF6]" />
+        </a>
+        <div className="flex min-w-0 flex-1 flex-col gap-[1px]">
+          <h1 className={cn(spaceGrotesk.className, "m-0 truncate text-[18px] font-bold text-[#111827] dark:text-white")}>
             {defaultValues?.id ? "Editar produto" : "Cadastrar novo produto"}
           </h1>
-          <p className="m-0 text-[15px] text-slate-500">
-            Preencha as informações do SKU. Os campos marcados com <span className="text-rose-500 font-bold">*</span> são obrigatórios.
-          </p>
+          <div className="flex items-center gap-2 text-[12.5px] text-slate-500">
+            <a href="/configuracoes/produtos" className="hover:underline">
+              Produtos
+            </a>
+            <span>›</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">
+              {defaultValues?.id ? "Editar" : "Novo"}
+            </span>
+          </div>
         </div>
-      </div>
+        <NotificationBell />
+        <SoundToggle forceLight />
+        <ThemeToggle />
+      </header>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-8 flex-wrap">
-        {steps.map((s, i) => {
-          const isActive = activeStep === s.key;
-          return (
-            <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)} 
-              className={cn(
-                "flex items-center gap-3 px-5 py-2.5 rounded-full cursor-pointer transition-all border",
-                isActive 
-                  ? "bg-[#F3E8FF] border-transparent dark:bg-violet-900/40" 
-                  : "bg-white border-slate-200 hover:border-slate-300 dark:bg-slate-950 dark:border-slate-800 dark:hover:border-slate-700 shadow-sm"
-              )}
-            >
-              <span className={cn(
-                spaceGrotesk.className, 
-                "w-[26px] h-[26px] rounded-full flex items-center justify-center text-[13.5px] font-bold shadow-sm",
-                isActive 
-                  ? "bg-gradient-to-br from-[#3B82F6] to-[#8B5CF6] text-white" 
-                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-              )}>
-                {s.n}
-              </span>
-              <span className={cn(
-                "text-[14.5px] font-bold",
-                isActive ? "text-[#6D28D9] dark:text-violet-300" : "text-[#4B5563] dark:text-slate-400"
-              )}>{s.label}</span>
-            </button>
-          );
-        })}
-        {defaultValues?.id && (
-          <button
-            formAction={deleteProdutoAction}
-            type="submit"
-            title="Excluir Produto"
-            className="w-[42px] h-[42px] ml-1 rounded-full flex items-center justify-center border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm bg-white dark:bg-slate-950 dark:border-rose-900/50 dark:hover:bg-rose-900/20"
-          >
-            <Trash2 className="w-[18px] h-[18px]" />
-          </button>
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pb-24 pt-6 sm:px-8 lg:pb-12">
+        {state.message && (
+          <div className={cn("rounded-xl p-4 text-sm font-medium", state.success ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
+            {state.message}
+          </div>
         )}
+
+        <p className="m-0 text-[13px] text-slate-500 dark:text-slate-400">
+          Preencha as informações do SKU. Os campos marcados com <span className="text-rose-500 font-bold">*</span> são obrigatórios.
+        </p>
+
+      {/* Step indicator — aligned to the same grid template as the form column below, so it centers over it (not the sidebar) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+        <div className="flex justify-center mt-8">
+          <div className="flex flex-wrap gap-0.5 rounded-full border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-950">
+            {steps.map((s) => {
+              const isActive = activeStep === s.key;
+              return (
+                <button key={s.key} type="button" onClick={() => handleScrollTo(s.key)}
+                  className={cn(
+                    "whitespace-nowrap rounded-full px-4 py-[9px] text-[13.5px] font-bold transition-all",
+                    isActive
+                      ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white"
+                      : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5"
+                  )}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 pb-32">
@@ -323,7 +318,7 @@ export function ProdutoForm({
           {/* Identificação */}
           <div id="ident" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
             <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10 text-blue-500"><Tag className="w-4 h-4"/></span>
+              <span className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-500"><Tag className="w-4 h-4"/></span>
               <div className="flex flex-col">
                 <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Identificação</span>
                 <span className="text-[12.5px] text-slate-500">Nome, códigos, depositante e categoria</span>
@@ -333,7 +328,7 @@ export function ProdutoForm({
             <div className="p-5 flex flex-col gap-4">
               <label className="flex flex-col gap-2">
                 <span className="text-[13px] font-bold text-slate-500">Nome do produto <span className="text-rose-500">*</span></span>
-                <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
                   <input name="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Ração Golden Formula Cães Adultos 15kg" 
                     className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                 </div>
@@ -342,26 +337,26 @@ export function ProdutoForm({
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">SKU <span className="text-rose-500">*</span></span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
-                    <input name="sku" value={sku} onChange={e => setSku(e.target.value)} placeholder="GLD-15KG-AD" 
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <input name="sku" value={sku} onChange={e => setSku(e.target.value)} placeholder="GLD-15KG-AD"
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Cód. Interno</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
-                    <input name="codigoInterno" value={codigoInterno} onChange={e => setCodigoInterno(e.target.value)} placeholder="Opcional" 
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                    <input name="codigoInterno" value={codigoInterno} onChange={e => setCodigoInterno(e.target.value)} placeholder="Opcional"
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">EAN / GTIN unitário</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
                     <Barcode className="w-4 h-4 text-slate-400 mr-2" />
-                    <input ref={eanInputRef} name="eanGtin" value={eanGtinValue} onChange={e => setEanGtinValue(e.target.value)} placeholder="0000000000000" 
+                    <input ref={eanInputRef} name="eanGtin" value={eanGtinValue} onChange={e => setEanGtinValue(e.target.value)} placeholder="0000000000000"
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                     {cameraSupported && (
-                      <button type="button" onClick={toggleCamera} className={cn("ml-2 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors", cameraEnabled && "text-violet-600 bg-violet-100")}>
+                      <button type="button" onClick={toggleCamera} className={cn("ml-2 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors", cameraEnabled && "text-violet-600 bg-violet-100")}>
                         {cameraEnabled ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
                       </button>
                     )}
@@ -369,7 +364,7 @@ export function ProdutoForm({
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">EAN / GTIN do pack</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
                     <Barcode className="w-4 h-4 text-slate-400 mr-2" />
                     <input name="eanGtinPack" value={eanGtinPackValue} onChange={e => {
                       setEanGtinPackValue(e.target.value);
@@ -391,13 +386,14 @@ export function ProdutoForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="flex flex-col gap-2">
                     <span className="text-[13px] font-bold text-slate-500">Depositante <span className="text-rose-500">*</span></span>
-                    <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
-                      <select name="depositanteId" value={depositanteId} onChange={e => setDepositanteId(e.target.value)}
-                        className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
-                        <option value="">Selecione...</option>
-                        {depositantes.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                      </select>
-                    </div>
+                    <input type="hidden" name="depositanteId" value={depositanteId} />
+                    <PillSelect
+                      value={depositanteId}
+                      onChange={setDepositanteId}
+                      placeholder="Selecione..."
+                      options={depositantes.map(d => ({ value: d.id, label: d.nome }))}
+                      className="w-full"
+                    />
                   </label>
                 </div>
               ) : (
@@ -409,7 +405,7 @@ export function ProdutoForm({
                 <div className="flex gap-2.5 flex-wrap">
                   {Object.keys(catDefs).map(cat => (
                     <button key={cat} type="button" onClick={() => setCategoria(cat)}
-                      className={cn("h-[38px] px-3.5 rounded-xl font-bold text-[13px] cursor-pointer flex items-center gap-2 transition-all border-2",
+                      className={cn("h-[38px] px-3.5 rounded-full font-bold text-[13px] cursor-pointer flex items-center gap-2 transition-all border-2",
                         categoria === cat ? "" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
                       )}
                       style={categoria === cat ? { borderColor: catDefs[cat], background: hex2(catDefs[cat], 0.14), color: catDefs[cat] } : undefined}
@@ -418,8 +414,8 @@ export function ProdutoForm({
                       {cat}
                     </button>
                   ))}
-                  <div className="flex items-center h-[38px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
-                    <input value={Object.keys(catDefs).includes(categoria) ? "" : categoria} onChange={e => setCategoria(e.target.value)} placeholder="Outra..." 
+                  <div className="flex items-center h-[38px] px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                    <input value={Object.keys(catDefs).includes(categoria) ? "" : categoria} onChange={e => setCategoria(e.target.value)} placeholder="Outra..."
                       className="w-[100px] border-none outline-none bg-transparent text-[13px] font-bold" />
                   </div>
                 </div>
@@ -428,7 +424,7 @@ export function ProdutoForm({
               {categoria === "Vestuário" && (
                 <div className="flex flex-col gap-2.5 mt-2">
                   <span className="text-[13px] font-bold text-slate-500">Tamanho da peça (Vestuário) <span className="text-rose-500">*</span></span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all max-w-[200px]">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all max-w-[200px]">
                     <input name="tamanho" value={tamanho} onChange={e => setTamanho(e.target.value)} placeholder="Ex: M, G, GG, 42..." 
                       className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
@@ -453,7 +449,7 @@ export function ProdutoForm({
           {commercialKitEnabled && (
             <div className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
               <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-fuchsia-500/10 text-fuchsia-500">
+                <span className="w-8 h-8 rounded-full flex items-center justify-center bg-fuchsia-500/10 text-fuchsia-500">
                   <Package className="w-4 h-4" />
                 </span>
                 <div className="flex flex-col">
@@ -500,7 +496,7 @@ export function ProdutoForm({
                         placeholder="Ex: kit c/ 2 caldo culinário de legumes sem gluten"
                         className={cn(
                           spaceGrotesk.className,
-                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-medium outline-none focus:border-fuchsia-500",
+                          "h-11 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-4 text-[14px] font-medium outline-none focus:border-fuchsia-500",
                         )}
                       />
                     </label>
@@ -528,12 +524,12 @@ export function ProdutoForm({
                         }
                         className={cn(
                           spaceGrotesk.className,
-                          "h-11 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 text-[14px] font-bold outline-none focus:border-fuchsia-500",
+                          "h-11 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-4 text-[14px] font-bold outline-none focus:border-fuchsia-500",
                         )}
                       />
                     </label>
 
-                    <div className="flex items-end">
+                    <div className="flex items-end pb-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -541,9 +537,9 @@ export function ProdutoForm({
                             current.filter((_, currentIndex) => currentIndex !== index),
                           )
                         }
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-200 text-rose-500 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:hover:bg-rose-950/30"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:scale-[1.08] hover:border-[rgba(251,113,133,0.45)] hover:bg-[rgba(251,113,133,0.12)] dark:border-rose-900/40 dark:hover:border-[rgba(251,113,133,0.45)] dark:hover:bg-[rgba(251,113,133,0.12)]"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-[13px] w-[13px]" />
                       </button>
                     </div>
                   </div>
@@ -563,7 +559,7 @@ export function ProdutoForm({
                         },
                       ])
                     }
-                    className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-[13px] font-bold text-fuchsia-700 transition-colors hover:bg-fuchsia-100 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/20 dark:text-fuchsia-300 dark:hover:bg-fuchsia-950/30"
+                    className="inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-2 text-[13px] font-bold text-fuchsia-700 transition-colors hover:bg-fuchsia-100 dark:border-fuchsia-900/40 dark:bg-fuchsia-950/20 dark:text-fuchsia-300 dark:hover:bg-fuchsia-950/30"
                   >
                     <Plus className="h-4 w-4" />
                     Adicionar regra comercial
@@ -576,7 +572,7 @@ export function ProdutoForm({
 
           <div id="log" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
             <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-violet-500/10 text-violet-500"><Box className="w-4 h-4"/></span>
+              <span className="w-8 h-8 rounded-full flex items-center justify-center bg-violet-500/10 text-violet-500"><Box className="w-4 h-4"/></span>
               <div className="flex flex-col">
                 <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Logística & estocagem</span>
                 <span className="text-[12.5px] text-slate-500">Dimensões, método de entrada e unidade de manuseio</span>
@@ -587,28 +583,28 @@ export function ProdutoForm({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Largura</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.01" value={larguraCm} onChange={e => setLarguraCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                     <span className="text-[12px] text-slate-400">cm</span>
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Altura</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.01" value={alturaCm} onChange={e => setAlturaCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                     <span className="text-[12px] text-slate-400">cm</span>
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Profund.</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.01" value={comprimentoCm} onChange={e => setComprimentoCm(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                     <span className="text-[12px] text-slate-400">cm</span>
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Peso</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.001" value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                     <span className="text-[12px] text-slate-400">kg</span>
                   </div>
@@ -620,7 +616,7 @@ export function ProdutoForm({
                 <div className="flex gap-2 flex-wrap">
                   {["FEFO", "FIFO", "LIFO"].map(m => (
                     <button key={m} type="button" onClick={() => setMetodoRetirada(m as "FEFO" | "FIFO" | "LIFO")}
-                      className={cn(spaceGrotesk.className, "h-[42px] px-4 rounded-xl font-bold text-[13.5px] cursor-pointer transition-all border-2",
+                      className={cn(spaceGrotesk.className, "h-[42px] px-4 rounded-full font-bold text-[13.5px] cursor-pointer transition-all border-2",
                         metodoRetirada === m ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-400" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
                       )}
                     >
@@ -632,13 +628,14 @@ export function ProdutoForm({
 
               <div className="flex flex-col gap-2">
                 <span className="text-[13px] font-bold text-slate-500">Endereço padrão</span>
-                <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500 focus-within:ring-4 focus-within:ring-violet-500/10 transition-all">
-                  <select name="enderecoPadraoId" value={enderecoPadraoId} onChange={e => setEnderecoPadraoId(e.target.value)}
-                    className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium cursor-pointer w-full")}>
-                    <option value="">Nenhum (usa o endereço de triagem no recebimento)</option>
-                    {enderecos.map(e => <option key={e.id} value={e.id}>{e.codigo} · {enderecoAreaLabel(e.area)}</option>)}
-                  </select>
-                </div>
+                <input type="hidden" name="enderecoPadraoId" value={enderecoPadraoId} />
+                <PillSelect
+                  value={enderecoPadraoId}
+                  onChange={setEnderecoPadraoId}
+                  placeholder="Nenhum (usa o endereço de triagem no recebimento)"
+                  options={enderecos.map(e => ({ value: e.id, label: `${e.codigo} · ${enderecoAreaLabel(e.area)}` }))}
+                  className="w-full"
+                />
                 <span className="text-[12px] text-slate-400">Ao concluir um recebimento, as unidades deste produto vão direto para este endereço em vez do endereço de triagem padrão.</span>
               </div>
 
@@ -648,7 +645,7 @@ export function ProdutoForm({
                   <div className="flex gap-2 flex-wrap">
                     {["UNIDADE", "CAIXA", "PACK", "PALLET"].map(u => (
                       <button key={u} type="button" onClick={() => setUnidadeEstocagem(u as "UNIDADE" | "CAIXA" | "PACK" | "PALLET")}
-                        className={cn("h-[42px] px-4 rounded-xl font-bold text-[13px] cursor-pointer transition-all border-2",
+                        className={cn("h-[42px] px-4 rounded-full font-bold text-[13px] cursor-pointer transition-all border-2",
                           unidadeEstocagem === u ? "border-violet-500 bg-violet-500/10 text-violet-600 dark:text-violet-400" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400"
                         )}
                       >
@@ -660,7 +657,7 @@ export function ProdutoForm({
 
                 <label className="flex flex-col gap-2.5" style={{ opacity: isUnit && !eanGtinPackValue ? 0.5 : 1 }}>
                   <span className="text-[13px] font-bold text-slate-500">{eanGtinPackValue ? 'Unidades por pack' : isUnit ? 'Qtd. por embalagem' : 'Qtd. por ' + unidadeEstocagem.toLowerCase()}</span>
-                  <div className={cn("flex items-center h-[42px] px-3 rounded-xl border-2 focus-within:border-violet-500",
+                  <div className={cn("flex items-center h-[42px] px-3 rounded-full border-2 focus-within:border-violet-500",
                        isUnit && !eanGtinPackValue ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   )}>
                     <input name="quantidadePorEmbalagem" value={quantidadePorEmbalagem} onChange={e => setQuantidadePorEmbalagem(e.target.value)}
@@ -673,19 +670,19 @@ export function ProdutoForm({
               <div className="grid grid-cols-3 gap-3">
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Estoque mínimo</span>
-                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-[42px] px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.001" value={qtdMinima} onChange={e => setQtdMinima(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Estoque máximo</span>
-                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-[42px] px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.001" value={qtdMaxima} onChange={e => setQtdMaxima(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Ponto de reposição</span>
-                  <div className="flex items-center h-[42px] px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-[42px] px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <input type="number" step="0.001" value={pontoReposicao} onChange={e => setPontoReposicao(e.target.value)} placeholder="0" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
                 </label>
@@ -696,7 +693,7 @@ export function ProdutoForm({
           {/* Custos (Visual Only for now) */}
           <div id="cost" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
             <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-500"><DollarSign className="w-4 h-4"/></span>
+              <span className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-500/10 text-amber-500"><DollarSign className="w-4 h-4"/></span>
               <div className="flex flex-col">
                 <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Custos & Fornecimento</span>
                 <span className="text-[12.5px] text-slate-500">Valor base para relatórios e ressuprimento</span>
@@ -705,7 +702,7 @@ export function ProdutoForm({
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Fornecedor principal</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                     <input 
                       placeholder="Nome da empresa" 
                       value={fornecedor}
@@ -716,7 +713,7 @@ export function ProdutoForm({
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-[13px] font-bold text-slate-500">Custo de reposição (R$)</span>
-                  <div className="flex items-center h-12 px-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
+                  <div className="flex items-center h-12 px-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus-within:border-violet-500">
                     <span className="text-[14px] text-slate-400 mr-2 font-bold">R$</span>
                     <input type="number" step="0.01" value={custoReposicao} onChange={e => setCustoReposicao(e.target.value)} placeholder="0,00" className={cn(spaceGrotesk.className, "flex-1 min-w-0 border-none outline-none bg-transparent text-[14.5px] font-medium")} />
                   </div>
@@ -727,7 +724,7 @@ export function ProdutoForm({
           {/* Controles */}
           <div id="ctrl" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
             <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-              <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-teal-500/10 text-teal-500"><ShieldCheck className="w-4 h-4"/></span>
+              <span className="w-8 h-8 rounded-full flex items-center justify-center bg-teal-500/10 text-teal-500"><ShieldCheck className="w-4 h-4"/></span>
               <div className="flex flex-col">
                 <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Controles de operação</span>
                 <span className="text-[12.5px] text-slate-500">Lote, validade e status do SKU</span>
@@ -740,12 +737,12 @@ export function ProdutoForm({
                     exigeValidade ? "border-violet-500 bg-violet-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   )}
                 >
-                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", exigeValidade ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Calendar className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-full flex items-center justify-center", exigeValidade ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Calendar className="w-5 h-5"/></span>
                   <div className="flex flex-col flex-1 gap-1">
                     <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de validade</span>
                     <span className="text-[12px] text-slate-500 leading-snug">Exige data de vencimento em cada entrada e aplica giro FEFO.</span>
                   </div>
-                  <div className={cn("w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center", exigeValidade ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
+                  <div className={cn("w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center", exigeValidade ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
                     {exigeValidade && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </button>
@@ -755,12 +752,12 @@ export function ProdutoForm({
                     exigeLote ? "border-violet-500 bg-violet-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                   )}
                 >
-                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", exigeLote ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Layers className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-full flex items-center justify-center", exigeLote ? "bg-violet-500/20 text-violet-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Layers className="w-5 h-5"/></span>
                   <div className="flex flex-col flex-1 gap-1">
                     <span className="text-[14px] font-bold text-slate-900 dark:text-slate-100">Controle de lote</span>
                     <span className="text-[12px] text-slate-500 leading-snug">Rastreia nº de lote para recall e rastreabilidade completa.</span>
                   </div>
-                  <div className={cn("w-5 h-5 shrink-0 rounded-md border-2 flex items-center justify-center", exigeLote ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
+                  <div className={cn("w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center", exigeLote ? "border-violet-500 bg-violet-500" : "border-slate-200 dark:border-slate-700 bg-transparent")}>
                     {exigeLote && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                 </button>
@@ -770,7 +767,7 @@ export function ProdutoForm({
 
               <div className={cn("flex items-center justify-between p-4 rounded-[14px] border-2", ativo ? "border-transparent bg-emerald-500/10" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900")}>
                 <div className="flex items-center gap-3.5">
-                  <span className={cn("w-10 h-10 shrink-0 rounded-xl flex items-center justify-center", ativo ? "bg-emerald-500/20 text-emerald-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Archive className="w-5 h-5"/></span>
+                  <span className={cn("w-10 h-10 shrink-0 rounded-full flex items-center justify-center", ativo ? "bg-emerald-500/20 text-emerald-500" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}><Archive className="w-5 h-5"/></span>
                   <div className="flex flex-col">
                     <span className="text-[14.5px] font-bold text-slate-900 dark:text-slate-100">Status: {ativo ? 'Ativo' : 'Inativo'}</span>
                     <span className="text-[12.5px] text-slate-500">{ativo ? 'Disponível para recebimento, picking e venda.' : 'Oculto das operações - não recebe nem separa.'}</span>
@@ -787,14 +784,14 @@ export function ProdutoForm({
           {productKitEnabled && (
             <div id="kit" className="rounded-[18px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden scroll-mt-4">
               <div className="flex items-center gap-3 py-4 px-5 border-b border-slate-100 dark:border-slate-800">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-500/10 text-indigo-500"><Layers className="w-4 h-4"/></span>
+                <span className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500"><Layers className="w-4 h-4"/></span>
                 <div className="flex flex-col flex-1">
                   <span className={cn(spaceGrotesk.className, "text-[15.5px] font-bold text-slate-900 dark:text-slate-100")}>Composição (Kit)</span>
                   <span className="text-[12.5px] text-slate-500">Agrupe vários SKUs para formar um novo produto</span>
                 </div>
                 <div className="flex items-center gap-2">
-                   <button type="button" onClick={() => setTipoProduto("SIMPLES")} className={cn("px-3 py-1.5 rounded-lg text-[13px] font-bold transition-all", tipoProduto === "SIMPLES" ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Simples</button>
-                   <button type="button" onClick={() => setTipoProduto("KIT")} className={cn("px-3 py-1.5 rounded-lg text-[13px] font-bold transition-all", tipoProduto === "KIT" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Produto Kit</button>
+                   <button type="button" onClick={() => setTipoProduto("SIMPLES")} className={cn("px-3 py-1.5 rounded-full text-[13px] font-bold transition-all", tipoProduto === "SIMPLES" ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700")}>Simples</button>
+                   <button type="button" onClick={() => setTipoProduto("KIT")} className={cn("px-3 py-1.5 rounded-full text-[13px] font-bold transition-all", tipoProduto === "KIT" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700")}>Produto Kit</button>
                 </div>
               </div>
               
@@ -803,11 +800,11 @@ export function ProdutoForm({
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] font-bold text-slate-600 dark:text-slate-400">SKUs que compõem este kit</span>
                     <button type="button" onClick={() => setKitComponents(c => [...c, { key: `comp-${Date.now()}`, componentProductId: "", quantity: 1 }])}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[12.5px] font-bold text-indigo-600 hover:border-indigo-300 transition-colors">
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[12.5px] font-bold text-indigo-600 hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Adicionar SKU
                     </button>
                   </div>
-                  
+
                   {kitComponents.length === 0 && (
                     <div className="p-6 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
                       <span className="text-[13px] font-bold text-slate-400">Nenhum componente adicionado.</span>
@@ -818,21 +815,23 @@ export function ProdutoForm({
                     <div key={comp.key} className="flex gap-3 items-center p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <div className="flex-1 flex flex-col gap-1.5">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SKU Componente {idx + 1}</span>
-                        <select value={comp.componentProductId} onChange={e => setKitComponents(c => c.map((x, i) => i === idx ? { ...x, componentProductId: e.target.value } : x))}
-                          className={cn(spaceGrotesk.className, "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-10 px-3 rounded-xl text-[13.5px] font-bold outline-none focus:border-indigo-500")}>
-                          <option value="">Selecione o produto...</option>
-                          {filteredProductOptions.map(o => <option key={o.id} value={o.id}>{o.codigoInterno ? `[${o.codigoInterno}] ` : ""}{o.nome}</option>)}
-                        </select>
+                        <PillSelect
+                          value={comp.componentProductId}
+                          onChange={(v) => setKitComponents(c => c.map((x, i) => i === idx ? { ...x, componentProductId: v } : x))}
+                          placeholder="Selecione o produto..."
+                          options={filteredProductOptions.map(o => ({ value: o.id, label: `${o.codigoInterno ? `[${o.codigoInterno}] ` : ""}${o.nome}` }))}
+                          className="w-full"
+                        />
                       </div>
                       <div className="w-[100px] flex flex-col gap-1.5">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Qtd</span>
                         <input type="number" min="1" value={comp.quantity} onChange={e => setKitComponents(c => c.map((x, i) => i === idx ? { ...x, quantity: parseInt(e.target.value) || 1 } : x))}
-                          className={cn(spaceGrotesk.className, "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-10 px-3 rounded-xl text-[14px] font-bold outline-none focus:border-indigo-500")} />
+                          className={cn(spaceGrotesk.className, "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 h-10 px-3 rounded-full text-[14px] font-bold outline-none focus:border-indigo-500")} />
                       </div>
                       <div className="pt-5">
                         <button type="button" onClick={() => setKitComponents(c => c.filter((_, i) => i !== idx))}
-                          className="w-10 h-10 flex items-center justify-center rounded-xl text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                          <Trash2 className="w-4 h-4" />
+                          className="w-7 h-7 flex items-center justify-center rounded-full border border-transparent text-rose-400 transition hover:scale-[1.08] hover:border-[rgba(251,113,133,0.45)] hover:bg-[rgba(251,113,133,0.12)] hover:text-rose-600 dark:hover:border-[rgba(251,113,133,0.45)] dark:hover:bg-[rgba(251,113,133,0.12)]">
+                          <Trash2 className="w-[13px] h-[13px]" />
                         </button>
                       </div>
                     </div>
@@ -867,7 +866,7 @@ export function ProdutoForm({
               )}
               
               <label className="absolute inset-0 z-20 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                <div className="w-10 h-10 rounded-xl bg-black/40 text-white flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-black/40 text-white flex items-center justify-center shadow-lg">
                   <Upload className="w-5 h-5" />
                 </div>
                 <input type="file" name="imageFile" className="hidden" accept="image/png, image/jpeg, image/webp" 
@@ -887,7 +886,7 @@ export function ProdutoForm({
                     setImagePreviewUrl("");
                     setRemoveImage(true);
                   }}
-                  className="absolute bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-xl border border-rose-200/70 bg-white/92 px-3 py-2 text-[12.5px] font-bold text-rose-600 shadow-sm backdrop-blur-md transition hover:border-rose-300 hover:bg-white dark:border-rose-500/30 dark:bg-slate-950/90 dark:text-rose-300 dark:hover:border-rose-400/40"
+                  className="absolute bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-full border border-rose-200/70 bg-white/92 px-3 py-2 text-[12.5px] font-bold text-rose-600 shadow-sm backdrop-blur-md transition hover:border-rose-300 hover:bg-white dark:border-rose-500/30 dark:bg-slate-950/90 dark:text-rose-300 dark:hover:border-rose-400/40"
                 >
                   <Trash2 className="h-4 w-4" />
                   Remover foto
@@ -920,12 +919,12 @@ export function ProdutoForm({
 
               <div className="flex gap-2 flex-wrap mb-5">
                 {exigeValidade && (
-                  <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1 bg-amber-500/15 text-amber-600">
+                  <span className="px-2.5 py-1 rounded-full text-[11.5px] font-bold flex items-center gap-1 bg-amber-500/15 text-amber-600">
                     <Calendar className="w-3 h-3"/> Validade
                   </span>
                 )}
                 {exigeLote && (
-                  <span className="px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1 bg-violet-500/15 text-violet-600 dark:text-violet-400">
+                  <span className="px-2.5 py-1 rounded-full text-[11.5px] font-bold flex items-center gap-1 bg-violet-500/15 text-violet-600 dark:text-violet-400">
                     <Layers className="w-3 h-3"/> Lote
                   </span>
                 )}
@@ -982,18 +981,19 @@ export function ProdutoForm({
           </div>
         </div>
       </div>
+      </div>
 
-      {/* Fixed Footer Actions */}
-      <div className="fixed bottom-0 right-0 z-50 w-full lg:w-[calc(100vw-var(--sidebar-width,288px))] flex items-center gap-4 px-6 py-4 sm:py-5 border-t border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.05)] flex-wrap">
+      {/* Fixed Footer Actions — floating pill bar, inset from every edge (not flush against the sidebar) */}
+      <div className="fixed bottom-4 left-4 right-4 sm:left-8 sm:right-8 lg:left-[calc(var(--sidebar-width,264px)+28px+32px)] z-50 flex items-center gap-4 rounded-[18px] border border-slate-200 bg-white/90 px-6 py-4 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90 sm:py-5 flex-wrap">
         <span className="text-[13px] text-slate-400 hidden sm:block">Rascunho salvo automaticamente</span>
         <div className="flex-1" />
-        <a href={returnPath || "/configuracoes/produtos"} className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>
+        <a href={returnPath || "/configuracoes/produtos"} className={cn(spaceGrotesk.className, "h-11 px-5 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 dark:hover:border-violet-500 transition-colors shadow-sm")}>
           Cancelar
         </a>
-        <button type="button" className={cn(spaceGrotesk.className, "h-11 px-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 transition-colors shadow-sm")}>
+        <button type="button" className={cn(spaceGrotesk.className, "h-11 px-5 rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-[14px] flex items-center justify-center hover:border-violet-500 dark:hover:border-violet-500 transition-colors shadow-sm")}>
           Salvar rascunho
         </button>
-        <Button type="submit" disabled={isPending} className={cn(spaceGrotesk.className, "h-11 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white font-bold shadow-lg shadow-violet-500/30 hover:-translate-y-[1px] transition-all")}>
+        <button type="submit" disabled={isPending} className={cn(spaceGrotesk.className, "produto-cta-btn h-11 px-6 rounded-full text-white font-bold inline-flex items-center justify-center disabled:pointer-events-none disabled:opacity-50")}>
           {isPending ? (
             <MobileButtonSpinner />
           ) : (
@@ -1002,9 +1002,72 @@ export function ProdutoForm({
               {defaultValues?.id ? "Salvar alterações" : "Cadastrar produto"}
             </>
           )}
-        </Button>
+        </button>
+        {defaultValues?.id && (
+          <button
+            type="button"
+            onClick={() => setDeleteConfirmOpen(true)}
+            title="Excluir Produto"
+            className="h-11 w-11 rounded-full flex items-center justify-center border border-rose-200 text-rose-500 transition hover:scale-[1.08] hover:border-[rgba(251,113,133,0.45)] hover:bg-[rgba(251,113,133,0.12)] hover:text-rose-600 shadow-sm bg-white dark:bg-slate-950 dark:border-rose-900/50 dark:hover:border-[rgba(251,113,133,0.45)] dark:hover:bg-[rgba(251,113,133,0.12)]"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+        <style jsx>{`
+          .produto-cta-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #3b82f6 100%);
+            background-size: 220% 100%;
+            background-position: 0% 50%;
+            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.32);
+            transition: background-position 0.6s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+          }
+          .produto-cta-btn:hover:not(:disabled) {
+            background-position: 100% 50%;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(99, 140, 255, 0.45);
+          }
+        `}</style>
       </div>
 
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-6">
+          <div
+            className="absolute inset-0 bg-[rgba(6,10,20,0.6)] backdrop-blur-sm"
+            onClick={() => setDeleteConfirmOpen(false)}
+          />
+          <div className="relative flex w-[420px] max-w-[94vw] flex-col gap-4 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_26px_64px_rgba(0,0,0,0.45)] dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-center gap-3.5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[rgba(239,68,68,0.14)] text-[#EF4444]">
+                <Trash2 className="h-[22px] w-[22px]" />
+              </span>
+              <div className="flex flex-col gap-[3px]">
+                <span className={cn(spaceGrotesk.className, "text-[18px] font-bold text-slate-900 dark:text-white")}>Excluir produto?</span>
+                <span className="text-[13px] leading-[1.4] text-slate-500 dark:text-slate-400">Esta ação não pode ser desfeita.</span>
+              </div>
+            </div>
+            <div className="rounded-full border border-slate-200 bg-[rgba(148,163,184,0.06)] px-4 py-3.5 text-[13.5px] font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
+              {nome || "Produto sem nome"}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="h-12 flex-1 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-700 transition-colors hover:border-violet-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-violet-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                formAction={deleteProdutoAction}
+                style={{ background: "#EF4444", color: "#fff" }}
+                className="h-12 flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_22px_rgba(239,68,68,0.35)] transition-transform hover:-translate-y-px"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
