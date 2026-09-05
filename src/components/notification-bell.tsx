@@ -52,6 +52,18 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setExpanded(false);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   function closePanel() {
     setOpen(false);
     setExpanded(false);
@@ -131,7 +143,11 @@ export function NotificationBell() {
             "z-50 flex flex-col overflow-hidden shadow-xl",
             isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white",
             expanded
-              ? "fixed inset-0 rounded-none border-0"
+              // Para no começo do conteúdo, sem cobrir a sidebar fixa --
+              // --sidebar-width é a mesma CSS var que o app-chrome.tsx usa
+              // pra reservar o espaço dela (herdada do wrapper root, já que
+              // este painel sempre renderiza dentro do <main>).
+              ? "fixed inset-y-0 right-0 left-0 lg:left-[calc(var(--sidebar-width)+28px)] rounded-none border-0"
               : "absolute right-0 top-[38px] w-[340px] max-w-[90vw] rounded-xl border",
           )}
         >
