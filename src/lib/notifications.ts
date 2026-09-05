@@ -19,6 +19,18 @@ export type NotificationType =
   | "FATURA_VENCIDA"
   | "ESTOQUE_BAIXO";
 
+// OPERADOR só acompanha o operacional do dia a dia (romaneio liberado,
+// quarentena, recebimento concluído, cancelamento de expedição solicitado).
+// Divergências (inventário/recebimento/expedição), financeiro (fatura) e
+// estoque mínimo ficam só pra ADMIN/TI -- decisão do usuário em 2026-09-05,
+// ADMIN/TI continuam vendo todos os 10 tipos, sem filtro.
+const OPERADOR_NOTIFICATION_TYPES: ReadonlyArray<NotificationType> = [
+  "ROMANEIO_LIBERADO",
+  "QUARENTENA_CRIADA",
+  "RECEBIMENTO_CONCLUIDO",
+  "EXPEDICAO_CANCELAMENTO_ABERTO",
+];
+
 export type AppNotification = {
   id: string;
   tipo: NotificationType;
@@ -90,6 +102,10 @@ export async function listNotificationsForUser(
     query = query.eq("depositante_id", user.depositanteId);
   } else if (overrideDepositanteId) {
     query = query.eq("depositante_id", overrideDepositanteId);
+  }
+
+  if (user.papel === "OPERADOR") {
+    query = query.in("tipo", OPERADOR_NOTIFICATION_TYPES);
   }
 
   const { data: rows, error } = await query;
