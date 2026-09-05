@@ -14,7 +14,10 @@ export type NotificationType =
   | "RECEBIMENTO_CONCLUIDO"
   | "RECEBIMENTO_DIVERGENTE"
   | "EXPEDICAO_CANCELAMENTO_ABERTO"
-  | "EXPEDICAO_DIVERGENTE";
+  | "EXPEDICAO_DIVERGENTE"
+  | "FATURA_GERADA"
+  | "FATURA_VENCIDA"
+  | "ESTOQUE_BAIXO";
 
 export type AppNotification = {
   id: string;

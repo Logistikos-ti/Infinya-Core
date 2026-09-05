@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/fechamento-mensal",
       "schedule": "0 23 28-31 * *"
+    },
+    {
+      "path": "/api/cron/check-estoque-baixo",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-faturas-vencidas",
+      "schedule": "0 7 * * *"
     }
   ]
 }

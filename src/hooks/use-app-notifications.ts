@@ -12,7 +12,10 @@ export type AppNotification = {
     | "RECEBIMENTO_CONCLUIDO"
     | "RECEBIMENTO_DIVERGENTE"
     | "EXPEDICAO_CANCELAMENTO_ABERTO"
-    | "EXPEDICAO_DIVERGENTE";
+    | "EXPEDICAO_DIVERGENTE"
+    | "FATURA_GERADA"
+    | "FATURA_VENCIDA"
+    | "ESTOQUE_BAIXO";
   titulo: string;
   mensagem: string;
   link: string | null;

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Bell, CheckCheck, ClipboardList, Maximize2, MessageCircle, Minimize2, PackageCheck, PackageX, TriangleAlert, Truck, X } from "lucide-react";
+import { Ban, Bell, CheckCheck, CircleAlert, ClipboardList, Maximize2, MessageCircle, Minimize2, PackageCheck, PackageSearch, PackageX, Receipt, TriangleAlert, Truck, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAppNotifications, type AppNotification } from "@/hooks/use-app-notifications";
@@ -26,6 +26,9 @@ const TYPE_ICON: Record<AppNotification["tipo"], React.ReactNode> = {
   RECEBIMENTO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
   EXPEDICAO_CANCELAMENTO_ABERTO: <Ban className="h-4 w-4" />,
   EXPEDICAO_DIVERGENTE: <TriangleAlert className="h-4 w-4" />,
+  FATURA_GERADA: <Receipt className="h-4 w-4" />,
+  FATURA_VENCIDA: <CircleAlert className="h-4 w-4" />,
+  ESTOQUE_BAIXO: <PackageSearch className="h-4 w-4" />,
 };
 
 // Mesma chave do SoundToggle (src/components/sound-toggle.tsx) -- ausente
