@@ -88,6 +88,16 @@ export function FecharRomaneioClient({
   const [manualCode, setManualCode] = useState("");
   const overlayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Enquanto o aviso verde/vermelho/amarelo está na tela, novas leituras são
+  // ignoradas de propósito -- sem isso, um código ainda em frente à câmera
+  // podia sofrer uma falha de leitura momentânea (tremida de mão, foco
+  // ajustando) entre um frame e outro; requirePresenceGap (400ms) do
+  // useCameraBarcodeScanner então tratava isso como "código saiu e voltou",
+  // disparando handleDoubleCheckScan de novo por baixo do aviso ainda
+  // visível -- lido pelo usuário como "fica bipando várias vezes, certo ou
+  // errado". Usa timestamp (não um booleano) pra não precisar de outro
+  // setState/re-render só pra isso.
+  const scanLockedUntilRef = useRef(0);
   const barcodeBufferRef = useRef<string>("");
   const barcodeLastKeyTimeRef = useRef<number>(0);
 
@@ -177,12 +187,15 @@ export function FecharRomaneioClient({
   // MobileScanOverlay component reads consistently across the app.
   function flash(next: ScanOverlayState) {
     setOverlay(next);
+    scanLockedUntilRef.current = Date.now() + 1300;
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     overlayTimerRef.current = setTimeout(() => setOverlay(null), 1300);
   }
 
   // Handle barcode/DANFE scan in double check
   const handleDoubleCheckScan = useCallback((rawCode: string) => {
+    if (Date.now() < scanLockedUntilRef.current) return;
+
     const code = (rawCode || "").trim();
     if (!code) return;
 
