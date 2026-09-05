@@ -141,14 +141,20 @@ export function NotificationBell() {
         <div
           className={cn(
             "z-50 flex flex-col overflow-hidden shadow-xl",
-            isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white",
             expanded
-              // Para no começo do conteúdo, sem cobrir a sidebar fixa --
-              // --sidebar-width é a mesma CSS var que o app-chrome.tsx usa
-              // pra reservar o espaço dela (herdada do wrapper root, já que
-              // este painel sempre renderiza dentro do <main>).
-              ? "fixed inset-y-0 right-0 left-0 lg:left-[calc(var(--sidebar-width)+28px)] rounded-none border-0"
-              : "absolute right-0 top-[38px] w-[340px] max-w-[90vw] rounded-xl border",
+              ? [
+                  // Expandido: mesma cor de fundo do resto do software (var
+                  // --background, já mapeada pro utilitário bg-background em
+                  // globals.css), pra parecer parte da página, não um card
+                  // flutuante por cima dela.
+                  "bg-background",
+                  // Para no começo do conteúdo, sem cobrir a sidebar fixa --
+                  // --sidebar-width é a mesma CSS var que o app-chrome.tsx usa
+                  // pra reservar o espaço dela (herdada do wrapper root, já
+                  // que este painel sempre renderiza dentro do <main>).
+                  "fixed inset-y-0 right-0 left-0 lg:left-[calc(var(--sidebar-width)+28px)] rounded-none border-0",
+                ]
+              : [isDark ? "border-[#1E293B] bg-[#0C1424]" : "border-slate-200 bg-white", "absolute right-0 top-[38px] w-[340px] max-w-[90vw] rounded-xl border"],
           )}
         >
           <div
